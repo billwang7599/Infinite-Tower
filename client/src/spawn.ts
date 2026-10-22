@@ -5,7 +5,7 @@ import {
 import {
   type Entity, type Vec3, Player, PlayerInput, LocalPlayer, Platform, PLAYER, TOWER, generateFloor,
 } from "@infinite-tower/shared";
-import { Body, Meshes, SpriteView } from "./components.js";
+import { Body, Meshes, SideWall, SpriteView } from "./components.js";
 import { Layer, type GameContext } from "./context.js";
 import { zoneIndex } from "./materials.js";
 
@@ -101,6 +101,7 @@ export function spawnFloor(ctx: GameContext, floor: number): Entity[] {
     wall.freezeWorldMatrix();
     const we = world.spawn();
     world.add(we, Body, { aggregate, mesh: wall });
+    world.add(we, SideWall, { side: side as -1 | 1 });
     entities.push(we);
   }
 

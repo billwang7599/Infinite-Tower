@@ -19,7 +19,7 @@ export function hudSystem(ctx: GameContext, el: HTMLElement): System {
     const html =
       `Floor ${floor} &nbsp;·&nbsp; Best ${player.bestFloor}<br>` +
       `<small>${ZONES[zoneIndex(floor)]!.name} · checkpoint ${checkpoint} · ${fps} fps · ${world.entityCount} entities</small><br>` +
-      `<small>WASD / arrows to move · Space to jump</small>`;
+      `<small>WASD to move · Space to jump · Arrows to turn the camera</small>`;
     if (html !== last) { el.innerHTML = html; last = html; }
   };
 }

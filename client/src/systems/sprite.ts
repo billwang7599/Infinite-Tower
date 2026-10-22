@@ -13,7 +13,9 @@ export function spriteSystem(ctx: GameContext): System {
       const b = body.aggregate.body;
       b.getLinearVelocityToRef(vel);
 
-      if (Math.abs(vel.x) > 0.3) sprite.facing = vel.x > 0 ? 1 : -1;
+      // Face left/right on screen: project velocity onto the camera's right vector.
+      const screenX = vel.x * Math.cos(ctx.view.yaw) + vel.z * Math.sin(ctx.view.yaw);
+      if (Math.abs(screenX) > 0.3) sprite.facing = screenX > 0 ? 1 : -1;
 
       const speed = Math.hypot(vel.x, vel.z);
       sprite.walkPhase = player.grounded && speed > 0.5 ? sprite.walkPhase + dt * speed * 2.4 : 0;

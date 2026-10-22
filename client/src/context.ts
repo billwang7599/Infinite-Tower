@@ -13,6 +13,8 @@ export interface GameContext {
   keyboard: Keyboard;
   materials: Materials;
   seed: number;
+  /** Orbit angles of the follow camera (radians), driven by the arrow keys. Movement is relative to yaw. */
+  view: { yaw: number; pitch: number };
 }
 
 /** Havok collision filter groups (bit masks). */

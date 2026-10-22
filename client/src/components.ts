@@ -29,6 +29,9 @@ export const SpriteView = defineComponent<SpriteViewData>("SpriteView");
 export interface MeshesData { meshes: Mesh[] }
 export const Meshes = defineComponent<MeshesData>("Meshes");
 
+/** Tags a side wall (-1 left, +1 right) so the camera can fade it when orbiting to that side. */
+export const SideWall = defineComponent<{ side: -1 | 1 }>("SideWall");
+
 export function registerDisposers(world: World): void {
   world.onRemove(Body, (_e, b) => {
     b.aggregate.dispose();

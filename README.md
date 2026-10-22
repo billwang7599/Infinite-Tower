@@ -10,7 +10,7 @@ npm run typecheck
 npm run build
 ```
 
-Controls: WASD / arrows to move, Space to jump (hold for higher). Checkpoint every 10 floors; fall too far and you respawn there.
+Controls: WASD to move (relative to the camera), Space to jump (hold for higher), arrow keys to orbit the camera (left/right turn, up/down tilt). Checkpoint every 10 floors; fall too far and you respawn there.
 
 ## Layout
 

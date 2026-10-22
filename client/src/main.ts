@@ -2,7 +2,7 @@ import { Engine, HavokPlugin, Scene, UniversalCamera, Vector3 } from "@babylonjs
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
 import { World, GRAVITY, FIXED_DT, Player, LocalPlayer, Platform, type System } from "@infinite-tower/shared";
-import { Body, registerDisposers } from "./components.js";
+import { Body, SideWall, registerDisposers } from "./components.js";
 import type { GameContext } from "./context.js";
 import { Keyboard } from "./input.js";
 import { createMaterials } from "./materials.js";
@@ -47,6 +47,7 @@ async function main(): Promise<void> {
     world, scene, physics: physics as GameContext["physics"], havok, camera,
     keyboard: new Keyboard(), materials: createMaterials(scene),
     seed: Number(new URLSearchParams(location.search).get("seed") ?? 1337),
+    view: { yaw: 0, pitch: 0.15 },
   };
   const { lantern } = setupLook(scene, camera);
 
@@ -76,7 +77,7 @@ async function main(): Promise<void> {
 
   // Dev handle: inspect from the browser console.
   if (import.meta.env.DEV || new URLSearchParams(location.search).has("debug")) {
-    Object.assign(window, { game: ctx, components: { Player, LocalPlayer, Platform, Body } });
+    Object.assign(window, { game: ctx, components: { Player, LocalPlayer, Platform, Body, SideWall } });
   }
 }
 
