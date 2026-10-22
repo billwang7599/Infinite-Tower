@@ -44,10 +44,12 @@ export class Mouse {
   private dx = 0;
   private dy = 0;
   locked = false;
+  /** Only capture the mouse when the current mode wants it (the arena). */
+  canLock = true;
 
   constructor(canvas: HTMLCanvasElement) {
     canvas.addEventListener("click", () => {
-      if (!this.locked) void canvas.requestPointerLock?.();
+      if (!this.locked && this.canLock) void canvas.requestPointerLock?.();
     });
     document.addEventListener("pointerlockchange", () => {
       this.locked = document.pointerLockElement === canvas;
@@ -65,6 +67,12 @@ export class Mouse {
       this.dy += e.movementY;
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
+  release(): void {
+    if (this.locked) document.exitPointerLock();
+    this.down.clear();
+    this.pressed.clear();
   }
 
   isDown(button: number): boolean {

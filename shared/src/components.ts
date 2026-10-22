@@ -105,3 +105,36 @@ export interface BoarData {
   poise: number;
 }
 export const Boar = defineComponent<BoarData>("Boar");
+
+// ---------------------------------------------------------------------------------------------
+// Overworld (2D map). Separate entities from the arena fighters; they share the World.
+
+/** Position on the 2D map (tiles). */
+export interface MapPosData { x: number; z: number }
+export const MapPos = defineComponent<MapPosData>("MapPos");
+
+export interface MapPlayerData {
+  vx: number;
+  vz: number;
+  facing: 1 | -1;
+  /** Tiles walked in tall grass since the last encounter roll. */
+  grassDist: number;
+  /** Seconds left without encounters (after a fight). */
+  safeTime: number;
+}
+export const MapPlayer = defineComponent<MapPlayerData>("MapPlayer");
+
+export type MapBoarState = "idle" | "wander" | "notice" | "chase";
+export interface MapBoarData {
+  state: MapBoarState;
+  t: number;
+  /** How long to idle. */
+  duration: number;
+  /** Wander target. */
+  tx: number;
+  tz: number;
+  vx: number;
+  vz: number;
+  facing: 1 | -1;
+}
+export const MapBoar = defineComponent<MapBoarData>("MapBoar");

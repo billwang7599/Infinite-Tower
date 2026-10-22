@@ -10,7 +10,7 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
       <div class="bar st"><div class="fill"></div></div>
     </div>
     <div id="boss"><div class="name">Wild Boar</div><div class="bar boss"><div class="lag"></div><div class="fill"></div></div></div>
-    <div id="banner"><div class="title"></div><div class="sub">Press R to fight again</div></div>
+    <div id="banner"><div class="title"></div><div class="sub">Press Enter to continue</div></div>
     <div id="capture">Click to capture the mouse</div>`;
   const $ = (sel: string) => root.querySelector(sel) as HTMLElement;
   const els = {

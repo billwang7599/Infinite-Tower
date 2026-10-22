@@ -2,7 +2,8 @@
  * Procedural textures and shared materials, so the prototype needs no asset files.
  * Swap these for real art later; nothing else depends on how they're made.
  */
-import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
+import { Color3, DynamicTexture, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
+import { drawPlayerDown, drawPlayerIdle, drawPlayerSlash, spriteMaterial, spriteTexture } from "./sprites.js";
 
 export interface Materials {
   grass: StandardMaterial;
@@ -17,7 +18,7 @@ export interface Materials {
 }
 
 /** Deterministic pseudo-random, so textures look the same every run. */
-function rng(seed: number): () => number {
+export function rng(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -51,56 +52,6 @@ function speckleTexture(scene: Scene, name: string, base: string, specks: string
   tex.update();
   tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
   return tex;
-}
-
-type Px = (x: number, y: number, w: number, h: number, color: string) => void;
-
-/** A 24x24 "pixel" sprite frame (8 texels per pixel), drawn facing right. */
-function spriteTexture(scene: Scene, name: string, draw: (px: Px) => void): DynamicTexture {
-  const n = 192;
-  const tex = new DynamicTexture(name, { width: n, height: n }, scene, false, Texture.NEAREST_SAMPLINGMODE);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, n, n);
-  draw((x, y, w, h, color) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * 8, y * 8, w * 8, h * 8);
-  });
-  tex.update();
-  tex.hasAlpha = true;
-  return tex;
-}
-
-const C = {
-  boot: "#2a1d16", leg: "#3b4a6b", cloak: "#c0453a", cloakHi: "#d9584a", cloakLo: "#8e2f27",
-  buckle: "#f2c14e", skin: "#f1c9a5", eye: "#1b1b2a", hoodTip: "#a8392f",
-  blade: "#dfe6f0", bladeHi: "#ffffff", guard: "#c9a03a", grip: "#5a3a1e",
-};
-
-/** Hooded adventurer body, shared by the standing frames. ox shifts it horizontally. */
-function drawBody(px: Px, ox: number): void {
-  px(ox + 4, 22, 3, 2, C.boot); px(ox + 9, 22, 3, 2, C.boot);
-  px(ox + 5, 18, 2, 4, C.leg); px(ox + 9, 18, 2, 4, C.leg);
-  px(ox + 3, 10, 10, 9, C.cloak);
-  px(ox + 4, 11, 8, 7, C.cloakHi);
-  px(ox + 3, 17, 10, 1, C.cloakLo);
-  px(ox + 7, 17, 2, 1, C.buckle);
-  px(ox + 4, 3, 8, 8, C.cloakLo);
-  px(ox + 6, 5, 6, 5, C.skin);
-  px(ox + 9, 6, 2, 2, C.eye);
-  px(ox + 5, 2, 5, 2, C.hoodTip);
-}
-
-function spriteMaterial(scene: Scene, name: string, tex: DynamicTexture): StandardMaterial {
-  const m = new StandardMaterial(name, scene);
-  m.diffuseTexture = tex;
-  m.emissiveTexture = tex; // mostly unlit: sprites keep their colors
-  // Alpha *test* (not blend): crisp pixel edges, no sorting issues. Babylon 9 tests the final
-  // alpha, so the texture's alpha must also be wired in via useAlphaFromDiffuseTexture.
-  m.useAlphaFromDiffuseTexture = true;
-  m.transparencyMode = Material.MATERIAL_ALPHATEST;
-  m.specularColor = Color3.Black();
-  m.backFaceCulling = false;
-  return m;
 }
 
 function blobTexture(scene: Scene): DynamicTexture {
@@ -169,31 +120,6 @@ export function createMaterials(scene: Scene): Materials {
   shadow.emissiveColor = Color3.Black();
   shadow.zOffset = -2; // avoid z-fighting with the ground
 
-  const idle = spriteTexture(scene, "player-idle", (px) => {
-    drawBody(px, 4);
-    px(16, 12, 2, 4, C.skin);           // hand
-    px(18, 3, 1, 9, C.blade);           // blade, held upright
-    px(19, 4, 1, 7, C.bladeHi);
-    px(17, 12, 3, 1, C.guard);
-    px(18, 13, 1, 2, C.grip);
-  });
-  const slash = spriteTexture(scene, "player-slash", (px) => {
-    drawBody(px, 3);
-    px(15, 11, 3, 2, C.skin);           // arm thrust forward
-    px(18, 10, 1, 3, C.guard);
-    px(19, 11, 5, 1, C.blade);          // blade, extended
-    px(19, 12, 5, 1, C.bladeHi);
-  });
-  const down = spriteTexture(scene, "player-down", (px) => {
-    px(19, 20, 2, 3, C.boot);
-    px(14, 21, 5, 2, C.leg);
-    px(6, 19, 9, 4, C.cloak);
-    px(7, 20, 7, 2, C.cloakHi);
-    px(2, 19, 5, 4, C.cloakLo);
-    px(3, 20, 3, 2, C.skin);
-    px(4, 23, 14, 1, C.blade);          // dropped sword
-  });
-
   const slashFx = new StandardMaterial("slash-fx", scene);
   slashFx.disableLighting = true;
   slashFx.emissiveColor = new Color3(1.4, 1.6, 1.9); // > 1 so bloom catches it
@@ -210,9 +136,9 @@ export function createMaterials(scene: Scene): Materials {
   return {
     grass, dirt, stone, bark, leaves, shadow,
     player: {
-      idle: spriteMaterial(scene, "player-idle", idle),
-      slash: spriteMaterial(scene, "player-slash", slash),
-      down: spriteMaterial(scene, "player-down", down),
+      idle: spriteMaterial(scene, "player-idle", spriteTexture(scene, "player-idle", drawPlayerIdle)),
+      slash: spriteMaterial(scene, "player-slash", spriteTexture(scene, "player-slash", drawPlayerSlash)),
+      down: spriteMaterial(scene, "player-down", spriteTexture(scene, "player-down", drawPlayerDown)),
     },
     slashFx, telegraph,
   };

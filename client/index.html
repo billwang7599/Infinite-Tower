@@ -27,12 +27,24 @@
       #banner.lost .title { color: #a8231b; }
       #banner.won .title { color: #e8c45a; }
       #banner .sub { font-weight: 400; opacity: 0.8; margin-top: 8px; }
+      #hud[data-mode="map"] { display: none; }
+      #maphud { position: fixed; top: 12px; left: 16px; color: #fff; pointer-events: none;
+        font: 600 16px/1.4 system-ui, sans-serif; text-shadow: 0 2px 4px #000a; }
+      #maphud small { font-weight: 400; opacity: 0.8; font-size: 13px; }
+      #fade { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: #000; }
+      #toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); pointer-events: none;
+        font: 400 30px Georgia, serif; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000;
+        opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+      #toast.show { opacity: 1; }
       #capture { position: absolute; top: 12px; right: 16px; font-weight: 400; font-size: 13px; transition: opacity 0.3s; }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="hud"></div>
+    <div id="maphud"></div>
+    <div id="toast"></div>
+    <div id="fade"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
