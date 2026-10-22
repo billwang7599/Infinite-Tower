@@ -2,35 +2,106 @@
  * Gameplay components shared by client and (future) server.
  * Plain data only. Engine handles (meshes, physics bodies) live in client/src/components.ts.
  */
-import { defineComponent } from "./ecs.js";
+import { defineComponent, type Entity } from "./ecs.js";
 
 export interface Vec3 { x: number; y: number; z: number }
+export interface Vec2 { x: number; z: number }
 
 /** What a player wants to do this tick. Filled by local input now, by network messages later. */
 export interface PlayerInputData {
-  moveX: number; // -1..1
-  moveZ: number; // -1..1
-  jump: boolean; // held this tick
+  /** World-space move direction, -1..1. */
+  moveX: number;
+  moveZ: number;
+  /** World-space unit vector on the ground: where attacks go (the camera's facing). */
+  aimX: number;
+  aimZ: number;
+  /** Held this tick. */
+  jump: boolean;
+  attack: boolean;
+  dodge: boolean;
 }
 export const PlayerInput = defineComponent<PlayerInputData>("PlayerInput");
 
+export type PlayerAction = "none" | "slash" | "dodge";
+
 export interface PlayerData {
   name: string;
-  /** Highest floor reached. */
-  bestFloor: number;
-  spawnPoint: Vec3;
   grounded: boolean;
   /** Seconds since last on ground (coyote time). */
   airTime: number;
-  /** Seconds left on buffered jump press. */
   jumpBuffer: number;
   jumpHeld: boolean;
+  attackHeld: boolean;
+  dodgeHeld: boolean;
+  /** Seconds left on a buffered press. */
+  attackBuffer: number;
+  dodgeBuffer: number;
+  action: PlayerAction;
+  /** Seconds since the current action started. */
+  actionTime: number;
+  /** Direction of the current slash / dodge. */
+  actionDir: Vec2;
+  /** Counts slashes, so swings alternate sides. */
+  combo: number;
 }
 export const Player = defineComponent<PlayerData>("Player");
 
 /** Marks the player controlled on this machine. */
 export const LocalPlayer = defineComponent<true>("LocalPlayer");
 
-/** A platform belonging to a generated tower floor. */
-export interface PlatformData { floor: number }
-export const Platform = defineComponent<PlatformData>("Platform");
+export interface HealthData {
+  hp: number;
+  max: number;
+  /** Seconds of invulnerability left (after being hit). */
+  invuln: number;
+  /** Seconds left without control (after being hit). */
+  hitstun: number;
+  /** Seconds left of the hit flash (visual). */
+  flash: number;
+}
+export const Health = defineComponent<HealthData>("Health");
+
+export interface StaminaData { value: number; max: number; regenDelay: number }
+export const Stamina = defineComponent<StaminaData>("Stamina");
+
+export type TeamId = "player" | "enemy";
+/** Anything that can hit or be hit. `radius` is its hurt radius on the ground plane. */
+export interface FighterData { team: TeamId; radius: number }
+export const Fighter = defineComponent<FighterData>("Fighter");
+
+/**
+ * An attack's hitbox while it is active: a sector in front of the attacker.
+ * Added when the swing/charge becomes active, removed when it ends. Each target is hit at most once.
+ */
+export interface ActiveHitData {
+  dirX: number;
+  dirZ: number;
+  /** Reach from the attacker's center to the target's surface. */
+  range: number;
+  /** Minimum cos(angle) between dir and the target: 1 = straight ahead only, -1 = all around. */
+  minDot: number;
+  damage: number;
+  knockback: number;
+  lift: number;
+  poise: number;
+  hit: Set<Entity>;
+}
+export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
+
+export type BoarState =
+  | "approach" | "goreWindup" | "gore" | "goreRecover"
+  | "chargeWindup" | "charge" | "chargeRecover"
+  | "stunned" | "staggered" | "dead";
+
+export interface BoarData {
+  state: BoarState;
+  /** Seconds in the current state. */
+  t: number;
+  /** Facing (see yaw convention in constants.ts). */
+  yaw: number;
+  chargeCooldown: number;
+  goreCooldown: number;
+  chargeDir: Vec2;
+  poise: number;
+}
+export const Boar = defineComponent<BoarData>("Boar");

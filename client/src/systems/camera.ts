@@ -1,65 +1,56 @@
 import { Vector3 } from "@babylonjs/core";
-import { LocalPlayer, type System } from "@infinite-tower/shared";
-import { Body, SideWall } from "../components.js";
+import { ARENA, LocalPlayer, type System } from "@infinite-tower/shared";
+import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
 
-/** Orbit limits. Yaw is capped so the camera stays in front of the tower instead of going behind the walls. */
-const YAW_LIMIT = 1.0; // ~57°
-const PITCH_MIN = -0.15;
-const PITCH_MAX = 1.0;
-const YAW_SPEED = 1.8; // rad/s
-const PITCH_SPEED = 1.2;
-const DISTANCE = 15.2;
+const YAW_SPEED = 2.4; // rad/s, arrow keys
+const PITCH_SPEED = 1.4;
+const MOUSE_SENSITIVITY = 0.0025; // rad per pixel
+const PITCH_MIN = -0.05;
+const PITCH_MAX = 1.1;
+const DISTANCE = 8.5;
 
 /**
- * Orbiting 2.5D follow camera with exponential smoothing. Arrow keys turn (left/right) and tilt (up/down)
- * around the player. Also carries the player's lantern light and fades the side wall the camera looks through.
+ * Third-person orbit camera around the player: mouse (pointer lock) or arrow keys, full 360°.
+ * Where it looks is where the player attacks (see inputSystem). Also applies impact shake.
  */
-export function cameraSystem(ctx: GameContext, lantern: { position: Vector3 }): System {
+export function cameraSystem(ctx: GameContext): System {
   const k = ctx.keyboard;
-  const desired = new Vector3(), look = new Vector3(), lookTarget = new Vector3();
+  const focus = new Vector3(), look = new Vector3();
   let initialized = false;
 
   return (world, dt) => {
     const view = ctx.view;
-    view.yaw += k.axis(["ArrowLeft"], ["ArrowRight"]) * YAW_SPEED * dt;
-    view.pitch += k.axis(["ArrowDown"], ["ArrowUp"]) * PITCH_SPEED * dt;
-    view.yaw = Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, view.yaw));
+    const { dx, dy } = ctx.mouse.consumeDelta();
+    view.yaw += k.axis(["ArrowLeft"], ["ArrowRight"]) * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY;
+    view.pitch += k.axis(["ArrowUp"], ["ArrowDown"]) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY;
+    view.yaw = Math.atan2(Math.sin(view.yaw), Math.cos(view.yaw));
     view.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, view.pitch));
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
     const p = row[2].mesh.position;
 
-    // Orbit a point slightly above the player (they're always climbing).
-    // Yaw 0 = looking down +z at the back wall; positive yaw swings the camera to the right (+x).
-    lookTarget.set(p.x * 0.6, p.y + 2.2, p.z);
-    const flat = Math.cos(view.pitch) * DISTANCE;
-    desired.set(
-      lookTarget.x + Math.sin(view.yaw) * flat,
-      lookTarget.y + Math.sin(view.pitch) * DISTANCE,
-      lookTarget.z - Math.cos(view.yaw) * flat,
+    // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
+    if (!initialized) { focus.copyFrom(p); initialized = true; }
+    Vector3.LerpToRef(focus, p, 1 - Math.exp(-12 * dt), focus);
+
+    const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
+    // Pull the camera in so it never leaves the arena (the standing stones would block the view).
+    // Solve |focus - f*s| = R for the largest s: s = b + sqrt(b² - |focus|² + R²), with b = focus·f.
+    const R = ARENA.radius - 0.4;
+    const b = focus.x * fx + focus.z * fz;
+    const maxFlat = b + Math.sqrt(Math.max(0, b * b - (focus.x * focus.x + focus.z * focus.z) + R * R));
+    const dist = Math.max(2.5, Math.min(DISTANCE, maxFlat / Math.max(0.05, Math.cos(view.pitch))));
+    const flat = Math.cos(view.pitch) * dist;
+    ctx.shake *= Math.exp(-9 * dt);
+    const sh = ctx.shake > 0.005 ? ctx.shake : 0;
+    ctx.camera.position.set(
+      focus.x - fx * flat + (Math.random() - 0.5) * sh,
+      focus.y + 1.2 + Math.sin(view.pitch) * dist + (Math.random() - 0.5) * sh,
+      focus.z - fz * flat + (Math.random() - 0.5) * sh,
     );
-    if (!initialized) {
-      ctx.camera.position.copyFrom(desired);
-      look.copyFrom(lookTarget);
-      initialized = true;
-    }
-    const t = 1 - Math.exp(-5 * dt);
-    Vector3.LerpToRef(ctx.camera.position, desired, t, ctx.camera.position);
-    Vector3.LerpToRef(look, lookTarget, t * 1.4, look);
+    look.set(focus.x, focus.y + 1.3, focus.z);
     ctx.camera.setTarget(look);
-
-    // When orbiting to one side, that side's wall sits between camera and player: fade it out.
-    const fade = Math.min(1, Math.max(0, (Math.abs(view.yaw) - 0.25) / 0.35));
-    const side = Math.sign(view.yaw);
-    for (const [, wall, body] of world.query(SideWall, Body)) {
-      const target = wall.side === side ? 1 - 0.8 * fade : 1;
-      const m = body.mesh;
-      m.visibility += (target - m.visibility) * (1 - Math.exp(-10 * dt));
-      if (Math.abs(m.visibility - target) < 0.01) m.visibility = target;
-    }
-
-    lantern.position.set(p.x, p.y + 1.2, p.z - 1.2);
   };
 }

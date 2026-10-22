@@ -21,7 +21,7 @@ export function groundSystem(ctx: GameContext): System {
         for (const [ox, oz] of offsets) {
           from.set(p.x + ox, p.y, p.z + oz);
           to.set(from.x, p.y - PLAYER.height / 2 - 0.08, from.z);
-          ctx.physics.raycastToRef(from, to, result, { collideWith: Layer.Platform, ignoreBody: b });
+          ctx.physics.raycastToRef(from, to, result, { collideWith: Layer.Ground, ignoreBody: b });
           if (result.hasHit) { hit = true; break; }
         }
       }

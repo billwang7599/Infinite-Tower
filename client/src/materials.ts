@@ -4,48 +4,47 @@
  */
 import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
 
-/** Every 10 floors the tower changes palette. */
-export const ZONES = [
-  { name: "Foundations", stone: "#5b5f73", mortar: "#34364a", platform: new Color3(0.55, 0.5, 0.45) },
-  { name: "Mossy Halls", stone: "#4f6b5a", mortar: "#2c3d33", platform: new Color3(0.4, 0.6, 0.42) },
-  { name: "Ember Stair", stone: "#734f48", mortar: "#3d2a27", platform: new Color3(0.75, 0.45, 0.32) },
-  { name: "Frost Spire", stone: "#5d7386", mortar: "#33414d", platform: new Color3(0.6, 0.78, 0.9) },
-  { name: "Violet Crown", stone: "#65507a", mortar: "#382c45", platform: new Color3(0.7, 0.5, 0.85) },
-] as const;
-
-export function zoneIndex(floor: number): number {
-  return Math.floor(floor / 10) % ZONES.length;
-}
-
 export interface Materials {
-  wall: StandardMaterial[];
-  wallSide: StandardMaterial[];
-  platform: StandardMaterial[];
-  checkpoint: StandardMaterial;
-  window: StandardMaterial;
+  grass: StandardMaterial;
+  dirt: StandardMaterial;
+  stone: StandardMaterial;
+  bark: StandardMaterial;
+  leaves: StandardMaterial;
   shadow: StandardMaterial;
-  player: StandardMaterial;
+  player: { idle: StandardMaterial; slash: StandardMaterial; down: StandardMaterial };
+  slashFx: StandardMaterial;
+  telegraph: StandardMaterial;
 }
 
-function brickTexture(scene: Scene, stone: string, mortar: string): DynamicTexture {
+/** Deterministic pseudo-random, so textures look the same every run. */
+function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Base color plus random blotches: grass, dirt, stone. */
+function speckleTexture(scene: Scene, name: string, base: string, specks: string[], count: number, maxR: number, seed: number): DynamicTexture {
   const size = 256;
-  const tex = new DynamicTexture("bricks", { width: size, height: size }, scene, true);
-  const ctx = tex.getContext();
-  ctx.fillStyle = mortar;
+  const tex = new DynamicTexture(name, { width: size, height: size }, scene, true);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
-  const rows = 8, cols = 4, gap = 4;
-  const bw = size / cols, bh = size / rows;
-  for (let r = 0; r < rows; r++) {
-    const offset = r % 2 === 0 ? 0 : bw / 2;
-    for (let c = -1; c <= cols; c++) {
-      // Deterministic per-brick shade variation.
-      const shade = ((r * 31 + c * 17) % 7) / 7;
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = stone;
-      ctx.fillRect(c * bw + offset + gap / 2, r * bh + gap / 2, bw - gap, bh - gap);
-      ctx.globalAlpha = 0.08 + shade * 0.12;
-      ctx.fillStyle = shade > 0.5 ? "#ffffff" : "#000000";
-      ctx.fillRect(c * bw + offset + gap / 2, r * bh + gap / 2, bw - gap, bh - gap);
+  const r = rng(seed);
+  for (let i = 0; i < count; i++) {
+    ctx.fillStyle = specks[Math.floor(r() * specks.length)]!;
+    ctx.globalAlpha = 0.25 + r() * 0.5;
+    const x = r() * size, y = r() * size, rad = 1 + r() * maxR;
+    // Draw wrapped copies so the texture tiles seamlessly.
+    for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) {
+      ctx.beginPath();
+      ctx.arc(x + ox, y + oy, rad, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
   ctx.globalAlpha = 1;
@@ -54,34 +53,57 @@ function brickTexture(scene: Scene, stone: string, mortar: string): DynamicTextu
   return tex;
 }
 
-/** A small hooded adventurer, drawn facing right. */
-function playerTexture(scene: Scene): DynamicTexture {
-  const w = 128, h = 192;
-  const tex = new DynamicTexture("player", { width: w, height: h }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+type Px = (x: number, y: number, w: number, h: number, color: string) => void;
+
+/** A 24x24 "pixel" sprite frame (8 texels per pixel), drawn facing right. */
+function spriteTexture(scene: Scene, name: string, draw: (px: Px) => void): DynamicTexture {
+  const n = 192;
+  const tex = new DynamicTexture(name, { width: n, height: n }, scene, false, Texture.NEAREST_SAMPLINGMODE);
   const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, w, h);
-  const px = (x: number, y: number, pw: number, ph: number, color: string) => {
+  ctx.clearRect(0, 0, n, n);
+  draw((x, y, w, h, color) => {
     ctx.fillStyle = color;
-    ctx.fillRect(x * 8, y * 8, pw * 8, ph * 8);
-  };
-  // 16x24 "pixel" grid.
-  px(4, 22, 3, 2, "#2a1d16"); px(9, 22, 3, 2, "#2a1d16");     // boots
-  px(5, 18, 2, 4, "#3b4a6b"); px(9, 18, 2, 4, "#3b4a6b");     // legs
-  px(3, 10, 10, 9, "#c0453a");                                // cloak
-  px(4, 11, 8, 7, "#d9584a");
-  px(3, 17, 10, 1, "#8e2f27");                                // belt
-  px(7, 17, 2, 1, "#f2c14e");                                 // buckle
-  px(4, 3, 8, 8, "#8e2f27");                                  // hood
-  px(6, 5, 6, 5, "#f1c9a5");                                  // face
-  px(9, 6, 2, 2, "#1b1b2a");                                  // eye
-  px(5, 2, 5, 2, "#a8392f");                                  // hood tip
-  px(12, 12, 2, 5, "#f1c9a5");                                // hand
+    ctx.fillRect(x * 8, y * 8, w * 8, h * 8);
+  });
   tex.update();
   tex.hasAlpha = true;
   return tex;
 }
 
-function shadowTexture(scene: Scene): DynamicTexture {
+const C = {
+  boot: "#2a1d16", leg: "#3b4a6b", cloak: "#c0453a", cloakHi: "#d9584a", cloakLo: "#8e2f27",
+  buckle: "#f2c14e", skin: "#f1c9a5", eye: "#1b1b2a", hoodTip: "#a8392f",
+  blade: "#dfe6f0", bladeHi: "#ffffff", guard: "#c9a03a", grip: "#5a3a1e",
+};
+
+/** Hooded adventurer body, shared by the standing frames. ox shifts it horizontally. */
+function drawBody(px: Px, ox: number): void {
+  px(ox + 4, 22, 3, 2, C.boot); px(ox + 9, 22, 3, 2, C.boot);
+  px(ox + 5, 18, 2, 4, C.leg); px(ox + 9, 18, 2, 4, C.leg);
+  px(ox + 3, 10, 10, 9, C.cloak);
+  px(ox + 4, 11, 8, 7, C.cloakHi);
+  px(ox + 3, 17, 10, 1, C.cloakLo);
+  px(ox + 7, 17, 2, 1, C.buckle);
+  px(ox + 4, 3, 8, 8, C.cloakLo);
+  px(ox + 6, 5, 6, 5, C.skin);
+  px(ox + 9, 6, 2, 2, C.eye);
+  px(ox + 5, 2, 5, 2, C.hoodTip);
+}
+
+function spriteMaterial(scene: Scene, name: string, tex: DynamicTexture): StandardMaterial {
+  const m = new StandardMaterial(name, scene);
+  m.diffuseTexture = tex;
+  m.emissiveTexture = tex; // mostly unlit: sprites keep their colors
+  // Alpha *test* (not blend): crisp pixel edges, no sorting issues. Babylon 9 tests the final
+  // alpha, so the texture's alpha must also be wired in via useAlphaFromDiffuseTexture.
+  m.useAlphaFromDiffuseTexture = true;
+  m.transparencyMode = Material.MATERIAL_ALPHATEST;
+  m.specularColor = Color3.Black();
+  m.backFaceCulling = false;
+  return m;
+}
+
+function blobTexture(scene: Scene): DynamicTexture {
   const s = 64;
   const tex = new DynamicTexture("blob", { width: s, height: s }, scene, false);
   const ctx = tex.getContext() as CanvasRenderingContext2D;
@@ -95,61 +117,103 @@ function shadowTexture(scene: Scene): DynamicTexture {
   return tex;
 }
 
+/** Red stripe that fades out along its length (v = 0 near the boar). */
+function telegraphTexture(scene: Scene): DynamicTexture {
+  const tex = new DynamicTexture("telegraph", { width: 32, height: 256 }, scene, false);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  const g = ctx.createLinearGradient(0, 256, 0, 0);
+  g.addColorStop(0, "rgba(255,60,30,0.9)");
+  g.addColorStop(1, "rgba(255,60,30,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 256);
+  ctx.globalCompositeOperation = "destination-in";
+  const edge = ctx.createLinearGradient(0, 0, 32, 0);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(0.3, "rgba(0,0,0,1)");
+  edge.addColorStop(0.7, "rgba(0,0,0,1)");
+  edge.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, 32, 256);
+  tex.update();
+  tex.hasAlpha = true;
+  return tex;
+}
+
+function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): StandardMaterial {
+  tex.uScale = tex.vScale = scale;
+  const m = new StandardMaterial(name, scene);
+  m.diffuseTexture = tex;
+  m.specularColor = Color3.Black();
+  return m;
+}
+
 export function createMaterials(scene: Scene): Materials {
-  const wall = ZONES.map((z, i) => {
-    const m = new StandardMaterial(`wall-${i}`, scene);
-    const tex = brickTexture(scene, z.stone, z.mortar);
-    // One texture tile per floor slice vertically, so slices line up seamlessly.
-    tex.uScale = 7.5;
-    tex.vScale = 1;
-    m.diffuseTexture = tex;
-    m.specularColor = Color3.Black();
-    return m;
-  });
-
-  // Side walls are deeper than a floor is tall: same bricks, different tiling.
-  const wallSide = ZONES.map((z, i) => {
-    const m = new StandardMaterial(`wall-side-${i}`, scene);
-    const tex = brickTexture(scene, z.stone, z.mortar);
-    tex.uScale = 5;
-    tex.vScale = 1;
-    m.diffuseTexture = tex;
-    m.specularColor = Color3.Black();
-    return m;
-  });
-
-  const platform = ZONES.map((z, i) => {
-    const m = new StandardMaterial(`platform-${i}`, scene);
-    m.diffuseColor = z.platform;
-    m.specularColor = new Color3(0.1, 0.1, 0.1);
-    return m;
-  });
-
-  const checkpoint = new StandardMaterial("checkpoint", scene);
-  checkpoint.diffuseColor = new Color3(0.9, 0.8, 0.4);
-  checkpoint.emissiveColor = new Color3(1, 0.75, 0.25);
-
-  const window = new StandardMaterial("window", scene);
-  window.disableLighting = true;
-  window.emissiveColor = new Color3(0.45, 0.7, 1.0);
+  const grass = tiled(scene, "grass",
+    speckleTexture(scene, "grass", "#3f6b35", ["#4d7f3e", "#355a2c", "#5b8a45", "#2d4d27"], 900, 5, 1), 18);
+  const dirt = tiled(scene, "dirt",
+    speckleTexture(scene, "dirt", "#7a6347", ["#8a7253", "#6a553c", "#93806a", "#5a4733"], 900, 4, 2), 6);
+  dirt.zOffset = -1;
+  const stone = tiled(scene, "stone",
+    speckleTexture(scene, "stone", "#7c7f86", ["#8d9097", "#6a6d74", "#5d6067", "#9a9ca2"], 500, 6, 3), 1);
+  const bark = new StandardMaterial("bark", scene);
+  bark.diffuseColor = new Color3(0.32, 0.22, 0.14);
+  bark.specularColor = Color3.Black();
+  const leaves = new StandardMaterial("leaves", scene);
+  leaves.diffuseColor = new Color3(0.16, 0.36, 0.2);
+  leaves.specularColor = Color3.Black();
 
   const shadow = new StandardMaterial("shadow", scene);
-  shadow.diffuseTexture = shadowTexture(scene);
+  shadow.diffuseTexture = blobTexture(scene);
   shadow.useAlphaFromDiffuseTexture = true;
   shadow.disableLighting = true;
   shadow.emissiveColor = Color3.Black();
-  shadow.zOffset = -2; // avoid z-fighting with the platform top
+  shadow.zOffset = -2; // avoid z-fighting with the ground
 
-  const player = new StandardMaterial("player", scene);
-  const tex = playerTexture(scene);
-  player.diffuseTexture = tex;
-  player.emissiveTexture = tex; // mostly unlit: sprites keep their colors
-  // Alpha *test* (not blend): crisp pixel edges, no sorting issues. Babylon 9 tests the final
-  // alpha, so the texture's alpha must also be wired in via useAlphaFromDiffuseTexture.
-  player.useAlphaFromDiffuseTexture = true;
-  player.transparencyMode = Material.MATERIAL_ALPHATEST;
-  player.specularColor = Color3.Black();
-  player.backFaceCulling = false;
+  const idle = spriteTexture(scene, "player-idle", (px) => {
+    drawBody(px, 4);
+    px(16, 12, 2, 4, C.skin);           // hand
+    px(18, 3, 1, 9, C.blade);           // blade, held upright
+    px(19, 4, 1, 7, C.bladeHi);
+    px(17, 12, 3, 1, C.guard);
+    px(18, 13, 1, 2, C.grip);
+  });
+  const slash = spriteTexture(scene, "player-slash", (px) => {
+    drawBody(px, 3);
+    px(15, 11, 3, 2, C.skin);           // arm thrust forward
+    px(18, 10, 1, 3, C.guard);
+    px(19, 11, 5, 1, C.blade);          // blade, extended
+    px(19, 12, 5, 1, C.bladeHi);
+  });
+  const down = spriteTexture(scene, "player-down", (px) => {
+    px(19, 20, 2, 3, C.boot);
+    px(14, 21, 5, 2, C.leg);
+    px(6, 19, 9, 4, C.cloak);
+    px(7, 20, 7, 2, C.cloakHi);
+    px(2, 19, 5, 4, C.cloakLo);
+    px(3, 20, 3, 2, C.skin);
+    px(4, 23, 14, 1, C.blade);          // dropped sword
+  });
 
-  return { wall, wallSide, platform, checkpoint, window, shadow, player };
+  const slashFx = new StandardMaterial("slash-fx", scene);
+  slashFx.disableLighting = true;
+  slashFx.emissiveColor = new Color3(1.4, 1.6, 1.9); // > 1 so bloom catches it
+  slashFx.alpha = 0.9;
+  slashFx.backFaceCulling = false;
+
+  const telegraph = new StandardMaterial("telegraph", scene);
+  telegraph.diffuseTexture = telegraphTexture(scene);
+  telegraph.useAlphaFromDiffuseTexture = true;
+  telegraph.emissiveColor = new Color3(1, 0.3, 0.15);
+  telegraph.disableLighting = true;
+  telegraph.zOffset = -3;
+
+  return {
+    grass, dirt, stone, bark, leaves, shadow,
+    player: {
+      idle: spriteMaterial(scene, "player-idle", idle),
+      slash: spriteMaterial(scene, "player-slash", slash),
+      down: spriteMaterial(scene, "player-down", down),
+    },
+    slashFx, telegraph,
+  };
 }
