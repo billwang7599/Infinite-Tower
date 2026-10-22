@@ -1,0 +1,14 @@
+{
+  "name": "infinite-tower",
+  "private": true,
+  "type": "module",
+  "workspaces": ["shared", "client"],
+  "scripts": {
+    "dev": "npm run dev -w @infinite-tower/client",
+    "build": "npm run build -w @infinite-tower/client",
+    "typecheck": "tsc -p shared && tsc -p client"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0"
+  }
+}
