@@ -1,6 +1,6 @@
 import type { Scene, PhysicsEngineV2, HavokPlugin, UniversalCamera, ShadowGenerator } from "@babylonjs/core";
 import type { World } from "@infinite-tower/shared";
-import type { Keyboard, Mouse } from "./input.js";
+import type { Keyboard, Mouse } from "../core/input.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";

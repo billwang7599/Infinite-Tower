@@ -1,26 +1,9 @@
 /**
- * Gameplay components shared by client and (future) server.
+ * Arena-fight components, shared by client and (future) server.
  * Plain data only. Engine handles (meshes, physics bodies) live in client/src/components.ts.
  */
-import { defineComponent, type Entity } from "./ecs.js";
-
-export interface Vec3 { x: number; y: number; z: number }
-export interface Vec2 { x: number; z: number }
-
-/** What a player wants to do this tick. Filled by local input now, by network messages later. */
-export interface PlayerInputData {
-  /** World-space move direction, -1..1. */
-  moveX: number;
-  moveZ: number;
-  /** World-space unit vector on the ground: where attacks go (the camera's facing). */
-  aimX: number;
-  aimZ: number;
-  /** Held this tick. */
-  jump: boolean;
-  attack: boolean;
-  dodge: boolean;
-}
-export const PlayerInput = defineComponent<PlayerInputData>("PlayerInput");
+import { defineComponent, type Entity } from "../core/ecs.js";
+import type { Vec2 } from "../core/math.js";
 
 export type PlayerAction = "none" | "slash" | "dodge";
 
@@ -105,36 +88,3 @@ export interface BoarData {
   poise: number;
 }
 export const Boar = defineComponent<BoarData>("Boar");
-
-// ---------------------------------------------------------------------------------------------
-// Overworld (2D map). Separate entities from the arena fighters; they share the World.
-
-/** Position on the 2D map (tiles). */
-export interface MapPosData { x: number; z: number }
-export const MapPos = defineComponent<MapPosData>("MapPos");
-
-export interface MapPlayerData {
-  vx: number;
-  vz: number;
-  facing: 1 | -1;
-  /** Tiles walked in tall grass since the last encounter roll. */
-  grassDist: number;
-  /** Seconds left without encounters (after a fight). */
-  safeTime: number;
-}
-export const MapPlayer = defineComponent<MapPlayerData>("MapPlayer");
-
-export type MapBoarState = "idle" | "wander" | "notice" | "chase";
-export interface MapBoarData {
-  state: MapBoarState;
-  t: number;
-  /** How long to idle. */
-  duration: number;
-  /** Wander target. */
-  tx: number;
-  tz: number;
-  vx: number;
-  vz: number;
-  facing: 1 | -1;
-}
-export const MapBoar = defineComponent<MapBoarData>("MapBoar");

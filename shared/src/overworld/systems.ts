@@ -2,9 +2,10 @@
  * Overworld rules: walking, tall-grass encounters, wandering/chasing boars. Pure 2D math, no engine.
  * An encounter calls `onEncounter(source)`: the boar entity that touched you, or null for tall grass.
  */
-import { MapBoar, MapPlayer, MapPos, PlayerInput } from "./components.js";
+import type { Entity, System } from "../core/ecs.js";
+import { PlayerInput } from "../core/input.js";
+import { MapBoar, MapPlayer, MapPos } from "./components.js";
 import { MAP } from "./constants.js";
-import type { Entity, System } from "./ecs.js";
 
 export type EncounterHandler = (source: Entity | null) => void;
 

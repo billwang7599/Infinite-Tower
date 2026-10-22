@@ -47,21 +47,34 @@ All tuning numbers live in `shared/src/constants.ts` (`PLAYER`, `BOAR`, `ARENA`,
 ## Layout
 
 ```
-shared/   Engine-agnostic code that client AND (future) server run. No Babylon imports.
-  ecs.ts         World, defineComponent, query, deferred destroy, remove hooks
-  components.ts  Gameplay data: Player, PlayerInput, Health, Stamina, Fighter, ActiveHit, Boar
-  constants.ts   Tick rate, gravity, player/boar/arena/map tuning
-  overworld.ts   Map rules: walking, tall-grass encounter rolls, boar wander/notice/chase
-client/   Browser game: Babylon rendering, Havok physics, input, HUD.
-  main.ts        Bootstrap, map <-> battle mode switching + transitions, system order (the game's contract)
-  map.ts         Overworld scene: orthographic top-down camera, pixel grass/tall grass/trees, flat sprites
-  sprites.ts     Pixel-art sprite frames drawn in code (player, boar, "!")
-  components.ts  Handles to engine objects (Body, SpriteView, BoarView, Meshes) + disposers
-  spawn.ts       Entity factories (player sprite + sword trail, boar model from primitives)
-  arena.ts       Dirt clearing, standing-stone ring (wall colliders), instanced forest
-  systems/       fixed 60 Hz: input → player → boar → [physics] → ground → combat
-                 per frame:   camera, sprite, boarView, hud
+shared/src/      Engine-agnostic code that client AND (future) server run. No Babylon imports.
+  core/            ecs.ts (World, components, queries, deferred destroy), input.ts (PlayerInput),
+                   math.ts (Vec2/3, approach, wrapAngle, seededRandom), time.ts (tick rate)
+  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Boar), constants.ts (tuning)
+  overworld/       components.ts (MapPos, MapPlayer, MapBoar), constants.ts (MAP), systems.ts (map rules)
+
+client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
+  main.ts          Bootstrap: engine, world, both modes, game
+  game/            game.ts (map <-> battle mode switching), transition.ts (flash / fade timing)
+  core/            input.ts (Keyboard, Mouse with pointer lock)
+  gfx/             textures.ts (procedural textures), sprites.ts (pixel-sprite frames), characters.ts (the art)
+  ui/              overlay.ts (HUD containers, toast, fade), styles.css
+  battle/          The 2.5D arena
+    battle.ts        Scene + Havok setup, start/end a fight, system order (the game's contract)
+    context.ts       GameContext + collision layers
+    components.ts    Handles to engine objects (Body, SpriteView, BoarView, Meshes) + disposers
+    materials.ts, look.ts (lighting/post), arena.ts (ring, stones, forest)
+    spawn/           player.ts, boar.ts, boarModel.ts (boar built from primitives)
+    systems/         fixed 60 Hz: input → player → boar → [physics] → ground → combat
+                     per frame:   camera, sprite, boarView, hud
+  overworld/       The 2D field
+    overworld.ts     Fixed-step loop, respawns, return from a fight
+    scene.ts, terrain.ts, textures.ts, components.ts (MapSprite), spawn.ts
+    systems/         input, sprites (placement, tuft, "!"), camera (follow)
 ```
+
+Keep files small and single-purpose (roughly under 200 lines); add a folder per new mode or enemy
+rather than growing an existing file.
 
 ## Architecture rules
 

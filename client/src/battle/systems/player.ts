@@ -1,14 +1,10 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  ActiveHit, Health, Player, PlayerInput, Stamina, PLAYER,
+  approach, ActiveHit, Health, Player, PlayerInput, Stamina, PLAYER,
   type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import { Layer } from "../context.js";
-
-export function approach(current: number, target: number, maxDelta: number): number {
-  return current < target ? Math.min(current + maxDelta, target) : Math.max(current - maxDelta, target);
-}
 
 function startAction(player: PlayerData, action: PlayerAction, x: number, z: number): void {
   player.action = action;

@@ -1,14 +1,9 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  ActiveHit, Boar, Health, LocalPlayer, ARENA, BOAR, type BoarData, type BoarState, type System,
+  approach, wrapAngle, ActiveHit, Boar, Health, LocalPlayer, ARENA, BOAR, type BoarData, type BoarState, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
-import { approach } from "./player.js";
-
-export function wrapAngle(a: number): number {
-  return Math.atan2(Math.sin(a), Math.cos(a));
-}
 
 function turnToward(current: number, target: number, maxStep: number): number {
   const diff = wrapAngle(target - current);

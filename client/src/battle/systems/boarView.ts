@@ -1,7 +1,6 @@
 import { Color3, Vector3 } from "@babylonjs/core";
-import { Boar, BOAR, Health, type System } from "@infinite-tower/shared";
+import { Boar, BOAR, Health, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body, BoarView } from "../components.js";
-import { wrapAngle } from "./boar.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI, 0]; // diagonal pairs move together
 const WHITE = new Color3(0.9, 0.9, 0.9);
