@@ -5,7 +5,7 @@
  *   game/     mode switching + transitions        net/     server connection
  *   field/    the 2D map mode (+ level renderers)  battle/  the 2.5D arena fight mode (Havok)
  *   core/     keyboard, mouse, frame time          gfx/     procedural textures + pixel-art sprites
- *   ui/       React UI over the canvas (HUDs, toast, fade); the game writes to it through ui/state.ts
+ *   ui/       React UI over the canvas (HUDs, toasts, fade); the game writes to it through ui/state.ts
  */
 import { Engine } from "@babylonjs/core";
 import * as shared from "@infinite-tower/shared";

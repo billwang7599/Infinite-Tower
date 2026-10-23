@@ -90,12 +90,12 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
   core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
-    mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toast, fade, error
-    state.ts         UiState: the stores the game writes (screen, toast, field HUD, battle HUD). No React.
+    mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, error
+    state.ts         UiState: the stores the game writes (screen, toasts, field HUD, battle HUD). No React.
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
     hud/             FieldHud.tsx, BattleHud.tsx
-    overlays/        Toast.tsx, Fade.tsx, ErrorMessage.tsx
+    overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx, ErrorMessage.tsx
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
@@ -147,7 +147,7 @@ rather than growing an existing file. Small math (clamping, smoothing, distances
 
 ## UI
 
-Everything over the canvas (HUDs, toast, fades, menus) is **React** (`client/src/ui/`, mounted into `#ui`).
+Everything over the canvas (HUDs, toasts, fades, menus) is **React** (`client/src/ui/`, mounted into `#ui`).
 The canvas and anything in the 3D/2D world (sprites, in-world bars, name tags) is Babylon.
 
 - **The game never touches the DOM.** It writes plain values into stores (`ui/state.ts`, e.g.

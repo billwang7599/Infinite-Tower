@@ -16,11 +16,19 @@ export interface ScreenState {
   error: string | null;
 }
 
-export interface ToastState {
+export interface ToastItem {
+  /** Unique per toast: the React key, and what `dismissToast` removes (the text can repeat). */
+  id: number;
   text: string;
-  /** Bumped by every `showToast`, so the same text twice still shows twice. */
-  seq: number;
 }
+
+export interface ToastsState {
+  /** Oldest first. Each toast removes itself when its timer runs out or its × is clicked. */
+  items: readonly ToastItem[];
+}
+
+/** Past this many on screen, the oldest is dropped so a burst can't pile up. */
+const MAX_TOASTS = 4;
 
 /** Written by field/field.ts. */
 export interface FieldHudState {
@@ -46,15 +54,23 @@ export interface BattleHudState {
 
 export class UiState {
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0, error: null });
-  readonly toast = new Store<ToastState>({ text: "", seq: 0 });
+  readonly toasts = new Store<ToastsState>({ items: [] });
   readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0 });
   readonly battle = new Store<BattleHudState>({
     fps: 0, hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     lockOn: true, mouseCaptured: false, result: "fighting", showResult: false,
   });
 
-  /** A big centered message for a moment (encounters, server notices). */
+  private nextToastId = 1;
+
+  /** A big centered message for a few seconds (encounters, server notices). Toasts stack, oldest on top. */
   showToast(text: string): void {
-    this.toast.set({ text, seq: this.toast.get().seq + 1 });
+    const items = [...this.toasts.get().items, { id: this.nextToastId++, text }];
+    this.toasts.set({ items: items.slice(-MAX_TOASTS) });
   }
+
+  /** Remove one toast (its timer ran out, or the player clicked its ×). An arrow so it can be passed as a prop. */
+  readonly dismissToast = (id: number): void => {
+    this.toasts.set({ items: this.toasts.get().items.filter((t) => t.id !== id) });
+  };
 }
