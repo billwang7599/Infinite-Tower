@@ -44,9 +44,9 @@ export class PgPlayerStore implements PlayerStore {
 type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>;
 
 const toRow = (data: PlayerSave): PlayerRow => ({
-  hp: data.vitals.hp, stamina: data.vitals.stamina, settings: data.settings,
+  hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
 });
 
 const fromRow = (row: typeof players.$inferSelect): PlayerSave => ({
-  vitals: { hp: row.hp, stamina: row.stamina }, settings: row.settings,
+  vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
 });

@@ -8,7 +8,8 @@ physics, custom ECS on top, React + Tailwind for the UI over the canvas.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field. HP and stamina carry over from one
-fight to the next (the field HUD shows them); nothing refills them yet except dying.
+fight to the next (the field HUD shows them); nothing refills them yet except dying. The field HUD also counts the
+fights you've won ("Boars defeated"), kept with your account like HP and stamina.
 The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there's
 a seeded account, **test / test**. Logging in goes straight into the game; after that the title shows Play
 (Enter / Space / J, or click) and Log out, and the login is remembered for 30 days. If the server is down it says
