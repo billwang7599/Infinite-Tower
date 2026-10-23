@@ -7,7 +7,7 @@ type HudProps = { hud: Store<FieldHudState> };
 
 export function FieldHud({ hud, openSettings }: HudProps & { openSettings: () => void }) {
   return (
-    <div id="field-hud" className="pointer-events-none fixed inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
+    <div id="field-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
       <PlayerStatus hud={hud} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />

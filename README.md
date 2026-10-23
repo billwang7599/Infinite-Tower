@@ -75,7 +75,8 @@ able to change; client = drawing, input, feel.** Everything in `shared/` and `cl
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom), time.ts
-  field/           layout.ts (LevelLayout: what the client may see of a level; stepWalker for prediction + replay)
+  field/           layout.ts (LevelLayout: what the client may see of a level; stepWalker for prediction + replay),
+                   view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
                    constants.ts (PLAYER), defs.ts (EnemyDef = body + optional attacks, ArenaDef), input.ts (PlayerInput)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
@@ -86,7 +87,7 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   net/             server.ts (HTTP + /ws), connection.ts (one socket: Zod-validated in, typed out), static.ts
   game/            session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
                    handler per ClientMsg), encounter.ts (start/end fights, refuse impossible wins and healing),
-                   snapshot.ts (state msg), loop.ts (60 Hz)
+                   snapshot.ts (state msg: only actors near your screen), loop.ts (60 Hz)
   levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
                    grass-field.ts
   field/           The field simulation. components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor
@@ -133,7 +134,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     components.ts    FieldPos, FieldActor, FieldSprite
     input.ts         The walk keys -> a WalkInput
     entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
-    systems/         sprites (glide to server positions, tuft, "!"), camera (follow)
+    systems/         sprites (glide to server positions, tuft, "!"), camera (follow, shared/src/field/view.ts)
     levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel), grass-field/
   battle/          The 2.5D arena mode (still simulated in the browser, see below)
     battle.ts        The mode: system order, start/end a fight (arena built/resized on demand)
@@ -207,7 +208,11 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
 - **The server decides; the client asks and draws.** On the field the client sends one input per tick while you move
   (nothing while you stand still) and predicts its own walking with the shared `stepWalker`; the server replays the
   inputs (rate-limited, so sending more doesn't move you faster), rolls encounters, runs the level's actors, and sends
-  state 20x/s with positions rounded to 1 cm. Levels, encounters, enemy stats, wins,
+  state 20x/s with positions rounded to 1 cm.
+- **Every screen sees the same amount, at most.** The view is 16:9 at most (23 x 13 field tiles): `client/index.html`
+  puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see a little less
+  width. `state` only carries actors within that 16:9 view of the server's copy of you, plus 3 tiles, so a hacked
+  client can't see further and actors appear off-screen. Levels, encounters, enemy stats, wins,
   respawns and the HP / stamina you carry between fights (and, once there's a real store, between connections) come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server
