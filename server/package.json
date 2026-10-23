@@ -4,15 +4,20 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/main.ts",
-    "start": "tsx src/main.ts"
+    "start": "tsx src/main.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@infinite-tower/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1",
     "tsx": "^4.23.15",
     "ws": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "@types/ws": "^8.18.2"
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^8.18.2",
+    "drizzle-kit": "^0.31.11"
   }
 }

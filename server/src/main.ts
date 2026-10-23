@@ -7,10 +7,14 @@
  *   levels/    level data: layout, spawns, encounter tables
  *   field/     the 2D field's simulation: actor components, behaviors, prefabs, spawner, the player's walking
  *   content/   enemy stats
- *   store/     what's kept about a player between connections (a stub for now)
+ *   store/     what's kept about a player between connections
+ *   db/        the database: Drizzle tables, connection, migrations
+ *   env.ts     settings from environment variables (.env locally)
  */
 import { fileURLToPath } from "node:url";
 import { dispatch } from "@infinite-tower/shared";
+import { connectDb } from "./db/db.js";
+import { DEV, PORT } from "./env.js";
 import { handlers } from "./game/handlers.js";
 import { startLoop } from "./game/loop.js";
 import { Session } from "./game/session.js";
@@ -18,13 +22,15 @@ import { START_LEVEL } from "./levels/index.js";
 import type { Connection } from "./net/connection.js";
 import { startServer } from "./net/server.js";
 import { GUEST, type PlayerId, type PlayerStore } from "./store/player-store.js";
-import { StubPlayerStore } from "./store/stub-store.js";
+import { PgPlayerStore } from "./store/pg-player-store.js";
 
-const PORT = Number(process.env.PORT ?? 8787);
-const DEV = process.env.NODE_ENV !== "production";
 const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url));
 
-const store: PlayerStore = new StubPlayerStore();
+const db = await connectDb(DEV).catch((err: unknown) => {
+  console.error(`[db] ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+});
+const store: PlayerStore = new PgPlayerStore(db);
 const sessions = new Set<Session>();
 
 startServer({

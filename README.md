@@ -15,12 +15,24 @@ server's hello to wait for. In the game, Esc (or the gear on the field HUD) open
 bindings, and Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
+Needs Node and Docker (Docker Desktop running): the dev database is Postgres in a container (`compose.yaml`).
+Local settings (the database's user, password and port, `DATABASE_URL`, the server's `PORT`) live in `.env`, which
+is git-ignored; `npm run dev` copies it from `.env.example` the first time, and you edit your copy.
+
 ```sh
 npm install
-npm run dev        # server (:8787) + client (http://localhost:5173, proxies /ws to the server)
+npm run dev        # database (:5433), then server (:8787) + client (http://localhost:5173, proxies /ws)
 npm start          # production: build the client, server serves it + /ws on http://localhost:8787
 npm run typecheck  # shared, server, client
+npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
+npm run db:reset   # delete all its data
+npm run db:psql    # SQL shell
+npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```
+
+The server reads `.env` (server/src/env.ts; variables set in the shell win), connects to `DATABASE_URL` and
+applies new migrations when it starts. Changing `POSTGRES_USER`, `_PASSWORD` or `_DB` after the database exists
+needs `npm run db:reset`.
 
 After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
 `window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.settings` (key bindings, camera) and
@@ -83,7 +95,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`)
 
 server/src/      Node + ws. Authoritative: levels, encounters, field actors, enemy stats, fight results.
-  main.ts          Wires net -> sessions -> loop; picks the player store
+  main.ts          Wires db -> net -> sessions -> loop; picks the player store
   net/             server.ts (HTTP + /ws), connection.ts (one socket: Zod-validated in, typed out), static.ts
   game/            session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
                    handler per ClientMsg), encounter.ts (start/end fights, refuse impossible wins and healing),
@@ -96,7 +108,11 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
     prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
   store/           player-store.ts (PlayerStore interface, PlayerSave = what's kept between connections),
-                   stub-store.ts (no database yet: every load is a new player at full HP/stamina, saves go nowhere)
+                   pg-player-store.ts (PlayerStore on the `players` table; one query at a time per player)
+  env.ts           DEV, PORT, DATABASE_URL from the environment (loads the repo's .env if there is one)
+  db/              schema.ts (the tables, in TypeScript: Drizzle ORM), db.ts (connects to DATABASE_URL, applies new
+                   migrations at startup), migrations/ (SQL written by `npm run db:generate`, plus drizzle-kit's
+                   meta/; settings in server/drizzle.config.ts)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
   main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins;
@@ -169,8 +185,13 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
 - **Something kept between connections:** a field on `PlayerSave` and `newPlayer()` in
-  `server/src/store/player-store.ts`, read from it in `Session`'s constructor and written in `Session.save()`.
-  A real database is a class implementing `PlayerStore`, swapped in for `new StubPlayerStore()` in `server/src/main.ts`.
+  `server/src/store/player-store.ts`, read from it in `Session`'s constructor and written in `Session.save()`;
+  a column in `server/src/db/schema.ts` (then a migration, below), and the queries in `pg-player-store.ts`.
+  Another store is a class implementing `PlayerStore`, swapped in for `new PgPlayerStore(db)` in `server/src/main.ts`.
+- **A schema change:** edit `server/src/db/schema.ts`, run `npm run db:generate -- --name <what-changed>`, read the
+  SQL it wrote and commit it with `migrations/meta/`. drizzle-kit asks when it can't tell a rename from a drop + add.
+  For data changes it can't work out, `npm run db:generate -- --custom --name <what>` writes an empty migration to
+  fill in. Don't edit merged migrations: databases that already ran them won't run them again.
 - **A key binding:** add the action to `ACTIONS` in `client/src/settings/bindings.ts` (label + default keys) and
   read it with `settings.bindings.get().<group>.<action>`; the settings screen lists it on its own.
 - **A new kind of setting:** a store in `client/src/settings/` (see camera.ts), added to `Settings` and
@@ -220,7 +241,7 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
   puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see a little less
   width. `state` only carries actors within that 16:9 view of the server's copy of you, plus 3 tiles, so a hacked
   client can't see further and actors appear off-screen. Levels, encounters, enemy stats, wins,
-  respawns and the HP / stamina you carry between fights (and, once there's a real store, between connections) come from the server. Everything the client sends is checked against a Zod schema first.
+  respawns and the HP / stamina you carry between fights and connections (saved in Postgres) come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server
   (Babylon NullEngine + Havok in Node, or simpler server physics) is the next step for real anti-cheat.
