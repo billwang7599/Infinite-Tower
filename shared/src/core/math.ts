@@ -38,6 +38,11 @@ export function damp(current: number, target: number, rate: number, dt: number):
   return current + (target - current) * dampFactor(rate, dt);
 }
 
+export function roundTo(x: number, decimals: number): number {
+  const scale = 10 ** decimals;
+  return Math.round(x * scale) / scale;
+}
+
 /** Distance between two points on the ground plane (y ignored). */
 export function distXZ(a: Vec2, b: Vec2): number {
   return Math.hypot(b.x - a.x, b.z - a.z);
