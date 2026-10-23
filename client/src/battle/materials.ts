@@ -3,7 +3,8 @@
  * Swap these for real art later; nothing else depends on how they're made.
  */
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
-import { drawPlayerDown, drawPlayerIdle, drawPlayerSlash } from "../gfx/characters.js";
+import { DEFAULT_LOOK } from "@infinite-tower/shared";
+import { playerFrames } from "../gfx/characters.js";
 import { spriteMaterial } from "../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../gfx/textures.js";
 
@@ -27,7 +28,9 @@ function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): 
   return m;
 }
 
+/** The player is drawn in the default look until `welcome` says who they are (game/dress.ts repaints it). */
 export function createMaterials(scene: Scene): Materials {
+  const frames = playerFrames(DEFAULT_LOOK);
   const grass = tiled(scene, "grass",
     speckleTexture(scene, "grass", "#3f6b35", ["#4d7f3e", "#355a2c", "#5b8a45", "#2d4d27"], 900, 5, 1), 18);
   const dirt = tiled(scene, "dirt",
@@ -65,9 +68,9 @@ export function createMaterials(scene: Scene): Materials {
   return {
     grass, dirt, stone, bark, leaves, shadow,
     player: {
-      idle: spriteMaterial(scene, "player-idle", drawPlayerIdle),
-      slash: spriteMaterial(scene, "player-slash", drawPlayerSlash),
-      down: spriteMaterial(scene, "player-down", drawPlayerDown),
+      idle: spriteMaterial(scene, "player-idle", frames.idle),
+      slash: spriteMaterial(scene, "player-slash", frames.slash),
+      down: spriteMaterial(scene, "player-down", frames.down),
     },
     slashFx, telegraph,
   };

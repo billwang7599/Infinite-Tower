@@ -9,6 +9,7 @@ import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/constants.js";
 import type { ArenaDef, EnemyDef } from "../battle/defs.js";
 import type { Stats } from "../battle/stats.js";
+import type { Character } from "../character/character.js";
 import type { LevelLayout } from "../field/layout.js";
 import type { SavedSettings } from "./client-messages.js";
 
@@ -26,7 +27,10 @@ export interface ActorSnap {
 }
 
 export type ServerMsg =
-  | { t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; dev: boolean }
+  /** `character` is null until the player has made one; the level comes only after that. */
+  | { t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null; dev: boolean }
+  /** The character the player made or changed, as saved. */
+  | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
   | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; wins: number }
   /** `source`: the actor that touched you, or null for tall grass. `vitals`, `stats`: what you start the fight with. */

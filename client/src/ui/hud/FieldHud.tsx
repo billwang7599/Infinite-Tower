@@ -13,16 +13,18 @@ interface FieldHudProps extends HudProps {
   /** The bound Character key does nothing while Settings is open (it may be getting rebound). */
   settingsScreen: Store<SettingsScreenState>;
   openSettings: () => void;
+  editCharacter: () => void;
 }
 
-export function FieldHud({ hud, bindings, settingsScreen, openSettings }: FieldHudProps) {
+export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter }: FieldHudProps) {
   const [characterOpen, setCharacterOpen] = useState(false);
   const stats = useStore(hud, (s) => s.stats);
+  const character = useStore(hud, (s) => s.character);
   const characterKeys = useStore(bindings, (b) => b.field.character);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || !characterKeys.includes(e.code) || settingsScreen.get().open) return;
+      if (e.repeat || !characterKeys.includes(e.code) || settingsScreen.get().open || e.target instanceof HTMLInputElement) return;
       setCharacterOpen((open) => !open);
     };
     window.addEventListener("keydown", onKey);
@@ -41,17 +43,21 @@ export function FieldHud({ hud, bindings, settingsScreen, openSettings }: FieldH
           <GearIcon />
         </HudButton>
       </div>
-      {characterOpen && <CharacterPanel stats={stats} close={() => setCharacterOpen(false)} />}
+      {characterOpen && (
+        <CharacterPanel stats={stats} character={character} close={() => setCharacterOpen(false)} edit={editCharacter} />
+      )}
     </div>
   );
 }
 
 function PlayerStatus({ hud }: HudProps) {
+  const name = useStore(hud, (s) => s.character?.name);
   const hp = useStore(hud, (s) => s.hp);
   const stamina = useStore(hud, (s) => s.stamina);
   const wins = useStore(hud, (s) => s.wins);
   return (
     <div className="absolute top-3 left-4">
+      {name && <div id="field-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
       <PlayerBars hp={hp} stamina={stamina} />
       <div id="field-wins" className="text-[13px] font-normal">
         Boars defeated: <span className="font-semibold text-victory">{wins}</span>

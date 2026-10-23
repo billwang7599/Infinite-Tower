@@ -1,11 +1,19 @@
 /**
- * The field's character panel: the player's stats. It doesn't pause or block walking; the field HUD's button or
- * the Character key (field.character) toggles it.
+ * The field's character panel: the player's name and stats, and Change look (the character editor). It doesn't
+ * pause or block walking; the field HUD's button or the Character key (field.character) toggles it.
  */
-import { STAT_KEYS, type Stats } from "@infinite-tower/shared";
+import { STAT_KEYS, type Character, type Stats } from "@infinite-tower/shared";
+import { BUTTON } from "../../screens/settings/buttons.js";
 import { STAT_TEXT } from "./statText.js";
 
-export function CharacterPanel({ stats, close }: { stats: Stats | null; close: () => void }) {
+interface PanelProps {
+  stats: Stats | null;
+  character: Character | null;
+  close: () => void;
+  edit: () => void;
+}
+
+export function CharacterPanel({ stats, character, close, edit }: PanelProps) {
   return (
     <section
       id="character-panel"
@@ -13,7 +21,7 @@ export function CharacterPanel({ stats, close }: { stats: Stats | null; close: (
       className="absolute top-14 right-4 w-72 rounded-sm border border-white/15 bg-night/90 px-5 py-4 font-normal shadow-[0_12px_40px_#000a]"
     >
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="font-title text-xl tracking-[0.08em] text-victory">Character</h2>
+        <h2 id="character-name" className="font-title text-xl tracking-[0.08em] text-victory">{character?.name ?? "Character"}</h2>
         <button
           type="button" aria-label="Close" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={close}
           className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
@@ -32,6 +40,12 @@ export function CharacterPanel({ stats, close }: { stats: Stats | null; close: (
           ))}
         </dl>
       )}
+      <button
+        type="button" id="character-edit" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={edit}
+        className={`pointer-events-auto mt-4 w-full ${BUTTON.plain}`}
+      >
+        Change look
+      </button>
     </section>
   );
 }
