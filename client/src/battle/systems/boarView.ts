@@ -1,5 +1,5 @@
 import { Color3, Vector3 } from "@babylonjs/core";
-import { Boar, BOAR, Health, wrapAngle, type System } from "@infinite-tower/shared";
+import { Boar, Health, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body, BoarView } from "../components.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI, 0]; // diagonal pairs move together
@@ -34,7 +34,7 @@ export function boarViewSystem(): System {
       let headPitch = 0, lean = 0, roll = 0, tremble = 0, yOff = 0, zOff = 0, glow = 0;
       let rollRate = 12;
       const t = boar.t;
-      const G = BOAR.gore, C = BOAR.charge;
+      const G = boar.def.gore, C = boar.def.charge;
       switch (boar.state) {
         case "goreWindup": {
           const k = Math.min(1, t / G.windup);

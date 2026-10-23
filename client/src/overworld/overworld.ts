@@ -1,25 +1,33 @@
 /**
- * The overworld mode: the 2D field. It has no physics engine, so it runs its own fixed-step loop.
- * Rules (walking, encounters, boar AI) come from @infinite-tower/shared; this wires and draws them.
+ * The overworld mode: the 2D field. The server decides everything here (where you are, encounters,
+ * the boars); this mode predicts your own walking, mirrors the boars, and draws.
  */
 import type { Engine } from "@babylonjs/core";
-import {
-  FIXED_DT, MAP, MapBoar, MapPlayer, MapPos, mapBoarSystem, mapPlayerSystem, type Entity, type System, type World,
-} from "@infinite-tower/shared";
+import { FIXED_DT, type ServerMsg, type System, type World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/input.js";
+import type { Connection } from "../net/connection.js";
 import { registerMapDisposers } from "./components.js";
+import { Prediction } from "./prediction.js";
 import { createMapScene, type MapView } from "./scene.js";
-import { spawnMapBoar, spawnMapPlayer } from "./spawn.js";
+import { spawnMapPlayer } from "./spawn.js";
+import { BoarMirror } from "./sync.js";
 import { mapCameraSystem, snapMapCamera } from "./systems/camera.js";
-import { mapInputSystem } from "./systems/input.js";
+import { readMapInput } from "./systems/input.js";
 import { mapSpriteSystem } from "./systems/sprites.js";
+
+type Welcome = Extract<ServerMsg, { t: "welcome" }>;
+type Msg<T extends ServerMsg["t"]> = Extract<ServerMsg, { t: T }>;
 
 export interface Overworld {
   view: MapView;
-  /** Advance the simulation by real time `dt`; `frozen` pauses it (during transitions). */
+  /** Advance by real time `dt`; `frozen` pauses it (during transitions). */
   update(dt: number, frozen: boolean): void;
-  /** Back from a fight. `source` is the map boar that started it (null: tall grass). */
-  returnFromFight(won: boolean, source: Entity | null): void;
+  /** Server messages for the field. */
+  onState(msg: Msg<"state">): void;
+  onEncounter(msg: Msg<"encounter">): void;
+  onBattleResult(msg: Msg<"battleResult">): void;
+  /** Left the arena: stop walking until the server's result arrives. */
+  awaitResult(): void;
   render(): void;
 }
 
@@ -28,40 +36,25 @@ export interface OverworldOptions {
   world: World;
   keyboard: Keyboard;
   hud: HTMLElement;
-  onEncounter: (source: Entity | null) => void;
+  net: Connection;
+  welcome: Welcome;
 }
 
 export function createOverworld(opts: OverworldOptions): Overworld {
-  const { engine, world, keyboard, hud } = opts;
-  const view = createMapScene(engine);
+  const { engine, world, keyboard, hud, net, welcome } = opts;
+  const view = createMapScene(engine, welcome.field);
   registerMapDisposers(world);
-  const player = spawnMapPlayer(world, view, MAP.spawn);
-  spawnMapBoar(world, view, { x: 8, z: -6 });
+  const player = spawnMapPlayer(world, view, welcome.me);
+  const prediction = new Prediction(world, view, player, net);
+  const boars = new BoarMirror(world, view);
   snapMapCamera(view, world);
 
-  let encountered = false;
-  let boarRespawn = 0;
-  let wins = 0;
+  /** No walking between an encounter and the server's battle result. */
+  let inFight = false;
+  let wins = welcome.wins;
   let lastHud = "";
-  const onEncounter = (source: Entity | null) => {
-    encountered = true;
-    opts.onEncounter(source);
-  };
 
-  /** Replace a defeated map boar after a while, on the far side from the player. */
-  const respawnSystem: System = (w, dt) => {
-    if (boarRespawn <= 0 || w.first(MapBoar)) return;
-    boarRespawn -= dt;
-    if (boarRespawn > 0) return;
-    const me = w.require(player, MapPos);
-    const x = me.x > 0 ? -MAP.halfWidth + 5 : MAP.halfWidth - 5;
-    spawnMapBoar(w, view, { x, z: (Math.random() - 0.5) * MAP.halfDepth });
-  };
-
-  const fixed: System[] = [
-    mapInputSystem(keyboard), mapPlayerSystem(Math.random, onEncounter), mapBoarSystem(Math.random, onEncounter), respawnSystem,
-  ];
-  const render: System[] = [mapSpriteSystem(), mapCameraSystem(view)];
+  const render: System[] = [mapSpriteSystem(welcome.field), mapCameraSystem(view)];
   view.scene.onBeforeRenderObservable.add(() => {
     const dt = Math.min(engine.getDeltaTime() / 1000, 0.1);
     for (const s of render) s(world, dt);
@@ -71,32 +64,31 @@ export function createOverworld(opts: OverworldOptions): Overworld {
   return {
     view,
     update(dt, frozen) {
-      if (frozen) { accumulator = 0; return; }
-      encountered = false;
+      if (frozen || inFight) { accumulator = 0; return; }
       accumulator += dt;
-      while (accumulator >= FIXED_DT && !encountered) {
-        for (const s of fixed) { s(world, FIXED_DT); if (encountered) break; }
-        world.flush();
+      while (accumulator >= FIXED_DT) {
+        prediction.step(readMapInput(keyboard));
         accumulator -= FIXED_DT;
       }
     },
-    returnFromFight(won, source) {
-      const mp = world.require(player, MapPlayer);
-      const pos = world.require(player, MapPos);
-      if (won) {
-        wins++;
-        if (source !== null && world.isAlive(source)) {
-          world.destroy(source);
-          world.flush();
-          boarRespawn = MAP.boar.respawn;
-        }
-      } else {
-        pos.x = MAP.spawn.x; // you wake up back at the start
-        pos.z = MAP.spawn.z;
-        snapMapCamera(view, world);
-      }
-      mp.safeTime = MAP.safeTime;
-      mp.grassDist = 0;
+    onState(msg) {
+      if (inFight) return;
+      prediction.reconcile(msg.ack, msg.me);
+      boars.apply(msg.boars);
+      wins = msg.wins;
+    },
+    onEncounter(msg) {
+      inFight = true;
+      prediction.reset(msg.me);
+    },
+    onBattleResult(msg) {
+      inFight = false;
+      wins = msg.wins;
+      prediction.reset(msg.me);
+      snapMapCamera(view, world);
+    },
+    awaitResult() {
+      inFight = true;
     },
     render() {
       const text = `Grass Field &nbsp;·&nbsp; boars defeated: ${wins}<br><small class="text-[13px] font-normal opacity-80">WASD / arrows to walk · touch a boar or walk through the tall grass to fight</small>`;

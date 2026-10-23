@@ -1,12 +1,11 @@
 /** The combat arena: a trampled clearing ringed by standing stones, forest beyond. Built once, never destroyed. */
 import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, Vector3 } from "@babylonjs/core";
-import { ARENA } from "@infinite-tower/shared";
 import { Body, Meshes } from "./components.js";
 import { Layer, type GameContext } from "./context.js";
 
 export function buildArena(ctx: GameContext): void {
   const { world, scene, materials, shadows } = ctx;
-  const R = ARENA.radius;
+  const R = ctx.arena.radius;
   const decor: Mesh[] = [];
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);

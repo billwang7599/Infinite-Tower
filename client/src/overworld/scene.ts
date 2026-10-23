@@ -1,10 +1,11 @@
 /**
  * The overworld scene: a top-down 2D field with its own Babylon scene and an orthographic camera.
- * Everything is a flat, unlit textured quad. Rules live in shared/src/overworld; this folder only draws.
+ * Everything is a flat, unlit textured quad. The server owns the rules and the layout; this folder draws them.
  */
 import {
   Camera, Color4, FreeCamera, Material, Scene, StandardMaterial, Vector3, type DynamicTexture, type Engine,
 } from "@babylonjs/core";
+import type { FieldLayout } from "@infinite-tower/shared";
 import { drawAlert, drawBoar, drawPlayerIdle } from "../gfx/characters.js";
 import { spriteMaterial, spriteTexture } from "../gfx/sprites.js";
 import { buildTerrain } from "./terrain.js";
@@ -13,6 +14,8 @@ import { tuftTexture } from "./textures.js";
 export interface MapView {
   scene: Scene;
   camera: FreeCamera;
+  /** Layout from the server's welcome. */
+  field: FieldLayout;
   materials: { player: StandardMaterial; boar: StandardMaterial; alert: StandardMaterial; tuft: StandardMaterial };
 }
 
@@ -32,7 +35,7 @@ export function flatMaterial(scene: Scene, name: string, tex: DynamicTexture, cu
   return m;
 }
 
-export function createMapScene(engine: Engine): MapView {
+export function createMapScene(engine: Engine, field: FieldLayout): MapView {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.16, 0.3, 0.16, 1);
   scene.skipPointerMovePicking = true;
@@ -45,10 +48,10 @@ export function createMapScene(engine: Engine): MapView {
   camera.maxZ = 100;
   camera.inputs.clear();
 
-  buildTerrain(scene);
+  buildTerrain(scene, field);
 
   return {
-    scene, camera,
+    scene, camera, field,
     materials: {
       tuft: flatMaterial(scene, "map-tuft", tuftTexture(scene), true),
       player: spriteMaterial(scene, "map-player", spriteTexture(scene, "map-player", drawPlayerIdle)),

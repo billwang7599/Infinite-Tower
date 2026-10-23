@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  approach, wrapAngle, ActiveHit, Boar, Health, LocalPlayer, ARENA, BOAR, type BoarData, type BoarState, type System,
+  approach, wrapAngle, ActiveHit, Boar, Health, LocalPlayer, type BoarData, type BoarState, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
@@ -23,14 +23,13 @@ function turnToward(current: number, target: number, maxStep: number): number {
  */
 export function boarSystem(ctx: GameContext): System {
   const v = new Vector3();
-  const G = BOAR.gore, C = BOAR.charge;
-
   return (world, dt) => {
     const target = world.first(LocalPlayer, Body, Health);
     for (const [e, boar, body, health] of world.query(Boar, Body, Health)) {
       const b = body.aggregate.body;
       b.getLinearVelocityToRef(v);
       const p = body.mesh.position;
+      const D = boar.def, G = D.gore, C = D.charge;
 
       const enter = (s: BoarState) => {
         boar.state = s;
@@ -41,13 +40,13 @@ export function boarSystem(ctx: GameContext): System {
       boar.t += dt;
       boar.chargeCooldown -= dt;
       boar.goreCooldown -= dt;
-      if (boar.state !== "staggered") boar.poise = Math.min(BOAR.poise, boar.poise + BOAR.poiseRegen * dt);
+      if (boar.state !== "staggered") boar.poise = Math.min(D.poise, boar.poise + D.poiseRegen * dt);
 
       if (health.hp <= 0) {
         if (boar.state !== "dead") enter("dead");
       } else if (boar.poise <= 0 && !["charge", "staggered", "stunned"].includes(boar.state)) {
         enter("staggered");
-        boar.poise = BOAR.poise;
+        boar.poise = D.poise;
       }
 
       let dist = Infinity, toYaw = boar.yaw, preyAlive = false;
@@ -66,8 +65,8 @@ export function boarSystem(ctx: GameContext): System {
       switch (boar.state) {
         case "approach": {
           if (!preyAlive) break;
-          boar.yaw = turnToward(boar.yaw, toYaw, BOAR.turnRate * dt);
-          speed = BOAR.walkSpeed * Math.max(0, Math.min(1, dist - 2.2)) * Math.max(0, facing);
+          boar.yaw = turnToward(boar.yaw, toYaw, D.turnRate * dt);
+          speed = D.walkSpeed * Math.max(0, Math.min(1, dist - 2.2)) * Math.max(0, facing);
           if (boar.chargeCooldown <= 0 && dist >= C.minDist && dist <= C.maxDist && facing > 0.7) enter("chargeWindup");
           else if (boar.goreCooldown <= 0 && dist < G.trigger && facing > 0.8) enter("goreWindup");
           break;
@@ -104,7 +103,7 @@ export function boarSystem(ctx: GameContext): System {
           // Slammed into the arena wall: stunned. This is the punish window.
           const r = Math.hypot(p.x, p.z);
           const outward = r > 0.01 ? (p.x * dirX + p.z * dirZ) / r : 0;
-          if (r > ARENA.radius - BOAR.radius - 0.45 && outward > 0.3) {
+          if (r > ctx.arena.radius - D.radius - 0.45 && outward > 0.3) {
             enter("stunned");
             v.x = v.z = 0;
             ctx.shake = Math.max(ctx.shake, 0.35);
@@ -123,7 +122,7 @@ export function boarSystem(ctx: GameContext): System {
           break;
         case "staggered":
           accel = 30;
-          if (boar.t >= BOAR.staggerTime) enter("approach");
+          if (boar.t >= D.staggerTime) enter("approach");
           break;
         case "dead":
           accel = 15;

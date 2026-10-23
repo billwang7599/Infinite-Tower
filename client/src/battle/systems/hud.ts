@@ -14,7 +14,7 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
       <div class="bar st w-[70%]"><div class="fill bar-layer bg-linear-to-b from-stamina to-stamina-dark"></div></div>
     </div>
     <div id="boss" class="absolute bottom-12 left-1/2 w-[min(640px,70vw)] -translate-x-1/2 transition-opacity duration-600">
-      <div class="mb-1 font-title text-[17px] font-medium tracking-wide">Wild Boar</div>
+      <div id="boss-name" class="mb-1 font-title text-[17px] font-medium tracking-wide"></div>
       <div class="bar boss"><div class="lag bar-layer bg-chip"></div><div class="fill bar-layer bg-linear-to-b from-boss to-boss-dark"></div></div>
     </div>
     <div id="banner" class="${BANNER} opacity-0">

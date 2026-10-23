@@ -1,4 +1,7 @@
-/** Arena-fight tuning. All the numbers that change how combat feels live here. */
+/**
+ * Player tuning for the arena. Shared: the client predicts its own player with these and a server
+ * would re-run them. Enemy stats and arena size are server content (server/src/content).
+ */
 
 export const GRAVITY = -24;
 
@@ -46,52 +49,4 @@ export const PLAYER = {
     speed: 12,
     endSpeed: 3,
   },
-} as const;
-
-export const BOAR = {
-  maxHp: 160,
-  radius: 0.85,
-  mass: 20,
-  walkSpeed: 3.2,
-  turnRate: 3.0, // rad/s
-  /** Poise breaks after enough hits in quick succession -> stagger. */
-  poise: 36,
-  poiseRegen: 8,
-  staggerTime: 1.0,
-
-  gore: {
-    trigger: 2.8, // start the attack within this center distance
-    range: 2.6,
-    minDot: 0.35,
-    windup: 0.65,
-    active: 0.18,
-    recover: 0.75,
-    lunge: 6,
-    damage: 16,
-    knockback: 8,
-    lift: 3,
-    cooldown: 0.6,
-  },
-  charge: {
-    minDist: 5,
-    maxDist: 22,
-    windup: 1.1,
-    /** Stops tracking the player this long before the charge starts: your cue to dodge. */
-    lockAt: 0.3,
-    speed: 17,
-    maxTime: 1.6,
-    range: 1.9,
-    minDot: 0.2,
-    damage: 30,
-    knockback: 15,
-    lift: 6,
-    recover: 0.9,
-    /** Stunned this long after slamming into the arena wall. */
-    stun: 2.2,
-    cooldown: 4.5,
-  },
-} as const;
-
-export const ARENA = {
-  radius: 16,
 } as const;

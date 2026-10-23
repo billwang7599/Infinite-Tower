@@ -1,46 +1,38 @@
 /**
- * Overworld rules: walking, tall-grass encounters, wandering/chasing boars. Pure 2D math, no engine.
- * An encounter calls `onEncounter(source)`: the boar entity that touched you, or null for tall grass.
+ * Field rules, run only on the server: replaying the player's inputs, encounter rolls in tall grass,
+ * and the wandering / chasing map boars. `onEncounter(source)` gets the boar that touched you, or null.
  */
-import type { Entity, System } from "../core/ecs.js";
-import { PlayerInput } from "../core/input.js";
-import { MapBoar, MapPlayer, MapPos } from "./components.js";
-import { MAP } from "./constants.js";
+import {
+  clampToField, FIXED_DT, inTallGrass, stepWalker, type Entity, type System,
+} from "@infinite-tower/shared";
+import { ENCOUNTERS, FIELD, FIELD_BOAR as B } from "../content/field.js";
+import { FieldBoar, FieldPlayer, FieldPos } from "./components.js";
 
 export type EncounterHandler = (source: Entity | null) => void;
 
-export function inTallGrass(x: number, z: number): boolean {
-  const g = MAP.grass;
-  return x >= g.x && x <= g.x + g.w && z >= g.z && z <= g.z + g.h;
-}
+const MAX_CREDITS = 6;
 
-export function clampToField(pos: { x: number; z: number }): void {
-  const mx = MAP.halfWidth - MAP.border, mz = MAP.halfDepth - MAP.border;
-  pos.x = Math.max(-mx, Math.min(mx, pos.x));
-  pos.z = Math.max(-mz, Math.min(mz, pos.z));
-}
-
-export function mapPlayerSystem(rng: () => number, onEncounter: EncounterHandler): System {
+export function fieldPlayerSystem(rng: () => number, onEncounter: EncounterHandler): System {
   return (world, dt) => {
-    for (const [, mp, input, pos] of world.query(MapPlayer, PlayerInput, MapPos)) {
-      let ix = input.moveX, iz = input.moveZ;
-      const len = Math.hypot(ix, iz);
-      if (len > 1) { ix /= len; iz /= len; }
-      mp.vx = ix * MAP.playerSpeed;
-      mp.vz = iz * MAP.playerSpeed;
-      if (Math.abs(ix) > 0.1) mp.facing = ix > 0 ? 1 : -1;
+    for (const [, fp, pos] of world.query(FieldPlayer, FieldPos)) {
+      fp.safeTime = Math.max(0, fp.safeTime - dt);
+      fp.credits = Math.min(MAX_CREDITS, fp.credits + 1);
+      if (fp.queue.length === 0) { fp.vx = fp.vz = 0; continue; }
 
-      const ox = pos.x, oz = pos.z;
-      pos.x += mp.vx * dt;
-      pos.z += mp.vz * dt;
-      clampToField(pos);
-      mp.safeTime = Math.max(0, mp.safeTime - dt);
-
-      if (inTallGrass(pos.x, pos.z)) {
-        mp.grassDist += Math.hypot(pos.x - ox, pos.z - oz);
-        while (mp.grassDist >= MAP.grassStep) {
-          mp.grassDist -= MAP.grassStep;
-          if (mp.safeTime <= 0 && rng() < MAP.encounterChance) {
+      while (fp.credits >= 1 && fp.queue.length > 0) {
+        const input = fp.queue.shift()!;
+        fp.credits--;
+        fp.ack = input.seq;
+        const ox = pos.x, oz = pos.z;
+        const v = stepWalker(FIELD, pos, input, FIXED_DT);
+        fp.vx = v.vx;
+        fp.vz = v.vz;
+        if (!inTallGrass(FIELD, pos.x, pos.z)) continue;
+        fp.grassDist += Math.hypot(pos.x - ox, pos.z - oz);
+        while (fp.grassDist >= ENCOUNTERS.grassStep) {
+          fp.grassDist -= ENCOUNTERS.grassStep;
+          if (fp.safeTime <= 0 && rng() < ENCOUNTERS.chance) {
+            fp.queue.length = 0;
             onEncounter(null);
             return;
           }
@@ -50,11 +42,10 @@ export function mapPlayerSystem(rng: () => number, onEncounter: EncounterHandler
   };
 }
 
-export function mapBoarSystem(rng: () => number, onEncounter: EncounterHandler): System {
-  const B = MAP.boar;
+export function fieldBoarSystem(rng: () => number, onEncounter: EncounterHandler): System {
   return (world, dt) => {
-    const player = world.first(MapPlayer, MapPos);
-    for (const [e, boar, pos] of world.query(MapBoar, MapPos)) {
+    const player = world.first(FieldPlayer, FieldPos);
+    for (const [e, boar, pos] of world.query(FieldBoar, FieldPos)) {
       boar.t += dt;
       const dx = player ? player[2].x - pos.x : 0, dz = player ? player[2].z - pos.z : 0;
       const dist = player ? Math.hypot(dx, dz) : Infinity;
@@ -74,10 +65,9 @@ export function mapBoarSystem(rng: () => number, onEncounter: EncounterHandler):
       switch (boar.state) {
         case "idle":
           if (boar.t >= boar.duration) {
-            // Wander somewhere nearby.
             const a = rng() * Math.PI * 2, r = 2 + rng() * 5;
             const target = { x: pos.x + Math.cos(a) * r, z: pos.z + Math.sin(a) * r };
-            clampToField(target);
+            clampToField(FIELD, target);
             boar.tx = target.x;
             boar.tz = target.z;
             boar.state = "wander";
@@ -113,7 +103,7 @@ export function mapBoarSystem(rng: () => number, onEncounter: EncounterHandler):
       boar.vz = vz;
       pos.x += vx * dt;
       pos.z += vz * dt;
-      clampToField(pos);
+      clampToField(FIELD, pos);
 
       if (!safe && dist < B.touchRange) {
         onEncounter(e);

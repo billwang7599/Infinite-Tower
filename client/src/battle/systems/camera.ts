@@ -1,5 +1,5 @@
 import { Vector3 } from "@babylonjs/core";
-import { ARENA, Boar, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import { Boar, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
 import { BUTTONS, KEYS } from "../keys.js";
@@ -62,7 +62,7 @@ export function cameraSystem(ctx: GameContext): System {
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).
     // Solve |focus - f*s| = R for the largest s: s = b + sqrt(b² - |focus|² + R²), with b = focus·f.
-    const R = ARENA.radius - 0.4;
+    const R = ctx.arena.radius - 0.4;
     const b = focus.x * fx + focus.z * fz;
     const maxFlat = b + Math.sqrt(Math.max(0, b * b - (focus.x * focus.x + focus.z * focus.z) + R * R));
     const dist = Math.max(2.5, Math.min(DISTANCE, maxFlat / Math.max(0.05, Math.cos(view.pitch))));

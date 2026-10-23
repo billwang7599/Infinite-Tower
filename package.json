@@ -2,13 +2,19 @@
   "name": "infinite-tower",
   "private": true,
   "type": "module",
-  "workspaces": ["shared", "client"],
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
   "scripts": {
-    "dev": "npm run dev -w @infinite-tower/client",
+    "dev": "concurrently -k -n server,client -c yellow,cyan \"npm run dev -w @infinite-tower/server\" \"npm run dev -w @infinite-tower/client\"",
     "build": "npm run build -w @infinite-tower/client",
-    "typecheck": "tsc -p shared && tsc -p client"
+    "start": "npm run build && NODE_ENV=production npm start -w @infinite-tower/server",
+    "typecheck": "tsc -p shared && tsc -p server && tsc -p client"
   },
   "devDependencies": {
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "concurrently": "^10.0.6"
   }
 }

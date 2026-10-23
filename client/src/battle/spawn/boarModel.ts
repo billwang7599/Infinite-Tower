@@ -3,7 +3,7 @@
  * any angle. Faces +z locally; animated procedurally by boarViewSystem.
  */
 import { Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Scene } from "@babylonjs/core";
-import { BOAR } from "@infinite-tower/shared";
+import type { BoarDef } from "@infinite-tower/shared";
 import type { BoarViewData } from "../components.js";
 import type { GameContext } from "../context.js";
 
@@ -16,7 +16,7 @@ function mat(scene: Scene, name: string, hex: string, list: StandardMaterial[]):
 }
 
 /** Builds the model under `parent` (the physics collider). Returns everything BoarView needs except state. */
-export function buildBoarModel(ctx: GameContext, e: number, parent: Mesh): Omit<BoarViewData, "gait" | "visualYaw"> {
+export function buildBoarModel(ctx: GameContext, e: number, parent: Mesh, def: BoarDef): Omit<BoarViewData, "gait" | "visualYaw"> {
   const { scene, shadows } = ctx;
   const materials: StandardMaterial[] = [];
   const hide = mat(scene, "boar-hide", "#5e4030", materials);
@@ -38,7 +38,7 @@ export function buildBoarModel(ctx: GameContext, e: number, parent: Mesh): Omit<
 
   const root = new TransformNode(`boar-root-${e}`, scene);
   root.parent = parent;
-  root.position.y = -BOAR.radius; // feet on the ground
+  root.position.y = -def.radius; // feet on the ground
   const model = new TransformNode(`boar-model-${e}`, scene);
   model.parent = root;
 

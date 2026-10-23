@@ -5,5 +5,7 @@ export default defineConfig({
   plugins: [tailwindcss()],
   // Havok ships a .wasm file that Vite's dep pre-bundler would break.
   optimizeDeps: { exclude: ["@babylonjs/havok"] },
-  server: { port: 5173 },
+  // The game server (server/) listens on 8787; the browser always talks to /ws on the page's own host.
+  server: { port: 5173, proxy: { "/ws": { target: "ws://localhost:8787", ws: true } } },
+  preview: { proxy: { "/ws": { target: "ws://localhost:8787", ws: true } } },
 });

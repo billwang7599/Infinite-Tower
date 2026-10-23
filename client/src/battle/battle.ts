@@ -6,7 +6,7 @@
 import { HavokPlugin, Scene, UniversalCamera, Vector3, type Engine } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
-import { FIXED_DT, Fighter, GRAVITY, type System, type World } from "@infinite-tower/shared";
+import { FIXED_DT, Fighter, GRAVITY, type ArenaDef, type BoarDef, type System, type World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/input.js";
 import type { Mouse } from "../core/mouse.js";
 import { buildArena } from "./arena.js";
@@ -28,8 +28,8 @@ import { spriteSystem } from "./systems/sprite.js";
 
 export interface Battle {
   ctx: GameContext;
-  /** Spawn the player and the boar facing each other. */
-  start(): void;
+  /** Spawn the player and the enemy (stats from the server's encounter) facing each other. */
+  start(enemy: BoarDef): void;
   /** Remove the fighters. Returns whether the player won. */
   end(): boolean;
   render(): void;
@@ -41,6 +41,7 @@ export interface BattleOptions {
   keyboard: Keyboard;
   mouse: Mouse;
   hud: HTMLElement;
+  arena: ArenaDef;
   /** Called when the player asks to leave a decided fight (Enter / E). */
   onLeave: () => void;
 }
@@ -62,7 +63,7 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
   const { shadows } = setupLook(scene, camera);
   const ctx: GameContext = {
     world, scene, physics: physics as GameContext["physics"], havok, camera,
-    keyboard, mouse, materials: createMaterials(scene), shadows,
+    keyboard, mouse, materials: createMaterials(scene), shadows, arena: opts.arena,
     view: { yaw: 0, pitch: 0.32, lock: true },
     fight: { state: "fighting", time: 0 },
     shake: 0,
@@ -99,10 +100,11 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
 
   return {
     ctx,
-    start() {
+    start(enemy) {
       clear();
       spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, true);
-      spawnBoar(ctx, { x: 0, y: 0.05, z: 6 }, Math.PI);
+      spawnBoar(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
+      opts.hud.querySelector("#boss-name")!.textContent = enemy.name;
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
       ctx.view.lock = true;

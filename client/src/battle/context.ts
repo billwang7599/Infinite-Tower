@@ -1,5 +1,5 @@
 import type { Scene, PhysicsEngineV2, HavokPlugin, UniversalCamera, ShadowGenerator } from "@babylonjs/core";
-import type { World } from "@infinite-tower/shared";
+import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/input.js";
 import type { Mouse } from "../core/mouse.js";
 import type { Materials } from "./materials.js";
@@ -17,6 +17,8 @@ export interface GameContext {
   mouse: Mouse;
   materials: Materials;
   shadows: ShadowGenerator;
+  /** From the server's welcome. */
+  arena: ArenaDef;
   /**
    * Orbit angles of the camera (radians), from the mouse or H/L (or arrows). Yaw is also the aim direction:
    * forward = (sin yaw, cos yaw). Movement is camera-relative.

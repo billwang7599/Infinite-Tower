@@ -1,9 +1,10 @@
 /**
- * Arena-fight components, shared by client and (future) server.
+ * Arena-fight components. The fight still runs in the client for now; a server-side fight would reuse these.
  * Plain data only. Engine handles (meshes, physics bodies) live in client/src/components.ts.
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2 } from "../core/math.js";
+import type { BoarDef } from "./defs.js";
 
 export type PlayerAction = "none" | "slash" | "dodge";
 
@@ -77,6 +78,8 @@ export type BoarState =
   | "stunned" | "staggered" | "dead";
 
 export interface BoarData {
+  /** Stats, sent by the server with the encounter. */
+  def: BoarDef;
   state: BoarState;
   /** Seconds in the current state. */
   t: number;

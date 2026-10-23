@@ -1,1 +1,6 @@
-{ "extends": "../tsconfig.base.json", "include": ["src"] }
+{
+  "extends": "../tsconfig.base.json",
+  // No DOM: shared code must run in Node (server) as well as the browser.
+  "compilerOptions": { "lib": ["ES2022"], "types": [] },
+  "include": ["src"]
+}

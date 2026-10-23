@@ -1,12 +1,12 @@
 /** Lays out the field: short grass ground, the tall-grass patch, and the tree border. */
 import { MeshBuilder, type Scene } from "@babylonjs/core";
-import { MAP, seededRandom } from "@infinite-tower/shared";
+import { seededRandom, type FieldLayout } from "@infinite-tower/shared";
 import { flatMaterial, layerY } from "./scene.js";
 import { grassTexture, tallGrassTexture, treeTexture } from "./textures.js";
 
-export function buildTerrain(scene: Scene): void {
+export function buildTerrain(scene: Scene, field: FieldLayout): void {
   const r = seededRandom(11);
-  const W = MAP.halfWidth, D = MAP.halfDepth;
+  const W = field.halfWidth, D = field.halfDepth;
 
   const grassTex = grassTexture(scene, r);
   grassTex.uScale = (W * 2 + 8) / 8;
@@ -14,7 +14,7 @@ export function buildTerrain(scene: Scene): void {
   const ground = MeshBuilder.CreateGround("map-ground", { width: W * 2 + 8, height: D * 2 + 8 }, scene);
   ground.material = flatMaterial(scene, "map-grass", grassTex);
 
-  const g = MAP.grass;
+  const g = field.grass;
   const tallTex = tallGrassTexture(scene);
   tallTex.uScale = g.w;
   tallTex.vScale = g.h;
