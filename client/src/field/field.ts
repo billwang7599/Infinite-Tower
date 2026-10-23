@@ -7,9 +7,10 @@ import { FIXED_DT, type MsgOf, type ServerMsg, type System, type World } from "@
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection } from "../net/connection.js";
+import type { FieldHudState } from "../ui/state.js";
+import type { Store } from "../ui/store.js";
 import { registerFieldDisposers } from "./components.js";
 import { spawnFieldPlayer } from "./entities/player.js";
-import { createFieldHud } from "./hud.js";
 import { readWalkInput } from "./input.js";
 import { loadLevel } from "./levels/index.js";
 import { ActorMirror } from "./mirror.js";
@@ -38,7 +39,8 @@ export interface FieldOptions {
   engine: Engine;
   world: World;
   keyboard: Keyboard;
-  hud: HTMLElement;
+  /** The field HUD state (drawn by ui/hud/FieldHud.tsx). */
+  hud: Store<FieldHudState>;
   net: Connection;
   /** Progress from the server's welcome. */
   wins: number;
@@ -51,7 +53,6 @@ export function createField(opts: FieldOptions): Field {
   const player = spawnFieldPlayer(world, view, { x: 0, z: 0 });
   const prediction = new Prediction(world, view, player, net);
   const actors = new ActorMirror(world, view);
-  const hud = createFieldHud(opts.hud);
 
   /** No walking between an encounter and the server's battle result. */
   let inFight = false;
@@ -100,7 +101,7 @@ export function createField(opts: FieldOptions): Field {
       inFight = true;
     },
     render() {
-      hud(view.level?.name ?? "…", wins);
+      opts.hud.set({ levelName: view.level?.name ?? "…", wins });
       view.scene.render();
     },
   };

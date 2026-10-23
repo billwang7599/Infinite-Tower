@@ -2,7 +2,7 @@
 
 An SAO-style souls-like browser game (in progress). Plan: explore floors on a 2D map; touching an
 enemy drops you into a small 2.5D arena fight: 3D monsters, 2D billboard players. Babylon.js + Havok
-physics, custom ECS on top.
+physics, custom ECS on top, React + Tailwind for the UI over the canvas.
 
 **Current prototype (single-player):** a 2D grass field with a wandering boar and a patch of tall grass.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
@@ -18,7 +18,8 @@ npm run typecheck  # shared, server, client
 ```
 
 `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
-`window.mode()`, `window.components` and `window.encounter()` (asks the server for a fight; dev server only).
+`window.mode()`, `window.components`, `window.ui` (the HUD stores) and `window.encounter()` (asks the server for a
+fight; dev server only).
 
 ## Controls
 
@@ -82,20 +83,27 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
     prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
-client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
-  main.ts          Bootstrap: connect, engine, world, both modes, game; ?debug handles
+client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
+  main.ts          Bootstrap: mount the UI, connect, engine, world, both modes, game; ?debug handles
   game/            game.ts (routes server messages, field <-> battle switching), transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
-  ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
+  ui/              React: everything drawn over the canvas (see "UI" below)
+    mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toast, fade, error
+    state.ts         UiState: the stores the game writes (screen, toast, field HUD, battle HUD). No React.
+    store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
+    components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
+    hud/             FieldHud.tsx, BattleHud.tsx
+    overlays/        Toast.tsx, Fade.tsx, ErrorMessage.tsx
+    styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
     scene.ts         Babylon scene + ortho camera, FieldView, layerY
     prediction.ts    Predict your own walking, reconcile with the server's acks
     mirror.ts        Mirror the server's actors (spawned by kind via entities/)
     components.ts    FieldPos, FieldActor, FieldSprite
-    input.ts, hud.ts Field bindings (WASD / arrows), the HUD line
+    input.ts         Field bindings (WASD / arrows)
     entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
     systems/         sprites (glide to server positions, tuft, "!"), camera (follow)
     levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel), grass-field/
@@ -110,7 +118,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
     enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
       behaviors/       brain (approach/poise/stagger/stun/death), charge, gore, motor (velocity), common
       models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
-    systems/         camera, combat, hud (everything that isn't one player or one enemy)
+    systems/         camera, combat, hud (fills the battle HUD state; everything that isn't one player or one enemy)
 ```
 
 Arena system order (battle.ts). Fixed 60 Hz: player input → player controller → enemy brain → attacks → motor →
@@ -127,6 +135,8 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
 - **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
+- **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, later `screens/`); if the
+  game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code.
 - **An arena enemy:** an `EnemyDef` in `server/src/content/enemies.ts` combining attacks; a new attack type is a def
   shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`enemies/spawn.ts`) and a system in
   `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
@@ -135,13 +145,26 @@ Keep files small and single-purpose (roughly under 200 lines); add a folder per 
 rather than growing an existing file. Small math (clamping, smoothing, distances, turning) goes in
 `shared/src/core/math.ts` rather than being written inline again.
 
-## Styling
+## UI
 
-DOM overlays use **Tailwind CSS v4** (via `@tailwindcss/vite`, no config file). Write utility classes in the
-markup (`index.html` or HTML strings in `.ts`). Game colours/fonts are `@theme` tokens in `client/src/ui/styles.css`
-(`bg-hp`, `text-victory`, `font-title`, ...); shared pieces are `@utility` classes (`bar`, `bar-layer`).
-Write class names out in full, because Tailwind can't detect names built with string concatenation.
-In-world UI (enemy bars, name tags) belongs in Babylon, not the DOM.
+Everything over the canvas (HUDs, toast, fades, menus) is **React** (`client/src/ui/`, mounted into `#ui`).
+The canvas and anything in the 3D/2D world (sprites, in-world bars, name tags) is Babylon.
+
+- **The game never touches the DOM.** It writes plain values into stores (`ui/state.ts`, e.g.
+  `ui.battle.set({ hp })`, `ui.showToast(text)`); components read them with `useStore(store, s => s.hp)`.
+  Writing every frame is fine: `Store.set` ignores unchanged values, so a component only re-renders when the
+  value it selected changes. Select one primitive per `useStore` call.
+- **Component files** are PascalCase `.tsx` and export components only (keeps Vite Fast Refresh working);
+  game code stays `.ts` and imports nothing from React.
+- **Text is escaped by JSX**, so server or player strings (names, chat) can be rendered safely. Don't use
+  `dangerouslySetInnerHTML`.
+
+### Styling
+
+Components use **Tailwind CSS v4** (via `@tailwindcss/vite`, no config file) utility classes in `className`.
+Game colours/fonts are `@theme` tokens in `client/src/ui/styles.css` (`bg-hp`, `text-victory`, `font-title`, ...);
+shared pieces are `@utility` classes (`bar`, `bar-layer`). Write class names out in full (pass
+`"from-hp to-hp-dark"`, not a built string), because Tailwind can't detect names built by concatenation.
 
 ## Architecture rules
 

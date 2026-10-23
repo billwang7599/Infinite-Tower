@@ -1,4 +1,4 @@
-/* Tailwind entry (imported by ui/overlay.ts). Markup uses utility classes; game-wide tokens live in @theme. */
+/* Tailwind entry (imported by ui/mount.tsx). Components use utility classes; game-wide tokens live in @theme. */
 @import "tailwindcss";
 
 @theme {

@@ -8,6 +8,8 @@ import { FIXED_DT, Fighter, type ArenaDef, type EnemyDef, type Entity, type Syst
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
+import type { BattleHudState } from "../ui/state.js";
+import type { Store } from "../ui/store.js";
 import { buildArena } from "./arena.js";
 import { registerBattleDisposers } from "./components.js";
 import type { BattleContext } from "./context.js";
@@ -43,7 +45,8 @@ export interface BattleOptions {
   world: World;
   keyboard: Keyboard;
   mouse: Mouse;
-  hud: HTMLElement;
+  /** The battle HUD state (drawn by ui/hud/BattleHud.tsx). */
+  hud: Store<BattleHudState>;
   /** Called when the player asks to leave a decided fight (Enter / E). */
   onLeave: () => void;
 }
@@ -115,7 +118,6 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
       useArena(arena);
       spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, true);
       spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
-      opts.hud.querySelector("#boss-name")!.textContent = enemy.name;
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
       ctx.view.lock = true;

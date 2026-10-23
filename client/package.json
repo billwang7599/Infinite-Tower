@@ -10,10 +10,15 @@
   "dependencies": {
     "@babylonjs/core": "^9.0.0",
     "@babylonjs/havok": "^1.3.14",
-    "@infinite-tower/shared": "*"
+    "@infinite-tower/shared": "*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "vite": "^8.0.0"
   }
