@@ -23,7 +23,7 @@ npm run typecheck  # shared, server, client
 ```
 
 After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
-`window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.bindings`, `window.cameraSettings` and
+`window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.settings` (key bindings, camera) and
 `window.encounter()` (asks the server for a fight; dev server only).
 
 ## Controls
@@ -108,15 +108,17 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
                    buttons.ts (held + latched presses), time.ts
-  settings/        bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons; KeyBindings: the
-                   player's keys, saved to localStorage; the game reads `bindings.get()` every tick), camera.ts
-                   (CameraSettings: sensitivity, saved to localStorage; the arena camera reads it every tick)
+  settings/        settings.ts (Settings: every kind of setting in one object; main.ts loads it once and passes it
+                   to the game and the UI), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse
+                   buttons; KeyBindings: the player's keys, saved to localStorage; the game reads
+                   `settings.bindings.get()` every tick), camera.ts (CameraSettings: sensitivity, saved to
+                   localStorage; the arena camera reads it every tick)
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
-    state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), `settings`
-                     (open/closed: the UI writes it, the game watches it), UiSettings (bindings + camera settings),
-                     and UiActions (what the UI asks of the game: play, returnToTitle). No React.
+    state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD),
+                     `settingsScreen` (open/closed: the UI writes it, the game watches it), and UiActions (what
+                     the UI asks of the game: play, returnToTitle). No React.
     keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
@@ -170,7 +172,10 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
   `server/src/store/player-store.ts`, read from it in `Session`'s constructor and written in `Session.save()`.
   A real database is a class implementing `PlayerStore`, swapped in for `new StubPlayerStore()` in `server/src/main.ts`.
 - **A key binding:** add the action to `ACTIONS` in `client/src/settings/bindings.ts` (label + default keys) and
-  read it with `bindings.get().<group>.<action>`; the settings screen lists it on its own.
+  read it with `settings.bindings.get().<group>.<action>`; the settings screen lists it on its own.
+- **A new kind of setting:** a store in `client/src/settings/` (see camera.ts), added to `Settings` and
+  `loadSettings()` in settings.ts, and a section in `ui/screens/settings/` shown by SettingsScreen. Game code
+  reads it from the `settings` it already has (`ctx.settings` in the arena); nothing in between changes.
 - **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, or a folder of its own in
   `screens/`; parts used by more than one screen go in `components/`); if the
   game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code. If it has to

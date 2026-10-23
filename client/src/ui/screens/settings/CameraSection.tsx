@@ -3,8 +3,8 @@ import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
 import { useStore } from "../../useStore.js";
 import { BUTTON } from "./buttons.js";
 
-export function CameraSection({ cameraSettings }: { cameraSettings: CameraSettings }) {
-  const sensitivity = useStore(cameraSettings, (s) => s.sensitivity);
+export function CameraSection({ camera }: { camera: CameraSettings }) {
+  const sensitivity = useStore(camera, (s) => s.sensitivity);
   return (
     <section id="camera-settings" className="pt-2">
       <h3 className="text-lg font-semibold">Camera</h3>
@@ -21,7 +21,7 @@ export function CameraSection({ cameraSettings }: { cameraSettings: CameraSettin
             max={SENSITIVITY.max}
             step={SENSITIVITY.step}
             value={sensitivity}
-            onChange={(e) => cameraSettings.setSensitivity(e.currentTarget.valueAsNumber)}
+            onChange={(e) => camera.setSensitivity(e.currentTarget.valueAsNumber)}
             className="w-44 cursor-pointer accent-victory focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-victory"
           />
           <output htmlFor="camera-sensitivity" className="w-11 text-right text-[13px] font-semibold tabular-nums">
@@ -30,7 +30,7 @@ export function CameraSection({ cameraSettings }: { cameraSettings: CameraSettin
           <button
             type="button"
             disabled={sensitivity === SENSITIVITY.default}
-            onClick={() => cameraSettings.reset()}
+            onClick={() => camera.reset()}
             className={BUTTON.plain}
           >
             Reset

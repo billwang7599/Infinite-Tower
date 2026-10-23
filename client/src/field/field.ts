@@ -8,7 +8,7 @@ import { FIXED_DT, fullVitals, PLAYER, type MsgOf, type ServerMsg, type System, 
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection } from "../net/connection.js";
-import type { KeyBindings } from "../settings/bindings.js";
+import type { Settings } from "../settings/settings.js";
 import type { FieldHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { registerFieldDisposers } from "./components.js";
@@ -44,12 +44,12 @@ export interface FieldOptions {
   world: World;
   view: FieldView;
   keyboard: Keyboard;
-  bindings: KeyBindings;
+  settings: Settings;
   hud: Store<FieldHudState>;
 }
 
 export function createField(opts: FieldOptions): Field {
-  const { engine, world, view, keyboard, bindings } = opts;
+  const { engine, world, view, keyboard, settings } = opts;
   registerFieldDisposers(world);
   const player = spawnFieldPlayer(world, view, { x: 0, z: 0 });
   const actors = new ActorMirror(world, view);
@@ -87,7 +87,7 @@ export function createField(opts: FieldOptions): Field {
       if (frozen || inFight || !view.level || !p) { accumulator = 0; return; }
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
-        p.step(readWalkInput(keyboard, bindings.get().field));
+        p.step(readWalkInput(keyboard, settings.bindings.get().field));
         accumulator -= FIXED_DT;
       }
     },
