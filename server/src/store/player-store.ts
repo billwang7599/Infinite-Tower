@@ -2,7 +2,7 @@
  * What the server keeps about a player between connections. Game code only sees `PlayerStore`; main.ts
  * picks the implementation (Postgres, pg-player-store.ts), so swapping it is a one-line change there.
  */
-import { fullVitals, type Vitals } from "@infinite-tower/shared";
+import { fullVitals, type SavedSettings, type Vitals } from "@infinite-tower/shared";
 
 /** The account's id: every player logs in (auth/), there's no guest play. */
 export type PlayerId = string;
@@ -10,10 +10,11 @@ export type PlayerId = string;
 /** To keep something else across connections: add it here, to `newPlayer`, and a column (a new migration). */
 export interface PlayerSave {
   vitals: Vitals;
+  settings: SavedSettings;
 }
 
 /** A player the store has never seen. */
-export const newPlayer = (): PlayerSave => ({ vitals: fullVitals() });
+export const newPlayer = (): PlayerSave => ({ vitals: fullVitals(), settings: {} });
 
 export interface PlayerStore {
   /** Resolves to `newPlayer()` for an unknown id. */

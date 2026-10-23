@@ -9,6 +9,7 @@ import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/constants.js";
 import type { ArenaDef, EnemyDef } from "../battle/defs.js";
 import type { LevelLayout } from "../field/layout.js";
+import type { SavedSettings } from "./client-messages.js";
 
 /** Something the client should draw on the field. `kind` picks the client prefab. */
 export interface ActorSnap {
@@ -24,7 +25,7 @@ export interface ActorSnap {
 }
 
 export type ServerMsg =
-  | { t: "welcome"; wins: number; vitals: Vitals; dev: boolean }
+  | { t: "welcome"; wins: number; vitals: Vitals; settings: SavedSettings; dev: boolean }
   | { t: "level"; level: LevelLayout; me: Vec2 }
   | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; wins: number }
   /** `source`: the actor that touched you, or null for tall grass. `vitals`: what you start the fight with. */

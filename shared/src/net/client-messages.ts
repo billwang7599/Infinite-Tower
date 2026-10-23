@@ -26,10 +26,25 @@ const VitalsSchema = z.object({ hp: finite, stamina: finite }) satisfies z.ZodTy
 /** The fight was decided and the player left the arena, with this much HP and stamina left. */
 export const BattleEndMsg = z.object({ t: z.literal("battleEnd"), won: z.boolean(), vitals: VitalsSchema });
 
+const KEY = z.string().max(32);
+
+/**
+ * The player's settings as saved: only what differs from the defaults (the client fills in the rest, and ignores
+ * anything it doesn't recognise). Sent in `welcome`; the client sends a new copy after each change.
+ */
+export const SavedSettingsSchema = z.object({
+  /** group -> action -> KeyboardEvent.code list */
+  bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(3))).optional(),
+  camera: z.object({ sensitivity: finite.optional() }).optional(),
+});
+export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
+
+export const SettingsMsg = z.object({ t: z.literal("settings"), settings: SavedSettingsSchema });
+
 /** Dev-only commands (the server ignores them in production). */
 export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
-export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, DebugMsg]);
+export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, DebugMsg]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
 /** Raw text from the socket -> a valid message, or null. */

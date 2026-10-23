@@ -45,7 +45,8 @@ cookie it sets is what `/ws` checks). After Play, `?debug` exposes `window.battl
 
 ## Controls
 
-Every key can be changed in Settings (Esc); changes are saved in the browser. The defaults (below) and the list of
+Every key can be changed in Settings (Esc); changes are saved on the server with your account, so they follow you
+to any browser. The defaults (below) and the list of
 actions are in `client/src/settings/bindings.ts`. Esc itself always opens and closes Settings. While Settings is open
 the game gets no input, but it keeps running: a fight doesn't pause.
 
@@ -137,11 +138,11 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
                    account.ts (the /api calls: who's logged in, log in, register, log out)
   core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
                    buttons.ts (held + latched presses), time.ts
-  settings/        settings.ts (Settings: every kind of setting in one object; main.ts loads it once and passes it
-                   to the game and the UI), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse
-                   buttons; KeyBindings: the player's keys, saved to localStorage; the game reads
-                   `settings.bindings.get()` every tick), camera.ts (CameraSettings: sensitivity, saved to
-                   localStorage; the arena camera reads it every tick)
+  settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes it
+                   to the game and the UI; `welcome` restores the player's, and syncSettings sends each change back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse
+                   buttons; KeyBindings: the player's keys, restore / toSaved; the game reads
+                   `settings.bindings.get()` every tick), camera.ts (CameraSettings: sensitivity; the
+                   arena camera reads it every tick)
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
@@ -208,8 +209,10 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
   fill in. Don't edit merged migrations: databases that already ran them won't run them again.
 - **A key binding:** add the action to `ACTIONS` in `client/src/settings/bindings.ts` (label + default keys) and
   read it with `settings.bindings.get().<group>.<action>`; the settings screen lists it on its own.
-- **A new kind of setting:** a store in `client/src/settings/` (see camera.ts), added to `Settings` and
-  `loadSettings()` in settings.ts, and a section in `ui/screens/settings/` shown by SettingsScreen. Game code
+- **A new kind of setting:** a store in `client/src/settings/` with `restore` / `toSaved` (see camera.ts), added to
+  `Settings`, `createSettings()`, `restoreSettings()` and `toSaved()` in settings.ts, a field in
+  `SavedSettingsSchema` (`shared/src/net/client-messages.ts`), and a section in `ui/screens/settings/` shown by
+  SettingsScreen. The server stores whatever passes the schema as is (`players.settings`, jsonb). Game code
   reads it from the `settings` it already has (`ctx.settings` in the arena); nothing in between changes.
 - **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, or a folder of its own in
   `screens/`; parts used by more than one screen go in `components/`); if the
@@ -258,7 +261,9 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
 - **Every player is logged in.** `/api/login` (or `/api/register`) sets an httpOnly cookie; `/ws` closes sockets
   without one (code 4001) before anything else happens, and a player's save is keyed by their account. There's no
   guest play. Levels, encounters, enemy stats, wins,
-  respawns and the HP / stamina you carry between fights and connections (saved in Postgres) come from the server. Everything the client sends is checked against a Zod schema first.
+  respawns and the HP / stamina you carry between fights and connections (saved in Postgres) come from the server.
+  Settings are saved there too: `welcome` brings them, and the client sends a `settings` message (debounced) after
+  each change, which the server writes at most once a second. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server
   (Babylon NullEngine + Havok in Node, or simpler server physics) is the next step for real anti-cheat.

@@ -16,7 +16,7 @@ import * as fieldComponents from "../field/components.js";
 import { createField } from "../field/field.js";
 import { createFieldScene } from "../field/scene.js";
 import type { Joined } from "../net/connection.js";
-import type { Settings } from "../settings/settings.js";
+import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import { createGame } from "./game.js";
 
@@ -45,9 +45,12 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Prep
   });
   const field = createField({ engine, world, view: fieldView, keyboard, settings, hud: ui.field });
   game.setModes(battle, field);
+  let stopSync = () => {};
 
   return {
     join(joined, onLost) {
+      restoreSettings(settings, joined.welcome.settings);
+      stopSync = syncSettings(settings, joined.net);
       game.join(joined, onLost);
       // Dev handles for the browser console (and the browser tests): `battle` and `field` hold each mode's
       // world/scene, `components` every component type, `ui` the HUD stores, `settings` the player's settings.
@@ -59,6 +62,9 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Prep
         });
       }
     },
-    leave: () => game.leave(),
+    leave() {
+      stopSync();
+      game.leave();
+    },
   };
 }
