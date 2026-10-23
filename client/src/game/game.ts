@@ -2,11 +2,12 @@
  * Mode switching. Two modes, two Babylon scenes, one ECS world:
  * - map:    the 2D overworld (overworld/), its own fixed-step loop.
  * - battle: the 2.5D arena (battle/), stepped by Babylon's lockstep + Havok.
- * The server decides encounters and fight results; this routes its messages and runs the transitions:
+ * The server decides levels, encounters and fight results; this routes its messages (one handler per
+ * message type) and runs the transitions:
  * an encounter flashes into battle, leaving a decided fight fades back to the map.
  */
 import type { Engine } from "@babylonjs/core";
-import type { BoarDef, ServerMsg } from "@infinite-tower/shared";
+import type { ArenaDef, EnemyDef } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/input.js";
 import type { Mouse } from "../core/mouse.js";
@@ -26,7 +27,7 @@ export interface Game {
 export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, overlay: Overlay, net: Connection): Game {
   let mode: Mode = "map";
   let transition: Transition | null = null;
-  let encounter: { fromGrass: boolean; enemy: BoarDef } | null = null;
+  let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef } | null = null;
   let battle: Battle, overworld: Overworld;
 
   const setMode = (m: Mode) => {
@@ -38,8 +39,8 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
 
   const swap = (to: Mode) => {
     if (to === "battle") {
-      const { fromGrass, enemy } = encounter!;
-      battle.start(enemy);
+      const { fromGrass, enemy, arena } = encounter!;
+      battle.start(enemy, arena);
       overlay.toast(fromGrass ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
     } else {
       net.send({ t: "battleEnd", won: battle.end() });
@@ -73,20 +74,19 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
     run(b, o) {
       battle = b;
       overworld = o;
-      net.onMessage = (msg: ServerMsg) => {
-        switch (msg.t) {
-          case "state": overworld.onState(msg); break;
-          case "encounter":
-            overworld.onEncounter(msg);
-            encounter = { fromGrass: msg.source === null, enemy: msg.enemy };
-            transition = startTransition("battle");
-            break;
-          case "battleResult":
-            overworld.onBattleResult(msg);
-            if (!msg.accepted) overlay.toast("The server didn't accept that win.");
-            break;
-        }
-      };
+      net.listen({
+        level: (msg) => overworld.onLevel(msg),
+        state: (msg) => overworld.onState(msg),
+        encounter(msg) {
+          overworld.onEncounter(msg);
+          encounter = { fromGrass: msg.source === null, enemy: msg.enemy, arena: msg.arena };
+          transition = startTransition("battle");
+        },
+        battleResult(msg) {
+          overworld.onBattleResult(msg);
+          if (!msg.accepted) overlay.toast("The server didn't accept that win.");
+        },
+      });
       net.onClose = () => overlay.toast("Lost connection to the server. Reload to reconnect.");
       setMode("map");
       engine.runRenderLoop(() => frame(Math.min(engine.getDeltaTime() / 1000, 0.1)));

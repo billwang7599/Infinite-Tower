@@ -17,7 +17,7 @@ export interface GameContext {
   mouse: Mouse;
   materials: Materials;
   shadows: ShadowGenerator;
-  /** From the server's welcome. */
+  /** The current arena (from the server's encounter). */
   arena: ArenaDef;
   /**
    * Orbit angles of the camera (radians), from the mouse or H/L (or arrows). Yaw is also the aim direction:

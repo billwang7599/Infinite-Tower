@@ -2,5 +2,11 @@
   "name": "@infinite-tower/shared",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./net/client-messages": "./src/net/client-messages.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
 }

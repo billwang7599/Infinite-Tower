@@ -1,13 +1,13 @@
-import { inTallGrass, type FieldLayout, type System } from "@infinite-tower/shared";
+import { inTallGrass, type System } from "@infinite-tower/shared";
 import { MapActor, MapPos, MapSprite } from "../components.js";
-import { layerY } from "../scene.js";
+import { layerY, type MapView } from "../scene.js";
 
 /** Server snapshots arrive ~20x/s: glide toward them; snap if far off (respawn, teleport). */
 const GLIDE_RATE = 14;
 const SNAP_DIST = 3;
 
 /** Per render frame: glide to server positions, place the quads, walk hop, facing, tuft and "!". */
-export function mapSpriteSystem(field: FieldLayout): System {
+export function mapSpriteSystem(view: MapView): System {
   return (world, dt) => {
     for (const [, sprite, pos, actor] of world.query(MapSprite, MapPos, MapActor)) {
       if (actor.target) {
@@ -27,7 +27,7 @@ export function mapSpriteSystem(field: FieldLayout): System {
 
       // In tall grass, a tuft covers the feet (and rustles while walking).
       if (sprite.tuft) {
-        const inGrass = inTallGrass(field, pos.x, pos.z);
+        const inGrass = view.level !== null && inTallGrass(view.level, pos.x, pos.z);
         sprite.tuft.setEnabled(inGrass);
         if (inGrass) {
           sprite.tuft.position.set(pos.x, layerY(pos.z, 0.35), pos.z + 0.12);

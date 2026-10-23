@@ -3,13 +3,13 @@
  * inputs, boars are drawn where the server says they are.
  */
 import type { Mesh } from "@babylonjs/core";
-import { defineComponent, type Vec2, type World } from "@infinite-tower/shared";
+import { defineComponent, type ActorSnap, type Vec2, type World } from "@infinite-tower/shared";
 
 /** Drawn position on the field (tiles). */
 export const MapPos = defineComponent<Vec2>("MapPos");
 
 export interface MapActorData {
-  kind: "player" | "boar";
+  kind: "player" | ActorSnap["kind"];
   vx: number;
   vz: number;
   facing: 1 | -1;

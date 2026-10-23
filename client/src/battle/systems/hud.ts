@@ -1,4 +1,4 @@
-import { Boar, Health, LocalPlayer, Stamina, type System } from "@infinite-tower/shared";
+import { Enemy, Health, LocalPlayer, Stamina, type System } from "@infinite-tower/shared";
 import type { GameContext } from "../context.js";
 
 const BANNER = "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1200 "
@@ -66,10 +66,10 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
       set(els.st, "width", `${((s.value / s.max) * 100).toFixed(1)}%`);
     }
 
-    const boar = world.first(Boar, Health);
-    set(els.boss, "opacity", boar && boar[2].hp > 0 ? "1" : "0");
-    if (boar) {
-      const real = boar[2].hp / boar[2].max;
+    const enemy = world.first(Enemy, Health);
+    set(els.boss, "opacity", enemy && enemy[2].hp > 0 ? "1" : "0");
+    if (enemy) {
+      const real = enemy[2].hp / enemy[2].max;
       [lag.boss, lag.bossHold] = lagStep(lag.boss, real, lag.bossHold, dt);
       set(els.bossHp, "width", `${(real * 100).toFixed(1)}%`);
       set(els.bossLag, "width", `${(lag.boss * 100).toFixed(1)}%`);

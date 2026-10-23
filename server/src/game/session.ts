@@ -1,0 +1,96 @@
+/**
+ * One connected player. Single-player for now: each session owns its own ECS world (its own level
+ * and actors). Holds the player's progress and which level/mode they're in; the field systems do
+ * the simulating, encounter.ts the fights, handlers.ts the incoming messages.
+ */
+import { World, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
+import { chaseSystem } from "../entities/behaviors/chase.js";
+import { moveSystem } from "../entities/behaviors/move.js";
+import { touchSystem } from "../entities/behaviors/touch.js";
+import { wanderSystem } from "../entities/behaviors/wander.js";
+import { FieldPlayer, FieldPos } from "../entities/components.js";
+import type { FieldContext } from "../entities/context.js";
+import { fieldPlayerSystem } from "../entities/player.js";
+import { Spawner } from "../entities/spawner.js";
+import { getLevel } from "../levels/index.js";
+import type { LevelDef } from "../levels/level.js";
+import type { Connection } from "../net/connection.js";
+import { startEncounter, type Encounter } from "./encounter.js";
+import { stateMsg } from "./snapshot.js";
+
+/** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
+const STATE_EVERY = 3;
+
+export class Session {
+  readonly world = new World();
+  readonly player: Entity;
+  /** null while in the field; set during a fight. */
+  encounter: Encounter | null = null;
+  wins = 0;
+  /** Highest input seq accepted (older or repeated ones are ignored). */
+  lastSeq = 0;
+  private level!: LevelDef;
+  private spawner: Spawner | null = null;
+  private readonly systems: System[];
+  private readonly ctx: FieldContext;
+  private ticks = 0;
+
+  constructor(readonly conn: Connection, readonly dev: boolean) {
+    const session = this;
+    this.ctx = {
+      get level() { return session.level; },
+      rng: Math.random,
+      encounter: (source, enemy) => startEncounter(this, source, enemy),
+    };
+    this.systems = [
+      fieldPlayerSystem(this.ctx), chaseSystem(), wanderSystem(this.ctx), moveSystem(this.ctx), touchSystem(this.ctx),
+      (world, dt) => this.spawner?.system(world, dt),
+    ];
+    this.player = this.world.spawn();
+    this.world.add(this.player, FieldPos, { x: 0, z: 0 });
+    this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
+    conn.send({ t: "welcome", wins: 0, dev });
+  }
+
+  get currentLevel(): LevelDef { return this.level; }
+  get inField(): boolean { return this.encounter === null; }
+
+  /** Load a level: clear the old one's actors, place the player, spawn the new actors, tell the client. */
+  enterLevel(id: string, at?: Vec2): void {
+    this.spawner?.clear();
+    this.level = getLevel(id);
+    this.placePlayer(at ?? this.level.spawn);
+    this.spawner = new Spawner(this.world, this.ctx);
+    this.conn.send({ t: "level", level: this.level.layout, me: this.playerPos() });
+  }
+
+  tick(dt: number): void {
+    if (!this.inField) return;
+    for (const s of this.systems) {
+      s(this.world, dt);
+      if (!this.inField) break; // an encounter started
+    }
+    this.world.flush();
+    if (this.inField && ++this.ticks % STATE_EVERY === 0) this.conn.send(stateMsg(this));
+  }
+
+  /** Reset walking state: after a fight or teleport, no stale inputs or encounter progress. */
+  resetWalk(safeTime: number): void {
+    const fp = this.world.require(this.player, FieldPlayer);
+    fp.queue.length = 0;
+    fp.credits = 0;
+    fp.grassDist = 0;
+    fp.safeTime = safeTime;
+  }
+
+  placePlayer(at: Vec2): void {
+    const pos = this.world.require(this.player, FieldPos);
+    pos.x = at.x;
+    pos.z = at.z;
+  }
+
+  playerPos(): Vec2 {
+    const p = this.world.require(this.player, FieldPos);
+    return { x: p.x, z: p.z };
+  }
+}

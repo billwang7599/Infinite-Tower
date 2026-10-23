@@ -1,9 +1,14 @@
-/** The combat arena: a trampled clearing ringed by standing stones, forest beyond. Built once, never destroyed. */
+/**
+ * The combat arena: a trampled clearing ringed by standing stones, forest beyond. Sized by the
+ * level's ArenaDef; returns its entities so the battle can rebuild it when the size changes.
+ */
+import type { Entity } from "@infinite-tower/shared";
 import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, Vector3 } from "@babylonjs/core";
 import { Body, Meshes } from "./components.js";
 import { Layer, type GameContext } from "./context.js";
 
-export function buildArena(ctx: GameContext): void {
+export function buildArena(ctx: GameContext): Entity[] {
+  const parts: Entity[] = [];
   const { world, scene, materials, shadows } = ctx;
   const R = ctx.arena.radius;
   const decor: Mesh[] = [];
@@ -14,7 +19,9 @@ export function buildArena(ctx: GameContext): void {
     const aggregate = new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.6, restitution: 0 }, scene);
     aggregate.shape.filterMembershipMask = membership;
     mesh.freezeWorldMatrix();
-    world.add(world.spawn(), Body, { aggregate, mesh });
+    const e = world.spawn();
+    world.add(e, Body, { aggregate, mesh });
+    parts.push(e);
   };
 
   // Ground: an invisible thick box for physics, visible grass + a dirt circle on top.
@@ -91,5 +98,8 @@ export function buildArena(ctx: GameContext): void {
   }
 
   for (const m of decor) m.freezeWorldMatrix();
-  world.add(world.spawn(), Meshes, { meshes: decor });
+  const decorEntity = world.spawn();
+  world.add(decorEntity, Meshes, { meshes: decor });
+  parts.push(decorEntity);
+  return parts;
 }

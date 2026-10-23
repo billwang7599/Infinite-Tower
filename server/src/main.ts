@@ -1,44 +1,37 @@
 /**
  * Infinite Tower server. Authoritative for everything a player shouldn't be able to change:
- * field layout, encounters, map enemies, enemy stats, fight results and progress.
+ * levels, encounters, field actors, enemy stats, fight results and progress.
  *
- *   content/   game data (field, arena, enemy stats)     field/    field simulation (ECS systems)
- *   battle/    fight-result checks                       session   one connected player
- *
- * WebSocket at /ws; in production it also serves client/dist over HTTP.
+ *   net/       sockets: HTTP + /ws, message validation (Zod), static files
+ *   game/      sessions (one per player), message handlers, encounters, snapshots, the tick loop
+ *   levels/    level data: layout, spawns, encounter tables
+ *   entities/  field actors: components, behaviors, prefabs, spawner, the player's walking
+ *   content/   enemy stats
  */
-import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
-import { FIXED_DT } from "@infinite-tower/shared";
-import { WebSocketServer } from "ws";
-import { Session } from "./session.js";
-import { serveStatic } from "./static.js";
+import { dispatch } from "@infinite-tower/shared";
+import { handlers } from "./game/handlers.js";
+import { startLoop } from "./game/loop.js";
+import { Session } from "./game/session.js";
+import { START_LEVEL } from "./levels/index.js";
+import { startServer } from "./net/server.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DEV = process.env.NODE_ENV !== "production";
 const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url));
 
 const sessions = new Set<Session>();
-const http = createServer(serveStatic(CLIENT_DIST));
-const wss = new WebSocketServer({ server: http, path: "/ws" });
 
-wss.on("connection", (ws) => {
-  const session = new Session((msg) => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg)); }, DEV);
-  sessions.add(session);
-  ws.on("message", (data) => session.onMessage(String(data)));
-  ws.on("close", () => sessions.delete(session));
-});
+startServer({
+  port: PORT,
+  clientDist: CLIENT_DIST,
+  onConnection(conn) {
+    const session = new Session(conn, DEV);
+    sessions.add(session);
+    conn.onMessage((msg) => dispatch(handlers, msg, session));
+    conn.onClose(() => sessions.delete(session));
+    session.enterLevel(START_LEVEL);
+  },
+}, () => console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws)`));
 
-// Fixed 60 Hz simulation for every session.
-let last = performance.now(), acc = 0;
-setInterval(() => {
-  const now = performance.now();
-  acc += Math.min(0.25, (now - last) / 1000);
-  last = now;
-  while (acc >= FIXED_DT) {
-    for (const s of sessions) s.tick(FIXED_DT);
-    acc -= FIXED_DT;
-  }
-}, 5);
-
-http.listen(PORT, () => console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws)`));
+startLoop(sessions);

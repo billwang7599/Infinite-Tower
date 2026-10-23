@@ -1,0 +1,38 @@
+/**
+ * Client -> server messages. The client is untrusted, so every message is a Zod schema: the server
+ * runs each one through `parseClientMsg` and drops anything that doesn't match. The TypeScript types
+ * are inferred from the schemas, so the two can't drift apart.
+ *
+ * The client imports only the types (`import type`), so Zod never reaches the browser bundle. That's
+ * also why this file isn't re-exported as values from the package index: import the schemas from
+ * "@infinite-tower/shared/net/client-messages".
+ */
+import { z } from "zod";
+
+const finite = z.number().finite();
+
+export const InputMsg = z.object({
+  t: z.literal("input"),
+  /** Increases by one per fixed tick. */
+  seq: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  /** Clamped to [-1, 1] by the walking rules. */
+  moveX: finite,
+  moveZ: finite,
+});
+
+/** The fight was decided and the player left the arena. */
+export const BattleEndMsg = z.object({ t: z.literal("battleEnd"), won: z.boolean() });
+
+/** Dev-only commands (the server ignores them in production). */
+export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
+
+export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, DebugMsg]);
+export type ClientMsg = z.infer<typeof ClientMsg>;
+
+/** Raw text from the socket -> a valid message, or null. */
+export function parseClientMsg(raw: string): ClientMsg | null {
+  let json: unknown;
+  try { json = JSON.parse(raw); } catch { return null; }
+  const result = ClientMsg.safeParse(json);
+  return result.success ? result.data : null;
+}

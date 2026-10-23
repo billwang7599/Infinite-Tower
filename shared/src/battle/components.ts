@@ -4,7 +4,7 @@
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2 } from "../core/math.js";
-import type { BoarDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, GoreDef } from "./defs.js";
 
 export type PlayerAction = "none" | "slash" | "dodge";
 
@@ -72,22 +72,40 @@ export interface ActiveHitData {
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
 
-export type BoarState =
-  | "approach" | "goreWindup" | "gore" | "goreRecover"
-  | "chargeWindup" | "charge" | "chargeRecover"
-  | "stunned" | "staggered" | "dead";
-
-export interface BoarData {
-  /** Stats, sent by the server with the encounter. */
-  def: BoarDef;
-  state: BoarState;
+/**
+ * Any arena enemy. Its AI is split into behaviors: the enemy systems handle approaching, poise,
+ * stagger, stun and death; each attack component (below) has its own system that starts the attack
+ * and runs its phases. `state` is the current state name, e.g. "approach" or "chargeWindup" (attack
+ * systems use their own names). Models animate from it.
+ */
+export interface EnemyData {
+  def: EnemyDef;
+  state: string;
   /** Seconds in the current state. */
   t: number;
-  /** Facing (see yaw convention in constants.ts). */
+  /** Seconds the current generic state lasts ("stunned", "staggered"). */
+  duration: number;
+  /** Facing (see yaw convention in core/math.ts). */
   yaw: number;
-  chargeCooldown: number;
-  goreCooldown: number;
-  chargeDir: Vec2;
   poise: number;
+  /** Can't be staggered right now (mid-charge, say). Attack systems set it each step. */
+  armored: boolean;
+  /** Where the target is, refreshed each step before the behaviors run. */
+  sense: { dist: number; toYaw: number; facing: number; preyAlive: boolean };
+  /** What the behaviors want this step; the motor turns it into velocity. */
+  move: { dirX: number; dirZ: number; speed: number; accel: number; halt: boolean };
 }
-export const Boar = defineComponent<BoarData>("Boar");
+export const Enemy = defineComponent<EnemyData>("Enemy");
+
+/** Enemy states every enemy has. Attack systems may only start from "approach". */
+export type EnemyBaseState = "approach" | "stunned" | "staggered" | "dead";
+
+export interface AttackState<D> {
+  def: D;
+  /** Seconds until usable again (ticks down all the time). */
+  cooldown: number;
+}
+export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
+
+export const GoreAttack = defineComponent<AttackState<GoreDef>>("GoreAttack");
+export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");

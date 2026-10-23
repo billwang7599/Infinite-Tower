@@ -44,9 +44,11 @@ export class Prediction {
   }
 
   private move(input: WalkInput): void {
+    const level = this.view.level;
+    if (!level) return;
     const pos = this.world.require(this.player, MapPos);
     const actor = this.world.require(this.player, MapActor);
-    const v = stepWalker(this.view.field, pos, input, FIXED_DT);
+    const v = stepWalker(level, pos, input, FIXED_DT);
     actor.vx = v.vx;
     actor.vz = v.vz;
     if (Math.abs(input.moveX) > 0.1) actor.facing = input.moveX > 0 ? 1 : -1;

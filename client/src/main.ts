@@ -4,7 +4,7 @@
  *   core/       input devices          gfx/        procedural textures + pixel sprites
  *   battle/     2.5D arena (Havok)     overworld/  2D field
  *   game/       mode switching         ui/         DOM overlays + CSS
- *   net/        server connection
+ *   net/        server connection       levels/     level renderers (by theme)
  */
 import { Engine } from "@babylonjs/core";
 import * as shared from "@infinite-tower/shared";
@@ -31,8 +31,8 @@ async function main(): Promise<void> {
   const overlay = createOverlay();
   const game = createGame(engine, keyboard, mouse, overlay, net);
 
-  const battle = await createBattle({ engine, world, keyboard, mouse, hud: overlay.battleHud, arena: welcome.arena, onLeave: game.leaveBattle });
-  const overworld = createOverworld({ engine, world, keyboard, hud: overlay.mapHud, net, welcome });
+  const battle = await createBattle({ engine, world, keyboard, mouse, hud: overlay.battleHud, onLeave: game.leaveBattle });
+  const overworld = createOverworld({ engine, world, keyboard, hud: overlay.mapHud, net, wins: welcome.wins });
   game.run(battle, overworld);
 
   // Dev handle: inspect from the browser console.

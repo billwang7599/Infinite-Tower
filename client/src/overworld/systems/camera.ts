@@ -8,13 +8,13 @@ const VIEW_HALF_HEIGHT = 6.5;
 /** Smoothly follow the map player, without showing past the edge of the world. */
 export function mapCameraSystem(view: MapView): System {
   return (world, dt) => {
-    const me = localPlayer(world);
-    if (!me) return;
+    const me = localPlayer(world), level = view.level;
+    if (!me || !level) return;
     const aspect = view.scene.getEngine().getAspectRatio(view.camera);
     const h = VIEW_HALF_HEIGHT, w = h * aspect;
     const cam = view.camera;
     cam.orthoTop = h; cam.orthoBottom = -h; cam.orthoLeft = -w; cam.orthoRight = w;
-    const maxX = Math.max(0, view.field.halfWidth + 3 - w), maxZ = Math.max(0, view.field.halfDepth + 3 - h);
+    const maxX = Math.max(0, level.halfWidth + 3 - w), maxZ = Math.max(0, level.halfDepth + 3 - h);
     const tx = Math.max(-maxX, Math.min(maxX, me[2].x));
     const tz = Math.max(-maxZ, Math.min(maxZ, me[2].z));
     const k = 1 - Math.exp(-10 * dt);

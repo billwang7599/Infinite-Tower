@@ -1,13 +1,18 @@
 /**
- * Shapes of server-owned content. The values live in server/src/content and reach the client in
- * messages (the client needs them to draw and, for now, to run the fight).
+ * Shapes of server-owned battle content. The values live in server/src/content and reach the client
+ * with each encounter (the client needs them to draw and, for now, to run the fight).
+ *
+ * An enemy is a body plus a set of optional attacks. The client's enemy prefab adds one component
+ * per attack (GoreAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
+ * mostly a new combination of existing attacks.
  */
 
 export interface ArenaDef {
   radius: number;
 }
 
-export interface BoarAttackDef {
+/** What every attack has: reach, timing, damage. */
+export interface AttackDef {
   range: number;
   /** Minimum cos(angle) to the target: the width of the hit arc. */
   minDot: number;
@@ -16,11 +21,42 @@ export interface BoarAttackDef {
   damage: number;
   knockback: number;
   lift: number;
+  /** Seconds before it can be used again (after recovering). */
   cooldown: number;
+  /** Seconds after the fight starts before the first use. */
+  firstDelay: number;
 }
 
-export interface BoarDef {
+/** A short-range lunge with a sweeping hit. */
+export interface GoreDef extends AttackDef {
+  /** Start the attack within this center distance. */
+  trigger: number;
+  /** Seconds the hit is live. */
+  active: number;
+  lunge: number;
+}
+
+/** A long straight rush. Slamming into the arena wall stuns the attacker: the punish window. */
+export interface ChargeDef extends AttackDef {
+  minDist: number;
+  maxDist: number;
+  /** Stops tracking the target this long before the charge starts: the dodge cue. */
+  lockAt: number;
+  speed: number;
+  maxTime: number;
+  stun: number;
+}
+
+export interface EnemyAttacks {
+  gore?: GoreDef;
+  charge?: ChargeDef;
+}
+
+export interface EnemyDef {
+  id: string;
   name: string;
+  /** Which 3D model the client builds (client/src/battle/enemies/models). */
+  model: "boar";
   maxHp: number;
   radius: number;
   mass: number;
@@ -31,20 +67,5 @@ export interface BoarDef {
   poise: number;
   poiseRegen: number;
   staggerTime: number;
-  gore: BoarAttackDef & {
-    /** Start the attack within this center distance. */
-    trigger: number;
-    active: number;
-    lunge: number;
-  };
-  charge: BoarAttackDef & {
-    minDist: number;
-    maxDist: number;
-    /** Stops tracking the player this long before the charge starts: the dodge cue. */
-    lockAt: number;
-    speed: number;
-    maxTime: number;
-    /** Stunned this long after slamming into the arena wall. */
-    stun: number;
-  };
+  attacks: EnemyAttacks;
 }

@@ -1,5 +1,5 @@
 import { Vector3 } from "@babylonjs/core";
-import { Boar, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import { Enemy, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
 import { BUTTONS, KEYS } from "../keys.js";
@@ -84,7 +84,7 @@ export function cameraSystem(ctx: GameContext): System {
 
 /** The living enemy to lock on to (only boars exist so far). */
 function lockTarget(world: Parameters<System>[0]): Vector3 | null {
-  for (const [, , health, body] of world.query(Boar, Health, Body)) {
+  for (const [, , health, body] of world.query(Enemy, Health, Body)) {
     if (health.hp > 0) return body.mesh.position;
   }
   return null;

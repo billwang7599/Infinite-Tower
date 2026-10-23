@@ -6,7 +6,7 @@
 import { HavokPlugin, Scene, UniversalCamera, Vector3, type Engine } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
-import { FIXED_DT, Fighter, GRAVITY, type ArenaDef, type BoarDef, type System, type World } from "@infinite-tower/shared";
+import { FIXED_DT, Fighter, GRAVITY, type ArenaDef, type EnemyDef, type Entity, type System, type World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/input.js";
 import type { Mouse } from "../core/mouse.js";
 import { buildArena } from "./arena.js";
@@ -14,10 +14,13 @@ import { registerDisposers } from "./components.js";
 import type { GameContext } from "./context.js";
 import { setupLook } from "./look.js";
 import { createMaterials } from "./materials.js";
-import { spawnBoar } from "./spawn/boar.js";
-import { spawnPlayer } from "./spawn/player.js";
-import { boarSystem } from "./systems/boar.js";
-import { boarViewSystem } from "./systems/boarView.js";
+import { chargeAttackSystem } from "./enemies/behaviors/charge.js";
+import { enemyBrainSystem } from "./enemies/behaviors/brain.js";
+import { goreAttackSystem } from "./enemies/behaviors/gore.js";
+import { enemyMotorSystem } from "./enemies/behaviors/motor.js";
+import { boarViewSystem } from "./enemies/models/boarView.js";
+import { spawnEnemy } from "./enemies/spawn.js";
+import { spawnPlayer } from "./player/spawn.js";
 import { cameraSystem } from "./systems/camera.js";
 import { combatSystem } from "./systems/combat.js";
 import { groundSystem } from "./systems/ground.js";
@@ -28,8 +31,8 @@ import { spriteSystem } from "./systems/sprite.js";
 
 export interface Battle {
   ctx: GameContext;
-  /** Spawn the player and the enemy (stats from the server's encounter) facing each other. */
-  start(enemy: BoarDef): void;
+  /** Spawn the player and the enemy facing each other, in the given arena (both from the server's encounter). */
+  start(enemy: EnemyDef, arena: ArenaDef): void;
   /** Remove the fighters. Returns whether the player won. */
   end(): boolean;
   render(): void;
@@ -41,7 +44,6 @@ export interface BattleOptions {
   keyboard: Keyboard;
   mouse: Mouse;
   hud: HTMLElement;
-  arena: ArenaDef;
   /** Called when the player asks to leave a decided fight (Enter / E). */
   onLeave: () => void;
 }
@@ -63,12 +65,20 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
   const { shadows } = setupLook(scene, camera);
   const ctx: GameContext = {
     world, scene, physics: physics as GameContext["physics"], havok, camera,
-    keyboard, mouse, materials: createMaterials(scene), shadows, arena: opts.arena,
+    keyboard, mouse, materials: createMaterials(scene), shadows, arena: { radius: 0 },
     view: { yaw: 0, pitch: 0.32, lock: true },
     fight: { state: "fighting", time: 0 },
     shake: 0,
   };
-  buildArena(ctx);
+  let arenaParts: Entity[] | null = null;
+  /** Build the arena on the first fight; rebuild only if the next one is a different size. */
+  const useArena = (arena: ArenaDef) => {
+    if (arenaParts && arena.radius === ctx.arena.radius) return;
+    for (const e of arenaParts ?? []) world.destroy(e);
+    world.flush();
+    ctx.arena = { ...arena };
+    arenaParts = buildArena(ctx);
+  };
 
   // After the fight: Enter / E leaves (once the result has been on screen for a moment).
   const leaveSystem: System = () => {
@@ -77,7 +87,10 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
   };
 
   // Systems. Order is the game's contract.
-  const beforePhysics: System[] = [leaveSystem, inputSystem(ctx), playerSystem(), boarSystem(ctx)];
+  const beforePhysics: System[] = [
+    leaveSystem, inputSystem(ctx), playerSystem(),
+    enemyBrainSystem(), chargeAttackSystem(ctx), goreAttackSystem(), enemyMotorSystem(),
+  ];
   const afterPhysics: System[] = [groundSystem(ctx), combatSystem(ctx)];
   const render: System[] = [cameraSystem(ctx), spriteSystem(ctx), boarViewSystem(), hudSystem(ctx, opts.hud)];
 
@@ -100,10 +113,11 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
 
   return {
     ctx,
-    start(enemy) {
+    start(enemy, arena) {
       clear();
+      useArena(arena);
       spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, true);
-      spawnBoar(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
+      spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
       opts.hud.querySelector("#boss-name")!.textContent = enemy.name;
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;

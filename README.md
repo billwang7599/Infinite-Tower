@@ -48,8 +48,9 @@ Slashing and dodging cost stamina (green bar); it regenerates when you stop acti
   **stunned** for ~2 s: free hits.
 - **Poise**: about 3–4 quick hits stagger it (not mid-charge).
 
-Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`); enemies, arena, field layout and encounter
-rates in `server/src/content/`.
+Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`); enemy stats and attacks in
+`server/src/content/enemies.ts`; levels (layout, spawns, encounter tables, arena size) in `server/src/levels/`;
+field-actor behavior numbers in `server/src/entities/prefabs/`.
 
 ## Layout
 
@@ -60,41 +61,64 @@ able to change; client = drawing, input, feel.** Everything in `shared/` and `cl
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   core/            ecs.ts (World, components, queries, deferred destroy), input.ts (PlayerInput),
                    math.ts (Vec2/3, approach, wrapAngle, seededRandom), time.ts (tick rate)
-  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Boar), constants.ts (PLAYER),
-                   defs.ts (BoarDef, ArenaDef: shapes of server content)
-  overworld/       field.ts (FieldLayout, stepWalker: walking, used for client prediction + server replay)
-  net/             protocol.ts (ClientMsg / ServerMsg types)
+  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
+                   constants.ts (PLAYER), defs.ts (EnemyDef = body + optional attacks, ArenaDef)
+  field/           layout.ts (LevelLayout: what the client may see of a level; stepWalker for prediction + replay)
+  net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
+                   server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`)
 
-server/src/      Node + ws. Authoritative: field, encounters, map enemies, enemy stats, fight results.
-  main.ts          HTTP (serves client/dist in production) + WebSocket /ws + fixed 60 Hz loop
-  session.ts       One connected player: its world, message handling, encounters, battle results
-  content/         field.ts (layout, encounter rate, map-boar tuning), boar.ts (WILD_BOAR stats), arena.ts
-  field/           components.ts, systems.ts (input replay + encounter rolls, map-boar AI)
-  battle/          validate.ts (refuse impossible wins)
-  static.ts        static file serving
+server/src/      Node + ws. Authoritative: levels, encounters, field actors, enemy stats, fight results.
+  main.ts          Wires net -> sessions -> loop
+  net/             server.ts (HTTP + /ws), connection.ts (one socket: Zod-validated in, typed out), static.ts
+  game/            session.ts (one player: world, level, progress), handlers.ts (one handler per ClientMsg),
+                   encounter.ts (start/end fights, refuse impossible wins), snapshot.ts (state msg), loop.ts (60 Hz)
+  levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
+                   grass-field.ts
+  entities/        components.ts (FieldPos, Actor, FieldPlayer), parts.ts (spawnActor from behavior parts),
+                   context.ts, player.ts (input replay + grass encounters), spawner.ts (spawn/respawn per level)
+    behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
+    prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (PREFABS by id)
+  content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
   main.ts          Bootstrap: connect, engine, world, both modes, game
-  net/             connection.ts (WebSocket, waits for the server's welcome)
+  net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   game/            game.ts (routes server messages, map <-> battle switching), transition.ts (flash / fade)
+  levels/          Level renderers by LevelLayout.theme: index.ts (registry), grass-field/ (terrain, textures)
   core/            input.ts (Keyboard with latched presses), mouse.ts (optional mouse/trackpad, pointer lock)
   gfx/             textures.ts (procedural textures), sprites.ts (pixel-sprite frames), characters.ts (the art)
   ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
   battle/          The 2.5D arena (still simulated in the browser, see below)
-    battle.ts        Scene + Havok setup, start/end a fight, system order (the game's contract)
+    battle.ts        Scene + Havok setup, start/end a fight (arena built/resized on demand), system order
     context.ts       GameContext + collision layers
     components.ts    Handles to engine objects (Body, SpriteView, BoarView, Meshes) + disposers
-    materials.ts, look.ts (lighting/post), arena.ts (ring, stones, forest)
-    spawn/           player.ts, boar.ts, boarModel.ts (boar built from primitives)
-    systems/         fixed 60 Hz: input → player → boar → [physics] → ground → combat
+    materials.ts, look.ts (lighting/post), arena.ts (ring, stones, forest), keys.ts (bindings)
+    player/          spawn.ts
+    enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
+      behaviors/       brain (approach/poise/stagger/stun/death), charge, gore, motor (velocity), common
+      models/          index.ts (by EnemyDef.model), boar.ts (built from primitives), boarView.ts (animation)
+    systems/         fixed 60 Hz: input → player → enemy brain → attacks → motor → [physics] → ground → combat
                      per frame:   camera, sprite, boarView, hud
   overworld/       The 2D field: mirrors the server
-    overworld.ts     Wiring: send inputs, apply server state, HUD
+    overworld.ts     Wiring: level loads, send inputs, apply server state, HUD
     prediction.ts    Predict your own walking, reconcile with the server's acks
-    sync.ts          Mirror the server's map boars
-    scene.ts, terrain.ts, textures.ts, components.ts (MapPos, MapActor, MapSprite), spawn.ts
+    mirror.ts        Mirror the server's actors (spawned by kind via entities/)
+    entities/        player.ts, boar.ts, index.ts (MAP_PREFABS by ActorSnap.kind)
+    scene.ts (scene, camera, loadLevel), textures.ts, components.ts (MapPos, MapActor, MapSprite)
     systems/         input, sprites (glide to server positions, tuft, "!"), camera (follow)
 ```
+
+### Adding things
+
+- **A message:** client -> server: add a Zod schema to `shared/src/net/client-messages.ts` and the union, then a
+  handler in `server/src/game/handlers.ts` (TypeScript errors until you do). Server -> client: add to `ServerMsg`
+  in `server-messages.ts` and a handler in `client/src/game/game.ts`'s `net.listen({...})`.
+- **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/levels/`.
+- **A field actor:** a prefab in `server/src/entities/prefabs/` (a list of behavior parts) plus a client drawing in
+  `client/src/overworld/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
+- **An arena enemy:** an `EnemyDef` in `server/src/content/enemies.ts` combining attacks; a new attack type is a def
+  shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`enemies/spawn.ts`) and a system in
+  `enemies/behaviors/`; a new look is a model in `enemies/models/`.
 
 Keep files small and single-purpose (roughly under 200 lines); add a folder per new mode or enemy
 rather than growing an existing file.
@@ -111,8 +135,8 @@ In-world UI (enemy bars, name tags) belongs in Babylon, not the DOM.
 
 - **The server decides; the client asks and draws.** On the field the client sends one input per tick and predicts
   its own walking with the shared `stepWalker`; the server replays the inputs (rate-limited, so sending more doesn't
-  move you faster), rolls encounters, runs the boars, and sends state 20x/s. Encounters, enemy stats, wins and
-  respawns come from the server.
+  move you faster), rolls encounters, runs the level's actors, and sends state 20x/s. Levels, encounters, enemy stats, wins and
+  respawns come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows. Moving the fight onto the server
   (Babylon NullEngine + Havok in Node, or simpler server physics) is the next step for real anti-cheat.
@@ -123,6 +147,6 @@ In-world UI (enemy bars, name tags) belongs in Babylon, not the DOM.
 - **Havok owns dynamic-body transforms.** Systems move things by setting velocity, never position.
 - **Fixed 60 Hz simulation** via Babylon's deterministic lockstep (`onBeforeStep` / `onAfterStep`); render-only systems run once per frame.
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (sector: range + angle) to the attacker; `combatSystem` resolves hits with plain math (no physics triggers), so the server can run the same code later.
-- **AI and animation are separate.** `boarSystem` is a state machine that only sets velocity/facing/hitboxes; `boarViewSystem` reads the state and poses the 3D model (wind-up tells, gallop, stun, death).
+- **AI and animation are separate.** The enemy behavior systems only set state, facing, wanted movement and hitboxes (the motor turns that into velocity); `boarViewSystem` reads the state and poses the 3D model (wind-up tells, gallop, stun, death).
 - **Input enters only through `PlayerInput`** (world-space move + aim), so network input can replace keyboard/mouse later.
 - **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes and bodies.

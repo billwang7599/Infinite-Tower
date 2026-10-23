@@ -1,0 +1,19 @@
+import type { LevelDef } from "./level.js";
+
+export const GRASS_FIELD: LevelDef = {
+  layout: {
+    id: "grass-field",
+    name: "Grass Field",
+    theme: "grass-field",
+    halfWidth: 20,
+    halfDepth: 13,
+    border: 1.6,
+    playerSpeed: 5,
+    grass: [{ x: 3, z: 1, w: 11, h: 7 }],
+  },
+  spawn: { x: -12, z: -5 },
+  arena: { radius: 16 },
+  spawns: [{ prefab: "boar", at: { x: 8, z: -6 }, respawn: 8 }],
+  grass: { step: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
+  safeTime: 2,
+};

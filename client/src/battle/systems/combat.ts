@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  ActiveHit, Boar, Fighter, Health, LocalPlayer, Player, PLAYER, type System,
+  ActiveHit, Enemy, Fighter, Health, LocalPlayer, Player, PLAYER, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { GameContext } from "../context.js";
@@ -49,8 +49,8 @@ export function combatSystem(ctx: GameContext): System {
           tb.aggregate.body.setLinearVelocity(knock.set(kx * hit.knockback, hit.lift, kz * hit.knockback));
           ctx.shake = Math.max(ctx.shake, 0.15 + hit.damage * 0.008);
         } else {
-          const boar = world.get(target, Boar);
-          if (boar) boar.poise -= hit.poise;
+          const enemy = world.get(target, Enemy);
+          if (enemy) enemy.poise -= hit.poise;
           ctx.shake = Math.max(ctx.shake, 0.06);
         }
       }

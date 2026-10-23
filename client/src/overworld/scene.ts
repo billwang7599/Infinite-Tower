@@ -1,21 +1,24 @@
 /**
  * The overworld scene: a top-down 2D field with its own Babylon scene and an orthographic camera.
- * Everything is a flat, unlit textured quad. The server owns the rules and the layout; this folder draws them.
+ * Everything is a flat, unlit textured quad. The server owns the rules and the levels; this folder
+ * draws them (the level itself via client/src/levels).
  */
 import {
-  Camera, Color4, FreeCamera, Material, Scene, StandardMaterial, Vector3, type DynamicTexture, type Engine,
+  Camera, Color4, FreeCamera, Material, Scene, StandardMaterial, Vector3, type DynamicTexture, type Engine, type TransformNode,
 } from "@babylonjs/core";
-import type { FieldLayout } from "@infinite-tower/shared";
+import type { LevelLayout } from "@infinite-tower/shared";
 import { drawAlert, drawBoar, drawPlayerIdle } from "../gfx/characters.js";
 import { spriteMaterial, spriteTexture } from "../gfx/sprites.js";
-import { buildTerrain } from "./terrain.js";
+import { LEVEL_RENDERERS } from "../levels/index.js";
 import { tuftTexture } from "./textures.js";
 
 export interface MapView {
   scene: Scene;
   camera: FreeCamera;
-  /** Layout from the server's welcome. */
-  field: FieldLayout;
+  /** The level you're in (from the server's `level` message); null until the first one arrives. */
+  level: LevelLayout | null;
+  /** Root of the level's meshes. */
+  levelRoot: TransformNode | null;
   materials: { player: StandardMaterial; boar: StandardMaterial; alert: StandardMaterial; tuft: StandardMaterial };
 }
 
@@ -35,7 +38,7 @@ export function flatMaterial(scene: Scene, name: string, tex: DynamicTexture, cu
   return m;
 }
 
-export function createMapScene(engine: Engine, field: FieldLayout): MapView {
+export function createMapScene(engine: Engine): MapView {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.16, 0.3, 0.16, 1);
   scene.skipPointerMovePicking = true;
@@ -48,10 +51,8 @@ export function createMapScene(engine: Engine, field: FieldLayout): MapView {
   camera.maxZ = 100;
   camera.inputs.clear();
 
-  buildTerrain(scene, field);
-
   return {
-    scene, camera, field,
+    scene, camera, level: null, levelRoot: null,
     materials: {
       tuft: flatMaterial(scene, "map-tuft", tuftTexture(scene), true),
       player: spriteMaterial(scene, "map-player", spriteTexture(scene, "map-player", drawPlayerIdle)),
@@ -59,4 +60,11 @@ export function createMapScene(engine: Engine, field: FieldLayout): MapView {
       alert: spriteMaterial(scene, "map-alert", spriteTexture(scene, "map-alert", drawAlert)),
     },
   };
+}
+
+/** Swap in a new level's drawing (meshes, materials and textures of the old one are disposed). */
+export function loadLevel(view: MapView, level: LevelLayout): void {
+  view.levelRoot?.dispose(false, true);
+  view.level = level;
+  view.levelRoot = LEVEL_RENDERERS[level.theme](view.scene, level);
 }
