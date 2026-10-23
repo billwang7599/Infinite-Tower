@@ -14,18 +14,17 @@ import type { Mouse } from "../core/mouse.js";
 import type { Connection } from "../net/connection.js";
 import { frameSeconds } from "../core/time.js";
 import type { Field } from "../field/field.js";
-import type { Overlay } from "../ui/overlay.js";
+import type { UiState } from "../ui/state.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
 
 export interface Game {
   mode(): Mode;
-  /** Battle -> field (the fight is decided). */
   leaveBattle(): void;
   /** Must be called once both modes exist: starts the render loop. */
   run(battle: Battle, field: Field): void;
 }
 
-export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, overlay: Overlay, net: Connection): Game {
+export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui: UiState, net: Connection): Game {
   let mode: Mode = "field";
   let transition: Transition | null = null;
   let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef } | null = null;
@@ -33,7 +32,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
 
   const setMode = (m: Mode) => {
     mode = m;
-    overlay.setMode(m);
+    ui.screen.set({ mode: m });
     mouse.canLock = m === "battle";
     if (m === "field") mouse.unlock();
   };
@@ -42,7 +41,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
     if (to === "battle") {
       const { fromGrass, enemy, arena } = encounter!;
       battle.start(enemy, arena);
-      overlay.toast(fromGrass ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
+      ui.showToast(fromGrass ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
     } else {
       net.send({ t: "battleEnd", won: battle.end() });
       field.awaitResult();
@@ -54,7 +53,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
   const frame = (dt: number) => {
     if (transition) {
       const f = stepTransition(transition, dt);
-      overlay.setFade(f.color, f.opacity);
+      ui.screen.set({ fadeColor: f.color, fadeOpacity: f.opacity });
       if (f.swapNow) swap(transition.to);
       if (f.done) transition = null;
     }
@@ -85,10 +84,10 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
         },
         battleResult(msg) {
           field.onBattleResult(msg);
-          if (!msg.accepted) overlay.toast("The server didn't accept that win.");
+          if (!msg.accepted) ui.showToast("The server didn't accept that win.");
         },
       });
-      net.onClose = () => overlay.toast("Lost connection to the server. Reload to reconnect.");
+      net.onClose = () => ui.showToast("Lost connection to the server. Reload to reconnect.");
       setMode("field");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
     },
