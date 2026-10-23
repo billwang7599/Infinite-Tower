@@ -11,8 +11,8 @@ wake up back at the start. Press Enter after the fight to return to the field. H
 fight to the next (the field HUD shows them); nothing refills them yet except dying.
 The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
 and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
-server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: key bindings, and
-Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
+server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: camera sensitivity, key
+bindings, and Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -23,8 +23,8 @@ npm run typecheck  # shared, server, client
 ```
 
 After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
-`window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.bindings` and `window.encounter()` (asks the
-server for a fight; dev server only).
+`window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.bindings`, `window.cameraSettings` and
+`window.encounter()` (asks the server for a fight; dev server only).
 
 ## Controls
 
@@ -36,7 +36,8 @@ the game gets no input, but it keeps running: a fight doesn't pause.
 
 **Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
 Click the game to capture the mouse (Esc releases it and opens Settings); until then the keyboard does everything.
-Mouse buttons are fixed.
+Mouse buttons are fixed. Settings → Camera → Sensitivity (25–300%) scales how fast the camera turns and tilts,
+from the mouse / trackpad and the keys alike.
 
 | Keyboard only | Mouse / trackpad | |
 |---|---|---|
@@ -108,13 +109,14 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
   core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
                    buttons.ts (held + latched presses), time.ts
   settings/        bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons; KeyBindings: the
-                   player's keys, saved to localStorage; the game reads `bindings.get()` every tick)
+                   player's keys, saved to localStorage; the game reads `bindings.get()` every tick), camera.ts
+                   (CameraSettings: sensitivity, saved to localStorage; the arena camera reads it every tick)
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
     state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), `settings`
-                     (open/closed: the UI writes it, the game watches it), and UiActions (what the UI asks of the
-                     game: play, returnToTitle). No React.
+                     (open/closed: the UI writes it, the game watches it), UiSettings (bindings + camera settings),
+                     and UiActions (what the UI asks of the game: play, returnToTitle). No React.
     keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
@@ -123,7 +125,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
-      settings/        SettingsScreen.tsx (Esc toggles, Return to title), KeyBindingsList.tsx (rebinding), buttons.ts
+      settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx (sensitivity
+                       slider), KeyBindingsList.tsx (rebinding), buttons.ts
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render

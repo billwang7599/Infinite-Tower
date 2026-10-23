@@ -1,10 +1,13 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
  * imports React, so game code never touches it. The exception is `settings`: the UI opens and closes it and
- * the game watches it, to stop taking input while it's open. `UiActions` is the other direction.
+ * the game watches it, to stop taking input while it's open. `UiActions` is the other direction, and `UiSettings`
+ * the player's saved settings, which both sides share.
  */
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
+import type { KeyBindings } from "../settings/bindings.js";
+import type { CameraSettings } from "../settings/camera.js";
 import { Store } from "./store.js";
 
 export interface ScreenState {
@@ -60,6 +63,12 @@ export interface BattleHudState {
 
 export interface SettingsState {
   open: boolean;
+}
+
+/** The player's settings (settings/): the settings screen edits them, the game reads them every tick. */
+export interface UiSettings {
+  bindings: KeyBindings;
+  cameraSettings: CameraSettings;
 }
 
 export interface UiActions {

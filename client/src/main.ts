@@ -5,11 +5,12 @@
  *   game/     start-up, sessions, mode switching       net/      server connection
  *   field/    the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
  *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
- *   settings/ key bindings, saved in the browser       ui/       React UI over the canvas; the game writes to it through ui/state.ts
+ *   settings/ key bindings, camera, saved in browser   ui/       React UI over the canvas; the game writes to it through ui/state.ts
  */
 import { VIEW } from "@infinite-tower/shared";
 import { Connection } from "./net/connection.js";
 import { KeyBindings } from "./settings/bindings.js";
+import { CameraSettings } from "./settings/camera.js";
 import { mountUi } from "./ui/mount.js";
 import { UiState } from "./ui/state.js";
 
@@ -18,8 +19,9 @@ document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW
 
 const ui = new UiState();
 const bindings = new KeyBindings();
+const cameraSettings = new CameraSettings();
 
-const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, bindings));
+const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, bindings, cameraSettings));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
 preparing.catch((err: unknown) => {
   if (ui.title.get().phase === "menu") fail(err);
@@ -60,7 +62,7 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-mountUi(document.getElementById("ui")!, ui, bindings, {
+mountUi(document.getElementById("ui")!, ui, { bindings, cameraSettings }, {
   play: () => void play(),
   returnToTitle: () => void backToTitle(),
 });

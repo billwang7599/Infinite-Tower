@@ -52,7 +52,7 @@ If the server fails with `EADDRINUSE` on :8787, an older `npm run dev` is still 
 - `npm run typecheck` and `npm run build` pass.
 - Try it in a browser. Playwright works: open `/?debug` and click Play (`#title-screen nav button`). Then the
   debug handles are available: `window.mode()`, `window.battle`, `window.field`, `window.ui`, `window.bindings`,
-  and `window.encounter()` (dev server only).
+  `window.cameraSettings` and `window.encounter()` (dev server only).
 - In your report, say what you tested. Say plainly if nothing was hand-played.
 
 ## Architecture rules (details in the README)
