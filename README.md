@@ -10,7 +10,7 @@ and you're pulled into a 2.5D arena fight. Win and that boar is gone (another sh
 wake up back at the start. Press Enter after the fight to return to the field.
 The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
 and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
-server's hello to wait for.
+server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: key bindings.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -21,16 +21,20 @@ npm run typecheck  # shared, server, client
 ```
 
 After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
-`window.mode()`, `window.components`, `window.ui` (the HUD stores) and `window.encounter()` (asks the server for a
-fight; dev server only).
+`window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.bindings` and `window.encounter()` (asks the
+server for a fight; dev server only).
 
 ## Controls
+
+Every key can be changed in Settings (Esc); changes are saved in the browser. The defaults (below) and the list of
+actions are in `client/src/settings/bindings.ts`. Esc itself always opens and closes Settings. While Settings is open
+the game gets no input, but it keeps running: a fight doesn't pause.
 
 **Field:** WASD / arrow keys to walk.
 
 **Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
-Click the game to capture the mouse (Esc releases it); until then the keyboard does everything.
-Bindings live in `client/src/battle/keys.ts`.
+Click the game to capture the mouse (Esc releases it and opens Settings); until then the keyboard does everything.
+Mouse buttons are fixed.
 
 | Keyboard only | Mouse / trackpad | |
 |---|---|---|
@@ -42,6 +46,7 @@ Bindings live in `client/src/battle/keys.ts`.
 | ↑ ↓ | move the mouse | tilt the camera |
 | Space | Space | jump |
 | Enter / E | Enter / E | after the fight: back to the field |
+| Esc | Esc | Settings (in the field too); can't be rebound |
 
 Slashing and dodging cost stamina (green bar); it regenerates when you stop acting.
 
@@ -90,21 +95,27 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
   main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins
   game/            start.ts (its own chunk with Babylon, imported lazily so the title shows first: prepareGame() builds
                    engine, Havok and both scenes behind the title; join() adds server, input, both modes and the
-                   ?debug handles), game.ts (routes server messages, field <-> battle switching),
+                   ?debug handles), game.ts (routes server messages, field <-> battle switching, who gets input),
                    transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
-  core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
+  core/            keyboard.ts (off while Settings is open), mouse.ts (optional, pointer lock),
+                   buttons.ts (held + latched presses), time.ts
+  settings/        bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons; KeyBindings: the
+                   player's keys, saved to localStorage; the game reads `bindings.get()` every tick)
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
-    state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), and
-                     UiActions (what the UI asks of the game: play). No React.
+    state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), `settings`
+                     (open/closed: the UI writes it, the game watches it), and UiActions (what the UI asks of the
+                     game: play). No React.
+    keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
     hud/             FieldHud.tsx, BattleHud.tsx
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
+      settings/        SettingsScreen.tsx (Esc toggles, Resume), KeyBindingsList.tsx (rebinding), buttons.ts
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
@@ -112,7 +123,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     prediction.ts    Predict your own walking, reconcile with the server's acks
     mirror.ts        Mirror the server's actors (spawned by kind via entities/)
     components.ts    FieldPos, FieldActor, FieldSprite
-    input.ts         Field bindings (WASD / arrows)
+    input.ts         The walk keys -> a WalkInput
     entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
     systems/         sprites (glide to server positions, tuft, "!"), camera (follow)
     levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel), grass-field/
@@ -121,7 +132,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     scene.ts         Babylon scene, Havok, camera, lights/fog/shadows/post
     context.ts       BattleContext + collision layers
     components.ts    Body, Meshes (+ disposers)
-    materials.ts, arena.ts (ring, stones, forest), keys.ts (bindings)
+    materials.ts, arena.ts (ring, stones, forest)
     player/          spawn, components (PlayerSprite), input (keys/mouse -> PlayerInput), controller (move,
                      jump, slash, dodge, stamina), ground (grounded raycasts), sprite (frames, trail, shadow)
     enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
@@ -144,6 +155,8 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
 - **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
+- **A key binding:** add the action to `ACTIONS` in `client/src/settings/bindings.ts` (label + default keys) and
+  read it with `bindings.get().<group>.<action>`; the settings screen lists it on its own.
 - **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, or a folder of its own in
   `screens/`; parts used by more than one screen go in `components/`); if the
   game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code. If it has to

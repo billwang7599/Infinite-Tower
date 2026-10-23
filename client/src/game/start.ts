@@ -15,6 +15,7 @@ import * as fieldComponents from "../field/components.js";
 import { createField } from "../field/field.js";
 import { createFieldScene } from "../field/scene.js";
 import type { Joined } from "../net/connection.js";
+import type { KeyBindings } from "../settings/bindings.js";
 import type { UiState } from "../ui/state.js";
 import { createGame } from "./game.js";
 
@@ -22,7 +23,7 @@ export interface PreparedGame {
   join(ui: UiState, joined: Joined): void;
 }
 
-export async function prepareGame(): Promise<PreparedGame> {
+export async function prepareGame(bindings: KeyBindings): Promise<PreparedGame> {
   const canvas = document.getElementById("game") as HTMLCanvasElement;
   // Deterministic lockstep: the battle scene steps gameplay + physics at a fixed FIXED_DT (max 4 per frame).
   const engine = new Engine(canvas, true, { deterministicLockstep: true, lockstepMaxSteps: 4, timeStep: shared.FIXED_DT });
@@ -41,16 +42,16 @@ export async function prepareGame(): Promise<PreparedGame> {
       const game = createGame(engine, keyboard, mouse, ui, net);
 
       const battle = createBattle({
-        engine, world, scene: battleScene, keyboard, mouse, hud: ui.battle, onLeave: game.leaveBattle,
+        engine, world, scene: battleScene, keyboard, mouse, bindings, hud: ui.battle, onLeave: game.leaveBattle,
       });
-      const field = createField({ engine, world, view: fieldView, keyboard, hud: ui.field, net, wins: welcome.wins });
+      const field = createField({ engine, world, view: fieldView, keyboard, bindings, hud: ui.field, net, wins: welcome.wins });
       game.run(battle, field);
 
       // Dev handles for the browser console (and the browser tests): `battle` and `field` hold each mode's
       // world/scene, `components` every component type, `ui` the HUD stores.
       if (import.meta.env.DEV || new URLSearchParams(location.search).has("debug")) {
         Object.assign(window, {
-          battle: battle.ctx, field: field.view, mode: game.mode, ui,
+          battle: battle.ctx, field: field.view, mode: game.mode, ui, bindings,
           encounter: () => net.send({ t: "debug", cmd: "encounter" }),
           components: { ...shared, ...battleComponents, ...playerComponents, ...fieldComponents },
         });

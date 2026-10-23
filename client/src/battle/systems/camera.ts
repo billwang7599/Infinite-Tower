@@ -4,9 +4,9 @@ import {
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
-import { BUTTONS, KEYS } from "../keys.js";
+import { ACTIONS } from "../../settings/bindings.js";
 
-const YAW_SPEED = 2.6; // rad/s, H/L
+const YAW_SPEED = 2.6; // rad/s, turn keys
 const PITCH_SPEED = 1.4;
 const MOUSE_SENSITIVITY = 0.0025; // rad per pixel (mouse or trackpad)
 const MOUSE_UNLOCK_PX = 4; // a deliberate mouse flick (px in one frame) drops lock-on; tiny jitter doesn't
@@ -18,7 +18,7 @@ const DISTANCE = 8.5;
 const SHOULDER = 2.2; // sideways camera offset while locked on, so the player doesn't hide the enemy
 
 /**
- * Third-person orbit camera around the player. Mouse/trackpad (when captured) or H/L (or arrows) turn it a full 360°;
+ * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full 360°;
  * with lock-on (; or middle click toggles, on by default) it turns itself to keep the enemy in front.
  * Where it looks is where the player attacks (see player/input.ts). Also applies impact shake.
  */
@@ -31,14 +31,15 @@ export function cameraSystem(ctx: BattleContext): System {
   return (world, dt) => {
     const view = ctx.view;
     const m = ctx.mouse;
-    const turn = k.axis(KEYS.turnLeft, KEYS.turnRight);
+    const keys = ctx.bindings.get().battle;
+    const turn = k.axis(keys.turnLeft, keys.turnRight);
     const { dx, dy } = m.consumeDelta();
     // Turning by hand while locked frees the camera (like flicking the stick in a souls game).
     if (turn !== 0 || Math.abs(dx) > MOUSE_UNLOCK_PX) view.lock = false;
     // Checked after, so pressing lock-on mid-turn still locks.
-    if (k.consumePressed(...KEYS.lockOn) || m.consumePressed(...BUTTONS.lockOn)) view.lock = !view.lock;
+    if (k.consumePressed(...keys.lockOn) || m.consumePressed(...ACTIONS.battle.lockOn.mouse)) view.lock = !view.lock;
     if (!view.lock) view.yaw += turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY;
-    view.pitch = clamp(view.pitch + k.axis(KEYS.lookUp, KEYS.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX);
+    view.pitch = clamp(view.pitch + k.axis(keys.lookUp, keys.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX);
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
