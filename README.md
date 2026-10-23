@@ -8,7 +8,8 @@ physics, custom ECS on top, React + Tailwind for the UI over the canvas.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field. HP and stamina carry over from one
-fight to the next (the field HUD shows them); nothing refills them yet except dying. The field HUD also counts the
+fight to the next (the field HUD shows them). Resting at the **campfire** (a few steps from the start) refills
+them: stand next to it and press E (or Enter), or click "Rest by the fire". Dying refills them too. The field HUD also counts the
 fights you've won ("Boars defeated"), kept with your account like HP and stamina.
 The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there's
 a seeded account, **test / test**. Logging in goes straight into the game; after that the title shows Play
@@ -53,7 +54,7 @@ to any browser. The defaults (below) and the list of
 actions are in `client/src/settings/bindings.ts`. Esc itself always opens and closes Settings. While Settings is open
 the game gets no input, but it keeps running: a fight doesn't pause.
 
-**Field:** WASD / arrow keys to walk. C (or the person button on the HUD) toggles the **character panel** with your
+**Field:** WASD / arrow keys to walk. E / Enter rests when you're by a campfire. C (or the person button on the HUD) toggles the **character panel** with your
 stats; you can keep walking while it's open.
 
 **Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
@@ -114,7 +115,8 @@ able to change; client = drawing, input, feel.** Everything in `shared/` and `cl
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom), time.ts
-  field/           layout.ts (LevelLayout: what the client may see of a level; stepWalker for prediction + replay),
+  field/           layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
+                   prediction + replay; nearCampfire / REST_RANGE),
                    view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
                    constants.ts (PLAYER), defs.ts (EnemyDef = body + stats + optional attacks, ArenaDef),
@@ -168,7 +170,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
                    buttons; KeyBindings: the player's keys, restore / toSaved; the game reads
                    `settings.bindings.get()` every tick), camera.ts (CameraSettings: sensitivity; the
                    arena camera reads it every tick)
-  gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
+  gfx/             textures.ts (procedural textures), props.ts (scenery art: the campfire), sprites.ts
+                   (pixelMaterial, spriteMaterial, redrawSprite),
                    characters.ts (art; playerFrames(look) draws the player in a character's colors)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
@@ -199,7 +202,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     input.ts         The walk keys -> a WalkInput
     entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
     systems/         sprites (glide to server positions, tuft, "!"), camera (follow, shared/src/field/view.ts)
-    levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel), grass-field/
+    levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel), campfires.ts
+                     (any theme's campfires, flickering), grass-field/
   battle/          The 2.5D arena mode (still simulated in the browser, see below)
     battle.ts        The mode: system order, start/end a fight (arena built/resized on demand)
     scene.ts         Babylon scene, Havok, camera, lights/fog/shadows/post

@@ -106,5 +106,6 @@ mountUi(document.getElementById("ui")!, ui, settings, {
   logOut: () => void signOut(),
   play: () => void play(),
   saveCharacter: (character) => void preparing.then((game) => game.saveCharacter(character)),
+  rest: () => void preparing.then((game) => game.rest()),
   returnToTitle: () => void backToTitle(),
 });

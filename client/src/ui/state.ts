@@ -53,6 +53,8 @@ export interface FieldHudState {
   stats: Stats | null;
   /** Their name and look (null until they've made a character). */
   character: Character | null;
+  /** Standing by a campfire: the Rest button shows. */
+  nearCampfire: boolean;
 }
 
 export interface BattleHudState {
@@ -84,6 +86,8 @@ export interface UiActions {
   signIn(kind: SignInKind, credentials: Credentials): void;
   logOut(): void;
   play(): void;
+  /** Rest at the campfire you're standing by. */
+  rest(): void;
   /** Send a new name / look to the server; the editor closes when it answers. */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
@@ -96,7 +100,7 @@ export class UiState {
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly characterScreen = new Store<CharacterScreenState>({ open: false, firstTime: false });
-  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null });
+  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null, nearCampfire: false });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     mouseCaptured: false, result: "fighting", showResult: false,
