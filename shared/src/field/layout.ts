@@ -4,14 +4,14 @@
  * shared so the client can predict its own movement and the server can replay the same inputs.
  * Units are tiles; +z is up on screen, +x is right.
  */
-import type { Vec2 } from "../core/math.js";
+import { clamp, type Vec2 } from "../core/math.js";
 
 export interface Rect { x: number; z: number; w: number; h: number }
 
 export interface LevelLayout {
   id: string;
   name: string;
-  /** Which client renderer draws it (client/src/levels). */
+  /** Which client renderer draws it (client/src/field/levels). */
   theme: "grass-field";
   /** The level spans x ∈ [-halfWidth, halfWidth], z ∈ [-halfDepth, halfDepth]; a border sits on the edge. */
   halfWidth: number;
@@ -35,13 +35,13 @@ export function inTallGrass(level: LevelLayout, x: number, z: number): boolean {
 
 export function clampToLevel(level: LevelLayout, pos: Vec2): void {
   const mx = level.halfWidth - level.border, mz = level.halfDepth - level.border;
-  pos.x = Math.max(-mx, Math.min(mx, pos.x));
-  pos.z = Math.max(-mz, Math.min(mz, pos.z));
+  pos.x = clamp(pos.x, -mx, mx);
+  pos.z = clamp(pos.z, -mz, mz);
 }
 
 /** Move `pos` one step by an input. Returns the velocity used. Must stay deterministic (client prediction). */
 export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number): { vx: number; vz: number } {
-  let ix = Math.max(-1, Math.min(1, input.moveX)), iz = Math.max(-1, Math.min(1, input.moveZ));
+  let ix = clamp(input.moveX, -1, 1), iz = clamp(input.moveZ, -1, 1);
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
   const vx = ix * level.playerSpeed, vz = iz * level.playerSpeed;

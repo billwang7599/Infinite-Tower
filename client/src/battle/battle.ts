@@ -1,36 +1,36 @@
 /**
- * The battle mode: the 2.5D arena with Havok physics. Owns its Babylon scene and the fixed-step
- * system lists. Babylon's deterministic lockstep runs onBeforeStep / physics / onAfterStep at
- * FIXED_DT, so the arena only simulates while its scene is the one being rendered.
+ * The battle mode: the 2.5D arena fight. Owns the fixed-step system lists and starts/ends fights.
+ * Babylon's deterministic lockstep runs onBeforeStep / physics / onAfterStep at FIXED_DT, so the arena
+ * only simulates while its scene is the one being rendered.
  */
-import { HavokPlugin, Scene, UniversalCamera, Vector3, type Engine } from "@babylonjs/core";
-import HavokPhysics from "@babylonjs/havok";
-import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
-import { FIXED_DT, Fighter, GRAVITY, type ArenaDef, type EnemyDef, type Entity, type System, type World } from "@infinite-tower/shared";
-import type { Keyboard } from "../core/input.js";
+import type { Engine } from "@babylonjs/core";
+import { FIXED_DT, Fighter, type ArenaDef, type EnemyDef, type Entity, type System, type World } from "@infinite-tower/shared";
+import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
+import { frameSeconds } from "../core/time.js";
 import { buildArena } from "./arena.js";
-import { registerDisposers } from "./components.js";
-import type { GameContext } from "./context.js";
-import { setupLook } from "./look.js";
-import { createMaterials } from "./materials.js";
-import { chargeAttackSystem } from "./enemies/behaviors/charge.js";
+import { registerBattleDisposers } from "./components.js";
+import type { BattleContext } from "./context.js";
 import { enemyBrainSystem } from "./enemies/behaviors/brain.js";
+import { chargeAttackSystem } from "./enemies/behaviors/charge.js";
 import { goreAttackSystem } from "./enemies/behaviors/gore.js";
 import { enemyMotorSystem } from "./enemies/behaviors/motor.js";
-import { boarViewSystem } from "./enemies/models/boarView.js";
+import { ENEMY_MODELS } from "./enemies/models/index.js";
 import { spawnEnemy } from "./enemies/spawn.js";
+import { createMaterials } from "./materials.js";
+import { registerPlayerDisposers } from "./player/components.js";
+import { playerControllerSystem } from "./player/controller.js";
+import { playerGroundSystem } from "./player/ground.js";
+import { playerInputSystem } from "./player/input.js";
 import { spawnPlayer } from "./player/spawn.js";
+import { playerSpriteSystem } from "./player/sprite.js";
+import { createBattleScene } from "./scene.js";
 import { cameraSystem } from "./systems/camera.js";
 import { combatSystem } from "./systems/combat.js";
-import { groundSystem } from "./systems/ground.js";
 import { hudSystem } from "./systems/hud.js";
-import { inputSystem } from "./systems/input.js";
-import { playerSystem } from "./systems/player.js";
-import { spriteSystem } from "./systems/sprite.js";
 
 export interface Battle {
-  ctx: GameContext;
+  ctx: BattleContext;
   /** Spawn the player and the enemy facing each other, in the given arena (both from the server's encounter). */
   start(enemy: EnemyDef, arena: ArenaDef): void;
   /** Remove the fighters. Returns whether the player won. */
@@ -50,22 +50,15 @@ export interface BattleOptions {
 
 export async function createBattle(opts: BattleOptions): Promise<Battle> {
   const { engine, world, keyboard, mouse } = opts;
-  const scene = new Scene(engine);
-  const havok = new HavokPlugin(true, await HavokPhysics({ locateFile: () => havokWasmUrl }));
-  scene.enablePhysics(new Vector3(0, GRAVITY, 0), havok);
-  const physics = scene.getPhysicsEngine()!;
-  physics.setTimeStep(FIXED_DT);
+  const { scene, physics, camera, shadows } = await createBattleScene(engine);
+  registerBattleDisposers(world);
+  registerPlayerDisposers(world);
+  for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(world);
 
-  const camera = new UniversalCamera("camera", new Vector3(0, 4, -16), scene);
-  camera.fov = 0.9;
-  camera.minZ = 0.1;
-  camera.inputs.clear(); // the camera system drives it
-
-  registerDisposers(world);
-  const { shadows } = setupLook(scene, camera);
-  const ctx: GameContext = {
-    world, scene, physics: physics as GameContext["physics"], havok, camera,
-    keyboard, mouse, materials: createMaterials(scene), shadows, arena: { radius: 0 },
+  const ctx: BattleContext = {
+    world, scene, physics, camera, keyboard, mouse, shadows,
+    materials: createMaterials(scene),
+    arena: { radius: 0 },
     view: { yaw: 0, pitch: 0.32, lock: true },
     fight: { state: "fighting", time: 0 },
     shake: 0,
@@ -88,11 +81,15 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
 
   // Systems. Order is the game's contract.
   const beforePhysics: System[] = [
-    leaveSystem, inputSystem(ctx), playerSystem(),
+    leaveSystem, playerInputSystem(ctx), playerControllerSystem(),
     enemyBrainSystem(), chargeAttackSystem(ctx), goreAttackSystem(), enemyMotorSystem(),
   ];
-  const afterPhysics: System[] = [groundSystem(ctx), combatSystem(ctx)];
-  const render: System[] = [cameraSystem(ctx), spriteSystem(ctx), boarViewSystem(), hudSystem(ctx, opts.hud)];
+  const afterPhysics: System[] = [playerGroundSystem(ctx), combatSystem(ctx)];
+  const render: System[] = [
+    cameraSystem(ctx), playerSpriteSystem(ctx),
+    ...Object.values(ENEMY_MODELS).map((model) => model.animation()),
+    hudSystem(ctx, opts.hud),
+  ];
 
   scene.onBeforeStepObservable.add(() => {
     for (const s of beforePhysics) s(world, FIXED_DT);
@@ -102,7 +99,7 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
     world.flush();
   });
   scene.onBeforeRenderObservable.add(() => {
-    const dt = Math.min(engine.getDeltaTime() / 1000, 0.1);
+    const dt = frameSeconds(engine);
     for (const s of render) s(world, dt);
   });
 

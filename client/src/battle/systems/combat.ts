@@ -3,14 +3,14 @@ import {
   ActiveHit, Enemy, Fighter, Health, LocalPlayer, Player, PLAYER, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
-import type { GameContext } from "../context.js";
+import type { BattleContext } from "../context.js";
 
 /**
  * After each physics step: resolve every active hitbox against every fighter of the other team.
  * Hitboxes are sectors (range + angle) checked with plain math, not physics triggers: cheap,
  * deterministic and identical on a future server.
  */
-export function combatSystem(ctx: GameContext): System {
+export function combatSystem(ctx: BattleContext): System {
   const knock = new Vector3();
   return (world, dt) => {
     for (const [, h] of world.query(Health)) {

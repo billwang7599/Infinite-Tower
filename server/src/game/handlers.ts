@@ -1,6 +1,6 @@
 /** What the server does with each (already validated) client message. One handler per message type. */
 import type { ClientMsg, Handlers } from "@infinite-tower/shared";
-import { FieldPlayer } from "../entities/components.js";
+import { FieldPlayer } from "../field/components.js";
 import { endEncounter, startEncounter } from "./encounter.js";
 import type { Session } from "./session.js";
 

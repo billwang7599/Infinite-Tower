@@ -4,10 +4,10 @@
  */
 import type { ArenaDef, LevelLayout, Vec2 } from "@infinite-tower/shared";
 import type { EnemyId } from "../content/enemies.js";
-import type { PrefabId } from "../entities/prefabs/index.js";
+import type { FieldPrefabId } from "../field/prefabs/index.js";
 
 export interface SpawnDef {
-  prefab: PrefabId;
+  prefab: FieldPrefabId;
   at: Vec2;
   /** Seconds before a defeated one comes back. */
   respawn: number;

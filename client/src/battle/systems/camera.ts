@@ -1,7 +1,9 @@
 import { Vector3 } from "@babylonjs/core";
-import { Enemy, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import {
+  clamp, damp, dampFactor, Enemy, Health, LocalPlayer, turnToward, wrapAngle, type System, type World,
+} from "@infinite-tower/shared";
 import { Body } from "../components.js";
-import type { GameContext } from "../context.js";
+import type { BattleContext } from "../context.js";
 import { BUTTONS, KEYS } from "../keys.js";
 
 const YAW_SPEED = 2.6; // rad/s, H/L
@@ -18,9 +20,9 @@ const SHOULDER = 2.2; // sideways camera offset while locked on, so the player d
 /**
  * Third-person orbit camera around the player. Mouse/trackpad (when captured) or H/L (or arrows) turn it a full 360°;
  * with lock-on (; or middle click toggles, on by default) it turns itself to keep the enemy in front.
- * Where it looks is where the player attacks (see inputSystem). Also applies impact shake.
+ * Where it looks is where the player attacks (see player/input.ts). Also applies impact shake.
  */
-export function cameraSystem(ctx: GameContext): System {
+export function cameraSystem(ctx: BattleContext): System {
   const k = ctx.keyboard;
   const focus = new Vector3(), look = new Vector3();
   let initialized = false;
@@ -36,8 +38,7 @@ export function cameraSystem(ctx: GameContext): System {
     // Checked after, so pressing lock-on mid-turn still locks.
     if (k.consumePressed(...KEYS.lockOn) || m.consumePressed(...BUTTONS.lockOn)) view.lock = !view.lock;
     if (!view.lock) view.yaw += turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY;
-    view.pitch += k.axis(KEYS.lookUp, KEYS.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY;
-    view.pitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, view.pitch));
+    view.pitch = clamp(view.pitch + k.axis(KEYS.lookUp, KEYS.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX);
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
@@ -47,17 +48,16 @@ export function cameraSystem(ctx: GameContext): System {
       const target = lockTarget(world);
       if (target) {
         const want = Math.atan2(target.x - p.x, target.z - p.z);
-        const diff = wrapAngle(want - view.yaw);
-        const step = diff * (1 - Math.exp(-LOCK_RATE * dt));
-        view.yaw += Math.sign(step) * Math.min(Math.abs(step), LOCK_MAX_TURN * dt);
+        const eased = Math.abs(wrapAngle(want - view.yaw)) * dampFactor(LOCK_RATE, dt);
+        view.yaw = turnToward(view.yaw, want, Math.min(eased, LOCK_MAX_TURN * dt));
       }
     }
     view.yaw = wrapAngle(view.yaw);
-    shoulder += ((view.lock ? SHOULDER : 0) - shoulder) * (1 - Math.exp(-4 * dt));
+    shoulder = damp(shoulder, view.lock ? SHOULDER : 0, 4, dt);
 
     // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
     if (!initialized) { focus.copyFrom(p); initialized = true; }
-    Vector3.LerpToRef(focus, p, 1 - Math.exp(-12 * dt), focus);
+    Vector3.LerpToRef(focus, p, dampFactor(12, dt), focus);
 
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).
@@ -65,7 +65,7 @@ export function cameraSystem(ctx: GameContext): System {
     const R = ctx.arena.radius - 0.4;
     const b = focus.x * fx + focus.z * fz;
     const maxFlat = b + Math.sqrt(Math.max(0, b * b - (focus.x * focus.x + focus.z * focus.z) + R * R));
-    const dist = Math.max(2.5, Math.min(DISTANCE, maxFlat / Math.max(0.05, Math.cos(view.pitch))));
+    const dist = clamp(maxFlat / Math.max(0.05, Math.cos(view.pitch)), 2.5, DISTANCE);
     const flat = Math.cos(view.pitch) * dist;
     ctx.shake *= Math.exp(-9 * dt);
     const sh = ctx.shake > 0.005 ? ctx.shake : 0;
@@ -82,8 +82,8 @@ export function cameraSystem(ctx: GameContext): System {
   };
 }
 
-/** The living enemy to lock on to (only boars exist so far). */
-function lockTarget(world: Parameters<System>[0]): Vector3 | null {
+/** The living enemy to lock on to (one enemy per fight so far). */
+function lockTarget(world: World): Vector3 | null {
   for (const [, , health, body] of world.query(Enemy, Health, Body)) {
     if (health.hp > 0) return body.mesh.position;
   }

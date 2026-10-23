@@ -1,10 +1,5 @@
 /** Helpers shared by the enemy behaviors. */
-import { ActiveHit, wrapAngle, type AttackDef, type EnemyData, type Entity, type World } from "@infinite-tower/shared";
-
-export function turnToward(current: number, target: number, maxStep: number): number {
-  const diff = wrapAngle(target - current);
-  return current + Math.max(-maxStep, Math.min(maxStep, diff));
-}
+import { ActiveHit, type AttackDef, type EnemyData, type Entity, type World } from "@infinite-tower/shared";
 
 /** Switch state: restart its clock and end any live hitbox. */
 export function enter(world: World, e: Entity, enemy: EnemyData, state: string, duration = 0): void {

@@ -1,6 +1,6 @@
 /**
  * Arena-fight components. The fight still runs in the client for now; a server-side fight would reuse these.
- * Plain data only. Engine handles (meshes, physics bodies) live in client/src/components.ts.
+ * Plain data only. Engine handles (meshes, physics bodies) live in client/src/battle/components.ts.
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2 } from "../core/math.js";
@@ -29,9 +29,6 @@ export interface PlayerData {
   combo: number;
 }
 export const Player = defineComponent<PlayerData>("Player");
-
-/** Marks the player controlled on this machine. */
-export const LocalPlayer = defineComponent<true>("LocalPlayer");
 
 export interface HealthData {
   hp: number;

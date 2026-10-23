@@ -6,12 +6,12 @@
  *   approach ─▶ chargeWindup ─▶ charge ──hits wall──▶ stunned (brain) ─▶ approach
  *                                  └──runs out──▶ chargeRecover ─▶ approach
  */
-import { ChargeAttack, Enemy, type System } from "@infinite-tower/shared";
+import { ChargeAttack, Enemy, turnToward, type System } from "@infinite-tower/shared";
 import { Body } from "../../components.js";
-import type { GameContext } from "../../context.js";
-import { addHit, enter, turnToward } from "./common.js";
+import type { BattleContext } from "../../context.js";
+import { addHit, enter } from "./common.js";
 
-export function chargeAttackSystem(ctx: GameContext): System {
+export function chargeAttackSystem(ctx: BattleContext): System {
   return (world, dt) => {
     for (const [e, charge, enemy, body] of world.query(ChargeAttack, Enemy, Body)) {
       const C = charge.def, s = enemy.sense, m = enemy.move;

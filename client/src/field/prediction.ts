@@ -1,0 +1,56 @@
+/**
+ * Client-side prediction for the local player. Each fixed tick: read the keys, move locally with the
+ * shared walking rules (instant response), and send the input to the server. When a server `state`
+ * arrives, restart from the server's position and replay the inputs it hasn't processed yet. Same
+ * code + same inputs = same result, so normally nothing visibly corrects.
+ */
+import { FIXED_DT, stepWalker, type Entity, type Vec2, type WalkInput, type World } from "@infinite-tower/shared";
+import type { Connection } from "../net/connection.js";
+import { FieldActor, FieldPos } from "./components.js";
+import type { FieldView } from "./scene.js";
+
+export class Prediction {
+  private seq = 0;
+  private pending: (WalkInput & { seq: number })[] = [];
+
+  constructor(private readonly world: World, private readonly view: FieldView, private readonly player: Entity, private readonly net: Connection) {}
+
+  step(input: WalkInput): void {
+    const msg = { seq: ++this.seq, moveX: input.moveX, moveZ: input.moveZ };
+    this.pending.push(msg);
+    this.net.send({ t: "input", ...msg });
+    this.move(msg);
+  }
+
+  /** Server state: `ack` = last input it simulated, `at` = where that left the player. */
+  reconcile(ack: number, at: Vec2): void {
+    this.pending = this.pending.filter((p) => p.seq > ack);
+    this.place(at);
+    for (const p of this.pending) this.move(p);
+  }
+
+  /** The server moved the player (encounter, respawn): drop unconfirmed inputs. */
+  reset(at: Vec2): void {
+    this.pending = [];
+    this.place(at);
+    const actor = this.world.require(this.player, FieldActor);
+    actor.vx = actor.vz = 0;
+  }
+
+  private place(at: Vec2): void {
+    const pos = this.world.require(this.player, FieldPos);
+    pos.x = at.x;
+    pos.z = at.z;
+  }
+
+  private move(input: WalkInput): void {
+    const level = this.view.level;
+    if (!level) return;
+    const pos = this.world.require(this.player, FieldPos);
+    const actor = this.world.require(this.player, FieldActor);
+    const v = stepWalker(level, pos, input, FIXED_DT);
+    actor.vx = v.vx;
+    actor.vz = v.vz;
+    if (Math.abs(input.moveX) > 0.1) actor.facing = input.moveX > 0 ? 1 : -1;
+  }
+}

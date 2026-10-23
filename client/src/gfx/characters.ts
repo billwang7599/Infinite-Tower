@@ -48,7 +48,7 @@ export const drawPlayerDown: SpriteDraw = (px) => {
   px(4, 23, 14, 1, C.blade);          // dropped sword
 };
 
-/** Wild boar, side view (overworld). */
+/** Wild boar, side view (field). */
 export const drawBoar: SpriteDraw = (px) => {
   const hide = "#6b4632", hideHi = "#835a40", dark = "#3a281d", snout = "#b77a6a", tusk = "#efe6cf";
   px(3, 10, 1, 3, dark);               // tail

@@ -4,14 +4,14 @@
  * the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
 import { World, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
-import { chaseSystem } from "../entities/behaviors/chase.js";
-import { moveSystem } from "../entities/behaviors/move.js";
-import { touchSystem } from "../entities/behaviors/touch.js";
-import { wanderSystem } from "../entities/behaviors/wander.js";
-import { FieldPlayer, FieldPos } from "../entities/components.js";
-import type { FieldContext } from "../entities/context.js";
-import { fieldPlayerSystem } from "../entities/player.js";
-import { Spawner } from "../entities/spawner.js";
+import { chaseSystem } from "../field/behaviors/chase.js";
+import { moveSystem } from "../field/behaviors/move.js";
+import { touchSystem } from "../field/behaviors/touch.js";
+import { wanderSystem } from "../field/behaviors/wander.js";
+import { FieldPlayer, FieldPos } from "../field/components.js";
+import type { FieldContext } from "../field/context.js";
+import { fieldPlayerSystem } from "../field/player.js";
+import { Spawner } from "../field/spawner.js";
 import { getLevel } from "../levels/index.js";
 import type { LevelDef } from "../levels/level.js";
 import type { Connection } from "../net/connection.js";

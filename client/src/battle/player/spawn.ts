@@ -3,10 +3,11 @@ import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, TransformNode, V
 import {
   type Entity, type Vec3, Player, PlayerInput, LocalPlayer, Health, Stamina, Fighter, PLAYER,
 } from "@infinite-tower/shared";
-import { Body, SpriteView } from "../components.js";
-import { Layer, type GameContext } from "../context.js";
+import { Body } from "../components.js";
+import { Layer, type BattleContext } from "../context.js";
+import { PlayerSprite } from "./components.js";
 
-export function spawnPlayer(ctx: GameContext, name: string, at: Vec3, local: boolean): Entity {
+export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, local: boolean): Entity {
   const { world, scene, materials } = ctx;
   const e = world.spawn();
 
@@ -50,7 +51,7 @@ export function spawnPlayer(ctx: GameContext, name: string, at: Vec3, local: boo
   slash.isPickable = false;
   slash.setEnabled(false);
 
-  world.add(e, SpriteView, {
+  world.add(e, PlayerSprite, {
     root, plane, shadow, slash, frames: materials.player, facing: 1, walkPhase: 0, stretch: 1,
   });
   world.add(e, PlayerInput, { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false });

@@ -6,9 +6,9 @@
  *   approach ──attack system──▶ <attack states> ──▶ approach
  *      ▲  poise breaks (not while armored) ──▶ staggered ──┘   hp 0 ──▶ dead
  */
-import { Enemy, Health, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import { clamp, distXZ, Enemy, Health, LocalPlayer, turnToward, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body } from "../../components.js";
-import { enter, turnToward } from "./common.js";
+import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
 const STOP_DIST = 2.2;
@@ -33,7 +33,7 @@ export function enemyBrainSystem(): System {
       s.dist = Infinity; s.toYaw = enemy.yaw; s.preyAlive = false;
       if (target) {
         const tp = target[2].mesh.position;
-        s.dist = Math.hypot(tp.x - p.x, tp.z - p.z);
+        s.dist = distXZ(p, tp);
         s.toYaw = Math.atan2(tp.x - p.x, tp.z - p.z);
         s.preyAlive = target[3].hp > 0;
       }
@@ -47,7 +47,7 @@ export function enemyBrainSystem(): System {
         case "approach":
           if (!s.preyAlive) break;
           enemy.yaw = turnToward(enemy.yaw, s.toYaw, D.turnRate * dt);
-          m.speed = D.walkSpeed * Math.max(0, Math.min(1, s.dist - STOP_DIST)) * Math.max(0, s.facing);
+          m.speed = D.walkSpeed * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facing);
           break;
         case "stunned":
         case "staggered":

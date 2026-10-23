@@ -3,8 +3,8 @@
  *
  *   approach ─▶ goreWindup ─▶ gore ─▶ goreRecover ─▶ approach
  */
-import { Enemy, GoreAttack, type System } from "@infinite-tower/shared";
-import { addHit, enter, turnToward } from "./common.js";
+import { Enemy, GoreAttack, turnToward, type System } from "@infinite-tower/shared";
+import { addHit, enter } from "./common.js";
 
 export function goreAttackSystem(): System {
   return (world, dt) => {

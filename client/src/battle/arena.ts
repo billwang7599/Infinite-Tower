@@ -2,18 +2,17 @@
  * The combat arena: a trampled clearing ringed by standing stones, forest beyond. Sized by the
  * level's ArenaDef; returns its entities so the battle can rebuild it when the size changes.
  */
-import type { Entity } from "@infinite-tower/shared";
 import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, Vector3 } from "@babylonjs/core";
+import { seededRandom, type Entity } from "@infinite-tower/shared";
 import { Body, Meshes } from "./components.js";
-import { Layer, type GameContext } from "./context.js";
+import { Layer, type BattleContext } from "./context.js";
 
-export function buildArena(ctx: GameContext): Entity[] {
+export function buildArena(ctx: BattleContext): Entity[] {
   const parts: Entity[] = [];
   const { world, scene, materials, shadows } = ctx;
   const R = ctx.arena.radius;
   const decor: Mesh[] = [];
-  let seed = 7;
-  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const rand = seededRandom(7); // same stones and trees every time
 
   const addCollider = (mesh: Mesh, membership: number) => {
     const aggregate = new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.6, restitution: 0 }, scene);

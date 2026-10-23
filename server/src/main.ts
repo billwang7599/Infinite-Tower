@@ -5,7 +5,7 @@
  *   net/       sockets: HTTP + /ws, message validation (Zod), static files
  *   game/      sessions (one per player), message handlers, encounters, snapshots, the tick loop
  *   levels/    level data: layout, spawns, encounter tables
- *   entities/  field actors: components, behaviors, prefabs, spawner, the player's walking
+ *   field/     the 2D field's simulation: actor components, behaviors, prefabs, spawner, the player's walking
  *   content/   enemy stats
  */
 import { fileURLToPath } from "node:url";

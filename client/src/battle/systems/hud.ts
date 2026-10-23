@@ -1,12 +1,12 @@
 import { Enemy, Health, LocalPlayer, Stamina, type System } from "@infinite-tower/shared";
-import type { GameContext } from "../context.js";
+import type { BattleContext } from "../context.js";
 
 const BANNER = "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1200 "
   + "bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)]";
 const TITLE = "title font-title text-6xl font-normal tracking-[6px]";
 
 /** DOM overlay: health/stamina bars, boss bar, death/victory banner. Only touches the DOM on change. */
-export function hudSystem(ctx: GameContext, root: HTMLElement): System {
+export function hudSystem(ctx: BattleContext, root: HTMLElement): System {
   root.innerHTML = `
     <div id="info" class="absolute top-3 left-4"></div>
     <div class="absolute top-10 left-4 w-75">

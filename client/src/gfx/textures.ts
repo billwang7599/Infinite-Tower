@@ -1,4 +1,7 @@
-/** Procedural texture generators (canvas-drawn), shared by both scenes. */
+/**
+ * Procedural textures, drawn in code (no asset files). Textures that belong to one level theme live
+ * with it instead (field/levels/<theme>/textures.ts).
+ */
 import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 
@@ -42,7 +45,7 @@ export function blobTexture(scene: Scene): DynamicTexture {
   return tex;
 }
 
-/** Red stripe that fades out along its length (v = 0 near the boar). */
+/** Attack telegraph: a red stripe that fades out along its length (v = 0 at the attacker). */
 export function telegraphTexture(scene: Scene): DynamicTexture {
   const tex = new DynamicTexture("telegraph", { width: 32, height: 256 }, scene, false);
   const ctx = tex.getContext() as CanvasRenderingContext2D;
@@ -74,3 +77,17 @@ export function pixelTexture(scene: Scene, name: string, size: number, draw: (ct
   return tex;
 }
 
+
+/** Grass blades drawn over a walker's feet in tall grass (field; transparent background). */
+export function tuftTexture(scene: Scene): DynamicTexture {
+  const tex = pixelTexture(scene, "tuft", 16, (ctx) => {
+    ctx.clearRect(0, 0, 16, 16);
+    ctx.fillStyle = "#2c6128"; ctx.fillRect(1, 12, 14, 4);
+    ctx.fillStyle = "#62b24f";
+    for (const x of [1, 4, 7, 10, 13]) ctx.fillRect(x, 7 + (x % 3), 1, 6);
+    ctx.fillStyle = "#86d06a";
+    for (const x of [2, 5, 8, 11, 14]) ctx.fillRect(x, 9 + (x % 2), 1, 4);
+  });
+  tex.hasAlpha = true;
+  return tex;
+}

@@ -1,17 +1,16 @@
-import type { Scene, PhysicsEngineV2, HavokPlugin, UniversalCamera, ShadowGenerator } from "@babylonjs/core";
+/** What arena systems need besides the World. Created by createBattle (battle.ts). */
+import type { PhysicsEngineV2, Scene, ShadowGenerator, UniversalCamera } from "@babylonjs/core";
 import type { ArenaDef, World } from "@infinite-tower/shared";
-import type { Keyboard } from "../core/input.js";
+import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";
 
-/** Everything systems need besides the World. Created once in main.ts. */
-export interface GameContext {
+export interface BattleContext {
   world: World;
   scene: Scene;
   physics: PhysicsEngineV2;
-  havok: HavokPlugin;
   camera: UniversalCamera;
   keyboard: Keyboard;
   mouse: Mouse;

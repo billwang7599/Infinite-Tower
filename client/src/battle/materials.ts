@@ -4,7 +4,7 @@
  */
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { drawPlayerDown, drawPlayerIdle, drawPlayerSlash } from "../gfx/characters.js";
-import { spriteMaterial, spriteTexture } from "../gfx/sprites.js";
+import { spriteMaterial } from "../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../gfx/textures.js";
 
 export interface Materials {
@@ -65,9 +65,9 @@ export function createMaterials(scene: Scene): Materials {
   return {
     grass, dirt, stone, bark, leaves, shadow,
     player: {
-      idle: spriteMaterial(scene, "player-idle", spriteTexture(scene, "player-idle", drawPlayerIdle)),
-      slash: spriteMaterial(scene, "player-slash", spriteTexture(scene, "player-slash", drawPlayerSlash)),
-      down: spriteMaterial(scene, "player-down", spriteTexture(scene, "player-down", drawPlayerDown)),
+      idle: spriteMaterial(scene, "player-idle", drawPlayerIdle),
+      slash: spriteMaterial(scene, "player-slash", drawPlayerSlash),
+      down: spriteMaterial(scene, "player-down", drawPlayerDown),
     },
     slashFx, telegraph,
   };

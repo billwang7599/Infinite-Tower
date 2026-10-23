@@ -8,7 +8,7 @@ import {
   ChargeAttack, Enemy, Fighter, GoreAttack, Health, type EnemyAttacks, type EnemyDef, type Entity, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
-import { Layer, type GameContext } from "../context.js";
+import { Layer, type BattleContext } from "../context.js";
 import { ENEMY_MODELS } from "./models/index.js";
 
 /** How to add each kind of attack to an entity. */
@@ -18,7 +18,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: (world: World, e: Entity, def: Non
 };
 
 /** Spawns an arena enemy at `at` (feet), facing `yaw`. */
-export function spawnEnemy(ctx: GameContext, def: EnemyDef, at: Vec3, yaw: number): Entity {
+export function spawnEnemy(ctx: BattleContext, def: EnemyDef, at: Vec3, yaw: number): Entity {
   const { world, scene } = ctx;
   const e = world.spawn();
 
@@ -31,7 +31,7 @@ export function spawnEnemy(ctx: GameContext, def: EnemyDef, at: Vec3, yaw: numbe
   aggregate.shape.filterCollideMask = Layer.Ground | Layer.Wall | Layer.Player;
   world.add(e, Body, { aggregate, mesh: collider });
 
-  ENEMY_MODELS[def.model](ctx, e, collider, def, yaw);
+  ENEMY_MODELS[def.model].add(ctx, e, collider, def, yaw);
 
   world.add(e, Enemy, {
     def, state: "approach", t: 0, duration: 0, yaw, poise: def.poise, armored: false,

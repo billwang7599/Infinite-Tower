@@ -1,10 +1,10 @@
 /**
- * Raw mouse / trackpad state. Click the canvas to capture it (pointer lock), Esc releases it.
+ * Mouse / trackpad, by MouseEvent.button. Click the canvas to capture it (pointer lock), Esc releases it.
  * Optional: everything also works keyboard-only. Movement and buttons only count while captured.
  */
-export class Mouse {
-  private readonly down = new Set<number>();
-  private readonly pressed = new Set<number>();
+import { Buttons } from "./buttons.js";
+
+export class Mouse extends Buttons<number> {
   private dx = 0;
   private dy = 0;
   locked = false;
@@ -12,19 +12,18 @@ export class Mouse {
   canLock = true;
 
   constructor(canvas: HTMLCanvasElement) {
+    super();
     canvas.addEventListener("click", () => {
       if (!this.locked && this.canLock) void canvas.requestPointerLock?.();
     });
     document.addEventListener("pointerlockchange", () => {
       this.locked = document.pointerLockElement === canvas;
-      if (!this.locked) this.down.clear();
+      if (!this.locked) this.releaseAll();
     });
     canvas.addEventListener("mousedown", (e) => {
-      if (!this.locked) return;
-      this.down.add(e.button);
-      this.pressed.add(e.button);
+      if (this.locked) this.press(e.button);
     });
-    window.addEventListener("mouseup", (e) => this.down.delete(e.button));
+    window.addEventListener("mouseup", (e) => this.release(e.button));
     document.addEventListener("mousemove", (e) => {
       if (!this.locked) return;
       this.dx += e.movementX;
@@ -34,20 +33,10 @@ export class Mouse {
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
   }
 
-  release(): void {
+  /** Let go of the pointer lock (leaving the arena) and forget all buttons. */
+  unlock(): void {
     if (this.locked) document.exitPointerLock();
-    this.down.clear();
-    this.pressed.clear();
-  }
-
-  isDown(...buttons: readonly number[]): boolean {
-    return buttons.some((b) => this.down.has(b));
-  }
-
-  consumePressed(...buttons: readonly number[]): boolean {
-    let any = false;
-    for (const b of buttons) if (this.pressed.delete(b)) any = true;
-    return any;
+    this.releaseAll(true);
   }
 
   /** Mouse movement since the last call, in pixels. */

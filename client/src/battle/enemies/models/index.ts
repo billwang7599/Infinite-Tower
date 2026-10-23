@@ -1,14 +1,21 @@
 /**
  * Enemy models by EnemyDef.model. A model builds its meshes under the physics collider and adds its
- * own view component (animated by its own render system). New look: add a file here and list it.
+ * own component, animates it with its own render system, and disposes it when the enemy is removed.
+ * New look: add a folder next to boar/ and list it here.
  */
 import type { Mesh } from "@babylonjs/core";
-import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import type { GameContext } from "../../context.js";
-import { addBoarModel } from "./boar.js";
+import type { EnemyDef, Entity, System, World } from "@infinite-tower/shared";
+import type { BattleContext } from "../../context.js";
+import { boarAnimationSystem } from "./boar/animation.js";
+import { addBoarModel, registerBoarDisposers } from "./boar/model.js";
 
-export type EnemyModel = (ctx: GameContext, e: Entity, collider: Mesh, def: EnemyDef, yaw: number) => void;
+export interface EnemyModel {
+  add(ctx: BattleContext, e: Entity, collider: Mesh, def: EnemyDef, yaw: number): void;
+  /** Per render frame: pose the model from the enemy's state. */
+  animation(): System;
+  registerDisposers(world: World): void;
+}
 
 export const ENEMY_MODELS: Record<EnemyDef["model"], EnemyModel> = {
-  boar: addBoarModel,
+  boar: { add: addBoarModel, animation: boarAnimationSystem, registerDisposers: registerBoarDisposers },
 };

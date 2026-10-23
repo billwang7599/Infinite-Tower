@@ -1,25 +1,27 @@
 /** DOM overlays shared by both modes: the HUD containers, the encounter toast, and the fade layer. */
+import type { Mode } from "../game/transition.js";
 import "./styles.css";
 
 export interface Overlay {
-  /** Battle HUD container (filled by the battle's hudSystem). */
+  /** Battle HUD container (filled by battle/systems/hud.ts). */
   battleHud: HTMLElement;
-  /** Map HUD container (filled by the overworld). */
-  mapHud: HTMLElement;
-  setMode(mode: "map" | "battle"): void;
+  /** Field HUD container (filled by field/hud.ts). */
+  fieldHud: HTMLElement;
+  /** Show the HUD of the current mode. */
+  setMode(mode: Mode): void;
   toast(text: string): void;
   setFade(color: string, opacity: number): void;
 }
 
 export function createOverlay(): Overlay {
   const el = (id: string) => document.getElementById(id)!;
-  const battleHud = el("hud"), mapHud = el("maphud"), toastEl = el("toast"), fade = el("fade");
+  const battleHud = el("battle-hud"), fieldHud = el("field-hud"), toastEl = el("toast"), fade = el("fade");
   let toastTimer = 0;
   return {
-    battleHud, mapHud,
+    battleHud, fieldHud,
     setMode(mode) {
       battleHud.style.display = mode === "battle" ? "" : "none";
-      mapHud.style.display = mode === "map" ? "" : "none";
+      fieldHud.style.display = mode === "field" ? "" : "none";
     },
     toast(text) {
       toastEl.textContent = text;
