@@ -7,7 +7,6 @@ import type { BattleContext } from "../context.js";
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
   return (world) => {
     const patch: Partial<BattleHudState> = {
-      lockOn: ctx.view.lock,
       mouseCaptured: ctx.mouse.locked,
       result: ctx.fight.state,
       showResult: ctx.fight.state !== "fighting" && ctx.fight.time > 1.0,

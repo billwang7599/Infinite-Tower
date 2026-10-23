@@ -32,6 +32,8 @@ Decided by the user:
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).
+- No lock-on or auto-aim in fights. Only the player turns the camera, and attacks go where it faces, so aiming
+  is a skill.
 
 ## Commands
 

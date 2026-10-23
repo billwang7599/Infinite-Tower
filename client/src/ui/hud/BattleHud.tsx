@@ -14,7 +14,7 @@ export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings 
       <Vitals hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
-      <CameraStatus hud={hud} bindings={bindings} />
+      <MouseHint hud={hud} />
     </div>
   );
 }
@@ -56,14 +56,12 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   );
 }
 
-function CameraStatus({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
-  const lockOn = useStore(hud, (s) => s.lockOn);
+function MouseHint({ hud }: HudProps) {
   const mouseCaptured = useStore(hud, (s) => s.mouseCaptured);
-  const lockKey = keyName(useStore(bindings, (s) => s.battle.lockOn[0]!));
+  if (mouseCaptured) return null;
   return (
-    <div id="lock" className="absolute top-3 right-4 text-right text-[13px] font-normal">
-      {lockOn ? <><span className="text-victory">◎ Locked on</span> ({lockKey} to free the camera)</> : `Free camera (${lockKey} to lock on)`}
-      {!mouseCaptured && <><br /><span className="opacity-60">Click to use the mouse / trackpad</span></>}
+    <div id="mouse-hint" className="absolute top-3 right-4 text-right text-[13px] font-normal opacity-60">
+      Click to use the mouse / trackpad
     </div>
   );
 }

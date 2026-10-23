@@ -52,7 +52,6 @@ export interface BattleHudState {
   enemyName: string;
   enemyHp: number;
   enemyAlive: boolean;
-  lockOn: boolean;
   mouseCaptured: boolean;
   result: FightState;
   /** Turns on a moment after `result` is decided. */
@@ -77,7 +76,7 @@ export class UiState {
   readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1 });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
-    lockOn: true, mouseCaptured: false, result: "fighting", showResult: false,
+    mouseCaptured: false, result: "fighting", showResult: false,
   });
 
   private nextToastId = 1;
