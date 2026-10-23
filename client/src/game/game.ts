@@ -30,11 +30,19 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
   let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef } | null = null;
   let battle: Battle, field: Field;
 
+  /** The game gets no input while the settings are open, and the mouse only in the arena. */
+  const updateInput = () => {
+    const playing = !ui.settings.get().open;
+    keyboard.enabled = playing;
+    mouse.canLock = playing && mode === "battle";
+    if (!mouse.canLock) mouse.unlock();
+  };
+  ui.settings.subscribe(updateInput);
+
   const setMode = (m: Mode) => {
     mode = m;
     ui.screen.set({ mode: m });
-    mouse.canLock = m === "battle";
-    if (m === "field") mouse.unlock();
+    updateInput();
   };
 
   const swap = (to: Mode) => {

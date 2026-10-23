@@ -3,6 +3,7 @@ import type { PhysicsEngineV2, Scene, ShadowGenerator, UniversalCamera } from "@
 import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
+import type { KeyBindings } from "../settings/bindings.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";
@@ -14,12 +15,13 @@ export interface BattleContext {
   camera: UniversalCamera;
   keyboard: Keyboard;
   mouse: Mouse;
+  bindings: KeyBindings;
   materials: Materials;
   shadows: ShadowGenerator;
   /** The current arena (from the server's encounter). */
   arena: ArenaDef;
   /**
-   * Orbit angles of the camera (radians), from the mouse or H/L (or arrows). Yaw is also the aim direction:
+   * Orbit angles of the camera (radians), from the mouse or the turn / tilt keys. Yaw is also the aim direction:
    * forward = (sin yaw, cos yaw). Movement is camera-relative.
    * `lock`: lock-on, the camera turns itself to keep the enemy in front (so attacks aim at it).
    */

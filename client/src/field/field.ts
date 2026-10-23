@@ -7,6 +7,7 @@ import { FIXED_DT, type MsgOf, type ServerMsg, type System, type World } from "@
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection } from "../net/connection.js";
+import type { KeyBindings } from "../settings/bindings.js";
 import type { FieldHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { registerFieldDisposers } from "./components.js";
@@ -38,13 +39,14 @@ export interface FieldOptions {
   world: World;
   view: FieldView;
   keyboard: Keyboard;
+  bindings: KeyBindings;
   hud: Store<FieldHudState>;
   net: Connection;
   wins: number;
 }
 
 export function createField(opts: FieldOptions): Field {
-  const { engine, world, view, keyboard, net } = opts;
+  const { engine, world, view, keyboard, bindings, net } = opts;
   registerFieldDisposers(world);
   const player = spawnFieldPlayer(world, view, { x: 0, z: 0 });
   const prediction = new Prediction(world, view, player, net);
@@ -67,7 +69,7 @@ export function createField(opts: FieldOptions): Field {
       if (frozen || inFight || !view.level) { accumulator = 0; return; }
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
-        prediction.step(readWalkInput(keyboard));
+        prediction.step(readWalkInput(keyboard, bindings.get().field));
         accumulator -= FIXED_DT;
       }
     },
