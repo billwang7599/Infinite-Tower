@@ -7,7 +7,8 @@ physics, custom ECS on top.
 **Current prototype (single-player):** a 2D grass field with a wandering boar and a patch of tall grass.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
-wake up back at the start. Press Enter after the fight to return to the field.
+wake up back at the start. Press Enter after the fight to return to the field. The game opens on a title screen
+(Play / Controls); Play connects to the server.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -17,10 +18,14 @@ npm start          # production: build the client, server serves it + /ws on htt
 npm run typecheck  # shared, server, client
 ```
 
-`?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
+`?debug` (once you've pressed Play) exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
 `window.mode()`, `window.components` and `window.encounter()` (asks the server for a fight; dev server only).
 
 ## Controls
+
+The title screen's **Controls** page lists these too, built from the binding tables (`client/src/field/input.ts`,
+`client/src/battle/keys.ts`), so it stays in sync. Menus: W/S or ↑/↓ to select, Enter / Space / J to choose,
+Esc / K to go back (`MENU_KEYS` in `client/src/ui/menu.ts`).
 
 **Field:** WASD / arrow keys to walk.
 
@@ -83,12 +88,17 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
-  main.ts          Bootstrap: connect, engine, world, both modes, game; ?debug handles
+  main.ts          Bootstrap: title screen, then (on Play) connect, engine, world, both modes, game; ?debug handles
   game/            game.ts (routes server messages, field <-> battle switching), transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
-  ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
+  ui/              DOM UI (Tailwind)
+    overlay.ts       HUD containers, toast, fade
+    menu.ts          Keyboard-first menu list (Menu, MENU_KEYS)
+    screens/         Full-screen pages: title.ts (Play / Controls, connect + retry), controls.ts (built from the
+                     binding tables), backdrop.ts (the title's SVG night sky + tower)
+    styles.css       Tailwind v4 entry: @theme tokens, animations, @utility pieces
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
     scene.ts         Babylon scene + ortho camera, FieldView, layerY
@@ -130,6 +140,8 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **An arena enemy:** an `EnemyDef` in `server/src/content/enemies.ts` combining attacks; a new attack type is a def
   shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`enemies/spawn.ts`) and a system in
   `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
+- **A UI screen:** a file in `client/src/ui/screens/` that builds its own root element, owns one `keydown` listener
+  while open (forward codes to a `Menu`), and removes both on close. `title.ts` is the example.
 
 Keep files small and single-purpose (roughly under 200 lines); add a folder per new mode or enemy
 rather than growing an existing file. Small math (clamping, smoothing, distances, turning) goes in
@@ -139,7 +151,9 @@ rather than growing an existing file. Small math (clamping, smoothing, distances
 
 DOM overlays use **Tailwind CSS v4** (via `@tailwindcss/vite`, no config file). Write utility classes in the
 markup (`index.html` or HTML strings in `.ts`). Game colours/fonts are `@theme` tokens in `client/src/ui/styles.css`
-(`bg-hp`, `text-victory`, `font-title`, ...); shared pieces are `@utility` classes (`bar`, `bar-layer`).
+(`bg-hp`, `text-victory`, `font-title`, ...); shared pieces are `@utility` classes (`bar`, `bar-layer`, `keycap`).
+Animations (`animate-twinkle`, `animate-drift`, `animate-rise`, `animate-fade-in`) are `@theme` keyframes; pair
+them with `motion-reduce:animate-none`.
 Write class names out in full, because Tailwind can't detect names built with string concatenation.
 In-world UI (enemy bars, name tags) belongs in Babylon, not the DOM.
 

@@ -2,7 +2,8 @@
  * Arena bindings. Two equal setups:
  * - keyboard only (laptop): left hand on WASD + Space, right hand on the home row (vim-style H/L turn the camera);
  * - keyboard + mouse / trackpad: mouse turns the camera, buttons below act.
- * Keys are KeyboardEvent.code, so they follow physical positions on any layout.
+ * Keys are KeyboardEvent.code, so they follow physical positions on any layout. The title's controls page
+ * (ui/screens/controls.ts) is built from these tables, so it always matches.
  */
 export const KEYS = {
   forward: ["KeyW"],
@@ -17,6 +18,8 @@ export const KEYS = {
   turnRight: ["KeyL", "ArrowRight"],
   lookUp: ["ArrowUp"],
   lookDown: ["ArrowDown"],
+  /** After a decided fight: back to the field. */
+  leave: ["Enter", "KeyE"],
 } as const satisfies Record<string, readonly string[]>;
 
 /** Mouse buttons (MouseEvent.button): 0 left, 1 middle (wheel click), 2 right. Trackpad: tap = left, two-finger tap = right. */

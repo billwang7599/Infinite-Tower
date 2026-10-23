@@ -1,6 +1,5 @@
 /** DOM overlays shared by both modes: the HUD containers, the encounter toast, and the fade layer. */
 import type { Mode } from "../game/transition.js";
-import "./styles.css";
 
 export interface Overlay {
   /** Battle HUD container (filled by battle/systems/hud.ts). */

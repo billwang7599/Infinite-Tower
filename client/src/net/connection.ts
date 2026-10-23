@@ -32,7 +32,7 @@ export class Connection {
         net.receive(msg);
       };
       ws.onclose = () => {
-        if (!welcomed) reject(new Error("Can't reach the game server. Start everything with `npm run dev` (server + client)."));
+        if (!welcomed) reject(new Error("Can't reach the game server. (Developing? npm run dev starts the server and the client.)"));
         else net.onClose();
       };
     });

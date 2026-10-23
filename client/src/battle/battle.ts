@@ -18,6 +18,7 @@ import { enemyMotorSystem } from "./enemies/behaviors/motor.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
 import { spawnEnemy } from "./enemies/spawn.js";
 import { createMaterials } from "./materials.js";
+import { KEYS } from "./keys.js";
 import { registerPlayerDisposers } from "./player/components.js";
 import { playerControllerSystem } from "./player/controller.js";
 import { playerGroundSystem } from "./player/ground.js";
@@ -73,9 +74,9 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
     arenaParts = buildArena(ctx);
   };
 
-  // After the fight: Enter / E leaves (once the result has been on screen for a moment).
+  // After the fight: KEYS.leave (Enter / E) goes back (once the result has been on screen for a moment).
   const leaveSystem: System = () => {
-    const pressed = keyboard.consumePressed("Enter", "KeyE");
+    const pressed = keyboard.consumePressed(...KEYS.leave);
     if (pressed && ctx.fight.state !== "fighting" && ctx.fight.time > 1) opts.onLeave();
   };
 
