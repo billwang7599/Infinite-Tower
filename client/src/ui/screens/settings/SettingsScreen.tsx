@@ -67,7 +67,7 @@ function Footer({ close, returnToTitle }: { close: () => void; returnToTitle: ()
     <footer className="flex items-center justify-between gap-4 border-t border-white/10 px-7 py-4">
       {confirming ? (
         <>
-          <span className="text-sm text-white/75">Leave the world? Progress isn't saved yet.</span>
+          <span className="text-sm text-white/75">Are you sure?</span>
           <span className="flex gap-2">
             <button type="button" autoFocus onClick={() => setConfirming(false)} className={BUTTON.plain}>Stay</button>
             <button
