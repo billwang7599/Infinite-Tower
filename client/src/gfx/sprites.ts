@@ -37,16 +37,26 @@ export function spriteMaterial(scene: Scene, name: string, draw: SpriteDraw): St
   return pixelMaterial(scene, name, spriteTexture(scene, name, draw));
 }
 
+/** Draw a sprite material's frame again, in place (a new look for the player, say). */
+export function redrawSprite(material: StandardMaterial, draw: SpriteDraw): void {
+  paint(material.diffuseTexture as DynamicTexture, draw);
+}
+
+const SIZE = 192;
+
 function spriteTexture(scene: Scene, name: string, draw: SpriteDraw): DynamicTexture {
-  const n = 192;
-  const tex = new DynamicTexture(name, { width: n, height: n }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+  const tex = new DynamicTexture(name, { width: SIZE, height: SIZE }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+  paint(tex, draw);
+  tex.hasAlpha = true;
+  return tex;
+}
+
+function paint(tex: DynamicTexture, draw: SpriteDraw): void {
   const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, n, n);
+  ctx.clearRect(0, 0, SIZE, SIZE);
   draw((x, y, w, h, color) => {
     ctx.fillStyle = color;
     ctx.fillRect(x * 8, y * 8, w * 8, h * 8);
   });
   tex.update();
-  tex.hasAlpha = true;
-  return tex;
 }

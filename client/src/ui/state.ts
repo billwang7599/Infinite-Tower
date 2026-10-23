@@ -3,7 +3,7 @@
  * imports React, so game code never touches it. The exception is `settingsScreen`: the UI opens and closes it
  * and the game watches it, to stop taking input while it's open. `UiActions` is the other direction.
  */
-import type { Credentials, Stats } from "@infinite-tower/shared";
+import type { Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
 import { Store } from "./store.js";
@@ -51,6 +51,8 @@ export interface FieldHudState {
   stamina: number;
   /** The player's stats, for the character panel (null before `welcome`). */
   stats: Stats | null;
+  /** Their name and look (null until they've made a character). */
+  character: Character | null;
 }
 
 export interface BattleHudState {
@@ -69,6 +71,12 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
+/** The character editor. `firstTime`: making the character on a first visit (it can't be closed without saving). */
+export interface CharacterScreenState {
+  open: boolean;
+  firstTime: boolean;
+}
+
 export type SignInKind = "login" | "register";
 
 export interface UiActions {
@@ -76,6 +84,8 @@ export interface UiActions {
   signIn(kind: SignInKind, credentials: Credentials): void;
   logOut(): void;
   play(): void;
+  /** Send a new name / look to the server; the editor closes when it answers. */
+  saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
   returnToTitle(): void;
 }
@@ -85,7 +95,8 @@ export class UiState {
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
-  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null });
+  readonly characterScreen = new Store<CharacterScreenState>({ open: false, firstTime: false });
+  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     mouseCaptured: false, result: "fighting", showResult: false,
@@ -105,4 +116,8 @@ export class UiState {
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
+  readonly openCharacterEditor = (): void => this.characterScreen.set({ open: true, firstTime: false });
+  readonly closeCharacterEditor = (): void => {
+    if (!this.characterScreen.get().firstTime) this.characterScreen.set({ open: false });
+  };
 }

@@ -1,14 +1,36 @@
-/** Character art: draw functions for 24x24 pixel sprite frames (see sprites.ts). Swap for real art later. */
+/**
+ * Character art: draw functions for 24x24 pixel sprite frames (see sprites.ts). Swap for real art later.
+ * Only sprites.ts is imported, and only its types, so the UI can draw a preview without pulling in Babylon.
+ */
+import { lookColors, type Look } from "@infinite-tower/shared";
 import type { Px, SpriteDraw } from "./sprites.js";
 
-const C = {
-  boot: "#2a1d16", leg: "#3b4a6b", cloak: "#c0453a", cloakHi: "#d9584a", cloakLo: "#8e2f27",
-  buckle: "#f2c14e", skin: "#f1c9a5", eye: "#1b1b2a", hoodTip: "#a8392f",
-  blade: "#dfe6f0", bladeHi: "#ffffff", guard: "#c9a03a", grip: "#5a3a1e",
-};
+type Palette = ReturnType<typeof palette>;
+
+/** The player's colors: the fixed ones plus the player's chosen cloak, skin and legs. */
+function palette(look: Look) {
+  const cloak = lookColors("cloak", look);
+  return {
+    boot: "#2a1d16", leg: lookColors("legs", look), cloak: cloak.base, cloakHi: cloak.hi, cloakLo: cloak.lo,
+    buckle: "#f2c14e", skin: lookColors("skin", look), eye: "#1b1b2a", hoodTip: cloak.tip,
+    blade: "#dfe6f0", bladeHi: "#ffffff", guard: "#c9a03a", grip: "#5a3a1e",
+  };
+}
+
+export interface PlayerFrames {
+  idle: SpriteDraw;
+  slash: SpriteDraw;
+  down: SpriteDraw;
+}
+
+/** The player's frames, dressed in `look`. */
+export function playerFrames(look: Look): PlayerFrames {
+  const C = palette(look);
+  return { idle: (px) => drawIdle(px, C), slash: (px) => drawSlash(px, C), down: (px) => drawDown(px, C) };
+}
 
 /** Hooded adventurer body, shared by the standing frames. ox shifts it horizontally. */
-function drawBody(px: Px, ox: number): void {
+function drawBody(px: Px, C: Palette, ox: number): void {
   px(ox + 4, 22, 3, 2, C.boot); px(ox + 9, 22, 3, 2, C.boot);
   px(ox + 5, 18, 2, 4, C.leg); px(ox + 9, 18, 2, 4, C.leg);
   px(ox + 3, 10, 10, 9, C.cloak);
@@ -21,24 +43,24 @@ function drawBody(px: Px, ox: number): void {
   px(ox + 5, 2, 5, 2, C.hoodTip);
 }
 
-export const drawPlayerIdle: SpriteDraw = (px) => {
-  drawBody(px, 4);
+function drawIdle(px: Px, C: Palette): void {
+  drawBody(px, C, 4);
   px(16, 12, 2, 4, C.skin);           // hand
   px(18, 3, 1, 9, C.blade);           // blade, held upright
   px(19, 4, 1, 7, C.bladeHi);
   px(17, 12, 3, 1, C.guard);
   px(18, 13, 1, 2, C.grip);
-};
+}
 
-export const drawPlayerSlash: SpriteDraw = (px) => {
-  drawBody(px, 3);
+function drawSlash(px: Px, C: Palette): void {
+  drawBody(px, C, 3);
   px(15, 11, 3, 2, C.skin);           // arm thrust forward
   px(18, 10, 1, 3, C.guard);
   px(19, 11, 5, 1, C.blade);          // blade, extended
   px(19, 12, 5, 1, C.bladeHi);
-};
+}
 
-export const drawPlayerDown: SpriteDraw = (px) => {
+function drawDown(px: Px, C: Palette): void {
   px(19, 20, 2, 3, C.boot);
   px(14, 21, 5, 2, C.leg);
   px(6, 19, 9, 4, C.cloak);
@@ -46,7 +68,7 @@ export const drawPlayerDown: SpriteDraw = (px) => {
   px(2, 19, 5, 4, C.cloakLo);
   px(3, 20, 3, 2, C.skin);
   px(4, 23, 14, 1, C.blade);          // dropped sword
-};
+}
 
 /** Wild boar, side view (field). */
 export const drawBoar: SpriteDraw = (px) => {

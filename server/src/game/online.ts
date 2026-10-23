@@ -5,7 +5,6 @@
  */
 import { CLOSE_CODES, dispatch } from "@infinite-tower/shared";
 import type { Account } from "../auth/accounts.js";
-import { START_LEVEL } from "../levels/index.js";
 import type { Connection } from "../net/connection.js";
 import type { PlayerId, PlayerStore } from "../store/player-store.js";
 import { handlers } from "./handlers.js";
@@ -40,7 +39,7 @@ export class OnlinePlayers {
     this.byAccount.set(id, session);
     conn.onMessage((msg) => dispatch(handlers, msg, session));
     conn.onClose(() => this.leave(id, session));
-    session.enterLevel(START_LEVEL);
+    session.start();
   }
 
   private replace(id: PlayerId): void {

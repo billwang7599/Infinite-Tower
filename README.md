@@ -17,6 +17,8 @@ so and Play becomes Retry. The game downloads and gets ready behind the title, s
 server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: camera sensitivity, key
 bindings, and Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
 Playing from a second tab or browser takes over: the first one goes back to the title.
+On your first visit you make a **character**: a name and a look (cloak, skin and trouser colors, with a preview).
+The server only puts you in the world once you have one; the character panel's Change look edits it later.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 Needs Node and Docker (Docker Desktop running): the dev database is Postgres in a container (`compose.yaml`).
@@ -117,6 +119,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
                    constants.ts (PLAYER), defs.ts (EnemyDef = body + stats + optional attacks, ArenaDef),
                    input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
+  character/       character.ts (Character = name + look; LOOKS: every cloak / skin / trouser option and its colors;
+                   name rules)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
@@ -153,7 +157,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
   game/            start.ts (its own chunk with Babylon, imported lazily so the title shows first: prepareGame() builds
                    everything once behind the title: engine, Havok, both scenes and modes, input (off); join() starts a
                    session on a connection, leave() ends it), game.ts (sessions, routes server messages, field <-> battle
-                   switching, who gets input), transition.ts (Mode, flash / fade)
+                   switching, who gets input, the character from `welcome` / `character`), dress.ts (repaints the
+                   player's sprites in their look), transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type),
                    account.ts (the /api calls: who's logged in, log in, register, log out)
   core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
@@ -163,7 +168,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
                    buttons; KeyBindings: the player's keys, restore / toSaved; the game reads
                    `settings.bindings.get()` every tick), camera.ts (CameraSettings: sensitivity; the
                    arena camera reads it every tick)
-  gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
+  gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
+                   characters.ts (art; playerFrames(look) draws the player in a character's colors)
   ui/              React: everything drawn over the canvas (see "UI" below)
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
     state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD),
@@ -181,6 +187,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
                        create an account), Backdrop.tsx (SVG night sky + tower)
       settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx (sensitivity
                        slider), KeyBindingsList.tsx (rebinding), buttons.ts
+      character/       CharacterEditor.tsx (make / change your character), SpritePreview.tsx (the sprite on a plain
+                       canvas), swatches.ts
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render

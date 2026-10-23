@@ -3,7 +3,9 @@
  * and actors). Starts from the player's save (store/) and holds which level/mode they're in; the field
  * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
-import { World, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
+import {
+  World, type Character, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
+} from "@infinite-tower/shared";
 import { PLAYER_STATS } from "../content/player.js";
 import { chaseSystem } from "../field/behaviors/chase.js";
 import { moveSystem } from "../field/behaviors/move.js";
@@ -13,7 +15,7 @@ import { FieldPlayer, FieldPos } from "../field/components.js";
 import type { FieldContext } from "../field/context.js";
 import { fieldPlayerSystem } from "../field/player.js";
 import { Spawner } from "../field/spawner.js";
-import { getLevel } from "../levels/index.js";
+import { getLevel, START_LEVEL } from "../levels/index.js";
 import type { LevelDef } from "../levels/level.js";
 import type { Connection } from "../net/connection.js";
 import type { PlayerSave } from "../store/player-store.js";
@@ -35,9 +37,11 @@ export class Session {
   /** The same for everyone for now (content/player.ts); not saved. */
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
+  character: Character | null;
   /** Highest input seq accepted (older or repeated ones are ignored). */
   lastSeq = 0;
-  private level!: LevelDef;
+  /** null until the player has a character and has been put in a level. */
+  private level: LevelDef | null = null;
   private spawner: Spawner | null = null;
   private readonly systems: System[];
   private readonly ctx: FieldContext;
@@ -53,9 +57,10 @@ export class Session {
     this.vitals = saved.vitals;
     this.wins = saved.wins;
     this.settings = saved.settings;
+    this.character = saved.character;
     const session = this;
     this.ctx = {
-      get level() { return session.level; },
+      get level() { return session.currentLevel; },
       rng: Math.random,
       encounter: (source, enemy) => startEncounter(this, source, enemy),
     };
@@ -66,14 +71,29 @@ export class Session {
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings, dev });
+    conn.send({
+      t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
+      character: this.character, dev,
+    });
+  }
+
+  /** Into the world, unless there's no character yet: then that waits for `setCharacter`. */
+  start(): void {
+    if (this.character) this.enterLevel(START_LEVEL);
+  }
+
+  setCharacter(character: Character): void {
+    this.character = character;
+    this.save();
+    this.conn.send({ t: "character", character });
+    if (!this.level) this.enterLevel(START_LEVEL);
   }
 
   /** Called after every fight and on disconnect. */
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
-    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings });
+    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character });
   }
 
   /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */
@@ -82,8 +102,12 @@ export class Session {
     this.saveTimer ??= setTimeout(() => this.save(), SETTINGS_SAVE_MS);
   }
 
-  get currentLevel(): LevelDef { return this.level; }
-  get inField(): boolean { return this.encounter === null; }
+  get currentLevel(): LevelDef {
+    if (!this.level) throw new Error("not in a level yet");
+    return this.level;
+  }
+  /** Walking around a level: not in a fight, and not still making a character. */
+  get inField(): boolean { return this.encounter === null && this.level !== null; }
 
   /** Load a level: clear the old one's actors, place the player, spawn the new actors, tell the client. */
   enterLevel(id: string, at?: Vec2): void {

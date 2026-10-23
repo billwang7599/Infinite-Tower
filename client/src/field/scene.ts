@@ -3,8 +3,8 @@
  * The level itself (ground, tall grass, border) is drawn by levels/, picked by the layout's theme.
  */
 import { Camera, Color4, FreeCamera, Scene, Vector3, type Engine, type StandardMaterial, type TransformNode } from "@babylonjs/core";
-import type { LevelLayout } from "@infinite-tower/shared";
-import { drawAlert, drawBoar, drawPlayerIdle } from "../gfx/characters.js";
+import { DEFAULT_LOOK, type LevelLayout } from "@infinite-tower/shared";
+import { drawAlert, drawBoar, playerFrames } from "../gfx/characters.js";
 import { pixelMaterial, spriteMaterial } from "../gfx/sprites.js";
 import { tuftTexture } from "../gfx/textures.js";
 
@@ -38,7 +38,7 @@ export function createFieldScene(engine: Engine): FieldView {
     scene, camera, level: null, levelRoot: null,
     materials: {
       tuft: pixelMaterial(scene, "field-tuft", tuftTexture(scene), { unlit: true }),
-      player: spriteMaterial(scene, "field-player", drawPlayerIdle),
+      player: spriteMaterial(scene, "field-player", playerFrames(DEFAULT_LOOK).idle),
       boar: spriteMaterial(scene, "field-boar", drawBoar),
       alert: spriteMaterial(scene, "field-alert", drawAlert),
     },
