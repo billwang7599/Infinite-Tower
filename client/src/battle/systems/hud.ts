@@ -8,17 +8,13 @@ import type { BattleContext } from "../context.js";
  * camera state and the result. Writes every frame; the store skips values that didn't change.
  */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
-  let fpsTimer = 0;
-  return (world, dt) => {
+  return (world) => {
     const patch: Partial<BattleHudState> = {
       lockOn: ctx.view.lock,
       mouseCaptured: ctx.mouse.locked,
       result: ctx.fight.state,
       showResult: ctx.fight.state !== "fighting" && ctx.fight.time > 1.0,
     };
-
-    fpsTimer += dt;
-    if (fpsTimer > 0.5) { patch.fps = Math.round(ctx.scene.getEngine().getFps()); fpsTimer = 0; }
 
     const me = world.first(LocalPlayer, Health, Stamina);
     if (me) {

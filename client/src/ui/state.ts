@@ -38,7 +38,6 @@ export interface FieldHudState {
 
 /** Written by battle/systems/hud.ts. Bar values are fractions 0..1. */
 export interface BattleHudState {
-  fps: number;
   hp: number;
   stamina: number;
   enemyName: string;
@@ -57,7 +56,7 @@ export class UiState {
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0 });
   readonly battle = new Store<BattleHudState>({
-    fps: 0, hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
+    hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     lockOn: true, mouseCaptured: false, result: "fighting", showResult: false,
   });
 

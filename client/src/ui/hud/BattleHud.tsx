@@ -5,11 +5,10 @@ import { useStore } from "../useStore.js";
 
 type HudProps = { hud: Store<BattleHudState> };
 
-/** The arena HUD: controls hint, player bars, boss bar, camera status, and the death/victory banner. */
+/** The arena HUD: player bars, boss bar, camera status, and the death/victory banner. */
 export function BattleHud({ hud }: HudProps) {
   return (
     <div id="battle-hud" className="pointer-events-none fixed inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
-      <ControlsHint hud={hud} />
       <PlayerBars hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} />
@@ -18,22 +17,11 @@ export function BattleHud({ hud }: HudProps) {
   );
 }
 
-function ControlsHint({ hud }: HudProps) {
-  const fps = useStore(hud, (s) => s.fps);
-  return (
-    <div className="absolute top-3 left-4">
-      <small className="text-[13px] font-normal opacity-75">
-        {fps} fps · WASD move · Mouse or H/L camera · Click/J slash · Right-click/K dodge · Middle-click/; lock-on · Space jump
-      </small>
-    </div>
-  );
-}
-
 function PlayerBars({ hud }: HudProps) {
   const hp = useStore(hud, (s) => s.hp);
   const stamina = useStore(hud, (s) => s.stamina);
   return (
-    <div className="absolute top-10 left-4 w-75">
+    <div className="absolute top-3 left-4 w-75">
       <Bar value={hp} fill="from-hp to-hp-dark" chip />
       <Bar value={stamina} fill="from-stamina to-stamina-dark" className="w-[70%]" />
     </div>
