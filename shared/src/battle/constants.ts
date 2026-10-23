@@ -50,3 +50,11 @@ export const PLAYER = {
     endSpeed: 3,
   },
 } as const;
+
+/** HP and stamina. They carry over from one fight to the next; the server holds them in between. */
+export interface Vitals {
+  hp: number;
+  stamina: number;
+}
+
+export const fullVitals = (): Vitals => ({ hp: PLAYER.maxHp, stamina: PLAYER.maxStamina });

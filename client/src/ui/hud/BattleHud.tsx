@@ -1,5 +1,6 @@
 import type { KeyBindings } from "../../settings/bindings.js";
 import { Bar } from "../components/Bar.js";
+import { PlayerBars } from "../components/PlayerBars.js";
 import { keyName } from "../keyNames.js";
 import type { BattleHudState } from "../state.js";
 import type { Store } from "../store.js";
@@ -10,7 +11,7 @@ type HudProps = { hud: Store<BattleHudState> };
 export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   return (
     <div id="battle-hud" className="pointer-events-none fixed inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
-      <PlayerBars hud={hud} />
+      <Vitals hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
       <CameraStatus hud={hud} bindings={bindings} />
@@ -18,13 +19,12 @@ export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings 
   );
 }
 
-function PlayerBars({ hud }: HudProps) {
+function Vitals({ hud }: HudProps) {
   const hp = useStore(hud, (s) => s.hp);
   const stamina = useStore(hud, (s) => s.stamina);
   return (
-    <div className="absolute top-3 left-4 w-75">
-      <Bar value={hp} fill="from-hp to-hp-dark" chip />
-      <Bar value={stamina} fill="from-stamina to-stamina-dark" className="w-[70%]" />
+    <div className="absolute top-3 left-4">
+      <PlayerBars hp={hp} stamina={stamina} />
     </div>
   );
 }

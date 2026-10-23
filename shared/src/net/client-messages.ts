@@ -8,6 +8,7 @@
  * "@infinite-tower/shared/net/client-messages".
  */
 import { z } from "zod";
+import type { Vitals } from "../battle/constants.js";
 
 const finite = z.number().finite();
 
@@ -20,8 +21,10 @@ export const InputMsg = z.object({
   moveZ: finite,
 });
 
-/** The fight was decided and the player left the arena. */
-export const BattleEndMsg = z.object({ t: z.literal("battleEnd"), won: z.boolean() });
+const VitalsSchema = z.object({ hp: finite, stamina: finite }) satisfies z.ZodType<Vitals>;
+
+/** The fight was decided and the player left the arena, with this much HP and stamina left. */
+export const BattleEndMsg = z.object({ t: z.literal("battleEnd"), won: z.boolean(), vitals: VitalsSchema });
 
 /** Dev-only commands (the server ignores them in production). */
 export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });

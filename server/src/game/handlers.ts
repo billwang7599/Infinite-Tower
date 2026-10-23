@@ -15,7 +15,7 @@ export const handlers: Handlers<ClientMsg, Session> = {
     if (fp.queue.length < MAX_QUEUED_INPUTS) fp.queue.push({ seq: msg.seq, moveX: msg.moveX, moveZ: msg.moveZ });
   },
   battleEnd(msg, s) {
-    endEncounter(s, msg.won);
+    endEncounter(s, msg.won, msg.vitals);
   },
   debug(msg, s) {
     if (s.dev && msg.cmd === "encounter" && s.inField) startEncounter(s, null, "wild-boar");

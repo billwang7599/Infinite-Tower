@@ -13,8 +13,16 @@ export class Connection {
 
   constructor(private readonly ws: WebSocket) {}
 
+  get open(): boolean {
+    return this.ws.readyState === this.ws.OPEN;
+  }
+
   send(msg: ServerMsg): void {
-    if (this.ws.readyState === this.ws.OPEN) this.ws.send(JSON.stringify(msg));
+    if (this.open) this.ws.send(JSON.stringify(msg));
+  }
+
+  close(code: number, reason: string): void {
+    this.ws.close(code, reason);
   }
 
   onMessage(handler: (msg: ClientMsg) => void): void {

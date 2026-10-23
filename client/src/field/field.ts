@@ -4,7 +4,7 @@
  * Built once; each session joins it to that session's connection and leaves it empty again.
  */
 import type { Engine } from "@babylonjs/core";
-import { FIXED_DT, type MsgOf, type ServerMsg, type System, type World } from "@infinite-tower/shared";
+import { FIXED_DT, fullVitals, PLAYER, type MsgOf, type ServerMsg, type System, type World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection } from "../net/connection.js";
@@ -26,7 +26,7 @@ type Msg<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;
 export interface Field {
   view: FieldView;
   /** A session starts: your walking goes to this connection, which sends the level next. */
-  join(net: Connection, wins: number): void;
+  join(net: Connection, welcome: Msg<"welcome">): void;
   /** The session ended: forget the level and its actors. */
   leave(): void;
   update(dt: number, frozen: boolean): void;
@@ -59,6 +59,7 @@ export function createField(opts: FieldOptions): Field {
   /** No walking between an encounter and the server's battle result. */
   let inFight = false;
   let wins = 0;
+  let vitals = fullVitals();
 
   const render: System[] = [fieldSpriteSystem(view), fieldCameraSystem(view)];
   view.scene.onBeforeRenderObservable.add(() => {
@@ -69,10 +70,11 @@ export function createField(opts: FieldOptions): Field {
   let accumulator = 0;
   return {
     view,
-    join(net, w) {
+    join(net, welcome) {
       prediction = new Prediction(world, view, player, net);
       inFight = false;
-      wins = w;
+      wins = welcome.wins;
+      vitals = welcome.vitals;
     },
     leave() {
       prediction = null;
@@ -108,6 +110,7 @@ export function createField(opts: FieldOptions): Field {
     onBattleResult(msg) {
       inFight = false;
       wins = msg.wins;
+      vitals = msg.vitals;
       prediction?.reset(msg.me);
       snapFieldCamera(view, world);
     },
@@ -115,7 +118,10 @@ export function createField(opts: FieldOptions): Field {
       inFight = true;
     },
     render() {
-      opts.hud.set({ levelName: view.level?.name ?? "…", wins });
+      opts.hud.set({
+        levelName: view.level?.name ?? "…", wins,
+        hp: vitals.hp / PLAYER.maxHp, stamina: vitals.stamina / PLAYER.maxStamina,
+      });
       view.scene.render();
     },
   };

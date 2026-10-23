@@ -3,7 +3,7 @@
  * verify every hit yet; it picks the enemy, times the fight, and refuses wins that are physically
  * impossible (faster than the player's best damage output allows).
  */
-import { PLAYER, type EnemyDef, type Entity } from "@infinite-tower/shared";
+import { clamp, fullVitals, PLAYER, type EnemyDef, type Entity, type Vitals } from "@infinite-tower/shared";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import type { Session } from "./session.js";
 
@@ -12,17 +12,20 @@ export interface Encounter {
   source: Entity | null;
   enemy: EnemyDef;
   startedAt: number;
+  /** What the player came in with. */
+  vitals: Vitals;
 }
 
 export function startEncounter(session: Session, source: Entity | null, enemyId: EnemyId): void {
   const enemy = ENEMIES[enemyId];
-  session.encounter = { source, enemy, startedAt: performance.now() };
+  const { vitals } = session;
+  session.encounter = { source, enemy, startedAt: performance.now(), vitals };
   session.resetWalk(0);
-  session.conn.send({ t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos() });
+  session.conn.send({ t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos(), vitals });
 }
 
-/** The client left a decided fight claiming `claimedWin`. */
-export function endEncounter(session: Session, claimedWin: boolean): void {
+/** The client left a decided fight claiming `claimedWin`, with `claimed` HP and stamina left. */
+export function endEncounter(session: Session, claimedWin: boolean, claimed: Vitals): void {
   const fight = session.encounter;
   if (!fight) return;
   const elapsed = (performance.now() - fight.startedAt) / 1000;
@@ -34,12 +37,23 @@ export function endEncounter(session: Session, claimedWin: boolean): void {
     session.wins++;
     if (fight.source !== null && world.isAlive(fight.source)) world.destroy(fight.source); // the spawner replaces it
     world.flush();
+    session.vitals = vitalsAfterWin(fight.vitals, claimed);
   } else {
-    session.placePlayer(session.currentLevel.spawn); // you wake up back at the start
+    session.placePlayer(session.currentLevel.spawn); // you wake up back at the start, rested
+    session.vitals = fullVitals();
   }
   session.resetWalk(session.currentLevel.safeTime);
   session.encounter = null;
-  session.conn.send({ t: "battleResult", won, accepted, me: session.playerPos(), wins: session.wins });
+  session.save();
+  session.conn.send({ t: "battleResult", won, accepted, me: session.playerPos(), wins: session.wins, vitals: session.vitals });
+}
+
+/**
+ * The fight runs in the browser, so the server can only bound what it's told: nothing heals during a fight,
+ * and a winner is still standing.
+ */
+function vitalsAfterWin(before: Vitals, claimed: Vitals): Vitals {
+  return { hp: clamp(claimed.hp, 1, before.hp), stamina: clamp(claimed.stamina, 0, PLAYER.maxStamina) };
 }
 
 /** Shortest possible kill: every slash chained back to back, every one landing. */
