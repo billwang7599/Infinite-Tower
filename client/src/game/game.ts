@@ -7,7 +7,7 @@
  * transitions: an encounter flashes into battle, leaving a decided fight fades back to the field.
  */
 import type { Engine } from "@babylonjs/core";
-import type { ArenaDef, Character, EnemyDef, Stats, Vitals } from "@infinite-tower/shared";
+import { itemDef, type ArenaDef, type Character, type EnemyDef, type Inventory, type ItemId, type Stats, type Vitals } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -29,6 +29,7 @@ export interface Game {
   leave(): void;
   leaveBattle(): void;
   rest(): void;
+  useItem(item: ItemId): void;
   /** Ask the server to save a new name / look (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
@@ -105,6 +106,9 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
     rest() {
       if (mode === "field" && !transition) field.rest();
     },
+    useItem(item) {
+      if (mode === "field" && !transition) net?.send({ t: "useItem", item });
+    },
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
@@ -127,14 +131,24 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
           field.onRested(msg);
           ui.showToast("You rest by the fire. HP and stamina are restored.");
         },
+        itemUsed(msg) {
+          field.onItemUsed(msg);
+          ui.field.set({ inventory: msg.inventory });
+          const def = itemDef(msg.item);
+          ui.showToast(`${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`);
+        },
         battleResult(msg) {
           field.onBattleResult(msg);
+          ui.field.set({ inventory: msg.inventory });
+          const loot = describe(msg.loot);
+          if (loot) ui.showToast(`You found ${loot}.`);
           if (!msg.accepted) ui.showToast("The server didn't accept that win.");
         },
       });
       net.onClose = onLost;
       field.join(net, joined.welcome);
       applyCharacter(joined.welcome.character);
+      ui.field.set({ inventory: joined.welcome.inventory });
       setMode("field");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
     },
@@ -153,4 +167,11 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
       setMode(null);
     },
   };
+}
+
+/** "boar meat" / "2 boar meat", or "" for nothing. */
+function describe(items: Inventory): string {
+  return (Object.entries(items) as [ItemId, number][])
+    .map(([id, n]) => `${n > 1 ? `${n} ` : ""}${itemDef(id).name.toLowerCase()}`)
+    .join(", ");
 }

@@ -1,43 +1,47 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ItemId } from "@infinite-tower/shared";
+import { useCallback, useState, type ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import type { FieldHudState, SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
+import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
+import { InventoryPanel } from "./inventory/InventoryPanel.js";
+import { usePanelKeys, type Panel } from "./panelKeys.js";
 
 type HudProps = { hud: Store<FieldHudState> };
 
 interface FieldHudProps extends HudProps {
   bindings: KeyBindings;
-  /** The bound Character key does nothing while Settings is open (it may be getting rebound). */
+  /** The panel keys do nothing while Settings is open (they may be getting rebound). */
   settingsScreen: Store<SettingsScreenState>;
   openSettings: () => void;
   editCharacter: () => void;
   rest: () => void;
+  useItem: (item: ItemId) => void;
 }
 
-export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter, rest }: FieldHudProps) {
-  const [characterOpen, setCharacterOpen] = useState(false);
+/** One side panel at a time (character or inventory); neither blocks walking. */
+export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter, rest, useItem }: FieldHudProps) {
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const toggle = useCallback((p: Panel) => setPanel((open) => (open === p ? null : p)), []);
+  const close = () => setPanel(null);
+  usePanelKeys(bindings, settingsScreen, toggle);
   const stats = useStore(hud, (s) => s.stats);
   const character = useStore(hud, (s) => s.character);
-  const characterKeys = useStore(bindings, (b) => b.field.character);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || !characterKeys.includes(e.code) || settingsScreen.get().open || e.target instanceof HTMLInputElement) return;
-      setCharacterOpen((open) => !open);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [characterKeys, settingsScreen]);
+  const inventory = useStore(hud, (s) => s.inventory);
+  const fullHp = useStore(hud, (s) => s.hp >= 1);
 
   return (
     <div id="field-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
       <PlayerStatus hud={hud} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />
-        <HudButton id="character-button" label="Character" onClick={() => setCharacterOpen((open) => !open)}>
+        <HudButton id="inventory-button" label="Inventory" onClick={() => toggle("inventory")}>
+          <BagIcon />
+        </HudButton>
+        <HudButton id="character-button" label="Character" onClick={() => toggle("character")}>
           <PersonIcon />
         </HudButton>
         <HudButton id="settings-button" label="Settings" onClick={openSettings}>
@@ -45,9 +49,8 @@ export function FieldHud({ hud, bindings, settingsScreen, openSettings, editChar
         </HudButton>
       </div>
       <RestButton hud={hud} rest={rest} />
-      {characterOpen && (
-        <CharacterPanel stats={stats} character={character} close={() => setCharacterOpen(false)} edit={editCharacter} />
-      )}
+      {panel === "character" && <CharacterPanel stats={stats} character={character} close={close} edit={editCharacter} />}
+      {panel === "inventory" && <InventoryPanel inventory={inventory} fullHp={fullHp} use={useItem} close={close} />}
     </div>
   );
 }
@@ -101,23 +104,5 @@ function HudButton({ id, label, onClick, children }: { id: string; label: string
     >
       {children}
     </button>
-  );
-}
-
-function PersonIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21a8 8 0 0 1 16 0" />
-    </svg>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
   );
 }

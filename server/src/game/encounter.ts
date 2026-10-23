@@ -4,14 +4,16 @@
  * impossible (faster than the player's best damage output allows).
  */
 import {
-  clamp, fullVitals, physicalDamage, PLAYER, type EnemyDef, type Entity, type Stats, type Vitals,
+  clamp, fullVitals, physicalDamage, PLAYER, type EnemyDef, type Entity, type Inventory, type Stats, type Vitals,
 } from "@infinite-tower/shared";
+import { addItems, rollDrops } from "../content/drops.js";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import type { Session } from "./session.js";
 
 export interface Encounter {
   /** The actor that started it (removed if you win), or null for tall grass. */
   source: Entity | null;
+  enemyId: EnemyId;
   enemy: EnemyDef;
   startedAt: number;
   /** What the player came in with. */
@@ -21,7 +23,7 @@ export interface Encounter {
 export function startEncounter(session: Session, source: Entity | null, enemyId: EnemyId): void {
   const enemy = ENEMIES[enemyId];
   const { vitals } = session;
-  session.encounter = { source, enemy, startedAt: performance.now(), vitals };
+  session.encounter = { source, enemyId, enemy, startedAt: performance.now(), vitals };
   session.resetWalk(0);
   session.conn.send({
     t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos(), vitals, stats: session.stats,
@@ -36,8 +38,11 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
   const accepted = !claimedWin || isPlausibleWin(fight.enemy, session.stats, elapsed);
   const won = claimedWin && accepted;
   const { world } = session;
+  let loot: Inventory = {};
 
   if (won) {
+    loot = rollDrops(fight.enemyId, Math.random);
+    session.inventory = addItems(session.inventory, loot);
     session.wins++;
     if (fight.source !== null && world.isAlive(fight.source)) world.destroy(fight.source); // the spawner replaces it
     world.flush();
@@ -49,7 +54,10 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
   session.resetWalk(session.currentLevel.safeTime);
   session.encounter = null;
   session.save();
-  session.conn.send({ t: "battleResult", won, accepted, me: session.playerPos(), wins: session.wins, vitals: session.vitals });
+  session.conn.send({
+    t: "battleResult", won, accepted, me: session.playerPos(), wins: session.wins, vitals: session.vitals,
+    loot, inventory: session.inventory,
+  });
 }
 
 /**

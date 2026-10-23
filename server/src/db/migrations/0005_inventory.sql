@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "inventory" jsonb DEFAULT '{}'::jsonb NOT NULL;

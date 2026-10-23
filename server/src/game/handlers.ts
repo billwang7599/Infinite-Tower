@@ -26,6 +26,9 @@ export const handlers: Handlers<ClientMsg, Session> = {
   rest(_msg, s) {
     s.rest();
   },
+  useItem(msg, s) {
+    s.useItem(msg.item);
+  },
   debug(msg, s) {
     if (s.dev && msg.cmd === "encounter" && s.inField) startEncounter(s, null, "wild-boar");
   },

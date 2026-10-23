@@ -9,6 +9,7 @@
  */
 import { z } from "zod";
 import type { Vitals } from "../battle/constants.js";
+import { ITEM_IDS, type ItemId } from "../items/items.js";
 import { CHARACTER_NAME_RULES, LOOKS, type Character, type Look, type LookPart } from "../character/character.js";
 
 const finite = z.number().finite();
@@ -60,10 +61,13 @@ export const CharacterMsg = z.object({
 /** Rest at the campfire you're standing by (the server checks you are). */
 export const RestMsg = z.object({ t: z.literal("rest") });
 
+/** Use one of an item you carry (eat the meat). Only on the field. */
+export const UseItemMsg = z.object({ t: z.literal("useItem"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]) });
+
 /** Dev-only commands (the server ignores them in production). */
 export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
-export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, DebugMsg]);
+export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg, DebugMsg]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
 /** Raw text from the socket -> a valid message, or null. */
