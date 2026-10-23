@@ -4,10 +4,12 @@
  */
 import { useEffect, useState } from "react";
 import type { KeyBindings } from "../../../settings/bindings.js";
+import type { CameraSettings } from "../../../settings/camera.js";
 import type { SettingsState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { BUTTON } from "./buttons.js";
+import { CameraSection } from "./CameraSection.js";
 import { KeyBindingsList } from "./KeyBindingsList.js";
 
 interface SettingsProps {
@@ -15,10 +17,11 @@ interface SettingsProps {
   open: () => void;
   close: () => void;
   bindings: KeyBindings;
+  cameraSettings: CameraSettings;
   returnToTitle: () => void;
 }
 
-export function SettingsScreen({ settings, open, close, bindings, returnToTitle }: SettingsProps) {
+export function SettingsScreen({ settings, open, close, bindings, cameraSettings, returnToTitle }: SettingsProps) {
   const isOpen = useStore(settings, (s) => s.open);
 
   useEffect(() => {
@@ -53,7 +56,10 @@ export function SettingsScreen({ settings, open, close, bindings, returnToTitle 
             ✕
           </button>
         </header>
-        <KeyBindingsList bindings={bindings} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-7">
+          <CameraSection cameraSettings={cameraSettings} />
+          <KeyBindingsList bindings={bindings} />
+        </div>
         <Footer close={close} returnToTitle={returnToTitle} />
       </section>
     </div>

@@ -4,6 +4,7 @@ import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import type { KeyBindings } from "../settings/bindings.js";
+import type { CameraSettings } from "../settings/camera.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";
@@ -16,6 +17,7 @@ export interface BattleContext {
   keyboard: Keyboard;
   mouse: Mouse;
   bindings: KeyBindings;
+  cameraSettings: CameraSettings;
   materials: Materials;
   shadows: ShadowGenerator;
   /** The current arena (from the server's encounter). */

@@ -3,6 +3,7 @@ import { clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinit
 import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
 
+// Turn rates at 100% sensitivity; Settings → Camera scales all three (settings/camera.ts).
 const YAW_SPEED = 2.6; // rad/s, turn keys
 const PITCH_SPEED = 1.4;
 const MOUSE_SENSITIVITY = 0.0025; // rad per pixel (mouse or trackpad)
@@ -25,9 +26,11 @@ export function cameraSystem(ctx: BattleContext): System {
     const m = ctx.mouse;
     const keys = ctx.bindings.get().battle;
     const turn = k.axis(keys.turnLeft, keys.turnRight);
+    const tilt = k.axis(keys.lookUp, keys.lookDown);
     const { dx, dy } = m.consumeDelta();
-    view.yaw = wrapAngle(view.yaw + turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY);
-    view.pitch = clamp(view.pitch + k.axis(keys.lookUp, keys.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX);
+    const s = ctx.cameraSettings.get().sensitivity;
+    view.yaw = wrapAngle(view.yaw + (turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY) * s);
+    view.pitch = clamp(view.pitch + (tilt * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY) * s, PITCH_MIN, PITCH_MAX);
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;

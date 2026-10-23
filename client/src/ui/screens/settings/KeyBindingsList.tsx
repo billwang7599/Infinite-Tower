@@ -49,8 +49,8 @@ export function KeyBindingsList({ bindings }: { bindings: KeyBindings }) {
   };
 
   return (
-    <div id="key-bindings" className="min-h-0 flex-1 overflow-y-auto px-7">
-      <div className="flex items-center justify-between pt-2">
+    <div id="key-bindings" className="mt-6">
+      <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Key bindings</h3>
         <button type="button" disabled={bindings.isDefault()} onClick={reset} className={BUTTON.plain}>Reset to defaults</button>
       </div>
