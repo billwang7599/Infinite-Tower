@@ -204,9 +204,10 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
 
 ## Architecture rules
 
-- **The server decides; the client asks and draws.** On the field the client sends one input per tick and predicts
-  its own walking with the shared `stepWalker`; the server replays the inputs (rate-limited, so sending more doesn't
-  move you faster), rolls encounters, runs the level's actors, and sends state 20x/s. Levels, encounters, enemy stats, wins,
+- **The server decides; the client asks and draws.** On the field the client sends one input per tick while you move
+  (nothing while you stand still) and predicts its own walking with the shared `stepWalker`; the server replays the
+  inputs (rate-limited, so sending more doesn't move you faster), rolls encounters, runs the level's actors, and sends
+  state 20x/s with positions rounded to 1 cm. Levels, encounters, enemy stats, wins,
   respawns and the HP / stamina you carry between fights (and, once there's a real store, between connections) come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server

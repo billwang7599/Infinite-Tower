@@ -1,8 +1,8 @@
 /**
  * Client-side prediction for the local player. Each fixed tick: read the keys, move locally with the
- * shared walking rules (instant response), and send the input to the server. When a server `state`
- * arrives, restart from the server's position and replay the inputs it hasn't processed yet. Same
- * code + same inputs = same result, so normally nothing visibly corrects.
+ * shared walking rules (instant response), and send the input to the server if it moves. When a
+ * server `state` arrives, restart from the server's position and replay the inputs it hasn't
+ * processed yet. Same code + same inputs = same result, so normally nothing visibly corrects.
  */
 import { FIXED_DT, stepWalker, type Entity, type Vec2, type WalkInput, type World } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
@@ -16,6 +16,9 @@ export class Prediction {
   constructor(private readonly world: World, private readonly view: FieldView, private readonly player: Entity, private readonly net: Connection) {}
 
   step(input: WalkInput): void {
+    // Standing still isn't sent: it doesn't move the player, and the server already stops a player
+    // whose input queue is empty, so the replay comes out the same without it.
+    if (input.moveX === 0 && input.moveZ === 0) { this.move(input); return; }
     const msg = { seq: ++this.seq, moveX: input.moveX, moveZ: input.moveZ };
     this.pending.push(msg);
     this.net.send({ t: "input", ...msg });
