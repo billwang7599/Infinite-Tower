@@ -37,12 +37,15 @@ export interface ToastsState {
 
 const MAX_TOASTS = 4;
 
+// Bar values (hp, stamina, enemyHp) are fractions 0..1.
+
 export interface FieldHudState {
   levelName: string;
   wins: number;
+  hp: number;
+  stamina: number;
 }
 
-/** Bar values are fractions 0..1. */
 export interface BattleHudState {
   hp: number;
   stamina: number;
@@ -71,7 +74,7 @@ export class UiState {
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settings = new Store<SettingsState>({ open: false });
-  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0 });
+  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1 });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     lockOn: true, mouseCaptured: false, result: "fighting", showResult: false,

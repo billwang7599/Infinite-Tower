@@ -7,7 +7,8 @@ physics, custom ECS on top, React + Tailwind for the UI over the canvas.
 **Current prototype (single-player):** a 2D grass field with a wandering boar and a patch of tall grass.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
-wake up back at the start. Press Enter after the fight to return to the field.
+wake up back at the start. Press Enter after the fight to return to the field. HP and stamina carry over from one
+fight to the next (the field HUD shows them); nothing refills them yet except dying.
 The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
 and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
 server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: key bindings, and
@@ -49,7 +50,8 @@ Mouse buttons are fixed.
 | Enter / E | Enter / E | after the fight: back to the field |
 | Esc | Esc | Settings (in the field too); can't be rebound |
 
-Slashing and dodging cost stamina (green bar); it regenerates when you stop acting.
+Slashing and dodging cost stamina (green bar); it regenerates when you stop acting. You start each fight with the
+HP and stamina you ended the last one with.
 
 ## The boar
 
@@ -80,10 +82,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`)
 
 server/src/      Node + ws. Authoritative: levels, encounters, field actors, enemy stats, fight results.
-  main.ts          Wires net -> sessions -> loop
+  main.ts          Wires net -> sessions -> loop; picks the player store
   net/             server.ts (HTTP + /ws), connection.ts (one socket: Zod-validated in, typed out), static.ts
-  game/            session.ts (one player: world, level, progress), handlers.ts (one handler per ClientMsg),
-                   encounter.ts (start/end fights, refuse impossible wins), snapshot.ts (state msg), loop.ts (60 Hz)
+  game/            session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
+                   handler per ClientMsg), encounter.ts (start/end fights, refuse impossible wins and healing),
+                   snapshot.ts (state msg), loop.ts (60 Hz)
   levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
                    grass-field.ts
   field/           The field simulation. components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor
@@ -91,6 +94,8 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
     behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
     prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
+  store/           player-store.ts (PlayerStore interface, PlayerSave = what's kept between connections),
+                   stub-store.ts (no database yet: every load is a new player at full HP/stamina, saves go nowhere)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
   main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins;
@@ -112,8 +117,9 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
                      game: play, returnToTitle). No React.
     keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
-    components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
-    hud/             FieldHud.tsx, BattleHud.tsx
+    components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
+                     drawn in the same corner by both HUDs)
+    hud/             FieldHud.tsx (HP / stamina, wins, level name, settings gear), BattleHud.tsx
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
@@ -157,6 +163,9 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
 - **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
+- **Something kept between connections:** a field on `PlayerSave` and `newPlayer()` in
+  `server/src/store/player-store.ts`, read from it in `Session`'s constructor and written in `Session.save()`.
+  A real database is a class implementing `PlayerStore`, swapped in for `new StubPlayerStore()` in `server/src/main.ts`.
 - **A key binding:** add the action to `ACTIONS` in `client/src/settings/bindings.ts` (label + default keys) and
   read it with `bindings.get().<group>.<action>`; the settings screen lists it on its own.
 - **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, or a folder of its own in
@@ -197,10 +206,10 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
 
 - **The server decides; the client asks and draws.** On the field the client sends one input per tick and predicts
   its own walking with the shared `stepWalker`; the server replays the inputs (rate-limited, so sending more doesn't
-  move you faster), rolls encounters, runs the level's actors, and sends state 20x/s. Levels, encounters, enemy stats, wins and
-  respawns come from the server. Everything the client sends is checked against a Zod schema first.
+  move you faster), rolls encounters, runs the level's actors, and sends state 20x/s. Levels, encounters, enemy stats, wins,
+  respawns and the HP / stamina you carry between fights (and, once there's a real store, between connections) come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
-  the server only refuses wins faster than the player's maximum damage allows. Moving the fight onto the server
+  the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server
   (Babylon NullEngine + Havok in Node, or simpler server physics) is the next step for real anti-cheat.
 - **Two modes, two Babylon scenes, one client ECS world.** Field mirrors (`FieldPos`, `FieldActor`) and arena
   entities (`Fighter`, `Body`, ...) live side by side; only the active mode's systems run. The arena is stepped

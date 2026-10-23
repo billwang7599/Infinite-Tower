@@ -4,7 +4,10 @@
  * only simulates while its scene is the one being rendered.
  */
 import type { Engine } from "@babylonjs/core";
-import { FIXED_DT, Fighter, type ArenaDef, type EnemyDef, type Entity, type System, type World } from "@infinite-tower/shared";
+import {
+  FIXED_DT, Fighter, fullVitals, Health, LocalPlayer, Stamina,
+  type ArenaDef, type EnemyDef, type Entity, type System, type Vitals, type World,
+} from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
@@ -34,9 +37,8 @@ import { hudSystem } from "./systems/hud.js";
 
 export interface Battle {
   ctx: BattleContext;
-  start(enemy: EnemyDef, arena: ArenaDef): void;
-  /** Returns whether the player won. */
-  end(): boolean;
+  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals): void;
+  end(): { won: boolean; vitals: Vitals };
   render(): void;
 }
 
@@ -113,10 +115,10 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start(enemy, arena) {
+    start(enemy, arena, vitals) {
       clear();
       useArena(arena);
-      spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, true);
+      spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, vitals, true);
       spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
@@ -127,8 +129,10 @@ export function createBattle(opts: BattleOptions): Battle {
     },
     end() {
       const won = ctx.fight.state === "won";
+      const me = world.first(LocalPlayer, Health, Stamina);
+      const vitals = me ? { hp: me[2].hp, stamina: me[3].value } : fullVitals();
       clear();
-      return won;
+      return { won, vitals };
     },
     render: () => scene.render(),
   };

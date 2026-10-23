@@ -1,9 +1,9 @@
 /**
  * One connected player. Single-player for now: each session owns its own ECS world (its own level
- * and actors). Holds the player's progress and which level/mode they're in; the field systems do
- * the simulating, encounter.ts the fights, handlers.ts the incoming messages.
+ * and actors). Starts from the player's save (store/) and holds which level/mode they're in; the field
+ * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
-import { World, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
+import { World, type Entity, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
 import { chaseSystem } from "../field/behaviors/chase.js";
 import { moveSystem } from "../field/behaviors/move.js";
 import { touchSystem } from "../field/behaviors/touch.js";
@@ -15,6 +15,7 @@ import { Spawner } from "../field/spawner.js";
 import { getLevel } from "../levels/index.js";
 import type { LevelDef } from "../levels/level.js";
 import type { Connection } from "../net/connection.js";
+import type { PlayerSave } from "../store/player-store.js";
 import { startEncounter, type Encounter } from "./encounter.js";
 import { stateMsg } from "./snapshot.js";
 
@@ -27,6 +28,7 @@ export class Session {
   /** null while in the field; set during a fight. */
   encounter: Encounter | null = null;
   wins = 0;
+  vitals: Vitals;
   /** Highest input seq accepted (older or repeated ones are ignored). */
   lastSeq = 0;
   private level!: LevelDef;
@@ -35,7 +37,13 @@ export class Session {
   private readonly ctx: FieldContext;
   private ticks = 0;
 
-  constructor(readonly conn: Connection, readonly dev: boolean) {
+  constructor(
+    readonly conn: Connection,
+    readonly dev: boolean,
+    saved: PlayerSave,
+    private readonly persist: (data: PlayerSave) => void,
+  ) {
+    this.vitals = saved.vitals;
     const session = this;
     this.ctx = {
       get level() { return session.level; },
@@ -49,7 +57,12 @@ export class Session {
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    conn.send({ t: "welcome", wins: 0, dev });
+    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, dev });
+  }
+
+  /** Called after every fight and on disconnect. */
+  save(): void {
+    this.persist({ vitals: { ...this.vitals } });
   }
 
   get currentLevel(): LevelDef { return this.level; }
