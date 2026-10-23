@@ -11,7 +11,7 @@ export function playerInputSystem(ctx: BattleContext): System {
   const k = ctx.keyboard, m = ctx.mouse;
   const { attack, dodge } = ACTIONS.battle;
   return (world) => {
-    const keys = ctx.bindings.get().battle;
+    const keys = ctx.settings.bindings.get().battle;
     const right = k.axis(keys.left, keys.right);
     const forward = k.axis(keys.back, keys.forward);
     const s = Math.sin(ctx.view.yaw), c = Math.cos(ctx.view.yaw);

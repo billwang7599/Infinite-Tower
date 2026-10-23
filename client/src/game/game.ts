@@ -38,12 +38,12 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
 
   /** The game only gets input during a session with the settings closed, and the mouse only in the arena. */
   const updateInput = () => {
-    const playing = mode !== null && !ui.settings.get().open;
+    const playing = mode !== null && !ui.settingsScreen.get().open;
     keyboard.enabled = playing;
     mouse.canLock = playing && mode === "battle";
     if (!mouse.canLock) mouse.unlock();
   };
-  ui.settings.subscribe(updateInput);
+  ui.settingsScreen.subscribe(updateInput);
   updateInput();
 
   const setMode = (m: Mode | null) => {
@@ -118,7 +118,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
       if (mode === "battle") battle.end();
       transition = encounter = null;
       field.leave();
-      ui.settings.set({ open: false });
+      ui.settingsScreen.set({ open: false });
       ui.toasts.set({ items: [] });
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

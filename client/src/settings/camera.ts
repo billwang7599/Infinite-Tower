@@ -1,7 +1,7 @@
 /**
  * Camera settings, saved in this browser. For now just the sensitivity: one multiplier on how fast the arena
  * camera turns and tilts, from the mouse / trackpad and from the turn / tilt keys alike. The battle camera reads
- * `cameraSettings.get()` every tick, so a change applies at once, mid-fight too.
+ * `settings.camera.get()` every tick, so a change applies at once, mid-fight too.
  */
 import { clamp, roundTo } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";

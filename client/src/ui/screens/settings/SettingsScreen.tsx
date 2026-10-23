@@ -3,9 +3,8 @@
  * game keeps running underneath (as in a souls game, a fight doesn't pause) but gets no input meanwhile.
  */
 import { useEffect, useState } from "react";
-import type { KeyBindings } from "../../../settings/bindings.js";
-import type { CameraSettings } from "../../../settings/camera.js";
-import type { SettingsState } from "../../state.js";
+import type { Settings } from "../../../settings/settings.js";
+import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { BUTTON } from "./buttons.js";
@@ -13,16 +12,15 @@ import { CameraSection } from "./CameraSection.js";
 import { KeyBindingsList } from "./KeyBindingsList.js";
 
 interface SettingsProps {
-  settings: Store<SettingsState>;
+  screen: Store<SettingsScreenState>;
   open: () => void;
   close: () => void;
-  bindings: KeyBindings;
-  cameraSettings: CameraSettings;
+  settings: Settings;
   returnToTitle: () => void;
 }
 
-export function SettingsScreen({ settings, open, close, bindings, cameraSettings, returnToTitle }: SettingsProps) {
-  const isOpen = useStore(settings, (s) => s.open);
+export function SettingsScreen({ screen, open, close, settings, returnToTitle }: SettingsProps) {
+  const isOpen = useStore(screen, (s) => s.open);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,8 +55,8 @@ export function SettingsScreen({ settings, open, close, bindings, cameraSettings
           </button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-7">
-          <CameraSection cameraSettings={cameraSettings} />
-          <KeyBindingsList bindings={bindings} />
+          <CameraSection camera={settings.camera} />
+          <KeyBindingsList bindings={settings.bindings} />
         </div>
         <Footer close={close} returnToTitle={returnToTitle} />
       </section>

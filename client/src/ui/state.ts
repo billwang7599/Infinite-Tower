@@ -1,13 +1,10 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exception is `settings`: the UI opens and closes it and
- * the game watches it, to stop taking input while it's open. `UiActions` is the other direction, and `UiSettings`
- * the player's saved settings, which both sides share.
+ * imports React, so game code never touches it. The exception is `settingsScreen`: the UI opens and closes it
+ * and the game watches it, to stop taking input while it's open. `UiActions` is the other direction.
  */
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
-import type { KeyBindings } from "../settings/bindings.js";
-import type { CameraSettings } from "../settings/camera.js";
 import { Store } from "./store.js";
 
 export interface ScreenState {
@@ -61,14 +58,8 @@ export interface BattleHudState {
   showResult: boolean;
 }
 
-export interface SettingsState {
+export interface SettingsScreenState {
   open: boolean;
-}
-
-/** The player's settings (settings/): the settings screen edits them, the game reads them every tick. */
-export interface UiSettings {
-  bindings: KeyBindings;
-  cameraSettings: CameraSettings;
 }
 
 export interface UiActions {
@@ -81,7 +72,7 @@ export class UiState {
   readonly title = new Store<TitleState>({ phase: "menu", error: null });
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   readonly toasts = new Store<ToastsState>({ items: [] });
-  readonly settings = new Store<SettingsState>({ open: false });
+  readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1 });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
@@ -100,6 +91,6 @@ export class UiState {
     this.toasts.set({ items: this.toasts.get().items.filter((t) => t.id !== id) });
   };
 
-  readonly openSettings = (): void => this.settings.set({ open: true });
-  readonly closeSettings = (): void => this.settings.set({ open: false });
+  readonly openSettings = (): void => this.settingsScreen.set({ open: true });
+  readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
 }

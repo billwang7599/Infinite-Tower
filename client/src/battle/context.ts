@@ -3,8 +3,7 @@ import type { PhysicsEngineV2, Scene, ShadowGenerator, UniversalCamera } from "@
 import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
-import type { KeyBindings } from "../settings/bindings.js";
-import type { CameraSettings } from "../settings/camera.js";
+import type { Settings } from "../settings/settings.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";
@@ -16,8 +15,7 @@ export interface BattleContext {
   camera: UniversalCamera;
   keyboard: Keyboard;
   mouse: Mouse;
-  bindings: KeyBindings;
-  cameraSettings: CameraSettings;
+  settings: Settings;
   materials: Materials;
   shadows: ShadowGenerator;
   /** The current arena (from the server's encounter). */

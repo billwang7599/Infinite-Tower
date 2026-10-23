@@ -9,8 +9,7 @@
  */
 import { VIEW } from "@infinite-tower/shared";
 import { Connection } from "./net/connection.js";
-import { KeyBindings } from "./settings/bindings.js";
-import { CameraSettings } from "./settings/camera.js";
+import { loadSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
 import { UiState } from "./ui/state.js";
 
@@ -18,10 +17,9 @@ import { UiState } from "./ui/state.js";
 document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW.maxAspect));
 
 const ui = new UiState();
-const bindings = new KeyBindings();
-const cameraSettings = new CameraSettings();
+const settings = loadSettings();
 
-const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, bindings, cameraSettings));
+const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
 preparing.catch((err: unknown) => {
   if (ui.title.get().phase === "menu") fail(err);
@@ -62,7 +60,7 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-mountUi(document.getElementById("ui")!, ui, { bindings, cameraSettings }, {
+mountUi(document.getElementById("ui")!, ui, settings, {
   play: () => void play(),
   returnToTitle: () => void backToTitle(),
 });

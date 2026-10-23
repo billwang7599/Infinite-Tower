@@ -11,8 +11,7 @@ import {
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
-import type { KeyBindings } from "../settings/bindings.js";
-import type { CameraSettings } from "../settings/camera.js";
+import type { Settings } from "../settings/settings.js";
 import type { BattleHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { buildArena } from "./arena.js";
@@ -49,21 +48,20 @@ export interface BattleOptions {
   scene: BattleScene;
   keyboard: Keyboard;
   mouse: Mouse;
-  bindings: KeyBindings;
-  cameraSettings: CameraSettings;
+  settings: Settings;
   hud: Store<BattleHudState>;
   onLeave: () => void;
 }
 
 export function createBattle(opts: BattleOptions): Battle {
-  const { engine, world, keyboard, mouse, bindings, cameraSettings } = opts;
+  const { engine, world, keyboard, mouse, settings } = opts;
   const { scene, physics, camera, shadows } = opts.scene;
   registerBattleDisposers(world);
   registerPlayerDisposers(world);
   for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(world);
 
   const ctx: BattleContext = {
-    world, scene, physics, camera, keyboard, mouse, bindings, cameraSettings, shadows,
+    world, scene, physics, camera, keyboard, mouse, settings, shadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
     view: { yaw: 0, pitch: 0.32 },
@@ -82,7 +80,7 @@ export function createBattle(opts: BattleOptions): Battle {
 
   // After the fight, the leave key (Enter / E by default) goes back, once the result has been on screen a moment.
   const leaveSystem: System = () => {
-    const pressed = keyboard.consumePressed(...bindings.get().battle.leave);
+    const pressed = keyboard.consumePressed(...settings.bindings.get().battle.leave);
     if (pressed && ctx.fight.state !== "fighting" && ctx.fight.time > 1) opts.onLeave();
   };
 

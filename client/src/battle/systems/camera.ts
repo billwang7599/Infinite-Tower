@@ -24,11 +24,11 @@ export function cameraSystem(ctx: BattleContext): System {
   return (world, dt) => {
     const view = ctx.view;
     const m = ctx.mouse;
-    const keys = ctx.bindings.get().battle;
+    const keys = ctx.settings.bindings.get().battle;
     const turn = k.axis(keys.turnLeft, keys.turnRight);
     const tilt = k.axis(keys.lookUp, keys.lookDown);
     const { dx, dy } = m.consumeDelta();
-    const s = ctx.cameraSettings.get().sensitivity;
+    const s = ctx.settings.camera.get().sensitivity;
     view.yaw = wrapAngle(view.yaw + (turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY) * s);
     view.pitch = clamp(view.pitch + (tilt * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY) * s, PITCH_MIN, PITCH_MAX);
 
