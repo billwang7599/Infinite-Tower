@@ -1,6 +1,7 @@
 /**
  * The field mode: the 2D top-down map. The server decides everything here (which level, where you
  * are, encounters, the actors); this mode predicts your own walking, mirrors the actors, and draws.
+ * Built once; each session joins it to that session's connection and leaves it empty again.
  */
 import type { Engine } from "@babylonjs/core";
 import { FIXED_DT, type MsgOf, type ServerMsg, type System, type World } from "@infinite-tower/shared";
@@ -13,7 +14,7 @@ import type { Store } from "../ui/store.js";
 import { registerFieldDisposers } from "./components.js";
 import { spawnFieldPlayer } from "./entities/player.js";
 import { readWalkInput } from "./input.js";
-import { loadLevel } from "./levels/index.js";
+import { loadLevel, unloadLevel } from "./levels/index.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
 import type { FieldView } from "./scene.js";
@@ -24,6 +25,10 @@ type Msg<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;
 
 export interface Field {
   view: FieldView;
+  /** A session starts: your walking goes to this connection, which sends the level next. */
+  join(net: Connection, wins: number): void;
+  /** The session ended: forget the level and its actors. */
+  leave(): void;
   update(dt: number, frozen: boolean): void;
   onLevel(msg: Msg<"level">): void;
   onState(msg: Msg<"state">): void;
@@ -41,20 +46,19 @@ export interface FieldOptions {
   keyboard: Keyboard;
   bindings: KeyBindings;
   hud: Store<FieldHudState>;
-  net: Connection;
-  wins: number;
 }
 
 export function createField(opts: FieldOptions): Field {
-  const { engine, world, view, keyboard, bindings, net } = opts;
+  const { engine, world, view, keyboard, bindings } = opts;
   registerFieldDisposers(world);
   const player = spawnFieldPlayer(world, view, { x: 0, z: 0 });
-  const prediction = new Prediction(world, view, player, net);
   const actors = new ActorMirror(world, view);
 
+  /** One per session (its input numbering starts over with the server's). */
+  let prediction: Prediction | null = null;
   /** No walking between an encounter and the server's battle result. */
   let inFight = false;
-  let wins = opts.wins;
+  let wins = 0;
 
   const render: System[] = [fieldSpriteSystem(view), fieldCameraSystem(view)];
   view.scene.onBeforeRenderObservable.add(() => {
@@ -65,34 +69,46 @@ export function createField(opts: FieldOptions): Field {
   let accumulator = 0;
   return {
     view,
+    join(net, w) {
+      prediction = new Prediction(world, view, player, net);
+      inFight = false;
+      wins = w;
+    },
+    leave() {
+      prediction = null;
+      inFight = false;
+      actors.clear();
+      unloadLevel(view);
+    },
     update(dt, frozen) {
-      if (frozen || inFight || !view.level) { accumulator = 0; return; }
+      const p = prediction;
+      if (frozen || inFight || !view.level || !p) { accumulator = 0; return; }
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
-        prediction.step(readWalkInput(keyboard, bindings.get().field));
+        p.step(readWalkInput(keyboard, bindings.get().field));
         accumulator -= FIXED_DT;
       }
     },
     onLevel(msg) {
       actors.clear();
       loadLevel(view, msg.level);
-      prediction.reset(msg.me);
+      prediction?.reset(msg.me);
       snapFieldCamera(view, world);
     },
     onState(msg) {
       if (inFight) return;
-      prediction.reconcile(msg.ack, msg.me);
+      prediction?.reconcile(msg.ack, msg.me);
       actors.apply(msg.actors);
       wins = msg.wins;
     },
     onEncounter(msg) {
       inFight = true;
-      prediction.reset(msg.me);
+      prediction?.reset(msg.me);
     },
     onBattleResult(msg) {
       inFight = false;
       wins = msg.wins;
-      prediction.reset(msg.me);
+      prediction?.reset(msg.me);
       snapFieldCamera(view, world);
     },
     awaitResult() {

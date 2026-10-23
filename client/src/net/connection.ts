@@ -45,6 +45,13 @@ export class Connection {
     for (const msg of this.backlog.splice(0)) dispatch(handlers, msg, undefined);
   }
 
+  /** Hang up on purpose: no `onClose`, and nothing more is delivered. */
+  close(): void {
+    this.onClose = () => {};
+    this.ws.onmessage = null;
+    this.ws.close();
+  }
+
   send(msg: ClientMsg): void {
     if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }

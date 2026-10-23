@@ -16,7 +16,13 @@ export const LEVEL_RENDERERS: Record<LevelLayout["theme"], LevelRenderer> = {
 
 /** Swap in a new level's drawing (meshes, materials and textures of the old one are disposed). */
 export function loadLevel(view: FieldView, level: LevelLayout): void {
-  view.levelRoot?.dispose(false, true);
+  unloadLevel(view);
   view.level = level;
   view.levelRoot = LEVEL_RENDERERS[level.theme](view.scene, level);
+}
+
+export function unloadLevel(view: FieldView): void {
+  view.levelRoot?.dispose(false, true);
+  view.levelRoot = null;
+  view.level = null;
 }

@@ -10,7 +10,8 @@ and you're pulled into a 2.5D arena fight. Win and that boar is gone (another sh
 wake up back at the start. Press Enter after the fight to return to the field.
 The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
 and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
-server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: key bindings.
+server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: key bindings, and
+Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -92,13 +93,14 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
-  main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins
+  main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins;
+                   Return to title (or a lost connection) leaves
   game/            start.ts (its own chunk with Babylon, imported lazily so the title shows first: prepareGame() builds
-                   engine, Havok and both scenes behind the title; join() adds server, input, both modes and the
-                   ?debug handles), game.ts (routes server messages, field <-> battle switching, who gets input),
-                   transition.ts (Mode, flash / fade)
+                   everything once behind the title: engine, Havok, both scenes and modes, input (off); join() starts a
+                   session on a connection, leave() ends it), game.ts (sessions, routes server messages, field <-> battle
+                   switching, who gets input), transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
-  core/            keyboard.ts (off while Settings is open), mouse.ts (optional, pointer lock),
+  core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
                    buttons.ts (held + latched presses), time.ts
   settings/        bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons; KeyBindings: the
                    player's keys, saved to localStorage; the game reads `bindings.get()` every tick)
@@ -107,7 +109,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
     state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), `settings`
                      (open/closed: the UI writes it, the game watches it), and UiActions (what the UI asks of the
-                     game: play). No React.
+                     game: play, returnToTitle). No React.
     keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
@@ -115,7 +117,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
-      settings/        SettingsScreen.tsx (Esc toggles, Resume), KeyBindingsList.tsx (rebinding), buttons.ts
+      settings/        SettingsScreen.tsx (Esc toggles, Return to title), KeyBindingsList.tsx (rebinding), buttons.ts
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
@@ -126,7 +128,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     input.ts         The walk keys -> a WalkInput
     entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
     systems/         sprites (glide to server positions, tuft, "!"), camera (follow)
-    levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel), grass-field/
+    levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel), grass-field/
   battle/          The 2.5D arena mode (still simulated in the browser, see below)
     battle.ts        The mode: system order, start/end a fight (arena built/resized on demand)
     scene.ts         Babylon scene, Havok, camera, lights/fog/shadows/post

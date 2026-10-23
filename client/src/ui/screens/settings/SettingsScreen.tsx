@@ -2,7 +2,7 @@
  * The settings, over the game. Esc or the field HUD's button opens them; Esc, ✕ or Resume closes them. The
  * game keeps running underneath (as in a souls game, a fight doesn't pause) but gets no input meanwhile.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { KeyBindings } from "../../../settings/bindings.js";
 import type { SettingsState } from "../../state.js";
 import type { Store } from "../../store.js";
@@ -15,9 +15,10 @@ interface SettingsProps {
   open: () => void;
   close: () => void;
   bindings: KeyBindings;
+  returnToTitle: () => void;
 }
 
-export function SettingsScreen({ settings, open, close, bindings }: SettingsProps) {
+export function SettingsScreen({ settings, open, close, bindings, returnToTitle }: SettingsProps) {
   const isOpen = useStore(settings, (s) => s.open);
 
   useEffect(() => {
@@ -53,12 +54,42 @@ export function SettingsScreen({ settings, open, close, bindings }: SettingsProp
           </button>
         </header>
         <KeyBindingsList bindings={bindings} />
-        <footer className="flex justify-end border-t border-white/10 px-7 py-4">
+        <Footer close={close} returnToTitle={returnToTitle} />
+      </section>
+    </div>
+  );
+}
+
+/** Return to title asks once more: the server doesn't save anything yet, so leaving loses this session. */
+function Footer({ close, returnToTitle }: { close: () => void; returnToTitle: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <footer className="flex items-center justify-between gap-4 border-t border-white/10 px-7 py-4">
+      {confirming ? (
+        <>
+          <span className="text-sm text-white/75">Leave the world? Progress isn't saved yet.</span>
+          <span className="flex gap-2">
+            <button type="button" autoFocus onClick={() => setConfirming(false)} className={BUTTON.plain}>Stay</button>
+            <button
+              type="button"
+              id="settings-leave"
+              onClick={returnToTitle}
+              className={BUTTON.danger}
+            >
+              Leave
+            </button>
+          </span>
+        </>
+      ) : (
+        <>
+          <button type="button" id="settings-return" onClick={() => setConfirming(true)} className={BUTTON.plain}>
+            Return to title
+          </button>
           <button type="button" autoFocus onClick={close} className={BUTTON.primary}>
             Resume
           </button>
-        </footer>
-      </section>
-    </div>
+        </>
+      )}
+    </footer>
   );
 }
