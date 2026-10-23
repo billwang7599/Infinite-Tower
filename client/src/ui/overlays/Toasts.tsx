@@ -3,13 +3,12 @@ import type { ToastItem, ToastsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 
-/** How long a toast stays before fading out, and how long the fade takes (matches `duration-500`). */
+// FADE_MS must match the `duration-500` class below.
 const SHOW_MS = 1800;
 const FADE_MS = 500;
 
 type Dismiss = (id: number) => void;
 
-/** Messages from UiState.showToast, stacked top to bottom: oldest on top, and the first to go. */
 export function Toasts({ toasts, dismiss }: { toasts: Store<ToastsState>; dismiss: Dismiss }) {
   const items = useStore(toasts, (s) => s.items);
   return (
@@ -22,8 +21,8 @@ export function Toasts({ toasts, dismiss }: { toasts: Store<ToastsState>; dismis
 }
 
 /**
- * One toast: fades in, holds for SHOW_MS, then fades out while its row collapses (so the ones below slide up),
- * then removes itself. The × skips straight to the fade out.
+ * Fades in, holds for SHOW_MS, then fades out while its row collapses (so the ones below slide up), then
+ * removes itself. The × skips straight to the fade out.
  */
 function Toast({ toast, dismiss }: { toast: ToastItem; dismiss: Dismiss }) {
   const [leaving, setLeaving] = useState(false);

@@ -23,9 +23,7 @@ type Msg<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;
 
 export interface Field {
   view: FieldView;
-  /** Advance by real time `dt`; `frozen` pauses it (during transitions). */
   update(dt: number, frozen: boolean): void;
-  /** Server messages for the field. */
   onLevel(msg: Msg<"level">): void;
   onState(msg: Msg<"state">): void;
   onEncounter(msg: Msg<"encounter">): void;
@@ -39,10 +37,8 @@ export interface FieldOptions {
   engine: Engine;
   world: World;
   keyboard: Keyboard;
-  /** The field HUD state (drawn by ui/hud/FieldHud.tsx). */
   hud: Store<FieldHudState>;
   net: Connection;
-  /** Progress from the server's welcome. */
   wins: number;
 }
 

@@ -1,4 +1,3 @@
-/** Starts the React UI: the HTML layer over the game canvas, fed by the stores in `ui` (ui/state.ts). */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";

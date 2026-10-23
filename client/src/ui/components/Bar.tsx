@@ -1,16 +1,15 @@
 import { useState } from "react";
 
 interface BarProps {
-  /** Fill fraction, 0..1. */
+  /** 0..1 */
   value: number;
   /** Gradient stops for the fill, written out in full (e.g. "from-hp to-hp-dark") so Tailwind finds them. */
   fill: string;
-  /** Souls-style damage chip: a pale layer that stays behind after a hit, then drains to the real value. */
+  /** Souls-style damage chip: a pale layer that lags behind after a hit. */
   chip?: boolean;
   className?: string;
 }
 
-/** A HUD bar (health, stamina, boss health). */
 export function Bar({ value, fill, chip = false, className = "" }: BarProps) {
   return (
     <div className={`bar ${className}`}>

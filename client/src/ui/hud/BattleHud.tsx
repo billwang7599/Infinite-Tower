@@ -5,7 +5,6 @@ import { useStore } from "../useStore.js";
 
 type HudProps = { hud: Store<BattleHudState> };
 
-/** The arena HUD: player bars, boss bar, camera status, and the death/victory banner. */
 export function BattleHud({ hud }: HudProps) {
   return (
     <div id="battle-hud" className="pointer-events-none fixed inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">

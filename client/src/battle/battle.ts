@@ -33,9 +33,8 @@ import { hudSystem } from "./systems/hud.js";
 
 export interface Battle {
   ctx: BattleContext;
-  /** Spawn the player and the enemy facing each other, in the given arena (both from the server's encounter). */
   start(enemy: EnemyDef, arena: ArenaDef): void;
-  /** Remove the fighters. Returns whether the player won. */
+  /** Returns whether the player won. */
   end(): boolean;
   render(): void;
 }
@@ -45,9 +44,7 @@ export interface BattleOptions {
   world: World;
   keyboard: Keyboard;
   mouse: Mouse;
-  /** The battle HUD state (drawn by ui/hud/BattleHud.tsx). */
   hud: Store<BattleHudState>;
-  /** Called when the player asks to leave a decided fight (Enter / E). */
   onLeave: () => void;
 }
 

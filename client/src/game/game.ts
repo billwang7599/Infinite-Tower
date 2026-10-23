@@ -19,7 +19,6 @@ import { startTransition, stepTransition, type Mode, type Transition } from "./t
 
 export interface Game {
   mode(): Mode;
-  /** Battle -> field (the fight is decided). */
   leaveBattle(): void;
   /** Must be called once both modes exist: starts the render loop. */
   run(battle: Battle, field: Field): void;

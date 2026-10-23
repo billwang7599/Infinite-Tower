@@ -2,7 +2,6 @@ import type { FieldHudState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 
-/** The field HUD: level name and fights won. */
 export function FieldHud({ hud }: { hud: Store<FieldHudState> }) {
   const levelName = useStore(hud, (s) => s.levelName);
   const wins = useStore(hud, (s) => s.wins);

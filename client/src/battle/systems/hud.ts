@@ -3,10 +3,7 @@ import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import type { BattleContext } from "../context.js";
 
-/**
- * Reports the fight to the battle HUD (drawn by ui/hud/BattleHud.tsx): health, stamina, the enemy,
- * camera state and the result. Writes every frame; the store skips values that didn't change.
- */
+/** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
   return (world) => {
     const patch: Partial<BattleHudState> = {

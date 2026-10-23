@@ -2,7 +2,7 @@ import type { ScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 
-/** The full-screen flash/fade layer. game/transition.ts animates it frame by frame. */
+/** No CSS transition on purpose: game/transition.ts sets the opacity every frame. */
 export function Fade({ screen }: { screen: Store<ScreenState> }) {
   const color = useStore(screen, (s) => s.fadeColor);
   const opacity = useStore(screen, (s) => s.fadeOpacity);

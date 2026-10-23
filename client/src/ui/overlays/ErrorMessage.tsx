@@ -2,7 +2,6 @@ import type { ScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 
-/** A startup failure (e.g. the server is down), shown over everything. */
 export function ErrorMessage({ screen }: { screen: Store<ScreenState> }) {
   const error = useStore(screen, (s) => s.error);
   if (error === null) return null;

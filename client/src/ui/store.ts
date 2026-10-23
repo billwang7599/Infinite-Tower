@@ -1,7 +1,6 @@
 /**
- * A tiny observable object: the bridge between game code and React. The game calls `set` as often as it
- * likes (every frame is fine); listeners only hear about it when a value actually changed.
- * React components read it with `useStore` (ui/useStore.ts). No React in this file.
+ * A tiny observable object: the bridge between game code and React. Calling `set` every frame is fine;
+ * listeners only hear about it when a value actually changed.
  */
 export class Store<T extends object> {
   private state: T;
@@ -11,10 +10,10 @@ export class Store<T extends object> {
     this.state = initial;
   }
 
-  /** The current state. Treat it as read-only: change it through `set`. */
+  /** Don't mutate the result: change it through `set`, or listeners won't hear about it. */
   readonly get = (): T => this.state;
 
-  /** Merge `patch` into the state. Does nothing (no re-render) if every value is unchanged. */
+  /** Shallow merge. A no-op (no re-render) if every value is unchanged. */
   set(patch: Partial<T>): void {
     let changed = false;
     for (const key in patch) {
@@ -25,6 +24,7 @@ export class Store<T extends object> {
     for (const listener of this.listeners) listener();
   }
 
+  /** Arrows (this and `get`) because useSyncExternalStore calls them unbound. */
   readonly subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
