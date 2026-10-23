@@ -64,7 +64,7 @@ export function createBattle(opts: BattleOptions): Battle {
     world, scene, physics, camera, keyboard, mouse, bindings, shadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
-    view: { yaw: 0, pitch: 0.32, lock: true },
+    view: { yaw: 0, pitch: 0.32 },
     fight: { state: "fighting", time: 0 },
     shake: 0,
   };
@@ -122,7 +122,6 @@ export function createBattle(opts: BattleOptions): Battle {
       spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
-      ctx.view.lock = true;
       ctx.fight.state = "fighting";
       ctx.fight.time = 0;
       keyboard.clearPressed();

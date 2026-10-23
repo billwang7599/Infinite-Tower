@@ -43,8 +43,7 @@ Mouse buttons are fixed.
 | WASD | WASD | move (relative to the camera) |
 | J | left click / tap | slash (chain by pressing again); **you attack wherever the camera faces** |
 | K / Shift | right click / two-finger tap | dodge roll (i-frames; backstep if standing still) |
-| ; | middle click (wheel) | toggle lock-on (on at the start of a fight): the camera keeps the enemy in front, so slashes aim at it |
-| H / L (or ← →) | move the mouse | turn the camera by hand; this drops lock-on |
+| H / L (or ← →) | move the mouse | turn the camera (there is no lock-on: aiming is up to you) |
 | ↑ ↓ | move the mouse | tilt the camera |
 | Space | Space | jump |
 | Enter / E | Enter / E | after the fight: back to the field |

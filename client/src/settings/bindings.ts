@@ -31,7 +31,6 @@ export const ACTIONS = {
     jump: { label: "Jump", keys: ["Space"] },
     attack: { label: "Attack", keys: ["KeyJ"], mouse: [0] },
     dodge: { label: "Dodge", keys: ["KeyK", "ShiftLeft", "ShiftRight"], mouse: [2] },
-    lockOn: { label: "Lock on", keys: ["Semicolon"], mouse: [1] },
     turnLeft: { label: "Turn camera left", keys: ["KeyH", "ArrowLeft"] },
     turnRight: { label: "Turn camera right", keys: ["KeyL", "ArrowRight"] },
     lookUp: { label: "Tilt camera up", keys: ["ArrowUp"] },

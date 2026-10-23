@@ -23,9 +23,8 @@ export interface BattleContext {
   /**
    * Orbit angles of the camera (radians), from the mouse or the turn / tilt keys. Yaw is also the aim direction:
    * forward = (sin yaw, cos yaw). Movement is camera-relative.
-   * `lock`: lock-on, the camera turns itself to keep the enemy in front (so attacks aim at it).
    */
-  view: { yaw: number; pitch: number; lock: boolean };
+  view: { yaw: number; pitch: number };
   fight: { state: FightState; time: number };
   /** Camera shake amplitude, decays over time. Add to it for impacts. */
   shake: number;

@@ -1,32 +1,24 @@
 import { Vector3 } from "@babylonjs/core";
-import {
-  clamp, damp, dampFactor, Enemy, Health, LocalPlayer, turnToward, wrapAngle, type System, type World,
-} from "@infinite-tower/shared";
+import { clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
-import { ACTIONS } from "../../settings/bindings.js";
 
 const YAW_SPEED = 2.6; // rad/s, turn keys
 const PITCH_SPEED = 1.4;
 const MOUSE_SENSITIVITY = 0.0025; // rad per pixel (mouse or trackpad)
-const MOUSE_UNLOCK_PX = 4; // a deliberate mouse flick (px in one frame) drops lock-on; tiny jitter doesn't
-const LOCK_RATE = 7; // how quickly lock-on swings the camera onto the target (1/s)
-const LOCK_MAX_TURN = 6; // rad/s cap, so passing right next to the enemy doesn't whip the camera
 const PITCH_MIN = -0.05;
 const PITCH_MAX = 1.1;
 const DISTANCE = 8.5;
-const SHOULDER = 2.2; // sideways camera offset while locked on, so the player doesn't hide the enemy
 
 /**
- * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full 360°;
- * with lock-on (; or middle click toggles, on by default) it turns itself to keep the enemy in front.
- * Where it looks is where the player attacks (see player/input.ts). Also applies impact shake.
+ * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full 360°.
+ * Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player attacks
+ * (see player/input.ts). Also applies impact shake.
  */
 export function cameraSystem(ctx: BattleContext): System {
   const k = ctx.keyboard;
   const focus = new Vector3(), look = new Vector3();
   let initialized = false;
-  let shoulder = 0; // eases between 0 (free) and SHOULDER (locked)
 
   return (world, dt) => {
     const view = ctx.view;
@@ -34,27 +26,12 @@ export function cameraSystem(ctx: BattleContext): System {
     const keys = ctx.bindings.get().battle;
     const turn = k.axis(keys.turnLeft, keys.turnRight);
     const { dx, dy } = m.consumeDelta();
-    // Turning by hand while locked frees the camera (like flicking the stick in a souls game).
-    if (turn !== 0 || Math.abs(dx) > MOUSE_UNLOCK_PX) view.lock = false;
-    // Checked after, so pressing lock-on mid-turn still locks.
-    if (k.consumePressed(...keys.lockOn) || m.consumePressed(...ACTIONS.battle.lockOn.mouse)) view.lock = !view.lock;
-    if (!view.lock) view.yaw += turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY;
+    view.yaw = wrapAngle(view.yaw + turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY);
     view.pitch = clamp(view.pitch + k.axis(keys.lookUp, keys.lookDown) * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX);
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
     const p = row[2].mesh.position;
-
-    if (view.lock) {
-      const target = lockTarget(world);
-      if (target) {
-        const want = Math.atan2(target.x - p.x, target.z - p.z);
-        const eased = Math.abs(wrapAngle(want - view.yaw)) * dampFactor(LOCK_RATE, dt);
-        view.yaw = turnToward(view.yaw, want, Math.min(eased, LOCK_MAX_TURN * dt));
-      }
-    }
-    view.yaw = wrapAngle(view.yaw);
-    shoulder = damp(shoulder, view.lock ? SHOULDER : 0, 4, dt);
 
     // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
     if (!initialized) { focus.copyFrom(p); initialized = true; }
@@ -70,23 +47,12 @@ export function cameraSystem(ctx: BattleContext): System {
     const flat = Math.cos(view.pitch) * dist;
     ctx.shake *= Math.exp(-9 * dt);
     const sh = ctx.shake > 0.005 ? ctx.shake : 0;
-    // Camera right = (cos yaw, -sin yaw). Only the camera moves sideways (the look point barely does), so it views
-    // the player at an angle and a nearby enemy shows beside the sprite instead of behind it. Aim stays = yaw.
-    const ox = fz * shoulder, oz = -fx * shoulder;
     ctx.camera.position.set(
-      focus.x - fx * flat + ox + (Math.random() - 0.5) * sh,
+      focus.x - fx * flat + (Math.random() - 0.5) * sh,
       focus.y + 1.2 + Math.sin(view.pitch) * dist + (Math.random() - 0.5) * sh,
-      focus.z - fz * flat + oz + (Math.random() - 0.5) * sh,
+      focus.z - fz * flat + (Math.random() - 0.5) * sh,
     );
-    look.set(focus.x + ox * 0.25, focus.y + 1.3, focus.z + oz * 0.25);
+    look.set(focus.x, focus.y + 1.3, focus.z);
     ctx.camera.setTarget(look);
   };
-}
-
-/** The living enemy to lock on to (one enemy per fight so far). */
-function lockTarget(world: World): Vector3 | null {
-  for (const [, , health, body] of world.query(Enemy, Health, Body)) {
-    if (health.hp > 0) return body.mesh.position;
-  }
-  return null;
 }
