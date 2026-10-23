@@ -99,7 +99,7 @@ export function createOverworld(opts: OverworldOptions): Overworld {
       mp.grassDist = 0;
     },
     render() {
-      const text = `Grass Field &nbsp;·&nbsp; boars defeated: ${wins}<br><small>WASD / arrows to walk · touch a boar or walk through the tall grass to fight</small>`;
+      const text = `Grass Field &nbsp;·&nbsp; boars defeated: ${wins}<br><small class="text-[13px] font-normal opacity-80">WASD / arrows to walk · touch a boar or walk through the tall grass to fight</small>`;
       if (text !== lastHud) { hud.innerHTML = text; lastHud = text; }
       view.scene.render();
     },

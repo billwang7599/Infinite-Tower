@@ -58,7 +58,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
   game/            game.ts (map <-> battle mode switching), transition.ts (flash / fade timing)
   core/            input.ts (Keyboard, Mouse with pointer lock)
   gfx/             textures.ts (procedural textures), sprites.ts (pixel-sprite frames), characters.ts (the art)
-  ui/              overlay.ts (HUD containers, toast, fade), styles.css
+  ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
   battle/          The 2.5D arena
     battle.ts        Scene + Havok setup, start/end a fight, system order (the game's contract)
     context.ts       GameContext + collision layers
@@ -75,6 +75,14 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
 
 Keep files small and single-purpose (roughly under 200 lines); add a folder per new mode or enemy
 rather than growing an existing file.
+
+## Styling
+
+DOM overlays use **Tailwind CSS v4** (via `@tailwindcss/vite`, no config file). Write utility classes in the
+markup (`index.html` or HTML strings in `.ts`). Game colours/fonts are `@theme` tokens in `client/src/ui/styles.css`
+(`bg-hp`, `text-victory`, `font-title`, ...); shared pieces are `@utility` classes (`bar`, `bar-layer`).
+Write class names out in full, because Tailwind can't detect names built with string concatenation.
+In-world UI (enemy bars, name tags) belongs in Babylon, not the DOM.
 
 ## Architecture rules
 

@@ -13,6 +13,8 @@
     "@infinite-tower/shared": "*"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
     "vite": "^8.0.0"
   }
 }

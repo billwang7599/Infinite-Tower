@@ -1,28 +1,39 @@
 import { Boar, Health, LocalPlayer, Stamina, type System } from "@infinite-tower/shared";
 import type { GameContext } from "../context.js";
 
+const BANNER = "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1200 "
+  + "bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)]";
+const TITLE = "title font-title text-6xl font-normal tracking-[6px]";
+
 /** DOM overlay: health/stamina bars, boss bar, death/victory banner. Only touches the DOM on change. */
 export function hudSystem(ctx: GameContext, root: HTMLElement): System {
   root.innerHTML = `
-    <div id="info"></div>
-    <div id="bars">
-      <div class="bar hp"><div class="lag"></div><div class="fill"></div></div>
-      <div class="bar st"><div class="fill"></div></div>
+    <div id="info" class="absolute top-3 left-4"></div>
+    <div class="absolute top-10 left-4 w-75">
+      <div class="bar hp"><div class="lag bar-layer bg-chip"></div><div class="fill bar-layer bg-linear-to-b from-hp to-hp-dark"></div></div>
+      <div class="bar st w-[70%]"><div class="fill bar-layer bg-linear-to-b from-stamina to-stamina-dark"></div></div>
     </div>
-    <div id="boss"><div class="name">Wild Boar</div><div class="bar boss"><div class="lag"></div><div class="fill"></div></div></div>
-    <div id="banner"><div class="title"></div><div class="sub">Press Enter to continue</div></div>
-    <div id="capture">Click to capture the mouse</div>`;
+    <div id="boss" class="absolute bottom-12 left-1/2 w-[min(640px,70vw)] -translate-x-1/2 transition-opacity duration-600">
+      <div class="mb-1 font-title text-[17px] font-medium tracking-wide">Wild Boar</div>
+      <div class="bar boss"><div class="lag bar-layer bg-chip"></div><div class="fill bar-layer bg-linear-to-b from-boss to-boss-dark"></div></div>
+    </div>
+    <div id="banner" class="${BANNER} opacity-0">
+      <div class="${TITLE}"></div>
+      <div class="mt-2 font-normal opacity-80">Press Enter to continue</div>
+    </div>
+    <div id="capture" class="absolute top-3 right-4 text-[13px] font-normal transition-opacity duration-300">Click to capture the mouse</div>`;
   const $ = (sel: string) => root.querySelector(sel) as HTMLElement;
   const els = {
     info: $("#info"), hp: $(".hp .fill"), hpLag: $(".hp .lag"), st: $(".st .fill"),
     boss: $("#boss"), bossHp: $(".boss .fill"), bossLag: $(".boss .lag"),
     banner: $("#banner"), title: $("#banner .title"), capture: $("#capture"),
   };
-  const cache = new Map<HTMLElement, string>();
+  const cache = new Map<HTMLElement, Map<string, string>>();
   const set = (el: HTMLElement, key: "width" | "opacity" | "html" | "class", value: string) => {
-    const id = `${key}:${value}`;
-    if (cache.get(el) === id) return;
-    cache.set(el, id);
+    let props = cache.get(el);
+    if (!props) cache.set(el, (props = new Map()));
+    if (props.get(key) === value) return;
+    props.set(key, value);
     if (key === "html") el.innerHTML = value;
     else if (key === "class") el.className = value;
     else el.style[key] = value;
@@ -41,7 +52,7 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
     fpsTimer += dt;
     if (fpsTimer > 0.5) { fps = Math.round(ctx.scene.getEngine().getFps()); fpsTimer = 0; }
     set(els.info, "html",
-      `<small>${fps} fps · WASD move · Mouse/arrows look · LMB/J slash · Shift/RMB/L dodge · Space jump</small>`);
+      `<small class="text-[13px] font-normal opacity-75">${fps} fps · WASD move · Mouse/arrows look · LMB/J slash · Shift/RMB/L dodge · Space jump</small>`);
     set(els.capture, "opacity", ctx.mouse.locked ? "0" : "1");
 
     const me = world.first(LocalPlayer, Health, Stamina);
@@ -65,7 +76,8 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
 
     const f = ctx.fight;
     const show = f.state !== "fighting" && f.time > 1.0;
-    set(els.banner, "class", show ? `show ${f.state}` : "");
+    set(els.banner, "class", `${BANNER} ${show ? "opacity-100" : "opacity-0"}`);
+    set(els.title, "class", `${TITLE} ${f.state === "lost" ? "text-died" : "text-victory"}`);
     set(els.title, "html", f.state === "lost" ? "YOU DIED" : "PREY SLAUGHTERED");
   };
 }

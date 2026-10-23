@@ -1,32 +1,28 @@
-/* Page layout and HUD styles (imported by ui/overlay.ts). */
-html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d1a; }
-#game { width: 100%; height: 100%; display: block; outline: none; }
-#hud { position: fixed; inset: 0; pointer-events: none; color: #fff; font: 600 16px/1.4 system-ui, sans-serif; text-shadow: 0 2px 4px #000a; }
-#hud small { font-weight: 400; opacity: 0.75; font-size: 13px; }
-#info { position: absolute; top: 12px; left: 16px; }
-.bar { position: relative; height: 10px; background: #0009; border: 1px solid #fff3; margin-bottom: 6px; }
-.bar > div { position: absolute; inset: 0 auto 0 0; }
-.bar .lag { background: #e8d8a0; transition: none; }
-#bars { position: absolute; top: 40px; left: 16px; width: 300px; }
-.hp .fill { background: linear-gradient(#d8463c, #8f1f1a); }
-.st { width: 70%; }
-.st .fill { background: linear-gradient(#5fc26a, #2a7a36); }
-#boss { position: absolute; bottom: 48px; left: 50%; width: min(640px, 70vw); transform: translateX(-50%); transition: opacity 0.6s; }
-#boss .name { font: 500 17px Georgia, serif; letter-spacing: 1px; margin-bottom: 4px; }
-.boss .fill { background: linear-gradient(#b8322a, #6e1612); }
-#banner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  opacity: 0; transition: opacity 1.2s; background: linear-gradient(transparent 38%, #000b 45%, #000b 58%, transparent 65%); }
-#banner.show { opacity: 1; }
-#banner .title { font: 400 64px Georgia, serif; letter-spacing: 6px; }
-#banner.lost .title { color: #a8231b; }
-#banner.won .title { color: #e8c45a; }
-#banner .sub { font-weight: 400; opacity: 0.8; margin-top: 8px; }
-#maphud { position: fixed; top: 12px; left: 16px; color: #fff; pointer-events: none;
-  font: 600 16px/1.4 system-ui, sans-serif; text-shadow: 0 2px 4px #000a; }
-#maphud small { font-weight: 400; opacity: 0.8; font-size: 13px; }
-#fade { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: #000; }
-#toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); pointer-events: none;
-  font: 400 30px Georgia, serif; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000;
-  opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
-#toast.show { opacity: 1; }
-#capture { position: absolute; top: 12px; right: 16px; font-weight: 400; font-size: 13px; transition: opacity 0.3s; }
+/* Tailwind entry (imported by ui/overlay.ts). Markup uses utility classes; game-wide tokens live in @theme. */
+@import "tailwindcss";
+
+@theme {
+  --font-ui: system-ui, sans-serif;
+  --font-title: Georgia, serif;
+
+  --color-night: #0b0d1a;
+  --color-chip: #e8d8a0;   /* souls-style damage lag chip */
+  --color-hp: #d8463c;
+  --color-hp-dark: #8f1f1a;
+  --color-stamina: #5fc26a;
+  --color-stamina-dark: #2a7a36;
+  --color-boss: #b8322a;
+  --color-boss-dark: #6e1612;
+  --color-died: #a8231b;
+  --color-victory: #e8c45a;
+
+  --text-shadow-hud: 0 2px 4px #000a;
+}
+
+@layer base {
+  html, body { @apply m-0 h-full overflow-hidden bg-night; }
+}
+
+/* Reusable HUD pieces. */
+@utility bar { @apply relative mb-1.5 h-2.5 border border-white/20 bg-black/60; }
+@utility bar-layer { @apply absolute inset-y-0 left-0; }

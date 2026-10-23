@@ -23,9 +23,9 @@ export function createOverlay(): Overlay {
     },
     toast(text) {
       toastEl.textContent = text;
-      toastEl.className = "show";
+      toastEl.classList.replace("opacity-0", "opacity-100");
       clearTimeout(toastTimer);
-      toastTimer = window.setTimeout(() => { toastEl.className = ""; }, 1800);
+      toastTimer = window.setTimeout(() => { toastEl.classList.replace("opacity-100", "opacity-0"); }, 1800);
     },
     setFade(color, opacity) {
       fade.style.background = color;
