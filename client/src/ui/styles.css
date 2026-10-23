@@ -16,6 +16,16 @@
   --color-victory: #e8c45a;
 
   --text-shadow-hud: 0 2px 4px #000a;
+  --text-shadow-title: 0 0 28px #e8c45a66, 0 4px 14px #000d;
+
+  --animate-twinkle: twinkle 3.5s ease-in-out infinite;
+  --animate-drift: drift 160s linear infinite;
+  --animate-rise: rise 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+  /* One backdrop width: ui/screens/title/Backdrop.tsx draws the clouds twice side by side. */
+  @keyframes drift { to { transform: translateX(-1600px); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 }
 
 @layer base {
