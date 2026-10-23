@@ -7,7 +7,7 @@
 import type { Engine } from "@babylonjs/core";
 import type { Entity } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
-import type { Keyboard, Mouse } from "../core/input.js";
+import type { Keyboard } from "../core/input.js";
 import type { Overworld } from "../overworld/overworld.js";
 import type { Overlay } from "../ui/overlay.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -22,7 +22,7 @@ export interface Game {
   run(battle: Battle, overworld: Overworld): void;
 }
 
-export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, overlay: Overlay): Game {
+export function createGame(engine: Engine, keyboard: Keyboard, overlay: Overlay): Game {
   let mode: Mode = "map";
   let transition: Transition | null = null;
   let encounterSource: Entity | null = null;
@@ -31,8 +31,6 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ove
   const setMode = (m: Mode) => {
     mode = m;
     overlay.setMode(m);
-    mouse.canLock = m === "battle";
-    if (m === "map") mouse.release();
   };
 
   const swap = (to: Mode) => {

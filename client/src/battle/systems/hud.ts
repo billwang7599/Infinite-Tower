@@ -21,12 +21,12 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
       <div class="${TITLE}"></div>
       <div class="mt-2 font-normal opacity-80">Press Enter to continue</div>
     </div>
-    <div id="capture" class="absolute top-3 right-4 text-[13px] font-normal transition-opacity duration-300">Click to capture the mouse</div>`;
+    <div id="lock" class="absolute top-3 right-4 text-[13px] font-normal"></div>`;
   const $ = (sel: string) => root.querySelector(sel) as HTMLElement;
   const els = {
     info: $("#info"), hp: $(".hp .fill"), hpLag: $(".hp .lag"), st: $(".st .fill"),
     boss: $("#boss"), bossHp: $(".boss .fill"), bossLag: $(".boss .lag"),
-    banner: $("#banner"), title: $("#banner .title"), capture: $("#capture"),
+    banner: $("#banner"), title: $("#banner .title"), lock: $("#lock"),
   };
   const cache = new Map<HTMLElement, Map<string, string>>();
   const set = (el: HTMLElement, key: "width" | "opacity" | "html" | "class", value: string) => {
@@ -52,8 +52,8 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
     fpsTimer += dt;
     if (fpsTimer > 0.5) { fps = Math.round(ctx.scene.getEngine().getFps()); fpsTimer = 0; }
     set(els.info, "html",
-      `<small class="text-[13px] font-normal opacity-75">${fps} fps · WASD move · Mouse/arrows look · LMB/J slash · Shift/RMB/L dodge · Space jump</small>`);
-    set(els.capture, "opacity", ctx.mouse.locked ? "0" : "1");
+      `<small class="text-[13px] font-normal opacity-75">${fps} fps · WASD move · H/L turn camera · J slash · K dodge · ; lock-on · Space jump</small>`);
+    set(els.lock, "html", ctx.view.lock ? "<span class=\"text-victory\">◎ Locked on</span> (; to free the camera)" : "Free camera (; to lock on)");
 
     const me = world.first(LocalPlayer, Health, Stamina);
     if (me) {

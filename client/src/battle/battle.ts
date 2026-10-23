@@ -7,7 +7,7 @@ import { HavokPlugin, Scene, UniversalCamera, Vector3, type Engine } from "@baby
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
 import { FIXED_DT, Fighter, GRAVITY, type System, type World } from "@infinite-tower/shared";
-import type { Keyboard, Mouse } from "../core/input.js";
+import type { Keyboard } from "../core/input.js";
 import { buildArena } from "./arena.js";
 import { registerDisposers } from "./components.js";
 import type { GameContext } from "./context.js";
@@ -38,14 +38,13 @@ export interface BattleOptions {
   engine: Engine;
   world: World;
   keyboard: Keyboard;
-  mouse: Mouse;
   hud: HTMLElement;
   /** Called when the player asks to leave a decided fight (Enter / E). */
   onLeave: () => void;
 }
 
 export async function createBattle(opts: BattleOptions): Promise<Battle> {
-  const { engine, world, keyboard, mouse } = opts;
+  const { engine, world, keyboard } = opts;
   const scene = new Scene(engine);
   const havok = new HavokPlugin(true, await HavokPhysics({ locateFile: () => havokWasmUrl }));
   scene.enablePhysics(new Vector3(0, GRAVITY, 0), havok);
@@ -61,8 +60,8 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
   const { shadows } = setupLook(scene, camera);
   const ctx: GameContext = {
     world, scene, physics: physics as GameContext["physics"], havok, camera,
-    keyboard, mouse, materials: createMaterials(scene), shadows,
-    view: { yaw: 0, pitch: 0.32 },
+    keyboard, materials: createMaterials(scene), shadows,
+    view: { yaw: 0, pitch: 0.32, lock: true },
     fight: { state: "fighting", time: 0 },
     shake: 0,
   };
@@ -104,6 +103,7 @@ export async function createBattle(opts: BattleOptions): Promise<Battle> {
       spawnBoar(ctx, { x: 0, y: 0.05, z: 6 }, Math.PI);
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
+      ctx.view.lock = true;
       ctx.fight.state = "fighting";
       ctx.fight.time = 0;
       keyboard.clearPressed();

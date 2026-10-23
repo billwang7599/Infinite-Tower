@@ -21,15 +21,18 @@ npm run build
 
 **Field:** WASD / arrow keys to walk.
 
-**Arena:** click the game to capture the mouse (Esc releases it).
+**Arena:** keyboard only, laptop-friendly (no mouse or controller): left hand on WASD + Space,
+right hand on the home row. Bindings live in `client/src/battle/keys.ts`.
 
 | | |
 |---|---|
 | WASD | move (relative to the camera) |
-| Mouse / arrow keys | turn the camera; **you attack wherever the camera faces** |
-| Left click / J | slash (chain by pressing again) |
-| Shift / right click / L | dodge roll (i-frames; backstep if standing still) |
+| J | slash (chain by pressing again); **you attack wherever the camera faces** |
+| K / Shift | dodge roll (i-frames; backstep if standing still) |
 | Space | jump |
+| ; | toggle lock-on (on at the start of a fight): the camera keeps the enemy in front, so slashes aim at it |
+| H / L (or ← →) | turn the camera by hand (vim left/right); this also drops lock-on |
+| ↑ ↓ | tilt the camera |
 | Enter / E | after the fight: back to the field |
 
 Slashing and dodging cost stamina (green bar); it regenerates when you stop acting.
@@ -56,7 +59,7 @@ shared/src/      Engine-agnostic code that client AND (future) server run. No Ba
 client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
   main.ts          Bootstrap: engine, world, both modes, game
   game/            game.ts (map <-> battle mode switching), transition.ts (flash / fade timing)
-  core/            input.ts (Keyboard, Mouse with pointer lock)
+  core/            input.ts (Keyboard with latched presses)
   gfx/             textures.ts (procedural textures), sprites.ts (pixel-sprite frames), characters.ts (the art)
   ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
   battle/          The 2.5D arena

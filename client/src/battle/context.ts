@@ -1,6 +1,6 @@
 import type { Scene, PhysicsEngineV2, HavokPlugin, UniversalCamera, ShadowGenerator } from "@babylonjs/core";
 import type { World } from "@infinite-tower/shared";
-import type { Keyboard, Mouse } from "../core/input.js";
+import type { Keyboard } from "../core/input.js";
 import type { Materials } from "./materials.js";
 
 export type FightState = "fighting" | "won" | "lost";
@@ -13,14 +13,14 @@ export interface GameContext {
   havok: HavokPlugin;
   camera: UniversalCamera;
   keyboard: Keyboard;
-  mouse: Mouse;
   materials: Materials;
   shadows: ShadowGenerator;
   /**
-   * Orbit angles of the camera (radians), from mouse / arrow keys. Yaw is also the aim direction:
+   * Orbit angles of the camera (radians), from H/L (or arrows). Yaw is also the aim direction:
    * forward = (sin yaw, cos yaw). Movement is camera-relative.
+   * `lock`: lock-on, the camera turns itself to keep the enemy in front (so attacks aim at it).
    */
-  view: { yaw: number; pitch: number };
+  view: { yaw: number; pitch: number; lock: boolean };
   fight: { state: FightState; time: number };
   /** Camera shake amplitude, decays over time. Add to it for impacts. */
   shake: number;
