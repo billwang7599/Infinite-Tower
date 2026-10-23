@@ -1,6 +1,6 @@
 /**
- * Entry point: mounts the React UI, which opens on the title screen. Play connects to the server, then
- * game/start.ts builds the game; that module is its own chunk, downloading while the title is up.
+ * Entry point: mounts the React UI, which opens on the title screen. Meanwhile game/start.ts (its own
+ * chunk) downloads and prepares the game behind the title, so Play only has to connect and join.
  *
  *   game/     start-up, mode switching, transitions  net/     server connection
  *   field/    the 2D map mode (+ level renderers)     battle/  the 2.5D arena fight mode (Havok)
@@ -11,12 +11,13 @@ import { Connection } from "./net/connection.js";
 import { mountUi } from "./ui/mount.js";
 import { UiState } from "./ui/state.js";
 
-const loadGame = import("./game/start.js");
-// The real handling is where it's awaited, after Play; this only keeps an early failure from being
-// reported as unhandled before then.
-loadGame.catch(() => {});
-
 const ui = new UiState();
+
+const preparing = import("./game/start.js").then((m) => m.prepareGame());
+// Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
+preparing.catch((err: unknown) => {
+  if (ui.title.get().phase === "menu") fail(err);
+});
 
 async function play(): Promise<void> {
   if (ui.title.get().phase !== "menu") return;
@@ -30,13 +31,17 @@ async function play(): Promise<void> {
 
   try {
     ui.title.set({ phase: "loading" });
-    const { startGame } = await loadGame;
-    await startGame(ui, joined);
+    (await preparing).join(ui, joined);
     ui.title.set({ phase: "leaving" });
   } catch (err) {
-    console.error(err);
-    ui.title.set({ phase: "failed", error: `${message(err)} Reload the page to try again.` });
+    fail(err);
   }
+}
+
+/** The details ("Failed to fetch", a WebGL error…) go to the console; the title gets a sentence. */
+function fail(err: unknown): void {
+  console.error(err);
+  ui.title.set({ phase: "failed", error: "The game couldn't load. Reload the page to try again." });
 }
 
 function message(err: unknown): string {

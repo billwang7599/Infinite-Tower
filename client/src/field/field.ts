@@ -15,7 +15,7 @@ import { readWalkInput } from "./input.js";
 import { loadLevel } from "./levels/index.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
-import { createFieldScene, type FieldView } from "./scene.js";
+import type { FieldView } from "./scene.js";
 import { fieldCameraSystem, snapFieldCamera } from "./systems/camera.js";
 import { fieldSpriteSystem } from "./systems/sprites.js";
 
@@ -36,6 +36,7 @@ export interface Field {
 export interface FieldOptions {
   engine: Engine;
   world: World;
+  view: FieldView;
   keyboard: Keyboard;
   hud: Store<FieldHudState>;
   net: Connection;
@@ -43,8 +44,7 @@ export interface FieldOptions {
 }
 
 export function createField(opts: FieldOptions): Field {
-  const { engine, world, keyboard, net } = opts;
-  const view = createFieldScene(engine);
+  const { engine, world, view, keyboard, net } = opts;
   registerFieldDisposers(world);
   const player = spawnFieldPlayer(world, view, { x: 0, z: 0 });
   const prediction = new Prediction(world, view, player, net);

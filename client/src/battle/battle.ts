@@ -26,7 +26,7 @@ import { playerGroundSystem } from "./player/ground.js";
 import { playerInputSystem } from "./player/input.js";
 import { spawnPlayer } from "./player/spawn.js";
 import { playerSpriteSystem } from "./player/sprite.js";
-import { createBattleScene } from "./scene.js";
+import type { BattleScene } from "./scene.js";
 import { cameraSystem } from "./systems/camera.js";
 import { combatSystem } from "./systems/combat.js";
 import { hudSystem } from "./systems/hud.js";
@@ -42,15 +42,16 @@ export interface Battle {
 export interface BattleOptions {
   engine: Engine;
   world: World;
+  scene: BattleScene;
   keyboard: Keyboard;
   mouse: Mouse;
   hud: Store<BattleHudState>;
   onLeave: () => void;
 }
 
-export async function createBattle(opts: BattleOptions): Promise<Battle> {
+export function createBattle(opts: BattleOptions): Battle {
   const { engine, world, keyboard, mouse } = opts;
-  const { scene, physics, camera, shadows } = await createBattleScene(engine);
+  const { scene, physics, camera, shadows } = opts.scene;
   registerBattleDisposers(world);
   registerPlayerDisposers(world);
   for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(world);
