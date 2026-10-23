@@ -33,12 +33,14 @@ export function TitleScreen({ title, play }: { title: Store<TitleState>; play: (
   }, [ready, play]);
 
   useEffect(() => {
+    setGone(false);
     if (phase !== "leaving") return;
     const timer = setTimeout(() => setGone(true), FADE_MS);
     return () => clearTimeout(timer);
   }, [phase]);
 
-  if (gone) return null;
+  // Checked with the phase, so going back to the title (Return to title) shows it on the same frame.
+  if (gone && phase === "leaving") return null;
   return (
     <div
       id="title-screen"

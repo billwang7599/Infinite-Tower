@@ -18,6 +18,7 @@ export interface TitleState {
   /**
    * menu -> connecting -> loading -> leaving (fading out over the field). A failed connection goes back to
    * menu with `error` (Play becomes Retry); anything failing after that is `failed` and needs a reload.
+   * Return to title, or losing the connection while playing, is back to menu.
    */
   phase: "menu" | "connecting" | "loading" | "failed" | "leaving";
   error: string | null;
@@ -61,6 +62,8 @@ export interface SettingsState {
 
 export interface UiActions {
   play(): void;
+  /** Leave the world: disconnects from the server. */
+  returnToTitle(): void;
 }
 
 export class UiState {

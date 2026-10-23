@@ -18,7 +18,10 @@ export function App({ ui, bindings, actions }: { ui: UiState; bindings: KeyBindi
       <Toasts toasts={ui.toasts} dismiss={ui.dismissToast} />
       <Fade screen={ui.screen} />
       {mode !== null && (
-        <SettingsScreen settings={ui.settings} open={ui.openSettings} close={ui.closeSettings} bindings={bindings} />
+        <SettingsScreen
+          settings={ui.settings} open={ui.openSettings} close={ui.closeSettings}
+          bindings={bindings} returnToTitle={actions.returnToTitle}
+        />
       )}
       <TitleScreen title={ui.title} play={actions.play} />
     </>
