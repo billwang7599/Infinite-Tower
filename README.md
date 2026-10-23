@@ -9,7 +9,8 @@ Touch the boar (it chases you once it spots you, "!") or walk through the tall g
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field.
 The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
-and Play becomes Retry.
+and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
+server's hello to wait for.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -86,9 +87,10 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
-  main.ts          Bootstrap: mount the UI (title screen); Play connects, then lazily imports game/start.ts
-  game/            start.ts (engine, world, input, both modes, ?debug handles; its own chunk with Babylon, so the
-                   title shows before it downloads), game.ts (routes server messages, field <-> battle switching),
+  main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins
+  game/            start.ts (its own chunk with Babylon, imported lazily so the title shows first: prepareGame() builds
+                   engine, Havok and both scenes behind the title; join() adds server, input, both modes and the
+                   ?debug handles), game.ts (routes server messages, field <-> battle switching),
                    transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
