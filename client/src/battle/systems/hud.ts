@@ -21,7 +21,7 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
       <div class="${TITLE}"></div>
       <div class="mt-2 font-normal opacity-80">Press Enter to continue</div>
     </div>
-    <div id="lock" class="absolute top-3 right-4 text-[13px] font-normal"></div>`;
+    <div id="lock" class="absolute top-3 right-4 text-right text-[13px] font-normal"></div>`;
   const $ = (sel: string) => root.querySelector(sel) as HTMLElement;
   const els = {
     info: $("#info"), hp: $(".hp .fill"), hpLag: $(".hp .lag"), st: $(".st .fill"),
@@ -52,8 +52,9 @@ export function hudSystem(ctx: GameContext, root: HTMLElement): System {
     fpsTimer += dt;
     if (fpsTimer > 0.5) { fps = Math.round(ctx.scene.getEngine().getFps()); fpsTimer = 0; }
     set(els.info, "html",
-      `<small class="text-[13px] font-normal opacity-75">${fps} fps · WASD move · H/L turn camera · J slash · K dodge · ; lock-on · Space jump</small>`);
-    set(els.lock, "html", ctx.view.lock ? "<span class=\"text-victory\">◎ Locked on</span> (; to free the camera)" : "Free camera (; to lock on)");
+      `<small class="text-[13px] font-normal opacity-75">${fps} fps · WASD move · Mouse or H/L camera · Click/J slash · Right-click/K dodge · Middle-click/; lock-on · Space jump</small>`);
+    set(els.lock, "html", (ctx.view.lock ? "<span class=\"text-victory\">◎ Locked on</span> (; to free the camera)" : "Free camera (; to lock on)")
+      + (ctx.mouse.locked ? "" : "<br><span class=\"opacity-60\">Click to use the mouse / trackpad</span>"));
 
     const me = world.first(LocalPlayer, Health, Stamina);
     if (me) {

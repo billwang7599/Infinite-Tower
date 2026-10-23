@@ -10,6 +10,7 @@ import * as shared from "@infinite-tower/shared";
 import { createBattle } from "./battle/battle.js";
 import * as battleComponents from "./battle/components.js";
 import { Keyboard } from "./core/input.js";
+import { Mouse } from "./core/mouse.js";
 import { createGame } from "./game/game.js";
 import { createOverworld } from "./overworld/overworld.js";
 import { createOverlay } from "./ui/overlay.js";
@@ -22,10 +23,11 @@ async function main(): Promise<void> {
 
   const world = new shared.World();
   const keyboard = new Keyboard();
+  const mouse = new Mouse(canvas);
   const overlay = createOverlay();
-  const game = createGame(engine, keyboard, overlay);
+  const game = createGame(engine, keyboard, mouse, overlay);
 
-  const battle = await createBattle({ engine, world, keyboard, hud: overlay.battleHud, onLeave: game.leaveBattle });
+  const battle = await createBattle({ engine, world, keyboard, mouse, hud: overlay.battleHud, onLeave: game.leaveBattle });
   const overworld = createOverworld({ engine, world, keyboard, hud: overlay.mapHud, onEncounter: game.encounter });
   game.run(battle, overworld);
 

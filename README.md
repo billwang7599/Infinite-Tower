@@ -21,19 +21,20 @@ npm run build
 
 **Field:** WASD / arrow keys to walk.
 
-**Arena:** keyboard only, laptop-friendly (no mouse or controller): left hand on WASD + Space,
-right hand on the home row. Bindings live in `client/src/battle/keys.ts`.
+**Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
+Click the game to capture the mouse (Esc releases it); until then the keyboard does everything.
+Bindings live in `client/src/battle/keys.ts`.
 
-| | |
-|---|---|
-| WASD | move (relative to the camera) |
-| J | slash (chain by pressing again); **you attack wherever the camera faces** |
-| K / Shift | dodge roll (i-frames; backstep if standing still) |
-| Space | jump |
-| ; | toggle lock-on (on at the start of a fight): the camera keeps the enemy in front, so slashes aim at it |
-| H / L (or ← →) | turn the camera by hand (vim left/right); this also drops lock-on |
-| ↑ ↓ | tilt the camera |
-| Enter / E | after the fight: back to the field |
+| Keyboard only | Mouse / trackpad | |
+|---|---|---|
+| WASD | WASD | move (relative to the camera) |
+| J | left click / tap | slash (chain by pressing again); **you attack wherever the camera faces** |
+| K / Shift | right click / two-finger tap | dodge roll (i-frames; backstep if standing still) |
+| ; | middle click (wheel) | toggle lock-on (on at the start of a fight): the camera keeps the enemy in front, so slashes aim at it |
+| H / L (or ← →) | move the mouse | turn the camera by hand; this drops lock-on |
+| ↑ ↓ | move the mouse | tilt the camera |
+| Space | Space | jump |
+| Enter / E | Enter / E | after the fight: back to the field |
 
 Slashing and dodging cost stamina (green bar); it regenerates when you stop acting.
 
@@ -59,7 +60,7 @@ shared/src/      Engine-agnostic code that client AND (future) server run. No Ba
 client/src/      Browser game: Babylon rendering, Havok physics, input, HUD.
   main.ts          Bootstrap: engine, world, both modes, game
   game/            game.ts (map <-> battle mode switching), transition.ts (flash / fade timing)
-  core/            input.ts (Keyboard with latched presses)
+  core/            input.ts (Keyboard with latched presses), mouse.ts (optional mouse/trackpad, pointer lock)
   gfx/             textures.ts (procedural textures), sprites.ts (pixel-sprite frames), characters.ts (the art)
   ui/              overlay.ts (HUD containers, toast, fade), styles.css (Tailwind v4 entry + @theme tokens)
   battle/          The 2.5D arena

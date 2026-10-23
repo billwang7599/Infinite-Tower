@@ -1,5 +1,5 @@
 /**
- * Raw keyboard state (the game is keyboard-only: laptop-friendly, no mouse). The input system turns this into PlayerInput components each tick.
+ * Raw keyboard state (the whole game is playable keyboard-only; see mouse.ts for the optional mouse). The input system turns this into PlayerInput components each tick.
  * Presses are also latched, so a tap shorter than one physics tick is never lost.
  */
 export class Keyboard {
