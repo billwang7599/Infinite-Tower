@@ -9,10 +9,13 @@ Touch the boar (it chases you once it spots you, "!") or walk through the tall g
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field. HP and stamina carry over from one
 fight to the next (the field HUD shows them); nothing refills them yet except dying.
-The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
-and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
+The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there's
+a seeded account, **test / test**. Logging in goes straight into the game; after that the title shows Play
+(Enter / Space / J, or click) and Log out, and the login is remembered for 30 days. If the server is down it says
+so and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
 server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: camera sensitivity, key
 bindings, and Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
+Playing from a second tab or browser takes over: the first one goes back to the title.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 Needs Node and Docker (Docker Desktop running): the dev database is Postgres in a container (`compose.yaml`).
@@ -21,11 +24,12 @@ is git-ignored; `npm run dev` copies it from `.env.example` the first time, and 
 
 ```sh
 npm install
-npm run dev        # database (:5433), then server (:8787) + client (http://localhost:5173, proxies /ws)
-npm start          # production: build the client, server serves it + /ws on http://localhost:8787
+npm run dev        # database (:5433) + seed, then server (:8787) + client (http://localhost:5173, proxies /ws and /api)
+npm start          # production: build the client, server serves it + /ws + /api on http://localhost:8787
 npm run typecheck  # shared, server, client
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
-npm run db:reset   # delete all its data
+npm run db:reset   # delete all its data (then seeds it again)
+npm run db:seed    # add the dev data if it's missing: the account test / test
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```
@@ -34,7 +38,8 @@ The server reads `.env` (server/src/env.ts; variables set in the shell win), con
 applies new migrations when it starts. Changing `POSTGRES_USER`, `_PASSWORD` or `_DB` after the database exists
 needs `npm run db:reset`.
 
-After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
+Playwright and other scripts can log in with `POST /api/login` `{"username":"test","password":"test"}` (the
+cookie it sets is what `/ws` checks). After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
 `window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.settings` (key bindings, camera) and
 `window.encounter()` (asks the server for a fight; dev server only).
 
@@ -92,12 +97,18 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
                    constants.ts (PLAYER), defs.ts (EnemyDef = body + optional attacks, ArenaDef), input.ts (PlayerInput)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
-                   server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`)
+                   server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
+                   accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
+                   account-requests.ts (their Zod schemas; server-only import)
 
 server/src/      Node + ws. Authoritative: levels, encounters, field actors, enemy stats, fight results.
-  main.ts          Wires db -> net -> sessions -> loop; picks the player store
-  net/             server.ts (HTTP + /ws), connection.ts (one socket: Zod-validated in, typed out), static.ts
-  game/            session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
+  main.ts          Wires db -> accounts -> net -> online players -> loop; picks the player store
+  net/             server.ts (HTTP: /api then static files; /ws only for a logged-in cookie), connection.ts (one
+                   socket: Zod-validated in, typed out), http.ts (JSON body / reply helpers), static.ts
+  auth/            accounts.ts (Accounts: create, verify, login sessions; tokens stored as SHA-256),
+                   passwords.ts (scrypt), cookies.ts (the httpOnly login cookie), routes.ts (the /api handlers)
+  game/            online.ts (who's playing: one session per account, load on join, save on leave, a second tab
+                   takes over), session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
                    handler per ClientMsg), encounter.ts (start/end fights, refuse impossible wins and healing),
                    snapshot.ts (state msg: only actors near your screen), loop.ts (60 Hz)
   levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
@@ -112,16 +123,18 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   env.ts           DEV, PORT, DATABASE_URL from the environment (loads the repo's .env if there is one)
   db/              schema.ts (the tables, in TypeScript: Drizzle ORM), db.ts (connects to DATABASE_URL, applies new
                    migrations at startup), migrations/ (SQL written by `npm run db:generate`, plus drizzle-kit's
-                   meta/; settings in server/drizzle.config.ts)
+                   meta/; settings in server/drizzle.config.ts), seed.ts (dev data: the test / test account;
+                   refuses to run in production)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
-  main.ts          Bootstrap: mount the UI (title screen) and start preparing the game; Play connects, then joins;
-                   Return to title (or a lost connection) leaves
+  main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, and start preparing the game; logging
+                   in (or Play) connects, then joins; Return to title (or a lost connection) leaves
   game/            start.ts (its own chunk with Babylon, imported lazily so the title shows first: prepareGame() builds
                    everything once behind the title: engine, Havok, both scenes and modes, input (off); join() starts a
                    session on a connection, leave() ends it), game.ts (sessions, routes server messages, field <-> battle
                    switching, who gets input), transition.ts (Mode, flash / fade)
-  net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
+  net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type),
+                   account.ts (the /api calls: who's logged in, log in, register, log out)
   core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer lock),
                    buttons.ts (held + latched presses), time.ts
   settings/        settings.ts (Settings: every kind of setting in one object; main.ts loads it once and passes it
@@ -134,7 +147,7 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
     state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD),
                      `settingsScreen` (open/closed: the UI writes it, the game watches it), and UiActions (what
-                     the UI asks of the game: play, returnToTitle). No React.
+                     the UI asks of the game: signIn, logOut, play, returnToTitle). No React.
     keyNames.ts      KeyboardEvent.code / mouse button -> printable name
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
@@ -142,7 +155,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     hud/             FieldHud.tsx (HP / stamina, wins, level name, settings gear), BattleHud.tsx
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
-      title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
+      title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line), LoginForm.tsx (log in /
+                       create an account), Backdrop.tsx (SVG night sky + tower)
       settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx (sensitivity
                        slider), KeyBindingsList.tsx (rebinding), buttons.ts
     styles.css       Tailwind v4 entry + @theme tokens
@@ -240,7 +254,10 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
 - **Every screen sees the same amount, at most.** The view is 16:9 at most (23 x 13 field tiles): `client/index.html`
   puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see a little less
   width. `state` only carries actors within that 16:9 view of the server's copy of you, plus 3 tiles, so a hacked
-  client can't see further and actors appear off-screen. Levels, encounters, enemy stats, wins,
+  client can't see further and actors appear off-screen.
+- **Every player is logged in.** `/api/login` (or `/api/register`) sets an httpOnly cookie; `/ws` closes sockets
+  without one (code 4001) before anything else happens, and a player's save is keyed by their account. There's no
+  guest play. Levels, encounters, enemy stats, wins,
   respawns and the HP / stamina you carry between fights and connections (saved in Postgres) come from the server. Everything the client sends is checked against a Zod schema first.
 - **Fights are not server-authoritative yet.** The arena still runs in the browser (Havok) and reports "won/lost";
   the server only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Moving the fight onto the server

@@ -3,7 +3,7 @@
  * shared/src/net. Messages that arrive before the game calls `listen` are queued, so nothing sent
  * right after `welcome` (like the first `level`) is lost while the game is still loading.
  */
-import { dispatch, type ClientMsg, type Handlers, type MsgOf, type ServerMsg } from "@infinite-tower/shared";
+import { CLOSE_CODES, dispatch, type ClientMsg, type Handlers, type MsgOf, type ServerMsg } from "@infinite-tower/shared";
 
 export type Welcome = MsgOf<ServerMsg, "welcome">;
 /** Everything after `welcome`. */
@@ -11,8 +11,18 @@ export type GameMsg = Exclude<ServerMsg, Welcome>;
 export type GameHandlers = Handlers<GameMsg>;
 export interface Joined { net: Connection; welcome: Welcome }
 
+export const SERVER_UNREACHABLE = "Can't reach the game server. Start everything with `npm run dev` (server + client).";
+
+/** The socket opened but the server turned it away: the login cookie is missing or expired. */
+export class NotLoggedInError extends Error {
+  constructor() {
+    super("You're not logged in anymore. Log in again.");
+  }
+}
+
 export class Connection {
-  onClose: () => void = () => {};
+  /** After `welcome`: the socket closed without `close()` being called. `code` is the WebSocket close code. */
+  onClose: (code: number) => void = () => {};
   private handlers: GameHandlers | null = null;
   private backlog: GameMsg[] = [];
 
@@ -32,9 +42,9 @@ export class Connection {
         }
         net.receive(msg);
       };
-      ws.onclose = () => {
-        if (!welcomed) reject(new Error("Can't reach the game server. Start everything with `npm run dev` (server + client)."));
-        else net.onClose();
+      ws.onclose = (ev) => {
+        if (welcomed) net.onClose(ev.code);
+        else reject(ev.code === CLOSE_CODES.notLoggedIn ? new NotLoggedInError() : new Error(SERVER_UNREACHABLE));
       };
     });
   }

@@ -21,7 +21,7 @@ import type { UiState } from "../ui/state.js";
 import { createGame } from "./game.js";
 
 export interface PreparedGame {
-  join(joined: Joined, onLost: () => void): void;
+  join(joined: Joined, onLost: (closeCode: number) => void): void;
   leave(): void;
 }
 

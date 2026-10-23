@@ -4,9 +4,8 @@
  */
 import { fullVitals, type Vitals } from "@infinite-tower/shared";
 
+/** The account's id: every player logs in (auth/), there's no guest play. */
 export type PlayerId = string;
-/** There's no login yet, so every connection plays as the same guest. */
-export const GUEST: PlayerId = "guest";
 
 /** To keep something else across connections: add it here, to `newPlayer`, and a column (a new migration). */
 export interface PlayerSave {

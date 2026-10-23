@@ -8,6 +8,13 @@
       "when": 1792787957101,
       "tag": "0000_players",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792872304910,
+      "tag": "0001_accounts",
+      "breakpoints": true
     }
   ]
 }

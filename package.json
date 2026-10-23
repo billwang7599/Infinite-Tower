@@ -8,14 +8,15 @@
     "client"
   ],
   "scripts": {
-    "dev": "npm run db:up && concurrently -k -n server,client -c yellow,cyan \"npm run dev -w @infinite-tower/server\" \"npm run dev -w @infinite-tower/client\"",
+    "dev": "npm run db:up && npm run db:seed && concurrently -k -n server,client -c yellow,cyan \"npm run dev -w @infinite-tower/server\" \"npm run dev -w @infinite-tower/client\"",
     "build": "npm run build -w @infinite-tower/client",
     "start": "npm run build && NODE_ENV=production npm start -w @infinite-tower/server",
     "typecheck": "tsc -p shared && tsc -p server && tsc -p client",
     "db:up": "npm run env:init --silent && docker compose up -d --wait db",
     "db:down": "docker compose down",
-    "db:reset": "docker compose down -v && npm run db:up",
+    "db:reset": "docker compose down -v && npm run db:up && npm run db:seed",
     "db:generate": "npm run db:generate -w @infinite-tower/server --",
+    "db:seed": "npm run seed -w @infinite-tower/server",
     "db:psql": "docker compose exec db sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
     "env:init": "test -f .env || (cp .env.example .env && echo 'created .env from .env.example')"
   },

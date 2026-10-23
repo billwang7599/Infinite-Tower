@@ -23,7 +23,7 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
           settings={settings} returnToTitle={actions.returnToTitle}
         />
       )}
-      <TitleScreen title={ui.title} play={actions.play} />
+      <TitleScreen title={ui.title} actions={actions} />
     </>
   );
 }
