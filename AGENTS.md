@@ -29,6 +29,9 @@ Decided by the user:
 - HP and stamina carry over between fights and are **not** reset on a new connection. Until there's a database,
   they go through a server-side player store whose stub hands out max stats. A real store has to be able to
   replace the stub without changing game code.
+- The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
+  less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
+  cheatable, so it always assumes the full 16:9).
 
 ## Commands
 

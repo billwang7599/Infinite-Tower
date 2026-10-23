@@ -10,7 +10,7 @@ type HudProps = { hud: Store<BattleHudState> };
 
 export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   return (
-    <div id="battle-hud" className="pointer-events-none fixed inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
+    <div id="battle-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
       <Vitals hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
@@ -34,7 +34,7 @@ function BossBar({ hud }: HudProps) {
   const hp = useStore(hud, (s) => s.enemyHp);
   const alive = useStore(hud, (s) => s.enemyAlive);
   return (
-    <div className={`absolute bottom-12 left-1/2 w-[min(640px,70vw)] -translate-x-1/2 transition-opacity duration-600 ${alive ? "opacity-100" : "opacity-0"}`}>
+    <div className={`absolute bottom-12 left-1/2 w-[min(640px,70%)] -translate-x-1/2 transition-opacity duration-600 ${alive ? "opacity-100" : "opacity-0"}`}>
       <div id="boss-name" className="mb-1 font-title text-[17px] font-medium tracking-wide">{name}</div>
       <Bar value={hp} fill="from-boss to-boss-dark" chip />
     </div>

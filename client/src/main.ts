@@ -7,10 +7,14 @@
  *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
  *   settings/ key bindings, saved in the browser       ui/       React UI over the canvas; the game writes to it through ui/state.ts
  */
+import { VIEW } from "@infinite-tower/shared";
 import { Connection } from "./net/connection.js";
 import { KeyBindings } from "./settings/bindings.js";
 import { mountUi } from "./ui/mount.js";
 import { UiState } from "./ui/state.js";
+
+// The page frame (#stage) is held to the same widest view as the camera and the server; wider windows get side bars.
+document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW.maxAspect));
 
 const ui = new UiState();
 const bindings = new KeyBindings();

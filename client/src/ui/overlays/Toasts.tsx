@@ -12,7 +12,7 @@ type Dismiss = (id: number) => void;
 export function Toasts({ toasts, dismiss }: { toasts: Store<ToastsState>; dismiss: Dismiss }) {
   const items = useStore(toasts, (s) => s.items);
   return (
-    <div id="toasts" className="pointer-events-none fixed top-[22%] left-1/2 flex -translate-x-1/2 flex-col items-center">
+    <div id="toasts" className="pointer-events-none absolute top-[22%] left-1/2 flex -translate-x-1/2 flex-col items-center">
       {items.map((t) => (
         <Toast key={t.id} toast={t} dismiss={dismiss} />
       ))}
