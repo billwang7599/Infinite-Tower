@@ -4,7 +4,7 @@
  * Built once; each session joins it to that session's connection and leaves it empty again.
  */
 import type { Engine } from "@babylonjs/core";
-import { FIXED_DT, fullVitals, PLAYER, type MsgOf, type ServerMsg, type System, type World } from "@infinite-tower/shared";
+import { FIXED_DT, PLAYER, type MsgOf, type ServerMsg, type Stats, type System, type Vitals, type World } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection } from "../net/connection.js";
@@ -59,7 +59,9 @@ export function createField(opts: FieldOptions): Field {
   /** No walking between an encounter and the server's battle result. */
   let inFight = false;
   let wins = 0;
-  let vitals = fullVitals();
+  /** From `welcome`; until then the HUD isn't drawn. */
+  let vitals: Vitals = { hp: 0, stamina: 0 };
+  let stats: Stats | null = null;
 
   const render: System[] = [fieldSpriteSystem(view), fieldCameraSystem(view)];
   view.scene.onBeforeRenderObservable.add(() => {
@@ -75,6 +77,7 @@ export function createField(opts: FieldOptions): Field {
       inFight = false;
       wins = welcome.wins;
       vitals = welcome.vitals;
+      stats = welcome.stats;
     },
     leave() {
       prediction = null;
@@ -120,7 +123,7 @@ export function createField(opts: FieldOptions): Field {
     render() {
       opts.hud.set({
         levelName: view.level?.name ?? "…", wins,
-        hp: vitals.hp / PLAYER.maxHp, stamina: vitals.stamina / PLAYER.maxStamina,
+        hp: vitals.hp / PLAYER.maxHp, stamina: stats ? vitals.stamina / stats.stamina : 0, stats,
       });
       view.scene.render();
     },

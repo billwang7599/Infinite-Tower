@@ -13,7 +13,9 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
   const mode = useStore(ui.screen, (s) => s.mode);
   return (
     <>
-      {mode === "field" && <FieldHud hud={ui.field} openSettings={ui.openSettings} />}
+      {mode === "field" && (
+        <FieldHud hud={ui.field} bindings={settings.bindings} settingsScreen={ui.settingsScreen} openSettings={ui.openSettings} />
+      )}
       {mode === "battle" && <BattleHud hud={ui.battle} bindings={settings.bindings} />}
       <Toasts toasts={ui.toasts} dismiss={ui.dismissToast} />
       <Fade screen={ui.screen} />

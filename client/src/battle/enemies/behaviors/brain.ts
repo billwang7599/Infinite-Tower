@@ -6,7 +6,9 @@
  *   approach ──attack system──▶ <attack states> ──▶ approach
  *      ▲  poise breaks (not while armored) ──▶ staggered ──┘   hp 0 ──▶ dead
  */
-import { clamp, distXZ, Enemy, Health, LocalPlayer, turnToward, wrapAngle, type System } from "@infinite-tower/shared";
+import {
+  clamp, distXZ, Enemy, FighterStats, Health, LocalPlayer, moveSpeed, turnToward, wrapAngle, type System,
+} from "@infinite-tower/shared";
 import { Body } from "../../components.js";
 import { enter } from "./common.js";
 
@@ -16,7 +18,7 @@ const STOP_DIST = 2.2;
 export function enemyBrainSystem(): System {
   return (world, dt) => {
     const target = world.first(LocalPlayer, Body, Health);
-    for (const [e, enemy, body, health] of world.query(Enemy, Body, Health)) {
+    for (const [e, enemy, body, health, stats] of world.query(Enemy, Body, Health, FighterStats)) {
       const D = enemy.def;
       enemy.t += dt;
       if (enemy.state !== "staggered") enemy.poise = Math.min(D.poise, enemy.poise + D.poiseRegen * dt);
@@ -47,7 +49,7 @@ export function enemyBrainSystem(): System {
         case "approach":
           if (!s.preyAlive) break;
           enemy.yaw = turnToward(enemy.yaw, s.toYaw, D.turnRate * dt);
-          m.speed = D.walkSpeed * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facing);
+          m.speed = moveSpeed(D.walkSpeed, stats) * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facing);
           break;
         case "stunned":
         case "staggered":

@@ -7,11 +7,13 @@
  * mostly a new combination of existing attacks.
  */
 
+import type { Stats } from "./stats.js";
+
 export interface ArenaDef {
   radius: number;
 }
 
-/** What every attack has: reach, timing, damage. */
+/** What every attack has: reach, timing, damage (at strength 10). */
 export interface AttackDef {
   range: number;
   /** Minimum cos(angle) to the target: the width of the hit arc. */
@@ -58,8 +60,10 @@ export interface EnemyDef {
   /** Which 3D model the client builds (client/src/battle/enemies/models). */
   model: "boar";
   maxHp: number;
+  stats: Stats;
   radius: number;
   mass: number;
+  /** At agility 10. */
   walkSpeed: number;
   /** rad/s */
   turnRate: number;

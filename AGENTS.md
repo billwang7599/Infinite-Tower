@@ -40,6 +40,11 @@ Decided by the agent while the user was away (the user asked for these to be dec
 them; treat them as changeable, and still ask before deciding new ones):
 
 - The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
+- Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity): stamina = the stamina
+  bar's size, mana = a mana pool's size (unused until spells), spellpower = spell damage (unused), agility = arena
+  movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply only in
+  fights. Player 100 / 50 / 10 / 10 / 10, boar 100 / 0 / 0 / 10 / 10 (so nothing plays differently yet). Everyone
+  has the same player stats, so they aren't saved.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

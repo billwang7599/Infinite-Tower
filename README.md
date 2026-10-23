@@ -51,7 +51,8 @@ to any browser. The defaults (below) and the list of
 actions are in `client/src/settings/bindings.ts`. Esc itself always opens and closes Settings. While Settings is open
 the game gets no input, but it keeps running: a fight doesn't pause.
 
-**Field:** WASD / arrow keys to walk.
+**Field:** WASD / arrow keys to walk. C (or the person button on the HUD) toggles the **character panel** with your
+stats; you can keep walking while it's open.
 
 **Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
 Click the game to capture the mouse (Esc releases it and opens Settings); until then the keyboard does everything.
@@ -72,6 +73,22 @@ from the mouse / trackpad and the keys alike.
 Slashing and dodging cost stamina (green bar); it regenerates when you stop acting. You start each fight with the
 HP and stamina you ended the last one with.
 
+## Stats
+
+Every fighter, player or monster, has five stats (`shared/src/battle/stats.ts`). 10 is average for the multipliers:
+
+| Stat | Does (in fights) | Player | Wild boar |
+|---|---|---|---|
+| Strength | physical damage × strength / 10 | 10 | 10 |
+| Agility | movement speed × agility / 10 | 10 | 10 |
+| Stamina | size of the stamina bar | 100 | 100 (unused: boars don't spend stamina) |
+| Mana | size of the mana pool (no spells yet) | 50 | 0 |
+| Spellpower | spell damage multiplier (no spells yet) | 10 | 0 |
+
+The server owns them (`server/src/content/player.ts`, `enemies.ts`) and sends them in `welcome` and with each
+encounter; arena fighters carry them in the `FighterStats` component. Everyone has the same player stats for now,
+so nothing is saved; HP isn't a stat (`PLAYER.maxHp`, `EnemyDef.maxHp`).
+
 ## The boar
 
 - **Gore** (close range): head drops and body rocks back for ~0.65 s, then a tusk swipe up. Dodge or back off.
@@ -80,7 +97,8 @@ HP and stamina you ended the last one with.
   **stunned** for ~2 s: free hits.
 - **Poise**: about 3–4 quick hits stagger it (not mid-charge).
 
-Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`); enemy stats and attacks in
+Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`, at stats of 10) and `server/src/content/player.ts`
+(`PLAYER_STATS`); enemy stats and attacks in
 `server/src/content/enemies.ts`; levels (layout, spawns, encounter tables, arena size) in `server/src/levels/`;
 field-actor behavior numbers in `server/src/field/prefabs/`; camera feel at the top of
 `client/src/battle/systems/camera.ts`.
@@ -97,7 +115,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   field/           layout.ts (LevelLayout: what the client may see of a level; stepWalker for prediction + replay),
                    view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
-                   constants.ts (PLAYER), defs.ts (EnemyDef = body + optional attacks, ArenaDef), input.ts (PlayerInput)
+                   constants.ts (PLAYER), defs.ts (EnemyDef = body + stats + optional attacks, ArenaDef),
+                   input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
@@ -119,7 +138,7 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
                    from behavior parts), context.ts, player.ts (input replay + grass encounters), spawner.ts
     behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
     prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
-  content/         enemies.ts (WILD_BOAR, ENEMIES by id)
+  content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS)
   store/           player-store.ts (PlayerStore interface, PlayerSave = what's kept between connections),
                    pg-player-store.ts (PlayerStore on the `players` table; one query at a time per player)
   env.ts           DEV, PORT, DATABASE_URL from the environment (loads the repo's .env if there is one)
@@ -154,7 +173,8 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
                      drawn in the same corner by both HUDs)
-    hud/             FieldHud.tsx (HP / stamina, wins, level name, settings gear), BattleHud.tsx
+    hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons), BattleHud.tsx,
+                     character/ (CharacterPanel.tsx: the stats; statText.ts: what each one says)
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line), LoginForm.tsx (log in /

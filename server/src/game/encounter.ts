@@ -3,7 +3,9 @@
  * verify every hit yet; it picks the enemy, times the fight, and refuses wins that are physically
  * impossible (faster than the player's best damage output allows).
  */
-import { clamp, fullVitals, PLAYER, type EnemyDef, type Entity, type Vitals } from "@infinite-tower/shared";
+import {
+  clamp, fullVitals, physicalDamage, PLAYER, type EnemyDef, type Entity, type Stats, type Vitals,
+} from "@infinite-tower/shared";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import type { Session } from "./session.js";
 
@@ -21,7 +23,9 @@ export function startEncounter(session: Session, source: Entity | null, enemyId:
   const { vitals } = session;
   session.encounter = { source, enemy, startedAt: performance.now(), vitals };
   session.resetWalk(0);
-  session.conn.send({ t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos(), vitals });
+  session.conn.send({
+    t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos(), vitals, stats: session.stats,
+  });
 }
 
 /** The client left a decided fight claiming `claimedWin`, with `claimed` HP and stamina left. */
@@ -29,7 +33,7 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
   const fight = session.encounter;
   if (!fight) return;
   const elapsed = (performance.now() - fight.startedAt) / 1000;
-  const accepted = !claimedWin || isPlausibleWin(fight.enemy, elapsed);
+  const accepted = !claimedWin || isPlausibleWin(fight.enemy, session.stats, elapsed);
   const won = claimedWin && accepted;
   const { world } = session;
 
@@ -37,10 +41,10 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
     session.wins++;
     if (fight.source !== null && world.isAlive(fight.source)) world.destroy(fight.source); // the spawner replaces it
     world.flush();
-    session.vitals = vitalsAfterWin(fight.vitals, claimed);
+    session.vitals = vitalsAfterWin(fight.vitals, claimed, session.stats);
   } else {
     session.placePlayer(session.currentLevel.spawn); // you wake up back at the start, rested
-    session.vitals = fullVitals();
+    session.vitals = fullVitals(session.stats);
   }
   session.resetWalk(session.currentLevel.safeTime);
   session.encounter = null;
@@ -52,18 +56,18 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
  * The fight runs in the browser, so the server can only bound what it's told: nothing heals during a fight,
  * and a winner is still standing.
  */
-function vitalsAfterWin(before: Vitals, claimed: Vitals): Vitals {
-  return { hp: clamp(claimed.hp, 1, before.hp), stamina: clamp(claimed.stamina, 0, PLAYER.maxStamina) };
+function vitalsAfterWin(before: Vitals, claimed: Vitals, stats: Stats): Vitals {
+  return { hp: clamp(claimed.hp, 1, before.hp), stamina: clamp(claimed.stamina, 0, stats.stamina) };
 }
 
-/** Shortest possible kill: every slash chained back to back, every one landing. */
-export function minKillSeconds(enemy: EnemyDef): number {
+/** Shortest possible kill: every slash chained back to back, every one landing, at the player's strength. */
+export function minKillSeconds(enemy: EnemyDef, stats: Stats): number {
   const s = PLAYER.slash;
-  const slashes = Math.ceil(enemy.maxHp / s.damage);
+  const slashes = Math.ceil(enemy.maxHp / physicalDamage(s.damage, stats));
   return (slashes - 1) * s.chainAfter + s.windup;
 }
 
 /** `elapsed` is measured by the server, from sending the encounter to receiving the result. */
-export function isPlausibleWin(enemy: EnemyDef, elapsed: number): boolean {
-  return elapsed >= minKillSeconds(enemy) * 0.9;
+export function isPlausibleWin(enemy: EnemyDef, stats: Stats, elapsed: number): boolean {
+  return elapsed >= minKillSeconds(enemy, stats) * 0.9;
 }

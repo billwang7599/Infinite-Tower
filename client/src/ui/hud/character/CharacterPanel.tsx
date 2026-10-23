@@ -1,0 +1,37 @@
+/**
+ * The field's character panel: the player's stats. It doesn't pause or block walking; the field HUD's button or
+ * the Character key (field.character) toggles it.
+ */
+import { STAT_KEYS, type Stats } from "@infinite-tower/shared";
+import { STAT_TEXT } from "./statText.js";
+
+export function CharacterPanel({ stats, close }: { stats: Stats | null; close: () => void }) {
+  return (
+    <section
+      id="character-panel"
+      aria-label="Character"
+      className="absolute top-14 right-4 w-72 rounded-sm border border-white/15 bg-night/90 px-5 py-4 font-normal shadow-[0_12px_40px_#000a]"
+    >
+      <header className="mb-3 flex items-center justify-between">
+        <h2 className="font-title text-xl tracking-[0.08em] text-victory">Character</h2>
+        <button
+          type="button" aria-label="Close" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={close}
+          className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          ✕
+        </button>
+      </header>
+      {stats && (
+        <dl className="flex flex-col gap-2">
+          {STAT_KEYS.map((key) => (
+            <div key={key} data-stat={key} className="grid grid-cols-[1fr_auto] gap-x-3">
+              <dt className="font-semibold">{STAT_TEXT[key].name}</dt>
+              <dd className="text-right font-semibold text-victory tabular-nums">{stats[key]}</dd>
+              <dd className="col-span-2 text-xs text-white/55">{STAT_TEXT[key].effect(stats[key])}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}

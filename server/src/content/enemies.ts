@@ -6,6 +6,8 @@ export const WILD_BOAR: EnemyDef = {
   name: "Wild Boar",
   model: "boar",
   maxHp: 160,
+  // A boar spends no stamina and casts nothing; its agility and strength are average.
+  stats: { stamina: 100, mana: 0, spellpower: 0, agility: 10, strength: 10 },
   radius: 0.85,
   mass: 20,
   walkSpeed: 3.2,
