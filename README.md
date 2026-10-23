@@ -8,6 +8,8 @@ physics, custom ECS on top, React + Tailwind for the UI over the canvas.
 Touch the boar (it chases you once it spots you, "!") or walk through the tall grass (12% chance per tile)
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field.
+The game opens on a title screen: Play (Enter / Space / J, or click) connects; if the server is down it says so
+and Play becomes Retry.
 (The earlier tower-climbing platformer is preserved at git tag `tower-platformer`.)
 
 ```sh
@@ -17,7 +19,7 @@ npm start          # production: build the client, server serves it + /ws on htt
 npm run typecheck  # shared, server, client
 ```
 
-`?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
+After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
 `window.mode()`, `window.components`, `window.ui` (the HUD stores) and `window.encounter()` (asks the server for a
 fight; dev server only).
 
@@ -84,18 +86,23 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
   content/         enemies.ts (WILD_BOAR, ENEMIES by id)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
-  main.ts          Bootstrap: mount the UI, connect, engine, world, both modes, game; ?debug handles
-  game/            game.ts (routes server messages, field <-> battle switching), transition.ts (Mode, flash / fade)
+  main.ts          Bootstrap: mount the UI (title screen); Play connects, then lazily imports game/start.ts
+  game/            start.ts (engine, world, input, both modes, ?debug handles; its own chunk with Babylon, so the
+                   title shows before it downloads), game.ts (routes server messages, field <-> battle switching),
+                   transition.ts (Mode, flash / fade)
   net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per type)
   core/            keyboard.ts, mouse.ts (optional, pointer lock), buttons.ts (held + latched presses), time.ts
   gfx/             textures.ts (procedural textures), sprites.ts (pixelMaterial, spriteMaterial), characters.ts (art)
   ui/              React: everything drawn over the canvas (see "UI" below)
-    mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, error
-    state.ts         UiState: the stores the game writes (screen, toasts, field HUD, battle HUD). No React.
+    mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
+    state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD), and
+                     UiActions (what the UI asks of the game: play). No React.
     store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip)
     hud/             FieldHud.tsx, BattleHud.tsx
-    overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx, ErrorMessage.tsx
+    overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
+    screens/         One folder per full-screen page, holding the parts only that page uses
+      title/           TitleScreen.tsx (Play / Retry, connect + loading status), Backdrop.tsx (SVG night sky + tower)
     styles.css       Tailwind v4 entry + @theme tokens
   field/           The 2D field mode: mirrors the server
     field.ts         The mode: level loads, inputs, server state, render
@@ -135,8 +142,10 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
 - **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
 - **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
-- **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, later `screens/`); if the
-  game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code.
+- **A UI screen or HUD piece:** a component in `client/src/ui/` (`hud/`, `overlays/`, or a folder of its own in
+  `screens/`; parts used by more than one screen go in `components/`); if the
+  game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code. If it has to
+  ask the game for something, add a function to `UiActions` (main.ts provides them).
 - **An arena enemy:** an `EnemyDef` in `server/src/content/enemies.ts` combining attacks; a new attack type is a def
   shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`enemies/spawn.ts`) and a system in
   `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
@@ -163,7 +172,8 @@ The canvas and anything in the 3D/2D world (sprites, in-world bars, name tags) i
 
 Components use **Tailwind CSS v4** (via `@tailwindcss/vite`, no config file) utility classes in `className`.
 Game colours/fonts are `@theme` tokens in `client/src/ui/styles.css` (`bg-hp`, `text-victory`, `font-title`, ...);
-shared pieces are `@utility` classes (`bar`, `bar-layer`). Write class names out in full (pass
+shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's motion (`animate-rise`,
+`animate-twinkle`, `animate-drift`) always comes with `motion-reduce:animate-none`. Write class names out in full (pass
 `"from-hp to-hp-dark"`, not a built string), because Tailwind can't detect names built by concatenation.
 
 ## Architecture rules

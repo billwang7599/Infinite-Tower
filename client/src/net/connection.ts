@@ -9,6 +9,7 @@ export type Welcome = MsgOf<ServerMsg, "welcome">;
 /** Everything after `welcome`. */
 export type GameMsg = Exclude<ServerMsg, Welcome>;
 export type GameHandlers = Handlers<GameMsg>;
+export interface Joined { net: Connection; welcome: Welcome }
 
 export class Connection {
   onClose: () => void = () => {};
@@ -18,7 +19,7 @@ export class Connection {
   private constructor(private readonly ws: WebSocket) {}
 
   /** Connect and wait for the server's `welcome`. */
-  static open(url = defaultUrl()): Promise<{ net: Connection; welcome: Welcome }> {
+  static open(url = defaultUrl()): Promise<Joined> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(url);
       const net = new Connection(ws);
