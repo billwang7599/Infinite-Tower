@@ -74,7 +74,7 @@ npm run typecheck  # run it from the root (the workspaces have none of their own
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws on :8787 (needs DATABASE_URL)
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
-npm run db:seed    # the dev account test / test (dev runs it; safe to repeat)
+npm run db:seed    # dev accounts test1, test2, test3, password = username (dev runs it; safe to repeat)
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
 ```
 
@@ -106,7 +106,7 @@ If the server fails with `EADDRINUSE` on :8787, an older `npm run dev` is still 
 
 - `npm run typecheck` and `npm run build` pass.
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
-  username: "test", password: "test" } })` (it shares the page's cookies), open `/?debug` and click Play
+  username: "test1", password: "test1" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the
   debug handles are available: `window.mode()`, `window.battle`, `window.field`, `window.ui`, `window.settings`
   and `window.encounter()` (dev server only).

@@ -7,8 +7,11 @@ import { DEV } from "../env.js";
 import { PgAccountStore } from "./account-store.js";
 import { connectDb } from "./db.js";
 
-/** Bypasses the sign-up rules (a 4-letter password): it's created here, not through /api/register. */
-const TEST_ACCOUNT = { username: "test", password: "test" };
+/**
+ * Three dev accounts, so two tabs or two players can be tried at once. Each one's password is its username.
+ * Sign-up would refuse these passwords (it wants 8+ characters); they're created here, not through /api/register.
+ */
+const TEST_ACCOUNTS = ["test1", "test2", "test3"];
 
 if (!DEV) {
   console.error("[seed] refusing to seed a production database");
@@ -20,10 +23,11 @@ const db = await connectDb(true).catch((err: unknown) => {
   process.exit(1);
 });
 try {
-  const created = await new Accounts(new PgAccountStore(db)).create(TEST_ACCOUNT.username, TEST_ACCOUNT.password);
-  console.log(created
-    ? `[seed] added account ${TEST_ACCOUNT.username} / ${TEST_ACCOUNT.password}`
-    : `[seed] account ${TEST_ACCOUNT.username} already exists`);
+  const accounts = new Accounts(new PgAccountStore(db));
+  for (const name of TEST_ACCOUNTS) {
+    const created = await accounts.create(name, name);
+    console.log(created ? `[seed] added account ${name} / ${name}` : `[seed] account ${name} already exists`);
+  }
 } finally {
   await db.$client.end();
 }
