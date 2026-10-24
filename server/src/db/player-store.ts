@@ -1,9 +1,9 @@
 import { eq, sql } from "drizzle-orm";
-import type { Db } from "../db/db.js";
-import { players } from "../db/schema.js";
-import { newPlayer, type PlayerId, type PlayerSave, type PlayerStore } from "./player-store.js";
+import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
+import type { Db } from "./db.js";
+import { players } from "./schema.js";
 
-/** Players in Postgres: the `players` table (db/schema.ts). */
+/** Players in Postgres: the `players` table (schema.ts). */
 export class PgPlayerStore implements PlayerStore {
   /**
    * Each player's latest queued query. Loads and saves for one player run one after another, so an older
@@ -13,10 +13,10 @@ export class PgPlayerStore implements PlayerStore {
 
   constructor(private readonly db: Db) {}
 
-  load(id: PlayerId): Promise<PlayerSave> {
+  load(id: PlayerId): Promise<PlayerSave | null> {
     return this.inOrder(id, async () => {
       const [row] = await this.db.select().from(players).where(eq(players.id, id));
-      return row ? fromRow(row) : newPlayer();
+      return row ? fromRow(row) : null;
     });
   }
 

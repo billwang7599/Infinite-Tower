@@ -1,7 +1,8 @@
 /**
  * One connected player. Single-player for now: each session owns its own ECS world (its own level
- * and actors). Starts from the player's save (store/) and holds which level/mode they're in; the field
- * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
+ * and actors). Starts from the player's save and holds which level/mode they're in; the field systems do the
+ * simulating, encounter.ts the fights. Its public methods are what a player can ask for (ws/handlers.ts calls
+ * them, one per message), and it answers through its `PlayerLink`.
  */
 import {
   fullVitals, itemDef, nearCampfire, PLAYER, World, type Character, type Inventory, type ItemId, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
@@ -13,13 +14,12 @@ import { touchSystem } from "../field/behaviors/touch.js";
 import { wanderSystem } from "../field/behaviors/wander.js";
 import { FieldPlayer, FieldPos } from "../field/components.js";
 import type { FieldContext } from "../field/context.js";
-import { fieldPlayerSystem } from "../field/player.js";
+import { fieldPlayerSystem, queueInput } from "../field/player.js";
 import { Spawner } from "../field/spawner.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
 import type { LevelDef } from "../levels/level.js";
-import type { Connection } from "../net/connection.js";
-import type { PlayerSave } from "../store/player-store.js";
-import { startEncounter, type Encounter } from "./encounter.js";
+import type { PlayerLink, PlayerSave } from "../ports.js";
+import { endEncounter, startEncounter, type Encounter } from "./encounter.js";
 import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
@@ -52,7 +52,7 @@ export class Session {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
-    readonly conn: Connection,
+    readonly link: PlayerLink,
     readonly dev: boolean,
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
@@ -75,7 +75,7 @@ export class Session {
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    conn.send({
+    link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
       character: this.character, inventory: this.inventory, dev,
     });
@@ -86,10 +86,27 @@ export class Session {
     if (this.character) this.enterLevel(START_LEVEL);
   }
 
+  /** A walking input (the client sends one per tick while moving). Older or repeated ones are ignored. */
+  input(seq: number, moveX: number, moveZ: number): void {
+    if (!this.inField || seq <= this.lastSeq) return;
+    this.lastSeq = seq;
+    queueInput(this.world.require(this.player, FieldPlayer), { seq, moveX, moveZ });
+  }
+
+  /** The client left a decided fight; encounter.ts checks what it claims. */
+  endBattle(claimedWin: boolean, vitals: Vitals): void {
+    endEncounter(this, claimedWin, vitals);
+  }
+
+  /** Dev servers only: a fight right now, without finding one. */
+  debugEncounter(): void {
+    if (this.dev && this.inField) startEncounter(this, null, "wild-boar");
+  }
+
   setCharacter(character: Character): void {
     this.character = character;
     this.save();
-    this.conn.send({ t: "character", character });
+    this.link.send({ t: "character", character });
     if (!this.level) this.enterLevel(START_LEVEL);
   }
 
@@ -98,7 +115,7 @@ export class Session {
     if (!this.inField || !nearCampfire(this.currentLevel.layout, this.playerPos(), REST_SLACK)) return;
     this.vitals = fullVitals(this.stats);
     this.save();
-    this.conn.send({ t: "rested", vitals: this.vitals });
+    this.link.send({ t: "rested", vitals: this.vitals });
   }
 
   /** Use one `item`, if the player has one and it does something now (meat when already at full HP doesn't). */
@@ -112,7 +129,7 @@ export class Session {
     this.inventory = inventory;
     this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + heal) };
     this.save();
-    this.conn.send({ t: "itemUsed", item, vitals: this.vitals, inventory: this.inventory });
+    this.link.send({ t: "itemUsed", item, vitals: this.vitals, inventory: this.inventory });
   }
 
   /** Called after every fight and on disconnect. */
@@ -141,7 +158,7 @@ export class Session {
     this.level = getLevel(id);
     this.placePlayer(at ?? this.level.spawn);
     this.spawner = new Spawner(this.world, this.ctx);
-    this.conn.send({ t: "level", level: this.level.layout, me: this.playerPos() });
+    this.link.send({ t: "level", level: this.level.layout, me: this.playerPos() });
   }
 
   tick(dt: number): void {
@@ -151,7 +168,7 @@ export class Session {
       if (!this.inField) break; // an encounter started
     }
     this.world.flush();
-    if (this.inField && ++this.ticks % STATE_EVERY === 0) this.conn.send(stateMsg(this));
+    if (this.inField && ++this.ticks % STATE_EVERY === 0) this.link.send(stateMsg(this));
   }
 
   /** Reset walking state: after a fight or teleport, no stale inputs or encounter progress. */

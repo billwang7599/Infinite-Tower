@@ -1,0 +1,60 @@
+/**
+ * What core needs from the outside world, as interfaces it owns. The outlets implement them: db/ the two stores,
+ * ws/ the player link. main.ts picks the implementations, so swapping one is a change there and nowhere else.
+ */
+import type { Character, Inventory, SavedSettings, ServerMsg, Vitals } from "@infinite-tower/shared";
+
+/** The account's id: every player logs in, there's no guest play. */
+export type PlayerId = string;
+
+export interface Account {
+  id: PlayerId;
+  username: string;
+}
+
+/** To keep something else across connections: add it here, to `newPlayer` (content/player.ts), and to the store. */
+export interface PlayerSave {
+  vitals: Vitals;
+  /** Fights won. */
+  wins: number;
+  settings: SavedSettings;
+  /** null until they've made one (their first visit). */
+  character: Character | null;
+  inventory: Inventory;
+}
+
+/** What's kept about a player between connections. */
+export interface PlayerStore {
+  /** null for a player it has never saved. */
+  load(id: PlayerId): Promise<PlayerSave | null>;
+  /** Loads and saves for one player must land in the order they were called. */
+  save(id: PlayerId, data: PlayerSave): Promise<void>;
+}
+
+export interface StoredAccount extends Account {
+  /** From accounts/passwords.ts; the store keeps it as is. */
+  passwordHash: string;
+}
+
+/** Accounts and their login sessions. Session tokens arrive already hashed (accounts/accounts.ts). */
+export interface AccountStore {
+  /** null if the username is taken. Usernames that differ only in case are the same. */
+  create(username: string, passwordHash: string): Promise<Account | null>;
+  /** Case-insensitive, like `create`. */
+  find(username: string): Promise<StoredAccount | null>;
+  addSession(tokenHash: string, accountId: PlayerId, expires: Date): Promise<void>;
+  /** The session's account and when it expires, expired or not. */
+  findSession(tokenHash: string): Promise<{ account: Account; expires: Date } | null>;
+  removeSession(tokenHash: string): Promise<void>;
+  removeExpiredSessions(accountId: PlayerId, now: Date): Promise<void>;
+}
+
+/** One connected player's line to their client. */
+export interface PlayerLink {
+  /** false once it's closed, from either end. */
+  readonly open: boolean;
+  /** Dropped if the link is closed. */
+  send(msg: ServerMsg): void;
+  /** `code` is a WebSocket close code: CLOSE_CODES (shared) or a standard one. */
+  close(code: number, reason: string): void;
+}

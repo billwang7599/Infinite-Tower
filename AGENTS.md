@@ -35,6 +35,8 @@ Decided by the user:
   database is seeded with the account `test` / `test`.
 - Settings (key bindings, camera) live on the server with the player's save and come down in `welcome`; the client
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
+- The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
+  (Postgres) are outlets plugged into it. See the architecture rule below.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -65,7 +67,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 ```sh
 npm install
 npm run dev        # db:up, then server :8787 (tsx watch, reloads on save) + client http://localhost:5173 (Vite, proxies /ws)
-npm run typecheck  # run it from the root; the workspaces have no typecheck script of their own
+npm run typecheck  # run it from the root (the workspaces have none of their own); also checks the server's layering
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws on :8787 (needs DATABASE_URL)
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
@@ -112,6 +114,12 @@ If the server fails with `EADDRINUSE` on :8787, an older `npm run dev` is still 
 - **The server decides; the client asks and draws.** Anything a player shouldn't be able to change lives on the
   server: levels, encounters, enemy stats, fight results, wins, HP / stamina. Client messages are checked with Zod
   (`shared/src/net/client-messages.ts`).
+- **The server is core plus outlets (hexagonal).** Game rules go in `server/src/core/`, which imports only core/,
+  `shared` and `node:crypto`: no sockets, HTTP, SQL or env. Anything that talks to the outside world goes in an
+  outlet (`ws/`, `api/`, `db/`), behind an interface core owns in `core/ports.ts`. Outlets import core, never each
+  other; `server/src/main.ts` is the only file that wires them. `npm run typecheck` fails on an import that breaks
+  this (`server/scripts/check-layers.ts`); fix the import rather than loosening the check, and ask before adding a
+  package to the ones core may use.
 - **`shared/` is only for code both sides run.** Data only the server needs (encounter rates, spawns, enemy
   stats) stays in `server/`.
 - **The arena fight still runs in the browser** and reports the result; the server can only bound what it's told.

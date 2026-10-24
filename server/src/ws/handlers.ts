@@ -1,0 +1,13 @@
+/** Each (already validated) client message, as a call on the player's session. One handler per message type. */
+import type { ClientMsg, Handlers } from "@infinite-tower/shared";
+import type { Session } from "../core/game/session.js";
+
+export const handlers: Handlers<ClientMsg, Session> = {
+  input: (msg, s) => s.input(msg.seq, msg.moveX, msg.moveZ),
+  battleEnd: (msg, s) => s.endBattle(msg.won, msg.vitals),
+  settings: (msg, s) => s.setSettings(msg.settings),
+  character: (msg, s) => s.setCharacter(msg.character),
+  rest: (_msg, s) => s.rest(),
+  useItem: (msg, s) => s.useItem(msg.item),
+  debug: (msg, s) => { if (msg.cmd === "encounter") s.debugEncounter(); },
+};

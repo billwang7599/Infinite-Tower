@@ -1,7 +1,7 @@
 /**
  * Player tuning for the arena. Shared: the client predicts its own player with these and a server
  * would re-run them. Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
- * arena size are server content (server/src/content).
+ * arena size are server content (server/src/core/content).
  */
 import type { Stats } from "./stats.js";
 

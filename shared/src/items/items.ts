@@ -1,6 +1,6 @@
 /**
  * Items: what each one is and does. Shared, since the inventory panel shows the same numbers the server applies.
- * Who drops what (and how often) is server content: server/src/content/drops.ts. The server keeps each player's
+ * Who drops what (and how often) is server content: server/src/core/content/drops.ts. The server keeps each player's
  * counts (`Inventory`) and is the only one that changes them.
  */
 
