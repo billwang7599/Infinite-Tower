@@ -6,6 +6,7 @@
 import type { Scene, TransformNode } from "@babylonjs/core";
 import type { LevelLayout } from "@infinite-tower/shared";
 import type { FieldView } from "../scene.js";
+import { buildCampfires } from "./campfires.js";
 import { buildGrassField } from "./grass-field/terrain.js";
 
 export type LevelRenderer = (scene: Scene, level: LevelLayout) => TransformNode;
@@ -19,6 +20,7 @@ export function loadLevel(view: FieldView, level: LevelLayout): void {
   unloadLevel(view);
   view.level = level;
   view.levelRoot = LEVEL_RENDERERS[level.theme](view.scene, level);
+  buildCampfires(view, level, view.levelRoot);
 }
 
 export function unloadLevel(view: FieldView): void {

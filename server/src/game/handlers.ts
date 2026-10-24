@@ -20,6 +20,15 @@ export const handlers: Handlers<ClientMsg, Session> = {
   settings(msg, s) {
     s.setSettings(msg.settings);
   },
+  character(msg, s) {
+    s.setCharacter(msg.character);
+  },
+  rest(_msg, s) {
+    s.rest();
+  },
+  useItem(msg, s) {
+    s.useItem(msg.item);
+  },
   debug(msg, s) {
     if (s.dev && msg.cmd === "encounter" && s.inField) startEncounter(s, null, "wild-boar");
   },

@@ -9,6 +9,8 @@
  */
 import { z } from "zod";
 import type { Vitals } from "../battle/constants.js";
+import { ITEM_IDS, type ItemId } from "../items/items.js";
+import { CHARACTER_NAME_RULES, LOOKS, type Character, type Look, type LookPart } from "../character/character.js";
 
 const finite = z.number().finite();
 
@@ -41,10 +43,31 @@ export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 
 export const SettingsMsg = z.object({ t: z.literal("settings"), settings: SavedSettingsSchema });
 
+const lookPart = <P extends LookPart>(part: P) =>
+  z.enum(LOOKS[part].map((o) => o.id) as unknown as [Look[P], ...Look[P][]]);
+const NAME_HELP = `Names are ${CHARACTER_NAME_RULES.min}-${CHARACTER_NAME_RULES.max} letters, digits, spaces, ' or -.`;
+
+/** Create or change your character (name + look). The server answers with `character`. */
+export const CharacterMsg = z.object({
+  t: z.literal("character"),
+  character: z.object({
+    name: z.string().trim()
+      .min(CHARACTER_NAME_RULES.min, NAME_HELP).max(CHARACTER_NAME_RULES.max, NAME_HELP)
+      .regex(new RegExp(CHARACTER_NAME_RULES.pattern), NAME_HELP),
+    look: z.object({ cloak: lookPart("cloak"), skin: lookPart("skin"), legs: lookPart("legs") }),
+  }),
+}) satisfies z.ZodType<{ t: "character"; character: Character }>;
+
+/** Rest at the campfire you're standing by (the server checks you are). */
+export const RestMsg = z.object({ t: z.literal("rest") });
+
+/** Use one of an item you carry (eat the meat). Only on the field. */
+export const UseItemMsg = z.object({ t: z.literal("useItem"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]) });
+
 /** Dev-only commands (the server ignores them in production). */
 export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
-export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, DebugMsg]);
+export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg, DebugMsg]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
 /** Raw text from the socket -> a valid message, or null. */

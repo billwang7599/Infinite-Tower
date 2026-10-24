@@ -45,6 +45,15 @@ them; treat them as changeable, and still ask before deciding new ones):
   movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply only in
   fights. Player 100 / 50 / 10 / 10 / 10, boar 100 / 0 / 0 / 10 / 10 (so nothing plays differently yet). Everyone
   has the same player stats, so they aren't saved.
+- Character customization is a name (2-16 letters, digits, spaces, ' or -) and a look: cloak (6 colors), skin (4),
+  trousers (4). It's made on the first visit, before the server sends a level, and can be changed any time from
+  the character panel. It's cosmetic only.
+- Resting: each level has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within 1.6
+  tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
+  you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
+  respawn point or bring back defeated boars; dying still wakes you at the level's start.
+- Inventory: one item so far, boar meat (heals 35 HP, eaten from the inventory panel, field only, not at full HP).
+  A beaten boar drops one 60% of the time. Stacks cap at 99. Nothing to start with, and dying keeps everything.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

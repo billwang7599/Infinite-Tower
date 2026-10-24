@@ -24,6 +24,8 @@ export const ACTIONS = {
     left: { label: "Walk left", keys: ["KeyA", "ArrowLeft"] },
     right: { label: "Walk right", keys: ["KeyD", "ArrowRight"] },
     character: { label: "Character panel", keys: ["KeyC"] },
+    inventory: { label: "Inventory", keys: ["KeyI"] },
+    rest: { label: "Rest at a campfire", keys: ["KeyE", "Enter"] },
   },
   battle: {
     forward: { label: "Move forward", keys: ["KeyW"] },

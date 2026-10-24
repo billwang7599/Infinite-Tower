@@ -6,6 +6,7 @@
  */
 import { Engine } from "@babylonjs/core";
 import * as shared from "@infinite-tower/shared";
+import type { Character, ItemId } from "@infinite-tower/shared";
 import { createBattle } from "../battle/battle.js";
 import * as battleComponents from "../battle/components.js";
 import * as playerComponents from "../battle/player/components.js";
@@ -23,6 +24,9 @@ import { createGame } from "./game.js";
 export interface PreparedGame {
   join(joined: Joined, onLost: (closeCode: number) => void): void;
   leave(): void;
+  saveCharacter(character: Character): void;
+  rest(): void;
+  useItem(item: ItemId): void;
 }
 
 export async function prepareGame(ui: UiState, settings: Settings): Promise<PreparedGame> {
@@ -66,5 +70,8 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Prep
       stopSync();
       game.leave();
     },
+    saveCharacter: (character) => game.saveCharacter(character),
+    rest: () => game.rest(),
+    useItem: (item) => game.useItem(item),
   };
 }
