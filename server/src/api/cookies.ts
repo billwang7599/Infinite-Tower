@@ -1,6 +1,6 @@
 /** The login cookie. httpOnly (page scripts can't read it) and SameSite=Lax (other sites can't send it with a POST). */
 import type { IncomingMessage } from "node:http";
-import type { LoginSession } from "./accounts.js";
+import type { LoginSession } from "../core/accounts/accounts.js";
 
 const NAME = "it_session";
 

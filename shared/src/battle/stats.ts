@@ -1,6 +1,6 @@
 /**
  * Every fighter's stats, players and monsters alike. The server owns them (enemy stats in
- * server/src/content/enemies.ts, the player's in server/src/content/player.ts) and sends them with each
+ * server/src/core/content/enemies.ts, the player's in server/src/core/content/player.ts) and sends them with each
  * encounter; the arena reads them from the `FighterStats` component. What each one does, for now:
  *
  *   stamina     the size of the stamina bar (points)

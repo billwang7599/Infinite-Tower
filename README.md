@@ -32,7 +32,7 @@ is git-ignored; `npm run dev` copies it from `.env.example` the first time, and 
 npm install
 npm run dev        # database (:5433) + seed, then server (:8787) + client (http://localhost:5173, proxies /ws and /api)
 npm start          # production: build the client, server serves it + /ws + /api on http://localhost:8787
-npm run typecheck  # shared, server, client
+npm run typecheck  # shared, server, client, then the server's layering (scripts/check-layers.ts)
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data (then seeds it again)
 npm run db:seed    # add the dev data if it's missing: the account test / test
@@ -91,7 +91,7 @@ Every fighter, player or monster, has five stats (`shared/src/battle/stats.ts`).
 | Mana | size of the mana pool (no spells yet) | 50 | 0 |
 | Spellpower | spell damage multiplier (no spells yet) | 10 | 0 |
 
-The server owns them (`server/src/content/player.ts`, `enemies.ts`) and sends them in `welcome` and with each
+The server owns them (`server/src/core/content/player.ts`, `enemies.ts`) and sends them in `welcome` and with each
 encounter; arena fighters carry them in the `FighterStats` component. Everyone has the same player stats for now,
 so nothing is saved; HP isn't a stat (`PLAYER.maxHp`, `EnemyDef.maxHp`).
 
@@ -103,10 +103,10 @@ so nothing is saved; HP isn't a stat (`PLAYER.maxHp`, `EnemyDef.maxHp`).
   **stunned** for ~2 s: free hits.
 - **Poise**: about 3–4 quick hits stagger it (not mid-charge).
 
-Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`, at stats of 10) and `server/src/content/player.ts`
+Tuning: player in `shared/src/battle/constants.ts` (`PLAYER`, at stats of 10) and `server/src/core/content/player.ts`
 (`PLAYER_STATS`); enemy stats and attacks in
-`server/src/content/enemies.ts`; levels (layout, spawns, encounter tables, arena size) in `server/src/levels/`;
-field-actor behavior numbers in `server/src/field/prefabs/`; camera feel at the top of
+`server/src/core/content/enemies.ts`; levels (layout, spawns, encounter tables, arena size) in
+`server/src/core/levels/`; field-actor behavior numbers in `server/src/core/field/prefabs/`; camera feel at the top of
 `client/src/battle/systems/camera.ts`.
 
 ## Layout
@@ -133,30 +133,39 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    account-requests.ts (their Zod schemas; server-only import)
 
 server/src/      Node + ws. Authoritative: levels, encounters, field actors, enemy stats, fight results.
-  main.ts          Wires db -> accounts -> net -> online players -> loop; picks the player store
-  net/             server.ts (HTTP: /api then static files; /ws only for a logged-in cookie), connection.ts (one
-                   socket: Zod-validated in, typed out), http.ts (JSON body / reply helpers), static.ts
-  auth/            accounts.ts (Accounts: create, verify, login sessions; tokens stored as SHA-256),
-                   passwords.ts (scrypt), cookies.ts (the httpOnly login cookie), routes.ts (the /api handlers)
-  game/            online.ts (who's playing: one session per account, load on join, save on leave, a second tab
-                   takes over), session.ts (one player: world, level, wins, HP/stamina; saves after fights and on disconnect), handlers.ts (one
-                   handler per ClientMsg), encounter.ts (start/end fights, refuse impossible wins and healing),
-                   snapshot.ts (state msg: only actors near your screen), loop.ts (60 Hz)
-  levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
-                   grass-field.ts
-  field/           The field simulation. components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor
-                   from behavior parts), context.ts, player.ts (input replay + grass encounters), spawner.ts
-    behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
-    prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
-  content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS), drops.ts (what each enemy
-                   drops and how often; rollDrops, addItems)
-  store/           player-store.ts (PlayerStore interface, PlayerSave = what's kept between connections),
-                   pg-player-store.ts (PlayerStore on the `players` table; one query at a time per player)
+                 Hexagonal: core/ is the game, ws/ api/ db/ are outlets that plug into it (rules below).
+  main.ts          The only file that sees everything: builds db -> core -> api + ws, plugs them together, runs
+                   the tick timer
   env.ts           DEV, PORT, DATABASE_URL from the environment (loads the repo's .env if there is one)
-  db/              schema.ts (the tables, in TypeScript: Drizzle ORM), db.ts (connects to DATABASE_URL, applies new
-                   migrations at startup), migrations/ (SQL written by `npm run db:generate`, plus drizzle-kit's
-                   meta/; settings in server/drizzle.config.ts), seed.ts (dev data: the test / test account;
-                   refuses to run in production)
+  core/            The game. No sockets, HTTP or SQL: imports only core/, shared and node:crypto.
+    ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave = what's kept between
+                     connections), AccountStore, PlayerLink (send / close to one player)
+    game/            online.ts (who's playing: one session per account, load on join, save on leave, a second tab
+                     takes over), session.ts (one player: world, level, wins, HP/stamina; a method per thing a
+                     player can ask; saves after fights and on disconnect), encounter.ts (start/end fights, refuse
+                     impossible wins and healing), snapshot.ts (state msg: only actors near your screen),
+                     clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
+    field/           The field simulation. components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor
+                     from behavior parts), context.ts, player.ts (input queue + replay, grass encounters), spawner.ts
+      behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
+      prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
+    levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (registry),
+                     grass-field.ts
+    content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS, newPlayer), drops.ts (what
+                     each enemy drops and how often; rollDrops, addItems)
+    accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
+                     stored), passwords.ts (scrypt)
+  ws/              Outlet: the game socket. sockets.ts (accepts /ws upgrades api/ has checked, joins the player),
+                   connection.ts (one socket = the PlayerLink: Zod-validated in, typed out), handlers.ts (each
+                   ClientMsg -> one call on the session)
+  api/             Outlet: HTTP. server.ts (the HTTP server: /api, then static files; checks /ws's login cookie and
+                   hands the socket on), routes.ts (the /api handlers), cookies.ts (the httpOnly login cookie),
+                   http.ts (JSON body / reply helpers), static.ts
+  db/              Outlet: Postgres. schema.ts (the tables, in TypeScript: Drizzle ORM), db.ts (connects to
+                   DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the two
+                   stores core asks for; one query at a time per player), migrations/ (SQL written by
+                   `npm run db:generate`, plus drizzle-kit's meta/; settings in server/drizzle.config.ts), seed.ts
+                   (dev data: the test / test account; refuses to run in production)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
   main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, and start preparing the game; logging
@@ -228,21 +237,25 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
 Arena system order (battle.ts). Fixed 60 Hz: player input → player controller → enemy brain → attacks → motor →
 [physics] → player ground → combat. Per frame: camera, player sprite, enemy model animations, HUD.
 
-Naming: the 2D map is **field** everywhere (shared `field/`, server `field/`, client `field/`, `Field*` components,
+Naming: the 2D map is **field** everywhere (shared `field/`, server `core/field/`, client `field/`, `Field*` components,
 mode `"field"`); the fight is **battle** (client folder, mode) and the place it happens is the **arena**.
 
 ### Adding things
 
-- **A message:** client -> server: add a Zod schema to `shared/src/net/client-messages.ts` and the union, then a
-  handler in `server/src/game/handlers.ts` (TypeScript errors until you do). Server -> client: add to `ServerMsg`
+- **A message:** client -> server: add a Zod schema to `shared/src/net/client-messages.ts` and the union, a method
+  on `Session` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
+  calls it (TypeScript errors until you do). Server -> client: add to `ServerMsg`
   in `server-messages.ts` and a handler in `client/src/game/game.ts`'s `net.listen({...})`.
-- **A level:** a file in `server/src/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
-- **A field actor:** a prefab in `server/src/field/prefabs/` (a list of behavior parts) plus a client drawing in
+- **A level:** a file in `server/src/core/levels/` listed in `index.ts`; reuse a theme or add a renderer in `client/src/field/levels/`.
+- **A field actor:** a prefab in `server/src/core/field/prefabs/` (a list of behavior parts) plus a client drawing in
   `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in `behaviors/`.
-- **Something kept between connections:** a field on `PlayerSave` and `newPlayer()` in
-  `server/src/store/player-store.ts`, read from it in `Session`'s constructor and written in `Session.save()`;
-  a column in `server/src/db/schema.ts` (then a migration, below), and the queries in `pg-player-store.ts`.
+- **Something kept between connections:** a field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
+  (`core/content/player.ts`), read from it in `Session`'s constructor and written in `Session.save()`; a column in
+  `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
   Another store is a class implementing `PlayerStore`, swapped in for `new PgPlayerStore(db)` in `server/src/main.ts`.
+- **Something core needs from outside** (a clock, mail, another database): an interface in `core/ports.ts`, an
+  implementation in an outlet (or a new outlet folder, added to `OUTLETS` in `server/scripts/check-layers.ts`),
+  and one line in `main.ts` passing it in. Core never imports the implementation.
 - **A schema change:** edit `server/src/db/schema.ts`, run `npm run db:generate -- --name <what-changed>`, read the
   SQL it wrote and commit it with `migrations/meta/`. drizzle-kit asks when it can't tell a rename from a drop + add.
   For data changes it can't work out, `npm run db:generate -- --custom --name <what>` writes an empty migration to
@@ -258,7 +271,7 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
   `screens/`; parts used by more than one screen go in `components/`); if the
   game has to feed it, add the fields to a store in `ui/state.ts` and `set` them from game code. If it has to
   ask the game for something, add a function to `UiActions` (main.ts provides them).
-- **An arena enemy:** an `EnemyDef` in `server/src/content/enemies.ts` combining attacks; a new attack type is a def
+- **An arena enemy:** an `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks; a new attack type is a def
   shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`enemies/spawn.ts`) and a system in
   `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
 
@@ -294,6 +307,15 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
   (nothing while you stand still) and predicts its own walking with the shared `stepWalker`; the server replays the
   inputs (rate-limited, so sending more doesn't move you faster), rolls encounters, runs the level's actors, and sends
   state 20x/s with positions rounded to 1 cm.
+- **The server is hexagonal: core plus outlets.** `server/src/core/` is the game: sessions, the field, fights,
+  levels, content and the account rules. It knows nothing about sockets, HTTP or SQL; what it needs from outside it
+  asks for through the interfaces in `core/ports.ts` (`PlayerStore`, `AccountStore`, `PlayerLink`). The outlets
+  plug into it: `ws/` (the game socket, which works both ways: messages in become session calls, and the socket is
+  the `PlayerLink` out), `api/` (HTTP: accounts, the built client, the login check on `/ws`) and `db/` (Postgres,
+  the two stores). Core imports only core/, `shared` and `node:crypto`; an outlet imports core/ and itself, never
+  another outlet; `main.ts` is the only place they all meet. `npm run typecheck` fails if an import breaks this.
+  Core sends the `shared` message types as they are (they're already the contract with the client), and it can
+  run with fake stores and links, without Postgres or a browser.
 - **Every screen sees the same amount, at most.** The view is 16:9 at most (23 x 13 field tiles): `client/index.html`
   puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see a little less
   width. `state` only carries actors within that 16:9 view of the server's copy of you, plus 3 tiles, so a hacked

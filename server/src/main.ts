@@ -1,48 +1,54 @@
 /**
- * Infinite Tower server. Authoritative for everything a player shouldn't be able to change:
- * levels, encounters, field actors, enemy stats, fight results and progress.
+ * Infinite Tower server. Authoritative for everything a player shouldn't be able to change: levels, encounters,
+ * field actors, enemy stats, fight results and progress.
  *
- *   net/       sockets and HTTP: /ws, message validation (Zod), JSON helpers, static files
- *   auth/      accounts, passwords, login cookies, the /api routes
- *   game/      who's online, sessions (one per player), message handlers, encounters, snapshots, the tick loop
- *   levels/    level data: layout, spawns, encounter tables
- *   field/     the 2D field's simulation: actor components, behaviors, prefabs, spawner, the player's walking
- *   content/   enemy stats
- *   store/     what's kept about a player between connections
- *   db/        the database: Drizzle tables, connection, migrations, the dev seed
+ * It's built as ports and adapters (hexagonal). core/ is the game and knows nothing about sockets, HTTP or SQL; what
+ * it needs from outside, it asks for through the interfaces in core/ports.ts. Each outlet plugs into core from one
+ * side, and never into another outlet:
+ *
+ *   core/      the game: who's online, sessions, the field, fights, levels, content, accounts' rules
+ *   ws/        outlet: the game socket (/ws). Messages in become session calls; the socket is the PlayerLink out
+ *   api/       outlet: HTTP. The account API (/api), the built client, and the login check on /ws
+ *   db/        outlet: Postgres through Drizzle. The PlayerStore and AccountStore, migrations, the dev seed
  *   env.ts     settings from environment variables (.env locally)
+ *
+ * This file is the only one that sees them all: it builds each, plugs them together and runs the tick timer.
+ * `npm run typecheck` enforces the rule (server/scripts/check-layers.ts).
  */
 import { fileURLToPath } from "node:url";
-import { Accounts } from "./auth/accounts.js";
-import { sessionToken } from "./auth/cookies.js";
-import { accountRoutes } from "./auth/routes.js";
+import { startServer } from "./api/server.js";
+import { Accounts } from "./core/accounts/accounts.js";
+import { FixedClock } from "./core/game/clock.js";
+import { OnlinePlayers } from "./core/game/online.js";
+import { PgAccountStore } from "./db/account-store.js";
 import { connectDb } from "./db/db.js";
+import { PgPlayerStore } from "./db/player-store.js";
 import { DEV, PORT } from "./env.js";
-import { startLoop } from "./game/loop.js";
-import { OnlinePlayers } from "./game/online.js";
-import { startServer } from "./net/server.js";
-import type { PlayerStore } from "./store/player-store.js";
-import { PgPlayerStore } from "./store/pg-player-store.js";
+import { gameSockets } from "./ws/sockets.js";
 
 const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url));
+/** How often the timer checks for due ticks. The ticks themselves are FIXED_DT apart (clock.ts). */
+const TIMER_MS = 5;
 
 const db = await connectDb(DEV).catch((err: unknown) => {
   console.error(`[db] ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });
-const accounts = new Accounts(db);
-const store: PlayerStore = new PgPlayerStore(db);
-const online = new OnlinePlayers(store, DEV);
+const accounts = new Accounts(new PgAccountStore(db));
+const online = new OnlinePlayers(new PgPlayerStore(db), DEV);
 
 startServer({
   port: PORT,
   clientDist: CLIENT_DIST,
-  api: accountRoutes(accounts, !DEV),
-  authenticate(req) {
-    const token = sessionToken(req);
-    return token ? accounts.forToken(token) : Promise.resolve(null);
-  },
-  onConnection: (conn, account) => online.join(conn, account),
+  accounts,
+  secureCookies: !DEV,
+  onSocket: gameSockets(online),
 }, () => console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`));
 
-startLoop(online.sessions);
+const clock = new FixedClock((dt) => online.tick(dt));
+let last = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  clock.advance((now - last) / 1000);
+  last = now;
+}, TIMER_MS);

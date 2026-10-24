@@ -3,9 +3,10 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AccountInfo } from "@infinite-tower/shared";
 import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/account-requests";
 import type { z } from "zod";
-import { HttpError, readJson, sendError, sendJson } from "../net/http.js";
-import type { Account, Accounts } from "./accounts.js";
+import type { Accounts } from "../core/accounts/accounts.js";
+import type { Account } from "../core/ports.js";
 import { clearedCookie, sessionCookie, sessionToken } from "./cookies.js";
+import { HttpError, readJson, sendError, sendJson } from "./http.js";
 
 /** Handles /api/* and returns true, or returns false for anything else. */
 export type ApiHandler = (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;

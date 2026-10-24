@@ -1,6 +1,6 @@
 /**
  * Field (2D map) levels: the part of a level the client is allowed to see, plus the walking rules.
- * The server owns levels (server/src/levels) and sends the layout when you enter one. Walking is
+ * The server owns levels (server/src/core/levels) and sends the layout when you enter one. Walking is
  * shared so the client can predict its own movement and the server can replay the same inputs.
  * Units are tiles; +z is up on screen, +x is right.
  */

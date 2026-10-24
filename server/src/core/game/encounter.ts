@@ -25,7 +25,7 @@ export function startEncounter(session: Session, source: Entity | null, enemyId:
   const { vitals } = session;
   session.encounter = { source, enemyId, enemy, startedAt: performance.now(), vitals };
   session.resetWalk(0);
-  session.conn.send({
+  session.link.send({
     t: "encounter", source, enemy, arena: session.currentLevel.arena, me: session.playerPos(), vitals, stats: session.stats,
   });
 }
@@ -54,7 +54,7 @@ export function endEncounter(session: Session, claimedWin: boolean, claimed: Vit
   session.resetWalk(session.currentLevel.safeTime);
   session.encounter = null;
   session.save();
-  session.conn.send({
+  session.link.send({
     t: "battleResult", won, accepted, me: session.playerPos(), wins: session.wins, vitals: session.vitals,
     loot, inventory: session.inventory,
   });

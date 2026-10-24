@@ -4,11 +4,17 @@
  */
 import { distXZ, FIXED_DT, inTallGrass, stepWalker, type System } from "@infinite-tower/shared";
 import { rollEnemy } from "../levels/level.js";
-import { FieldPlayer, FieldPos } from "./components.js";
+import { FieldPlayer, FieldPos, type FieldPlayerData, type QueuedInput } from "./components.js";
 import type { FieldContext } from "./context.js";
 
 /** At most this many inputs banked: a client can catch up after lag, but not run faster. */
 const MAX_CREDITS = 6;
+/** Inputs waiting to be simulated; more than this and new ones are dropped. */
+const MAX_QUEUED_INPUTS = 30;
+
+export function queueInput(fp: FieldPlayerData, input: QueuedInput): void {
+  if (fp.queue.length < MAX_QUEUED_INPUTS) fp.queue.push(input);
+}
 
 export function fieldPlayerSystem(ctx: FieldContext): System {
   return (world, dt) => {

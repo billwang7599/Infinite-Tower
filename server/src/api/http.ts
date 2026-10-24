@@ -1,4 +1,4 @@
-/** Small helpers for the JSON API (auth/routes.ts). */
+/** Small helpers for the JSON API (routes.ts). */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiError } from "@infinite-tower/shared";
 

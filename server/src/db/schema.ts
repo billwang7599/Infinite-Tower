@@ -6,7 +6,7 @@ import type { Character, Inventory, SavedSettings } from "@infinite-tower/shared
 import { sql } from "drizzle-orm";
 import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
-/** Logins (auth/accounts.ts). The password is scrypt'd, with its parameters and salt (auth/passwords.ts). */
+/** Logins (account-store.ts). The password is scrypt'd, with its parameters and salt (core/accounts/passwords.ts). */
 export const accounts = pgTable("accounts", {
   id: uuid().primaryKey().defaultRandom(),
   username: text().notNull(),
@@ -25,7 +25,7 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 }, (t) => [index("sessions_account_id_idx").on(t.accountId)]);
 
-/** What carries over between a player's connections (store/pg-player-store.ts). A player is an account. */
+/** What carries over between a player's connections (player-store.ts). A player is an account. */
 export const players = pgTable("players", {
   id: uuid().primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   hp: doublePrecision().notNull(),

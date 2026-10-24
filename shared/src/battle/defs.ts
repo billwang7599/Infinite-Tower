@@ -1,5 +1,5 @@
 /**
- * Shapes of server-owned battle content. The values live in server/src/content and reach the client
+ * Shapes of server-owned battle content. The values live in server/src/core/content and reach the client
  * with each encounter (the client needs them to draw and, for now, to run the fight).
  *
  * An enemy is a body plus a set of optional attacks. The client's enemy prefab adds one component
