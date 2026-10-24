@@ -6,12 +6,12 @@
  *   game/     start-up, sessions, mode switching       net/      server connection, the account API
  *   field/    the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
  *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
- *   settings/ key bindings, camera, saved in browser   ui/       React UI over the canvas; the game writes to it through ui/state.ts
+ *   settings/ key bindings, camera (kept on server)    ui/       React UI over the canvas; the game writes to it through ui/state.ts
  */
 import { CLOSE_CODES, VIEW, type Credentials } from "@infinite-tower/shared";
 import { currentAccount, logIn, logOut, register } from "./net/account.js";
 import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
-import { loadSettings } from "./settings/settings.js";
+import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
 import { UiState, type SignInKind } from "./ui/state.js";
 
@@ -19,7 +19,7 @@ import { UiState, type SignInKind } from "./ui/state.js";
 document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW.maxAspect));
 
 const ui = new UiState();
-const settings = loadSettings();
+const settings = createSettings();
 
 const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.

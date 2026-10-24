@@ -1,6 +1,7 @@
 /**
- * Key bindings: every keyboard action, its default keys, and the player's changes, saved in this browser.
- * The settings screen edits them; game code reads `bindings.get()` every tick, so a change applies at once.
+ * Key bindings: every keyboard action, its default keys, and the player's changes (saved on the server with the
+ * rest of their settings, settings.ts). The settings screen edits them; game code reads `bindings.get()` every
+ * tick, so a change applies at once.
  * Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed; they're listed here
  * so the settings screen can show them next to the keys.
  *
@@ -48,7 +49,6 @@ export const GROUPS = Object.keys(ACTIONS) as Group[];
 export const MAX_KEYS = 3;
 /** Esc always opens and closes the settings; the OS keys belong to system shortcuts. */
 const RESERVED = new Set(["Escape", "MetaLeft", "MetaRight"]);
-const STORAGE_KEY = "infinite-tower:key-bindings";
 
 export const isBindable = (code: string): boolean => !RESERVED.has(code);
 
@@ -77,7 +77,30 @@ export type BindResult =
 
 export class KeyBindings extends Store<KeyMap> {
   constructor() {
-    super(load());
+    super(buildMap(defaultKeys));
+  }
+
+  /**
+   * Take the player's saved keys. Only the actions they changed are saved, so a new default reaches everything
+   * they didn't touch; anything unreadable (an older format, an action that's gone) falls back to the defaults.
+   */
+  restore(saved: unknown): void {
+    this.set(buildMap((ref) => {
+      const keys = prop(prop(saved, ref.group), ref.action);
+      return isKeyList(keys) ? keys : defaultKeys(ref);
+    }));
+  }
+
+  /** What `restore` takes: the actions that differ from the defaults. */
+  toSaved(): Record<string, Record<string, string[]>> {
+    const changed: Record<string, Record<string, string[]>> = {};
+    for (const group of GROUPS) {
+      for (const ref of actionsOf(group)) {
+        const keys = keysOf(this.get(), ref);
+        if (!sameKeys(keys, defaultKeys(ref))) (changed[group] ??= {})[ref.action] = [...keys];
+      }
+    }
+    return changed;
   }
 
   /** Put `key` on an action, in place of `replace` or (null) added after its keys. */
@@ -113,7 +136,6 @@ export class KeyBindings extends Store<KeyMap> {
 
   reset(): void {
     this.set(buildMap(defaultKeys));
-    save(this.get());
   }
 
   isDefault(): boolean {
@@ -122,7 +144,6 @@ export class KeyBindings extends Store<KeyMap> {
 
   private update(group: Group, keys: Record<string, readonly string[]>): void {
     this.set({ [group]: keys } as Partial<KeyMap>);
-    save(this.get());
   }
 }
 
@@ -139,39 +160,6 @@ function buildMap(keysFor: (ref: ActionRef) => readonly string[]): KeyMap {
     map[group] = keys;
   }
   return map as unknown as KeyMap;
-}
-
-/**
- * Only the actions the player changed are saved, so a new default reaches everything they didn't touch.
- * Anything unreadable (old format, hand-edited) falls back to the defaults.
- */
-function load(): KeyMap {
-  let saved: unknown = null;
-  try {
-    saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
-  } catch {
-    // No storage (private mode, sandboxed frame) or bad JSON.
-  }
-  return buildMap((ref) => {
-    const keys = prop(prop(saved, ref.group), ref.action);
-    return isKeyList(keys) ? keys : defaultKeys(ref);
-  });
-}
-
-function save(map: KeyMap): void {
-  const changed: Record<string, Keys> = {};
-  for (const group of GROUPS) {
-    for (const ref of actionsOf(group)) {
-      const keys = groupOf(map, group)[ref.action]!;
-      if (!sameKeys(keys, defaultKeys(ref))) (changed[group] ??= {})[ref.action] = keys;
-    }
-  }
-  try {
-    if (Object.keys(changed).length === 0) localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, JSON.stringify(changed));
-  } catch {
-    // Not saved; the change still applies until the page closes.
-  }
 }
 
 const prop = (o: unknown, key: string): unknown =>

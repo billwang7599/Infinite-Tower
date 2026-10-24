@@ -15,17 +15,16 @@ export class PgPlayerStore implements PlayerStore {
 
   load(id: PlayerId): Promise<PlayerSave> {
     return this.inOrder(id, async () => {
-      const [row] = await this.db.select({ hp: players.hp, stamina: players.stamina })
-        .from(players).where(eq(players.id, id));
-      return row ? { vitals: row } : newPlayer();
+      const [row] = await this.db.select().from(players).where(eq(players.id, id));
+      return row ? fromRow(row) : newPlayer();
     });
   }
 
   save(id: PlayerId, data: PlayerSave): Promise<void> {
     return this.inOrder(id, async () => {
-      const { hp, stamina } = data.vitals;
-      await this.db.insert(players).values({ id, hp, stamina })
-        .onConflictDoUpdate({ target: players.id, set: { hp, stamina, updatedAt: sql`now()` } });
+      const row = toRow(data);
+      await this.db.insert(players).values({ id, ...row })
+        .onConflictDoUpdate({ target: players.id, set: { ...row, updatedAt: sql`now()` } });
     });
   }
 
@@ -37,3 +36,17 @@ export class PgPlayerStore implements PlayerStore {
     return next;
   }
 }
+
+/**
+ * A save's columns: all of them but the id and the timestamp. Required, so a new column that `toRow` forgets is a
+ * type error rather than a default that's silently saved forever. Keeping something new means a line in each.
+ */
+type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>;
+
+const toRow = (data: PlayerSave): PlayerRow => ({
+  hp: data.vitals.hp, stamina: data.vitals.stamina, settings: data.settings,
+});
+
+const fromRow = (row: typeof players.$inferSelect): PlayerSave => ({
+  vitals: { hp: row.hp, stamina: row.stamina }, settings: row.settings,
+});

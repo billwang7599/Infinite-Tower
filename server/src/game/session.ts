@@ -3,7 +3,7 @@
  * and actors). Starts from the player's save (store/) and holds which level/mode they're in; the field
  * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
-import { World, type Entity, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
+import { World, type Entity, type SavedSettings, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
 import { chaseSystem } from "../field/behaviors/chase.js";
 import { moveSystem } from "../field/behaviors/move.js";
 import { touchSystem } from "../field/behaviors/touch.js";
@@ -21,6 +21,8 @@ import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
 const STATE_EVERY = 3;
+/** Settings changes are written at most this often (a client sending them in a loop can't hammer the database). */
+const SETTINGS_SAVE_MS = 1000;
 
 export class Session {
   readonly world = new World();
@@ -29,6 +31,7 @@ export class Session {
   encounter: Encounter | null = null;
   wins = 0;
   vitals: Vitals;
+  settings: SavedSettings;
   /** Highest input seq accepted (older or repeated ones are ignored). */
   lastSeq = 0;
   private level!: LevelDef;
@@ -36,6 +39,7 @@ export class Session {
   private readonly systems: System[];
   private readonly ctx: FieldContext;
   private ticks = 0;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     readonly conn: Connection,
@@ -44,6 +48,7 @@ export class Session {
     private readonly persist: (data: PlayerSave) => void,
   ) {
     this.vitals = saved.vitals;
+    this.settings = saved.settings;
     const session = this;
     this.ctx = {
       get level() { return session.level; },
@@ -57,12 +62,20 @@ export class Session {
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, dev });
+    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, settings: this.settings, dev });
   }
 
   /** Called after every fight and on disconnect. */
   save(): void {
-    this.persist({ vitals: { ...this.vitals } });
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    this.persist({ vitals: { ...this.vitals }, settings: this.settings });
+  }
+
+  /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */
+  setSettings(settings: SavedSettings): void {
+    this.settings = settings;
+    this.saveTimer ??= setTimeout(() => this.save(), SETTINGS_SAVE_MS);
   }
 
   get currentLevel(): LevelDef { return this.level; }

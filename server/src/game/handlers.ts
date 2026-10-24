@@ -17,6 +17,9 @@ export const handlers: Handlers<ClientMsg, Session> = {
   battleEnd(msg, s) {
     endEncounter(s, msg.won, msg.vitals);
   },
+  settings(msg, s) {
+    s.setSettings(msg.settings);
+  },
   debug(msg, s) {
     if (s.dev && msg.cmd === "encounter" && s.inField) startEncounter(s, null, "wild-boar");
   },
