@@ -1,0 +1,39 @@
+import { eq, sql } from "drizzle-orm";
+import type { Db } from "../db/db.js";
+import { players } from "../db/schema.js";
+import { newPlayer, type PlayerId, type PlayerSave, type PlayerStore } from "./player-store.js";
+
+/** Players in Postgres: the `players` table (db/schema.ts). */
+export class PgPlayerStore implements PlayerStore {
+  /**
+   * Each player's latest queued query. Loads and saves for one player run one after another, so an older
+   * save can't land after a newer one, and reconnecting reads what the last connection saved.
+   */
+  private readonly last = new Map<PlayerId, Promise<unknown>>();
+
+  constructor(private readonly db: Db) {}
+
+  load(id: PlayerId): Promise<PlayerSave> {
+    return this.inOrder(id, async () => {
+      const [row] = await this.db.select({ hp: players.hp, stamina: players.stamina })
+        .from(players).where(eq(players.id, id));
+      return row ? { vitals: row } : newPlayer();
+    });
+  }
+
+  save(id: PlayerId, data: PlayerSave): Promise<void> {
+    return this.inOrder(id, async () => {
+      const { hp, stamina } = data.vitals;
+      await this.db.insert(players).values({ id, hp, stamina })
+        .onConflictDoUpdate({ target: players.id, set: { hp, stamina, updatedAt: sql`now()` } });
+    });
+  }
+
+  private inOrder<T>(id: PlayerId, query: () => Promise<T>): Promise<T> {
+    const next = (this.last.get(id) ?? Promise.resolve()).catch(() => {}).then(query);
+    this.last.set(id, next);
+    const forget = () => { if (this.last.get(id) === next) this.last.delete(id); };
+    next.then(forget, forget);
+    return next;
+  }
+}

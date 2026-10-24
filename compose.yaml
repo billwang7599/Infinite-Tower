@@ -1,0 +1,25 @@
+# The dev database. `npm run dev` starts it (`npm run db:up`); its data stays in the `pgdata` volume
+# until `npm run db:reset`. Its user, password, database and port come from .env (see .env.example).
+# Production doesn't use this file: it sets DATABASE_URL to its own Postgres.
+name: infinite-tower
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?not set; copy .env.example to .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?not set; copy .env.example to .env}
+      POSTGRES_DB: ${POSTGRES_DB:?not set; copy .env.example to .env}
+    ports:
+      # 5433 in .env.example, not 5432, so it can't clash with a Postgres installed on the machine itself.
+      - "127.0.0.1:${POSTGRES_PORT:?not set; copy .env.example to .env}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:

@@ -1,6 +1,6 @@
 /**
- * What the server keeps about a player between connections. Game code only sees `PlayerStore`, so a real
- * database replaces the stub by implementing it and changing the one `new StubPlayerStore()` in main.ts.
+ * What the server keeps about a player between connections. Game code only sees `PlayerStore`; main.ts
+ * picks the implementation (Postgres, pg-player-store.ts), so swapping it is a one-line change there.
  */
 import { fullVitals, type Vitals } from "@infinite-tower/shared";
 
@@ -8,7 +8,7 @@ export type PlayerId = string;
 /** There's no login yet, so every connection plays as the same guest. */
 export const GUEST: PlayerId = "guest";
 
-/** Add a field here and to `newPlayer` to keep something else across connections. */
+/** To keep something else across connections: add it here, to `newPlayer`, and a column (a new migration). */
 export interface PlayerSave {
   vitals: Vitals;
 }
