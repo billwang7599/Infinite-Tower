@@ -4,7 +4,7 @@
  * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
 import {
-  World, type Character, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
+  fullVitals, nearCampfire, World, type Character, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import { PLAYER_STATS } from "../content/player.js";
 import { chaseSystem } from "../field/behaviors/chase.js";
@@ -24,6 +24,8 @@ import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
 const STATE_EVERY = 3;
+/** Tiles of leeway on the campfire's reach (see `nearCampfire`). */
+const REST_SLACK = 0.6;
 /** Settings changes are written at most this often (a client sending them in a loop can't hammer the database). */
 const SETTINGS_SAVE_MS = 1000;
 
@@ -87,6 +89,14 @@ export class Session {
     this.save();
     this.conn.send({ t: "character", character });
     if (!this.level) this.enterLevel(START_LEVEL);
+  }
+
+  /** Rest at a campfire, if the server's copy of you is standing by one: HP and stamina refill. */
+  rest(): void {
+    if (!this.inField || !nearCampfire(this.currentLevel.layout, this.playerPos(), REST_SLACK)) return;
+    this.vitals = fullVitals(this.stats);
+    this.save();
+    this.conn.send({ t: "rested", vitals: this.vitals });
   }
 
   /** Called after every fight and on disconnect. */

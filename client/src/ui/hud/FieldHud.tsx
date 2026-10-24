@@ -14,9 +14,10 @@ interface FieldHudProps extends HudProps {
   settingsScreen: Store<SettingsScreenState>;
   openSettings: () => void;
   editCharacter: () => void;
+  rest: () => void;
 }
 
-export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter }: FieldHudProps) {
+export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter, rest }: FieldHudProps) {
   const [characterOpen, setCharacterOpen] = useState(false);
   const stats = useStore(hud, (s) => s.stats);
   const character = useStore(hud, (s) => s.character);
@@ -43,6 +44,7 @@ export function FieldHud({ hud, bindings, settingsScreen, openSettings, editChar
           <GearIcon />
         </HudButton>
       </div>
+      <RestButton hud={hud} rest={rest} />
       {characterOpen && (
         <CharacterPanel stats={stats} character={character} close={() => setCharacterOpen(false)} edit={editCharacter} />
       )}
@@ -63,6 +65,20 @@ function PlayerStatus({ hud }: HudProps) {
         Boars defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>
     </div>
+  );
+}
+
+/** Only by a campfire. Names what it does, not a key: the key is in Settings. */
+function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
+  const near = useStore(hud, (s) => s.nearCampfire);
+  if (!near) return null;
+  return (
+    <button
+      type="button" id="rest-button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={rest}
+      className="pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory transition-colors hover:bg-black/80"
+    >
+      Rest by the fire
+    </button>
   );
 }
 

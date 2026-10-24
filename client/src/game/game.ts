@@ -28,6 +28,7 @@ export interface Game {
   /** End the session: hang up, stop drawing, forget the level and any fight. */
   leave(): void;
   leaveBattle(): void;
+  rest(): void;
   /** Ask the server to save a new name / look (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
@@ -101,6 +102,9 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
       if (mode !== "battle" || transition) return;
       transition = startTransition("field");
     },
+    rest() {
+      if (mode === "field" && !transition) field.rest();
+    },
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
@@ -119,6 +123,10 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
           transition = startTransition("battle");
         },
         character: (msg) => applyCharacter(msg.character),
+        rested(msg) {
+          field.onRested(msg);
+          ui.showToast("You rest by the fire. HP and stamina are restored.");
+        },
         battleResult(msg) {
           field.onBattleResult(msg);
           if (!msg.accepted) ui.showToast("The server didn't accept that win.");

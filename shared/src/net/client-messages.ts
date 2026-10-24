@@ -57,10 +57,13 @@ export const CharacterMsg = z.object({
   }),
 }) satisfies z.ZodType<{ t: "character"; character: Character }>;
 
+/** Rest at the campfire you're standing by (the server checks you are). */
+export const RestMsg = z.object({ t: z.literal("rest") });
+
 /** Dev-only commands (the server ignores them in production). */
 export const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
-export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, DebugMsg]);
+export const ClientMsg = z.discriminatedUnion("t", [InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, DebugMsg]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
 /** Raw text from the socket -> a valid message, or null. */

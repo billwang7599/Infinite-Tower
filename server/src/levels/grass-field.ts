@@ -10,6 +10,7 @@ export const GRASS_FIELD: LevelDef = {
     border: 1.6,
     playerSpeed: 5,
     grass: [{ x: 3, z: 1, w: 11, h: 7 }],
+    campfires: [{ x: -9, z: -2.5 }],
   },
   spawn: { x: -12, z: -5 },
   arena: { radius: 16 },

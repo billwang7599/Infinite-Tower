@@ -25,6 +25,7 @@ export interface PreparedGame {
   join(joined: Joined, onLost: (closeCode: number) => void): void;
   leave(): void;
   saveCharacter(character: Character): void;
+  rest(): void;
 }
 
 export async function prepareGame(ui: UiState, settings: Settings): Promise<PreparedGame> {
@@ -69,5 +70,6 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Prep
       game.leave();
     },
     saveCharacter: (character) => game.saveCharacter(character),
+    rest: () => game.rest(),
   };
 }

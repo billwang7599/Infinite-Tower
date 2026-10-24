@@ -35,5 +35,7 @@ export type ServerMsg =
   | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; wins: number }
   /** `source`: the actor that touched you, or null for tall grass. `vitals`, `stats`: what you start the fight with. */
   | { t: "encounter"; source: number | null; enemy: EnemyDef; arena: ArenaDef; me: Vec2; vitals: Vitals; stats: Stats }
+  /** You rested at a campfire: `vitals` are full again. */
+  | { t: "rested"; vitals: Vitals }
   /** `accepted: false` when the server refused the client's claimed win. Losing refills `vitals`. */
   | { t: "battleResult"; won: boolean; accepted: boolean; me: Vec2; wins: number; vitals: Vitals };

@@ -21,6 +21,19 @@ export interface LevelLayout {
   playerSpeed: number;
   /** Tall-grass patches (min corner + size): walking through them can start an encounter. */
   grass: Rect[];
+  /** Campfire centers. Standing within REST_RANGE of one, you can rest: HP and stamina refill. */
+  campfires: Vec2[];
+}
+
+/** Tiles, center to center. */
+export const REST_RANGE = 1.6;
+
+/**
+ * Close enough to a campfire to rest. The server adds `slack`: its copy of you trails the client's prediction by
+ * a round trip, so a player who just walked up would otherwise be refused.
+ */
+export function nearCampfire(level: LevelLayout, pos: Vec2, slack = 0): boolean {
+  return level.campfires.some((c) => Math.hypot(c.x - pos.x, c.z - pos.z) <= REST_RANGE + slack);
 }
 
 export interface WalkInput { moveX: number; moveZ: number }
