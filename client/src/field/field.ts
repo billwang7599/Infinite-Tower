@@ -37,6 +37,7 @@ export interface Field {
   onEncounter(msg: Msg<"encounter">): void;
   onBattleResult(msg: Msg<"battleResult">): void;
   onRested(msg: Msg<"rested">): void;
+  onItemUsed(msg: Msg<"itemUsed">): void;
   /** Rest at the campfire you're standing by (the Rest key, or the HUD's button). */
   rest(): void;
   /** Left the arena: stop walking until the server's result arrives. */
@@ -130,6 +131,9 @@ export function createField(opts: FieldOptions): Field {
       snapFieldCamera(view, world);
     },
     onRested(msg) {
+      vitals = msg.vitals;
+    },
+    onItemUsed(msg) {
       vitals = msg.vitals;
     },
     rest() {

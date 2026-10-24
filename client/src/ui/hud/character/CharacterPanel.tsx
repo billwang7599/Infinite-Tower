@@ -4,6 +4,7 @@
  */
 import { STAT_KEYS, type Character, type Stats } from "@infinite-tower/shared";
 import { BUTTON } from "../../screens/settings/buttons.js";
+import { PanelFrame } from "../PanelFrame.js";
 import { STAT_TEXT } from "./statText.js";
 
 interface PanelProps {
@@ -15,20 +16,7 @@ interface PanelProps {
 
 export function CharacterPanel({ stats, character, close, edit }: PanelProps) {
   return (
-    <section
-      id="character-panel"
-      aria-label="Character"
-      className="absolute top-14 right-4 w-72 rounded-sm border border-white/15 bg-night/90 px-5 py-4 font-normal shadow-[0_12px_40px_#000a]"
-    >
-      <header className="mb-3 flex items-center justify-between">
-        <h2 id="character-name" className="font-title text-xl tracking-[0.08em] text-victory">{character?.name ?? "Character"}</h2>
-        <button
-          type="button" aria-label="Close" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={close}
-          className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          ✕
-        </button>
-      </header>
+    <PanelFrame id="character-panel" title={character?.name ?? "Character"} titleId="character-name" close={close}>
       {stats && (
         <dl className="flex flex-col gap-2">
           {STAT_KEYS.map((key) => (
@@ -46,6 +34,6 @@ export function CharacterPanel({ stats, character, close, edit }: PanelProps) {
       >
         Change look
       </button>
-    </section>
+    </PanelFrame>
   );
 }

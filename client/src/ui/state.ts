@@ -3,7 +3,7 @@
  * imports React, so game code never touches it. The exception is `settingsScreen`: the UI opens and closes it
  * and the game watches it, to stop taking input while it's open. `UiActions` is the other direction.
  */
-import type { Character, Credentials, Stats } from "@infinite-tower/shared";
+import type { Character, Credentials, Inventory, ItemId, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
 import { Store } from "./store.js";
@@ -55,6 +55,7 @@ export interface FieldHudState {
   character: Character | null;
   /** Standing by a campfire: the Rest button shows. */
   nearCampfire: boolean;
+  inventory: Inventory;
 }
 
 export interface BattleHudState {
@@ -88,6 +89,8 @@ export interface UiActions {
   play(): void;
   /** Rest at the campfire you're standing by. */
   rest(): void;
+  /** Use one of an item (eat the meat); the server answers with what it did. */
+  useItem(item: ItemId): void;
   /** Send a new name / look to the server; the editor closes when it answers. */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
@@ -100,7 +103,7 @@ export class UiState {
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly characterScreen = new Store<CharacterScreenState>({ open: false, firstTime: false });
-  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null, nearCampfire: false });
+  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null, nearCampfire: false, inventory: {} });
   readonly battle = new Store<BattleHudState>({
     hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
     mouseCaptured: false, result: "fighting", showResult: false,

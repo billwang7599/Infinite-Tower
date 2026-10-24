@@ -52,6 +52,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
+- Inventory: one item so far, boar meat (heals 35 HP, eaten from the inventory panel, field only, not at full HP).
+  A beaten boar drops one 60% of the time. Stacks cap at 99. Nothing to start with, and dying keeps everything.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

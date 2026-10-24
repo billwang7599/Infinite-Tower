@@ -2,7 +2,7 @@
  * The database's tables, in TypeScript. Queries are typed from these. After changing a table, run
  * `npm run db:generate -- --name <what-changed>` to write the migration into migrations/, and commit both.
  */
-import type { Character, SavedSettings } from "@infinite-tower/shared";
+import type { Character, Inventory, SavedSettings } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
 import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
@@ -36,5 +36,7 @@ export const players = pgTable("players", {
   settings: jsonb().$type<SavedSettings>().notNull().default({}),
   /** {name, look} (shared/src/character/character.ts). null until they've made one, on their first visit. */
   character: jsonb().$type<Character>(),
+  /** What they carry: item id -> count (shared/src/items/items.ts). {} is empty-handed. */
+  inventory: jsonb().$type<Inventory>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

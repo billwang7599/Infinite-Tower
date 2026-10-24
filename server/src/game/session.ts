@@ -4,7 +4,7 @@
  * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
 import {
-  fullVitals, nearCampfire, World, type Character, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
+  fullVitals, itemDef, nearCampfire, PLAYER, World, type Character, type Inventory, type ItemId, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import { PLAYER_STATS } from "../content/player.js";
 import { chaseSystem } from "../field/behaviors/chase.js";
@@ -40,6 +40,7 @@ export class Session {
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
+  inventory: Inventory;
   /** Highest input seq accepted (older or repeated ones are ignored). */
   lastSeq = 0;
   /** null until the player has a character and has been put in a level. */
@@ -60,6 +61,7 @@ export class Session {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
+    this.inventory = saved.inventory;
     const session = this;
     this.ctx = {
       get level() { return session.currentLevel; },
@@ -75,7 +77,7 @@ export class Session {
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
     conn.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, dev,
+      character: this.character, inventory: this.inventory, dev,
     });
   }
 
@@ -99,11 +101,25 @@ export class Session {
     this.conn.send({ t: "rested", vitals: this.vitals });
   }
 
+  /** Use one `item`, if the player has one and it does something now (meat when already at full HP doesn't). */
+  useItem(item: ItemId): void {
+    const have = this.inventory[item] ?? 0;
+    const heal = itemDef(item).heal ?? 0;
+    if (!this.inField || have <= 0 || heal <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
+    const inventory = { ...this.inventory };
+    if (have > 1) inventory[item] = have - 1;
+    else delete inventory[item];
+    this.inventory = inventory;
+    this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + heal) };
+    this.save();
+    this.conn.send({ t: "itemUsed", item, vitals: this.vitals, inventory: this.inventory });
+  }
+
   /** Called after every fight and on disconnect. */
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
-    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character });
+    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character, inventory: this.inventory });
   }
 
   /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */

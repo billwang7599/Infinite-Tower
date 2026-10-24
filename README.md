@@ -9,7 +9,9 @@ Touch the boar (it chases you once it spots you, "!") or walk through the tall g
 and you're pulled into a 2.5D arena fight. Win and that boar is gone (another shows up ~8 s later); die and you
 wake up back at the start. Press Enter after the fight to return to the field. HP and stamina carry over from one
 fight to the next (the field HUD shows them). Resting at the **campfire** (a few steps from the start) refills
-them: stand next to it and press E (or Enter), or click "Rest by the fire". Dying refills them too. The field HUD also counts the
+them: stand next to it and press E (or Enter), or click "Rest by the fire". Dying refills them too.
+Beaten boars sometimes drop **boar meat** (60%); eat it from the **inventory** (I, or the bag button) to get 35 HP
+back without walking to the fire. Items are only used on the field, not mid-fight. The field HUD also counts the
 fights you've won ("Boars defeated"), kept with your account like HP and stamina.
 The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there's
 a seeded account, **test / test**. Logging in goes straight into the game; after that the title shows Play
@@ -54,7 +56,8 @@ to any browser. The defaults (below) and the list of
 actions are in `client/src/settings/bindings.ts`. Esc itself always opens and closes Settings. While Settings is open
 the game gets no input, but it keeps running: a fight doesn't pause.
 
-**Field:** WASD / arrow keys to walk. E / Enter rests when you're by a campfire. C (or the person button on the HUD) toggles the **character panel** with your
+**Field:** WASD / arrow keys to walk. E / Enter rests when you're by a campfire. I (or the bag button) opens the
+inventory. C (or the person button on the HUD) toggles the **character panel** with your
 stats; you can keep walking while it's open.
 
 **Arena:** works with keyboard only (laptop) or keyboard + mouse / trackpad, interchangeably.
@@ -123,6 +126,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
   character/       character.ts (Character = name + look; LOOKS: every cloak / skin / trouser option and its colors;
                    name rules)
+  items/           items.ts (ITEMS: name, description, what using one does; Inventory = item id -> count)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
@@ -144,7 +148,8 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
                    from behavior parts), context.ts, player.ts (input replay + grass encounters), spawner.ts
     behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
     prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
-  content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS)
+  content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS), drops.ts (what each enemy
+                   drops and how often; rollDrops, addItems)
   store/           player-store.ts (PlayerStore interface, PlayerSave = what's kept between connections),
                    pg-player-store.ts (PlayerStore on the `players` table; one query at a time per player)
   env.ts           DEV, PORT, DATABASE_URL from the environment (loads the repo's .env if there is one)
@@ -183,7 +188,9 @@ client/src/      Browser game: Babylon rendering, Havok physics, input, React UI
     components/      Reusable pieces: Bar.tsx (HUD bar + souls-style damage chip), PlayerBars.tsx (HP + stamina,
                      drawn in the same corner by both HUDs)
     hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons), BattleHud.tsx,
-                     character/ (CharacterPanel.tsx: the stats; statText.ts: what each one says)
+                     character/ (CharacterPanel.tsx: the stats; statText.ts: what each one says), inventory/
+                     (InventoryPanel.tsx), PanelFrame.tsx (the side panels' box), panelKeys.ts (their keys),
+                     icons.tsx
     overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
     screens/         One folder per full-screen page, holding the parts only that page uses
       title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line), LoginForm.tsx (log in /
