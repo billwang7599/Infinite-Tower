@@ -7,14 +7,18 @@ import { defineConfig, loadEnv } from "vite";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  // The game server (server/) listens on PORT; the browser always talks to /ws on the page's own host.
+  // The game server (server/) listens on PORT; the browser always talks to /ws and /api on the page's own host
+  // (so the login cookie is the page's own, too).
   const port = loadEnv(mode, ROOT, "").PORT || "8787";
-  const proxy = { "/ws": { target: `ws://localhost:${port}`, ws: true } };
+  const gameServer = {
+    "/ws": { target: `ws://localhost:${port}`, ws: true },
+    "/api": { target: `http://localhost:${port}` },
+  };
   return {
     plugins: [react(), tailwindcss()],
     // Havok ships a .wasm file that Vite's dep pre-bundler would break.
     optimizeDeps: { exclude: ["@babylonjs/havok"] },
-    server: { port: 5173, proxy },
-    preview: { proxy },
+    server: { port: 5173, proxy: gameServer },
+    preview: { proxy: gameServer },
   };
 });

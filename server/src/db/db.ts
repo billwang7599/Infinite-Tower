@@ -9,7 +9,8 @@ import { Pool } from "pg";
 import { DATABASE_URL } from "../env.js";
 import * as schema from "./schema.js";
 
-export type Db = NodePgDatabase<typeof schema>;
+/** `$client` is the pool, for closing it (the seed script). */
+export type Db = NodePgDatabase<typeof schema> & { $client: Pool };
 
 /**
  * Connects and applies the migrations in migrations/ that this database hasn't run yet (Drizzle records them in

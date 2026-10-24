@@ -1,17 +1,19 @@
 /**
- * Entry point: mounts the React UI, which opens on the title screen. Meanwhile game/start.ts (its own
- * chunk) downloads and prepares the game behind the title, so Play only has to connect and join.
+ * Entry point: mounts the React UI, which opens on the title screen and asks the server who's logged in.
+ * Meanwhile game/start.ts (its own chunk) downloads and prepares the game behind the title, so Play only has to
+ * connect and join.
  *
- *   game/     start-up, sessions, mode switching       net/      server connection
+ *   game/     start-up, sessions, mode switching       net/      server connection, the account API
  *   field/    the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
  *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
  *   settings/ key bindings, camera, saved in browser   ui/       React UI over the canvas; the game writes to it through ui/state.ts
  */
-import { VIEW } from "@infinite-tower/shared";
-import { Connection } from "./net/connection.js";
+import { CLOSE_CODES, VIEW, type Credentials } from "@infinite-tower/shared";
+import { currentAccount, logIn, logOut, register } from "./net/account.js";
+import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
 import { loadSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
-import { UiState } from "./ui/state.js";
+import { UiState, type SignInKind } from "./ui/state.js";
 
 // The page frame (#stage) is held to the same widest view as the camera and the server; wider windows get side bars.
 document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW.maxAspect));
@@ -22,26 +24,65 @@ const settings = loadSettings();
 const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
 preparing.catch((err: unknown) => {
-  if (ui.title.get().phase === "menu") fail(err);
+  if (["checking", "menu", "signingIn"].includes(ui.title.get().phase)) fail(err);
 });
 
-async function play(): Promise<void> {
+currentAccount().then(
+  (account) => settle({ account: account?.username ?? null }),
+  () => settle({ account: null, error: SERVER_UNREACHABLE }),
+);
+/** Unless preparing the game already failed. */
+function settle(state: { account: string | null; error?: string }): void {
+  if (ui.title.get().phase === "checking") ui.title.set({ phase: "menu", error: null, ...state });
+}
+
+async function signIn(kind: SignInKind, credentials: Credentials): Promise<void> {
   if (ui.title.get().phase !== "menu") return;
+  ui.title.set({ phase: "signingIn", error: null });
+  try {
+    const account = await (kind === "login" ? logIn : register)(credentials);
+    ui.title.set({ phase: "menu", account: account.username });
+  } catch (err) {
+    ui.title.set({ phase: "menu", error: message(err) });
+    return;
+  }
+  await play();
+}
+
+async function signOut(): Promise<void> {
+  if (ui.title.get().phase !== "menu") return;
+  try {
+    await logOut();
+    ui.title.set({ account: null, error: null });
+  } catch (err) {
+    ui.title.set({ error: message(err) });
+  }
+}
+
+async function play(): Promise<void> {
+  if (ui.title.get().phase !== "menu" || !ui.title.get().account) return;
   ui.title.set({ phase: "connecting", error: null });
   // The server owns the field, encounters and enemies; nothing starts until it says hello.
   const joined = await Connection.open().catch((err: unknown) => {
-    ui.title.set({ phase: "menu", error: message(err) });
+    // The login expired since the page loaded: back to the form.
+    if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", account: null, error: err.message });
+    else ui.title.set({ phase: "menu", error: message(err) });
     return null;
   });
   if (!joined) return;
 
   try {
     ui.title.set({ phase: "loading" });
-    (await preparing).join(joined, () => void backToTitle("Lost the connection to the game server."));
+    (await preparing).join(joined, (code) => void backToTitle(lostMessage(code)));
     ui.title.set({ phase: "leaving" });
   } catch (err) {
     fail(err);
   }
+}
+
+function lostMessage(closeCode: number): string {
+  if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
+  return "Lost the connection to the game server.";
 }
 
 /** Leaves the world (hanging up on the server) and shows the title again, with `error` under Retry. */
@@ -61,6 +102,8 @@ function message(err: unknown): string {
 }
 
 mountUi(document.getElementById("ui")!, ui, settings, {
+  signIn: (kind, credentials) => void signIn(kind, credentials),
+  logOut: () => void signOut(),
   play: () => void play(),
   returnToTitle: () => void backToTitle(),
 });

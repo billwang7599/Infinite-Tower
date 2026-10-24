@@ -23,7 +23,7 @@ export interface Game {
   /** Called once, after both modes exist (the battle needs `leaveBattle` first). */
   setModes(battle: Battle, field: Field): void;
   /** Start a session on a connection the server has welcomed. `onLost` runs if it drops. */
-  join(joined: Joined, onLost: () => void): void;
+  join(joined: Joined, onLost: (closeCode: number) => void): void;
   /** End the session: hang up, stop drawing, forget the level and any fight. */
   leave(): void;
   leaveBattle(): void;
