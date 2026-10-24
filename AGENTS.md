@@ -37,6 +37,9 @@ Decided by the user:
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it. See the architecture rule below.
+- `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
+  by the shared Zod schemas through fastify-type-provider-zod. Game messages stay on plain `ws` (`ws/`); Fastify
+  only does the `/ws` handshake.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
