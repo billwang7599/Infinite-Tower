@@ -4,7 +4,7 @@
  */
 import type { SavedSettings } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
-import { doublePrecision, index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /** Logins (auth/accounts.ts). The password is scrypt'd, with its parameters and salt (auth/passwords.ts). */
 export const accounts = pgTable("accounts", {
@@ -30,6 +30,8 @@ export const players = pgTable("players", {
   id: uuid().primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   hp: doublePrecision().notNull(),
   stamina: doublePrecision().notNull(),
+  /** Fights won (any enemy), shown on the field HUD. */
+  wins: integer().notNull().default(0),
   /** Key bindings and camera: only what differs from the defaults, so {} is "all defaults". */
   settings: jsonb().$type<SavedSettings>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -35,6 +35,11 @@ Decided by the user:
   database is seeded with the account `test` / `test`.
 - Settings (key bindings, camera) live on the server with the player's save and come down in `welcome`; the client
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
+
+Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
+them; treat them as changeable, and still ask before deciding new ones):
+
+- The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

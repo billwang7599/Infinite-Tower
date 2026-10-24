@@ -29,7 +29,7 @@ export class Session {
   readonly player: Entity;
   /** null while in the field; set during a fight. */
   encounter: Encounter | null = null;
-  wins = 0;
+  wins: number;
   vitals: Vitals;
   settings: SavedSettings;
   /** Highest input seq accepted (older or repeated ones are ignored). */
@@ -48,6 +48,7 @@ export class Session {
     private readonly persist: (data: PlayerSave) => void,
   ) {
     this.vitals = saved.vitals;
+    this.wins = saved.wins;
     this.settings = saved.settings;
     const session = this;
     this.ctx = {
@@ -69,7 +70,7 @@ export class Session {
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
-    this.persist({ vitals: { ...this.vitals }, settings: this.settings });
+    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings });
   }
 
   /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */

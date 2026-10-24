@@ -10,11 +10,13 @@ export type PlayerId = string;
 /** To keep something else across connections: add it here, to `newPlayer`, and a column (a new migration). */
 export interface PlayerSave {
   vitals: Vitals;
+  /** Fights won. */
+  wins: number;
   settings: SavedSettings;
 }
 
 /** A player the store has never seen. */
-export const newPlayer = (): PlayerSave => ({ vitals: fullVitals(), settings: {} });
+export const newPlayer = (): PlayerSave => ({ vitals: fullVitals(), wins: 0, settings: {} });
 
 export interface PlayerStore {
   /** Resolves to `newPlayer()` for an unknown id. */
