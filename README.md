@@ -13,11 +13,12 @@ them: stand next to it and press E (or Enter), or click "Rest by the fire". Dyin
 Beaten boars sometimes drop **boar meat** (60%); eat it from the **inventory** (I, or the bag button) to get 35 HP
 back without walking to the fire. Items are only used on the field, not mid-fight. The field HUD also counts the
 fights you've won ("Boars defeated"), kept with your account like HP and stamina.
-The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there's
-a seeded account, **test / test**. Logging in goes straight into the game; after that the title shows Play
-(Enter / Space / J, or click) and Log out, and the login is remembered for 30 days. If the server is down it says
-so and Play becomes Retry. The game downloads and gets ready behind the title, so after Play there is only the
-server's hello to wait for. In the game, Esc (or the gear on the field HUD) opens **Settings**: camera sensitivity, key
+The game opens on a title screen with a login form (username + password, or "Create an account"); in dev there are three
+seeded accounts, **test1 / test1**, **test2 / test2** and **test3 / test3**. Logging in goes straight into the game;
+after that the title shows Play (Enter / Space / J, or click) and Log out, and the login is remembered for 30 days. If
+the server is down it says so and Play becomes Retry. The game downloads and gets ready behind the title, so after Play
+there is only the server's hello to wait for.
+In the game, Esc (or the gear on the field HUD) opens **Settings**: camera sensitivity, key
 bindings, and Return to title, which disconnects from the server. Losing the connection also lands on the title, with Retry.
 Playing from a second tab or browser takes over: the first one goes back to the title.
 On your first visit you make a **character**: a name and a look (cloak, skin and trouser colors, with a preview).
@@ -35,7 +36,7 @@ npm start          # production: build the client, server serves it + /ws + /api
 npm run typecheck  # shared, server, client, then the server's layering (scripts/check-layers.ts)
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data (then seeds it again)
-npm run db:seed    # add the dev data if it's missing: the account test / test
+npm run db:seed    # add the dev data if it's missing: accounts test1, test2, test3 (password = username)
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```
@@ -44,7 +45,7 @@ The server reads `.env` (server/src/env.ts; variables set in the shell win), con
 applies new migrations when it starts. Changing `POSTGRES_USER`, `_PASSWORD` or `_DB` after the database exists
 needs `npm run db:reset`.
 
-Playwright and other scripts can log in with `POST /api/login` `{"username":"test","password":"test"}` (the
+Playwright and other scripts can log in with `POST /api/login` `{"username":"test1","password":"test1"}` (the
 cookie it sets is what `/ws` checks). After Play, `?debug` exposes `window.battle` (arena context: world, scene, camera view), `window.field` (field scene + level),
 `window.mode()`, `window.components`, `window.ui` (the HUD stores), `window.settings` (key bindings, camera) and
 `window.encounter()` (asks the server for a fight; dev server only).
@@ -170,7 +171,7 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
                    DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the two
                    stores core asks for; one query at a time per player), migrations/ (SQL written by
                    `npm run db:generate`, plus drizzle-kit's meta/; settings in server/drizzle.config.ts), seed.ts
-                   (dev data: the test / test account; refuses to run in production)
+                   (dev data: accounts test1-3, password = username; refuses to run in production)
 
 client/src/      Browser game: Babylon rendering, Havok physics, input, React UI.
   main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, and start preparing the game; logging
