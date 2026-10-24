@@ -1,13 +1,13 @@
 /** Assembles the arena player from components: Havok capsule, billboard sprite, blob shadow, slash trail. */
 import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  type Entity, type Vec3, type Vitals, Player, PlayerInput, LocalPlayer, Health, Stamina, Fighter, PLAYER,
+  type Entity, type Stats, type Vec3, type Vitals, Player, PlayerInput, LocalPlayer, Health, Stamina, Fighter, FighterStats, PLAYER,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import { Layer, type BattleContext } from "../context.js";
 import { PlayerSprite } from "./components.js";
 
-export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, vitals: Vitals, local: boolean): Entity {
+export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, vitals: Vitals, stats: Stats, local: boolean): Entity {
   const { world, scene, materials } = ctx;
   const e = world.spawn();
 
@@ -61,7 +61,8 @@ export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, vitals: 
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, combo: 0,
   });
   world.add(e, Health, { hp: vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
-  world.add(e, Stamina, { value: vitals.stamina, max: PLAYER.maxStamina, regenDelay: 0 });
+  world.add(e, Stamina, { value: vitals.stamina, max: stats.stamina, regenDelay: 0 });
+  world.add(e, FighterStats, { ...stats });
   world.add(e, Fighter, { team: "player", radius: PLAYER.radius });
   if (local) world.add(e, LocalPlayer, true);
   return e;

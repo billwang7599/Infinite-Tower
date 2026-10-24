@@ -5,8 +5,8 @@
  */
 import type { Engine } from "@babylonjs/core";
 import {
-  FIXED_DT, Fighter, fullVitals, Health, LocalPlayer, Stamina,
-  type ArenaDef, type EnemyDef, type Entity, type System, type Vitals, type World,
+  FIXED_DT, Fighter, Health, LocalPlayer, Stamina,
+  type ArenaDef, type EnemyDef, type Entity, type System, type Stats, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -37,7 +37,7 @@ import { hudSystem } from "./systems/hud.js";
 
 export interface Battle {
   ctx: BattleContext;
-  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals): void;
+  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals, stats: Stats): void;
   end(): { won: boolean; vitals: Vitals };
   render(): void;
 }
@@ -113,12 +113,16 @@ export function createBattle(opts: BattleOptions): Battle {
     world.flush();
   };
 
+  /** What the fight started with: reported back if the player somehow isn't there at the end. */
+  let startVitals: Vitals = { hp: 0, stamina: 0 };
+
   return {
     ctx,
-    start(enemy, arena, vitals) {
+    start(enemy, arena, vitals, stats) {
       clear();
       useArena(arena);
-      spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, vitals, true);
+      startVitals = vitals;
+      spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, vitals, stats, true);
       spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;
@@ -129,7 +133,7 @@ export function createBattle(opts: BattleOptions): Battle {
     end() {
       const won = ctx.fight.state === "won";
       const me = world.first(LocalPlayer, Health, Stamina);
-      const vitals = me ? { hp: me[2].hp, stamina: me[3].value } : fullVitals();
+      const vitals = me ? { hp: me[2].hp, stamina: me[3].value } : startVitals;
       clear();
       return { won, vitals };
     },

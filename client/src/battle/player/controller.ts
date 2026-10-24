@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  approach, ActiveHit, Health, Player, PlayerInput, Stamina, PLAYER,
+  approach, ActiveHit, FighterStats, Health, moveSpeed, physicalDamage, Player, PlayerInput, Stamina, PLAYER,
   type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
@@ -17,14 +17,14 @@ function spend(stamina: StaminaData, cost: number): void {
   stamina.regenDelay = PLAYER.staminaDelay;
 }
 
-/** Free movement + jump (with buffering, coyote time and variable height). */
-function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: number, speedFactor = 1): void {
+/** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
+function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: number, speed: number): void {
   let ix = input.moveX, iz = input.moveZ;
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
   const accel = (player.grounded ? PLAYER.accel : PLAYER.airAccel) * dt;
-  v.x = approach(v.x, ix * PLAYER.moveSpeed * speedFactor, accel);
-  v.z = approach(v.z, iz * PLAYER.moveSpeed * speedFactor, accel);
+  v.x = approach(v.x, ix * speed, accel);
+  v.z = approach(v.z, iz * speed, accel);
 
   const pressed = input.jump && !player.jumpHeld;
   player.jumpBuffer = pressed ? PLAYER.jumpBuffer : Math.max(0, player.jumpBuffer - dt);
@@ -46,8 +46,9 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: 
 export function playerControllerSystem(): System {
   const v = new Vector3();
   return (world, dt) => {
-    for (const [e, player, input, body, health, stamina] of world.query(Player, PlayerInput, Body, Health, Stamina)) {
+    for (const [e, player, input, body, health, stamina, stats] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
       const b = body.aggregate.body;
+      const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats);
       b.getLinearVelocityToRef(v);
       const alive = health.hp > 0;
 
@@ -94,14 +95,14 @@ export function playerControllerSystem(): System {
               if (!world.has(e, ActiveHit)) {
                 world.add(e, ActiveHit, {
                   dirX: d.x, dirZ: d.z, range: S.range, minDot: S.minDot,
-                  damage: S.damage, knockback: 0, lift: 0, poise: S.poise, hit: new Set<number>(),
+                  damage: physicalDamage(S.damage, stats), knockback: 0, lift: 0, poise: S.poise, hit: new Set<number>(),
                 });
               }
               v.x = d.x * S.lunge;
               v.z = d.z * S.lunge;
             } else {
               world.remove(e, ActiveHit);
-              const max = PLAYER.moveSpeed * S.moveFactor, a = PLAYER.accel * dt;
+              const max = walkSpeed * S.moveFactor, a = PLAYER.accel * dt;
               v.x = approach(v.x, input.moveX * max, a);
               v.z = approach(v.z, input.moveZ * max, a);
             }
@@ -117,7 +118,7 @@ export function playerControllerSystem(): System {
             break;
           }
           case "none":
-            locomotion(player, input, v, dt);
+            locomotion(player, input, v, dt, walkSpeed);
             break;
         }
         player.actionTime += dt;

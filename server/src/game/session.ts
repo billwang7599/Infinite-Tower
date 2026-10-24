@@ -3,7 +3,8 @@
  * and actors). Starts from the player's save (store/) and holds which level/mode they're in; the field
  * systems do the simulating, encounter.ts the fights, handlers.ts the incoming messages.
  */
-import { World, type Entity, type SavedSettings, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
+import { World, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals } from "@infinite-tower/shared";
+import { PLAYER_STATS } from "../content/player.js";
 import { chaseSystem } from "../field/behaviors/chase.js";
 import { moveSystem } from "../field/behaviors/move.js";
 import { touchSystem } from "../field/behaviors/touch.js";
@@ -31,6 +32,8 @@ export class Session {
   encounter: Encounter | null = null;
   wins: number;
   vitals: Vitals;
+  /** The same for everyone for now (content/player.ts); not saved. */
+  readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   /** Highest input seq accepted (older or repeated ones are ignored). */
   lastSeq = 0;
@@ -63,7 +66,7 @@ export class Session {
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
     this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, settings: this.settings, dev });
+    conn.send({ t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings, dev });
   }
 
   /** Called after every fight and on disconnect. */

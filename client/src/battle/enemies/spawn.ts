@@ -5,7 +5,7 @@
  */
 import { MeshBuilder, PhysicsAggregate, PhysicsShapeType, Vector3 } from "@babylonjs/core";
 import {
-  ChargeAttack, Enemy, Fighter, GoreAttack, Health, type EnemyAttacks, type EnemyDef, type Entity, type Vec3, type World,
+  ChargeAttack, Enemy, Fighter, FighterStats, GoreAttack, Health, type EnemyAttacks, type EnemyDef, type Entity, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import { Layer, type BattleContext } from "../context.js";
@@ -43,5 +43,6 @@ export function spawnEnemy(ctx: BattleContext, def: EnemyDef, at: Vec3, yaw: num
   }
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
+  world.add(e, FighterStats, { ...def.stats });
   return e;
 }

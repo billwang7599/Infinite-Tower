@@ -1,18 +1,47 @@
+import { useEffect, useState, type ReactNode } from "react";
+import type { KeyBindings } from "../../settings/bindings.js";
 import { PlayerBars } from "../components/PlayerBars.js";
-import type { FieldHudState } from "../state.js";
+import type { FieldHudState, SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
+import { CharacterPanel } from "./character/CharacterPanel.js";
 
 type HudProps = { hud: Store<FieldHudState> };
 
-export function FieldHud({ hud, openSettings }: HudProps & { openSettings: () => void }) {
+interface FieldHudProps extends HudProps {
+  bindings: KeyBindings;
+  /** The bound Character key does nothing while Settings is open (it may be getting rebound). */
+  settingsScreen: Store<SettingsScreenState>;
+  openSettings: () => void;
+}
+
+export function FieldHud({ hud, bindings, settingsScreen, openSettings }: FieldHudProps) {
+  const [characterOpen, setCharacterOpen] = useState(false);
+  const stats = useStore(hud, (s) => s.stats);
+  const characterKeys = useStore(bindings, (b) => b.field.character);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || !characterKeys.includes(e.code) || settingsScreen.get().open) return;
+      setCharacterOpen((open) => !open);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [characterKeys, settingsScreen]);
+
   return (
     <div id="field-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
       <PlayerStatus hud={hud} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />
-        <SettingsButton onClick={openSettings} />
+        <HudButton id="character-button" label="Character" onClick={() => setCharacterOpen((open) => !open)}>
+          <PersonIcon />
+        </HudButton>
+        <HudButton id="settings-button" label="Settings" onClick={openSettings}>
+          <GearIcon />
+        </HudButton>
       </div>
+      {characterOpen && <CharacterPanel stats={stats} close={() => setCharacterOpen(false)} />}
     </div>
   );
 }
@@ -36,20 +65,29 @@ function LevelName({ hud }: HudProps) {
   return <div id="field-level" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
 }
 
-function SettingsButton({ onClick }: { onClick: () => void }) {
+function HudButton({ id, label, onClick, children }: { id: string; label: string; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
-      id="settings-button"
-      aria-label="Settings"
+      id={id}
+      aria-label={label}
       // Keyboard game: out of the tab order and never focused by a click, so Space / Enter can't press it.
       tabIndex={-1}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className="pointer-events-auto flex size-9 cursor-pointer items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
     >
-      <GearIcon />
+      {children}
     </button>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
   );
 }
 

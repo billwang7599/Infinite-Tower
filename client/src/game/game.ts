@@ -7,7 +7,7 @@
  * transitions: an encounter flashes into battle, leaving a decided fight fades back to the field.
  */
 import type { Engine } from "@babylonjs/core";
-import type { ArenaDef, EnemyDef, Vitals } from "@infinite-tower/shared";
+import type { ArenaDef, EnemyDef, Stats, Vitals } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -33,7 +33,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let transition: Transition | null = null;
-  let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef; vitals: Vitals } | null = null;
+  let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef; vitals: Vitals; stats: Stats } | null = null;
   let battle: Battle, field: Field;
 
   /** The game only gets input during a session with the settings closed, and the mouse only in the arena. */
@@ -54,8 +54,8 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
 
   const swap = (to: Mode) => {
     if (to === "battle") {
-      const { fromGrass, enemy, arena, vitals } = encounter!;
-      battle.start(enemy, arena, vitals);
+      const { fromGrass, enemy, arena, vitals, stats } = encounter!;
+      battle.start(enemy, arena, vitals, stats);
       ui.showToast(fromGrass ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
     } else {
       net?.send({ t: "battleEnd", ...battle.end() });
@@ -97,7 +97,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
         state: (msg) => field.onState(msg),
         encounter(msg) {
           field.onEncounter(msg);
-          encounter = { fromGrass: msg.source === null, enemy: msg.enemy, arena: msg.arena, vitals: msg.vitals };
+          encounter = { fromGrass: msg.source === null, enemy: msg.enemy, arena: msg.arena, vitals: msg.vitals, stats: msg.stats };
           transition = startTransition("battle");
         },
         battleResult(msg) {

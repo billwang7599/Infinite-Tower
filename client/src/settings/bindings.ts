@@ -23,6 +23,7 @@ export const ACTIONS = {
     down: { label: "Walk down", keys: ["KeyS", "ArrowDown"] },
     left: { label: "Walk left", keys: ["KeyA", "ArrowLeft"] },
     right: { label: "Walk right", keys: ["KeyD", "ArrowRight"] },
+    character: { label: "Character panel", keys: ["KeyC"] },
   },
   battle: {
     forward: { label: "Move forward", keys: ["KeyW"] },
