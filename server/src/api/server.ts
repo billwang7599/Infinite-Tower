@@ -1,15 +1,18 @@
 /**
- * The HTTP server: the account API (/api), the built client in production, and the door to the game socket.
- * A /ws upgrade is checked here, since its cookie arrives with the HTTP request, then handed on with the account
- * it's logged in as; what happens to the socket after that is ws/'s business.
+ * The HTTP server (Fastify): the account API (/api), the door to the game socket (/ws), and the built client in
+ * production. In dev, Vite serves the client and proxies /ws and /api here.
  */
-import { createServer, type IncomingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import { join, sep } from "node:path";
+import fastifyCookie from "@fastify/cookie";
+import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyStatic from "@fastify/static";
+import fastifyWebsocket from "@fastify/websocket";
+import Fastify, { type FastifyInstance } from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import type { Accounts } from "../core/accounts/accounts.js";
-import type { Account } from "../core/ports.js";
-import { sessionToken } from "./cookies.js";
-import { accountRoutes } from "./routes.js";
-import { serveStatic } from "./static.js";
+import { HttpError, onError, onNotFound } from "./errors.js";
+import { gameSocketRoute, type GameSocket } from "./routes/game-socket.js";
+import { accountRoutes } from "./routes/accounts.js";
 
 export interface ServerOptions {
   port: number;
@@ -18,27 +21,50 @@ export interface ServerOptions {
   accounts: Accounts;
   /** Only sent over HTTPS: on in production, off for dev's plain http://localhost. */
   secureCookies: boolean;
-  /** An upgrade request to /ws, and who its cookie says it is (null: not logged in). */
-  onSocket(req: IncomingMessage, socket: Duplex, head: Buffer, account: Account | null): void;
+  socket: GameSocket;
 }
 
-export function startServer(opts: ServerOptions, onListening: () => void): void {
-  const api = accountRoutes(opts.accounts, opts.secureCookies);
-  const files = serveStatic(opts.clientDist);
-  const http = createServer((req, res) => {
-    api(req, res).then((handled) => { if (!handled) void files(req, res); });
+const MAX_BODY_BYTES = 4 * 1024;
+/** Vite puts a hash of each file's contents in its name under assets/, so a browser can keep those for good. */
+const FOREVER = "public, max-age=31536000, immutable";
+
+/** The server, ready but not listening: `startServer` listens, and a test can `app.inject()` requests instead. */
+export async function buildServer(opts: ServerOptions): Promise<FastifyInstance> {
+  const app = Fastify({ bodyLimit: MAX_BODY_BYTES });
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+  // JSON is the only body there is. That also keeps other sites out: a cross-site form can send text/plain, but
+  // not application/json without the browser asking this server first (CORS), and it says no.
+  app.removeContentTypeParser("text/plain");
+  app.setErrorHandler(onError);
+  app.setNotFoundHandler(onNotFound);
+  app.addHook("onRequest", async (req, reply) => {
+    if (req.url.startsWith("/api/")) reply.header("cache-control", "no-store");
   });
 
-  http.on("upgrade", (req, socket, head) => {
-    if (new URL(req.url ?? "/", "http://x").pathname !== "/ws") { socket.destroy(); return; }
-    const token = sessionToken(req);
-    (token ? opts.accounts.forToken(token) : Promise.resolve(null)).then(
-      (account) => opts.onSocket(req, socket, head, account),
-      (err: unknown) => {
-        console.error("[ws] checking a login failed", err);
-        socket.end("HTTP/1.1 503 Service Unavailable\r\n\r\n");
-      },
-    );
+  await app.register(fastifyCookie);
+  await app.register(fastifyRateLimit, {
+    global: false,
+    errorResponseBuilder: (_req, limit) =>
+      new HttpError(limit.statusCode, `Too many tries. Wait ${limit.after} and try again.`),
   });
-  http.listen(opts.port, onListening);
+  // At the top so its hooks see every route: an upgrade to anything but /ws is answered or closed, never left open.
+  await app.register(fastifyWebsocket, { options: { maxPayload: opts.socket.maxMessageBytes } });
+
+  await app.register(accountRoutes, { prefix: "/api", accounts: opts.accounts, secureCookies: opts.secureCookies });
+  await app.register(gameSocketRoute, { accounts: opts.accounts, socket: opts.socket });
+  const assets = join(opts.clientDist, "assets") + sep;
+  await app.register(fastifyStatic, {
+    root: opts.clientDist,
+    cacheControl: false,
+    // Everything else (index.html) is checked with the server on each load, and only downloaded when it changed.
+    setHeaders: (reply, path) => reply.header("cache-control", path.startsWith(assets) ? FOREVER : "no-cache"),
+  });
+  return app;
+}
+
+/** Listens on every interface (like Node's default), so the server is reachable from outside in production. */
+export async function startServer(opts: ServerOptions): Promise<void> {
+  const app = await buildServer(opts);
+  await app.listen({ port: opts.port, host: "::" });
 }

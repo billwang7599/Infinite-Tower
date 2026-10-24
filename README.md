@@ -155,12 +155,17 @@ server/src/      Node + ws. Authoritative: levels, encounters, field actors, ene
                      each enemy drops and how often; rollDrops, addItems)
     accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                      stored), passwords.ts (scrypt)
-  ws/              Outlet: the game socket. sockets.ts (accepts /ws upgrades api/ has checked, joins the player),
+  ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account; joins
+                   the player),
                    connection.ts (one socket = the PlayerLink: Zod-validated in, typed out), handlers.ts (each
                    ClientMsg -> one call on the session)
-  api/             Outlet: HTTP. server.ts (the HTTP server: /api, then static files; checks /ws's login cookie and
-                   hands the socket on), routes.ts (the /api handlers), cookies.ts (the httpOnly login cookie),
-                   http.ts (JSON body / reply helpers), static.ts
+  api/             Outlet: HTTP, on Fastify. server.ts (builds the app: plugins, JSON-only bodies, the built client
+                   from client/dist, with hashed assets/ cached for good), cookies.ts (the httpOnly login cookie),
+                   errors.ts (every error as `{error}` with a sentence the title screen can show)
+    routes/        One Fastify plugin per file, each registered in server.ts. accounts.ts (accountRoutes: the
+                   /api handlers; each body checked by its shared Zod schema; login + sign-up rate-limited),
+                   game-socket.ts (gameSocketRoute, /ws: checks the login cookie before the upgrade, then hands
+                   the socket on)
   db/              Outlet: Postgres. schema.ts (the tables, in TypeScript: Drizzle ORM), db.ts (connects to
                    DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the two
                    stores core asks for; one query at a time per player), migrations/ (SQL written by
@@ -253,6 +258,10 @@ mode `"field"`); the fight is **battle** (client folder, mode) and the place it 
   (`core/content/player.ts`), read from it in `Session`'s constructor and written in `Session.save()`; a column in
   `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
   Another store is a class implementing `PlayerStore`, swapped in for `new PgPlayerStore(db)` in `server/src/main.ts`.
+- **An HTTP route:** a handler in `server/src/api/routes/accounts.ts` (or a new plugin file in `api/routes/`,
+  registered in `api/server.ts`), with its body's Zod schema in `shared/src/net/` as `schema: { body }`; `req.body`
+  comes typed and checked. Throw `HttpError(status, sentence)` for an answer the client should show. Logic goes in
+  core, not in the handler.
 - **Something core needs from outside** (a clock, mail, another database): an interface in `core/ports.ts`, an
   implementation in an outlet (or a new outlet folder, added to `OUTLETS` in `server/scripts/check-layers.ts`),
   and one line in `main.ts` passing it in. Core never imports the implementation.
@@ -311,9 +320,10 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
   levels, content and the account rules. It knows nothing about sockets, HTTP or SQL; what it needs from outside it
   asks for through the interfaces in `core/ports.ts` (`PlayerStore`, `AccountStore`, `PlayerLink`). The outlets
   plug into it: `ws/` (the game socket, which works both ways: messages in become session calls, and the socket is
-  the `PlayerLink` out), `api/` (HTTP: accounts, the built client, the login check on `/ws`) and `db/` (Postgres,
-  the two stores). Core imports only core/, `shared` and `node:crypto`; an outlet imports core/ and itself, never
-  another outlet; `main.ts` is the only place they all meet. `npm run typecheck` fails if an import breaks this.
+  the `PlayerLink` out), `api/` (HTTP on Fastify: accounts, the built client, the login check on `/ws`) and `db/`
+  (Postgres, the two stores). Core imports only core/, `shared` and `node:crypto`; an outlet imports core/ and
+  itself, never another outlet; `main.ts` is the only place they all meet. `npm run typecheck` fails if an import
+  breaks this.
   Core sends the `shared` message types as they are (they're already the contract with the client), and it can
   run with fake stores and links, without Postgres or a browser.
 - **Every screen sees the same amount, at most.** The view is 16:9 at most (23 x 13 field tiles): `client/index.html`
@@ -322,7 +332,8 @@ shared pieces are `@utility` classes (`bar`, `bar-layer`). The title screen's mo
   client can't see further and actors appear off-screen.
 - **Every player is logged in.** `/api/login` (or `/api/register`) sets an httpOnly cookie; `/ws` closes sockets
   without one (code 4001) before anything else happens, and a player's save is keyed by their account. There's no
-  guest play. Levels, encounters, enemy stats, wins,
+  guest play. Logging in and signing up share a budget of 20 tries a minute per IP address (then 429, "Too many
+  tries"). Levels, encounters, enemy stats, wins,
   respawns and the HP / stamina you carry between fights and connections (saved in Postgres) come from the server.
   Settings are saved there too: `welcome` brings them, and the client sends a `settings` message (debounced) after
   each change, which the server writes at most once a second. Everything the client sends is checked against a Zod schema first.

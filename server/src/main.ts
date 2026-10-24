@@ -8,7 +8,7 @@
  *
  *   core/      the game: who's online, sessions, the field, fights, levels, content, accounts' rules
  *   ws/        outlet: the game socket (/ws). Messages in become session calls; the socket is the PlayerLink out
- *   api/       outlet: HTTP. The account API (/api), the built client, and the login check on /ws
+ *   api/       outlet: HTTP (Fastify). The account API (/api), the built client, and the login check on /ws
  *   db/        outlet: Postgres through Drizzle. The PlayerStore and AccountStore, migrations, the dev seed
  *   env.ts     settings from environment variables (.env locally)
  *
@@ -37,13 +37,17 @@ const db = await connectDb(DEV).catch((err: unknown) => {
 const accounts = new Accounts(new PgAccountStore(db));
 const online = new OnlinePlayers(new PgPlayerStore(db), DEV);
 
-startServer({
+await startServer({
   port: PORT,
   clientDist: CLIENT_DIST,
   accounts,
   secureCookies: !DEV,
-  onSocket: gameSockets(online),
-}, () => console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`));
+  socket: gameSockets(online),
+}).catch((err: unknown) => {
+  console.error(`[server] ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+});
+console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`);
 
 const clock = new FixedClock((dt) => online.tick(dt));
 let last = performance.now();
