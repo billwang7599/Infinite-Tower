@@ -45,7 +45,7 @@ export function redrawSprite(material: StandardMaterial, draw: SpriteDraw): void
 }
 
 /** A sprite is SPRITE_PX "pixels" square, each drawn as TEXELS_PER_PX texels. */
-const SPRITE_PX = 24;
+export const SPRITE_PX = 24;
 const TEXELS_PER_PX = 8;
 const TEXTURE_SIZE = SPRITE_PX * TEXELS_PER_PX;
 

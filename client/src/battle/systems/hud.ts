@@ -14,15 +14,15 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
 
     const me = world.first(LocalPlayer, Health, Stamina);
     if (me) {
-      patch.hp = fraction(me[2].hp, me[2].max);
-      patch.stamina = fraction(me[3].value, me[3].max);
+      patch.hpFraction = fraction(me[2].hp, me[2].max);
+      patch.staminaFraction = fraction(me[3].value, me[3].max);
     }
 
     const enemy = world.first(Enemy, Health);
     patch.enemyAlive = enemy !== undefined && enemy[2].hp > 0;
     if (enemy) {
       patch.enemyName = enemy[1].def.name;
-      patch.enemyHp = fraction(enemy[2].hp, enemy[2].max);
+      patch.enemyHpFraction = fraction(enemy[2].hp, enemy[2].max);
     }
 
     hud.set(patch);

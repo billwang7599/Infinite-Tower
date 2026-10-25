@@ -2,46 +2,45 @@
  * Every key binding, one row per action, grouped by mode. Click a key to change it (the next key pressed
  * takes its place; Esc cancels), + to add one, × to drop one. Mouse buttons are fixed and only shown.
  */
-import { useEffect, useState } from "react";
 import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
+import { useState } from "react";
 import {
   actionDef, actionsOf, GROUPS, isBindable, keysOf, sameAction,
-  type ActionRef, type BindResult, type Group, type KeyBindings,
+  type ActionRef, type BindResult, type Group, type KeyBindings, type KeyMap,
 } from "../../../settings/bindings.js";
+import { BUTTON } from "../../components/styles.js";
+import { useKeydown } from "../../components/useKeydown.js";
 import { keyName, mouseName } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
-import { BUTTON } from "./buttons.js";
+import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
 const GROUP_TITLES: Record<Group, string> = { field: "Field", battle: "Battle" };
 
-/** The slot waiting for a key: an action, and which of its keys to replace (null: add one). */
+/** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {
   action: ActionRef;
-  replace: string | null;
+  replacing: string | null;
 }
 
 export function KeyBindingsList({ bindings }: { bindings: KeyBindings }) {
-  const map = useStore(bindings, (s) => s);
+  const keyMap = useStore(bindings, (s) => s);
   const [waiting, setWaiting] = useState<Waiting | null>(null);
   const [notice, setNotice] = useState("");
 
-  useEffect(() => {
-    if (!waiting) return;
-    // Capture phase, stopped there: the key is for this slot only (Esc must not also close the settings).
-    const onKey = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.repeat || (!isBindable(e.code) && e.code !== "Escape")) return;
-      setWaiting(null);
-      if (e.code !== "Escape") setNotice(describe(bindings.bind(waiting.action, e.code, waiting.replace), e.code, waiting.action));
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [waiting, bindings]);
+  // Capture phase, stopped there: the key is for this slot only (Esc must not also close the settings).
+  useKeydown((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!waiting || e.repeat || (!isBindable(e.code) && e.code !== "Escape")) return;
+    setWaiting(null);
+    if (e.code === "Escape") return;
+    const result = bindings.bind(waiting.action, e.code, waiting.replacing);
+    setNotice(bindNotice(result, e.code, waiting.action));
+  }, { enabled: waiting !== null, capture: true });
 
-  const wait = (action: ActionRef, replace: string | null) => {
+  const listenFor = (action: ActionRef, replacing: string | null) => {
     setNotice("");
-    setWaiting({ action, replace });
+    setWaiting({ action, replacing });
   };
   const reset = () => {
     bindings.reset();
@@ -52,27 +51,48 @@ export function KeyBindingsList({ bindings }: { bindings: KeyBindings }) {
   return (
     <div id="key-bindings" className="mt-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Key bindings</h3>
-        <button type="button" disabled={bindings.isDefault()} onClick={reset} className={BUTTON.plain}>Reset to defaults</button>
+        <h3 className={SECTION_TITLE}>Key bindings</h3>
+        <button type="button" disabled={bindings.isDefault()} onClick={reset} className={BUTTON.plain}>
+          Reset to defaults
+        </button>
       </div>
       {GROUPS.map((group) => (
-        <section key={group} className="mt-4">
-          <h4 className="mb-1 text-xs tracking-[0.3em] text-white/45 uppercase">{GROUP_TITLES[group]}</h4>
-          {actionsOf(group).map((action, _, all) => (
-            <BindingRow
-              key={action.action}
-              action={action}
-              mouseColumn={all.some((a) => actionDef(a).mouse)}
-              keys={keysOf(map, action)}
-              waitingFor={waiting && sameAction(waiting.action, action) ? waiting.replace : undefined}
-              wait={(replace) => wait(action, replace)}
-              unbind={(key) => bindings.unbind(action, key)}
-            />
-          ))}
-        </section>
+        <GroupSection
+          key={group} group={group} keyMap={keyMap} waiting={waiting} listenFor={listenFor}
+          unbind={(action, key) => bindings.unbind(action, key)}
+        />
       ))}
       <p aria-live="polite" className="sticky bottom-0 min-h-10 bg-night py-2.5 text-sm text-victory">{notice}</p>
     </div>
+  );
+}
+
+interface GroupProps {
+  group: Group;
+  keyMap: KeyMap;
+  waiting: Waiting | null;
+  listenFor: (action: ActionRef, replacing: string | null) => void;
+  unbind: (action: ActionRef, key: string) => void;
+}
+
+function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps) {
+  const actions = actionsOf(group);
+  const hasMouse = actions.some((a) => actionDef(a).mouse);
+  return (
+    <section className="mt-4">
+      <h4 className="mb-1 text-xs tracking-[0.3em] text-white/45 uppercase">{GROUP_TITLES[group]}</h4>
+      {actions.map((action) => (
+        <BindingRow
+          key={action.action}
+          action={action}
+          mouseColumn={hasMouse}
+          keys={keysOf(keyMap, action)}
+          waitingFor={waiting && sameAction(waiting.action, action) ? waiting.replacing : undefined}
+          listenFor={(replacing) => listenFor(action, replacing)}
+          unbind={(key) => unbind(action, key)}
+        />
+      ))}
+    </section>
   );
 }
 
@@ -83,21 +103,23 @@ interface RowProps {
   keys: readonly string[];
   /** undefined: not waiting here. A key: waiting to replace it. null: waiting to add one. */
   waitingFor: string | null | undefined;
-  wait: (replace: string | null) => void;
+  listenFor: (replacing: string | null) => void;
   unbind: (key: string) => void;
 }
 
-function BindingRow({ action, mouseColumn, keys, waitingFor, wait, unbind }: RowProps) {
+function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }: RowProps) {
   const def = actionDef(action);
   return (
-    <div data-action={`${action.group}.${action.action}`} className="flex min-h-10 items-center justify-between gap-4 border-b border-white/5 py-1">
-      <span className="text-[15px] text-white/85">{def.label}</span>
+    <div data-action={`${action.group}.${action.action}`} className={SETTING_ROW}>
+      <span className={SETTING_LABEL}>{def.label}</span>
       <span className="flex flex-wrap items-center justify-end gap-1.5">
         {keys.map((key) =>
           waitingFor === key ? (
             <PressAKey key={key} />
           ) : (
-            <KeyChip key={key} code={key} change={() => wait(key)} remove={keys.length > 1 ? () => unbind(key) : null} />
+            <KeyChip
+              key={key} code={key} change={() => listenFor(key)} remove={keys.length > 1 ? () => unbind(key) : null}
+            />
           ),
         )}
         {waitingFor === null ? (
@@ -107,14 +129,19 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, wait, unbind }: Row
             <button
               type="button"
               aria-label={`Add a key for ${def.label}`}
-              onClick={() => wait(null)}
-              className="h-7 w-7 cursor-pointer rounded-sm border border-dashed border-white/25 text-white/45 transition-colors hover:border-white/60 hover:text-white"
+              onClick={() => listenFor(null)}
+              className={
+                "h-7 w-7 cursor-pointer rounded-sm border border-dashed border-white/25 text-white/45 "
+                + "transition-colors hover:border-white/60 hover:text-white"
+              }
             >
               +
             </button>
           )
         )}
-        {mouseColumn && <span className="ml-1 w-22 text-right text-xs text-white/45">{def.mouse?.map(mouseName).join(" / ")}</span>}
+        {mouseColumn && (
+          <span className="ml-1 w-22 text-right text-xs text-white/45">{def.mouse?.map(mouseName).join(" / ")}</span>
+        )}
       </span>
     </div>
   );
@@ -123,8 +150,17 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, wait, unbind }: Row
 function KeyChip({ code, change, remove }: { code: string; change: () => void; remove: (() => void) | null }) {
   const name = keyName(code);
   return (
-    <span data-key={code} className="inline-flex h-7 items-stretch rounded-sm border border-b-2 border-white/25 bg-white/8 text-[13px] font-semibold">
-      <button type="button" aria-label={`Change ${name}`} onClick={change} className="min-w-7 cursor-pointer px-2 transition-colors hover:text-victory">
+    <span
+      data-key={code}
+      className={
+        "inline-flex h-7 items-stretch rounded-sm border border-b-2 border-white/25 bg-white/8 text-[13px] "
+        + "font-semibold"
+      }
+    >
+      <button
+        type="button" aria-label={`Change ${name}`} onClick={change}
+        className="min-w-7 cursor-pointer px-2 transition-colors hover:text-victory"
+      >
         {name}
       </button>
       {remove && (
@@ -132,7 +168,10 @@ function KeyChip({ code, change, remove }: { code: string; change: () => void; r
           type="button"
           aria-label={`Remove ${name}`}
           onClick={remove}
-          className="cursor-pointer border-l border-white/15 px-1.5 font-normal text-white/40 transition-colors hover:text-white"
+          className={
+            "cursor-pointer border-l border-white/15 px-1.5 font-normal text-white/40 transition-colors "
+            + "hover:text-white"
+          }
         >
           ×
         </button>
@@ -143,13 +182,19 @@ function KeyChip({ code, change, remove }: { code: string; change: () => void; r
 
 function PressAKey() {
   return (
-    <span className="inline-flex h-7 animate-pulse items-center rounded-sm border border-victory px-2 text-[13px] text-victory motion-reduce:animate-none">
+    <span
+      className={
+        "inline-flex h-7 animate-pulse items-center rounded-sm border border-victory px-2 text-[13px] text-victory "
+        + "motion-reduce:animate-none"
+      }
+    >
       Press a key…
     </span>
   );
 }
 
-function describe(result: BindResult, code: string, action: ActionRef): string {
+/** What to tell the player after a bind: a refusal, or which action lost (or swapped) the key. */
+function bindNotice(result: BindResult, code: string, action: ActionRef): string {
   const key = keyName(code);
   const label = (a: ActionRef) => actionDef(a).label;
   if (!result.ok) return `${key} is the only key for ${label(result.onlyKeyOf)}. Give that one another key first.`;

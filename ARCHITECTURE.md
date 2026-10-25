@@ -114,14 +114,16 @@ main.ts
 - **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes and bodies.
 - **The UI is React** (`client/src/ui/`, mounted into `#ui`); the canvas and anything in the world (sprites,
   in-world bars) is Babylon. The game never touches the DOM: it writes plain values into stores (`ui/state.ts`,
-  e.g. `ui.battle.set({ hp })`, `ui.showToast(text)`), and components read them with `useStore(store, s => s.hp)`.
+  e.g. `ui.battle.set({ hpFraction })`, `ui.showToast(text)`), and components read them with
+  `useStore(store, s => s.hpFraction)`.
   Writing every frame is fine: `Store.set` skips unchanged values, so a component re-renders only when the value it
   selected changes (select one primitive per `useStore` call). What the UI asks of the game (sign in, play, return
   to title) goes through `UiActions`, which `main.ts` provides.
 - **Styling is Tailwind v4** (`@tailwindcss/vite`, no config file). Colours and fonts are `@theme` tokens in
   `client/src/ui/styles.css` (`bg-hp`, `text-victory`, `font-title`, ...), shared pieces are `@utility` classes
-  (`bar`, `bar-layer`). Write class names out in full (`"from-hp to-hp-dark"`, not a built string), because
-  Tailwind can't find names built by concatenation. Motion comes with `motion-reduce:animate-none`.
+  (`bar`, `bar-layer`). Write each class name out in full (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``),
+  because Tailwind can't find names built from pieces; joining whole names (a long list over two strings) is
+  fine. Motion comes with `motion-reduce:animate-none`.
 - **Every screen sees the same amount, at most**: 16:9 (23 x 13 field tiles, `shared/src/field/view.ts`).
   `client/index.html` puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see
   a little less width.
@@ -326,24 +328,29 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look) draws the player in a character's colors)
     ui/              React: everything drawn over the canvas
-      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
-      state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD),
-                       `settingsScreen` (open / closed: the UI writes it, the game watches it), and UiActions
-                       (what the UI asks of the game: signIn, logOut, play, returnToTitle). No React.
+      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings, the
+                       character editor, title screen
+      state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD; bars
+                       are `...Fraction`, 0..1), `settingsScreen` and `characterScreen` (open / closed: the UI
+                       writes them too, the game watches them), and UiActions (what the UI asks of the game:
+                       signIn, logOut, play, rest, useItem, saveCharacter, returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
-                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs)
+                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), Dialog.tsx (a modal's
+                       backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
+                       click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener)
       hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
-                       BattleHud.tsx, character/ (CharacterPanel.tsx: the stats; statText.ts), inventory/
-                       (InventoryPanel.tsx), PanelFrame.tsx (the side panels' box), panelKeys.ts, icons.tsx
+                       BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
+                       stats; statText.ts), inventory/ (InventoryPanel.tsx), PanelFrame.tsx (the side panels'
+                       box), panelKeys.ts, icons.tsx
       overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line), LoginForm.tsx,
-                         Backdrop.tsx (SVG night sky + tower)
+                         MenuButton.tsx (the big "◆ Play"), styles.ts, Backdrop.tsx (SVG night sky + tower)
         settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx,
-                         KeyBindingsList.tsx (rebinding), buttons.ts
+                         KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         character/       CharacterEditor.tsx (make / change your character), SpritePreview.tsx, swatches.ts
     field/           The 2D field mode: mirrors the server
       field.ts         The mode: level loads, the walk keys, server state, the field HUD, render

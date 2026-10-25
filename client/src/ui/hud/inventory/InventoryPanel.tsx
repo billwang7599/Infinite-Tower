@@ -2,19 +2,24 @@
  * The field's inventory panel: what you carry, and a button to use what can be used. Like the character panel, it
  * doesn't block walking; the field HUD's bag button or the Inventory key (field.inventory) toggles it.
  */
-import { ITEM_IDS, itemDef, type Inventory } from "@infinite-tower/shared";
-import { BUTTON } from "../../screens/settings/buttons.js";
+import { ITEM_IDS, itemDef, type ItemId } from "@infinite-tower/shared";
+import { NO_FOCUS } from "../../components/noFocus.js";
+import { BUTTON } from "../../components/styles.js";
+import type { FieldHudState } from "../../state.js";
+import type { Store } from "../../store.js";
+import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
 
 interface PanelProps {
-  inventory: Inventory;
-  /** Healing items do nothing at full HP (the server refuses), so their button is off then. */
-  fullHp: boolean;
-  use: (item: (typeof ITEM_IDS)[number]) => void;
+  hud: Store<FieldHudState>;
+  use: (item: ItemId) => void;
   close: () => void;
 }
 
-export function InventoryPanel({ inventory, fullHp, use, close }: PanelProps) {
+export function InventoryPanel({ hud, use, close }: PanelProps) {
+  const inventory = useStore(hud, (s) => s.inventory);
+  // Healing items do nothing at full HP (the server refuses), so their button is off then.
+  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const carried = ITEM_IDS.filter((id) => (inventory[id] ?? 0) > 0);
   return (
     <PanelFrame id="inventory-panel" title="Inventory" close={close}>
@@ -29,9 +34,8 @@ export function InventoryPanel({ inventory, fullHp, use, close }: PanelProps) {
               </span>
               {def.verb && (
                 <button
-                  type="button" tabIndex={-1} disabled={!!def.healHp && fullHp}
-                  onMouseDown={(e) => e.preventDefault()} onClick={() => use(id)}
-                  className={`pointer-events-auto ${BUTTON.plain} px-3 py-1`}
+                  type="button" {...NO_FOCUS} disabled={!!def.healHp && fullHp} onClick={() => use(id)}
+                  className={`pointer-events-auto ${BUTTON.plain}`}
                 >
                   {def.verb}
                 </button>

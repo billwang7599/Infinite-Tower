@@ -29,11 +29,11 @@ preparing.catch((err: unknown) => {
 });
 
 currentAccount().then(
-  (account) => settle({ account: account?.username ?? null }),
-  () => settle({ account: null, error: SERVER_UNREACHABLE }),
+  (account) => settle({ username: account?.username ?? null }),
+  () => settle({ username: null, error: SERVER_UNREACHABLE }),
 );
 /** Unless preparing the game already failed. */
-function settle(state: { account: string | null; error?: string }): void {
+function settle(state: { username: string | null; error?: string }): void {
   if (ui.title.get().phase === "checking") ui.title.set({ phase: "menu", error: null, ...state });
 }
 
@@ -42,7 +42,7 @@ async function signIn(kind: SignInKind, credentials: Credentials): Promise<void>
   ui.title.set({ phase: "signingIn", error: null });
   try {
     const account = await (kind === "login" ? logIn : register)(credentials);
-    ui.title.set({ phase: "menu", account: account.username });
+    ui.title.set({ phase: "menu", username: account.username });
   } catch (err) {
     ui.title.set({ phase: "menu", error: message(err) });
     return;
@@ -54,19 +54,19 @@ async function signOut(): Promise<void> {
   if (ui.title.get().phase !== "menu") return;
   try {
     await logOut();
-    ui.title.set({ account: null, error: null });
+    ui.title.set({ username: null, error: null });
   } catch (err) {
     ui.title.set({ error: message(err) });
   }
 }
 
 async function play(): Promise<void> {
-  if (ui.title.get().phase !== "menu" || !ui.title.get().account) return;
+  if (ui.title.get().phase !== "menu" || !ui.title.get().username) return;
   ui.title.set({ phase: "connecting", error: null });
   // The server owns the field, encounters and enemies; nothing starts until it says hello.
   const joined = await Connection.open().catch((err: unknown) => {
     // The login expired since the page loaded: back to the form.
-    if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", account: null, error: err.message });
+    if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", username: null, error: err.message });
     else ui.title.set({ phase: "menu", error: message(err) });
     return null;
   });
