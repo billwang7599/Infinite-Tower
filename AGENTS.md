@@ -149,7 +149,9 @@ If the server won't start, see "Troubleshooting" in the README.
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
 - Words: the 2D map is the **field**, a fight is a **battle**, and the place it happens is the **arena**.
-- Numbers with a unit carry it in the name: `MAX_BODY_BYTES`, `maxMessageBytes`, `SETTINGS_SAVE_MS`.
+- Numbers with a unit carry it in the name: `MAX_BODY_BYTES`, `maxMessageBytes`, `SETTINGS_SAVE_MS`. Game time is
+  seconds (like `dt`), so a name ending in Time, Delay or Duration is seconds; milliseconds always say `Ms`. A name
+  that doesn't say what kind of number it holds gets that word: `lungeSpeed`, `poiseDamage`, `staminaRegenPerSec`.
 - Keep files small and single-purpose (roughly under 200 lines). Make a folder per mode, enemy or screen
   (`client/src/ui/screens/<name>/`); UI used by more than one screen goes in `ui/components/`. Small math goes in
   `shared/src/core/math.ts`.

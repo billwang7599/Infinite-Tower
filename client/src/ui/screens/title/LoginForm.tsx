@@ -2,7 +2,7 @@
  * The title screen's login form, shown when nobody's logged in. One form for both: "Create an account" switches
  * it to sign-up, which also checks the username / password rules before asking the server.
  */
-import { PASSWORD_RULES, USERNAME_RULES, type Credentials } from "@infinite-tower/shared";
+import { PASSWORD_RULES, rulesHint, USERNAME_RULES, type Credentials } from "@infinite-tower/shared";
 import { useState, type FormEvent } from "react";
 import type { SignInKind } from "../../state.js";
 
@@ -27,7 +27,7 @@ export function LoginForm({ busy, submit }: { busy: boolean; submit: (kind: Sign
         value={username} onChange={(e) => setUsername(e.target.value)} disabled={busy} className={FIELD}
         {...(registering && {
           minLength: USERNAME_RULES.min, maxLength: USERNAME_RULES.max, pattern: USERNAME_RULES.pattern,
-          title: `${USERNAME_RULES.min}-${USERNAME_RULES.max} letters, digits, _ or -`,
+          title: rulesHint(USERNAME_RULES),
         })}
       />
       <input

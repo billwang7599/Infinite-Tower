@@ -33,7 +33,7 @@ export function boarAnimationSystem(): System {
       // Pose targets. headPitch > 0 = nose down; lean > 0 = front down.
       let headPitch = 0, lean = 0, roll = 0, tremble = 0, yOff = 0, zOff = 0, glow = 0;
       let rollRate = 12;
-      const t = enemy.t;
+      const t = enemy.stateTime;
       const G = world.get(e, GoreAttack)?.def, C = world.get(e, ChargeAttack)?.def;
       switch (enemy.state) {
         case "goreWindup": {

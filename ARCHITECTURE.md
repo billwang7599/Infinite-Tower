@@ -243,7 +243,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
-                   constants.ts (PLAYER), defs.ts (EnemyDef = body + stats + optional attacks, ArenaDef),
+                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats + optional attacks,
+                   ArenaDef),
                    input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
   character/       character.ts (Character = name + look; LOOKS: every cloak / skin / trouser option and its
                    colors; name rules)
@@ -251,7 +252,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
-                   account-requests.ts (their Zod schemas; server-only import)
+                   account-requests.ts (their Zod schemas; server-only import), text-rules.ts (TextRules for the
+                   username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
+                   settings.ts (MAX_KEYS_PER_ACTION)
 
 server/          Node. Authoritative: levels, encounters, field actors, enemy stats, fight results, saves.
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
@@ -407,7 +410,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 
 | What | Where |
 |---|---|
-| Player HP, speeds, slash, dodge (at stats of 10) | `shared/src/battle/constants.ts` (`PLAYER`) |
+| Player HP, speeds, slash, dodge (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats and attacks | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |

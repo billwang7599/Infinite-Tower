@@ -3,7 +3,9 @@
  * preview. On a first visit it can't be closed, only saved (or left via Return to title); the server holds the
  * level back until then. Esc closes it otherwise. Saving waits for the server's answer, which closes it.
  */
-import { CHARACTER_NAME_RULES, DEFAULT_LOOK, LOOK_PARTS, LOOKS, type Character, type Look, type LookPart } from "@infinite-tower/shared";
+import {
+  CHARACTER_NAME_RULES, DEFAULT_LOOK, LOOK_PARTS, LOOKS, rulesHint, type Character, type Look, type LookPart,
+} from "@infinite-tower/shared";
 import { useEffect, useState, type FormEvent } from "react";
 import type { CharacterScreenState, UiActions } from "../../state.js";
 import type { Store } from "../../store.js";
@@ -93,7 +95,7 @@ function EditorForm({ firstTime, start, close, actions }: FormProps) {
               <input
                 name="character-name" required autoFocus autoComplete="off" spellCheck={false}
                 minLength={CHARACTER_NAME_RULES.min} maxLength={CHARACTER_NAME_RULES.max} pattern={CHARACTER_NAME_RULES.pattern}
-                title={`${CHARACTER_NAME_RULES.min}-${CHARACTER_NAME_RULES.max} letters, digits, spaces, ' or -`}
+                title={rulesHint(CHARACTER_NAME_RULES)}
                 value={name} onChange={(e) => { setName(e.target.value); setError(null); }} disabled={saving}
                 className="rounded-sm border border-white/20 bg-black/50 px-3 py-2 text-base text-white focus-visible:border-victory/70 focus-visible:outline-none"
               />

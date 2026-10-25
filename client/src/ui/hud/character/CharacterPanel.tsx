@@ -2,10 +2,10 @@
  * The field's character panel: the player's name and stats, and Change look (the character editor). It doesn't
  * pause or block walking; the field HUD's button or the Character key (field.character) toggles it.
  */
-import { STAT_KEYS, type Character, type Stats } from "@infinite-tower/shared";
+import type { Character, Stats } from "@infinite-tower/shared";
 import { BUTTON } from "../../screens/settings/buttons.js";
 import { PanelFrame } from "../PanelFrame.js";
-import { STAT_TEXT } from "./statText.js";
+import { STAT_KEYS, STAT_TEXT } from "./statText.js";
 
 interface PanelProps {
   stats: Stats | null;

@@ -4,17 +4,14 @@
  * sprites from it (client/src/gfx/characters.ts). Adding an option is one entry here.
  */
 
-export const CHARACTER_NAME_RULES = {
-  min: 2,
-  max: 16,
-  /** Also an HTML pattern attribute (`v` flag), hence the escaped `-`. */
-  pattern: "^[A-Za-z0-9' \\-]+$",
-} as const;
+import type { TextRules } from "../net/text-rules.js";
 
-/** The cloak's four shades, darkest last but one; the hood tip is between lo and base. */
-export interface CloakColors { base: string; hi: string; lo: string; tip: string }
+export const CHARACTER_NAME_RULES = {
+  min: 2, max: 16, pattern: "^[A-Za-z0-9' \\-]+$", allowed: "letters, digits, spaces, ' or -",
+} as const satisfies TextRules;
 
 export const LOOKS = {
+  /** Four shades each: base, hi (lit side), lo (shadow) and the hood tip, which sits between lo and base. */
   cloak: [
     { id: "red", label: "Red", colors: { base: "#c0453a", hi: "#d9584a", lo: "#8e2f27", tip: "#a8392f" } },
     { id: "blue", label: "Blue", colors: { base: "#3a62c0", hi: "#4d78d9", lo: "#283f8e", tip: "#3150a8" } },

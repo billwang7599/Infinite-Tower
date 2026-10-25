@@ -13,7 +13,7 @@ export const VIEW = {
   maxAspect: 16 / 9,
   /** How far past the level's edge the camera may show (the border art). */
   overscan: 3,
-};
+} as const;
 
 /** Half the visible width, in tiles, on a screen of this width:height. */
 export function viewHalfWidth(aspect: number): number {
@@ -21,8 +21,8 @@ export function viewHalfWidth(aspect: number): number {
 }
 
 /** Where the camera centers to follow `pos`: on it, except near the level's edge, where it stops. */
-export function viewCenter(level: LevelLayout, pos: Vec2, halfWidth: number): Vec2 {
-  const maxX = Math.max(0, level.halfWidth + VIEW.overscan - halfWidth);
+export function viewCenter(level: LevelLayout, pos: Vec2, halfViewWidth: number): Vec2 {
+  const maxX = Math.max(0, level.halfWidth + VIEW.overscan - halfViewWidth);
   const maxZ = Math.max(0, level.halfDepth + VIEW.overscan - VIEW.halfHeight);
   return { x: clamp(pos.x, -maxX, maxX), z: clamp(pos.z, -maxZ, maxZ) };
 }

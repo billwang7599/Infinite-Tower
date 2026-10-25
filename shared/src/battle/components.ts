@@ -9,15 +9,14 @@ import type { ChargeDef, EnemyDef, GoreDef } from "./defs.js";
 export type PlayerAction = "none" | "slash" | "dodge";
 
 export interface PlayerData {
-  name: string;
   grounded: boolean;
   /** Seconds since last on ground (coyote time). */
   airTime: number;
-  jumpBuffer: number;
   jumpHeld: boolean;
   attackHeld: boolean;
   dodgeHeld: boolean;
-  /** Seconds left on a buffered press. */
+  /** Seconds left on a buffered (early) press of jump / attack / dodge. */
+  jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
   action: PlayerAction;
@@ -64,22 +63,43 @@ export interface ActiveHitData {
   damage: number;
   knockback: number;
   lift: number;
-  poise: number;
-  hit: Set<Entity>;
+  poiseDamage: number;
+  /** Targets this attack has already hit. */
+  alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
+
+/** Where the enemy's target is, refreshed each step before the behaviors run. */
+export interface EnemySense {
+  dist: number;
+  /** The yaw that would face the target. */
+  toYaw: number;
+  /** cos(angle between where the enemy faces and the target): 1 = looking right at it. */
+  facingDot: number;
+  targetAlive: boolean;
+}
+
+/** What the behaviors want this step; the motor turns it into velocity. */
+export interface EnemyMove {
+  dirX: number;
+  dirZ: number;
+  speed: number;
+  accel: number;
+  /** Zero the velocity this step (the charge slamming into the wall). */
+  halt: boolean;
+}
 
 /**
  * Any arena enemy. Its AI is split into behaviors: the enemy systems handle approaching, poise,
  * stagger, stun and death; each attack component (below) has its own system that starts the attack
  * and runs its phases. `state` is the current state name, e.g. "approach" or "chargeWindup" (attack
- * systems use their own names). Models animate from it.
+ * systems use their own names, and may only start from "approach"). Models animate from it.
  */
 export interface EnemyData {
   def: EnemyDef;
   state: string;
   /** Seconds in the current state. */
-  t: number;
+  stateTime: number;
   /** Seconds the current generic state lasts ("stunned", "staggered"). */
   duration: number;
   /** Facing (see yaw convention in core/math.ts). */
@@ -87,15 +107,10 @@ export interface EnemyData {
   poise: number;
   /** Can't be staggered right now (mid-charge, say). Attack systems set it each step. */
   armored: boolean;
-  /** Where the target is, refreshed each step before the behaviors run. */
-  sense: { dist: number; toYaw: number; facing: number; preyAlive: boolean };
-  /** What the behaviors want this step; the motor turns it into velocity. */
-  move: { dirX: number; dirZ: number; speed: number; accel: number; halt: boolean };
+  sense: EnemySense;
+  move: EnemyMove;
 }
 export const Enemy = defineComponent<EnemyData>("Enemy");
-
-/** Enemy states every enemy has. Attack systems may only start from "approach". */
-export type EnemyBaseState = "approach" | "stunned" | "staggered" | "dead";
 
 export interface AttackState<D> {
   def: D;

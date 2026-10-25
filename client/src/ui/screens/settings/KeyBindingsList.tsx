@@ -3,8 +3,9 @@
  * takes its place; Esc cancels), + to add one, × to drop one. Mouse buttons are fixed and only shown.
  */
 import { useEffect, useState } from "react";
+import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import {
-  actionDef, actionsOf, GROUPS, isBindable, keysOf, MAX_KEYS, sameAction,
+  actionDef, actionsOf, GROUPS, isBindable, keysOf, sameAction,
   type ActionRef, type BindResult, type Group, type KeyBindings,
 } from "../../../settings/bindings.js";
 import { keyName, mouseName } from "../../keyNames.js";
@@ -102,7 +103,7 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, wait, unbind }: Row
         {waitingFor === null ? (
           <PressAKey />
         ) : (
-          keys.length < MAX_KEYS && (
+          keys.length < MAX_KEYS_PER_ACTION && (
             <button
               type="button"
               aria-label={`Add a key for ${def.label}`}

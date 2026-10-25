@@ -9,9 +9,11 @@
  * Errors are `ApiError`, with a sentence the title screen can show as is. The server checks bodies with the
  * Zod schemas in account-requests.ts; these rules are here too so the form can say them up front.
  */
+import type { TextRules } from "./text-rules.js";
 
-/** `pattern` is also an HTML pattern attribute, which uses the `v` flag: hence the escaped `-`. */
-export const USERNAME_RULES = { min: 3, max: 20, pattern: "^[A-Za-z0-9_\\-]+$" } as const;
+export const USERNAME_RULES = {
+  min: 3, max: 20, pattern: "^[A-Za-z0-9_\\-]+$", allowed: "letters, digits, _ or -",
+} as const satisfies TextRules;
 export const PASSWORD_RULES = { min: 8, max: 128 } as const;
 
 export interface Credentials {

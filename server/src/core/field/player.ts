@@ -29,9 +29,7 @@ export function fieldPlayerSystem(ctx: FieldContext): System {
         fp.credits--;
         fp.ack = input.seq;
         const before = { x: pos.x, z: pos.z };
-        const v = stepWalker(layout, pos, input, FIXED_DT);
-        fp.vx = v.vx;
-        fp.vz = v.vz;
+        stepWalker(layout, pos, input, FIXED_DT, fp);
         if (!inTallGrass(layout, pos.x, pos.z)) continue;
         fp.grassDist += distXZ(before, pos);
         while (fp.grassDist >= grass.step) {

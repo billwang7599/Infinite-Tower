@@ -7,7 +7,7 @@ import { Body } from "../components.js";
 import { Layer, type BattleContext } from "../context.js";
 import { PlayerSprite } from "./components.js";
 
-export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, vitals: Vitals, stats: Stats, local: boolean): Entity {
+export function spawnPlayer(ctx: BattleContext, at: Vec3, vitals: Vitals, stats: Stats, local: boolean): Entity {
   const { world, scene, materials } = ctx;
   const e = world.spawn();
 
@@ -56,7 +56,7 @@ export function spawnPlayer(ctx: BattleContext, name: string, at: Vec3, vitals: 
   });
   world.add(e, PlayerInput, { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false });
   world.add(e, Player, {
-    name, grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
+    grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: false, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, combo: 0,
   });

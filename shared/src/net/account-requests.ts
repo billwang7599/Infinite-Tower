@@ -4,14 +4,10 @@
  */
 import { z } from "zod";
 import { PASSWORD_RULES, USERNAME_RULES, type Credentials } from "./accounts.js";
-
-const USERNAME_HELP = `Usernames are ${USERNAME_RULES.min}-${USERNAME_RULES.max} letters, digits, _ or -.`;
+import { ruledText } from "./text-schema.js";
 
 export const RegisterRequest = z.object({
-  username: z.string().trim()
-    .min(USERNAME_RULES.min, USERNAME_HELP)
-    .max(USERNAME_RULES.max, USERNAME_HELP)
-    .regex(new RegExp(USERNAME_RULES.pattern), USERNAME_HELP),
+  username: ruledText(USERNAME_RULES, "Usernames"),
   password: z.string()
     .min(PASSWORD_RULES.min, `Passwords need at least ${PASSWORD_RULES.min} characters.`)
     .max(PASSWORD_RULES.max, `Passwords can be at most ${PASSWORD_RULES.max} characters.`),

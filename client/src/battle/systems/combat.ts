@@ -22,7 +22,7 @@ export function combatSystem(ctx: BattleContext): System {
     for (const [, hit, ab, af] of world.query(ActiveHit, Body, Fighter)) {
       const ap = ab.mesh.position;
       for (const [target, th, tb, tf] of world.query(Health, Body, Fighter)) {
-        if (tf.team === af.team || th.hp <= 0 || th.invuln > 0 || hit.hit.has(target)) continue;
+        if (tf.team === af.team || th.hp <= 0 || th.invuln > 0 || hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
         // Dodge i-frames.
         if (player?.action === "dodge"
@@ -34,7 +34,7 @@ export function combatSystem(ctx: BattleContext): System {
         if (d - tf.radius > hit.range) continue;
         if (d > 0.3 && (dx * hit.dirX + dz * hit.dirZ) / d < hit.minDot) continue;
 
-        hit.hit.add(target);
+        hit.alreadyHit.add(target);
         th.hp = Math.max(0, th.hp - hit.damage);
         th.flash = 0.12;
 
@@ -50,7 +50,7 @@ export function combatSystem(ctx: BattleContext): System {
           ctx.shake = Math.max(ctx.shake, 0.15 + hit.damage * 0.008);
         } else {
           const enemy = world.get(target, Enemy);
-          if (enemy) enemy.poise -= hit.poise;
+          if (enemy) enemy.poise -= hit.poiseDamage;
           ctx.shake = Math.max(ctx.shake, 0.06);
         }
       }

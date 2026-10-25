@@ -51,9 +51,7 @@ export class Prediction {
     if (!level) return;
     const pos = this.world.require(this.player, FieldPos);
     const actor = this.world.require(this.player, FieldActor);
-    const v = stepWalker(level, pos, input, FIXED_DT);
-    actor.vx = v.vx;
-    actor.vz = v.vz;
+    stepWalker(level, pos, input, FIXED_DT, actor);
     if (Math.abs(input.moveX) > 0.1) actor.facing = input.moveX > 0 ? 1 : -1;
   }
 }

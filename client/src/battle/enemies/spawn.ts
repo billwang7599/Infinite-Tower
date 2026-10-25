@@ -34,8 +34,8 @@ export function spawnEnemy(ctx: BattleContext, def: EnemyDef, at: Vec3, yaw: num
   ENEMY_MODELS[def.model].add(ctx, e, collider, def, yaw);
 
   world.add(e, Enemy, {
-    def, state: "approach", t: 0, duration: 0, yaw, poise: def.poise, armored: false,
-    sense: { dist: Infinity, toYaw: yaw, facing: 1, preyAlive: false },
+    def, state: "approach", stateTime: 0, duration: 0, yaw, poise: def.poise, armored: false,
+    sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false },
     move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false },
   });
   for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {

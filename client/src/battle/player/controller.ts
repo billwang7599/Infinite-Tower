@@ -14,7 +14,7 @@ function startAction(player: PlayerData, action: PlayerAction, x: number, z: num
 
 function spend(stamina: StaminaData, cost: number): void {
   stamina.value = Math.max(0, stamina.value - cost);
-  stamina.regenDelay = PLAYER.staminaDelay;
+  stamina.regenDelay = PLAYER.staminaRegenDelay;
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
@@ -95,11 +95,12 @@ export function playerControllerSystem(): System {
               if (!world.has(e, ActiveHit)) {
                 world.add(e, ActiveHit, {
                   dirX: d.x, dirZ: d.z, range: S.range, minDot: S.minDot,
-                  damage: physicalDamage(S.damage, stats), knockback: 0, lift: 0, poise: S.poise, hit: new Set<number>(),
+                  damage: physicalDamage(S.damage, stats), knockback: 0, lift: 0,
+                  poiseDamage: S.poiseDamage, alreadyHit: new Set<number>(),
                 });
               }
-              v.x = d.x * S.lunge;
-              v.z = d.z * S.lunge;
+              v.x = d.x * S.lungeSpeed;
+              v.z = d.z * S.lungeSpeed;
             } else {
               world.remove(e, ActiveHit);
               const max = walkSpeed * S.moveFactor, a = PLAYER.accel * dt;
@@ -126,9 +127,9 @@ export function playerControllerSystem(): System {
       player.jumpHeld = input.jump;
 
       // Stamina: paused during actions, regenerates after a short delay.
-      if (player.action !== "none") stamina.regenDelay = PLAYER.staminaDelay;
+      if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
       else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
-      else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegen * dt);
+      else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
 
       b.setLinearVelocity(v);
 
