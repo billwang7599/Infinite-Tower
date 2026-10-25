@@ -11,8 +11,10 @@ What's built so far:
 
 - **Accounts:** sign up or log in with a username and password, and stay logged in for 30 days. Logins are limited
   to 20 tries a minute per IP. Playing from a second tab takes over from the first.
-- **Title screen:** the login form and Play. The game loads while you're on it. Play becomes Retry if the server
-  is down.
+- **Title screen:** the login form and Play beside a low-poly tower of glowing white glass and gold in a dark world
+  (lit like a shader would, on a 2D canvas, no WebGL). The game loads while you're on it. Play becomes Retry if the
+  server is down. Logging in (or Play) glides into the tower, looks straight up it and speeds up it while the server
+  loads you, then flashes white into the world; Return to title plays it backwards.
 - **Character:** a name and a look (cloak, skin and trouser colors), made on the first visit and changeable later.
   The character panel shows your stats.
 - **Field:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking

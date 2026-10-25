@@ -16,7 +16,7 @@ import { frameSeconds } from "../core/time.js";
 import type { Field } from "../field/field.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
-import type { UiState } from "../ui/state.js";
+import { inWorld, type UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
 import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -54,15 +54,20 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
   /** The fight being flashed into or fought. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
 
-  /** The game only gets input during a session with no screen over it, and the mouse only in the arena. */
+  /**
+   * The game only gets input during a session with no screen over it (not even the title, still clearing off the
+   * world), and the mouse only in the arena.
+   */
   const updateInput = () => {
-    const playing = mode !== null && !ui.settingsScreen.get().open && !ui.characterScreen.get().open;
+    const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open
+      && !ui.characterScreen.get().open;
     keyboard.enabled = playing;
     mouse.canLock = playing && mode === "battle";
     if (!mouse.canLock) mouse.unlock();
   };
   ui.settingsScreen.subscribe(updateInput);
   ui.characterScreen.subscribe(updateInput);
+  ui.title.subscribe(updateInput);
   updateInput();
 
   const setMode = (next: Mode | null) => {
