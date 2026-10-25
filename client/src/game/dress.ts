@@ -7,9 +7,9 @@ import { redrawSprite } from "../gfx/sprites.js";
 
 export function dressPlayer(battle: Battle, field: Field, look: Look): void {
   const frames = playerFrames(look);
-  const arena = battle.ctx.materials.player;
-  redrawSprite(arena.idle, frames.idle);
-  redrawSprite(arena.slash, frames.slash);
-  redrawSprite(arena.down, frames.down);
+  const arenaSprites = battle.ctx.materials.player;
+  redrawSprite(arenaSprites.idle, frames.idle);
+  redrawSprite(arenaSprites.slash, frames.slash);
+  redrawSprite(arenaSprites.down, frames.down);
   redrawSprite(field.view.materials.player, frames.idle);
 }

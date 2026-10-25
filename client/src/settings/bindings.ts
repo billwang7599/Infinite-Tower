@@ -8,7 +8,7 @@
  * The defaults give the arena two equal setups: keyboard only (laptop: left hand on WASD + Space, right hand
  * on the home row, vim-style H/L turn the camera) and keyboard + mouse / trackpad.
  */
-import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
+import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
 interface ActionDef {
@@ -45,7 +45,7 @@ export const ACTIONS = {
 } as const satisfies Record<string, Record<string, ActionDef>>;
 
 export type Group = keyof typeof ACTIONS;
-export type Action<G extends Group> = keyof (typeof ACTIONS)[G] & string;
+type Action<G extends Group> = keyof (typeof ACTIONS)[G] & string;
 export type ActionRef = { [G in Group]: { group: G; action: Action<G> } }[Group];
 export type KeyMap = { readonly [G in Group]: { readonly [A in Action<G>]: readonly string[] } };
 
@@ -95,8 +95,8 @@ export class KeyBindings extends Store<KeyMap> {
   }
 
   /** What `restore` takes: the actions that differ from the defaults. */
-  toSaved(): Record<string, Record<string, string[]>> {
-    const changed: Record<string, Record<string, string[]>> = {};
+  toSaved(): NonNullable<SavedSettings["bindings"]> {
+    const changed: NonNullable<SavedSettings["bindings"]> = {};
     for (const group of GROUPS) {
       for (const ref of actionsOf(group)) {
         const keys = keysOf(this.get(), ref);
@@ -142,10 +142,11 @@ export class KeyBindings extends Store<KeyMap> {
   }
 
   isDefault(): boolean {
-    return GROUPS.every((group) => actionsOf(group).every((ref) => sameKeys(keysOf(this.get(), ref), defaultKeys(ref))));
+    const map = this.get();
+    return GROUPS.every((group) => actionsOf(group).every((ref) => sameKeys(keysOf(map, ref), defaultKeys(ref))));
   }
 
-  private update(group: Group, keys: Record<string, readonly string[]>): void {
+  private update(group: Group, keys: Keys): void {
     this.set({ [group]: keys } as Partial<KeyMap>);
   }
 }
@@ -153,12 +154,13 @@ export class KeyBindings extends Store<KeyMap> {
 type Keys = Record<string, readonly string[]>;
 const groupOf = (map: KeyMap, group: Group): Keys => map[group] as Keys;
 const defaultKeys = (ref: ActionRef): readonly string[] => actionDef(ref).keys;
-const sameKeys = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((k, i) => k === b[i]);
+const sameKeys = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((k, i) => k === b[i]);
 
 function buildMap(keysFor: (ref: ActionRef) => readonly string[]): KeyMap {
   const map: Record<string, Keys> = {};
   for (const group of GROUPS) {
-    const keys: Record<string, readonly string[]> = {};
+    const keys: Keys = {};
     for (const ref of actionsOf(group)) keys[ref.action] = keysFor(ref);
     map[group] = keys;
   }

@@ -5,37 +5,24 @@
  * connection leave()s, and the next Play joins again with everything still built.
  */
 import { Engine } from "@babylonjs/core";
-import * as shared from "@infinite-tower/shared";
-import type { Character, ItemId } from "@infinite-tower/shared";
+import { FIXED_DT, World } from "@infinite-tower/shared";
 import { createBattle } from "../battle/battle.js";
-import * as battleComponents from "../battle/components.js";
-import * as playerComponents from "../battle/player/components.js";
 import { createBattleScene } from "../battle/scene.js";
 import { Keyboard } from "../core/keyboard.js";
 import { Mouse } from "../core/mouse.js";
-import * as fieldComponents from "../field/components.js";
 import { createField } from "../field/field.js";
 import { createFieldScene } from "../field/scene.js";
-import type { Joined } from "../net/connection.js";
-import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
+import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
-import { createGame } from "./game.js";
+import { createGame, type Game } from "./game.js";
 
-export interface PreparedGame {
-  join(joined: Joined, onLost: (closeCode: number) => void): void;
-  leave(): void;
-  saveCharacter(character: Character): void;
-  rest(): void;
-  useItem(item: ItemId): void;
-}
-
-export async function prepareGame(ui: UiState, settings: Settings): Promise<PreparedGame> {
+export async function prepareGame(ui: UiState, settings: Settings): Promise<Game> {
   const canvas = document.getElementById("game") as HTMLCanvasElement;
   // Deterministic lockstep: the battle scene steps gameplay + physics at a fixed FIXED_DT (max 4 per frame).
-  const engine = new Engine(canvas, true, { deterministicLockstep: true, lockstepMaxSteps: 4, timeStep: shared.FIXED_DT });
+  const engine = new Engine(canvas, true, { deterministicLockstep: true, lockstepMaxSteps: 4, timeStep: FIXED_DT });
   window.addEventListener("resize", () => engine.resize());
 
-  const world = new shared.World();
+  const world = new World();
   const battleScene = await createBattleScene(engine);
   const fieldView = createFieldScene(engine);
 
@@ -43,35 +30,11 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Prep
   // the title keeps the keys Keyboard swallows (Space, arrows).
   const keyboard = new Keyboard();
   const mouse = new Mouse(canvas);
-  const game = createGame(engine, keyboard, mouse, ui);
   const battle = createBattle({
-    engine, world, scene: battleScene, keyboard, mouse, settings, hud: ui.battle, onLeave: game.leaveBattle,
+    engine, world, scene: battleScene, keyboard, mouse, settings, hud: ui.battle,
+    onLeave: () => game.leaveBattle(),
   });
   const field = createField({ engine, world, view: fieldView, keyboard, settings, hud: ui.field });
-  game.setModes(battle, field);
-  let stopSync = () => {};
-
-  return {
-    join(joined, onLost) {
-      restoreSettings(settings, joined.welcome.settings);
-      stopSync = syncSettings(settings, joined.net);
-      game.join(joined, onLost);
-      // Dev handles for the browser console (and the browser tests): `battle` and `field` hold each mode's
-      // world/scene, `components` every component type, `ui` the HUD stores, `settings` the player's settings.
-      if (import.meta.env.DEV || new URLSearchParams(location.search).has("debug")) {
-        Object.assign(window, {
-          battle: battle.ctx, field: field.view, mode: game.mode, ui, settings,
-          encounter: () => joined.net.send({ t: "debug", cmd: "encounter" }),
-          components: { ...shared, ...battleComponents, ...playerComponents, ...fieldComponents },
-        });
-      }
-    },
-    leave() {
-      stopSync();
-      game.leave();
-    },
-    saveCharacter: (character) => game.saveCharacter(character),
-    rest: () => game.rest(),
-    useItem: (item) => game.useItem(item),
-  };
+  const game = createGame({ engine, keyboard, mouse, ui, settings, battle, field });
+  return game;
 }

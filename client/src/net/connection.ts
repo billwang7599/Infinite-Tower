@@ -3,15 +3,17 @@
  * shared/src/net. Messages that arrive before the game calls `listen` are queued, so nothing sent
  * right after `welcome` (like the first `level`) is lost while the game is still loading.
  */
-import { CLOSE_CODES, dispatch, type ClientMsg, type Handlers, type MsgOf, type ServerMsg } from "@infinite-tower/shared";
+import {
+  CLOSE_CODES, dispatch, type ClientMsg, type Handlers, type ServerMsg, type ServerMsgOf,
+} from "@infinite-tower/shared";
 
-export type Welcome = MsgOf<ServerMsg, "welcome">;
 /** Everything after `welcome`. */
-export type GameMsg = Exclude<ServerMsg, Welcome>;
-export type GameHandlers = Handlers<GameMsg>;
-export interface Joined { net: Connection; welcome: Welcome }
+type GameMsg = Exclude<ServerMsg, ServerMsgOf<"welcome">>;
+type GameHandlers = Handlers<GameMsg>;
+export interface Joined { net: Connection; welcome: ServerMsgOf<"welcome"> }
 
-export const SERVER_UNREACHABLE = "Can't reach the game server. Start everything with `npm run dev` (server + client).";
+export const SERVER_UNREACHABLE =
+  "Can't reach the game server. Start everything with `npm run dev` (server + client).";
 
 /** The socket opened but the server turned it away: the login cookie is missing or expired. */
 export class NotLoggedInError extends Error {
@@ -21,17 +23,17 @@ export class NotLoggedInError extends Error {
 }
 
 export class Connection {
-  /** After `welcome`: the socket closed without `close()` being called. `code` is the WebSocket close code. */
-  onClose: (code: number) => void = () => {};
+  /** After `welcome`: the socket closed without `close()` being called. `reason` is a sentence for the title. */
+  onClose: (reason: string) => void = () => {};
   private handlers: GameHandlers | null = null;
   private backlog: GameMsg[] = [];
 
   private constructor(private readonly ws: WebSocket) {}
 
   /** Connect and wait for the server's `welcome`. */
-  static open(url = defaultUrl()): Promise<Joined> {
+  static open(): Promise<Joined> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(url);
+      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
       const net = new Connection(ws);
       let welcomed = false;
       ws.onmessage = (ev) => {
@@ -43,7 +45,7 @@ export class Connection {
         net.receive(msg);
       };
       ws.onclose = (ev) => {
-        if (welcomed) net.onClose(ev.code);
+        if (welcomed) net.onClose(lostReason(ev.code));
         else reject(ev.code === CLOSE_CODES.notLoggedIn ? new NotLoggedInError() : new Error(SERVER_UNREACHABLE));
       };
     });
@@ -52,7 +54,7 @@ export class Connection {
   /** Start handling messages (one handler per type), beginning with any that queued up. */
   listen(handlers: GameHandlers): void {
     this.handlers = handlers;
-    for (const msg of this.backlog.splice(0)) dispatch(handlers, msg, undefined);
+    for (const msg of this.backlog.splice(0)) this.receive(msg);
   }
 
   /** Hang up on purpose: no `onClose`, and nothing more is delivered. */
@@ -72,6 +74,7 @@ export class Connection {
   }
 }
 
-function defaultUrl(): string {
-  return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+function lostReason(closeCode: number): string {
+  if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
+  return "Lost the connection to the game server.";
 }

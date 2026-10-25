@@ -13,6 +13,7 @@ import type { Character } from "../character/character.js";
 import type { Inventory, ItemId } from "../items/items.js";
 import type { LevelLayout } from "../field/layout.js";
 import type { SavedSettings } from "./client-messages.js";
+import type { MsgOf } from "./handlers.js";
 
 /** Something the client should draw on the field. `kind` picks the client prefab. */
 export interface ActorSnap {
@@ -49,3 +50,6 @@ export type ServerMsg =
     t: "battleResult"; won: boolean; accepted: boolean; me: Vec2; wins: number; vitals: Vitals; loot: Inventory;
     inventory: Inventory;
   };
+
+/** One server message by its `t`: `ServerMsgOf<"state">`. */
+export type ServerMsgOf<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;

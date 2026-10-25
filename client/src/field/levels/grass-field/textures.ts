@@ -2,19 +2,22 @@
 import type { DynamicTexture, Scene } from "@babylonjs/core";
 import { pixelTexture } from "../../../gfx/textures.js";
 
-/** Short grass: an 8x8-tile texture, big enough that the repeat isn't obvious. */
-export function grassTexture(scene: Scene, r: () => number): DynamicTexture {
+/** Tiles across the short-grass texture: big enough that the repeat isn't obvious. */
+export const GRASS_TEXTURE_TILES = 8;
+
+/** Short grass, GRASS_TEXTURE_TILES square. */
+export function grassTexture(scene: Scene, rand: () => number): DynamicTexture {
   return pixelTexture(scene, "grass", 128, (ctx) => {
     ctx.fillStyle = "#5fa84e";
     ctx.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 560; i++) {
-      ctx.fillStyle = ["#6fbb5a", "#529646", "#79c463", "#4b8c40"][Math.floor(r() * 4)]!;
-      ctx.fillRect(Math.floor(r() * 128), Math.floor(r() * 128), 1 + Math.floor(r() * 2), 1);
+      ctx.fillStyle = ["#6fbb5a", "#529646", "#79c463", "#4b8c40"][Math.floor(rand() * 4)]!;
+      ctx.fillRect(Math.floor(rand() * 128), Math.floor(rand() * 128), 1 + Math.floor(rand() * 2), 1);
     }
     for (let i = 0; i < 9; i++) { // little flowers
-      const x = 1 + Math.floor(r() * 124), y = 1 + Math.floor(r() * 124);
-      ctx.fillStyle = r() < 0.5 ? "#f4f0d8" : "#f2c94c";
-      ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 1, y + 1, 1, 1); ctx.fillRect(x + 1, y - 1, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
+      const x = 1 + Math.floor(rand() * 124), y = 1 + Math.floor(rand() * 124);
+      ctx.fillStyle = rand() < 0.5 ? "#f4f0d8" : "#f2c94c";
+      for (const [dx, dy] of [[0, 0], [1, 1], [1, -1], [2, 0]] as const) ctx.fillRect(x + dx, y + dy, 1, 1);
     }
   });
 }

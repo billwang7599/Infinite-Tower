@@ -4,8 +4,8 @@
  * the player's save: `welcome` brings them (`restoreSettings`) and, while playing, every change is sent back
  * (`syncSettings`). Before logging in they're the defaults.
  *
- * A new kind of setting is a store here (with `restore` / `toSaved`), a field in `SavedSettingsSchema`
- * (shared/src/net/client-messages.ts), and a section in ui/screens/settings/; nothing in between changes.
+ * A new kind of setting is a store here (with `restore` / `toSaved`, listed in the three functions below), a
+ * field in `SavedSettingsSchema` (shared/src/net/client-messages.ts), and a section in ui/screens/settings/.
  */
 import type { SavedSettings } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
@@ -45,7 +45,7 @@ export function syncSettings(settings: Settings, net: Connection): () => void {
     if (timer) clearTimeout(timer);
     timer = setTimeout(send, SEND_AFTER_MS);
   };
-  const unsubscribe = [settings.bindings.subscribe(changed), settings.camera.subscribe(changed)];
+  const unsubscribe = Object.values(settings).map((store) => store.subscribe(changed));
   return () => {
     for (const off of unsubscribe) off();
     if (timer) send();
