@@ -47,7 +47,10 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    title shows first while the engine, Havok and both scenes get built behind it.
 2. **Login.** The login form calls `POST /api/login` (or `/api/register`), which sets the httpOnly `it_session`
    cookie (30 days).
-3. **Join.** Play opens `/ws`; the cookie goes with it. The server finds the account, loads the save and sends
+3. **Join.** Play opens `/ws`; the cookie goes with it. Meanwhile the title plays its enter sequence
+   (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
+   once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
+   screens over it, take keys. The server finds the account, loads the save and sends
    `welcome` (HP / stamina, stats, settings, character, wins, inventory). With no character yet, the client shows
    the character editor and the server waits for a `character` message; then it sends `level`.
 4. **Field.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
@@ -215,8 +218,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
   tests yet ([plan/tests.md](plan/tests.md)).
-- **client**: only logic that runs without Babylon or the DOM: key bindings, camera settings, settings sync and
-  field prediction. Rendering, the arena fight and the React screens are tried in a browser.
+- **client**: only logic that runs without Babylon or the DOM: key bindings, camera settings, settings sync,
+  field prediction and the title's sequence timing. Rendering, the arena fight and the React screens are tried in a
+  browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -359,7 +363,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      characters.ts (playerFrames(look) draws the player in a character's colors)
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings, the
-                       character editor, title screen
+                       character editor, title screen (the HUD, Settings and the editor only once `inWorld`)
       state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD; bars
                        are `...Fraction`, 0..1), `settingsScreen` and `characterScreen` (open / closed: the UI
                        writes them too, the game watches them), and UiActions (what the UI asks of the game:
@@ -377,8 +381,14 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        box), panelKeys.ts, icons.tsx
       overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
       screens/         One folder per full-screen page, holding the parts only that page uses
-        title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line), LoginForm.tsx,
-                         MenuButton.tsx (the big "◆ Play"), styles.ts, Backdrop.tsx (SVG night sky + tower)
+        title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),
+                         LoginForm.tsx, MenuButton.tsx (the big "◆ Play"), styles.ts, sequence.ts (the enter / leave
+                         sequences' stages and timing), useSequence.ts (the stage for the title's phase)
+          backdrop/        The title's low-poly scene on a 2D canvas: Backdrop.tsx (the scene + light shafts, motes,
+                         grain, vignette), Scene.tsx (canvas, frame loop), draw.ts (painter's order, glow layer),
+                         world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,
+                         glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
+                         space.ts
         settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx,
                          KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         character/       CharacterEditor.tsx (make / change your character), SpritePreview.tsx, swatches.ts

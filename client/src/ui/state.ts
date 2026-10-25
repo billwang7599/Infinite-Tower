@@ -20,15 +20,24 @@ export interface TitleState {
   /**
    * checking (asking the server who's logged in) -> menu. In the menu, logged out shows the login form
    * (submitting it is `signingIn`, then back to menu, logged in); logged in shows Play. Play is
-   * connecting -> loading -> leaving (fading out over the field). A failed connection goes back to menu with
-   * `error` (Play becomes Retry); anything failing after that is `failed` and needs a reload. Return to title,
-   * or losing the connection while playing, is back to menu.
+   * connecting -> loading -> entering (the game has joined; the title clears off it) -> playing (the title is
+   * gone, and the game gets input: game.ts). A failed connection goes back to menu with `error` (Play becomes
+   * Retry); anything failing after that is `failed` and needs a reload. Return to title, or losing the connection
+   * while playing, is returning (the game stops under the white), then menu. How each looks:
+   * ui/screens/title/sequence.ts.
    */
-  phase: "checking" | "menu" | "signingIn" | "connecting" | "loading" | "failed" | "leaving";
+  phase: "checking" | "menu" | "signingIn" | "connecting" | "loading" | "failed" | "entering" | "playing"
+    | "returning";
   error: string | null;
   /** The logged-in account's username, or null. */
   username: string | null;
 }
+
+/**
+ * The player is in the world: a game is running and the title has cleared off it. Only then do the HUDs show and
+ * the game, and the screens over it, take keys (App.tsx, game.ts).
+ */
+export const inWorld = (mode: Mode | null, phase: TitleState["phase"]): boolean => mode !== null && phase === "playing";
 
 export interface ToastItem {
   /** Unique per toast: the React key, and what `dismissToast` removes (the text can repeat). */

@@ -19,14 +19,23 @@
   --text-shadow-hud: 0 2px 4px #000a;
   --text-shadow-title: 0 0 28px #e8c45a66, 0 4px 14px #000d;
 
-  --animate-twinkle: twinkle 3.5s ease-in-out infinite;
-  --animate-drift: drift 160s linear infinite;
   --animate-rise: rise 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* The title's backdrop (ui/screens/title/backdrop/). Durations and delays are set per element. */
+  --animate-mote: mote 14s linear infinite;
+  --animate-breathe: breathe 8s ease-in-out infinite;
+  /* The title's sequence (ui/screens/title/sequence.ts). Each stage sets the duration. */
+  --animate-title-out: title-out 1s ease-in both;
+  --animate-white-in: white-in 1s ease-in-out both;
 
-  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-  /* One backdrop width: ui/screens/title/Backdrop.tsx draws the clouds twice side by side. */
-  @keyframes drift { to { transform: translateX(-1600px); } }
   @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+  @keyframes mote {
+    from { opacity: 0; transform: translateY(0); }
+    25%, 70% { opacity: 0.8; }
+    to { opacity: 0; transform: translateY(-30vh); }
+  }
+  @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+  @keyframes title-out { to { opacity: 0; transform: translateY(-12px); filter: blur(6px); } }
+  @keyframes white-in { from { opacity: 0; } }
 }
 
 @layer base {

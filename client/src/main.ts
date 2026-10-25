@@ -14,6 +14,7 @@ import { currentAccount, logIn, logOut, register } from "./net/account.js";
 import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
 import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
+import { LEAVE_COVERED_MS } from "./ui/screens/title/sequence.js";
 import { UiState, type SignInKind } from "./ui/state.js";
 
 // The page frame (#stage) is held to the same widest view as the camera and the server; wider windows get side bars.
@@ -75,7 +76,7 @@ async function play(): Promise<void> {
   try {
     ui.title.set({ phase: "loading" });
     (await preparing).join(joined);
-    ui.title.set({ phase: "leaving" });
+    ui.title.set({ phase: "entering" });
     // Also catches a connection that dropped while the game was loading.
     joined.net.onLost((reason) => void backToTitle(reason));
   } catch (err) {
@@ -83,9 +84,16 @@ async function play(): Promise<void> {
   }
 }
 
-/** Leaves the world (hanging up on the server) and shows the title again, with `error` under Retry. */
+/**
+ * Leaves the world (hanging up on the server) and shows the title again, with `error` under Retry. The game stops
+ * once the title's white covers it, so the field never blinks out in view.
+ */
 async function backToTitle(error: string | null = null): Promise<void> {
-  (await preparing).leave();
+  if (ui.title.get().phase === "returning") return;
+  const game = await preparing;
+  ui.title.set({ phase: "returning", error: null });
+  await new Promise((resolve) => setTimeout(resolve, LEAVE_COVERED_MS));
+  game.leave();
   ui.title.set({ phase: "menu", error });
 }
 

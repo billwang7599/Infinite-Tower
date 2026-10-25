@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { UiState } from "../../src/ui/state.js";
+import { inWorld, UiState, type TitleState } from "../../src/ui/state.js";
 
 const texts = (ui: UiState) => ui.toasts.get().items.map((t) => t.text);
 
@@ -69,5 +69,27 @@ describe("UiState screens", () => {
     ui.characterScreen.set({ open: true, firstTime: true });
     ui.closeCharacterEditor();
     assert.equal(ui.characterScreen.get().open, true);
+  });
+});
+
+describe("inWorld", () => {
+  const PHASES: readonly TitleState["phase"][] = [
+    "checking", "menu", "signingIn", "connecting", "loading", "failed", "entering", "playing", "returning",
+  ];
+
+  test("HUDs and key-taking screens wait for the title to clear, and go as it comes back", () => {
+    for (const phase of PHASES.filter((p) => p !== "playing")) {
+      assert.equal(inWorld("field", phase), false, phase);
+      assert.equal(inWorld("battle", phase), false, phase);
+    }
+  });
+
+  test("once the title is gone, the field and the arena are both in the world", () => {
+    assert.equal(inWorld("field", "playing"), true);
+    assert.equal(inWorld("battle", "playing"), true);
+  });
+
+  test("no game running is never in the world", () => {
+    for (const phase of PHASES) assert.equal(inWorld(null, phase), false, phase);
   });
 });
