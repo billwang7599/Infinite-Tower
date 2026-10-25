@@ -34,12 +34,13 @@ export function spawnPlayer(ctx: BattleContext, at: Vec3, vitals: Vitals, stats:
   shadow.material = materials.blobShadow;
   shadow.isPickable = false;
 
-  // Sword trail: a flat crescent in front of the player (local +z), shown during the swing.
-  const arc = (70 * Math.PI) / 180;
+  // Sword trail: a flat crescent in front of the player (local +z), shown during the swing. It spans the same
+  // arc the slash hits, so what you see is what hits.
+  const halfArc = Math.acos(PLAYER.slash.minDot);
   const inner: Vector3[] = [], outer: Vector3[] = [];
   for (let i = 0; i <= 24; i++) {
     const u = i / 24 * 2 - 1; // -1..1 along the arc
-    const a = u * arc;
+    const a = u * halfArc;
     const thick = Math.cos(u * Math.PI / 2); // pointed tips
     const ro = 2.1, ri = ro - 0.15 - 0.85 * thick;
     inner.push(new Vector3(Math.sin(a) * ri, 0, Math.cos(a) * ri));
