@@ -2,21 +2,25 @@
  * The field's character panel: the player's name and stats, and Change look (the character editor). It doesn't
  * pause or block walking; the field HUD's button or the Character key (field.character) toggles it.
  */
-import type { Character, Stats } from "@infinite-tower/shared";
-import { BUTTON } from "../../screens/settings/buttons.js";
+import { NO_FOCUS } from "../../components/noFocus.js";
+import { BUTTON } from "../../components/styles.js";
+import type { FieldHudState } from "../../state.js";
+import type { Store } from "../../store.js";
+import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { STAT_KEYS, STAT_TEXT } from "./statText.js";
 
 interface PanelProps {
-  stats: Stats | null;
-  character: Character | null;
+  hud: Store<FieldHudState>;
   close: () => void;
   edit: () => void;
 }
 
-export function CharacterPanel({ stats, character, close, edit }: PanelProps) {
+export function CharacterPanel({ hud, close, edit }: PanelProps) {
+  const stats = useStore(hud, (s) => s.stats);
+  const name = useStore(hud, (s) => s.character?.name);
   return (
-    <PanelFrame id="character-panel" title={character?.name ?? "Character"} titleId="character-name" close={close}>
+    <PanelFrame id="character-panel" title={name ?? "Character"} titleId="character-name" close={close}>
       {stats && (
         <dl className="flex flex-col gap-2">
           {STAT_KEYS.map((key) => (
@@ -29,7 +33,7 @@ export function CharacterPanel({ stats, character, close, edit }: PanelProps) {
         </dl>
       )}
       <button
-        type="button" id="character-edit" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={edit}
+        type="button" id="character-edit" {...NO_FOCUS} onClick={edit}
         className={`pointer-events-auto mt-4 w-full ${BUTTON.plain}`}
       >
         Change look

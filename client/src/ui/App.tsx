@@ -12,14 +12,13 @@ import { useStore } from "./useStore.js";
 /** Later children draw on top: HUD, toasts, the fade, the settings, the character editor, then the title screen. */
 export function App({ ui, settings, actions }: { ui: UiState; settings: Settings; actions: UiActions }) {
   const mode = useStore(ui.screen, (s) => s.mode);
-  const character = useStore(ui.field, (s) => s.character);
-  const account = useStore(ui.title, (s) => s.account);
   return (
     <>
       {mode === "field" && (
         <FieldHud
           hud={ui.field} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
-          openSettings={ui.openSettings} editCharacter={ui.openCharacterEditor} rest={actions.rest} useItem={actions.useItem}
+          openSettings={ui.openSettings} editCharacter={ui.openCharacterEditor} rest={actions.rest}
+          useItem={actions.useItem}
         />
       )}
       {mode === "battle" && <BattleHud hud={ui.battle} bindings={settings.bindings} />}
@@ -33,8 +32,8 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
       )}
       {mode !== null && (
         <CharacterEditor
-          screen={ui.characterScreen} current={character} suggestedName={(account ?? "").replaceAll("_", " ")}
-          close={ui.closeCharacterEditor} actions={actions}
+          screen={ui.characterScreen} field={ui.field} title={ui.title} close={ui.closeCharacterEditor}
+          actions={actions}
         />
       )}
       <TitleScreen title={ui.title} actions={actions} />

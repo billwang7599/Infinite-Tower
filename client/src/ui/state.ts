@@ -1,7 +1,8 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exception is `settingsScreen`: the UI opens and closes it
- * and the game watches it, to stop taking input while it's open. `UiActions` is the other direction.
+ * imports React, so game code never touches it. The exceptions are `settingsScreen` and `characterScreen`: the
+ * UI opens and closes them too, and the game watches them, to stop taking input while one is open. `UiActions`
+ * is the other direction.
  */
 import type { Character, Credentials, Inventory, ItemId, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
@@ -25,8 +26,8 @@ export interface TitleState {
    */
   phase: "checking" | "menu" | "signingIn" | "connecting" | "loading" | "failed" | "leaving";
   error: string | null;
-  /** The logged-in username, or null. */
-  account: string | null;
+  /** The logged-in account's username, or null. */
+  username: string | null;
 }
 
 export interface ToastItem {
@@ -40,15 +41,11 @@ export interface ToastsState {
   items: readonly ToastItem[];
 }
 
-const MAX_TOASTS = 4;
-
-// Bar values (hp, stamina, enemyHp) are fractions 0..1.
-
 export interface FieldHudState {
   levelName: string;
   wins: number;
-  hp: number;
-  stamina: number;
+  hpFraction: number;
+  staminaFraction: number;
   /** The player's stats, for the character panel (null before `welcome`). */
   stats: Stats | null;
   /** Their name and look (null until they've made a character). */
@@ -59,10 +56,10 @@ export interface FieldHudState {
 }
 
 export interface BattleHudState {
-  hp: number;
-  stamina: number;
+  hpFraction: number;
+  staminaFraction: number;
   enemyName: string;
-  enemyHp: number;
+  enemyHpFraction: number;
   enemyAlive: boolean;
   mouseCaptured: boolean;
   result: FightState;
@@ -98,22 +95,27 @@ export interface UiActions {
 }
 
 export class UiState {
-  readonly title = new Store<TitleState>({ phase: "checking", error: null, account: null });
+  readonly title = new Store<TitleState>({ phase: "checking", error: null, username: null });
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly characterScreen = new Store<CharacterScreenState>({ open: false, firstTime: false });
-  readonly field = new Store<FieldHudState>({ levelName: "…", wins: 0, hp: 1, stamina: 1, stats: null, character: null, nearCampfire: false, inventory: {} });
+  readonly field = new Store<FieldHudState>({
+    levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
+    inventory: {},
+  });
   readonly battle = new Store<BattleHudState>({
-    hp: 1, stamina: 1, enemyName: "", enemyHp: 1, enemyAlive: false,
+    hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1, enemyAlive: false,
     mouseCaptured: false, result: "fighting", showResult: false,
   });
 
+  private static readonly MAX_TOASTS = 4;
   private nextToastId = 1;
 
+  /** Oldest goes first when there are more than MAX_TOASTS. */
   showToast(text: string): void {
     const items = [...this.toasts.get().items, { id: this.nextToastId++, text }];
-    this.toasts.set({ items: items.slice(-MAX_TOASTS) });
+    this.toasts.set({ items: items.slice(-UiState.MAX_TOASTS) });
   }
 
   /** Arrows so they can be passed as props unbound. */

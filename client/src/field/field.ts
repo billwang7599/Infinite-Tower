@@ -79,7 +79,8 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
   const rest = () => {
     if (byCampfire()) net?.send({ t: "rest" });
   };
-  const setVitals = (v: Vitals) => hud.set({ hp: v.hp / PLAYER.maxHp, stamina: v.stamina / maxStamina });
+  const setVitals = (v: Vitals) =>
+    hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / maxStamina });
   const setInventory = (inventory: Inventory) => hud.set({ inventory });
 
   let accumulator = 0;

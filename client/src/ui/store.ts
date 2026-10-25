@@ -11,7 +11,9 @@ export class Store<T extends object> {
   }
 
   /** Don't mutate the result: change it through `set`, or listeners won't hear about it. */
-  readonly get = (): T => this.state;
+  get(): T {
+    return this.state;
+  }
 
   /** Shallow merge. A no-op (no re-render) if every value is unchanged. */
   set(patch: Partial<T>): void {
@@ -24,7 +26,7 @@ export class Store<T extends object> {
     for (const listener of this.listeners) listener();
   }
 
-  /** Arrows (this and `get`) because useSyncExternalStore calls them unbound. */
+  /** An arrow because useSyncExternalStore calls it unbound. */
   readonly subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

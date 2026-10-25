@@ -1,11 +1,13 @@
 import type { ItemId } from "@infinite-tower/shared";
-import { useCallback, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
+import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import type { FieldHudState, SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
+import { HudLayer } from "./HudLayer.js";
 import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { usePanelKeys, type Panel } from "./panelKeys.js";
@@ -14,7 +16,6 @@ type HudProps = { hud: Store<FieldHudState> };
 
 interface FieldHudProps extends HudProps {
   bindings: KeyBindings;
-  /** The panel keys do nothing while Settings is open (they may be getting rebound). */
   settingsScreen: Store<SettingsScreenState>;
   openSettings: () => void;
   editCharacter: () => void;
@@ -25,16 +26,12 @@ interface FieldHudProps extends HudProps {
 /** One side panel at a time (character or inventory); neither blocks walking. */
 export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter, rest, useItem }: FieldHudProps) {
   const [panel, setPanel] = useState<Panel | null>(null);
-  const toggle = useCallback((p: Panel) => setPanel((open) => (open === p ? null : p)), []);
+  const toggle = (p: Panel) => setPanel((open) => (open === p ? null : p));
   const close = () => setPanel(null);
   usePanelKeys(bindings, settingsScreen, toggle);
-  const stats = useStore(hud, (s) => s.stats);
-  const character = useStore(hud, (s) => s.character);
-  const inventory = useStore(hud, (s) => s.inventory);
-  const fullHp = useStore(hud, (s) => s.hp >= 1);
 
   return (
-    <div id="field-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
+    <HudLayer id="field-hud">
       <PlayerStatus hud={hud} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />
@@ -49,21 +46,21 @@ export function FieldHud({ hud, bindings, settingsScreen, openSettings, editChar
         </HudButton>
       </div>
       <RestButton hud={hud} rest={rest} />
-      {panel === "character" && <CharacterPanel stats={stats} character={character} close={close} edit={editCharacter} />}
-      {panel === "inventory" && <InventoryPanel inventory={inventory} fullHp={fullHp} use={useItem} close={close} />}
-    </div>
+      {panel === "character" && <CharacterPanel hud={hud} close={close} edit={editCharacter} />}
+      {panel === "inventory" && <InventoryPanel hud={hud} use={useItem} close={close} />}
+    </HudLayer>
   );
 }
 
 function PlayerStatus({ hud }: HudProps) {
   const name = useStore(hud, (s) => s.character?.name);
-  const hp = useStore(hud, (s) => s.hp);
-  const stamina = useStore(hud, (s) => s.stamina);
+  const hpFraction = useStore(hud, (s) => s.hpFraction);
+  const staminaFraction = useStore(hud, (s) => s.staminaFraction);
   const wins = useStore(hud, (s) => s.wins);
   return (
     <div className="absolute top-3 left-4">
       {name && <div id="field-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
-      <PlayerBars hp={hp} stamina={stamina} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
       <div id="field-wins" className="text-[13px] font-normal">
         Boars defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>
@@ -77,8 +74,12 @@ function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
   if (!near) return null;
   return (
     <button
-      type="button" id="rest-button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={rest}
-      className="pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory transition-colors hover:bg-black/80"
+      type="button" id="rest-button" {...NO_FOCUS} onClick={rest}
+      className={
+        "pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
+        + "border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory "
+        + "transition-colors hover:bg-black/80"
+      }
     >
       Rest by the fire
     </button>
@@ -90,17 +91,21 @@ function LevelName({ hud }: HudProps) {
   return <div id="field-level" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
 }
 
-function HudButton({ id, label, onClick, children }: { id: string; label: string; onClick: () => void; children: ReactNode }) {
+interface HudButtonProps {
+  id: string;
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}
+
+function HudButton({ id, label, onClick, children }: HudButtonProps) {
   return (
     <button
-      type="button"
-      id={id}
-      aria-label={label}
-      // Keyboard game: out of the tab order and never focused by a click, so Space / Enter can't press it.
-      tabIndex={-1}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="pointer-events-auto flex size-9 cursor-pointer items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+      type="button" id={id} aria-label={label} {...NO_FOCUS} onClick={onClick}
+      className={
+        "pointer-events-auto flex size-9 cursor-pointer items-center justify-center rounded-full bg-black/40 "
+        + "text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+      }
     >
       {children}
     </button>

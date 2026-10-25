@@ -5,38 +5,46 @@ import { keyName } from "../keyNames.js";
 import type { BattleHudState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
+import { HudLayer } from "./HudLayer.js";
 
 type HudProps = { hud: Store<BattleHudState> };
 
+/** The dark band behind the result, fading out above and below. */
+const RESULT_BAND = "bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)]";
+
 export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   return (
-    <div id="battle-hud" className="pointer-events-none absolute inset-0 font-ui text-base/snug font-semibold text-white text-shadow-hud">
+    <HudLayer id="battle-hud">
       <Vitals hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
       <MouseHint hud={hud} />
-    </div>
+    </HudLayer>
   );
 }
 
 function Vitals({ hud }: HudProps) {
-  const hp = useStore(hud, (s) => s.hp);
-  const stamina = useStore(hud, (s) => s.stamina);
+  const hpFraction = useStore(hud, (s) => s.hpFraction);
+  const staminaFraction = useStore(hud, (s) => s.staminaFraction);
   return (
     <div className="absolute top-3 left-4">
-      <PlayerBars hp={hp} stamina={stamina} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
     </div>
   );
 }
 
 function BossBar({ hud }: HudProps) {
   const name = useStore(hud, (s) => s.enemyName);
-  const hp = useStore(hud, (s) => s.enemyHp);
+  const hpFraction = useStore(hud, (s) => s.enemyHpFraction);
   const alive = useStore(hud, (s) => s.enemyAlive);
   return (
-    <div className={`absolute bottom-12 left-1/2 w-[min(640px,70%)] -translate-x-1/2 transition-opacity duration-600 ${alive ? "opacity-100" : "opacity-0"}`}>
+    <div
+      className={`absolute bottom-12 left-1/2 w-[min(640px,70%)] -translate-x-1/2 transition-opacity duration-600 ${
+        alive ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <div id="boss-name" className="mb-1 font-title text-[17px] font-medium tracking-wide">{name}</div>
-      <Bar value={hp} fill="from-boss to-boss-dark" chip />
+      <Bar fraction={hpFraction} fill="from-boss to-boss-dark" chip />
     </div>
   );
 }
@@ -47,7 +55,11 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   const leaveKey = useStore(bindings, (s) => s.battle.leave[0]!);
   const died = result === "lost";
   return (
-    <div className={`absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)] transition-opacity duration-1200 ${show ? "opacity-100" : "opacity-0"}`}>
+    <div
+      className={`absolute inset-0 flex flex-col items-center justify-center ${RESULT_BAND} transition-opacity ${
+        show ? "opacity-100" : "opacity-0"
+      } duration-1200`}
+    >
       <div className={`font-title text-6xl font-normal tracking-[6px] ${died ? "text-died" : "text-victory"}`}>
         {died ? "YOU DIED" : "PREY SLAUGHTERED"}
       </div>
