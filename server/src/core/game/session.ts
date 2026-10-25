@@ -1,39 +1,32 @@
 /**
- * One connected player. Single-player for now: each session owns its own ECS world (its own level
- * and actors). Starts from the player's save and holds which level/mode they're in; the field systems do the
- * simulating, encounter.ts the fights. Its public methods are what a player can ask for (ws/handlers.ts calls
- * them, one per message), and it answers through its `PlayerLink`.
+ * One connected player's game. Starts from their save and holds what they have (vitals, wins, settings,
+ * character, inventory) and where they are: walking their field, or in a battle (battle.ts). Its public methods
+ * are what a player can ask for (ws/handlers.ts calls them, one per message), and it answers through its
+ * `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
 import {
-  fullVitals, itemDef, nearCampfire, PLAYER, World, type Character, type Inventory, type ItemId, type Entity, type SavedSettings, type Stats, type System, type Vec2, type Vitals,
+  itemDef, nearCampfire, PLAYER, type Character, type Inventory, type ItemId, type SavedSettings, type Stats,
+  type Vitals,
 } from "@infinite-tower/shared";
-import { PLAYER_STATS } from "../content/player.js";
-import { chaseSystem } from "../field/behaviors/chase.js";
-import { moveSystem } from "../field/behaviors/move.js";
-import { touchSystem } from "../field/behaviors/touch.js";
-import { wanderSystem } from "../field/behaviors/wander.js";
-import { FieldPlayer, FieldPos } from "../field/components.js";
-import type { FieldContext } from "../field/context.js";
-import { fieldPlayerSystem, queueInput } from "../field/player.js";
-import { Spawner } from "../field/spawner.js";
+import { fullVitals, PLAYER_STATS } from "../content/player.js";
+import { Field } from "../field/field.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
-import type { LevelDef } from "../levels/level.js";
-import type { PlayerLink, PlayerSave } from "../ports.js";
-import { endEncounter, startEncounter, type Encounter } from "./encounter.js";
+import type { Account, PlayerLink, PlayerSave } from "../ports.js";
+import { settleBattle, startBattle, type Battle } from "./battle.js";
+import { removeOne } from "./inventory.js";
 import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
-const STATE_EVERY = 3;
-/** Tiles of leeway on the campfire's reach (see `nearCampfire`). */
-const REST_SLACK = 0.6;
+const STATE_EVERY_TICKS = 3;
+/** Leeway on the campfire's reach (see `nearCampfire`). */
+const REST_SLACK_TILES = 0.6;
 /** Settings changes are written at most this often (a client sending them in a loop can't hammer the database). */
 const SETTINGS_SAVE_MS = 1000;
 
-export class Session {
-  readonly world = new World();
-  readonly player: Entity;
-  /** null while in the field; set during a fight. */
-  encounter: Encounter | null = null;
+export class GameSession {
+  readonly field = new Field((source, enemy) => startBattle(this, source, enemy));
+  /** null while in the field; set during a battle. */
+  battle: Battle | null = null;
   wins: number;
   vitals: Vitals;
   /** The same for everyone for now (content/player.ts); not saved. */
@@ -41,19 +34,13 @@ export class Session {
   settings: SavedSettings;
   character: Character | null;
   inventory: Inventory;
-  /** Highest input seq accepted (older or repeated ones are ignored). */
-  lastSeq = 0;
-  /** null until the player has a character and has been put in a level. */
-  private level: LevelDef | null = null;
-  private spawner: Spawner | null = null;
-  private readonly systems: System[];
-  private readonly ctx: FieldContext;
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
+    readonly account: Account,
     readonly link: PlayerLink,
-    readonly dev: boolean,
+    private readonly dev: boolean,
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
   ) {
@@ -62,81 +49,68 @@ export class Session {
     this.settings = saved.settings;
     this.character = saved.character;
     this.inventory = saved.inventory;
-    const session = this;
-    this.ctx = {
-      get level() { return session.currentLevel; },
-      rng: Math.random,
-      encounter: (source, enemy) => startEncounter(this, source, enemy),
-    };
-    this.systems = [
-      fieldPlayerSystem(this.ctx), chaseSystem(), wanderSystem(this.ctx), moveSystem(this.ctx), touchSystem(this.ctx),
-      (world, dt) => this.spawner?.system(world, dt),
-    ];
-    this.player = this.world.spawn();
-    this.world.add(this.player, FieldPos, { x: 0, z: 0 });
-    this.world.add(this.player, FieldPlayer, { vx: 0, vz: 0, queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
-    link.send({
-      t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, inventory: this.inventory, dev,
-    });
   }
 
-  /** Into the world, unless there's no character yet: then that waits for `setCharacter`. */
+  /** Sends `welcome`, then puts the player in the world, unless there's no character yet: that waits for one. */
   start(): void {
+    this.link.send({
+      t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
+      character: this.character, inventory: this.inventory, dev: this.dev,
+    });
     if (this.character) this.enterLevel(START_LEVEL);
   }
 
-  /** A walking input (the client sends one per tick while moving). Older or repeated ones are ignored. */
+  /** A walking input (the client sends one per tick while moving). */
   input(seq: number, moveX: number, moveZ: number): void {
-    if (!this.inField || seq <= this.lastSeq) return;
-    this.lastSeq = seq;
-    queueInput(this.world.require(this.player, FieldPlayer), { seq, moveX, moveZ });
+    if (this.inField) this.field.input(seq, moveX, moveZ);
   }
 
-  /** The client left a decided fight; encounter.ts checks what it claims. */
+  /** The client left a decided fight; battle.ts checks what it claims. */
   endBattle(claimedWin: boolean, vitals: Vitals): void {
-    endEncounter(this, claimedWin, vitals);
+    settleBattle(this, claimedWin, vitals);
   }
 
-  /** Dev servers only: a fight right now, without finding one. */
+  /** Dev servers only: a battle right now, without finding one. */
   debugEncounter(): void {
-    if (this.dev && this.inField) startEncounter(this, null, "wild-boar");
+    if (this.dev && this.inField) startBattle(this, null, "wild-boar");
   }
 
   setCharacter(character: Character): void {
     this.character = character;
     this.save();
     this.link.send({ t: "character", character });
-    if (!this.level) this.enterLevel(START_LEVEL);
+    if (!this.field.hasLevel) this.enterLevel(START_LEVEL);
   }
 
   /** Rest at a campfire, if the server's copy of you is standing by one: HP and stamina refill. */
   rest(): void {
-    if (!this.inField || !nearCampfire(this.currentLevel.layout, this.playerPos(), REST_SLACK)) return;
-    this.vitals = fullVitals(this.stats);
-    this.save();
+    if (!this.inField || !nearCampfire(this.field.level.layout, this.field.playerPos(), REST_SLACK_TILES)) return;
+    const full = fullVitals(this.stats);
+    if (full.hp !== this.vitals.hp || full.stamina !== this.vitals.stamina) {
+      this.vitals = full;
+      this.save();
+    }
     this.link.send({ t: "rested", vitals: this.vitals });
   }
 
   /** Use one `item`, if the player has one and it does something now (meat when already at full HP doesn't). */
   useItem(item: ItemId): void {
-    const have = this.inventory[item] ?? 0;
-    const heal = itemDef(item).healHp ?? 0;
-    if (!this.inField || have <= 0 || heal <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
-    const inventory = { ...this.inventory };
-    if (have > 1) inventory[item] = have - 1;
-    else delete inventory[item];
-    this.inventory = inventory;
-    this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + heal) };
+    const healHp = itemDef(item).healHp ?? 0;
+    if (!this.inField || (this.inventory[item] ?? 0) <= 0 || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
+    this.inventory = removeOne(this.inventory, item);
+    this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + healHp) };
     this.save();
     this.link.send({ t: "itemUsed", item, vitals: this.vitals, inventory: this.inventory });
   }
 
-  /** Called after every fight and on disconnect. */
+  /** Writes the save now (and cancels a pending settings save). */
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
-    this.persist({ vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character, inventory: this.inventory });
+    this.persist({
+      vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
+      inventory: this.inventory,
+    });
   }
 
   /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */
@@ -145,49 +119,19 @@ export class Session {
     this.saveTimer ??= setTimeout(() => this.save(), SETTINGS_SAVE_MS);
   }
 
-  get currentLevel(): LevelDef {
-    if (!this.level) throw new Error("not in a level yet");
-    return this.level;
-  }
-  /** Walking around a level: not in a fight, and not still making a character. */
-  get inField(): boolean { return this.encounter === null && this.level !== null; }
-
-  /** Load a level: clear the old one's actors, place the player, spawn the new actors, tell the client. */
-  enterLevel(id: string, at?: Vec2): void {
-    this.spawner?.clear();
-    this.level = getLevel(id);
-    this.placePlayer(at ?? this.level.spawn);
-    this.spawner = new Spawner(this.world, this.ctx);
-    this.link.send({ t: "level", level: this.level.layout, me: this.playerPos() });
-  }
+  /** Walking around a level: not in a battle, and not still making a character. */
+  get inField(): boolean { return this.battle === null && this.field.hasLevel; }
 
   tick(dt: number): void {
     if (!this.inField) return;
-    for (const s of this.systems) {
-      s(this.world, dt);
-      if (!this.inField) break; // an encounter started
-    }
-    this.world.flush();
-    if (this.inField && ++this.ticks % STATE_EVERY === 0) this.link.send(stateMsg(this));
+    this.field.step(dt);
+    if (this.inField && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.field, this.wins));
   }
 
-  /** Reset walking state: after a fight or teleport, no stale inputs or encounter progress. */
-  resetWalk(safeTime: number): void {
-    const fp = this.world.require(this.player, FieldPlayer);
-    fp.queue.length = 0;
-    fp.credits = 0;
-    fp.grassDist = 0;
-    fp.safeTime = safeTime;
-  }
-
-  placePlayer(at: Vec2): void {
-    const pos = this.world.require(this.player, FieldPos);
-    pos.x = at.x;
-    pos.z = at.z;
-  }
-
-  playerPos(): Vec2 {
-    const p = this.world.require(this.player, FieldPos);
-    return { x: p.x, z: p.z };
+  /** Load a level and tell the client. */
+  private enterLevel(id: string): void {
+    const level = getLevel(id);
+    this.field.enter(level);
+    this.link.send({ t: "level", level: level.layout, me: this.field.playerPos() });
   }
 }

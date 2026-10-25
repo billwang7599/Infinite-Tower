@@ -9,10 +9,12 @@ import type { Account } from "../core/ports.js";
 import { Connection } from "./connection.js";
 import { handlers } from "./handlers.js";
 
+/** Messages are small JSON; anything bigger is refused by ws (close 1009). */
+const MAX_MESSAGE_BYTES = 16 * 1024;
+
 export function gameSockets(online: OnlinePlayers) {
   return {
-    /** Messages are small JSON; anything bigger is refused by ws. */
-    maxMessageBytes: 16 * 1024,
+    maxMessageBytes: MAX_MESSAGE_BYTES,
 
     accept(ws: WebSocket, account: Account | null): void {
       const conn = new Connection(ws);

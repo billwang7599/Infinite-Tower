@@ -4,18 +4,19 @@
  */
 import { FIXED_DT } from "@infinite-tower/shared";
 
-const MAX_CATCH_UP = 0.25;
+const MAX_CATCH_UP_TIME = 0.25;
 
 export class FixedClock {
-  private acc = 0;
+  /** Seconds that have passed but not been stepped yet. */
+  private unsteppedTime = 0;
 
   constructor(private readonly step: (dt: number) => void) {}
 
   advance(seconds: number): void {
-    this.acc += Math.min(MAX_CATCH_UP, seconds);
-    while (this.acc >= FIXED_DT) {
+    this.unsteppedTime += Math.min(MAX_CATCH_UP_TIME, seconds);
+    while (this.unsteppedTime >= FIXED_DT) {
       this.step(FIXED_DT);
-      this.acc -= FIXED_DT;
+      this.unsteppedTime -= FIXED_DT;
     }
   }
 }

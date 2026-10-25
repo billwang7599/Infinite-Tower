@@ -6,7 +6,7 @@ it plays is decided.
 ## Where things stand
 
 - The server is already authoritative for the field, and every player has an account and a save. Each player has
-  their own `Session` with their own world: players can't see each other yet.
+  their own `GameSession` with their own world: players can't see each other yet.
 - A second tab on the same account takes over the first (close code 4000).
 - Fights run in the browser, so they'd have to move to the server first ([server-fights.md](server-fights.md)).
 

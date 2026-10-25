@@ -20,8 +20,6 @@ export const FieldActor = defineComponent<FieldActorData>("FieldActor");
 export interface QueuedInput { seq: number; moveX: number; moveZ: number }
 
 export interface FieldPlayerData {
-  vx: number;
-  vz: number;
   /** Inputs received but not yet simulated. */
   queue: QueuedInput[];
   /** Inputs the player may still simulate: +1 per tick, capped, so a client can't move faster by sending more. */

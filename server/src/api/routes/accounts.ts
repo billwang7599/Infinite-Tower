@@ -26,7 +26,7 @@ export const accountRoutes: FastifyPluginAsyncZod<AccountRoutesOptions> = async 
   const limited = app.rateLimit(LOGIN_LIMIT);
   const loggedIn = async (reply: FastifyReply, account: Account, status: number) => {
     setSessionCookie(reply, await accounts.startSession(account.id), secureCookies);
-    return reply.code(status).send(info(account));
+    return reply.code(status).send(accountInfo(account));
   };
 
   app.post("/register", { schema: { body: RegisterRequest }, onRequest: limited }, async (req, reply) => {
@@ -52,8 +52,8 @@ export const accountRoutes: FastifyPluginAsyncZod<AccountRoutesOptions> = async 
     const token = sessionToken(req);
     const account = token ? await accounts.forToken(token) : null;
     if (!account) throw new HttpError(401, "Not logged in.");
-    return info(account);
+    return accountInfo(account);
   });
 };
 
-const info = (account: Account): AccountInfo => ({ username: account.username });
+const accountInfo = (account: Account): AccountInfo => ({ username: account.username });

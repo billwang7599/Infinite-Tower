@@ -21,7 +21,7 @@ import { Accounts } from "./core/accounts/accounts.js";
 import { FixedClock } from "./core/game/clock.js";
 import { OnlinePlayers } from "./core/game/online.js";
 import { PgAccountStore } from "./db/account-store.js";
-import { connectDb } from "./db/db.js";
+import { connectDb, errorText } from "./db/db.js";
 import { PgPlayerStore } from "./db/player-store.js";
 import { DEV, PORT } from "./env.js";
 import { gameSockets } from "./ws/sockets.js";
@@ -30,10 +30,13 @@ const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url))
 /** How often the timer checks for due ticks. The ticks themselves are FIXED_DT apart (clock.ts). */
 const TIMER_MS = 5;
 
-const db = await connectDb(DEV).catch((err: unknown) => {
-  console.error(`[db] ${err instanceof Error ? err.message : String(err)}`);
+/** Logs the error under `tag` and stops the server. */
+const exitOn = (tag: string) => (err: unknown): never => {
+  console.error(`[${tag}] ${errorText(err)}`);
   process.exit(1);
-});
+};
+
+const db = await connectDb().catch(exitOn("db"));
 const accounts = new Accounts(new PgAccountStore(db));
 const online = new OnlinePlayers(new PgPlayerStore(db), DEV);
 
@@ -43,10 +46,7 @@ await startServer({
   accounts,
   secureCookies: !DEV,
   socket: gameSockets(online),
-}).catch((err: unknown) => {
-  console.error(`[server] ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+}).catch(exitOn("server"));
 console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`);
 
 const clock = new FixedClock((dt) => online.tick(dt));

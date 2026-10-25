@@ -2,8 +2,9 @@
 import { defineComponent, distXZ, type System } from "@infinite-tower/shared";
 import type { EnemyId } from "../../content/enemies.js";
 import { FieldPos } from "../components.js";
-import { findPrey, type FieldContext } from "../context.js";
+import type { FieldContext } from "../context.js";
 import { part } from "../parts.js";
+import { findPlayer } from "../player.js";
 
 export interface EncounterOnTouchData { range: number; enemy: EnemyId }
 export const EncounterOnTouch = defineComponent<EncounterOnTouchData>("EncounterOnTouch");
@@ -12,11 +13,11 @@ export const encounterOnTouch = (o: EncounterOnTouchData) => part(EncounterOnTou
 
 export function touchSystem(ctx: FieldContext): System {
   return (world) => {
-    const prey = findPrey(world);
-    if (!prey || prey.safe) return;
+    const player = findPlayer(world);
+    if (!player || player.safe) return;
     for (const [e, touch, pos] of world.query(EncounterOnTouch, FieldPos)) {
-      if (distXZ(prey.pos, pos) < touch.range) {
-        ctx.encounter(e, touch.enemy);
+      if (distXZ(player.pos, pos) < touch.range) {
+        ctx.startEncounter(e, touch.enemy);
         return;
       }
     }

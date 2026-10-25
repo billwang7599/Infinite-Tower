@@ -26,7 +26,7 @@ export interface ServerOptions {
 
 const MAX_BODY_BYTES = 4 * 1024;
 /** Vite puts a hash of each file's contents in its name under assets/, so a browser can keep those for good. */
-const FOREVER = "public, max-age=31536000, immutable";
+const CACHE_FOREVER = "public, max-age=31536000, immutable";
 
 /** The server, ready but not listening: `startServer` listens, and a test can `app.inject()` requests instead. */
 export async function buildServer(opts: ServerOptions): Promise<FastifyInstance> {
@@ -58,7 +58,7 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
     root: opts.clientDist,
     cacheControl: false,
     // Everything else (index.html) is checked with the server on each load, and only downloaded when it changed.
-    setHeaders: (reply, path) => reply.header("cache-control", path.startsWith(assets) ? FOREVER : "no-cache"),
+    setHeaders: (reply, path) => reply.header("cache-control", path.startsWith(assets) ? CACHE_FOREVER : "no-cache"),
   });
   return app;
 }

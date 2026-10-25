@@ -10,12 +10,12 @@ export interface SpawnDef {
   prefab: FieldPrefabId;
   at: Vec2;
   /** Seconds before a defeated one comes back. */
-  respawn: number;
+  respawnTime: number;
 }
 
 export interface EncounterTable {
   /** Roll every this many tiles walked in tall grass... */
-  step: number;
+  stepDist: number;
   /** ...with this chance. */
   chance: number;
   /** Which enemy, by weight. */

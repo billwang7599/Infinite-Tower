@@ -29,6 +29,7 @@ export class PgPlayerStore implements PlayerStore {
   }
 
   private inOrder<T>(id: PlayerId, query: () => Promise<T>): Promise<T> {
+    // A failed earlier query doesn't stop this one: its own caller already got that error.
     const next = (this.last.get(id) ?? Promise.resolve()).catch(() => {}).then(query);
     this.last.set(id, next);
     const forget = () => { if (this.last.get(id) === next) this.last.delete(id); };
