@@ -22,7 +22,7 @@ const VIEW_MARGIN_TILES = 3;
 /** The server doesn't know the window's shape, so it assumes the widest one allowed. */
 const VIEW_HALF_WIDTH = viewHalfWidth(VIEW.maxAspect);
 
-export function stateMsg(field: Field, wins: number): ServerMsgOf<"state"> {
+export function stateMsg(field: Field): ServerMsgOf<"state"> {
   const me = field.playerPos();
   const center = viewCenter(field.level.layout, me, VIEW_HALF_WIDTH);
   const reachX = VIEW_HALF_WIDTH + VIEW_MARGIN_TILES, reachZ = VIEW.halfHeight + VIEW_MARGIN_TILES;
@@ -34,5 +34,5 @@ export function stateMsg(field: Field, wins: number): ServerMsgOf<"state"> {
       alert: a.alert,
     });
   }
-  return { t: "state", ack: field.playerData().ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors, wins };
+  return { t: "state", ack: field.playerData().ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors };
 }

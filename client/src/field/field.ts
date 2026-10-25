@@ -122,7 +122,6 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
       if (inBattle) return;
       prediction?.reconcile(msg.ack, msg.me);
       actors.apply(msg.actors);
-      hud.set({ wins: msg.wins });
     },
     onEncounter(msg) {
       inBattle = true;
