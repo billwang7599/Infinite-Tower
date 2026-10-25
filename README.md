@@ -18,7 +18,7 @@ What's built so far:
 - **Field:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
   through tall grass, starts a fight. Wider screens than 16:9 get side bars.
 - **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,
-  jump, stamina. You attack where the camera faces (no lock-on). The boar gores up close and does a telegraphed
+  jump, stamina. You attack where the camera faces (no lock-on). The boar lunges up close and does a telegraphed
   charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits.
 - **Controls:** keyboard only, or keyboard + mouse / trackpad. Every key can be rebound in Settings.
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).

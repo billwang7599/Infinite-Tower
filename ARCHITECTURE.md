@@ -102,7 +102,8 @@ main.ts
 - **The arena runs in the browser for now.** Babylon's deterministic lockstep steps it at a fixed 60 Hz
   (`onBeforeStep` / `onAfterStep`), only while its scene renders; render-only systems run once per frame.
   System order (`battle/battle.ts`), fixed step: player input -> player controller -> enemy brain -> attacks ->
-  motor -> [physics] -> player ground -> combat. Per frame: camera, player sprite, enemy model animations, HUD.
+  motor -> [physics] -> player ground -> combat -> outcome. Per frame: camera, player sprite, enemy model
+  animations, HUD.
 - **Havok owns dynamic-body transforms.** Systems move things by setting velocity, never position.
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (sector: range + angle) to the attacker;
   `combatSystem` resolves hits with plain math (no physics triggers), so the server can run the same code later.
@@ -242,7 +243,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   field/           layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
-  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, GoreAttack, ChargeAttack),
+  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, LungeAttack, ChargeAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats + optional attacks,
                    ArenaDef),
                    input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
@@ -318,9 +319,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
                      KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity)
-    gfx/             textures.ts (procedural textures), props.ts (scenery art: the campfire), sprites.ts
-                     (pixelMaterial, spriteMaterial, redrawSprite), characters.ts (playerFrames(look) draws the
-                     player in a character's colors)
+    gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
+                     (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
+                     characters.ts (playerFrames(look) draws the player in a character's colors)
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, title screen
       state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD),
@@ -355,15 +356,15 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     battle/          The 2.5D arena mode
       battle.ts        The mode: system order, start / end a fight (arena built / resized on demand)
       scene.ts         Babylon scene, Havok, camera, lights / fog / shadows / post
-      context.ts       BattleContext + collision layers
-      components.ts    Body, Meshes (+ disposers)
+      context.ts       BattleContext, Fight, resultShown
+      components.ts    Body + addBody, Layer (collision groups), Meshes (+ disposers)
       materials.ts, arena.ts (ring, stones, forest)
       player/          spawn, components (PlayerSprite), input (keys / mouse -> PlayerInput), controller (move,
                        jump, slash, dodge, stamina), ground (grounded raycasts), sprite (frames, trail, shadow)
       enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
-        behaviors/       brain (approach / poise / stagger / stun / death), charge, gore, motor (velocity), common
+        behaviors/       brain (approach / poise / stagger / stun / death), charge, lunge, motor (velocity), common
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
-      systems/         camera, combat, hud (fills the battle HUD's store)
+      systems/         camera, combat (hits, addHit), outcome (won / lost), hud (fills the battle HUD's store)
 ```
 
 ## Adding things
@@ -378,9 +379,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
   in `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in
   `behaviors/`.
 - **An arena enemy.** An `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks. A new attack type is
-  a def shape in `shared/src/battle/defs.ts`, a component, an entry in `ATTACKS` (`client/src/battle/enemies/
-  spawn.ts`) and a system in `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its
-  `index.ts`.
+  a def shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
+  (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`client/src/battle/enemies/spawn.ts`) and a system
+  in `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
 - **Something kept between connections.** A field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
   (`core/content/player.ts`), read in `GameSession`'s constructor and written in `GameSession.save()`; a column in
   `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.

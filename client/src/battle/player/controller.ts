@@ -1,12 +1,14 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  approach, ActiveHit, FighterStats, Health, moveSpeed, physicalDamage, Player, PlayerInput, Stamina, PLAYER,
-  type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System,
+  approach, ActiveHit, FighterStats, Health, moveSpeed, Player, PlayerInput, Stamina, PLAYER,
+  type Entity, type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System, type World,
 } from "@infinite-tower/shared";
-import { Body } from "../components.js";
-import { Layer } from "../context.js";
+import { Body, Layer } from "../components.js";
+import { addHit } from "../systems/combat.js";
 
-function startAction(player: PlayerData, action: PlayerAction, x: number, z: number): void {
+/** Start a slash or dodge toward (x, z), ending the last slash's hitbox if it's still live. */
+function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
+  world.remove(e, ActiveHit);
   player.action = action;
   player.actionTime = 0;
   player.actionDir = { x, z };
@@ -46,15 +48,17 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: 
 export function playerControllerSystem(): System {
   const v = new Vector3();
   return (world, dt) => {
-    for (const [e, player, input, body, health, stamina, stats] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
+    for (const [e, player, input, body, health, stamina, stats]
+      of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
       const b = body.aggregate.body;
       const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats);
       b.getLinearVelocityToRef(v);
       const alive = health.hp > 0;
 
       // Edge-detect presses and buffer them, so a press slightly early still counts.
-      player.attackBuffer = input.attack && !player.attackHeld ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
-      player.dodgeBuffer = input.dodge && !player.dodgeHeld ? PLAYER.inputBuffer : Math.max(0, player.dodgeBuffer - dt);
+      const attackPressed = input.attack && !player.attackHeld, dodgePressed = input.dodge && !player.dodgeHeld;
+      player.attackBuffer = attackPressed ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
+      player.dodgeBuffer = dodgePressed ? PLAYER.inputBuffer : Math.max(0, player.dodgeBuffer - dt);
       player.attackHeld = input.attack;
       player.dodgeHeld = input.dodge;
 
@@ -63,59 +67,51 @@ export function playerControllerSystem(): System {
         if (player.action !== "none") { player.action = "none"; world.remove(e, ActiveHit); }
         player.attackBuffer = player.dodgeBuffer = 0;
         if (player.grounded) {
-          const f = PLAYER.accel * 0.4 * dt;
-          v.x = approach(v.x, 0, f);
-          v.z = approach(v.z, 0, f);
+          const slowdown = PLAYER.accel * 0.4 * dt;
+          v.x = approach(v.x, 0, slowdown);
+          v.z = approach(v.z, 0, slowdown);
         }
       } else {
-        const S = PLAYER.slash, D = PLAYER.dodge;
-        const free = player.action === "none" || (player.action === "slash" && player.actionTime >= S.chainAfter);
+        const slash = PLAYER.slash, dodge = PLAYER.dodge;
+        const free = player.action === "none" || (player.action === "slash" && player.actionTime >= slash.chainAfter);
         if (free && player.dodgeBuffer > 0 && player.grounded && stamina.value > 0) {
           let dx = input.moveX, dz = input.moveZ;
           const len = Math.hypot(dx, dz);
           if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
           else { dx /= len; dz /= len; }
-          world.remove(e, ActiveHit);
-          startAction(player, "dodge", dx, dz);
-          spend(stamina, D.cost);
+          startAction(world, e, player, "dodge", dx, dz);
+          spend(stamina, dodge.cost);
           player.dodgeBuffer = 0;
         } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
-          world.remove(e, ActiveHit);
-          startAction(player, "slash", input.aimX, input.aimZ);
+          startAction(world, e, player, "slash", input.aimX, input.aimZ);
           player.combo++;
-          spend(stamina, S.cost);
+          spend(stamina, slash.cost);
           player.attackBuffer = 0;
         }
 
-        const t = player.actionTime, d = player.actionDir;
+        const t = player.actionTime, dir = player.actionDir;
         switch (player.action) {
           case "slash": {
-            if (t >= S.windup && t < S.windup + S.active) {
+            if (t >= slash.windup && t < slash.windup + slash.active) {
               // Active frames: the hitbox exists and the swing carries you forward a little.
-              if (!world.has(e, ActiveHit)) {
-                world.add(e, ActiveHit, {
-                  dirX: d.x, dirZ: d.z, range: S.range, minDot: S.minDot,
-                  damage: physicalDamage(S.damage, stats), knockback: 0, lift: 0,
-                  poiseDamage: S.poiseDamage, alreadyHit: new Set<number>(),
-                });
-              }
-              v.x = d.x * S.lungeSpeed;
-              v.z = d.z * S.lungeSpeed;
+              if (!world.has(e, ActiveHit)) addHit(world, e, dir.x, dir.z, slash);
+              v.x = dir.x * slash.lungeSpeed;
+              v.z = dir.z * slash.lungeSpeed;
             } else {
               world.remove(e, ActiveHit);
-              const max = walkSpeed * S.moveFactor, a = PLAYER.accel * dt;
-              v.x = approach(v.x, input.moveX * max, a);
-              v.z = approach(v.z, input.moveZ * max, a);
+              const maxSpeed = walkSpeed * slash.moveFactor, accel = PLAYER.accel * dt;
+              v.x = approach(v.x, input.moveX * maxSpeed, accel);
+              v.z = approach(v.z, input.moveZ * maxSpeed, accel);
             }
-            if (t >= S.duration) player.action = "none";
+            if (t >= slash.duration) player.action = "none";
             break;
           }
           case "dodge": {
-            const k = Math.min(1, t / D.duration);
-            const speed = D.speed + (D.endSpeed - D.speed) * k * k;
-            v.x = d.x * speed;
-            v.z = d.z * speed;
-            if (t >= D.duration) player.action = "none";
+            const progress = Math.min(1, t / dodge.duration);
+            const speed = dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress;
+            v.x = dir.x * speed;
+            v.z = dir.z * speed;
+            if (t >= dodge.duration) player.action = "none";
             break;
           }
           case "none":

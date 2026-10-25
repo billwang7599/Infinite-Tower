@@ -6,12 +6,14 @@ export class Buttons<B> {
   private readonly down = new Set<B>();
   private readonly pressed = new Set<B>();
 
-  isDown(...buttons: readonly B[]): boolean {
-    return buttons.some((b) => this.down.has(b));
+  /** True if any of `buttons` is held. */
+  isDown(buttons: readonly B[]): boolean {
+    for (const b of buttons) if (this.down.has(b)) return true;
+    return false;
   }
 
   /** True if any of the buttons was pressed since the last call (clears those latches). */
-  consumePressed(...buttons: readonly B[]): boolean {
+  consumePressed(buttons: readonly B[]): boolean {
     let any = false;
     for (const b of buttons) if (this.pressed.delete(b)) any = true;
     return any;

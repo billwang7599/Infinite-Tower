@@ -5,6 +5,7 @@
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { DEFAULT_LOOK } from "@infinite-tower/shared";
 import { playerFrames } from "../gfx/characters.js";
+import { colorMaterial } from "../gfx/materials.js";
 import { spriteMaterial } from "../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../gfx/textures.js";
 
@@ -14,7 +15,8 @@ export interface Materials {
   stone: StandardMaterial;
   bark: StandardMaterial;
   leaves: StandardMaterial;
-  shadow: StandardMaterial;
+  /** The soft round shadow under the player's sprite. */
+  blobShadow: StandardMaterial;
   player: { idle: StandardMaterial; slash: StandardMaterial; down: StandardMaterial };
   slashFx: StandardMaterial;
   telegraph: StandardMaterial;
@@ -31,26 +33,25 @@ function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): 
 /** The player is drawn in the default look until `welcome` says who they are (game/dress.ts repaints it). */
 export function createMaterials(scene: Scene): Materials {
   const frames = playerFrames(DEFAULT_LOOK);
-  const grass = tiled(scene, "grass",
-    speckleTexture(scene, "grass", "#3f6b35", ["#4d7f3e", "#355a2c", "#5b8a45", "#2d4d27"], 900, 5, 1), 18);
-  const dirt = tiled(scene, "dirt",
-    speckleTexture(scene, "dirt", "#7a6347", ["#8a7253", "#6a553c", "#93806a", "#5a4733"], 900, 4, 2), 6);
+  const grass = tiled(scene, "grass", speckleTexture(scene, "grass", {
+    base: "#3f6b35", specks: ["#4d7f3e", "#355a2c", "#5b8a45", "#2d4d27"], count: 900, maxRadiusPx: 5, seed: 1,
+  }), 18);
+  const dirt = tiled(scene, "dirt", speckleTexture(scene, "dirt", {
+    base: "#7a6347", specks: ["#8a7253", "#6a553c", "#93806a", "#5a4733"], count: 900, maxRadiusPx: 4, seed: 2,
+  }), 6);
   dirt.zOffset = -1;
-  const stone = tiled(scene, "stone",
-    speckleTexture(scene, "stone", "#7c7f86", ["#8d9097", "#6a6d74", "#5d6067", "#9a9ca2"], 500, 6, 3), 1);
-  const bark = new StandardMaterial("bark", scene);
-  bark.diffuseColor = new Color3(0.32, 0.22, 0.14);
-  bark.specularColor = Color3.Black();
-  const leaves = new StandardMaterial("leaves", scene);
-  leaves.diffuseColor = new Color3(0.16, 0.36, 0.2);
-  leaves.specularColor = Color3.Black();
+  const stone = tiled(scene, "stone", speckleTexture(scene, "stone", {
+    base: "#7c7f86", specks: ["#8d9097", "#6a6d74", "#5d6067", "#9a9ca2"], count: 500, maxRadiusPx: 6, seed: 3,
+  }), 1);
+  const bark = colorMaterial(scene, "bark", new Color3(0.32, 0.22, 0.14));
+  const leaves = colorMaterial(scene, "leaves", new Color3(0.16, 0.36, 0.2));
 
-  const shadow = new StandardMaterial("shadow", scene);
-  shadow.diffuseTexture = blobTexture(scene);
-  shadow.useAlphaFromDiffuseTexture = true;
-  shadow.disableLighting = true;
-  shadow.emissiveColor = Color3.Black();
-  shadow.zOffset = -2; // avoid z-fighting with the ground
+  const blobShadow = new StandardMaterial("shadow", scene);
+  blobShadow.diffuseTexture = blobTexture(scene);
+  blobShadow.useAlphaFromDiffuseTexture = true;
+  blobShadow.disableLighting = true;
+  blobShadow.emissiveColor = Color3.Black();
+  blobShadow.zOffset = -2; // avoid z-fighting with the ground
 
   const slashFx = new StandardMaterial("slash-fx", scene);
   slashFx.disableLighting = true;
@@ -66,7 +67,7 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.zOffset = -3;
 
   return {
-    grass, dirt, stone, bark, leaves, shadow,
+    grass, dirt, stone, bark, leaves, blobShadow,
     player: {
       idle: spriteMaterial(scene, "player-idle", frames.idle),
       slash: spriteMaterial(scene, "player-slash", frames.slash),

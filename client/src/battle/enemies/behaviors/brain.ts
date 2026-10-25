@@ -14,50 +14,55 @@ import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
 const STOP_DIST = 2.2;
+/** Velocity change per second toward what the state wants: standing or walking, stunned, staggered, dead. */
+const ACCEL = { normal: 25, stunned: 60, staggered: 30, dead: 15 } as const;
 
 export function enemyBrainSystem(): System {
   return (world, dt) => {
     const target = world.first(LocalPlayer, Body, Health);
     for (const [e, enemy, body, health, stats] of world.query(Enemy, Body, Health, FighterStats)) {
-      const D = enemy.def;
+      const def = enemy.def;
       enemy.stateTime += dt;
-      if (enemy.state !== "staggered") enemy.poise = Math.min(D.poise, enemy.poise + D.poiseRegen * dt);
+      if (enemy.state !== "staggered") enemy.poise = Math.min(def.poise, enemy.poise + def.poiseRegen * dt);
 
       if (health.hp <= 0) {
         if (enemy.state !== "dead") enter(world, e, enemy, "dead");
       } else if (enemy.poise <= 0 && !enemy.armored && enemy.state !== "staggered" && enemy.state !== "stunned") {
-        enter(world, e, enemy, "staggered", D.staggerTime);
-        enemy.poise = D.poise;
+        enter(world, e, enemy, "staggered", def.staggerTime);
+        enemy.poise = def.poise;
       }
       enemy.armored = false;
 
-      const p = body.mesh.position, s = enemy.sense;
-      s.dist = Infinity; s.toYaw = enemy.yaw; s.targetAlive = false;
+      const p = body.mesh.position, sense = enemy.sense;
+      sense.dist = Infinity; sense.toYaw = enemy.yaw; sense.targetAlive = false;
       if (target) {
         const tp = target[2].mesh.position;
-        s.dist = distXZ(p, tp);
-        s.toYaw = Math.atan2(tp.x - p.x, tp.z - p.z);
-        s.targetAlive = target[3].hp > 0;
+        sense.dist = distXZ(p, tp);
+        sense.toYaw = Math.atan2(tp.x - p.x, tp.z - p.z);
+        sense.targetAlive = target[3].hp > 0;
       }
-      s.facingDot = Math.cos(wrapAngle(s.toYaw - enemy.yaw));
+      sense.facingDot = Math.cos(wrapAngle(sense.toYaw - enemy.yaw));
 
       // Default: stand, facing forward. Behaviors below (and attack systems) override.
-      const m = enemy.move;
-      m.dirX = Math.sin(enemy.yaw); m.dirZ = Math.cos(enemy.yaw); m.speed = 0; m.accel = 25; m.halt = false;
+      const move = enemy.move;
+      move.dirX = Math.sin(enemy.yaw); move.dirZ = Math.cos(enemy.yaw);
+      move.speed = 0; move.accel = ACCEL.normal; move.halt = false;
 
       switch (enemy.state) {
         case "approach":
-          if (!s.targetAlive) break;
-          enemy.yaw = turnToward(enemy.yaw, s.toYaw, D.turnRate * dt);
-          m.speed = moveSpeed(D.walkSpeed, stats) * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facingDot);
+          if (!sense.targetAlive) break;
+          enemy.yaw = turnToward(enemy.yaw, sense.toYaw, def.turnRate * dt);
+          // Slow down near the target, and while still turning to face it.
+          move.speed = moveSpeed(def.walkSpeed, stats)
+            * clamp(sense.dist - STOP_DIST, 0, 1) * Math.max(0, sense.facingDot);
           break;
         case "stunned":
         case "staggered":
-          m.accel = enemy.state === "stunned" ? 60 : 30;
+          move.accel = ACCEL[enemy.state];
           if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");
           break;
         case "dead":
-          m.accel = 15;
+          move.accel = ACCEL.dead;
           break;
       }
     }

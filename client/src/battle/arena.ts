@@ -2,24 +2,22 @@
  * The combat arena: a trampled clearing ringed by standing stones, forest beyond. Sized by the
  * level's ArenaDef; returns its entities so the battle can rebuild it when the size changes.
  */
-import { Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, Vector3 } from "@babylonjs/core";
+import { MeshBuilder, PhysicsShapeType, type Mesh } from "@babylonjs/core";
 import { seededRandom, type Entity } from "@infinite-tower/shared";
-import { Body, Meshes } from "./components.js";
-import { Layer, type BattleContext } from "./context.js";
+import { addBody, Layer, Meshes } from "./components.js";
+import type { BattleContext } from "./context.js";
 
 export function buildArena(ctx: BattleContext): Entity[] {
   const parts: Entity[] = [];
-  const { world, scene, materials, shadows } = ctx;
-  const R = ctx.arena.radius;
+  const { world, scene, materials, sunShadows } = ctx;
+  const radius = ctx.arena.radius;
   const decor: Mesh[] = [];
   const rand = seededRandom(7); // same stones and trees every time
 
-  const addCollider = (mesh: Mesh, membership: number) => {
-    const aggregate = new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.6, restitution: 0 }, scene);
-    aggregate.shape.filterMembershipMask = membership;
-    mesh.freezeWorldMatrix();
+  const addCollider = (mesh: Mesh, layer: number) => {
     const e = world.spawn();
-    world.add(e, Body, { aggregate, mesh });
+    addBody(world, e, mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.6, layer });
+    mesh.freezeWorldMatrix();
     parts.push(e);
   };
 
@@ -34,7 +32,7 @@ export function buildArena(ctx: BattleContext): Entity[] {
   grass.receiveShadows = true;
   decor.push(grass);
 
-  const dirt = MeshBuilder.CreateDisc("dirt", { radius: R + 1, tessellation: 64 }, scene);
+  const dirt = MeshBuilder.CreateDisc("dirt", { radius: radius + 1, tessellation: 64 }, scene);
   dirt.rotation.x = Math.PI / 2;
   dirt.position.y = 0.01;
   dirt.material = materials.dirt;
@@ -43,11 +41,11 @@ export function buildArena(ctx: BattleContext): Entity[] {
 
   // Wall: invisible collider ring just outside the radius...
   const segments = 40;
-  const segLen = (2 * Math.PI * (R + 0.5)) / segments + 0.2;
+  const segLen = (2 * Math.PI * (radius + 0.5)) / segments + 0.2;
   for (let i = 0; i < segments; i++) {
     const a = (i / segments) * Math.PI * 2;
     const wall = MeshBuilder.CreateBox(`wall-${i}`, { width: segLen, height: 4, depth: 1 }, scene);
-    wall.position.set(Math.sin(a) * (R + 0.5), 2, Math.cos(a) * (R + 0.5));
+    wall.position.set(Math.sin(a) * (radius + 0.5), 2, Math.cos(a) * (radius + 0.5));
     wall.rotation.y = a;
     wall.isVisible = false;
     addCollider(wall, Layer.Wall);
@@ -60,36 +58,39 @@ export function buildArena(ctx: BattleContext): Entity[] {
     const h = 0.8 + rand() * 1.6;
     const w = 0.9 + rand() * 0.8;
     const s = MeshBuilder.CreateBox(`stone-${i}`, { width: w, height: h, depth: 0.7 + rand() * 0.5 }, scene);
-    const r = R + 0.7 + rand() * 0.4;
+    const r = radius + 0.7 + rand() * 0.4;
     s.position.set(Math.sin(a) * r, h / 2 - 0.1, Math.cos(a) * r);
     s.rotation.set((rand() - 0.5) * 0.15, a + (rand() - 0.5) * 0.4, (rand() - 0.5) * 0.15);
     s.material = materials.stone;
     s.receiveShadows = true;
-    shadows.addShadowCaster(s);
+    sunShadows.addShadowCaster(s);
     decor.push(s);
   }
 
   // Forest: instanced trees (one draw call per part however many trees).
-  const trunk = MeshBuilder.CreateCylinder("trunk", { height: 3, diameterTop: 0.35, diameterBottom: 0.55, tessellation: 7 }, scene);
+  const taperedCylinder = (name: string, height: number, diameterTop: number, diameterBottom: number) =>
+    MeshBuilder.CreateCylinder(name, { height, diameterTop, diameterBottom, tessellation: 7 }, scene);
+  const trunk = taperedCylinder("trunk", 3, 0.35, 0.55);
   trunk.material = materials.bark;
-  const crownLow = MeshBuilder.CreateCylinder("crown-low", { height: 3.2, diameterTop: 0, diameterBottom: 3.4, tessellation: 7 }, scene);
+  const crownLow = taperedCylinder("crown-low", 3.2, 0, 3.4);
   crownLow.material = materials.leaves;
-  const crownHigh = MeshBuilder.CreateCylinder("crown-high", { height: 2.6, diameterTop: 0, diameterBottom: 2.4, tessellation: 7 }, scene);
+  const crownHigh = taperedCylinder("crown-high", 2.6, 0, 2.4);
   crownHigh.material = materials.leaves;
   for (const m of [trunk, crownLow, crownHigh]) {
     m.isVisible = false; // templates; only instances render
-    shadows.addShadowCaster(m);
+    sunShadows.addShadowCaster(m);
     decor.push(m);
   }
+  /** Each part of a tree, and its height on a tree of scale 1. */
+  const treeParts: [Mesh, number][] = [[trunk, 1.5], [crownLow, 3.8], [crownHigh, 5.6]];
   for (let i = 0; i < 70; i++) {
     const a = rand() * Math.PI * 2;
-    const r = R + 4 + rand() * 26;
+    const r = radius + 4 + rand() * 26;
     const scale = 0.8 + rand() * 0.9;
     const x = Math.sin(a) * r, z = Math.cos(a) * r;
-    const parts: [Mesh, number][] = [[trunk, 1.5], [crownLow, 3.8], [crownHigh, 5.6]];
-    for (const [tpl, y] of parts) {
+    for (const [tpl, y] of treeParts) {
       const inst = tpl.createInstance(`${tpl.name}-${i}`);
-      inst.position = new Vector3(x, y * scale, z);
+      inst.position.set(x, y * scale, z);
       inst.scaling.setAll(scale);
       inst.rotation.y = rand() * Math.PI;
       inst.freezeWorldMatrix();

@@ -1,7 +1,10 @@
 import { PhysicsRaycastResult, Vector3 } from "@babylonjs/core";
 import { Player, PLAYER, type System } from "@infinite-tower/shared";
-import { Body } from "../components.js";
-import { Layer, type BattleContext } from "../context.js";
+import { Body, Layer } from "../components.js";
+import type { BattleContext } from "../context.js";
+
+/** How far below the feet a ray still finds the ground. */
+const GROUND_PROBE = 0.08;
 
 /** After each physics step: cast a few short rays down from the feet to decide `grounded`. */
 export function playerGroundSystem(ctx: BattleContext): System {
@@ -16,17 +19,17 @@ export function playerGroundSystem(ctx: BattleContext): System {
       const p = body.mesh.position;
       b.getLinearVelocityToRef(vel);
 
-      let hit = false;
+      let grounded = false;
       if (vel.y <= 0.5) {
         for (const [ox, oz] of offsets) {
           from.set(p.x + ox, p.y, p.z + oz);
-          to.set(from.x, p.y - PLAYER.height / 2 - 0.08, from.z);
+          to.set(from.x, p.y - PLAYER.height / 2 - GROUND_PROBE, from.z);
           ctx.physics.raycastToRef(from, to, result, { collideWith: Layer.Ground, ignoreBody: b });
-          if (result.hasHit) { hit = true; break; }
+          if (result.hasHit) { grounded = true; break; }
         }
       }
-      player.grounded = hit;
-      player.airTime = hit ? 0 : player.airTime + dt;
+      player.grounded = grounded;
+      player.airTime = grounded ? 0 : player.airTime + dt;
     }
   };
 }

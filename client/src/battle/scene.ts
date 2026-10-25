@@ -3,8 +3,9 @@
  * systems/camera.ts), and the look: lights, fog, shadows and post-processing.
  */
 import {
-  Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HavokPlugin, HemisphericLight, ImageProcessingConfiguration,
-  Scene, ShadowGenerator, UniversalCamera, Vector3, type Camera, type Engine, type PhysicsEngineV2,
+  Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HavokPlugin, HemisphericLight,
+  ImageProcessingConfiguration, Scene, ShadowGenerator, UniversalCamera, Vector3,
+  type Camera, type Engine, type PhysicsEngineV2,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
@@ -14,7 +15,7 @@ export interface BattleScene {
   scene: Scene;
   physics: PhysicsEngineV2;
   camera: UniversalCamera;
-  shadows: ShadowGenerator;
+  sunShadows: ShadowGenerator;
 }
 
 export async function createBattleScene(engine: Engine): Promise<BattleScene> {
@@ -29,8 +30,8 @@ export async function createBattleScene(engine: Engine): Promise<BattleScene> {
   camera.minZ = 0.1;
   camera.inputs.clear(); // the camera system drives it
 
-  const shadows = setupLook(scene, camera);
-  return { scene, physics, camera, shadows };
+  const sunShadows = setupLook(scene, camera);
+  return { scene, physics, camera, sunShadows };
 }
 
 /** Lights, fog, shadows and post-processing. Returns the sun's shadow generator. */
