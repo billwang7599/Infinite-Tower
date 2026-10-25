@@ -2,26 +2,30 @@ import { dampFactor, distXZ, inTallGrass, type System } from "@infinite-tower/sh
 import { FieldActor, FieldPos, FieldSprite } from "../components.js";
 import { layerY, type FieldView } from "../scene.js";
 
-/** Server snapshots arrive ~20x/s: glide toward them; snap if far off (respawn, teleport). */
+/** Server snapshots arrive ~20x/s: glide toward them (1/s, for dampFactor); snap if far off (respawn, teleport). */
 const GLIDE_RATE = 14;
-const SNAP_DIST = 3;
+const SNAP_DIST_TILES = 3;
+/** Slower than this (tiles/s) counts as standing: no walk hop. */
+const MOVING_SPEED = 0.1;
+const WALK_CYCLE_RAD_PER_SEC = 12;
+const HOP_TILES = 0.12;
+/** The quad's center sits this share of its size above the feet (in +z), so the feet stay on the position. */
+const FOOT_OFFSET = 0.4;
 
 /** Per render frame: glide to server positions, place the quads, walk hop, facing, tuft and "!". */
 export function fieldSpriteSystem(view: FieldView): System {
   return (world, dt) => {
     for (const [, sprite, pos, actor] of world.query(FieldSprite, FieldPos, FieldActor)) {
       if (actor.target) {
-        const k = distXZ(pos, actor.target) > SNAP_DIST ? 1 : dampFactor(GLIDE_RATE, dt);
+        const k = distXZ(pos, actor.target) > SNAP_DIST_TILES ? 1 : dampFactor(GLIDE_RATE, dt);
         pos.x += (actor.target.x - pos.x) * k;
         pos.z += (actor.target.z - pos.z) * k;
       }
-      const moving = Math.hypot(actor.vx, actor.vz) > 0.1;
-      sprite.walkPhase = moving ? sprite.walkPhase + dt * 12 : 0;
-      const hop = Math.abs(Math.sin(sprite.walkPhase)) * 0.12;
+      const moving = Math.hypot(actor.vx, actor.vz) > MOVING_SPEED;
+      sprite.walkPhase = moving ? sprite.walkPhase + dt * WALK_CYCLE_RAD_PER_SEC : 0;
+      const hop = Math.abs(Math.sin(sprite.walkPhase)) * HOP_TILES;
 
-      // Sprites are anchored at their feet: the quad's center sits half a size above (in +z).
-      const footOffset = sprite.size * 0.4;
-      sprite.mesh.position.set(pos.x, layerY(pos.z, 0.3), pos.z + footOffset + hop);
+      sprite.mesh.position.set(pos.x, layerY(pos.z, 0.3), pos.z + sprite.size * FOOT_OFFSET + hop);
       sprite.mesh.scaling.x = actor.facing;
 
       // In tall grass, a tuft covers the feet (and rustles while walking).

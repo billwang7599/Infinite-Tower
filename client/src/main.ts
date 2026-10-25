@@ -6,9 +6,10 @@
  *   game/     start-up, sessions, mode switching       net/      server connection, the account API
  *   field/    the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
  *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
- *   settings/ key bindings, camera (kept on server)    ui/       React UI over the canvas; the game writes to it through ui/state.ts
+ *   settings/ key bindings, camera (kept on server)    ui/       React UI over the canvas (the game writes to
+ *                                                                it through ui/state.ts)
  */
-import { CLOSE_CODES, VIEW, type Credentials } from "@infinite-tower/shared";
+import { VIEW, type Credentials } from "@infinite-tower/shared";
 import { currentAccount, logIn, logOut, register } from "./net/account.js";
 import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
 import { createSettings } from "./settings/settings.js";
@@ -73,16 +74,12 @@ async function play(): Promise<void> {
 
   try {
     ui.title.set({ phase: "loading" });
-    (await preparing).join(joined, (code) => void backToTitle(lostMessage(code)));
+    (await preparing).join(joined);
+    joined.net.onClose = (reason) => void backToTitle(reason);
     ui.title.set({ phase: "leaving" });
   } catch (err) {
     fail(err);
   }
-}
-
-function lostMessage(closeCode: number): string {
-  if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
-  return "Lost the connection to the game server.";
 }
 
 /** Leaves the world (hanging up on the server) and shows the title again, with `error` under Retry. */

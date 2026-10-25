@@ -3,7 +3,7 @@ import type { ActorSnap, Entity, Vec2, World } from "@infinite-tower/shared";
 import type { FieldView } from "../scene.js";
 import { spawnFieldBoar } from "./boar.js";
 
-export type FieldPrefab = (world: World, view: FieldView, at: Vec2) => Entity;
+type FieldPrefab = (world: World, view: FieldView, at: Vec2) => Entity;
 
 export const FIELD_PREFABS: Record<ActorSnap["kind"], FieldPrefab> = {
   boar: spawnFieldBoar,

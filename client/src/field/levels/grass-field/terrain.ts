@@ -3,17 +3,19 @@ import { MeshBuilder, TransformNode, type Scene } from "@babylonjs/core";
 import { seededRandom, type LevelLayout } from "@infinite-tower/shared";
 import { pixelMaterial } from "../../../gfx/sprites.js";
 import { layerY } from "../../scene.js";
-import { grassTexture, tallGrassTexture, treeTexture } from "./textures.js";
+import { GRASS_TEXTURE_TILES, grassTexture, tallGrassTexture, treeTexture } from "./textures.js";
 
 export function buildGrassField(scene: Scene, level: LevelLayout): TransformNode {
   const root = new TransformNode(`level-${level.id}`, scene);
-  const r = seededRandom(11);
-  const W = level.halfWidth, D = level.halfDepth;
+  const rand = seededRandom(11);
+  const halfW = level.halfWidth, halfD = level.halfDepth;
 
-  const grassTex = grassTexture(scene, r);
-  grassTex.uScale = (W * 2 + 8) / 8;
-  grassTex.vScale = (D * 2 + 8) / 8;
-  const ground = MeshBuilder.CreateGround("field-ground", { width: W * 2 + 8, height: D * 2 + 8 }, scene);
+  // The ground reaches 4 tiles past the edge on every side, under the tree border.
+  const groundW = halfW * 2 + 8, groundD = halfD * 2 + 8;
+  const grassTex = grassTexture(scene, rand);
+  grassTex.uScale = groundW / GRASS_TEXTURE_TILES;
+  grassTex.vScale = groundD / GRASS_TEXTURE_TILES;
+  const ground = MeshBuilder.CreateGround("field-ground", { width: groundW, height: groundD }, scene);
   ground.material = pixelMaterial(scene, "field-grass", grassTex, { unlit: true, cutout: false });
   ground.parent = root;
 
@@ -38,16 +40,16 @@ export function buildGrassField(scene: Scene, level: LevelLayout): TransformNode
     t.parent = root;
     t.position.set(x, layerY(z, 1), z);
     t.rotation.x = Math.PI / 2;
-    const s = 0.85 + r() * 0.35;
+    const s = 0.85 + rand() * 0.35;
     t.scaling.set(s, s, s);
   };
-  for (let x = -W - 3; x <= W + 3; x += 1.5) {
-    for (const z of [D + 0.3, D + 1.8, D + 3.3]) place(x + r() * 0.5, z);
-    for (const z of [-D - 0.3, -D - 1.8, -D - 3.3]) place(x + r() * 0.5, z);
+  for (let x = -halfW - 3; x <= halfW + 3; x += 1.5) {
+    for (const z of [halfD + 0.3, halfD + 1.8, halfD + 3.3]) place(x + rand() * 0.5, z);
+    for (const z of [-halfD - 0.3, -halfD - 1.8, -halfD - 3.3]) place(x + rand() * 0.5, z);
   }
-  for (let z = -D; z <= D; z += 1.5) {
-    for (const x of [W + 0.3, W + 1.8, W + 3.3]) place(x, z + r() * 0.5);
-    for (const x of [-W - 0.3, -W - 1.8, -W - 3.3]) place(x, z + r() * 0.5);
+  for (let z = -halfD; z <= halfD; z += 1.5) {
+    for (const x of [halfW + 0.3, halfW + 1.8, halfW + 3.3]) place(x, z + rand() * 0.5);
+    for (const x of [-halfW - 0.3, -halfW - 1.8, -halfW - 3.3]) place(x, z + rand() * 0.5);
   }
   return root;
 }

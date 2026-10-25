@@ -5,7 +5,7 @@
 import {
   Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HavokPlugin, HemisphericLight,
   ImageProcessingConfiguration, Scene, ShadowGenerator, UniversalCamera, Vector3,
-  type Camera, type Engine, type PhysicsEngineV2,
+  type AbstractEngine, type Camera, type PhysicsEngineV2,
 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
@@ -18,7 +18,7 @@ export interface BattleScene {
   sunShadows: ShadowGenerator;
 }
 
-export async function createBattleScene(engine: Engine): Promise<BattleScene> {
+export async function createBattleScene(engine: AbstractEngine): Promise<BattleScene> {
   const scene = new Scene(engine);
   const havok = new HavokPlugin(true, await HavokPhysics({ locateFile: () => havokWasmUrl }));
   scene.enablePhysics(new Vector3(0, GRAVITY, 0), havok);

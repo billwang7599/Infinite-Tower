@@ -2,7 +2,10 @@
  * The field's Babylon scene: top-down 2D with an orthographic camera, every surface a flat textured quad.
  * The level itself (ground, tall grass, border) is drawn by levels/, picked by the layout's theme.
  */
-import { Camera, Color4, FreeCamera, Scene, Vector3, type Engine, type StandardMaterial, type TransformNode } from "@babylonjs/core";
+import {
+  Camera, Color4, FreeCamera, MeshBuilder, Scene, Vector3, type AbstractEngine, type Mesh, type StandardMaterial,
+  type TransformNode,
+} from "@babylonjs/core";
 import { DEFAULT_LOOK, type LevelLayout } from "@infinite-tower/shared";
 import { drawAlert, drawBoar, playerFrames } from "../gfx/characters.js";
 import { pixelMaterial, spriteMaterial } from "../gfx/sprites.js";
@@ -21,13 +24,24 @@ export interface FieldView {
 /** Sprites lower on screen draw on top (classic top-down layering): nudge them toward the camera. */
 export const layerY = (z: number, base: number) => base - z * 0.002;
 
-export function createFieldScene(engine: Engine): FieldView {
+/** How high the straight-down camera hangs over the field (it only ever moves in x and z). */
+export const CAMERA_HEIGHT = 30;
+
+/** A flat quad lying on the field, `sizeTiles` across, top of the sprite toward +z (up on screen). */
+export function flatSprite(view: FieldView, name: string, sizeTiles: number, material: StandardMaterial): Mesh {
+  const m = MeshBuilder.CreatePlane(name, { size: sizeTiles }, view.scene);
+  m.rotation.x = Math.PI / 2;
+  m.material = material;
+  return m;
+}
+
+export function createFieldScene(engine: AbstractEngine): FieldView {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.16, 0.3, 0.16, 1);
   scene.skipPointerMovePicking = true;
 
   // Straight-down orthographic camera: +x right, +z up on screen.
-  const camera = new FreeCamera("field-camera", new Vector3(0, 30, 0), scene);
+  const camera = new FreeCamera("field-camera", new Vector3(0, CAMERA_HEIGHT, 0), scene);
   camera.rotation.set(Math.PI / 2, 0, 0);
   camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
   camera.minZ = 0.1;

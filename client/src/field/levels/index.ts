@@ -9,9 +9,9 @@ import type { FieldView } from "../scene.js";
 import { buildCampfires } from "./campfires.js";
 import { buildGrassField } from "./grass-field/terrain.js";
 
-export type LevelRenderer = (scene: Scene, level: LevelLayout) => TransformNode;
+type LevelRenderer = (scene: Scene, level: LevelLayout) => TransformNode;
 
-export const LEVEL_RENDERERS: Record<LevelLayout["theme"], LevelRenderer> = {
+const LEVEL_RENDERERS: Record<LevelLayout["theme"], LevelRenderer> = {
   "grass-field": buildGrassField,
 };
 

@@ -8,7 +8,7 @@ import { defineComponent, type Vec2, type World } from "@infinite-tower/shared";
 /** Drawn position on the field (tiles). */
 export const FieldPos = defineComponent<Vec2>("FieldPos");
 
-export interface FieldActorData {
+interface FieldActorData {
   vx: number;
   vz: number;
   facing: 1 | -1;
@@ -20,12 +20,13 @@ export interface FieldActorData {
 export const FieldActor = defineComponent<FieldActorData>("FieldActor");
 
 /** The quad drawing a field entity, plus optional overlays. */
-export interface FieldSpriteData {
+interface FieldSpriteData {
   mesh: Mesh;
   /** "!" bubble (boars). */
   alert: Mesh | null;
   /** Grass drawn over the feet in tall grass (player). */
   tuft: Mesh | null;
+  /** Tiles across. */
   size: number;
   walkPhase: number;
 }

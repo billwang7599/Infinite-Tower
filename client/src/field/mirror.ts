@@ -20,7 +20,8 @@ export class ActorMirror {
         this.local.set(s.id, e);
       }
       const a = this.world.require(e, FieldActor);
-      a.target = { x: s.x, z: s.z };
+      a.target!.x = s.x;
+      a.target!.z = s.z;
       a.vx = s.vx;
       a.vz = s.vz;
       a.facing = s.facing;

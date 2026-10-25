@@ -13,7 +13,12 @@ export class Prediction {
   private seq = 0;
   private pending: (WalkInput & { seq: number })[] = [];
 
-  constructor(private readonly world: World, private readonly view: FieldView, private readonly player: Entity, private readonly net: Connection) {}
+  constructor(
+    private readonly world: World,
+    private readonly view: FieldView,
+    private readonly player: Entity,
+    private readonly net: Connection,
+  ) {}
 
   step(input: WalkInput): void {
     // Standing still isn't sent: it doesn't move the player, and the server already stops a player

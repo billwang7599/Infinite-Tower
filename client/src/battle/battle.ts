@@ -3,7 +3,7 @@
  * Babylon's deterministic lockstep runs onBeforeStep / physics / onAfterStep at FIXED_DT, so the arena
  * only simulates while its scene is the one being rendered.
  */
-import type { Engine } from "@babylonjs/core";
+import type { AbstractEngine } from "@babylonjs/core";
 import {
   FIXED_DT, Fighter, Health, LocalPlayer, Stamina,
   type ArenaDef, type EnemyDef, type Entity, type System, type Stats, type Vitals, type World,
@@ -51,7 +51,7 @@ export interface Battle {
 }
 
 export interface BattleOptions {
-  engine: Engine;
+  engine: AbstractEngine;
   world: World;
   scene: BattleScene;
   keyboard: Keyboard;

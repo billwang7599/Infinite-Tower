@@ -3,30 +3,32 @@
  * - field:  the 2D map (field/), its own fixed-step loop.
  * - battle: the 2.5D arena (battle/), stepped by Babylon's lockstep + Havok.
  * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
- * encounters and fight results; this routes its messages (one handler per message type) and runs the
- * transitions: an encounter flashes into battle, leaving a decided fight fades back to the field.
+ * encounters and fight results; this routes its messages (one handler per message type), keeps the settings in
+ * sync with it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back
+ * to the field.
  */
-import type { Engine } from "@babylonjs/core";
-import { itemDef, type ArenaDef, type Character, type EnemyDef, type Inventory, type ItemId, type Stats, type Vitals } from "@infinite-tower/shared";
+import type { AbstractEngine } from "@babylonjs/core";
+import { itemDef, type Character, type Inventory, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
-import type { Connection, Joined } from "../net/connection.js";
 import { frameSeconds } from "../core/time.js";
 import type { Field } from "../field/field.js";
+import type { Connection, Joined } from "../net/connection.js";
+import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
+import { exposeDebugHandles } from "./debug.js";
 import { dressPlayer } from "./dress.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
 
 export interface Game {
   /** null outside a session. */
   mode(): Mode | null;
-  /** Called once, after both modes exist (the battle needs `leaveBattle` first). */
-  setModes(battle: Battle, field: Field): void;
-  /** Start a session on a connection the server has welcomed. `onLost` runs if it drops. */
-  join(joined: Joined, onLost: (closeCode: number) => void): void;
-  /** End the session: hang up, stop drawing, forget the level and any fight. */
+  /** Start a session on a connection the server has welcomed. */
+  join(joined: Joined): void;
+  /** End the session: send any unsent settings, hang up, stop drawing, forget the level and any fight. */
   leave(): void;
+  /** The Leave key in a decided fight: fade back to the field. */
   leaveBattle(): void;
   rest(): void;
   useItem(item: ItemId): void;
@@ -34,12 +36,23 @@ export interface Game {
   saveCharacter(character: Character): void;
 }
 
-export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui: UiState): Game {
+interface GameParts {
+  engine: AbstractEngine;
+  keyboard: Keyboard;
+  mouse: Mouse;
+  ui: UiState;
+  settings: Settings;
+  battle: Battle;
+  field: Field;
+}
+
+export function createGame({ engine, keyboard, mouse, ui, settings, battle, field }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Connection | null = null;
+  let stopSync = () => {};
   let transition: Transition | null = null;
-  let encounter: { fromGrass: boolean; enemy: EnemyDef; arena: ArenaDef; vitals: Vitals; stats: Stats } | null = null;
-  let battle: Battle, field: Field;
+  /** The fight being flashed into or fought. */
+  let encounter: ServerMsgOf<"encounter"> | null = null;
 
   /** The game only gets input during a session with no screen over it, and the mouse only in the arena. */
   const updateInput = () => {
@@ -52,23 +65,22 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
   ui.characterScreen.subscribe(updateInput);
   updateInput();
 
-  const setMode = (m: Mode | null) => {
-    mode = m;
-    ui.screen.set({ mode: m });
+  const setMode = (next: Mode | null) => {
+    mode = next;
+    ui.screen.set({ mode: next });
     updateInput();
   };
 
-  const swap = (to: Mode) => {
-    if (to === "battle") {
-      const { fromGrass, enemy, arena, vitals, stats } = encounter!;
-      battle.start(enemy, arena, vitals, stats);
-      ui.showToast(fromGrass ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
-    } else {
-      net?.send({ t: "battleEnd", ...battle.end() });
-      field.awaitResult();
-      keyboard.clearPressed();
-    }
-    setMode(to);
+  const enterBattle = ({ source, enemy, arena, vitals, stats }: ServerMsgOf<"encounter">) => {
+    battle.start(enemy, arena, vitals, stats);
+    ui.showToast(source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
+    setMode("battle");
+  };
+
+  const enterField = () => {
+    net?.send({ t: "battleEnd", ...battle.end() });
+    keyboard.clearPressed();
+    setMode("field");
   };
 
   /** No character yet: the editor opens, and the server holds the level back until one is saved. */
@@ -84,10 +96,13 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
 
   const frame = (dt: number) => {
     if (transition) {
-      const f = stepTransition(transition, dt);
-      ui.screen.set({ fadeColor: f.color, fadeOpacity: f.opacity });
-      if (f.swapNow) swap(transition.to);
-      if (f.done) transition = null;
+      const fade = stepTransition(transition, dt);
+      ui.screen.set({ fadeColor: fade.color, fadeOpacity: fade.opacity });
+      if (fade.swapNow) {
+        if (transition.to === "field") enterField();
+        else if (encounter) enterBattle(encounter);
+      }
+      if (fade.done) transition = null;
     }
     if (mode === "field") {
       field.update(dt, transition !== null);
@@ -112,48 +127,49 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
-    setModes(b, f) {
-      battle = b;
-      field = f;
-    },
-    join(joined, onLost) {
+    join(joined) {
       net = joined.net;
+      restoreSettings(settings, joined.welcome.settings);
+      stopSync = syncSettings(settings, net);
+      // Before `listen`: the level may already be waiting in the connection's backlog.
+      field.join(joined);
+      applyCharacter(joined.welcome.character);
       net.listen({
         level: (msg) => field.onLevel(msg),
         state: (msg) => field.onState(msg),
         encounter(msg) {
           field.onEncounter(msg);
-          encounter = { fromGrass: msg.source === null, enemy: msg.enemy, arena: msg.arena, vitals: msg.vitals, stats: msg.stats };
+          encounter = msg;
           transition = startTransition("battle");
         },
         character: (msg) => applyCharacter(msg.character),
         rested(msg) {
-          field.onRested(msg);
+          field.setVitals(msg.vitals);
           ui.showToast("You rest by the fire. HP and stamina are restored.");
         },
         itemUsed(msg) {
-          field.onItemUsed(msg);
-          ui.field.set({ inventory: msg.inventory });
+          field.setVitals(msg.vitals);
+          field.setInventory(msg.inventory);
           const def = itemDef(msg.item);
           ui.showToast(`${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`);
         },
         battleResult(msg) {
           field.onBattleResult(msg);
-          ui.field.set({ inventory: msg.inventory });
-          const loot = describe(msg.loot);
+          const loot = describeItems(msg.loot);
           if (loot) ui.showToast(`You found ${loot}.`);
           if (!msg.accepted) ui.showToast("The server didn't accept that win.");
         },
       });
-      net.onClose = onLost;
-      field.join(net, joined.welcome);
-      applyCharacter(joined.welcome.character);
-      ui.field.set({ inventory: joined.welcome.inventory });
       setMode("field");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
+      exposeDebugHandles({
+        battle, field, ui, settings, mode: () => mode, encounter: () => net?.send({ t: "debug", cmd: "encounter" }),
+      });
     },
     leave() {
       if (!net) return;
+      stopSync();
+      stopSync = () => {};
       engine.stopRenderLoop();
       net.close();
       net = null;
@@ -170,7 +186,7 @@ export function createGame(engine: Engine, keyboard: Keyboard, mouse: Mouse, ui:
 }
 
 /** "boar meat" / "2 boar meat", or "" for nothing. */
-function describe(items: Inventory): string {
+function describeItems(items: Inventory): string {
   return (Object.entries(items) as [ItemId, number][])
     .map(([id, n]) => `${n > 1 ? `${n} ` : ""}${itemDef(id).name.toLowerCase()}`)
     .join(", ");

@@ -251,7 +251,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    colors; name rules)
   items/           items.ts (ITEMS: name, description, what using one does; Inventory = item id -> count)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
-                   server-messages.ts (ServerMsg types), handlers.ts (Handlers<Msg> map + dispatch by `t`),
+                   server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
+                   dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
                    account-requests.ts (their Zod schemas; server-only import), text-rules.ts (TextRules for the
                    username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
@@ -307,12 +308,14 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, start preparing the game;
                      logging in (or Play) connects, then joins; Return to title (or a lost connection) leaves
     game/            start.ts (its own lazily loaded chunk with Babylon: prepareGame() builds the engine, Havok,
-                     both scenes and modes and input (off) once, behind the title; join() starts a session on a
-                     connection, leave() ends it), game.ts (sessions, routes server messages, field <-> battle
-                     switching, who gets input, the character from `welcome` / `character`), dress.ts (repaints
-                     the player's sprites in their look), transition.ts (Mode, flash / fade)
+                     both scenes and modes and input (off) once, behind the title, and returns the Game),
+                     game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
+                     messages, keeps the settings in sync, field <-> battle switching, who gets input, the
+                     character from `welcome` / `character`), dress.ts (repaints the player's sprites in their
+                     look), transition.ts (Mode, flash / fade), debug.ts (the dev handles on `window`)
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per
-                     type), account.ts (the /api calls: who's logged in, log in, register, log out)
+                     type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's
+                     logged in, log in, register, log out)
     core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer
                      lock), buttons.ts (held + latched presses), time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
@@ -343,13 +346,13 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                          KeyBindingsList.tsx (rebinding), buttons.ts
         character/       CharacterEditor.tsx (make / change your character), SpritePreview.tsx, swatches.ts
     field/           The 2D field mode: mirrors the server
-      field.ts         The mode: level loads, inputs, server state, render
-      scene.ts         Babylon scene + ortho camera, FieldView, layerY
+      field.ts         The mode: level loads, the walk keys, server state, the field HUD, render
+      scene.ts         Babylon scene + ortho camera, FieldView, layerY, flatSprite (a quad lying on the field)
       prediction.ts    Predict your own walking, reconcile with the server's acks
       mirror.ts        Mirror the server's actors (spawned by kind via entities/)
       components.ts    FieldPos, FieldActor, FieldSprite
-      input.ts         The walk keys -> a WalkInput
-      entities/        player.ts, boar.ts, sprite.ts (flat quad), index.ts (FIELD_PREFABS by ActorSnap.kind)
+      entities/        actor.ts (spawnFieldActor: position + sprite + overlays), player.ts, boar.ts, index.ts
+                       (FIELD_PREFABS by ActorSnap.kind)
       systems/         sprites.ts (glide to server positions, tuft, "!"), camera.ts (follow, the view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
                        campfires.ts (any theme's campfires, flickering), grass-field/ (terrain, textures)

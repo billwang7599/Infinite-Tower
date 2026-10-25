@@ -1,6 +1,6 @@
 /** Builds the `state` message: what the client may know about the field right now. */
 import {
-  roundTo, VIEW, viewCenter, viewHalfWidth, type ActorSnap, type MsgOf, type ServerMsg,
+  roundTo, VIEW, viewCenter, viewHalfWidth, type ActorSnap, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Field } from "../field/field.js";
 import { FieldActor, FieldPos } from "../field/components.js";
@@ -22,7 +22,7 @@ const VIEW_MARGIN_TILES = 3;
 /** The server doesn't know the window's shape, so it assumes the widest one allowed. */
 const VIEW_HALF_WIDTH = viewHalfWidth(VIEW.maxAspect);
 
-export function stateMsg(field: Field, wins: number): MsgOf<ServerMsg, "state"> {
+export function stateMsg(field: Field, wins: number): ServerMsgOf<"state"> {
   const me = field.playerPos();
   const center = viewCenter(field.level.layout, me, VIEW_HALF_WIDTH);
   const reachX = VIEW_HALF_WIDTH + VIEW_MARGIN_TILES, reachZ = VIEW.halfHeight + VIEW_MARGIN_TILES;
