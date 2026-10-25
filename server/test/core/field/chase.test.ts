@@ -76,6 +76,22 @@ describe("chase on sight", () => {
     assert.equal(c.actor.busy, false);
   });
 
+  // Wander would also stop a boar, but an actor that only chases must not keep running in its last direction.
+  test("stops running when it gives up, whether the player got away or became safe", () => {
+    const away = chaser({ x: 2, z: 0 });
+    away.step(2 + CHASE.noticeTime / DT);
+    assert.ok(away.actor.vx > 0);
+    pos(away.world, away.player).x = CHASE.giveUpDist + 1;
+    away.step();
+    assert.deepEqual([away.actor.vx, away.actor.vz], [0, 0]);
+
+    const safe = chaser({ x: 2, z: 0 });
+    safe.step(2 + CHASE.noticeTime / DT);
+    safe.world.require(safe.player, FieldPlayer).safeTime = 1;
+    safe.step();
+    assert.deepEqual([safe.actor.vx, safe.actor.vz], [0, 0]);
+  });
+
   test("gives up when the player becomes safe, and doesn't notice a safe player", () => {
     const c = chaser({ x: 2, z: 0 });
     c.step(1 + CHASE.noticeTime / DT);

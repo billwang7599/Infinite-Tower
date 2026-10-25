@@ -97,19 +97,20 @@ describe("Prediction.step", () => {
     assert.equal(actor.facing, 1);
   });
 
-  test("with no level yet, nothing moves (the input is still sent)", () => {
+  test("with no level yet, nothing moves and nothing is sent", () => {
     const { prediction, pos, net } = setup(null);
-    prediction.step(RIGHT);
-    assert.deepEqual(pos, { x: 0, z: 0 });
-    assert.equal(net.sent.length, 1);
+    for (const input of [RIGHT, UP_LEFT]) prediction.step(input);
+    assert.deepEqual({ pos, sent: net.sent }, { pos: { x: 0, z: 0 }, sent: [] });
   });
 
-  test("reads the level when it arrives", () => {
-    const { prediction, pos, view } = setup(null);
-    prediction.step(RIGHT);
+  test("once the level arrives: walks, sends from sequence number 1, replays nothing from before", () => {
+    const { prediction, pos, view, net } = setup(null);
+    prediction.step(UP_LEFT);
     view.level = LEVEL;
     prediction.step(RIGHT);
-    assert.deepEqual(pos, walk({ x: 0, z: 0 }, [RIGHT]));
+    assert.deepEqual(net.sent, [{ t: "input", seq: 1, moveX: 1, moveZ: 0 }]);
+    prediction.reconcile(0, { x: 2, z: 1 });
+    assert.deepEqual(pos, walk({ x: 2, z: 1 }, [RIGHT]));
   });
 });
 

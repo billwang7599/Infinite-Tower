@@ -61,11 +61,18 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, up), ["KeyZ", "ArrowUp"]);
   });
 
-  test("adding to an action that already has the most keys changes nothing", () => {
+  test("adding to an action that already has the most keys is refused and changes nothing", () => {
     const b = new KeyBindings();
+    const before = b.get();
     assert.equal(keys(b, dodge).length, MAX_KEYS_PER_ACTION);
-    b.bind(dodge, "KeyX", null);
-    assert.deepEqual(keys(b, dodge), ACTIONS.battle.dodge.keys);
+    assert.deepEqual(b.bind(dodge, "KeyX", null), { ok: false, full: true });
+    assert.equal(b.get(), before);
+  });
+
+  test("replacing a key on an action with the most keys still works", () => {
+    const b = new KeyBindings();
+    assert.deepEqual(b.bind(dodge, "KeyX", "KeyK"), { ok: true, takenFrom: null, gave: null });
+    assert.deepEqual(keys(b, dodge), ["KeyX", "ShiftLeft", "ShiftRight"]);
   });
 
   test("a key held by another action with spare keys moves over", () => {
@@ -131,15 +138,20 @@ describe("KeyBindings.bind", () => {
     assert.equal(calls, 1);
   });
 
-  // A bug today: the key comes off turnLeft, but dodge is full so it isn't added there either. The settings screen
-  // hides "+" on a full action, so players can't reach it.
-  const skip = "bind() drops the key; unreachable from the settings screen";
-  test("adding a taken key to a full action doesn't leave the key bound to nothing", { skip }, () => {
+  // It used to take H off turnLeft without adding it to dodge, leaving H bound to nothing.
+  test("adding another action's key to a full action is refused and leaves the key where it was", () => {
     const b = new KeyBindings();
-    b.bind(dodge, "KeyH", null);
+    const before = b.get();
+    assert.deepEqual(b.bind(dodge, "KeyH", null), { ok: false, full: true });
+    assert.equal(b.get(), before);
     const holders = actionsOf("battle").filter((ref) => keys(b, ref).includes("KeyH"));
-    assert.equal(holders.length, 1);
-    assert.deepEqual(keys(b, turnLeft), ACTIONS.battle.turnLeft.keys);
+    assert.deepEqual(holders, [turnLeft]);
+  });
+
+  test("moving one of a full action's own keys to the end isn't refused", () => {
+    const b = new KeyBindings();
+    assert.deepEqual(b.bind(dodge, "KeyK", null), { ok: true, takenFrom: null, gave: null });
+    assert.deepEqual(keys(b, dodge), ["ShiftLeft", "ShiftRight", "KeyK"]);
   });
 });
 

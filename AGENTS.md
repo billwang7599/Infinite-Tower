@@ -118,6 +118,7 @@ The user wants test-first work. For a feature or a bug fix:
 1. If it involves a game mechanic, settle it with the user first (above). The tests then say what was agreed.
 2. Write the tests that describe the new behavior, run `npm test` and see them fail for the right reason.
 3. Write the code until they pass, then clean up with the tests still passing.
+4. If a new test finds a bug in existing code, fix it in the same PR. Don't leave a skipped test for a known bug.
 
 Where tests go and how they're written:
 
@@ -137,7 +138,8 @@ Where tests go and how they're written:
 
 ## Before calling something done
 
-- `npm test`, `npm run typecheck` and `npm run build` pass.
+- `npm test`, `npm run typecheck` and `npm run build` pass. CI (`.github/workflows/ci.yml`) runs the same three on
+  every PR into `main`; don't merge a PR until its check is green (`gh pr checks <n>`).
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
   username: "test1", password: "test1" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,

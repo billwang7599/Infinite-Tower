@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { scryptSync } from "node:crypto";
 import { describe, test } from "node:test";
 import { hashPassword, verifyPassword } from "../../../src/core/accounts/passwords.js";
 
@@ -36,21 +37,70 @@ describe("verifyPassword", () => {
     }
   });
 
+  test("checks a hash made with another cost by that cost, so the cost can be raised later", async () => {
+    const salt = Buffer.alloc(16, 3);
+    const key = scryptSync("password1", salt, 32, { N: 1024, r: 4, p: 2 });
+    const stored = ["scrypt", 1024, 4, 2, salt.toString("base64"), key.toString("base64")].join("$");
+    assert.equal(await verifyPassword("password1", stored), true);
+    assert.equal(await verifyPassword("password2", stored), false);
+  });
+
   test("refuses a hash made with a different salt", async () => {
     const [algo, n, r, p, , key] = (await hashPassword("password1")).split("$");
     const otherSalt = Buffer.alloc(16, 7).toString("base64");
     assert.equal(await verifyPassword("password1", [algo, n, r, p, otherSalt, key].join("$")), false);
   });
 
-  // Known gaps in passwords.ts, written as what it should do. Neither string can come from hashPassword, so they
-  // only matter if the database is edited by hand.
-  const badCostBug = "bug: it rejects with ERR_OUT_OF_RANGE";
-  test("returns false when the stored cost isn't a number", { skip: badCostBug }, async () => {
-    assert.equal(await verifyPassword("password1", "scrypt$abc$8$1$c2FsdA==$a2V5"), false);
+});
+
+/**
+ * A damaged stored hash (only possible if the database is edited by hand) must never let anyone in, and must not
+ * crash login: it's a refusal (false), not an error. Each case changes one field of a real hash of "password1",
+ * so the right password is used and only the damage can make it fail.
+ */
+describe("verifyPassword with a damaged stored hash", () => {
+  const FIELD = { n: 1, r: 2, p: 3, salt: 4, key: 5 } as const;
+  const good = hashPassword("password1");
+  async function damaged(field: keyof typeof FIELD, value: string): Promise<string> {
+    const parts = (await good).split("$");
+    parts[FIELD[field]] = value;
+    return parts.join("$");
+  }
+  async function refuses(stored: string): Promise<void> {
+    assert.equal(await verifyPassword("password1", stored), false, stored);
+  }
+
+  test("a key that decodes to nothing refuses every password", async () => {
+    await refuses(await damaged("key", "!!!"));
+    assert.equal(await verifyPassword("anything", await damaged("key", "!!!")), false);
   });
 
-  const emptyKeyBug = "bug: it returns true (two 0-byte keys match)";
-  test("refuses every password when the stored key decodes to nothing", { skip: emptyKeyBug }, async () => {
-    assert.equal(await verifyPassword("anything", "scrypt$16384$8$1$c2FsdA==$!!!"), false);
+  test("the undamaged hash accepts the right password (so each refusal below is the damage)", async () => {
+    assert.equal(await verifyPassword("password1", await good), true);
+  });
+
+  test("a key of the wrong length refuses even the right password", async () => {
+    const key = Buffer.from((await good).split("$")[FIELD.key]!, "base64");
+    await refuses(await damaged("key", key.subarray(0, 16).toString("base64")));
+    await refuses(await damaged("key", Buffer.concat([key, key]).toString("base64")));
+  });
+
+  test("a cost that isn't a whole number refuses", async () => {
+    for (const n of ["abc", "", "16384.5", "-16384", "1e4"]) await refuses(await damaged("n", n));
+    for (const r of ["x", "0", "-8"]) await refuses(await damaged("r", r));
+    for (const p of ["x", "0", "-1"]) await refuses(await damaged("p", p));
+  });
+
+  test("a cost scrypt can't use refuses (N not a power of two, or too much memory)", async () => {
+    await refuses(await damaged("n", "1000"));
+    await refuses(await damaged("n", String(2 ** 30)));
+  });
+
+  test("an empty salt refuses", async () => {
+    await refuses(await damaged("salt", ""));
+  });
+
+  test("extra fields refuse", async () => {
+    await refuses(`${await good}$extra`);
   });
 });

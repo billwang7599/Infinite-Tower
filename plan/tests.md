@@ -10,4 +10,5 @@ and [AGENTS.md](../AGENTS.md)). These parts have none yet:
   ([server-fights.md](server-fights.md)), where it can run headless.
 - **React screens** (`client/src/ui/`). Would need jsdom and React Testing Library. Today they're tried in a
   browser (Playwright scripts kept outside the repo).
-- **CI**: run `npm test`, typecheck and build on every PR with GitHub Actions.
+- **Blocking a red merge**: CI runs on every PR, but GitHub only enforces a required check (branch protection or a
+  ruleset) on a public repo or with GitHub Pro. Until then a PR with a failing check can still be merged by hand.

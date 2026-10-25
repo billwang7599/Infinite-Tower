@@ -21,6 +21,8 @@ export class Prediction {
   ) {}
 
   step(input: WalkInput): void {
+    // Until the server's `level` arrives there's nothing to walk on here, so nothing is predicted or sent.
+    if (!this.view.level) return;
     // Standing still isn't sent: it doesn't move the player, and the server already stops a player
     // whose input queue is empty, so the replay comes out the same without it.
     if (input.moveX === 0 && input.moveZ === 0) { this.move(input); return; }

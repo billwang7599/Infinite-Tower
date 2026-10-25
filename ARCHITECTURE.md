@@ -222,6 +222,9 @@ Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.metho
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
 them.
 
+CI (`.github/workflows/ci.yml`, GitHub Actions) runs `npm run typecheck`, `npm test` and `npm run build` on
+Node 26 for every pull request into `main` and every push to it. A PR is merged only once that check is green.
+
 ## Rules
 
 - **The server decides; the client asks and draws.** Anything a player shouldn't be able to change lives on the

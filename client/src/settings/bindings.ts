@@ -72,11 +72,13 @@ export function actionDef(ref: ActionRef): ActionDef {
 /**
  * What `bind` did. A key does one thing per mode, so it comes off any other action there (`takenFrom`); if
  * that was the other action's only key, it gets the replaced key instead (`gave`). Adding a key that is
- * another action's only key is refused, since that would leave the other action with none.
+ * another action's only key is refused, since that would leave the other action with none; so is adding a key
+ * to an action that already has MAX_KEYS_PER_ACTION (`full`: replace one of its keys instead).
  */
 export type BindResult =
   | { ok: true; takenFrom: ActionRef | null; gave: string | null }
-  | { ok: false; onlyKeyOf: ActionRef };
+  | { ok: false; onlyKeyOf: ActionRef }
+  | { ok: false; full: true };
 
 export class KeyBindings extends Store<KeyMap> {
   constructor() {
@@ -117,12 +119,14 @@ export class KeyBindings extends Store<KeyMap> {
     const swap = ownerRef !== null && keys[owner!]!.length === 1;
     if (swap && replace === null) return { ok: false, onlyKeyOf: ownerRef };
 
-    const next = { ...keys };
-    if (owner !== undefined) next[owner] = swap ? [replace!] : keys[owner]!.filter((k) => k !== key);
     const kept = own.filter((k) => k !== key);
     const at = replace === null ? -1 : kept.indexOf(replace);
+    if (at < 0 && kept.length >= MAX_KEYS_PER_ACTION) return { ok: false, full: true };
+
+    const next = { ...keys };
+    if (owner !== undefined) next[owner] = swap ? [replace!] : keys[owner]!.filter((k) => k !== key);
     if (at >= 0) kept[at] = key;
-    else if (kept.length < MAX_KEYS_PER_ACTION) kept.push(key);
+    else kept.push(key);
     next[ref.action] = kept;
 
     this.update(ref.group, next);
