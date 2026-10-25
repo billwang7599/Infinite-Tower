@@ -9,6 +9,7 @@ add, move or rename files, or change how the pieces talk to each other.
 - [Client: two modes, one ECS world](#client-two-modes-one-ecs-world)
 - [Networking](#networking)
 - [Saving](#saving)
+- [Tests](#tests)
 - [Rules](#rules)
 - [Folders and files](#folders-and-files)
 - [Adding things](#adding-things)
@@ -199,6 +200,28 @@ start), and stats aren't either (everyone has the same).
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
 
+## Tests
+
+`npm test` runs every `*.test.ts` under `shared/test/`, `server/test/` and `client/test/` with Node's test runner
+(`tsx --test`); no test framework, database or browser. Each `test/` folder mirrors its `src/` and has a tsconfig
+of its own (Node's types), checked by `npm run typecheck`. New work is written test-first (see AGENTS.md).
+
+- **shared**: the ECS, math, walking (`stepWalker`, grass, campfires), the view rules, and every Zod schema (what
+  the server accepts from clients and the sentences it answers with).
+- **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
+  how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
+  numbers the tests own. Joining, a second tab, saving, the field's input replay and encounters, battles and the
+  win check, resting, items, accounts and passwords are all tested without a database or a socket.
+- **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
+  sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
+  tests yet ([plan/tests.md](plan/tests.md)).
+- **client**: only logic that runs without Babylon or the DOM: key bindings, camera settings, settings sync and
+  field prediction. Rendering, the arena fight and the React screens are tried in a browser.
+
+Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
+`t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
+them.
+
 ## Rules
 
 - **The server decides; the client asks and draws.** Anything a player shouldn't be able to change lives on the
@@ -259,10 +282,13 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    account-requests.ts (their Zod schemas; server-only import), text-rules.ts (TextRules for the
                    username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
                    settings.ts (MAX_KEYS_PER_ACTION)
+shared/test/      Unit tests, mirroring src/ (npm test)
 
 server/          Node. Authoritative: levels, encounters, field actors, enemy stats, fight results, saves.
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
   scripts/         check-layers.ts (the hexagonal import rules; run by `npm run typecheck`)
+  test/            Unit tests, mirroring src/. fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
+                   MemoryAccountStore: core's ports in memory), level.ts (TEST_LEVEL, TEST_CHARACTER)
   src/
     main.ts          The only file that sees everything: builds db -> core -> api + ws, plugs them together, runs
                      the tick timer
@@ -306,6 +332,7 @@ server/          Node. Authoritative: levels, encounters, field actors, enemy st
 client/          Browser game: Babylon rendering, Havok physics, input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui
   vite.config.ts   Dev server :5173, proxies /ws and /api to the game server
+  test/            Unit tests of the logic that runs without Babylon or the DOM, mirroring src/
   src/
     main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, start preparing the game;
                      logging in (or Play) connects, then joins; Return to title (or a lost connection) leaves

@@ -1,25 +1,13 @@
-# Server tests
+# Tests: what's not covered yet
 
-Status: **later** (the user: "we can add tests later").
+Status: **later**. The unit tests exist (`npm test`; how they work is in [ARCHITECTURE.md](../ARCHITECTURE.md)
+and [AGENTS.md](../AGENTS.md)). These parts have none yet:
 
-## Today
-
-There are no automated tests in the repo. `npm run typecheck` (TypeScript plus the server's layer check) and
-`npm run build` are the only checks; features are tried in a browser, often with Playwright scripts kept outside
-the repo.
-
-## The idea
-
-- A `server/test/` folder, run with Node's own test runner through tsx (`tsx --test`), so no test framework is
-  needed.
-- **Core with fakes**: core takes its outside world through ports (`PlayerStore`, `AccountStore`, `PlayerLink`),
-  so tests can hand it in-memory fakes and a `FixedClock` they step by hand. A throwaway script did this once and
-  covered joining, the character, a dev encounter, a second tab taking over, saving on leave, and a failed load.
-- **HTTP with `app.inject()`**: `buildServer()` in `server/src/api/server.ts` can be called without listening, so
-  routes, errors, cookies and the rate limit can be tested without a port.
-- Maybe an `npm test` script at the root, and running it before a PR like typecheck.
-
-## Open questions
-
-- Tests for the client (the fight, prediction) too, or the server only?
-- A database for the store tests: a throwaway Postgres (the Docker one on another port), or only fakes?
+- **The Postgres stores** (`server/src/db/`: `PgPlayerStore`, `PgAccountStore`, migrations). They'd need a real
+  database: a throwaway one from `compose.yaml` on another port, created and dropped by the test run. Open: is
+  that worth the extra setup, or are the fakes enough?
+- **The arena fight** (`client/src/battle/`). It runs on Babylon + Havok; it gets tests when it moves to the server
+  ([server-fights.md](server-fights.md)), where it can run headless.
+- **React screens** (`client/src/ui/`). Would need jsdom and React Testing Library. Today they're tried in a
+  browser (Playwright scripts kept outside the repo).
+- **CI**: run `npm test`, typecheck and build on every PR with GitHub Actions.

@@ -48,7 +48,8 @@ and the client (Vite on :5173, which forwards `/ws` and `/api` to the server).
 
 ```sh
 npm start          # production: build the client; the server serves it + /ws + /api on http://localhost:8787
-npm run typecheck  # shared, server, client, then the server's layering (server/scripts/check-layers.ts)
+npm test           # unit tests (shared, server, client); no database needed
+npm run typecheck  # shared, server, client and their tests, then the server's layering (server/scripts/check-layers.ts)
 npm run build      # the client bundle
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
@@ -81,6 +82,7 @@ client/src/
   field/ battle/   the two modes, drawn with Babylon.js
   net/             talking to the server
   ui/              the React UI (title, HUD, panels, settings)
+*/test/            unit tests for each workspace, mirroring its src/ (npm test)
 plan/              future plans and parked ideas
 compose.yaml       the dev database (Postgres in Docker)
 .env.example       local settings; copied to .env

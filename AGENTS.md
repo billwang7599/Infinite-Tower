@@ -81,6 +81,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 npm install
 npm run dev        # db:up + db:seed, then server :8787 (tsx watch, reloads on save) + client :5173 (Vite, proxies /ws and /api)
 npm run typecheck  # run it from the root (the workspaces have none of their own); also checks the server's layering
+npm test           # unit tests of shared, server and client (Node's test runner through tsx; no database needed)
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
@@ -110,9 +111,33 @@ If the server won't start, see "Troubleshooting" in the README.
 - The server applies new migrations when it starts. If it exits with "a migration failed (relation ... already
   exists)", the dev database was made by another branch: `npm run db:reset`.
 
+## Test first
+
+The user wants test-first work. For a feature or a bug fix:
+
+1. If it involves a game mechanic, settle it with the user first (above). The tests then say what was agreed.
+2. Write the tests that describe the new behavior, run `npm test` and see them fail for the right reason.
+3. Write the code until they pass, then clean up with the tests still passing.
+
+Where tests go and how they're written:
+
+- In each workspace's `test/` folder, mirroring `src/`: `server/test/core/game/session.test.ts` tests
+  `server/src/core/game/session.ts`. Node's runner (`node:test`, `node:assert/strict`), run through tsx; no test
+  framework. `npm run typecheck` checks the tests too (each `test/` has its own tsconfig with Node's types).
+- Server core is tested through its ports with the fakes in `server/test/fixtures/` (`FakeLink`,
+  `MemoryPlayerStore`, `MemoryAccountStore`, `TEST_LEVEL`), so no database or socket is needed. The HTTP API is
+  tested with `buildServer()` and `app.inject()` / `app.injectWS()`, without a port.
+- Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`,
+  `t.mock.method(performance, "now", ...)` for fight timing, and `t.mock.method(Math, "random", ...)` before a
+  `Field` is made (it keeps `Math.random` as its `rng`).
+- Read tuning numbers from the code (`PLAYER.maxHp`, `MAX_STACK`, the level's campfires) instead of writing them
+  into tests, so retuning the game doesn't break tests that aren't about the numbers.
+- What has no unit tests (Babylon rendering, React screens, the arena fight, the Postgres stores) is still tried
+  in a browser before calling it done.
+
 ## Before calling something done
 
-- `npm run typecheck` and `npm run build` pass.
+- `npm test`, `npm run typecheck` and `npm run build` pass.
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
   username: "test1", password: "test1" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
