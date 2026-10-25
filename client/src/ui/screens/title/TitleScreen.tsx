@@ -14,6 +14,7 @@ import { LoginForm } from "./LoginForm.js";
 import { MenuButton } from "./MenuButton.js";
 import { LINK } from "./styles.js";
 
+/** Fixed, not from the key bindings: those come with the server's welcome, which is after Play. */
 const PLAY_KEYS = ["Enter", "Space", "KeyJ"];
 const FADE_MS = 700;
 const RISE = "animate-rise motion-reduce:animate-none";
