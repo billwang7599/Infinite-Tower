@@ -34,7 +34,7 @@ export interface AttackDef {
 /** A short-range lunge with a sweeping hit. */
 export interface LungeDef extends AttackDef {
   /** Start the attack within this center distance. */
-  trigger: number;
+  triggerDist: number;
   /** Seconds the hit is live. */
   active: number;
   speed: number;
@@ -47,8 +47,10 @@ export interface ChargeDef extends AttackDef {
   /** Stops tracking the target this long before the charge starts: the dodge cue. */
   lockAt: number;
   speed: number;
-  maxTime: number;
-  stun: number;
+  /** The charge gives up after this many seconds without hitting anything. */
+  maxChargeTime: number;
+  /** Seconds stunned after slamming into the wall. */
+  stunTime: number;
 }
 
 export interface EnemyAttacks {
