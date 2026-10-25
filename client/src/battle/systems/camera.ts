@@ -1,5 +1,5 @@
 import { Vector3 } from "@babylonjs/core";
-import { clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import { clamp, dampFactor, LocalPlayer, wrapAngle, type Entity, type System } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
 
@@ -31,7 +31,8 @@ const SHAKE_CUTOFF = 0.005;
 export function cameraSystem(ctx: BattleContext): System {
   const { keyboard, mouse } = ctx;
   const focus = new Vector3(), look = new Vector3();
-  let initialized = false;
+  /** Each fight spawns a new player; the camera jumps to them instead of gliding over from the last fight. */
+  let followed: Entity | null = null;
 
   return (world, dt) => {
     const view = ctx.view;
@@ -47,10 +48,11 @@ export function cameraSystem(ctx: BattleContext): System {
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
-    const p = row[2].mesh.position;
+    const [player, , body] = row;
+    const p = body.mesh.position;
 
     // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
-    if (!initialized) { focus.copyFrom(p); initialized = true; }
+    if (player !== followed) { focus.copyFrom(p); followed = player; }
     Vector3.LerpToRef(focus, p, dampFactor(FOLLOW_RATE, dt), focus);
 
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
