@@ -18,7 +18,6 @@ export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings 
       <Vitals hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
-      <MouseHint hud={hud} />
     </HudLayer>
   );
 }
@@ -64,16 +63,6 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
         {died ? "YOU DIED" : "PREY SLAUGHTERED"}
       </div>
       <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>
-    </div>
-  );
-}
-
-function MouseHint({ hud }: HudProps) {
-  const mouseCaptured = useStore(hud, (s) => s.mouseCaptured);
-  if (mouseCaptured) return null;
-  return (
-    <div id="mouse-hint" className="absolute top-3 right-4 text-right text-[13px] font-normal opacity-60">
-      Click to use the mouse / trackpad
     </div>
   );
 }

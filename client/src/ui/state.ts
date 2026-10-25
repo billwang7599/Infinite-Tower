@@ -61,7 +61,6 @@ export interface BattleHudState {
   enemyName: string;
   enemyHpFraction: number;
   enemyAlive: boolean;
-  mouseCaptured: boolean;
   result: FightState;
   /** Turns on a moment after `result` is decided. */
   showResult: boolean;
@@ -106,7 +105,7 @@ export class UiState {
   });
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1, enemyAlive: false,
-    mouseCaptured: false, result: "fighting", showResult: false,
+    result: "fighting", showResult: false,
   });
 
   private static readonly MAX_TOASTS = 4;

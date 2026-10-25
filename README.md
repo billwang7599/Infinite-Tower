@@ -20,7 +20,8 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,
   jump, stamina. You attack where the camera faces (no lock-on). The boar lunges up close and does a telegraphed
   charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits.
-- **Controls:** keyboard only, or keyboard + mouse / trackpad. Every key can be rebound in Settings.
+- **Controls:** keyboard only, or keyboard + mouse / trackpad (click a fight to capture the mouse).
+  Every key can be rebound in Settings.
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
