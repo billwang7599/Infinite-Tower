@@ -5,78 +5,103 @@
 import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 
-/** Base color plus random blotches: grass, dirt, stone. */
-export function speckleTexture(scene: Scene, name: string, base: string, specks: string[], count: number, maxR: number, seed: number): DynamicTexture {
-  const size = 256;
-  const tex = new DynamicTexture(name, { width: size, height: size }, scene, true);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.fillStyle = base;
-  ctx.fillRect(0, 0, size, size);
-  const r = seededRandom(seed);
-  for (let i = 0; i < count; i++) {
-    ctx.fillStyle = specks[Math.floor(r() * specks.length)]!;
-    ctx.globalAlpha = 0.25 + r() * 0.5;
-    const x = r() * size, y = r() * size, rad = 1 + r() * maxR;
-    // Draw wrapped copies so the texture tiles seamlessly.
-    for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) {
-      ctx.beginPath();
-      ctx.arc(x + ox, y + oy, rad, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 1;
+export interface DrawnTextureOptions {
+  /** Pixels; height defaults to width. */
+  width: number;
+  height?: number;
+  mipmaps?: boolean;
+  /** Nearest-neighbour sampling: crisp pixel art. */
+  nearest?: boolean;
+  /** Repeat across the surface (tiling). */
+  wrap?: boolean;
+  /** Use the canvas's alpha (transparent parts). */
+  alpha?: boolean;
+}
+
+/** A texture drawn once with the 2D canvas API. */
+export function drawnTexture(
+  scene: Scene, name: string, opts: DrawnTextureOptions, draw: (ctx: CanvasRenderingContext2D) => void,
+): DynamicTexture {
+  const { width, height = width, mipmaps = false, nearest = false } = opts;
+  const tex = nearest
+    ? new DynamicTexture(name, { width, height }, scene, mipmaps, Texture.NEAREST_SAMPLINGMODE)
+    : new DynamicTexture(name, { width, height }, scene, mipmaps);
+  draw(tex.getContext() as CanvasRenderingContext2D);
   tex.update();
-  tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
+  if (opts.wrap) tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
+  if (opts.alpha) tex.hasAlpha = true;
   return tex;
+}
+
+export interface SpeckleOptions {
+  base: string;
+  specks: string[];
+  count: number;
+  /** A speck's radius is 1 to 1 + this, in pixels (of 256). */
+  maxRadiusPx: number;
+  seed: number;
+}
+
+/** Base color plus random blotches, tiling: grass, dirt, stone. */
+export function speckleTexture(scene: Scene, name: string, opts: SpeckleOptions): DynamicTexture {
+  const size = 256;
+  return drawnTexture(scene, name, { width: size, mipmaps: true, wrap: true }, (ctx) => {
+    ctx.fillStyle = opts.base;
+    ctx.fillRect(0, 0, size, size);
+    const rand = seededRandom(opts.seed);
+    for (let i = 0; i < opts.count; i++) {
+      ctx.fillStyle = opts.specks[Math.floor(rand() * opts.specks.length)]!;
+      ctx.globalAlpha = 0.25 + rand() * 0.5;
+      const x = rand() * size, y = rand() * size, radius = 1 + rand() * opts.maxRadiusPx;
+      // Draw wrapped copies so the texture tiles seamlessly.
+      for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) {
+        ctx.beginPath();
+        ctx.arc(x + ox, y + oy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
 }
 
 /** Soft round shadow. */
 export function blobTexture(scene: Scene): DynamicTexture {
-  const s = 64;
-  const tex = new DynamicTexture("blob", { width: s, height: s }, scene, false);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-  g.addColorStop(0, "rgba(0,0,0,0.55)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, s, s);
-  tex.update();
-  tex.hasAlpha = true;
-  return tex;
+  const size = 64;
+  return drawnTexture(scene, "blob", { width: size, alpha: true }, (ctx) => {
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, "rgba(0,0,0,0.55)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  });
 }
 
 /** Attack telegraph: a red stripe that fades out along its length (v = 0 at the attacker). */
 export function telegraphTexture(scene: Scene): DynamicTexture {
-  const tex = new DynamicTexture("telegraph", { width: 32, height: 256 }, scene, false);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  const g = ctx.createLinearGradient(0, 256, 0, 0);
-  g.addColorStop(0, "rgba(255,60,30,0.9)");
-  g.addColorStop(1, "rgba(255,60,30,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 32, 256);
-  ctx.globalCompositeOperation = "destination-in";
-  const edge = ctx.createLinearGradient(0, 0, 32, 0);
-  edge.addColorStop(0, "rgba(0,0,0,0)");
-  edge.addColorStop(0.3, "rgba(0,0,0,1)");
-  edge.addColorStop(0.7, "rgba(0,0,0,1)");
-  edge.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = edge;
-  ctx.fillRect(0, 0, 32, 256);
-  tex.update();
-  tex.hasAlpha = true;
-  return tex;
+  const width = 32, height = 256;
+  return drawnTexture(scene, "telegraph", { width, height, alpha: true }, (ctx) => {
+    const g = ctx.createLinearGradient(0, height, 0, 0);
+    g.addColorStop(0, "rgba(255,60,30,0.9)");
+    g.addColorStop(1, "rgba(255,60,30,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "destination-in";
+    const edge = ctx.createLinearGradient(0, 0, width, 0);
+    edge.addColorStop(0, "rgba(0,0,0,0)");
+    edge.addColorStop(0.3, "rgba(0,0,0,1)");
+    edge.addColorStop(0.7, "rgba(0,0,0,1)");
+    edge.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = edge;
+    ctx.fillRect(0, 0, width, height);
+  });
 }
 
 /** A small nearest-filtered, tiling texture drawn with the 2D canvas API (pixel art). */
-export function pixelTexture(scene: Scene, name: string, size: number, draw: (ctx: CanvasRenderingContext2D) => void): DynamicTexture {
-  const tex = new DynamicTexture(name, { width: size, height: size }, scene, false, Texture.NEAREST_SAMPLINGMODE);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  draw(ctx);
-  tex.update();
-  tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
-  return tex;
+export function pixelTexture(
+  scene: Scene, name: string, size: number, draw: (ctx: CanvasRenderingContext2D) => void,
+): DynamicTexture {
+  return drawnTexture(scene, name, { width: size, nearest: true, wrap: true }, draw);
 }
-
 
 /** Grass blades drawn over a walker's feet in tall grass (field; transparent background). */
 export function tuftTexture(scene: Scene): DynamicTexture {

@@ -2,9 +2,13 @@
  * The boar's 3D model, built from primitives (no asset files). 3D so its wind-ups read clearly from
  * any angle. Faces +z locally; animated procedurally by boarAnimationSystem (animation.ts).
  */
-import { Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Scene } from "@babylonjs/core";
+import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import { defineComponent, type EnemyDef, type Entity, type World } from "@infinite-tower/shared";
+import { colorMaterial } from "../../../../gfx/materials.js";
 import type { BattleContext } from "../../../context.js";
+
+/** The charge telegraph: a stripe this long on the ground, starting just in front of the snout. */
+const TELEGRAPH_LENGTH = 14;
 
 /** The boar's node hierarchy, posed every frame by boarAnimationSystem. */
 export interface BoarModelData {
@@ -14,11 +18,13 @@ export interface BoarModelData {
   model: TransformNode;
   head: TransformNode;
   /** Hip pivots: front-left, front-right, back-left, back-right. */
-  legs: TransformNode[];
+  legs: [TransformNode, TransformNode, TransformNode, TransformNode];
   stars: TransformNode;
   /** Ground stripe showing the charge line during the wind-up. */
   telegraph: Mesh;
   materials: StandardMaterial[];
+  /** Each material's own emissive color (same order), to return to after the hit flash. */
+  baseEmissive: Color3[];
   eyes: StandardMaterial;
   gait: number;
   visualYaw: number;
@@ -27,41 +33,30 @@ export const BoarModel = defineComponent<BoarModelData>("BoarModel");
 
 export function registerBoarDisposers(world: World): void {
   world.onRemove(BoarModel, (_e, v) => {
-    v.telegraph.dispose();
-    v.root.dispose();
+    v.root.dispose(); // and everything under it, the telegraph too
     for (const m of v.materials) m.dispose();
   });
 }
 
-function mat(scene: Scene, name: string, hex: string, list: StandardMaterial[]): StandardMaterial {
-  const m = new StandardMaterial(name, scene);
-  m.diffuseColor = Color3.FromHexString(hex);
-  m.specularColor = new Color3(0.05, 0.05, 0.05);
-  list.push(m);
-  return m;
-}
-
-/** Builds the boar under the physics collider and adds its BoarModel component. */
-export function addBoarModel(ctx: BattleContext, e: Entity, collider: Mesh, def: EnemyDef, yaw: number): void {
-  const nodes = buildBoarModel(ctx, e, collider, def);
-  nodes.root.rotation.y = yaw;
-  ctx.world.add(e, BoarModel, { ...nodes, gait: 0, visualYaw: yaw });
-}
-
-function buildBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyDef): Omit<BoarModelData, "gait" | "visualYaw"> {
-  const { scene, shadows } = ctx;
+/** Builds the boar under the physics collider (`parent`), facing `yaw`, and adds its BoarModel component. */
+export function addBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyDef, yaw: number): void {
+  const { scene, sunShadows } = ctx;
   const materials: StandardMaterial[] = [];
-  const hide = mat(scene, "boar-hide", "#5e4030", materials);
-  const dark = mat(scene, "boar-dark", "#2e211a", materials);
-  const snoutM = mat(scene, "boar-snout", "#8a5a4a", materials);
-  const nose = mat(scene, "boar-nose", "#b77a6a", materials);
-  const ivory = mat(scene, "boar-tusk", "#efe6cf", materials);
-  const eyes = mat(scene, "boar-eyes", "#1a0a08", materials);
-  for (const m of materials) m.metadata = { baseEmissive: m.emissiveColor.clone() };
+  const mat = (name: string, hex: string): StandardMaterial => {
+    const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.05, 0.05, 0.05));
+    materials.push(m);
+    return m;
+  };
+  const hide = mat("boar-hide", "#5e4030");
+  const dark = mat("boar-dark", "#2e211a");
+  const snoutM = mat("boar-snout", "#8a5a4a");
+  const nose = mat("boar-nose", "#b77a6a");
+  const ivory = mat("boar-tusk", "#efe6cf");
+  const eyes = mat("boar-eyes", "#1a0a08");
 
   const parts: Mesh[] = [];
-  const part = (m: Mesh, parent: TransformNode, material: StandardMaterial): Mesh => {
-    m.parent = parent;
+  const part = (m: Mesh, under: TransformNode, material: StandardMaterial): Mesh => {
+    m.parent = under;
     m.material = material;
     m.isPickable = false;
     parts.push(m);
@@ -91,14 +86,16 @@ function buildBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyD
   const skull = part(MeshBuilder.CreateSphere("b-skull", { diameter: 1, segments: 10 }, scene), head, hide);
   skull.scaling.set(0.75, 0.7, 0.85);
   skull.position.set(0, -0.05, 0.3);
-  const snout = part(MeshBuilder.CreateCylinder("b-snout", { height: 0.5, diameterTop: 0.36, diameterBottom: 0.46 }, scene), head, snoutM);
+  const snoutShape = { height: 0.5, diameterTop: 0.36, diameterBottom: 0.46 };
+  const snout = part(MeshBuilder.CreateCylinder("b-snout", snoutShape, scene), head, snoutM);
   snout.rotation.x = Math.PI / 2;
   snout.position.set(0, -0.15, 0.75);
   const disc = part(MeshBuilder.CreateCylinder("b-nose", { height: 0.05, diameter: 0.38 }, scene), head, nose);
   disc.rotation.x = Math.PI / 2;
   disc.position.set(0, -0.15, 1.0);
   for (const s of [-1, 1]) {
-    const tusk = part(MeshBuilder.CreateCylinder("b-tusk", { height: 0.4, diameterTop: 0, diameterBottom: 0.1, tessellation: 8 }, scene), head, ivory);
+    const tuskShape = { height: 0.4, diameterTop: 0, diameterBottom: 0.1, tessellation: 8 };
+    const tusk = part(MeshBuilder.CreateCylinder("b-tusk", tuskShape, scene), head, ivory);
     tusk.position.set(s * 0.2, -0.18, 0.8);
     tusk.rotation.set(0.5, 0, -s * 0.35); // up, forward and outward
     const ear = part(MeshBuilder.CreateBox("b-ear", { width: 0.12, height: 0.28, depth: 0.2 }, scene), head, dark);
@@ -108,25 +105,24 @@ function buildBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyD
     eye.position.set(s * 0.24, 0.07, 0.55);
   }
 
-  const legs: TransformNode[] = [];
-  for (const [x, z] of [[-0.38, 0.55], [0.38, 0.55], [-0.38, -0.6], [0.38, -0.6]] as const) {
-    const hip = new TransformNode("b-hip", scene);
-    hip.parent = model;
-    hip.position.set(x, 0.75, z);
-    const leg = part(MeshBuilder.CreateBox("b-leg", { width: 0.22, height: 0.7, depth: 0.24 }, scene), hip, hide);
+  const hip = (x: number, z: number): TransformNode => {
+    const pivot = new TransformNode("b-hip", scene);
+    pivot.parent = model;
+    pivot.position.set(x, 0.75, z);
+    const leg = part(MeshBuilder.CreateBox("b-leg", { width: 0.22, height: 0.7, depth: 0.24 }, scene), pivot, hide);
     leg.position.y = -0.35;
-    const hoof = part(MeshBuilder.CreateBox("b-hoof", { width: 0.24, height: 0.1, depth: 0.28 }, scene), hip, dark);
+    const hoof = part(MeshBuilder.CreateBox("b-hoof", { width: 0.24, height: 0.1, depth: 0.28 }, scene), pivot, dark);
     hoof.position.set(0, -0.7, 0.02);
-    legs.push(hip);
-  }
+    return pivot;
+  };
+  const legs: BoarModelData["legs"] = [hip(-0.38, 0.55), hip(0.38, 0.55), hip(-0.38, -0.6), hip(0.38, -0.6)];
 
   // Dizzy stars, shown while stunned.
   const stars = new TransformNode("b-stars", scene);
   stars.parent = model;
   stars.position.set(0, 2.05, 0.7);
-  const starMat = mat(scene, "boar-star", "#ffd84a", materials);
+  const starMat = mat("boar-star", "#ffd84a");
   starMat.emissiveColor = new Color3(1.2, 1.0, 0.3);
-  starMat.metadata = { baseEmissive: starMat.emissiveColor.clone() };
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * Math.PI * 2;
     const star = MeshBuilder.CreatePolyhedron("b-star", { type: 0, size: 0.09 }, scene);
@@ -136,14 +132,18 @@ function buildBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyD
   }
   stars.setEnabled(false);
 
-  const telegraph = MeshBuilder.CreateGround(`boar-telegraph-${e}`, { width: 1.7, height: 14 }, scene);
+  const telegraph = MeshBuilder.CreateGround(`boar-telegraph-${e}`, { width: 1.7, height: TELEGRAPH_LENGTH }, scene);
   telegraph.parent = root;
-  telegraph.position.set(0, 0.04, 7.0 + 1.2);
+  telegraph.position.set(0, 0.04, TELEGRAPH_LENGTH / 2 + 1.2);
   telegraph.material = ctx.materials.telegraph;
   telegraph.isPickable = false;
   telegraph.setEnabled(false);
 
-  for (const p of parts) shadows.addShadowCaster(p);
+  for (const p of parts) sunShadows.addShadowCaster(p);
 
-  return { root, model, head, legs, stars, telegraph, materials, eyes };
+  root.rotation.y = yaw;
+  const baseEmissive = materials.map((m) => m.emissiveColor.clone());
+  ctx.world.add(e, BoarModel, {
+    root, model, head, legs, stars, telegraph, materials, baseEmissive, eyes, gait: 0, visualYaw: yaw,
+  });
 }

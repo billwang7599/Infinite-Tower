@@ -4,33 +4,46 @@ import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
 
 // Turn rates at 100% sensitivity; Settings → Camera scales all three (settings/camera.ts).
-const YAW_SPEED = 2.6; // rad/s, turn keys
-const PITCH_SPEED = 1.4;
-const MOUSE_SENSITIVITY = 0.0025; // rad per pixel (mouse or trackpad)
-const PITCH_MIN = -0.05;
-const PITCH_MAX = 1.1;
-const DISTANCE = 8.5;
+const YAW_RAD_PER_SEC = 2.6;
+const PITCH_RAD_PER_SEC = 1.4;
+const MOUSE_RAD_PER_PX = 0.0025;
+const PITCH_MIN_RAD = -0.05;
+const PITCH_MAX_RAD = 1.1;
+/** How far behind the player the camera sits, unless the arena's edge pulls it in (but never closer than MIN). */
+const MAX_DISTANCE = 8.5;
+const MIN_DISTANCE = 2.5;
+/** How quickly the followed point catches up with the player (see dampFactor). */
+const FOLLOW_RATE = 12;
+/** The camera stays this far inside the arena's wall. */
+const WALL_MARGIN = 0.4;
+/** Above the player's center: where the camera orbits from, and where it looks. */
+const ORBIT_HEIGHT = 1.2;
+const LOOK_HEIGHT = 1.3;
+/** Shake decays by e every 1/9 s; below the cutoff it stops. */
+const SHAKE_DECAY_PER_SEC = 9;
+const SHAKE_CUTOFF = 0.005;
 
 /**
- * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full 360°.
- * Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player attacks
- * (see player/input.ts). Also applies impact shake.
+ * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full
+ * 360°. Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player
+ * attacks (see player/input.ts). Also applies impact shake.
  */
 export function cameraSystem(ctx: BattleContext): System {
-  const k = ctx.keyboard;
+  const { keyboard, mouse } = ctx;
   const focus = new Vector3(), look = new Vector3();
   let initialized = false;
 
   return (world, dt) => {
     const view = ctx.view;
-    const m = ctx.mouse;
     const keys = ctx.settings.bindings.get().battle;
-    const turn = k.axis(keys.turnLeft, keys.turnRight);
-    const tilt = k.axis(keys.lookUp, keys.lookDown);
-    const { dx, dy } = m.consumeDelta();
-    const s = ctx.settings.camera.get().sensitivity;
-    view.yaw = wrapAngle(view.yaw + (turn * YAW_SPEED * dt + dx * MOUSE_SENSITIVITY) * s);
-    view.pitch = clamp(view.pitch + (tilt * PITCH_SPEED * dt + dy * MOUSE_SENSITIVITY) * s, PITCH_MIN, PITCH_MAX);
+    const turn = keyboard.axis(keys.turnLeft, keys.turnRight);
+    const tilt = keyboard.axis(keys.lookUp, keys.lookDown);
+    const { dx, dy } = mouse.consumeDelta();
+    const sensitivity = ctx.settings.camera.get().sensitivity;
+    view.yaw = wrapAngle(view.yaw + (turn * YAW_RAD_PER_SEC * dt + dx * MOUSE_RAD_PER_PX) * sensitivity);
+    view.pitch = clamp(
+      view.pitch + (tilt * PITCH_RAD_PER_SEC * dt + dy * MOUSE_RAD_PER_PX) * sensitivity, PITCH_MIN_RAD, PITCH_MAX_RAD,
+    );
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
@@ -38,24 +51,24 @@ export function cameraSystem(ctx: BattleContext): System {
 
     // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
     if (!initialized) { focus.copyFrom(p); initialized = true; }
-    Vector3.LerpToRef(focus, p, dampFactor(12, dt), focus);
+    Vector3.LerpToRef(focus, p, dampFactor(FOLLOW_RATE, dt), focus);
 
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).
-    // Solve |focus - f*s| = R for the largest s: s = b + sqrt(b² - |focus|² + R²), with b = focus·f.
-    const R = ctx.arena.radius - 0.4;
+    // Solve |focus - f*s| = reach for the largest s: s = b + sqrt(b² - |focus|² + reach²), with b = focus·f.
+    const reach = ctx.arena.radius - WALL_MARGIN;
     const b = focus.x * fx + focus.z * fz;
-    const maxFlat = b + Math.sqrt(Math.max(0, b * b - (focus.x * focus.x + focus.z * focus.z) + R * R));
-    const dist = clamp(maxFlat / Math.max(0.05, Math.cos(view.pitch)), 2.5, DISTANCE);
+    const maxFlat = b + Math.sqrt(Math.max(0, b * b - (focus.x * focus.x + focus.z * focus.z) + reach * reach));
+    const dist = clamp(maxFlat / Math.max(0.05, Math.cos(view.pitch)), MIN_DISTANCE, MAX_DISTANCE);
     const flat = Math.cos(view.pitch) * dist;
-    ctx.shake *= Math.exp(-9 * dt);
-    const sh = ctx.shake > 0.005 ? ctx.shake : 0;
+    ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
+    const shake = ctx.shake > SHAKE_CUTOFF ? ctx.shake : 0;
     ctx.camera.position.set(
-      focus.x - fx * flat + (Math.random() - 0.5) * sh,
-      focus.y + 1.2 + Math.sin(view.pitch) * dist + (Math.random() - 0.5) * sh,
-      focus.z - fz * flat + (Math.random() - 0.5) * sh,
+      focus.x - fx * flat + (Math.random() - 0.5) * shake,
+      focus.y + ORBIT_HEIGHT + Math.sin(view.pitch) * dist + (Math.random() - 0.5) * shake,
+      focus.z - fz * flat + (Math.random() - 0.5) * shake,
     );
-    look.set(focus.x, focus.y + 1.3, focus.z);
+    look.set(focus.x, focus.y + LOOK_HEIGHT, focus.z);
     ctx.camera.setTarget(look);
   };
 }

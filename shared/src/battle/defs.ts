@@ -3,7 +3,7 @@
  * with each encounter (the client needs them to draw and, for now, to run the fight).
  *
  * An enemy is a body plus a set of optional attacks. The client's enemy prefab adds one component
- * per attack (GoreAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
+ * per attack (LungeAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
  * mostly a new combination of existing attacks.
  *
  * Units: seconds, meters, m/s, rad/s.
@@ -32,12 +32,12 @@ export interface AttackDef {
 }
 
 /** A short-range lunge with a sweeping hit. */
-export interface GoreDef extends AttackDef {
+export interface LungeDef extends AttackDef {
   /** Start the attack within this center distance. */
   trigger: number;
   /** Seconds the hit is live. */
   active: number;
-  lunge: number;
+  speed: number;
 }
 
 /** A long straight rush. Slamming into the arena wall stuns the attacker: the punish window. */
@@ -52,7 +52,7 @@ export interface ChargeDef extends AttackDef {
 }
 
 export interface EnemyAttacks {
-  gore?: GoreDef;
+  lunge?: LungeDef;
   charge?: ChargeDef;
 }
 

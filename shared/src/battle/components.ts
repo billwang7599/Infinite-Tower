@@ -4,7 +4,7 @@
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, GoreDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, LungeDef } from "./defs.js";
 
 export type PlayerAction = "none" | "slash" | "dodge";
 
@@ -90,14 +90,22 @@ export interface EnemyMove {
 }
 
 /**
+ * What an enemy is doing: the states every enemy has, then each attack's own. Attacks may only start from
+ * "approach". A new attack adds its states here.
+ */
+export type EnemyState =
+  | "approach" | "stunned" | "staggered" | "dead"
+  | "lungeWindup" | "lunge" | "lungeRecover"
+  | "chargeWindup" | "charge" | "chargeRecover";
+
+/**
  * Any arena enemy. Its AI is split into behaviors: the enemy systems handle approaching, poise,
  * stagger, stun and death; each attack component (below) has its own system that starts the attack
- * and runs its phases. `state` is the current state name, e.g. "approach" or "chargeWindup" (attack
- * systems use their own names, and may only start from "approach"). Models animate from it.
+ * and runs its phases. Models animate from `state`.
  */
 export interface EnemyData {
   def: EnemyDef;
-  state: string;
+  state: EnemyState;
   /** Seconds in the current state. */
   stateTime: number;
   /** Seconds the current generic state lasts ("stunned", "staggered"). */
@@ -119,5 +127,5 @@ export interface AttackState<D> {
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
-export const GoreAttack = defineComponent<AttackState<GoreDef>>("GoreAttack");
+export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");

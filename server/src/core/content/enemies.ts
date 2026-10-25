@@ -16,9 +16,9 @@ const WILD_BOAR: EnemyDef = {
   poiseRegen: 8,
   staggerTime: 1.0,
   attacks: {
-    gore: {
+    lunge: {
       trigger: 2.8, range: 2.6, minDot: 0.35,
-      windup: 0.65, active: 0.18, recover: 0.75, lunge: 6,
+      windup: 0.65, active: 0.18, recover: 0.75, speed: 6,
       damage: 16, knockback: 8, lift: 3,
       cooldown: 0.6, firstDelay: 0,
     },

@@ -10,6 +10,7 @@ import { boarAnimationSystem } from "./boar/animation.js";
 import { addBoarModel, registerBoarDisposers } from "./boar/model.js";
 
 export interface EnemyModel {
+  /** Builds the model under the physics collider, facing `yaw`, and adds its component to `e`. */
   add(ctx: BattleContext, e: Entity, collider: Mesh, def: EnemyDef, yaw: number): void;
   /** Per render frame: pose the model from the enemy's state. */
   animation(): System;

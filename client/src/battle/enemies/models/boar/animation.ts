@@ -1,15 +1,17 @@
 import { Color3, Vector3 } from "@babylonjs/core";
-import { ChargeAttack, damp, dampFactor, Enemy, GoreAttack, Health, wrapAngle, type System } from "@infinite-tower/shared";
+import {
+  ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapAngle, type System,
+} from "@infinite-tower/shared";
 import { Body } from "../../../components.js";
 import { BoarModel } from "./model.js";
 
-const LEG_PHASE = [0, Math.PI, Math.PI, 0]; // diagonal pairs move together
-const WHITE = new Color3(0.9, 0.9, 0.9);
+const LEG_PHASE = [0, Math.PI, Math.PI, 0] as const; // diagonal pairs move together
+const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 
 /**
  * Per render frame: procedural animation of the boar model from its enemy state. Every attack has a distinct,
  * readable wind-up (that's the whole point of a souls-like enemy):
- *   gore:   head drops and the body rocks back, then the tusks sweep up
+ *   lunge:  head drops and the body rocks back, then the tusks sweep up
  *   charge: head down, front hoof scrapes the ground, eyes glow, red line on the ground
  */
 export function boarAnimationSystem(): System {
@@ -27,38 +29,38 @@ export function boarAnimationSystem(): System {
 
       nodes.gait += dt * speed * 2.2;
       const amp = Math.min(0.75, speed * 0.13);
-      nodes.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(nodes.gait + LEG_PHASE[i]!) * amp; });
+      for (let i = 0; i < 4; i++) nodes.legs[i]!.rotation.x = Math.sin(nodes.gait + LEG_PHASE[i]!) * amp;
       const bob = Math.abs(Math.sin(nodes.gait)) * 0.05 * Math.min(1, speed / 3);
 
       // Pose targets. headPitch > 0 = nose down; lean > 0 = front down.
       let headPitch = 0, lean = 0, roll = 0, tremble = 0, yOff = 0, zOff = 0, glow = 0;
       let rollRate = 12;
       const t = enemy.stateTime;
-      const G = world.get(e, GoreAttack)?.def, C = world.get(e, ChargeAttack)?.def;
+      const lunge = world.get(e, LungeAttack)?.def, charge = world.get(e, ChargeAttack)?.def;
       switch (enemy.state) {
-        case "goreWindup": {
-          const k = G ? Math.min(1, t / G.windup) : 1;
+        case "lungeWindup": {
+          const k = lunge ? Math.min(1, t / lunge.windup) : 1;
           headPitch = 0.5 * k; zOff = -0.3 * k; lean = -0.1 * k; tremble = 0.015 * k;
           break;
         }
-        case "gore":
+        case "lunge":
           headPitch = -0.7; zOff = 0.25; lean = 0.1;
           break;
-        case "goreRecover":
-          headPitch = G ? -0.2 * (1 - t / G.recover) : 0;
+        case "lungeRecover":
+          headPitch = lunge ? -0.2 * (1 - t / lunge.recover) : 0;
           break;
         case "chargeWindup": {
-          const k = C ? Math.min(1, t / C.windup) : 1;
+          const k = charge ? Math.min(1, t / charge.windup) : 1;
           headPitch = 0.4; lean = 0.12; tremble = 0.035 * k; glow = k;
           // Paw the ground with the front right hoof.
-          nodes.legs[1]!.rotation.x = -0.35 + Math.sin(t * 14) * 0.55;
+          nodes.legs[1].rotation.x = -0.35 + Math.sin(t * 14) * 0.55;
           break;
         }
         case "charge":
           headPitch = 0.35; lean = 0.15; glow = 1;
           break;
         case "chargeRecover":
-          headPitch = 0.1; lean = C ? -0.1 * (1 - t / C.recover) : 0;
+          headPitch = 0.1; lean = charge ? -0.1 * (1 - t / charge.recover) : 0;
           break;
         case "stunned":
           headPitch = 0.55; roll = Math.sin(t * 5) * 0.12;
@@ -86,12 +88,13 @@ export function boarAnimationSystem(): System {
 
       const telegraphOn = enemy.state === "chargeWindup";
       nodes.telegraph.setEnabled(telegraphOn);
-      if (telegraphOn && C) nodes.telegraph.visibility = 0.2 + 0.8 * Math.min(1, t / (C.windup - C.lockAt));
+      if (telegraphOn && charge) {
+        nodes.telegraph.visibility = 0.2 + 0.8 * Math.min(1, t / (charge.windup - charge.lockAt));
+      }
 
       // Hit flash on every material, then the eye glow on top.
-      for (const m of nodes.materials) {
-        const base = (m.metadata as { baseEmissive: Color3 }).baseEmissive;
-        m.emissiveColor.copyFrom(health.flash > 0 ? WHITE : base);
+      for (let i = 0; i < nodes.materials.length; i++) {
+        nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
       }
       if (glow > 0 && health.flash <= 0) nodes.eyes.emissiveColor.set(2.2 * glow, 0.3 * glow, 0.1 * glow);
     }

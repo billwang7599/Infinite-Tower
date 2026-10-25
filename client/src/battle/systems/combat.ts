@@ -1,14 +1,44 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  ActiveHit, Enemy, Fighter, Health, LocalPlayer, Player, PLAYER, type System,
+  ActiveHit, Enemy, Fighter, FighterStats, Health, physicalDamage, Player, PLAYER,
+  type Entity, type System, type World,
 } from "@infinite-tower/shared";
 import { Body } from "../components.js";
 import type { BattleContext } from "../context.js";
 
+/** Seconds a fighter flashes after a hit. */
+const HIT_FLASH_TIME = 0.12;
+/** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
+const MIN_ANGLE_CHECK_DIST = 0.3;
+/** A hit player loses control for this long, plus a little more the harder they're knocked back. */
+const HITSTUN_TIME = 0.25;
+const HITSTUN_PER_KNOCKBACK = 0.02;
+
+/** What a hitbox needs from an attack. Knockback, lift and poise damage default to 0. */
+export interface HitSpec {
+  range: number;
+  minDot: number;
+  /** At strength 10. */
+  damage: number;
+  knockback?: number;
+  lift?: number;
+  poiseDamage?: number;
+}
+
+/** Make an attack's hitbox live on `e`, aimed along (dirX, dirZ), hitting as hard as `e`'s strength says. */
+export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
+  world.add(e, ActiveHit, {
+    dirX, dirZ, range: attack.range, minDot: attack.minDot,
+    damage: physicalDamage(attack.damage, world.require(e, FighterStats)),
+    knockback: attack.knockback ?? 0, lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0,
+    alreadyHit: new Set(),
+  });
+}
+
 /**
- * After each physics step: resolve every active hitbox against every fighter of the other team.
- * Hitboxes are sectors (range + angle) checked with plain math, not physics triggers: cheap,
- * deterministic and identical on a future server.
+ * After each physics step: tick the hit timers, then resolve every active hitbox against every fighter of the other
+ * team. Hitboxes are sectors (range + angle) checked with plain math, not physics triggers: cheap, deterministic
+ * and identical on a future server.
  */
 export function combatSystem(ctx: BattleContext): System {
   const knock = new Vector3();
@@ -19,34 +49,36 @@ export function combatSystem(ctx: BattleContext): System {
       h.flash = Math.max(0, h.flash - dt);
     }
 
-    for (const [, hit, ab, af] of world.query(ActiveHit, Body, Fighter)) {
-      const ap = ab.mesh.position;
-      for (const [target, th, tb, tf] of world.query(Health, Body, Fighter)) {
-        if (tf.team === af.team || th.hp <= 0 || th.invuln > 0 || hit.alreadyHit.has(target)) continue;
+    for (const [, hit, attackerBody, attacker] of world.query(ActiveHit, Body, Fighter)) {
+      const from = attackerBody.mesh.position;
+      for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
+        if (targetFighter.team === attacker.team || targetHealth.hp <= 0 || targetHealth.invuln > 0) continue;
+        if (hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
         // Dodge i-frames.
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
 
-        const q = tb.mesh.position;
-        const dx = q.x - ap.x, dz = q.z - ap.z;
-        const d = Math.hypot(dx, dz);
-        if (d - tf.radius > hit.range) continue;
-        if (d > 0.3 && (dx * hit.dirX + dz * hit.dirZ) / d < hit.minDot) continue;
+        const to = targetBody.mesh.position;
+        const dx = to.x - from.x, dz = to.z - from.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist - targetFighter.radius > hit.range) continue;
+        if (dist > MIN_ANGLE_CHECK_DIST && (dx * hit.dirX + dz * hit.dirZ) / dist < hit.minDot) continue;
 
         hit.alreadyHit.add(target);
-        th.hp = Math.max(0, th.hp - hit.damage);
-        th.flash = 0.12;
+        targetHealth.hp = Math.max(0, targetHealth.hp - hit.damage);
+        targetHealth.flash = HIT_FLASH_TIME;
 
         if (player) {
           // Player got hit: knocked back (along the attack, pushed away from the attacker), brief loss of control.
-          th.invuln = PLAYER.hurtInvuln;
-          th.hitstun = 0.25 + hit.knockback * 0.02;
-          let kx = hit.dirX * 0.5 + (d > 0.01 ? dx / d : hit.dirX) * 0.5;
-          let kz = hit.dirZ * 0.5 + (d > 0.01 ? dz / d : hit.dirZ) * 0.5;
-          const kl = Math.hypot(kx, kz) || 1;
-          kx /= kl; kz /= kl;
-          tb.aggregate.body.setLinearVelocity(knock.set(kx * hit.knockback, hit.lift, kz * hit.knockback));
+          targetHealth.invuln = PLAYER.hurtInvuln;
+          targetHealth.hitstun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
+          let knockX = hit.dirX * 0.5 + (dist > 0.01 ? dx / dist : hit.dirX) * 0.5;
+          let knockZ = hit.dirZ * 0.5 + (dist > 0.01 ? dz / dist : hit.dirZ) * 0.5;
+          const knockLen = Math.hypot(knockX, knockZ) || 1;
+          knockX /= knockLen; knockZ /= knockLen;
+          knock.set(knockX * hit.knockback, hit.lift, knockZ * hit.knockback);
+          targetBody.aggregate.body.setLinearVelocity(knock);
           ctx.shake = Math.max(ctx.shake, 0.15 + hit.damage * 0.008);
         } else {
           const enemy = world.get(target, Enemy);
@@ -54,18 +86,6 @@ export function combatSystem(ctx: BattleContext): System {
           ctx.shake = Math.max(ctx.shake, 0.06);
         }
       }
-    }
-
-    const fight = ctx.fight;
-    if (fight.state === "fighting") {
-      fight.time += dt;
-      const me = world.first(LocalPlayer, Health);
-      let enemiesLeft = false;
-      for (const [, f, h] of world.query(Fighter, Health)) if (f.team === "enemy" && h.hp > 0) enemiesLeft = true;
-      if (me && me[2].hp <= 0) { fight.state = "lost"; fight.time = 0; }
-      else if (!enemiesLeft) { fight.state = "won"; fight.time = 0; }
-    } else {
-      fight.time += dt;
     }
   };
 }

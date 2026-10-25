@@ -1,7 +1,7 @@
-import { Enemy, Health, LocalPlayer, Stamina, type System } from "@infinite-tower/shared";
+import { Enemy, Health, LocalPlayer, roundTo, Stamina, type System } from "@infinite-tower/shared";
 import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import type { BattleContext } from "../context.js";
+import { resultShown, type BattleContext } from "../context.js";
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
@@ -9,7 +9,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
     const patch: Partial<BattleHudState> = {
       mouseCaptured: ctx.mouse.locked,
       result: ctx.fight.state,
-      showResult: ctx.fight.state !== "fighting" && ctx.fight.time > 1.0,
+      showResult: resultShown(ctx.fight),
     };
 
     const me = world.first(LocalPlayer, Health, Stamina);
@@ -30,4 +30,4 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
 }
 
 /** 0..1, rounded to 0.1% so changes too small to see don't re-render the HUD. */
-const fraction = (value: number, max: number) => Math.round((value / max) * 1000) / 1000;
+const fraction = (value: number, max: number) => roundTo(value / max, 3);

@@ -16,10 +16,10 @@ import type { BattleHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { buildArena } from "./arena.js";
 import { registerBattleDisposers } from "./components.js";
-import type { BattleContext } from "./context.js";
+import { resultShown, type BattleContext, type Fight } from "./context.js";
 import { enemyBrainSystem } from "./enemies/behaviors/brain.js";
 import { chargeAttackSystem } from "./enemies/behaviors/charge.js";
-import { goreAttackSystem } from "./enemies/behaviors/gore.js";
+import { lungeAttackSystem } from "./enemies/behaviors/lunge.js";
 import { enemyMotorSystem } from "./enemies/behaviors/motor.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
 import { spawnEnemy } from "./enemies/spawn.js";
@@ -34,6 +34,14 @@ import type { BattleScene } from "./scene.js";
 import { cameraSystem } from "./systems/camera.js";
 import { combatSystem } from "./systems/combat.js";
 import { hudSystem } from "./systems/hud.js";
+import { outcomeSystem } from "./systems/outcome.js";
+
+/** How each fight starts: where the camera looks, and where the two fighters stand (feet; the arena's center is 0). */
+const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
+const PLAYER_START = { x: 0, y: 0.05, z: -8 } as const;
+const ENEMY_START = { x: 0, y: 0.05, z: 6 } as const;
+const ENEMY_START_YAW = Math.PI;
+const NEW_FIGHT: Fight = { state: "fighting", stateTime: 0 };
 
 export interface Battle {
   ctx: BattleContext;
@@ -55,17 +63,17 @@ export interface BattleOptions {
 
 export function createBattle(opts: BattleOptions): Battle {
   const { engine, world, keyboard, mouse, settings } = opts;
-  const { scene, physics, camera, shadows } = opts.scene;
+  const { scene, physics, camera, sunShadows } = opts.scene;
   registerBattleDisposers(world);
   registerPlayerDisposers(world);
   for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(world);
 
   const ctx: BattleContext = {
-    world, scene, physics, camera, keyboard, mouse, settings, shadows,
+    world, scene, physics, camera, keyboard, mouse, settings, sunShadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
-    view: { yaw: 0, pitch: 0.32 },
-    fight: { state: "fighting", time: 0 },
+    view: { ...START_VIEW },
+    fight: { ...NEW_FIGHT },
     shake: 0,
   };
   let arenaParts: Entity[] | null = null;
@@ -80,16 +88,16 @@ export function createBattle(opts: BattleOptions): Battle {
 
   // After the fight, the leave key (Enter / E by default) goes back, once the result has been on screen a moment.
   const leaveSystem: System = () => {
-    const pressed = keyboard.consumePressed(...settings.bindings.get().battle.leave);
-    if (pressed && ctx.fight.state !== "fighting" && ctx.fight.time > 1) opts.onLeave();
+    const pressed = keyboard.consumePressed(settings.bindings.get().battle.leave);
+    if (pressed && resultShown(ctx.fight)) opts.onLeave();
   };
 
   // Systems. Order is the game's contract.
   const beforePhysics: System[] = [
     leaveSystem, playerInputSystem(ctx), playerControllerSystem(),
-    enemyBrainSystem(), chargeAttackSystem(ctx), goreAttackSystem(), enemyMotorSystem(),
+    enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), enemyMotorSystem(),
   ];
-  const afterPhysics: System[] = [playerGroundSystem(ctx), combatSystem(ctx)];
+  const afterPhysics: System[] = [playerGroundSystem(ctx), combatSystem(ctx), outcomeSystem(ctx)];
   const render: System[] = [
     cameraSystem(ctx), playerSpriteSystem(ctx),
     ...Object.values(ENEMY_MODELS).map((model) => model.animation()),
@@ -122,12 +130,10 @@ export function createBattle(opts: BattleOptions): Battle {
       clear();
       useArena(arena);
       startVitals = vitals;
-      spawnPlayer(ctx, { x: 0, y: 0.05, z: -8 }, vitals, stats, true);
-      spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
-      ctx.view.yaw = 0;
-      ctx.view.pitch = 0.32;
-      ctx.fight.state = "fighting";
-      ctx.fight.time = 0;
+      spawnPlayer(ctx, PLAYER_START, vitals, stats);
+      spawnEnemy(ctx, enemy, ENEMY_START, ENEMY_START_YAW);
+      Object.assign(ctx.view, START_VIEW);
+      Object.assign(ctx.fight, NEW_FIGHT);
       keyboard.clearPressed();
     },
     end() {

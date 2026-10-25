@@ -1,21 +1,18 @@
 /** Helpers shared by the enemy behaviors. */
 import {
-  ActiveHit, FighterStats, physicalDamage, type AttackDef, type EnemyData, type Entity, type World,
+  ActiveHit, type AttackDef, type EnemyData, type EnemyState, type Entity, type World,
 } from "@infinite-tower/shared";
+import { addHit } from "../../systems/combat.js";
 
 /** Switch state: restart its clock and end any live hitbox. */
-export function enter(world: World, e: Entity, enemy: EnemyData, state: string, duration = 0): void {
+export function enter(world: World, e: Entity, enemy: EnemyData, state: EnemyState, duration = 0): void {
   enemy.state = state;
   enemy.stateTime = 0;
   enemy.duration = duration;
   world.remove(e, ActiveHit);
 }
 
-/** Make the attack's hitbox live, aimed where the enemy faces, hitting as hard as its strength says. */
-export function addHit(world: World, e: Entity, enemy: EnemyData, a: AttackDef): void {
-  world.add(e, ActiveHit, {
-    dirX: Math.sin(enemy.yaw), dirZ: Math.cos(enemy.yaw),
-    range: a.range, minDot: a.minDot, damage: physicalDamage(a.damage, world.require(e, FighterStats)),
-    knockback: a.knockback, lift: a.lift, poiseDamage: 0, alreadyHit: new Set(),
-  });
+/** Make the attack's hitbox live, aimed where the enemy faces. */
+export function addHitAhead(world: World, e: Entity, enemy: EnemyData, attack: AttackDef): void {
+  addHit(world, e, Math.sin(enemy.yaw), Math.cos(enemy.yaw), attack);
 }

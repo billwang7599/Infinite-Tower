@@ -77,7 +77,8 @@ export function createField(opts: FieldOptions): Field {
   });
 
   /** Walking around a level (not in or leaving a fight), next to a campfire. */
-  const byCampfire = () => !!prediction && !inFight && !!view.level && nearCampfire(view.level, world.require(player, FieldPos));
+  const byCampfire = () =>
+    !!prediction && !inFight && !!view.level && nearCampfire(view.level, world.require(player, FieldPos));
 
   let accumulator = 0;
   return {
@@ -100,7 +101,7 @@ export function createField(opts: FieldOptions): Field {
     update(dt, frozen) {
       const p = prediction;
       if (frozen || inFight || !view.level || !p) { accumulator = 0; return; }
-      if (keyboard.consumePressed(...settings.bindings.get().field.rest)) this.rest();
+      if (keyboard.consumePressed(settings.bindings.get().field.rest)) this.rest();
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
         p.step(readWalkInput(keyboard, settings.bindings.get().field));

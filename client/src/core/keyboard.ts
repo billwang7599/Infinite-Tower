@@ -5,7 +5,9 @@
 import { Buttons } from "./buttons.js";
 
 /** Keys the browser would otherwise use (scrolling, moving focus, Firefox's quick find). */
-const SWALLOW = new Set(["Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash"]);
+const SWALLOW = new Set([
+  "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
+]);
 
 export class Keyboard extends Buttons<string> {
   private on = false;
@@ -38,6 +40,6 @@ export class Keyboard extends Buttons<string> {
 
   /** -1, 0 or 1 from two sets of keys. */
   axis(negative: readonly string[], positive: readonly string[]): number {
-    return (this.isDown(...positive) ? 1 : 0) - (this.isDown(...negative) ? 1 : 0);
+    return (this.isDown(positive) ? 1 : 0) - (this.isDown(negative) ? 1 : 0);
   }
 }

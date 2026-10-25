@@ -16,7 +16,9 @@ export interface PixelMaterialOptions {
 }
 
 /** A material that shows a texture's own colors. */
-export function pixelMaterial(scene: Scene, name: string, tex: DynamicTexture, opts: PixelMaterialOptions = {}): StandardMaterial {
+export function pixelMaterial(
+  scene: Scene, name: string, tex: DynamicTexture, opts: PixelMaterialOptions = {},
+): StandardMaterial {
   const { cutout = true, unlit = false } = opts;
   const m = new StandardMaterial(name, scene);
   m.diffuseTexture = tex;
@@ -42,10 +44,14 @@ export function redrawSprite(material: StandardMaterial, draw: SpriteDraw): void
   paint(material.diffuseTexture as DynamicTexture, draw);
 }
 
-const SIZE = 192;
+/** A sprite is SPRITE_PX "pixels" square, each drawn as TEXELS_PER_PX texels. */
+const SPRITE_PX = 24;
+const TEXELS_PER_PX = 8;
+const TEXTURE_SIZE = SPRITE_PX * TEXELS_PER_PX;
 
 function spriteTexture(scene: Scene, name: string, draw: SpriteDraw): DynamicTexture {
-  const tex = new DynamicTexture(name, { width: SIZE, height: SIZE }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+  const size = { width: TEXTURE_SIZE, height: TEXTURE_SIZE };
+  const tex = new DynamicTexture(name, size, scene, false, Texture.NEAREST_SAMPLINGMODE);
   paint(tex, draw);
   tex.hasAlpha = true;
   return tex;
@@ -53,10 +59,10 @@ function spriteTexture(scene: Scene, name: string, draw: SpriteDraw): DynamicTex
 
 function paint(tex: DynamicTexture, draw: SpriteDraw): void {
   const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
   draw((x, y, w, h, color) => {
     ctx.fillStyle = color;
-    ctx.fillRect(x * 8, y * 8, w * 8, h * 8);
+    ctx.fillRect(x * TEXELS_PER_PX, y * TEXELS_PER_PX, w * TEXELS_PER_PX, h * TEXELS_PER_PX);
   });
   tex.update();
 }
