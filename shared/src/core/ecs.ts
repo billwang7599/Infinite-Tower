@@ -77,7 +77,7 @@ export class World {
     const data = store.get(e);
     if (data === undefined) return;
     store.delete(e);
-    this.runRemoveHooks(type, e, data);
+    this.runRemoveHooks(type.id, e, data);
   }
 
   /** Called when a component is removed or its entity destroyed. Use it to dispose engine resources. */
@@ -120,15 +120,11 @@ export class World {
         const data = store.get(e);
         if (data === undefined) continue;
         store.delete(e);
-        for (const hook of this.removeHooks.get(typeId) ?? []) hook(e, data);
+        this.runRemoveHooks(typeId, e, data);
       }
       this.alive.delete(e);
     }
     this.pendingDestroy.clear();
-  }
-
-  get entityCount(): number {
-    return this.alive.size;
   }
 
   private store<T>(type: ComponentType<T>): Map<Entity, T> {
@@ -140,9 +136,10 @@ export class World {
     return s as Map<Entity, T>;
   }
 
-  private runRemoveHooks<T>(type: ComponentType<T>, e: Entity, data: T): void {
-    for (const hook of this.removeHooks.get(type.id) ?? []) hook(e, data);
+  private runRemoveHooks(typeId: number, e: Entity, data: unknown): void {
+    for (const hook of this.removeHooks.get(typeId) ?? []) hook(e, data);
   }
 }
 
+/** One step of game logic. `dt` is in seconds. */
 export type System = (world: World, dt: number) => void;

@@ -13,24 +13,26 @@ export function goreAttackSystem(): System {
       gore.cooldown -= dt;
       switch (enemy.state) {
         case "approach":
-          if (s.preyAlive && gore.cooldown <= 0 && s.dist < G.trigger && s.facing > 0.8) enter(world, e, enemy, "goreWindup");
+          if (s.targetAlive && gore.cooldown <= 0 && s.dist < G.trigger && s.facingDot > 0.8) {
+            enter(world, e, enemy, "goreWindup");
+          }
           break;
         case "goreWindup":
           enemy.yaw = turnToward(enemy.yaw, s.toYaw, 1.5 * dt);
-          if (enemy.t >= G.windup) {
+          if (enemy.stateTime >= G.windup) {
             enter(world, e, enemy, "gore");
             addHit(world, e, enemy, G);
           }
           break;
         case "gore":
           m.speed = G.lunge; m.accel = 80;
-          if (enemy.t >= G.active) {
+          if (enemy.stateTime >= G.active) {
             enter(world, e, enemy, "goreRecover");
             gore.cooldown = G.recover + G.cooldown;
           }
           break;
         case "goreRecover":
-          if (enemy.t >= G.recover) enter(world, e, enemy, "approach");
+          if (enemy.stateTime >= G.recover) enter(world, e, enemy, "approach");
           break;
       }
     }

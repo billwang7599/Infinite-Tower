@@ -29,7 +29,7 @@ export function InventoryPanel({ inventory, fullHp, use, close }: PanelProps) {
               </span>
               {def.verb && (
                 <button
-                  type="button" tabIndex={-1} disabled={!!def.heal && fullHp}
+                  type="button" tabIndex={-1} disabled={!!def.healHp && fullHp}
                   onMouseDown={(e) => e.preventDefault()} onClick={() => use(id)}
                   className={`pointer-events-auto ${BUTTON.plain} px-3 py-1`}
                 >
@@ -37,7 +37,7 @@ export function InventoryPanel({ inventory, fullHp, use, close }: PanelProps) {
                 </button>
               )}
               <span className="col-span-2 text-xs text-white/55">
-                {def.description}{def.heal ? ` Restores ${def.heal} HP. Not mid-fight.` : ""}
+                {def.description}{def.healHp ? ` Restores ${def.healHp} HP. Not mid-fight.` : ""}
               </span>
             </li>
           );

@@ -8,13 +8,13 @@ export interface ItemDef {
   name: string;
   description: string;
   /** Eating / drinking it restores this much HP (capped at max). Only on the field, not mid-fight. */
-  heal?: number;
+  healHp?: number;
   /** The use button's word. */
   verb?: string;
 }
 
 export const ITEMS = {
-  "boar-meat": { name: "Boar meat", description: "Tough, but filling.", heal: 35, verb: "Eat" },
+  "boar-meat": { name: "Boar meat", description: "Tough, but filling.", healHp: 35, verb: "Eat" },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;

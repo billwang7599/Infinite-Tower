@@ -10,7 +10,7 @@ user's call before anyone builds them.
   gear or anything else that changes them would need them in `PlayerSave`.
 - **Saving where you are.** Position and level aren't saved; every connection starts at the level's start.
 - **The slash's reach.** It hits in a 140° arc in front of the camera (`PLAYER.slash.minDot` in
-  `shared/src/battle/constants.ts`). Whether to keep it that wide was asked and not answered.
+  `shared/src/battle/player.ts`). Whether to keep it that wide was asked and not answered.
 - **Email or OAuth login**, next to username + password (the user: "maybe later").
 
 ## Code

@@ -20,7 +20,7 @@ export function enemyBrainSystem(): System {
     const target = world.first(LocalPlayer, Body, Health);
     for (const [e, enemy, body, health, stats] of world.query(Enemy, Body, Health, FighterStats)) {
       const D = enemy.def;
-      enemy.t += dt;
+      enemy.stateTime += dt;
       if (enemy.state !== "staggered") enemy.poise = Math.min(D.poise, enemy.poise + D.poiseRegen * dt);
 
       if (health.hp <= 0) {
@@ -32,14 +32,14 @@ export function enemyBrainSystem(): System {
       enemy.armored = false;
 
       const p = body.mesh.position, s = enemy.sense;
-      s.dist = Infinity; s.toYaw = enemy.yaw; s.preyAlive = false;
+      s.dist = Infinity; s.toYaw = enemy.yaw; s.targetAlive = false;
       if (target) {
         const tp = target[2].mesh.position;
         s.dist = distXZ(p, tp);
         s.toYaw = Math.atan2(tp.x - p.x, tp.z - p.z);
-        s.preyAlive = target[3].hp > 0;
+        s.targetAlive = target[3].hp > 0;
       }
-      s.facing = Math.cos(wrapAngle(s.toYaw - enemy.yaw)); // 1 = looking right at the target
+      s.facingDot = Math.cos(wrapAngle(s.toYaw - enemy.yaw));
 
       // Default: stand, facing forward. Behaviors below (and attack systems) override.
       const m = enemy.move;
@@ -47,14 +47,14 @@ export function enemyBrainSystem(): System {
 
       switch (enemy.state) {
         case "approach":
-          if (!s.preyAlive) break;
+          if (!s.targetAlive) break;
           enemy.yaw = turnToward(enemy.yaw, s.toYaw, D.turnRate * dt);
-          m.speed = moveSpeed(D.walkSpeed, stats) * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facing);
+          m.speed = moveSpeed(D.walkSpeed, stats) * clamp(s.dist - STOP_DIST, 0, 1) * Math.max(0, s.facingDot);
           break;
         case "stunned":
         case "staggered":
           m.accel = enemy.state === "stunned" ? 60 : 30;
-          if (enemy.t >= enemy.duration) enter(world, e, enemy, "approach");
+          if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");
           break;
         case "dead":
           m.accel = 15;

@@ -5,6 +5,8 @@
  * An enemy is a body plus a set of optional attacks. The client's enemy prefab adds one component
  * per attack (GoreAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
  * mostly a new combination of existing attacks.
+ *
+ * Units: seconds, meters, m/s, rad/s.
  */
 
 import type { Stats } from "./stats.js";

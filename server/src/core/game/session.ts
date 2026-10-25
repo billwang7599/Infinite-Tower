@@ -121,7 +121,7 @@ export class Session {
   /** Use one `item`, if the player has one and it does something now (meat when already at full HP doesn't). */
   useItem(item: ItemId): void {
     const have = this.inventory[item] ?? 0;
-    const heal = itemDef(item).heal ?? 0;
+    const heal = itemDef(item).healHp ?? 0;
     if (!this.inField || have <= 0 || heal <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
     const inventory = { ...this.inventory };
     if (have > 1) inventory[item] = have - 1;

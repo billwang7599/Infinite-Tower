@@ -4,7 +4,7 @@
  * shared so the client can predict its own movement and the server can replay the same inputs.
  * Units are tiles; +z is up on screen, +x is right.
  */
-import { clamp, type Vec2 } from "../core/math.js";
+import { clamp, distXZ, type Vec2 } from "../core/math.js";
 
 export interface Rect { x: number; z: number; w: number; h: number }
 
@@ -33,7 +33,7 @@ export const REST_RANGE = 1.6;
  * a round trip, so a player who just walked up would otherwise be refused.
  */
 export function nearCampfire(level: LevelLayout, pos: Vec2, slack = 0): boolean {
-  return level.campfires.some((c) => Math.hypot(c.x - pos.x, c.z - pos.z) <= REST_RANGE + slack);
+  return level.campfires.some((c) => distXZ(c, pos) <= REST_RANGE + slack);
 }
 
 export interface WalkInput { moveX: number; moveZ: number }
@@ -47,13 +47,19 @@ export function inTallGrass(level: LevelLayout, x: number, z: number): boolean {
 }
 
 export function clampToLevel(level: LevelLayout, pos: Vec2): void {
-  const mx = level.halfWidth - level.border, mz = level.halfDepth - level.border;
-  pos.x = clamp(pos.x, -mx, mx);
-  pos.z = clamp(pos.z, -mz, mz);
+  const maxX = level.halfWidth - level.border, maxZ = level.halfDepth - level.border;
+  pos.x = clamp(pos.x, -maxX, maxX);
+  pos.z = clamp(pos.z, -maxZ, maxZ);
 }
 
-/** Move `pos` one step by an input. Returns the velocity used. Must stay deterministic (client prediction). */
-export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number): { vx: number; vz: number } {
+/** Tiles per second. */
+export interface Velocity2 { vx: number; vz: number }
+
+/**
+ * Move `pos` one step by an input, and write the velocity used into `vel` if given. Must stay deterministic: the
+ * client predicts with it and the server replays the same inputs.
+ */
+export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number, vel?: Velocity2): void {
   let ix = clamp(input.moveX, -1, 1), iz = clamp(input.moveZ, -1, 1);
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
@@ -61,5 +67,5 @@ export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: 
   pos.x += vx * dt;
   pos.z += vz * dt;
   clampToLevel(level, pos);
-  return { vx, vz };
+  if (vel) { vel.vx = vx; vel.vz = vz; }
 }

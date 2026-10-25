@@ -8,6 +8,7 @@
  * The defaults give the arena two equal setups: keyboard only (laptop: left hand on WASD + Space, right hand
  * on the home row, vim-style H/L turn the camera) and keyboard + mouse / trackpad.
  */
+import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
 interface ActionDef {
@@ -49,7 +50,6 @@ export type ActionRef = { [G in Group]: { group: G; action: Action<G> } }[Group]
 export type KeyMap = { readonly [G in Group]: { readonly [A in Action<G>]: readonly string[] } };
 
 export const GROUPS = Object.keys(ACTIONS) as Group[];
-export const MAX_KEYS = 3;
 /** Esc always opens and closes the settings; the OS keys belong to system shortcuts. */
 const RESERVED = new Set(["Escape", "MetaLeft", "MetaRight"]);
 
@@ -122,7 +122,7 @@ export class KeyBindings extends Store<KeyMap> {
     const kept = own.filter((k) => k !== key);
     const at = replace === null ? -1 : kept.indexOf(replace);
     if (at >= 0) kept[at] = key;
-    else if (kept.length < MAX_KEYS) kept.push(key);
+    else if (kept.length < MAX_KEYS_PER_ACTION) kept.push(key);
     next[ref.action] = kept;
 
     this.update(ref.group, next);
@@ -169,5 +169,5 @@ const prop = (o: unknown, key: string): unknown =>
   typeof o === "object" && o !== null ? (o as Record<string, unknown>)[key] : undefined;
 
 const isKeyList = (v: unknown): v is string[] =>
-  Array.isArray(v) && v.length >= 1 && v.length <= MAX_KEYS && new Set(v).size === v.length
+  Array.isArray(v) && v.length >= 1 && v.length <= MAX_KEYS_PER_ACTION && new Set(v).size === v.length
   && v.every((k) => typeof k === "string" && isBindable(k));

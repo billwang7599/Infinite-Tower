@@ -6,7 +6,7 @@
  * the inputs, runs the level, and sends `state` ~20x/s with the last input it processed (`ack`).
  */
 import type { Vec2 } from "../core/math.js";
-import type { Vitals } from "../battle/constants.js";
+import type { Vitals } from "../battle/player.js";
 import type { ArenaDef, EnemyDef } from "../battle/defs.js";
 import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
@@ -29,7 +29,10 @@ export interface ActorSnap {
 
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. */
-  | { t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null; inventory: Inventory; dev: boolean }
+  | {
+    t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
+    inventory: Inventory; dev: boolean;
+  }
   /** The character the player made or changed, as saved. */
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
@@ -42,4 +45,7 @@ export type ServerMsg =
   | { t: "rested"; vitals: Vitals }
   /** `accepted: false` when the server refused the client's claimed win. Losing refills `vitals`. `loot`: what the
    * enemy dropped (winning only); `inventory`: everything you carry now. */
-  | { t: "battleResult"; won: boolean; accepted: boolean; me: Vec2; wins: number; vitals: Vitals; loot: Inventory; inventory: Inventory };
+  | {
+    t: "battleResult"; won: boolean; accepted: boolean; me: Vec2; wins: number; vitals: Vitals; loot: Inventory;
+    inventory: Inventory;
+  };

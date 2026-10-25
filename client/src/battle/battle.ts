@@ -122,7 +122,7 @@ export function createBattle(opts: BattleOptions): Battle {
       clear();
       useArena(arena);
       startVitals = vitals;
-      spawnPlayer(ctx, "you", { x: 0, y: 0.05, z: -8 }, vitals, stats, true);
+      spawnPlayer(ctx, { x: 0, y: 0.05, z: -8 }, vitals, stats, true);
       spawnEnemy(ctx, enemy, { x: 0, y: 0.05, z: 6 }, Math.PI);
       ctx.view.yaw = 0;
       ctx.view.pitch = 0.32;

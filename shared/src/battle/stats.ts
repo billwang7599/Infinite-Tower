@@ -22,9 +22,6 @@ export interface Stats {
   strength: number;
 }
 
-/** In the order the character panel lists them. */
-export const STAT_KEYS = ["strength", "agility", "stamina", "mana", "spellpower"] as const satisfies readonly (keyof Stats)[];
-
 const AVERAGE = 10;
 
 export const physicalDamage = (base: number, stats: Stats): number => (base * stats.strength) / AVERAGE;
