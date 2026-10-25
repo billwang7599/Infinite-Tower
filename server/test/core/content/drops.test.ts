@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { rollDrops } from "../../../src/core/content/drops.js";
+
+describe("rollDrops", () => {
+  test("a lowest roll drops boar meat from a wild boar", () => {
+    const loot = rollDrops("wild-boar", () => 0);
+    assert.ok((loot["boar-meat"] ?? 0) >= 1);
+  });
+
+  test("a highest roll drops nothing", () => {
+    assert.deepEqual(rollDrops("wild-boar", () => 0.999), {});
+  });
+
+  test("returns a fresh inventory each time", () => {
+    const a = rollDrops("wild-boar", () => 0);
+    const b = rollDrops("wild-boar", () => 0);
+    assert.notEqual(a, b);
+    assert.deepEqual(a, b);
+  });
+});

@@ -197,6 +197,7 @@ function PressAKey() {
 function bindNotice(result: BindResult, code: string, action: ActionRef): string {
   const key = keyName(code);
   const label = (a: ActionRef) => actionDef(a).label;
+  if (!result.ok && "full" in result) return `${label(action)} has no room for another key. Replace one of its keys.`;
   if (!result.ok) return `${key} is the only key for ${label(result.onlyKeyOf)}. Give that one another key first.`;
   const { takenFrom, gave } = result;
   if (takenFrom && gave) return `Swapped: ${key} is now ${label(action)}, ${keyName(gave)} is now ${label(takenFrom)}.`;

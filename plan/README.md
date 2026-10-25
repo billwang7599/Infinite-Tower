@@ -10,7 +10,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [server-fights.md](server-fights.md): run the arena fight on the server | next big step |
 | [multiplayer.md](multiplayer.md): other players on the field and in fights | direction |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
-| [tests.md](tests.md): automated tests for the server | later |
+| [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
 
 Statuses:

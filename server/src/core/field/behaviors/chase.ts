@@ -33,7 +33,11 @@ export function chaseSystem(): System {
       const safe = !player || player.safe;
 
       if (c.state === "calm" && !safe && dist < c.range) { c.state = "notice"; c.stateTime = 0; }
-      else if (c.state === "chase" && (safe || dist > c.giveUpDist)) { c.state = "calm"; c.stateTime = 0; }
+      else if (c.state === "chase" && (safe || dist > c.giveUpDist)) {
+        c.state = "calm";
+        c.stateTime = 0;
+        actor.vx = actor.vz = 0;
+      }
 
       if (c.state === "notice") {
         actor.vx = actor.vz = 0;

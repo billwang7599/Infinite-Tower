@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  // Tests run in Node, so they get Node's types; the code under test is still held to ../tsconfig.json.
+  "compilerOptions": { "types": ["node", "vite/client"] },
+  "include": ["."]
+}
