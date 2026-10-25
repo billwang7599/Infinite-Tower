@@ -2,7 +2,7 @@
 import { GRASS_FIELD } from "./grass-field.js";
 import type { LevelDef } from "./level.js";
 
-export const LEVELS: Record<string, LevelDef> = {
+const LEVELS: Record<string, LevelDef> = {
   [GRASS_FIELD.layout.id]: GRASS_FIELD,
 };
 

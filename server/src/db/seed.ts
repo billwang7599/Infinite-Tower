@@ -5,7 +5,7 @@
 import { Accounts } from "../core/accounts/accounts.js";
 import { DEV } from "../env.js";
 import { PgAccountStore } from "./account-store.js";
-import { connectDb } from "./db.js";
+import { connectDb, errorText } from "./db.js";
 
 /**
  * Three dev accounts, so two tabs or two players can be tried at once. Each one's password is its username.
@@ -18,8 +18,8 @@ if (!DEV) {
   process.exit(1);
 }
 
-const db = await connectDb(true).catch((err: unknown) => {
-  console.error(`[db] ${err instanceof Error ? err.message : String(err)}`);
+const db = await connectDb().catch((err: unknown) => {
+  console.error(`[db] ${errorText(err)}`);
   process.exit(1);
 });
 try {

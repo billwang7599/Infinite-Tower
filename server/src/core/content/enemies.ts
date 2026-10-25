@@ -1,7 +1,7 @@
 /** Arena enemies: stats and attacks. Sent to the client with each encounter (it draws and runs the fight). */
 import type { EnemyDef } from "@infinite-tower/shared";
 
-export const WILD_BOAR: EnemyDef = {
+const WILD_BOAR: EnemyDef = {
   id: "wild-boar",
   name: "Wild Boar",
   model: "boar",

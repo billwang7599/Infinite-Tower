@@ -5,10 +5,10 @@ Status: **next big step** for anti-cheat. How to do it isn't decided.
 ## Why
 
 Everything on the field is server-authoritative, but the fight runs in the browser (Babylon + Havok) and reports
-`battleEnd { won, vitals }`. The server can only bound the claim (`server/src/core/game/encounter.ts`):
+`battleEnd { won, vitals }`. The server can only bound the claim (`server/src/core/game/battle.ts`):
 
-- a win faster than 0.9 x the player's fastest possible kill (`isPlausibleWin`, from the enemy's HP and the
-  player's damage) is refused;
+- a win faster than 0.9 x the player's fastest possible kill (`isPlausibleWin` with `MIN_KILL_TIME_SHARE`, from
+  the enemy's HP and the player's damage) is refused;
 - HP that went up during the fight is refused.
 
 Anything inside those bounds is trusted: a modified client can still win every fight it survives long enough.

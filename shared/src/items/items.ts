@@ -23,7 +23,4 @@ export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 /** How many of each item a player has; an item they have none of is absent. */
 export type Inventory = Partial<Record<ItemId, number>>;
 
-/** Most of one item you can carry. */
-export const MAX_STACK = 99;
-
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];

@@ -68,10 +68,10 @@ interfaces in `core/ports.ts`. The outlets plug into it, and `main.ts` is the on
 main.ts
  ├─ db = await connectDb(DEV)                              db/: connects to DATABASE_URL, applies new migrations
  ├─ accounts = new Accounts(new PgAccountStore(db))        core/ rules, db/ storage
- ├─ online = new OnlinePlayers(new PgPlayerStore(db), DEV) core/: who's playing, one Session each
+ ├─ online = new OnlinePlayers(new PgPlayerStore(db), DEV) core/: who's playing, one GameSession each
  ├─ startServer({ accounts, socket: gameSockets(online) })
  │     ├─ api/  Fastify: /api routes, the built client, the /ws handshake
- │     └─ ws/   gameSockets(): each socket becomes a Connection (the PlayerLink) bound to a Session
+ │     └─ ws/   gameSockets(): each socket becomes a Connection (the PlayerLink) bound to a GameSession
  └─ timer -> FixedClock (60 steps a second) -> online.tick(dt)
 ```
 
@@ -153,13 +153,13 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
   │◄── close 4001 ─────────────────────────── no account ──│                          │
   │                       │                                │ online.join(conn) ──────►│ closes the account's
   │                       │                                │                          │ other tab (4000), loads
-  │◄── welcome ──────────────────────────────────────────────────────────────────────│ the save, new Session
+  │◄── welcome ──────────────────────────────────────────────────────────────────────│ the save, new GameSession
 ```
 
 While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zod check; dropped if invalid, more
-than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `Session` per message type) -> `Session`, which
-answers with `link.send(...)`. `state` isn't an answer: the clock ticks every session 60 times a second, and every
-3rd tick in the field it sends one.
+than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
+`GameSession`, which answers with `link.send(...)`. `state` isn't an answer: the clock ticks every session 60
+times a second, and every 3rd tick in the field it sends one.
 
 | Client -> server | When |
 |---|---|
@@ -189,7 +189,7 @@ copy of you plus 3 tiles, so a hacked client can't see further.
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character and
-inventory, keyed by account. The `Session` saves after every fight, rest, item use and character change, on
+inventory, keyed by account. The `GameSession` saves after every fight, rest, item use and character change, on
 disconnect, and within a second of a settings change. Position and level aren't saved (you start at the level's
 start), and stats aren't either (everyone has the same).
 
@@ -267,19 +267,21 @@ server/          Node. Authoritative: levels, encounters, field actors, enemy st
       ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
                        PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
-                       tab takes over), session.ts (one player: world, level, wins, HP / stamina; a method per
-                       thing a player can ask), encounter.ts (start / end fights, refuse impossible wins and
-                       healing), snapshot.ts (the state message: only actors near your screen), clock.ts
-                       (FixedClock: 60 Hz steps, catching up after stalls)
-      field/           The field simulation. components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts
-                       (spawnActor from behavior parts), context.ts, player.ts (input queue + replay, grass
-                       encounters), spawner.ts
+                       tab takes over), session.ts (GameSession, one player: their save, their field, the battle
+                       they're in; a method per thing a player can ask), battle.ts (start / settle battles, refuse
+                       impossible wins and healing), inventory.ts (addItems, removeOne, MAX_STACK), snapshot.ts
+                       (the state message: only actors near your screen), clock.ts (FixedClock: 60 Hz steps,
+                       catching up after stalls)
+      field/           The field simulation. field.ts (Field: one player's world, level, systems and spawner),
+                       components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor from behavior
+                       parts), context.ts (FieldContext, what systems get), player.ts (input queue + replay, grass
+                       encounters, findPlayer), spawner.ts
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
         prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
       levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts
                        (registry), grass-field.ts
-      content/         enemies.ts (WILD_BOAR, ENEMIES by id), player.ts (PLAYER_STATS, newPlayer), drops.ts
-                       (what each enemy drops and how often; rollDrops, addItems)
+      content/         enemies.ts (ENEMIES by id), player.ts (PLAYER_STATS, fullVitals, newPlayer), drops.ts
+                       (what each enemy drops and how often; rollDrops)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -367,7 +369,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 ## Adding things
 
 - **A message.** Client -> server: a Zod schema in `shared/src/net/client-messages.ts` and the union, a method on
-  `Session` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
+  `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   handler in `client/src/game/game.ts`'s `net.listen({...})`.
 - **A level.** A file in `server/src/core/levels/` listed in `index.ts`; reuse a theme or add a renderer in
@@ -380,7 +382,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
   spawn.ts`) and a system in `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its
   `index.ts`.
 - **Something kept between connections.** A field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
-  (`core/content/player.ts`), read in `Session`'s constructor and written in `Session.save()`; a column in
+  (`core/content/player.ts`), read in `GameSession`'s constructor and written in `GameSession.save()`; a column in
   `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
   Another store is a class implementing `PlayerStore`, swapped in for `new PgPlayerStore(db)` in `main.ts`.
 - **A schema change.** Edit `server/src/db/schema.ts`, run `npm run db:generate -- --name <what-changed>`, read the

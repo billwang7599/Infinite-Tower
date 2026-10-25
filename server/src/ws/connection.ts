@@ -8,7 +8,8 @@ import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 import type { WebSocket } from "ws";
 import type { PlayerLink } from "../core/ports.js";
 
-const MAX_INVALID = 20;
+/** More invalid messages than this over a connection's life, and it's closed (1008). */
+const MAX_INVALID_MESSAGES = 20;
 
 export class Connection implements PlayerLink {
   private invalid = 0;
@@ -31,7 +32,7 @@ export class Connection implements PlayerLink {
     this.ws.on("message", (data) => {
       const msg = parseClientMsg(String(data));
       if (msg) { handler(msg); return; }
-      if (++this.invalid > MAX_INVALID) this.ws.close(1008, "invalid messages");
+      if (++this.invalid > MAX_INVALID_MESSAGES) this.ws.close(1008, "invalid messages");
     });
   }
 

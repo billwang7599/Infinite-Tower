@@ -14,7 +14,7 @@ export const GRASS_FIELD: LevelDef = {
   },
   spawn: { x: -12, z: -5 },
   arena: { radius: 16 },
-  spawns: [{ prefab: "boar", at: { x: 8, z: -6 }, respawn: 8 }],
-  grass: { step: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
+  spawns: [{ prefab: "boar", at: { x: 8, z: -6 }, respawnTime: 8 }],
+  grass: { stepDist: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   safeTime: 2,
 };

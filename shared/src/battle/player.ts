@@ -5,7 +5,6 @@
  *
  * Units: seconds, meters, m/s and m/s², unless the name or comment says otherwise.
  */
-import type { Stats } from "./stats.js";
 
 /** m/s², for everything in the arena. Tuned together with `PLAYER.jumpSpeed`. */
 export const GRAVITY = -24;
@@ -69,5 +68,3 @@ export interface Vitals {
   hp: number;
   stamina: number;
 }
-
-export const fullVitals = (stats: Stats): Vitals => ({ hp: PLAYER.maxHp, stamina: stats.stamina });

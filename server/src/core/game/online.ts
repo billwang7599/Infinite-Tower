@@ -6,12 +6,10 @@
 import { CLOSE_CODES } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
-import { Session } from "./session.js";
+import { GameSession } from "./session.js";
 
 export class OnlinePlayers {
-  /** Each session's account. */
-  private readonly sessions = new Map<Session, PlayerId>();
-  private readonly byAccount = new Map<PlayerId, Session>();
+  private readonly byAccount = new Map<PlayerId, GameSession>();
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean) {}
 
@@ -20,7 +18,7 @@ export class OnlinePlayers {
    * loading, or loading failed (then it's closed with 1011). Until then nothing can be asked of it, which is fine:
    * the client sends nothing before `welcome`.
    */
-  join(link: PlayerLink, account: Account): Promise<Session | null> {
+  join(link: PlayerLink, account: Account): Promise<GameSession | null> {
     this.replace(account.id);
     return this.start(link, account).catch((err: unknown) => {
       console.error(`[store] loading ${account.username} failed`, err);
@@ -30,32 +28,31 @@ export class OnlinePlayers {
   }
 
   /** Saves once, however many times it's called (a replaced session's link also reports closing). */
-  leave(session: Session): void {
-    const id = this.sessions.get(session);
-    if (id === undefined) return;
-    this.sessions.delete(session);
-    if (this.byAccount.get(id) === session) this.byAccount.delete(id);
+  leave(session: GameSession): void {
+    const id = session.account.id;
+    if (this.byAccount.get(id) !== session) return;
+    this.byAccount.delete(id);
     session.save();
   }
 
   /** One fixed step for every session (game/clock.ts). */
   tick(dt: number): void {
-    for (const session of this.sessions.keys()) session.tick(dt);
+    for (const session of this.byAccount.values()) session.tick(dt);
   }
 
-  private async start(link: PlayerLink, account: Account): Promise<Session | null> {
+  private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
     const id = account.id;
     // Loads and saves for one player land in order, so this load comes after the replaced session's save.
     const saved = (await this.store.load(id)) ?? newPlayer();
     if (!link.open) return null;
     this.replace(id); // another tab may have joined while this one was loading
-    const session = new Session(link, this.dev, saved, (data) => {
+    const session = new GameSession(account, link, this.dev, saved, (data) => {
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
     });
-    this.sessions.set(session, id);
-    this.byAccount.set(id, session);
     session.start();
+    // Only once it has started: a session that failed to start is never ticked or saved.
+    this.byAccount.set(id, session);
     return session;
   }
 

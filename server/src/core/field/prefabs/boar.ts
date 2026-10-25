@@ -8,7 +8,7 @@ import { spawnActor } from "../parts.js";
 export function spawnBoar(world: World, at: Vec2) {
   return spawnActor(world, "boar", at, [
     wander({ speed: 1.6 }),
-    chaseOnSight({ range: 4.5, delay: 0.5, speed: 3.4 }),
+    chaseOnSight({ range: 4.5, noticeTime: 0.5, speed: 3.4 }),
     encounterOnTouch({ range: 0.9, enemy: "wild-boar" }),
   ]);
 }
