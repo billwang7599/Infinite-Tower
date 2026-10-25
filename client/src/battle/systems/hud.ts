@@ -7,7 +7,6 @@ import { resultShown, type BattleContext } from "../context.js";
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
   return (world) => {
     const patch: Partial<BattleHudState> = {
-      mouseCaptured: ctx.mouse.locked,
       result: ctx.fight.state,
       showResult: resultShown(ctx.fight),
     };

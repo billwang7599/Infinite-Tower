@@ -30,7 +30,7 @@ function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): 
   return m;
 }
 
-/** The player is drawn in the default look until `welcome` says who they are (game/dress.ts repaints it). */
+/** The player is drawn in the default look until `welcome` says who they are (game/look.ts repaints it). */
 export function createMaterials(scene: Scene): Materials {
   const frames = playerFrames(DEFAULT_LOOK);
   const grass = tiled(scene, "grass", speckleTexture(scene, "grass", {

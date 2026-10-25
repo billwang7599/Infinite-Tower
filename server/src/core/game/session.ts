@@ -125,7 +125,7 @@ export class GameSession {
   tick(dt: number): void {
     if (!this.inField) return;
     this.field.step(dt);
-    if (this.inField && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.field, this.wins));
+    if (this.inField && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.field));
   }
 
   /** Load a level and tell the client. */

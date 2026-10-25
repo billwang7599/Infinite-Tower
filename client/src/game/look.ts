@@ -5,7 +5,7 @@ import type { Field } from "../field/field.js";
 import { playerFrames } from "../gfx/characters.js";
 import { redrawSprite } from "../gfx/sprites.js";
 
-export function dressPlayer(battle: Battle, field: Field, look: Look): void {
+export function applyLook(battle: Battle, field: Field, look: Look): void {
   const frames = playerFrames(look);
   const arenaSprites = battle.ctx.materials.player;
   redrawSprite(arenaSprites.idle, frames.idle);

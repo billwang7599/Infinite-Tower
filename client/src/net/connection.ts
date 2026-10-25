@@ -23,10 +23,12 @@ export class NotLoggedInError extends Error {
 }
 
 export class Connection {
-  /** After `welcome`: the socket closed without `close()` being called. `reason` is a sentence for the title. */
-  onClose: (reason: string) => void = () => {};
   private handlers: GameHandlers | null = null;
   private backlog: GameMsg[] = [];
+  private lostHandler: ((reason: string) => void) | null = null;
+  /** Set when the socket is lost, so a handler added later still hears about it. */
+  private lostReason: string | null = null;
+  private hungUp = false;
 
   private constructor(private readonly ws: WebSocket) {}
 
@@ -45,7 +47,7 @@ export class Connection {
         net.receive(msg);
       };
       ws.onclose = (ev) => {
-        if (welcomed) net.onClose(lostReason(ev.code));
+        if (welcomed) net.lose(closeReason(ev.code));
         else reject(ev.code === CLOSE_CODES.notLoggedIn ? new NotLoggedInError() : new Error(SERVER_UNREACHABLE));
       };
     });
@@ -57,9 +59,19 @@ export class Connection {
     for (const msg of this.backlog.splice(0)) this.receive(msg);
   }
 
-  /** Hang up on purpose: no `onClose`, and nothing more is delivered. */
+  /**
+   * `handler` runs once if the socket closes without `close()` being called; `reason` is a sentence for the title.
+   * If it already closed (say, while the game was still loading), it runs right away.
+   */
+  onLost(handler: (reason: string) => void): void {
+    this.lostHandler = handler;
+    if (this.lostReason !== null) handler(this.lostReason);
+  }
+
+  /** Hang up on purpose: no `onLost`, and nothing more is delivered. */
   close(): void {
-    this.onClose = () => {};
+    this.hungUp = true;
+    this.lostHandler = null;
     this.ws.onmessage = null;
     this.ws.close();
   }
@@ -68,13 +80,19 @@ export class Connection {
     if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }
 
+  private lose(reason: string): void {
+    if (this.hungUp || this.lostReason !== null) return;
+    this.lostReason = reason;
+    this.lostHandler?.(reason);
+  }
+
   private receive(msg: GameMsg): void {
     if (this.handlers) dispatch(this.handlers, msg, undefined);
     else this.backlog.push(msg);
   }
 }
 
-function lostReason(closeCode: number): string {
+function closeReason(closeCode: number): string {
   if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
   return "Lost the connection to the game server.";
 }

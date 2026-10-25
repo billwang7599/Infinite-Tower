@@ -179,7 +179,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, inventory, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
-| `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors, wins |
+| `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: enemy, arena, your HP / stamina and stats |
 | `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, inventory |
 | `rested`, `itemUsed` | what resting or eating did |
@@ -313,7 +313,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      both scenes and modes and input (off) once, behind the title, and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, field <-> battle switching, who gets input, the
-                     character from `welcome` / `character`), dress.ts (repaints the player's sprites in their
+                     character from `welcome` / `character`), look.ts (repaints the player's sprites in their
                      look), transition.ts (Mode, flash / fade), debug.ts (the dev handles on `window`)
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per
                      type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's

@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
-import type { FieldHudState, SettingsScreenState } from "../state.js";
+import type { CharacterScreenState, FieldHudState, SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
@@ -17,6 +17,7 @@ type HudProps = { hud: Store<FieldHudState> };
 interface FieldHudProps extends HudProps {
   bindings: KeyBindings;
   settingsScreen: Store<SettingsScreenState>;
+  characterScreen: Store<CharacterScreenState>;
   openSettings: () => void;
   editCharacter: () => void;
   rest: () => void;
@@ -24,11 +25,12 @@ interface FieldHudProps extends HudProps {
 }
 
 /** One side panel at a time (character or inventory); neither blocks walking. */
-export function FieldHud({ hud, bindings, settingsScreen, openSettings, editCharacter, rest, useItem }: FieldHudProps) {
+export function FieldHud(props: FieldHudProps) {
+  const { hud, bindings, settingsScreen, characterScreen, openSettings, editCharacter, rest, useItem } = props;
   const [panel, setPanel] = useState<Panel | null>(null);
   const toggle = (p: Panel) => setPanel((open) => (open === p ? null : p));
   const close = () => setPanel(null);
-  usePanelKeys(bindings, settingsScreen, toggle);
+  usePanelKeys(bindings, [settingsScreen, characterScreen], toggle);
 
   return (
     <HudLayer id="field-hud">

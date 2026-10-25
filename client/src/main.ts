@@ -75,8 +75,9 @@ async function play(): Promise<void> {
   try {
     ui.title.set({ phase: "loading" });
     (await preparing).join(joined);
-    joined.net.onClose = (reason) => void backToTitle(reason);
     ui.title.set({ phase: "leaving" });
+    // Also catches a connection that dropped while the game was loading.
+    joined.net.onLost((reason) => void backToTitle(reason));
   } catch (err) {
     fail(err);
   }

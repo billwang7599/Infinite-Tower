@@ -18,7 +18,7 @@ import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
-import { dressPlayer } from "./dress.js";
+import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
 
 export interface Game {
@@ -87,7 +87,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
   const applyCharacter = (character: Character | null) => {
     ui.field.set({ character });
     if (character) {
-      dressPlayer(battle, field, character.look);
+      applyLook(battle, field, character.look);
       ui.characterScreen.set({ open: false, firstTime: false });
     } else {
       ui.characterScreen.set({ open: true, firstTime: true });

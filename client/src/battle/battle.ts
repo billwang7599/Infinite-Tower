@@ -134,6 +134,7 @@ export function createBattle(opts: BattleOptions): Battle {
       spawnEnemy(ctx, enemy, ENEMY_START, ENEMY_START_YAW);
       Object.assign(ctx.view, START_VIEW);
       Object.assign(ctx.fight, NEW_FIGHT);
+      ctx.shake = 0;
       keyboard.clearPressed();
     },
     end() {

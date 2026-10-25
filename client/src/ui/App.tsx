@@ -16,7 +16,8 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
     <>
       {mode === "field" && (
         <FieldHud
-          hud={ui.field} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
+          hud={ui.field} bindings={settings.bindings}
+          settingsScreen={ui.settingsScreen} characterScreen={ui.characterScreen}
           openSettings={ui.openSettings} editCharacter={ui.openCharacterEditor} rest={actions.rest}
           useItem={actions.useItem}
         />

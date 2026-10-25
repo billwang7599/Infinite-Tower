@@ -1,19 +1,18 @@
 import type { KeyBindings } from "../../settings/bindings.js";
 import { useKeydown } from "../components/useKeydown.js";
-import type { SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 
 export type Panel = "character" | "inventory";
 
 /**
- * The field's panel keys (field.character, field.inventory) toggle their panels. Not while Settings is open (the
- * key may be getting rebound) or while typing in a text field (the character editor's name).
+ * The field's panel keys (field.character, field.inventory) toggle their panels. Not while a screen covers the field
+ * (Settings, where the key may be getting rebound, or the character editor) or while typing in a text field.
  */
 export function usePanelKeys(
-  bindings: KeyBindings, settingsScreen: Store<SettingsScreenState>, toggle: (p: Panel) => void,
+  bindings: KeyBindings, screens: readonly Store<{ open: boolean }>[], toggle: (p: Panel) => void,
 ): void {
   useKeydown((e) => {
-    if (e.repeat || settingsScreen.get().open || e.target instanceof HTMLInputElement) return;
+    if (e.repeat || e.target instanceof HTMLInputElement || screens.some((s) => s.get().open)) return;
     const keys = bindings.get().field;
     if (keys.character.includes(e.code)) toggle("character");
     else if (keys.inventory.includes(e.code)) toggle("inventory");

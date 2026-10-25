@@ -20,7 +20,7 @@ export function lungeAttackSystem(): System {
       lunge.cooldown -= dt;
       switch (enemy.state) {
         case "approach":
-          const inReach = sense.dist < def.trigger && sense.facingDot > MIN_FACING_DOT;
+          const inReach = sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT;
           if (sense.targetAlive && lunge.cooldown <= 0 && inReach) enter(world, e, enemy, "lungeWindup");
           break;
         case "lungeWindup":

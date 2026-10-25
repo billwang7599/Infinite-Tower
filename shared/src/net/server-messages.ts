@@ -37,7 +37,8 @@ export type ServerMsg =
   /** The character the player made or changed, as saved. */
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
-  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; wins: number }
+  /** Sent 20 times a second, so only what moves. The win count comes with `welcome` and `battleResult`. */
+  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. `vitals`, `stats`: what you start the fight with. */
   | { t: "encounter"; source: number | null; enemy: EnemyDef; arena: ArenaDef; me: Vec2; vitals: Vitals; stats: Stats }
   /** You used one `item`: what it did to your vitals, and what you carry now. */

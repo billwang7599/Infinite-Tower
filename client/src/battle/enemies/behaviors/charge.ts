@@ -51,11 +51,11 @@ export function chargeAttackSystem(ctx: BattleContext): System {
           const p = body.mesh.position, r = Math.hypot(p.x, p.z);
           const outward = r > 0.01 ? (p.x * move.dirX + p.z * move.dirZ) / r : 0;
           if (r > ctx.arena.radius - enemy.def.radius - WALL_MARGIN && outward > MIN_OUTWARD_DOT) {
-            enter(world, e, enemy, "stunned", def.stun);
-            charge.cooldown = def.stun + def.cooldown;
+            enter(world, e, enemy, "stunned", def.stunTime);
+            charge.cooldown = def.stunTime + def.cooldown;
             move.speed = 0; move.halt = true;
             ctx.shake = Math.max(ctx.shake, 0.35);
-          } else if (enemy.stateTime >= def.maxTime) {
+          } else if (enemy.stateTime >= def.maxChargeTime) {
             enter(world, e, enemy, "chargeRecover");
             charge.cooldown = def.recover + def.cooldown;
           }
