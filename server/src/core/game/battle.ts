@@ -31,7 +31,7 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
   field.resetWalk(0);
   session.link.send({
     t: "encounter", source, enemy: ENEMIES[enemyId], arena: field.level.arena, me: field.playerPos(), vitals,
-    stats: session.stats,
+    stats: session.stats, burden: session.burden,
   });
 }
 

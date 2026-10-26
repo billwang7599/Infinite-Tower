@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
 import {
-  approach, ActiveHit, FighterStats, Health, moveSpeed, Player, PlayerInput, Stamina, PLAYER,
+  approach, ActiveHit, dodgeCost, FighterStats, Health, moveSpeed, Player, PlayerInput, Stamina, PLAYER, walkPace,
   type Entity, type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System, type World,
 } from "@infinite-tower/shared";
 import { Body, Layer } from "../components.js";
@@ -43,7 +43,8 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: 
 /**
  * Player controller + combat actions. Runs before each physics step and only ever writes velocity
  * (Havok owns the position). Slash goes where the player aims (the camera's facing); dodge goes
- * where they move, or backwards if standing still.
+ * where they move, or backwards if standing still. A heavy bag makes the dodge cost more; an overloaded one rules
+ * it out and halves the walking speed (items/burden.ts).
  */
 export function playerControllerSystem(): System {
   const v = new Vector3();
@@ -51,7 +52,7 @@ export function playerControllerSystem(): System {
     for (const [e, player, input, body, health, stamina, stats]
       of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
       const b = body.aggregate.body;
-      const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats);
+      const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
       b.getLinearVelocityToRef(v);
       const alive = health.hp > 0;
 
@@ -72,15 +73,15 @@ export function playerControllerSystem(): System {
           v.z = approach(v.z, 0, slowdown);
         }
       } else {
-        const slash = PLAYER.slash, dodge = PLAYER.dodge;
+        const slash = PLAYER.slash, dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
         const free = player.action === "none" || (player.action === "slash" && player.actionTime >= slash.chainAfter);
-        if (free && player.dodgeBuffer > 0 && player.grounded && stamina.value > 0) {
+        if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
           let dx = input.moveX, dz = input.moveZ;
           const len = Math.hypot(dx, dz);
           if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
           else { dx /= len; dz /= len; }
           startAction(world, e, player, "dodge", dx, dz);
-          spend(stamina, dodge.cost);
+          spend(stamina, dodgeStamina);
           player.dodgeBuffer = 0;
         } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
           startAction(world, e, player, "slash", input.aimX, input.aimZ);

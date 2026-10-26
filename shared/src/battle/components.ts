@@ -5,6 +5,7 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef } from "./defs.js";
+import type { Burden } from "../items/burden.js";
 
 export type PlayerAction = "none" | "slash" | "dodge";
 
@@ -26,6 +27,8 @@ export interface PlayerData {
   actionDir: Vec2;
   /** Counts slashes, so swings alternate sides. */
   combo: number;
+  /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
+  burden: Burden;
 }
 export const Player = defineComponent<PlayerData>("Player");
 

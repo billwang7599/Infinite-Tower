@@ -21,7 +21,7 @@ export function testField(o: { playerAt?: Vec2; rng?: () => number; level?: Leve
   const player = world.spawn();
   const at = o.playerAt ?? { x: 0, z: 0 };
   world.add(player, FieldPos, { x: at.x, z: at.z });
-  world.add(player, FieldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
+  world.add(player, FieldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1 });
   const ctx: FieldContext = {
     level: o.level ?? TEST_LEVEL,
     rng: o.rng ?? (() => 0),

@@ -11,6 +11,7 @@ import type { ArenaDef, EnemyDef } from "../battle/defs.js";
 import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
 import type { Bag } from "../items/bag.js";
+import type { Burden } from "../items/burden.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
 import type { LevelLayout } from "../field/layout.js";
 import type { SavedSettings } from "./client-messages.js";
@@ -40,8 +41,12 @@ export type ServerMsg =
   | { t: "level"; level: LevelLayout; me: Vec2 }
   /** Sent 20 times a second, so only what moves. The win count comes with `welcome` and `battleResult`. */
   | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[] }
-  /** `source`: the actor that touched you, or null for tall grass. `vitals`, `stats`: what you start the fight with. */
-  | { t: "encounter"; source: number | null; enemy: EnemyDef; arena: ArenaDef; me: Vec2; vitals: Vitals; stats: Stats }
+  /** `source`: the actor that touched you, or null for tall grass. `vitals`, `stats`, `burden` (how weighed down
+   * your bag leaves you): what you start the fight with. */
+  | {
+    t: "encounter"; source: number | null; enemy: EnemyDef; arena: ArenaDef; me: Vec2; vitals: Vitals; stats: Stats;
+    burden: Burden;
+  }
   /** You used one `item`: what it did to your vitals, and your bag now. */
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; bag: Bag }
   /** Your bag, after you moved something in it (whether or not the move was allowed). */

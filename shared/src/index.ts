@@ -12,6 +12,7 @@ export * from "./battle/stats.js";
 export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";
+export * from "./items/burden.js";
 export * from "./field/layout.js";
 export * from "./field/view.js";
 export * from "./net/accounts.js";

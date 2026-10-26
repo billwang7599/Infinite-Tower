@@ -77,8 +77,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     updateInput();
   };
 
-  const enterBattle = ({ source, enemy, arena, vitals, stats }: ServerMsgOf<"encounter">) => {
-    battle.start(enemy, arena, vitals, stats);
+  const enterBattle = ({ source, enemy, arena, vitals, stats, burden }: ServerMsgOf<"encounter">) => {
+    battle.start(enemy, arena, vitals, stats, burden);
     ui.showToast(source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
     setMode("battle");
   };

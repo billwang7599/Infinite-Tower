@@ -56,8 +56,9 @@ Decided by the user:
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
 - What you carry also has a weight, against a carry limit that grows with strength. Like Dark Souls' equip load:
-  over half the limit, dodging and stamina recovery get worse; over the limit, no dodging and you move slowly.
-  Equipped things will count toward it without taking bag space. (The limit is built; its effects aren't yet.)
+  up to the limit, nothing; over it, a dodge costs more stamina; over 120% of it, no dodging and you walk at half
+  speed (field and arena). Stamina recovery isn't affected. Equipped things will count toward it without taking
+  bag space.
 - After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
   drops are packed in where they fit and the rest is left behind.)
 - Dying is hardcore: the bag is emptied, and stats go back to the start once they can grow. (Not built yet.)
@@ -82,8 +83,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
 - Items: boar meat heals 35 HP (eaten from the inventory panel, field only, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
-  own. The carry limit is 30 + 3 × strength (60 for everyone now). A new bag is empty. Moving things around the
-  bag only works on the field (not mid-fight), and the server checks every move with the shared bag rules.
+  own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
+  bag is empty. Moving things around the bag only works on the field (not mid-fight), and the server checks every
+  move with the shared bag rules.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

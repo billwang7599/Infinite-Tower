@@ -55,17 +55,25 @@ export function clampToLevel(level: LevelLayout, pos: Vec2): void {
 /** Tiles per second. */
 export interface Velocity2 { vx: number; vz: number }
 
+export interface WalkOptions {
+  /** Written with the velocity used. */
+  vel?: Velocity2;
+  /** Share of the level's `playerSpeed` (`walkPace`: an overloaded bag walks at half). The server decides it. */
+  pace?: number;
+}
+
 /**
- * Move `pos` one step by an input, and write the velocity used into `vel` if given. Must stay deterministic: the
- * client predicts with it and the server replays the same inputs.
+ * Move `pos` one step by an input. Must stay deterministic: the client predicts with it and the server replays the
+ * same inputs.
  */
-export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number, vel?: Velocity2): void {
+export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number, opts: WalkOptions = {}): void {
   let ix = clamp(input.moveX, -1, 1), iz = clamp(input.moveZ, -1, 1);
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
-  const vx = ix * level.playerSpeed, vz = iz * level.playerSpeed;
+  const speed = level.playerSpeed * (opts.pace ?? 1);
+  const vx = ix * speed, vz = iz * speed;
   pos.x += vx * dt;
   pos.z += vz * dt;
   clampToLevel(level, pos);
-  if (vel) { vel.vx = vx; vel.vz = vz; }
+  if (opts.vel) { opts.vel.vx = vx; opts.vel.vz = vz; }
 }
