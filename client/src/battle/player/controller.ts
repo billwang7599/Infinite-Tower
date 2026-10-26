@@ -85,7 +85,6 @@ export function playerControllerSystem(): System {
           player.dodgeBuffer = 0;
         } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
           startAction(world, e, player, "slash", input.aimX, input.aimZ);
-          player.combo++;
           spend(stamina, slash.cost);
           player.attackBuffer = 0;
         }

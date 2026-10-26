@@ -13,8 +13,6 @@ export interface PlayerSpriteData {
   plane: Mesh;
   shadow: Mesh;
   slash: Mesh;
-  /** -1 mirrors the sprite left to right (sprite.ts: every other swing). */
-  facing: 1 | -1;
   /** Accumulated walk-cycle phase, for bobbing. */
   walkPhase: number;
   /** Smoothed squash/stretch factor. */

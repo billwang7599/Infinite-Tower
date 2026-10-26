@@ -53,12 +53,12 @@ export function spawnPlayer(ctx: BattleContext, at: Vec3, vitals: Vitals, stats:
   slash.isPickable = false;
   slash.setEnabled(false);
 
-  world.add(e, PlayerSprite, { plane, shadow, slash, facing: 1, walkPhase: 0, stretch: 1 });
+  world.add(e, PlayerSprite, { plane, shadow, slash, walkPhase: 0, stretch: 1 });
   world.add(e, PlayerInput, { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false });
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: false, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0,
-    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, combo: 0, burden,
+    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden,
   });
   world.add(e, Health, { hp: vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: vitals.stamina, max: stats.stamina, regenDelay: 0 });
