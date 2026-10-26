@@ -53,11 +53,12 @@ export type ServerMsg =
   | { t: "bag"; bag: Bag }
   /** You rested at a campfire: `vitals` are full again. */
   | { t: "rested"; vitals: Vitals }
-  /** `accepted: false` when the server refused the client's claimed win. Losing refills `vitals`. `loot`: what the
-   * enemy dropped (winning only), packed into `bag` except `leftBehind`, what there was no room for. */
+  /** `accepted: false` when the server refused the client's claimed win (that counts as a loss). Losing refills
+   * `vitals` and empties the bag: `lost` is what it held. `loot`: what the enemy dropped (winning only), packed into
+   * `bag` except `leftBehind`, what there was no room for. */
   | {
     t: "battleResult"; won: boolean; accepted: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts;
-    leftBehind: ItemCounts; bag: Bag;
+    leftBehind: ItemCounts; lost: ItemCounts; bag: Bag;
   };
 
 /** One server message by its `t`: `ServerMsgOf<"state">`. */

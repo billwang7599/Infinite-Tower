@@ -10,11 +10,19 @@ import { fakeNow, findBoar, HOUR_MS, startSession } from "./helpers.js";
 const FULL = fullVitals(PLAYER_STATS);
 const LEVEL = getLevel(START_LEVEL);
 const HURT = { hp: 50, stamina: 40 };
+/** Two meat and a tusk. */
+const CARRIED: Bag = {
+  ...emptyBag(),
+  items: [
+    { item: "boar-meat", count: 2, x: 0, y: 0, turned: false },
+    { item: "boar-tusk", count: 1, x: 1, y: 0, turned: false },
+  ],
+};
 
-/** A dev session already in a debug battle, hurt to HURT; `clock.ms` is when it started. */
-function inBattle(t: Parameters<typeof fakeNow>[0]) {
+/** A dev session already in a debug battle, hurt to HURT, carrying `bag`; `clock.ms` is when it started. */
+function inBattle(t: Parameters<typeof fakeNow>[0], bag: Bag = emptyBag()) {
   const clock = fakeNow(t);
-  const started = startSession({ dev: true, saved: { vitals: { ...HURT } } });
+  const started = startSession({ dev: true, saved: { vitals: { ...HURT }, bag } });
   started.session.debugEncounter();
   return { ...started, clock };
 }
@@ -97,6 +105,7 @@ describe("ending a battle", () => {
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
     assert.deepEqual(saves[0]?.bag, result.bag);
+    assert.deepEqual(result.lost, {});
   });
 
   test("loot the bag has no room for is left behind", (t) => {
@@ -127,6 +136,26 @@ describe("ending a battle", () => {
     clock.ms += HOUR_MS;
     session.endBattle(true, HURT);
     assert.deepEqual(session.field.playerPos(), before);
+  });
+
+  test("a loss empties the bag for good, saves that, and says what was lost", (t) => {
+    const { session, link, saves } = inBattle(t, CARRIED);
+    session.endBattle(false, { hp: 0, stamina: 0 });
+    const result = link.last("battleResult");
+    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
+    assert.deepEqual(result.bag, { ...CARRIED, items: [] });
+    assert.deepEqual(session.bag, result.bag);
+    assert.equal(saves.length, 1);
+    assert.deepEqual(saves[0]?.bag, result.bag);
+  });
+
+  test("a refused win is a loss: the bag is emptied too", (t) => {
+    const { session, link } = inBattle(t, CARRIED);
+    session.endBattle(true, HURT);
+    const result = link.last("battleResult");
+    assert.equal(result.accepted, false);
+    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
+    assert.deepEqual(session.bag.items, []);
   });
 
   test("a loss refills vitals and returns the player to the level's spawn", (t) => {
