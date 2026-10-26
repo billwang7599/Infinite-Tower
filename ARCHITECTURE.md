@@ -357,7 +357,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      both scenes and modes and input (off) once, behind the title, and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, field <-> battle switching, who gets input, the
-                     character from `welcome` / `character`, opening creation without one), look.ts (repaints
+                     character from `welcome` / `character`, opening creation without one), battle-toasts.ts
+                     (what a `battleResult` says: found, left behind, died / lost, refused), look.ts (repaints
                      the player's sprites in their look), transition.ts (Mode, flash / fade), debug.ts (the dev
                      handles on `window`)
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per

@@ -8,9 +8,7 @@
  * to the field.
  */
 import type { AbstractEngine } from "@babylonjs/core";
-import {
-  itemDef, moveItem as moveInBag, type Cell, type Character, type ItemCounts, type ItemId, type ServerMsgOf,
-} from "@infinite-tower/shared";
+import { itemDef, moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -19,6 +17,7 @@ import type { Field } from "../field/field.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
+import { battleToasts } from "./battle-toasts.js";
 import { exposeDebugHandles } from "./debug.js";
 import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -172,13 +171,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
         bag: (msg) => field.setBag(msg.bag),
         battleResult(msg) {
           field.onBattleResult(msg);
-          const loot = describeItems(msg.loot);
-          if (loot) ui.showToast(`You found ${loot}.`);
-          const leftBehind = describeItems(msg.leftBehind);
-          if (leftBehind) ui.showToast(`No room in your bag: you leave ${leftBehind} behind.`);
-          const lost = describeItems(msg.lost);
-          if (lost) ui.showToast(`Everything you carried is gone: ${lost}.`);
-          if (!msg.accepted) ui.showToast("The server didn't accept that win.");
+          for (const text of battleToasts(msg)) ui.showToast(text);
         },
       });
       setMode("field");
@@ -204,11 +197,4 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
       setMode(null);
     },
   };
-}
-
-/** "boar meat" / "2 boar meat", or "" for nothing. */
-function describeItems(items: ItemCounts): string {
-  return (Object.entries(items) as [ItemId, number][])
-    .map(([id, n]) => `${n > 1 ? `${n} ` : ""}${itemDef(id).name.toLowerCase()}`)
-    .join(", ");
 }
