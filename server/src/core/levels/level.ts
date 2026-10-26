@@ -4,10 +4,10 @@
  */
 import type { ArenaDef, LevelLayout, Vec2 } from "@infinite-tower/shared";
 import type { EnemyId } from "../content/enemies.js";
-import type { FieldPrefabId } from "../field/prefabs/index.js";
+import type { OverworldPrefabId } from "../overworld/prefabs/index.js";
 
 export interface SpawnDef {
-  prefab: FieldPrefabId;
+  prefab: OverworldPrefabId;
   at: Vec2;
   /** Seconds before a defeated one comes back. */
   respawnTime: number;
@@ -28,7 +28,7 @@ export interface LevelDef {
   spawn: Vec2;
   /** The fight arena for encounters here. */
   arena: ArenaDef;
-  /** Field actors, spawned when the level loads and respawned after they are defeated. */
+  /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
   spawns: SpawnDef[];
   grass: EncounterTable;
   /** After a fight, no encounters for this long (seconds). */

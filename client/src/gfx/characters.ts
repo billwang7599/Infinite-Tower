@@ -1,6 +1,6 @@
 /**
  * Frames for the 24x24 pixel sprites (sprites.ts). The player is drawn from their look (gfx/look/): the chibi in
- * the field (facing front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar
+ * the overworld (facing front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar
  * and the "!" bubble are drawn here.
  */
 import type { Look } from "@infinite-tower/shared";
@@ -10,7 +10,7 @@ import { drawBattle, drawChibi, type ChibiFacing } from "./look/look.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 export interface PlayerFrames {
-  /** The field: the chibi facing each way. The side faces right, like every side view here (sprites.ts). */
+  /** The overworld: the chibi facing each way. The side faces right, like every side view here (sprites.ts). */
   chibi: Record<ChibiFacing, SpriteDraw>;
   /** The arena, in each pose: standing (and running), mid-swing, and down. */
   battle: Record<Pose, SpriteDraw>;
@@ -44,7 +44,7 @@ function paint(px: Px, pic: Picture, scale: number, mirrored = false): void {
   }
 }
 
-/** Wild boar, side view (field). */
+/** Wild boar, side view (overworld). */
 export const drawBoar: SpriteDraw = (px) => {
   const hide = "#6b4632", hideHi = "#835a40", dark = "#3a281d", snout = "#b77a6a", tusk = "#efe6cf";
   px(3, 10, 1, 3, dark);               // tail

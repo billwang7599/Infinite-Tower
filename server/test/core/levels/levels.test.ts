@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inTallGrass } from "@infinite-tower/shared";
 import type { EnemyId } from "../../../src/core/content/enemies.js";
-import { FIELD_PREFABS } from "../../../src/core/field/prefabs/index.js";
+import { OVERWORLD_PREFABS } from "../../../src/core/overworld/prefabs/index.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/levels/level.js";
 
@@ -57,7 +57,7 @@ describe("getLevel", () => {
     const { halfWidth, halfDepth, border } = level.layout;
     assert.ok(Math.abs(level.spawn.x) <= halfWidth - border && Math.abs(level.spawn.z) <= halfDepth - border);
     assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
-    for (const s of level.spawns) assert.ok(s.prefab in FIELD_PREFABS);
+    for (const s of level.spawns) assert.ok(s.prefab in OVERWORLD_PREFABS);
     assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
     assert.ok(level.grass.stepDist > 0);
   });

@@ -1,9 +1,9 @@
-/** Builds the `state` message: what the client may know about the field right now. */
+/** Builds the `state` message: what the client may know about the overworld right now. */
 import {
   roundTo, VIEW, viewCenter, viewHalfWidth, type ActorSnap, type ServerMsgOf,
 } from "@infinite-tower/shared";
-import type { Field } from "../field/field.js";
-import { FieldActor, FieldPos } from "../field/components.js";
+import type { Overworld } from "../overworld/overworld.js";
+import { OverworldActor, OverworldPos } from "../overworld/components.js";
 
 /**
  * Numbers go out as JSON text, where a raw float is ~18 characters. 2 decimals is 1 cm, far below
@@ -22,17 +22,17 @@ const VIEW_MARGIN_TILES = 3;
 /** The server doesn't know the window's shape, so it assumes the widest one allowed. */
 const VIEW_HALF_WIDTH = viewHalfWidth(VIEW.maxAspect);
 
-export function stateMsg(field: Field): ServerMsgOf<"state"> {
-  const me = field.playerPos();
-  const center = viewCenter(field.level.layout, me, VIEW_HALF_WIDTH);
+export function stateMsg(overworld: Overworld): ServerMsgOf<"state"> {
+  const me = overworld.playerPos();
+  const center = viewCenter(overworld.level.layout, me, VIEW_HALF_WIDTH);
   const reachX = VIEW_HALF_WIDTH + VIEW_MARGIN_TILES, reachZ = VIEW.halfHeight + VIEW_MARGIN_TILES;
   const actors: ActorSnap[] = [];
-  for (const [id, a, p] of field.world.query(FieldActor, FieldPos)) {
+  for (const [id, a, p] of overworld.world.query(OverworldActor, OverworldPos)) {
     if (Math.abs(p.x - center.x) > reachX || Math.abs(p.z - center.z) > reachZ) continue;
     actors.push({
       id, kind: a.kind, x: forWire(p.x), z: forWire(p.z), vx: forWire(a.vx), vz: forWire(a.vz), facing: a.facing,
       alert: a.alert,
     });
   }
-  return { t: "state", ack: field.playerData().ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors };
+  return { t: "state", ack: overworld.playerData().ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors };
 }

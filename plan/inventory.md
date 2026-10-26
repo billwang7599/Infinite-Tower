@@ -19,5 +19,5 @@ The user's decisions are in [AGENTS.md](../AGENTS.md).
 - Leaving mid-fight: closing the tab (or losing the connection) during a fight drops the fight and saves the bag
   and the HP you came in with, so quitting escapes a death. Should leaving mid-fight count as dying?
 - Equipment: equipped things weigh but take no bag space. Is the sword an item you carry, and can it be lost?
-- Splitting a stack (taking some of it), dropping items on the field, and sorting the bag.
+- Splitting a stack (taking some of it), dropping items on the overworld, and sorting the bag.
 - The weight is still a line of text ("Weight 8 / 60"); a bar against the limit could replace it.

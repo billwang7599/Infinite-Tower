@@ -19,7 +19,7 @@ add, move or rename files, or change how the pieces talk to each other.
 
 ```
               Browser: client/
-  ui/ (React)    game/    field/    battle/ (Babylon + Havok)
+  ui/ (React)    game/    overworld/    battle/ (Babylon + Havok)
        │                                 │
        │ HTTP /api                       │ WebSocket /ws
        ▼                                 ▼
@@ -33,7 +33,7 @@ add, move or rename files, or change how the pieces talk to each other.
 └──────────────────────────────────────────────────────────┘
 Arrows point at what each piece plugs into or calls.
 
-shared/: code both sides run (ECS, math, message types + Zod schemas, field walking, the view size)
+shared/: code both sides run (ECS, math, message types + Zod schemas, overworld walking, the view size)
 ```
 
 Three npm workspaces. The rule: **shared = code both sides run; server = anything a player must not be able to
@@ -54,19 +54,19 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    `welcome` (HP / stamina, stats, settings, character, wins, bag). With no character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
-4. **Field.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
+4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
    shared `stepWalker` (at the pace the bag's weight allows). The server replays the inputs, runs the level's
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server sends `encounter` (enemy, arena, your HP / stamina, stats and burden). The client switches to
    battle mode and runs the fight itself, then reports `battleEnd { won, vitals }`. The server checks the claim,
-   rolls drops (or, on a loss, empties the bag), saves and answers `battleResult`; Enter goes back to the field.
+   rolls drops (or, on a loss, empties the bag), saves and answers `battleResult`; Enter goes back to the overworld.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
 ## Server: core plus outlets
 
-The server is hexagonal. `server/src/core/` is the game: sessions, the field, fights, levels, content and the
+The server is hexagonal. `server/src/core/` is the game: sessions, the overworld, fights, levels, content and the
 account rules. It knows nothing about sockets, HTTP, SQL or env; what it needs from outside it asks for through the
 interfaces in `core/ports.ts`. The outlets plug into it, and `main.ts` is the only file that sees everything:
 
@@ -100,11 +100,12 @@ main.ts
 - **Game data is ECS** (`shared/src/core/ecs.ts`: world, components, queries). Systems are functions run in a fixed
   order. Services (the connection, keyboard, mouse, prediction) are plain classes.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
-  field (`field/`, mode `"field"`) and the fight (`battle/`, mode `"battle"`). Field mirrors (`FieldPos`,
-  `FieldActor`) and arena entities (`Fighter`, `Body`, ...) live side by side; only the active mode's systems run.
+  overworld (`overworld/`, mode `"overworld"`) and the fight (`battle/`, mode `"battle"`). Overworld mirrors
+  (`OverworldPos`, `OverworldActor`) and arena entities (`Fighter`, `Body`, ...) live side by side; only the active
+  mode's systems run.
   Arena fighters are spawned on encounter and destroyed when you return.
-- **The field draws what the server says.** `field/mirror.ts` spawns a drawing per actor `kind`;
-  `field/prediction.ts` predicts your own walking and reconciles with the server's acks.
+- **The overworld draws what the server says.** `overworld/mirror.ts` spawns a drawing per actor `kind`;
+  `overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The arena runs in the browser for now.** Babylon's deterministic lockstep steps it at a fixed 60 Hz
   (`onBeforeStep` / `onAfterStep`), only while its scene renders; render-only systems run once per frame.
   System order (`battle/battle.ts`), fixed step: player input -> player controller -> enemy brain -> attacks ->
@@ -130,7 +131,7 @@ main.ts
   (`bar`, `bar-layer`). Write each class name out in full (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``),
   because Tailwind can't find names built from pieces; joining whole names (a long list over two strings) is
   fine. Motion comes with `motion-reduce:animate-none`.
-- **Every screen sees the same amount, at most**: 16:9 (23 x 13 field tiles, `shared/src/field/view.ts`).
+- **Every screen sees the same amount, at most**: 16:9 (23 x 13 overworld tiles, `shared/src/overworld/view.ts`).
   `client/index.html` puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see
   a little less width.
 
@@ -168,7 +169,7 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
 While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zod check; dropped if invalid, more
 than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
 `GameSession`, which answers with `link.send(...)`. `state` isn't an answer: the clock ticks every session 60
-times a second, and every 3rd tick in the field it sends one.
+times a second, and every 3rd tick in the overworld it sends one.
 
 | Client -> server | When |
 |---|---|
@@ -176,7 +177,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in bag cell `at` |
-| `moveItem {from, to, turned}` | moved what's in cell `from` so its top-left is at `to` (field only; shown at once) |
+| `moveItem {from, to, turned}` | moved cell `from`'s item so its top-left is at `to` (overworld only; shown at once) |
 | `battleEnd {won, vitals}` | the fight was decided and you left the arena |
 | `settings` | a setting changed (debounced on the client) |
 | `debug {cmd}` | dev server only: `encounter` starts a fight |
@@ -186,7 +187,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, bag, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
-| `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors |
+| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: enemy, arena, your HP / stamina, stats and burden (how weighed down you are) |
 | `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, left behind, `lost`, bag |
 | `rested`, `itemUsed` | what resting or eating did |
@@ -217,16 +218,16 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the server accepts from clients and the sentences it answers with).
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
-  numbers the tests own. Joining, a second tab, saving, the field's input replay and encounters, battles and the
+  numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, battles and the
   win check, resting, items, accounts and passwords are all tested without a database or a socket.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
   tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
-  sync, when the mouse is captured, field prediction, the title's sequence timing, character creation's steps and
-  rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the item
-  pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the battle
-  sprite in each pose). Rendering, the arena fight and the React screens are tried in a browser.
+  sync, when the mouse is captured, overworld prediction, the title's sequence timing, character creation's steps
+  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
+  item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
+  battle sprite in each pose). Rendering, the arena fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -255,10 +256,11 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 
 ## Folders and files
 
-**Names.** The 2D map is the **field** everywhere (shared `field/`, server `core/field/`, client `field/`, `Field*`
-components, mode `"field"`); the fight is a **battle** (client folder, mode), and the place it happens is the
-**arena**. React components are PascalCase `.tsx` files that export components only (so Vite Fast Refresh works);
-game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the name (`MAX_BODY_BYTES`).
+**Names.** The 2D map is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
+`overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode), and the
+place it happens is the **arena**. React components are PascalCase `.tsx` files that export components only (so
+Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the
+name (`MAX_BODY_BYTES`).
 
 **Top level.**
 
@@ -278,7 +280,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   index.ts         Re-exports everything (import from "@infinite-tower/shared")
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom), time.ts
-  field/           layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
+  overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, LungeAttack, ChargeAttack),
@@ -302,7 +304,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    settings.ts (MAX_KEYS_PER_ACTION)
 shared/test/      Unit tests, mirroring src/ (npm test)
 
-server/          Node. Authoritative: levels, encounters, field actors, enemy stats, fight results, saves.
+server/          Node. Authoritative: levels, encounters, overworld actors, enemy stats, fight results, saves.
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
   scripts/         check-layers.ts (the hexagonal import rules; run by `npm run typecheck`)
   test/            Unit tests, mirroring src/. fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
@@ -315,17 +317,17 @@ server/          Node. Authoritative: levels, encounters, field actors, enemy st
       ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
                        PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
-                       tab takes over), session.ts (GameSession, one player: their save, their field, the battle
+                       tab takes over), session.ts (GameSession, one player: their save, their overworld, the battle
                        they're in; a method per thing a player can ask), battle.ts (start / settle battles, refuse
                        impossible wins and healing; a loss empties the bag), inventory.ts (packLoot: drops
                        into the bag), snapshot.ts (the state message: only actors near your screen), clock.ts
                        (FixedClock: 60 Hz steps, catching up after stalls)
-      field/           The field simulation. field.ts (Field: one player's world, level, systems and spawner),
-                       components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor from behavior
-                       parts), context.ts (FieldContext, what systems get), player.ts (input queue + replay, grass
-                       encounters, findPlayer), spawner.ts
+      overworld/       The overworld simulation. overworld.ts (Overworld: one player's world, level, systems and
+                       spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer), parts.ts (spawnActor
+                       from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
+                       + replay, grass encounters, findPlayer), spawner.ts
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
-        prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (FIELD_PREFABS by id)
+        prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (OVERWORLD_PREFABS by id)
       levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts
                        (registry), grass-field.ts
       content/         enemies.ts (ENEMIES by id), player.ts (PLAYER_STATS, fullVitals, newPlayer), drops.ts
@@ -357,7 +359,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     game/            start.ts (its own lazily loaded chunk with Babylon: prepareGame() builds the engine, Havok,
                      both scenes and modes and input (off) once, behind the title, and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
-                     messages, keeps the settings in sync, field <-> battle switching, who gets input, the
+                     messages, keeps the settings in sync, overworld <-> battle switching, who gets input, the
                      character from `welcome` / `character`, opening creation without one), battle-toasts.ts
                      (what a `battleResult` says: found, left behind, died / lost, refused), look.ts (repaints
                      the player's sprites in their look), transition.ts (Mode, flash / fade), debug.ts (the dev
@@ -371,11 +373,12 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
-                     KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity), mouse.ts
-                     (MouseSettings: auto lock, on by default, so a save without it reads as on)
+                     KeyBindings: the player's keys; keys saved under the old group name `field` load as the
+                     overworld's), camera.ts (CameraSettings: sensitivity), mouse.ts (MouseSettings: auto lock, on
+                     by default, so a save without it reads as on)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look): the look's chibi facing each way on the field, its battle
+                     characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
                      sprite in each pose in the arena; the boar)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
@@ -392,8 +395,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings,
                        character creation, title screen (the HUD and Settings only once `inWorld` and not
                        creating; creation as soon as a game runs without a character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD; bars
-                       are `...Fraction`, 0..1), `settingsScreen`, `creation` and `fieldPanel` (which side
+      state.ts         UiState: the stores the game writes (title, screen, toasts, overworld HUD, battle HUD; bars
+                       are `...Fraction`, 0..1), `settingsScreen`, `creation` and `overworldPanel` (which side
                        panel is open: the UI writes them too, the game watches them; the open bag has the keys,
                        `bagHasTheKeys`), and UiActions (what the UI asks of the game: signIn, logOut, play, rest,
                        useItem, moveItem, saveCharacter, returnToTitle). No React.
@@ -405,7 +408,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
                        click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener),
                        LookPicture.tsx (a look on a canvas: the portrait, or the chibi facing front), ItemPicture.tsx
-      hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
+      hud/             OverworldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats; statText.ts), inventory/ (the bag screen: InventoryPanel.tsx wires
                        the mouse and the bag keys, BagGrid.tsx draws the grid and the hovered / selected /
@@ -429,15 +432,15 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what
                          the System says), LookMaker.tsx (the panel), options.ts (its rows), SystemWindow.tsx,
                          useTyped.ts (text typed out), styles.ts (dark on white)
-    field/           The 2D field mode: mirrors the server
-      field.ts         The mode: level loads, the walk keys, server state, the field HUD, render
-      scene.ts         Babylon scene + ortho camera, FieldView, layerY, flatSprite (a quad lying on the field)
+    overworld/       The 2D overworld mode: mirrors the server
+      overworld.ts     The mode: level loads, the walk keys, server state, the overworld HUD, render
+      scene.ts         Babylon scene + ortho camera, OverworldView, layerY, flatSprite (a quad lying on the overworld)
       prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
       facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
       mirror.ts        Mirror the server's actors (spawned by kind via entities/)
-      components.ts    FieldPos, FieldActor, FieldSprite
-      entities/        actor.ts (spawnFieldActor: position + sprite + overlays), player.ts, boar.ts, index.ts
-                       (FIELD_PREFABS by ActorSnap.kind)
+      components.ts    OverworldPos, OverworldActor, OverworldSprite
+      entities/        actor.ts (spawnOverworldActor: position + sprite + overlays), player.ts, boar.ts, index.ts
+                       (OVERWORLD_PREFABS by ActorSnap.kind)
       systems/         sprites.ts (glide to server positions, the chibi's facing, tuft, "!"), camera.ts (follow, the
                        view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
@@ -464,9 +467,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   handler in `client/src/game/game.ts`'s `net.listen({...})`.
 - **A level.** A file in `server/src/core/levels/` listed in `index.ts`; reuse a theme or add a renderer in
-  `client/src/field/levels/`.
-- **A field actor.** A prefab in `server/src/core/field/prefabs/` (a list of behavior parts) plus a client drawing
-  in `client/src/field/entities/` under the same `kind`. New behavior: component + factory + system in
+  `client/src/overworld/levels/`.
+- **An overworld actor.** A prefab in `server/src/core/overworld/prefabs/` (a list of behavior parts) plus a client
+  drawing in `client/src/overworld/entities/` under the same `kind`. New behavior: component + factory + system in
   `behaviors/`.
 - **An arena enemy.** An `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks. A new attack type is
   a def shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
@@ -512,8 +515,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
-| Field-actor behavior numbers | `server/src/core/field/prefabs/` |
+| Overworld-actor behavior numbers | `server/src/core/overworld/prefabs/` |
 | Arena camera feel | top of `client/src/battle/systems/camera.ts` |
-| View size | `shared/src/field/view.ts` (`VIEW`) |
+| View size | `shared/src/overworld/view.ts` (`VIEW`) |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).

@@ -1,7 +1,7 @@
 /** Builders for the game tests: a started session with fakes around it, and a clock the battle code reads. */
 import type { TestContext } from "node:test";
-import { FieldPos } from "../../../src/core/field/components.js";
-import { EncounterOnTouch } from "../../../src/core/field/behaviors/touch.js";
+import { OverworldPos } from "../../../src/core/overworld/components.js";
+import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { newPlayer } from "../../../src/core/content/player.js";
 import { GameSession } from "../../../src/core/game/session.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
@@ -29,10 +29,10 @@ export function fakeNow(t: TestContext): { ms: number } {
 
 export const HOUR_MS = 60 * 60 * 1000;
 
-/** The field's touch-to-fight actor (the start level's boar) and where it stands. */
+/** The overworld's touch-to-fight actor (the start level's boar) and where it stands. */
 export function findBoar(session: GameSession) {
-  const found = session.field.world.first(EncounterOnTouch, FieldPos);
-  if (!found) throw new Error("no boar on the field");
+  const found = session.overworld.world.first(EncounterOnTouch, OverworldPos);
+  if (!found) throw new Error("no boar on the overworld");
   const [boar, , pos] = found;
   return { boar, pos };
 }

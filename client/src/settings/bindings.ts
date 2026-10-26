@@ -19,7 +19,7 @@ interface ActionDef {
 }
 
 export const ACTIONS = {
-  field: {
+  overworld: {
     up: { label: "Walk up", keys: ["KeyW", "ArrowUp"] },
     down: { label: "Walk down", keys: ["KeyS", "ArrowDown"] },
     left: { label: "Walk left", keys: ["KeyA", "ArrowLeft"] },
@@ -99,7 +99,7 @@ export class KeyBindings extends Store<KeyMap> {
    */
   restore(saved: unknown): void {
     this.set(buildMap((ref) => {
-      const keys = prop(prop(saved, ref.group), ref.action);
+      const keys = prop(savedGroup(saved, ref.group), ref.action);
       return isKeyList(keys) ? keys : defaultKeys(ref);
     }));
   }
@@ -181,6 +181,14 @@ function buildMap(keysFor: (ref: ActionRef) => readonly string[]): KeyMap {
 
 const prop = (o: unknown, key: string): unknown =>
   typeof o === "object" && o !== null ? (o as Record<string, unknown>)[key] : undefined;
+
+/** Groups that used to be saved under another name. The next save writes the new name and drops the old. */
+const OLD_GROUP_NAMES: Partial<Record<Group, string>> = { overworld: "field" };
+
+function savedGroup(saved: unknown, group: Group): unknown {
+  const old = OLD_GROUP_NAMES[group];
+  return prop(saved, group) ?? (old === undefined ? undefined : prop(saved, old));
+}
 
 const isKeyList = (v: unknown): v is string[] =>
   Array.isArray(v) && v.length >= 1 && v.length <= MAX_KEYS_PER_ACTION && new Set(v).size === v.length

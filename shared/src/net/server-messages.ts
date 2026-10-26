@@ -2,7 +2,7 @@
  * Server -> client messages. The server is trusted, so these are plain types (no runtime checks).
  *
  * Flow: `welcome` once, then `level` whenever you enter a level (also right after welcome). In the
- * field the client sends one `input` per fixed tick and predicts its own movement; the server replays
+ * overworld the client sends one `input` per fixed tick and predicts its own movement; the server replays
  * the inputs, runs the level, and sends `state` ~20x/s with the last input it processed (`ack`).
  */
 import type { Vec2 } from "../core/math.js";
@@ -13,11 +13,11 @@ import type { Character } from "../character/character.js";
 import type { Bag } from "../items/bag.js";
 import type { Burden } from "../items/burden.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
-import type { LevelLayout } from "../field/layout.js";
+import type { LevelLayout } from "../overworld/layout.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";
 
-/** Something the client should draw on the field. `kind` picks the client prefab. */
+/** Something the client should draw on the overworld. `kind` picks the client prefab. */
 export interface ActorSnap {
   id: number;
   kind: "boar";

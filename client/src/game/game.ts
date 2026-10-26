@@ -1,11 +1,11 @@
 /**
  * Mode switching and sessions. Two modes, two Babylon scenes, one ECS world:
- * - field:  the 2D map (field/), its own fixed-step loop.
- * - battle: the 2.5D arena (battle/), stepped by Babylon's lockstep + Havok.
+ * - overworld: the 2D map (overworld/), its own fixed-step loop.
+ * - battle:    the 2.5D arena (battle/), stepped by Babylon's lockstep + Havok.
  * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
  * encounters and fight results; this routes its messages (one handler per message type), keeps the settings in
  * sync with it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back
- * to the field.
+ * to the overworld.
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import { itemDef, moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
@@ -13,7 +13,7 @@ import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
-import type { Field } from "../field/field.js";
+import type { Overworld } from "../overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
@@ -29,7 +29,7 @@ export interface Game {
   join(joined: Joined): void;
   /** End the session: send any unsent settings, hang up, stop drawing, forget the level and any fight. */
   leave(): void;
-  /** The Leave key in a decided fight: fade back to the field. */
+  /** The Leave key in a decided fight: fade back to the overworld. */
   leaveBattle(): void;
   rest(): void;
   useItem(at: Cell): void;
@@ -46,10 +46,10 @@ interface GameParts {
   ui: UiState;
   settings: Settings;
   battle: Battle;
-  field: Field;
+  overworld: Overworld;
 }
 
-export function createGame({ engine, keyboard, mouse, ui, settings, battle, field }: GameParts): Game {
+export function createGame({ engine, keyboard, mouse, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let stopSync = () => {};
@@ -63,19 +63,19 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
    */
   const updateInput = () => {
     const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open && !ui.creation.get().open;
-    keyboard.enabled = playing && !bagHasTheKeys(mode, ui.fieldPanel.get().open);
+    keyboard.enabled = playing && !bagHasTheKeys(mode, ui.overworldPanel.get().open);
     mouse.setLockable(playing && mode === "battle", settings.mouse.get().autoLock);
   };
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
-  ui.fieldPanel.subscribe(updateInput);
+  ui.overworldPanel.subscribe(updateInput);
   ui.title.subscribe(updateInput);
   updateInput();
 
   const setMode = (next: Mode | null) => {
     mode = next;
-    // Panels are the field's: a fight, or leaving, closes them.
-    if (next !== "field") ui.closeFieldPanel();
+    // Panels are the overworld's: a fight, or leaving, closes them.
+    if (next !== "overworld") ui.closeOverworldPanel();
     ui.screen.set({ mode: next });
     updateInput();
   };
@@ -86,10 +86,10 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     setMode("battle");
   };
 
-  const enterField = () => {
+  const enterOverworld = () => {
     net?.send({ t: "battleEnd", ...battle.end() });
     keyboard.clearPressed();
-    setMode("field");
+    setMode("overworld");
   };
 
   /**
@@ -97,8 +97,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
    * screen closes itself, once it has seen the saved character here and played out.
    */
   const applyCharacter = (character: Character | null) => {
-    ui.field.set({ character });
-    if (character) applyLook(battle, field, character.look);
+    ui.overworld.set({ character });
+    if (character) applyLook(battle, overworld, character.look);
     else ui.creation.set({ open: true });
   };
 
@@ -107,14 +107,14 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
       const fade = stepTransition(transition, dt);
       ui.screen.set({ fadeColor: fade.color, fadeOpacity: fade.opacity });
       if (fade.swapNow) {
-        if (transition.to === "field") enterField();
+        if (transition.to === "overworld") enterOverworld();
         else if (encounter) enterBattle(encounter);
       }
       if (fade.done) transition = null;
     }
-    if (mode === "field") {
-      field.update(dt, transition !== null);
-      field.render();
+    if (mode === "overworld") {
+      overworld.update(dt, transition !== null);
+      overworld.render();
     } else if (mode === "battle") {
       battle.render();
     }
@@ -124,19 +124,19 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     mode: () => mode,
     leaveBattle() {
       if (mode !== "battle" || transition) return;
-      transition = startTransition("field");
+      transition = startTransition("overworld");
     },
     rest() {
-      if (mode === "field" && !transition) field.rest();
+      if (mode === "overworld" && !transition) overworld.rest();
     },
     useItem(at) {
-      if (mode === "field" && !transition) net?.send({ t: "useItem", at });
+      if (mode === "overworld" && !transition) net?.send({ t: "useItem", at });
     },
     moveItem(from, to, turned) {
-      if (mode !== "field" || transition || !net) return;
-      const moved = moveInBag(ui.field.get().bag, from, to, turned);
+      if (mode !== "overworld" || transition || !net) return;
+      const moved = moveInBag(ui.overworld.get().bag, from, to, turned);
       if (!moved) return;
-      field.setBag(moved);
+      overworld.setBag(moved);
       net.send({ t: "moveItem", from, to, turned });
     },
     saveCharacter(character) {
@@ -147,37 +147,37 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
       restoreSettings(settings, joined.welcome.settings);
       stopSync = syncSettings(settings, net);
       // Before `listen`: the level may already be waiting in the connection's backlog.
-      field.join(joined);
+      overworld.join(joined);
       applyCharacter(joined.welcome.character);
       net.listen({
-        level: (msg) => field.onLevel(msg),
-        state: (msg) => field.onState(msg),
+        level: (msg) => overworld.onLevel(msg),
+        state: (msg) => overworld.onState(msg),
         encounter(msg) {
-          field.onEncounter(msg);
+          overworld.onEncounter(msg);
           encounter = msg;
           transition = startTransition("battle");
         },
         character: (msg) => applyCharacter(msg.character),
         rested(msg) {
-          field.setVitals(msg.vitals);
+          overworld.setVitals(msg.vitals);
           ui.showToast("You rest by the fire. HP and stamina are restored.");
         },
         itemUsed(msg) {
-          field.setVitals(msg.vitals);
-          field.setBag(msg.bag);
+          overworld.setVitals(msg.vitals);
+          overworld.setBag(msg.bag);
           const def = itemDef(msg.item);
           ui.showToast(`${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`);
         },
-        bag: (msg) => field.setBag(msg.bag),
+        bag: (msg) => overworld.setBag(msg.bag),
         battleResult(msg) {
-          field.onBattleResult(msg);
+          overworld.onBattleResult(msg);
           for (const text of battleToasts(msg)) ui.showToast(text);
         },
       });
-      setMode("field");
+      setMode("overworld");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
       exposeDebugHandles({
-        battle, field, ui, settings, mode: () => mode, encounter: () => net?.send({ t: "debug", cmd: "encounter" }),
+        battle, overworld, ui, settings, mode: () => mode, encounter: () => net?.send({ t: "debug", cmd: "encounter" }),
       });
     },
     leave() {
@@ -189,7 +189,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
       net = null;
       if (mode === "battle") battle.end();
       transition = encounter = null;
-      field.leave();
+      overworld.leave();
       ui.settingsScreen.set({ open: false });
       ui.creation.set({ open: false });
       ui.toasts.set({ items: [] });

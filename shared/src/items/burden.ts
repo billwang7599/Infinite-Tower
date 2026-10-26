@@ -4,9 +4,9 @@
  *
  *   light       up to the limit: nothing
  *   heavy       over the limit: a dodge costs `heavyDodgeCost` times the stamina
- *   overloaded  over `overloadedAt` times the limit: no dodging, and walking (field and arena) at `overloadedPace`
+ *   overloaded  over `overloadedAt` times the limit: no dodging, and walking (overworld and arena) at `overloadedPace`
  *
- * Shared: the server walks the field at this pace and the client predicts it; the arena reads the burden the
+ * Shared: the server walks the overworld at this pace and the client predicts it; the arena reads the burden the
  * server sends with the encounter.
  */
 import { PLAYER } from "../battle/player.js";

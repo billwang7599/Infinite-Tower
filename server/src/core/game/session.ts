@@ -1,6 +1,6 @@
 /**
  * One connected player's game. Starts from their save and holds what they have (vitals, wins, settings,
- * character, bag) and where they are: walking their field, or in a battle (battle.ts). Its public methods
+ * character, bag) and where they are: walking their overworld, or in a battle (battle.ts). Its public methods
  * are what a player can ask for (ws/handlers.ts calls them, one per message), and it answers through its
  * `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
@@ -9,7 +9,7 @@ import {
   type Character, type SavedSettings, type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
-import { Field } from "../field/field.js";
+import { Overworld } from "../overworld/overworld.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { settleBattle, startBattle, type Battle } from "./battle.js";
@@ -26,8 +26,8 @@ const REST_SLACK_TILES = 0.6;
 const SAVE_SOON_MS = 1000;
 
 export class GameSession {
-  readonly field = new Field((source, enemy) => startBattle(this, source, enemy));
-  /** null while in the field; set during a battle. */
+  readonly overworld = new Overworld((source, enemy) => startBattle(this, source, enemy));
+  /** null while in the overworld; set during a battle. */
   battle: Battle | null = null;
   wins: number;
   vitals: Vitals;
@@ -54,11 +54,11 @@ export class GameSession {
     this.bag = saved.bag;
   }
 
-  /** What the player carries. Its weight sets how fast they walk the field (`walkPace`). */
+  /** What the player carries. Its weight sets how fast they walk the overworld (`walkPace`). */
   get bag(): Bag { return this.carried; }
   set bag(bag: Bag) {
     this.carried = bag;
-    this.field.playerData().pace = walkPace(this.burden);
+    this.overworld.playerData().pace = walkPace(this.burden);
   }
 
   /** How weighed down the bag leaves the player. */
@@ -75,7 +75,7 @@ export class GameSession {
 
   /** A walking input (the client sends one per tick while moving). */
   input(seq: number, moveX: number, moveZ: number): void {
-    if (this.inField) this.field.input(seq, moveX, moveZ);
+    if (this.inOverworld) this.overworld.input(seq, moveX, moveZ);
   }
 
   /** The client left a decided fight; battle.ts checks what it claims. */
@@ -85,7 +85,7 @@ export class GameSession {
 
   /** Dev servers only: a battle right now, without finding one. */
   debugEncounter(): void {
-    if (this.dev && this.inField) startBattle(this, null, "wild-boar");
+    if (this.dev && this.inOverworld) startBattle(this, null, "wild-boar");
   }
 
   /** Makes the player's character. Only once: a character is kept for good, so with one already this does nothing. */
@@ -94,12 +94,13 @@ export class GameSession {
     this.character = character;
     this.save();
     this.link.send({ t: "character", character });
-    if (!this.field.hasLevel) this.enterLevel(START_LEVEL);
+    if (!this.overworld.hasLevel) this.enterLevel(START_LEVEL);
   }
 
   /** Rest at a campfire, if the server's copy of you is standing by one: HP and stamina refill. */
   rest(): void {
-    if (!this.inField || !nearCampfire(this.field.level.layout, this.field.playerPos(), REST_SLACK_TILES)) return;
+    if (!this.inOverworld) return;
+    if (!nearCampfire(this.overworld.level.layout, this.overworld.playerPos(), REST_SLACK_TILES)) return;
     const full = fullVitals(this.stats);
     if (full.hp !== this.vitals.hp || full.stamina !== this.vitals.stamina) {
       this.vitals = full;
@@ -113,16 +114,16 @@ export class GameSession {
     const item = this.bag.items[itemAt(this.bag, at)]?.item;
     const healHp = item ? itemDef(item).healHp ?? 0 : 0;
     const left = takeOne(this.bag, at);
-    if (!this.inField || !item || !left || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
+    if (!this.inOverworld || !item || !left || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
     this.bag = left;
     this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + healHp) };
     this.save();
     this.link.send({ t: "itemUsed", item, vitals: this.vitals, bag: this.bag });
   }
 
-  /** Move what's in bag cell `from` to `to` (shared `moveItem`), on the field. The bag goes back either way. */
+  /** Move what's in bag cell `from` to `to` (shared `moveItem`), on the overworld. The bag goes back either way. */
   moveItem(from: Cell, to: Cell, turned: boolean): void {
-    if (!this.inField) return;
+    if (!this.inOverworld) return;
     const moved = moveItem(this.bag, from, to, turned);
     if (moved) {
       this.bag = moved;
@@ -148,12 +149,12 @@ export class GameSession {
   }
 
   /** Walking around a level: not in a battle, and not still making a character. */
-  get inField(): boolean { return this.battle === null && this.field.hasLevel; }
+  get inOverworld(): boolean { return this.battle === null && this.overworld.hasLevel; }
 
   tick(dt: number): void {
-    if (!this.inField) return;
-    this.field.step(dt);
-    if (this.inField && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.field));
+    if (!this.inOverworld) return;
+    this.overworld.step(dt);
+    if (this.inOverworld && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld));
   }
 
   /** Saved within SAVE_SOON_MS, or on disconnect, whichever is first. */
@@ -164,7 +165,7 @@ export class GameSession {
   /** Load a level and tell the client. */
   private enterLevel(id: string): void {
     const level = getLevel(id);
-    this.field.enter(level);
-    this.link.send({ t: "level", level: level.layout, me: this.field.playerPos() });
+    this.overworld.enter(level);
+    this.link.send({ t: "level", level: level.layout, me: this.overworld.playerPos() });
   }
 }

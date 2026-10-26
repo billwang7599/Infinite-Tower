@@ -9,7 +9,7 @@ import { CHARACTER_NAME_RULES, DEFAULT_LOOK, type Character } from "@infinite-to
 import { useEffect, useReducer, useState } from "react";
 import { LookPicture } from "../../components/LookPicture.js";
 import { useKeydown } from "../../components/useKeydown.js";
-import type { CreationState, FieldHudState, TitleState } from "../../state.js";
+import type { CreationState, OverworldHudState, TitleState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { useReducedMotion } from "../title/useSequence.js";
@@ -39,7 +39,7 @@ const FLOOR_LINE = "absolute inset-x-[-8%] -bottom-2 h-px bg-linear-to-r from-tr
 
 interface CreationProps {
   /** Gets the character once the server has saved it. */
-  field: Store<FieldHudState>;
+  overworld: Store<OverworldHudState>;
   /** The username suggests a name. */
   title: Store<TitleState>;
   /** The title has cleared off this screen. */
@@ -54,9 +54,9 @@ export function CreationScreen({ creation, ...props }: CreationProps & { creatio
   return open ? <Creation {...props} /> : null;
 }
 
-function Creation({ field, title, active, save, close }: CreationProps) {
+function Creation({ overworld, title, active, save, close }: CreationProps) {
   const username = useStore(title, (s) => s.username);
-  const saved = useStore(field, (s) => s.character);
+  const saved = useStore(overworld, (s) => s.character);
   const still = useReducedMotion();
   const motion = still ? "still" : "moving";
   const [scene, dispatch] = useReducer(nextScene, START);

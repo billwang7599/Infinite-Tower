@@ -10,7 +10,7 @@ import { bagBurden, bagWeight, carryLimit, type Burden, type Cell } from "@infin
 import { useEffect, useRef, useState } from "react";
 import type { KeyBindings } from "../../../settings/bindings.js";
 import { useKeydown } from "../../components/useKeydown.js";
-import type { FieldHudState, SettingsScreenState } from "../../state.js";
+import type { OverworldHudState, SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
@@ -24,7 +24,7 @@ import { CELL } from "./grid.js";
 import { formatWeight } from "./itemInfo.js";
 
 interface PanelProps {
-  hud: Store<FieldHudState>;
+  hud: Store<OverworldHudState>;
   bindings: KeyBindings;
   settingsScreen: Store<SettingsScreenState>;
   use: (at: Cell) => void;

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { ACTIONS, KeyBindings, keysOf, type ActionRef } from "../../src/settings/bindings.js";
 
-const up: ActionRef = { group: "field", action: "up" };
-const character: ActionRef = { group: "field", action: "character" };
-const inventory: ActionRef = { group: "field", action: "inventory" };
+const up: ActionRef = { group: "overworld", action: "up" };
+const character: ActionRef = { group: "overworld", action: "character" };
+const inventory: ActionRef = { group: "overworld", action: "inventory" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 
 const defaults = () => new KeyBindings().get();
@@ -19,7 +19,7 @@ describe("KeyBindings saving", () => {
     b.bind(jump, "KeyX", null);
     b.bind(inventory, "KeyC", "KeyI");
     assert.deepEqual(b.toSaved(), {
-      field: { character: ["KeyI"], inventory: ["KeyC"] },
+      overworld: { character: ["KeyI"], inventory: ["KeyC"] },
       battle: { jump: ["Space", "KeyX"] },
     });
   });
@@ -45,7 +45,7 @@ describe("KeyBindings saving", () => {
   test("restore puts every action not in the save back to its defaults", () => {
     const b = new KeyBindings();
     b.bind(jump, "KeyX", null);
-    b.restore({ field: { up: ["KeyZ"] } });
+    b.restore({ overworld: { up: ["KeyZ"] } });
     assert.deepEqual(keysOf(b.get(), up), ["KeyZ"]);
     assert.deepEqual(keysOf(b.get(), jump), ACTIONS.battle.jump.keys);
   });
@@ -53,7 +53,7 @@ describe("KeyBindings saving", () => {
   test("restore takes the defaults for anything unreadable, action by action", () => {
     const b = new KeyBindings();
     b.restore({
-      field: {
+      overworld: {
         up: "KeyW",
         down: [],
         left: ["KeyA", "KeyB", "KeyX", "KeyY"],
@@ -86,7 +86,7 @@ describe("KeyBindings saving", () => {
     assert.deepEqual(keysOf(b.get(), use), ACTIONS.bag.use.keys);
     assert.deepEqual(keysOf(b.get(), inventory), ["KeyB"]);
     assert.deepEqual(Object.keys(b.get().bag), ["turn", "use"]);
-    const saved = { field: { inventory: ["KeyB"] }, bag: { turn: ["KeyT"] } };
+    const saved = { overworld: { inventory: ["KeyB"] }, bag: { turn: ["KeyT"] } };
     assert.deepEqual(b.toSaved(), saved, "the old ones aren't saved back");
   });
 
@@ -98,12 +98,38 @@ describe("KeyBindings saving", () => {
   });
 
   test("restore of a non-object or a group that isn't an object gives the defaults", () => {
-    for (const saved of [null, undefined, "field", 42, [], { field: "up", battle: null }]) {
+    for (const saved of [null, undefined, "overworld", 42, [], { overworld: "up", battle: null }]) {
       const b = new KeyBindings();
       b.bind(character, "KeyX", null);
       b.restore(saved);
       assert.deepEqual(b.get(), defaults(), JSON.stringify(saved));
     }
+  });
+});
+
+describe("KeyBindings saved before the field was renamed the overworld", () => {
+  const overworld = (action: "up" | "inventory" | "rest"): ActionRef => ({ group: "overworld", action });
+
+  test("restore loads keys saved under the old group name `field` into `overworld`", () => {
+    const b = new KeyBindings();
+    b.restore({ field: { up: ["KeyZ"], inventory: ["KeyB"] }, battle: { jump: ["KeyX"] } });
+    assert.deepEqual(keysOf(b.get(), overworld("up")), ["KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), overworld("inventory")), ["KeyB"]);
+    assert.deepEqual(keysOf(b.get(), overworld("rest")), ACTIONS.overworld.rest.keys);
+    assert.deepEqual(keysOf(b.get(), jump), ["KeyX"]);
+  });
+
+  test("the next save writes them under `overworld`, without `field`", () => {
+    const b = new KeyBindings();
+    b.restore({ field: { up: ["KeyZ"] } });
+    assert.deepEqual(b.toSaved(), { overworld: { up: ["KeyZ"] } });
+  });
+
+  test("a save with both groups goes by `overworld` and ignores `field`", () => {
+    const b = new KeyBindings();
+    b.restore({ overworld: { up: ["KeyZ"] }, field: { up: ["KeyY"], inventory: ["KeyB"] } });
+    assert.deepEqual(keysOf(b.get(), overworld("up")), ["KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), overworld("inventory")), ACTIONS.overworld.inventory.keys);
   });
 });
 
@@ -120,7 +146,7 @@ describe("KeyBindings reset", () => {
 
   test("isDefault notices a reordering", () => {
     const b = new KeyBindings();
-    b.restore({ field: { up: ["ArrowUp", "KeyW"] } });
+    b.restore({ overworld: { up: ["ArrowUp", "KeyW"] } });
     assert.equal(b.isDefault(), false);
   });
 });

@@ -26,11 +26,11 @@ export interface Battle {
 const MIN_KILL_TIME_SHARE = 0.9;
 
 export function startBattle(session: GameSession, source: Entity | null, enemyId: EnemyId): void {
-  const { field, vitals } = session;
+  const { overworld, vitals } = session;
   session.battle = { source, enemyId, startedAtMs: performance.now(), vitals };
-  field.resetWalk(0);
+  overworld.resetWalk(0);
   session.link.send({
-    t: "encounter", source, enemy: ENEMIES[enemyId], arena: field.level.arena, me: field.playerPos(), vitals,
+    t: "encounter", source, enemy: ENEMIES[enemyId], arena: overworld.level.arena, me: overworld.playerPos(), vitals,
     stats: session.stats, burden: session.burden,
   });
 }
@@ -42,8 +42,8 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
   const fightTime = (performance.now() - battle.startedAtMs) / 1000;
   const accepted = !claimedWin || isPlausibleWin(ENEMIES[battle.enemyId], session.stats, fightTime);
   const won = claimedWin && accepted;
-  const { field } = session;
-  const loot = won ? rollDrops(battle.enemyId, field.rng) : {};
+  const { overworld } = session;
+  const loot = won ? rollDrops(battle.enemyId, overworld.rng) : {};
   const packed = packLoot(session.bag, loot);
   let lost: ItemCounts = {};
 
@@ -51,21 +51,21 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
     session.bag = packed.bag;
     session.wins++;
     // The spawner replaces it.
-    if (battle.source !== null && field.world.isAlive(battle.source)) field.world.destroy(battle.source);
-    field.world.flush();
+    if (battle.source !== null && overworld.world.isAlive(battle.source)) overworld.world.destroy(battle.source);
+    overworld.world.flush();
     session.vitals = vitalsAfterWin(battle.vitals, claimed, session.stats);
   } else {
     // Dying is hardcore: everything carried is gone. You wake up back at the start, rested.
     lost = bagCounts(session.bag);
     session.bag = { ...session.bag, items: [] };
-    field.place(field.level.spawn);
+    overworld.place(overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
-  field.resetWalk(field.level.safeTime);
+  overworld.resetWalk(overworld.level.safeTime);
   session.battle = null;
   session.save();
   session.link.send({
-    t: "battleResult", won, accepted, me: field.playerPos(), wins: session.wins, vitals: session.vitals,
+    t: "battleResult", won, accepted, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
     loot, leftBehind: packed.left, lost, bag: session.bag,
   });
 }

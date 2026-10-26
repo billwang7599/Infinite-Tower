@@ -64,34 +64,34 @@ describe("UiState screens", () => {
   });
 });
 
-describe("UiState field panels", () => {
+describe("UiState overworld panels", () => {
   test("one at a time: a panel key opens its panel, again closes it, another switches", () => {
     const ui = new UiState();
-    assert.equal(ui.fieldPanel.get().open, null);
-    ui.toggleFieldPanel("inventory");
-    assert.equal(ui.fieldPanel.get().open, "inventory");
-    ui.toggleFieldPanel("character");
-    assert.equal(ui.fieldPanel.get().open, "character");
-    ui.toggleFieldPanel("character");
-    assert.equal(ui.fieldPanel.get().open, null);
+    assert.equal(ui.overworldPanel.get().open, null);
+    ui.toggleOverworldPanel("inventory");
+    assert.equal(ui.overworldPanel.get().open, "inventory");
+    ui.toggleOverworldPanel("character");
+    assert.equal(ui.overworldPanel.get().open, "character");
+    ui.toggleOverworldPanel("character");
+    assert.equal(ui.overworldPanel.get().open, null);
   });
 
   test("closing closes whichever is open", () => {
     const ui = new UiState();
-    ui.toggleFieldPanel("inventory");
-    ui.closeFieldPanel();
-    assert.equal(ui.fieldPanel.get().open, null);
+    ui.toggleOverworldPanel("inventory");
+    ui.closeOverworldPanel();
+    assert.equal(ui.overworldPanel.get().open, null);
   });
 });
 
 describe("bagHasTheKeys", () => {
-  test("the open bag takes the keys on the field: you stand still while it's open", () => {
-    assert.equal(bagHasTheKeys("field", "inventory"), true);
+  test("the open bag takes the keys on the overworld: you stand still while it's open", () => {
+    assert.equal(bagHasTheKeys("overworld", "inventory"), true);
   });
 
   test("the character panel, no panel, or the arena leave the keys to the game", () => {
-    assert.equal(bagHasTheKeys("field", "character"), false);
-    assert.equal(bagHasTheKeys("field", null), false);
+    assert.equal(bagHasTheKeys("overworld", "character"), false);
+    assert.equal(bagHasTheKeys("overworld", null), false);
     assert.equal(bagHasTheKeys("battle", "inventory"), false);
     assert.equal(bagHasTheKeys(null, "inventory"), false);
   });
@@ -104,13 +104,13 @@ describe("inWorld", () => {
 
   test("HUDs and key-taking screens wait for the title to clear, and go as it comes back", () => {
     for (const phase of PHASES.filter((p) => p !== "playing")) {
-      assert.equal(inWorld("field", phase), false, phase);
+      assert.equal(inWorld("overworld", phase), false, phase);
       assert.equal(inWorld("battle", phase), false, phase);
     }
   });
 
-  test("once the title is gone, the field and the arena are both in the world", () => {
-    assert.equal(inWorld("field", "playing"), true);
+  test("once the title is gone, the overworld and the arena are both in the world", () => {
+    assert.equal(inWorld("overworld", "playing"), true);
     assert.equal(inWorld("battle", "playing"), true);
   });
 

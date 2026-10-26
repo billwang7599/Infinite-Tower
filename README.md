@@ -1,6 +1,6 @@
 # Infinite Tower
 
-A browser game in progress: an SAO-style souls-like where you explore a 2D field and fight monsters in small 2.5D
+A browser game in progress: an SAO-style souls-like where you explore a 2D overworld and fight monsters in small 2.5D
 arenas. Single-player for now.
 
 Babylon.js + Havok in the browser, React + Tailwind for the UI, a Node server (Fastify + ws), Postgres (Drizzle).
@@ -19,7 +19,7 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Field:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
+- **Overworld:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
   through tall grass, starts a fight. Wider screens than 16:9 get side bars.
 - **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,
   jump, stamina. You attack where the camera faces (no lock-on). The boar lunges up close and does a telegraphed
@@ -38,7 +38,7 @@ What's built so far:
   and Settings.
 - **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
-- **Server:** runs the field and checks every fight result before saving it. The fight itself still runs in the
+- **Server:** runs the overworld and checks every fight result before saving it. The fight itself still runs in the
   browser ([plan/server-fights.md](plan/server-fights.md)).
 
 ## Running it
@@ -83,11 +83,12 @@ git-ignored. `npm run dev` copies it from `.env.example` the first time. Changin
 ```
 shared/            code the server and the browser both run: ECS, math, fight rules and data, the Zod messages
 server/src/
-  core/            the game itself: accounts, the field, encounters, saving rules (no I/O)
+  core/            the game itself: accounts, the overworld, encounters, saving rules (no I/O)
   api/  ws/  db/   what plugs into core: HTTP (Fastify), the game socket, Postgres (Drizzle)
   main.ts          wires them together
 client/src/
-  field/ battle/   the two modes, drawn with Babylon.js
+  overworld/       the 2D map mode, drawn with Babylon.js
+  battle/          the 2.5D arena fight mode, drawn with Babylon.js
   net/             talking to the server
   ui/              the React UI (title, HUD, panels, settings)
   gfx/look/        character art in code: portrait, chibi, battle (style: ART.md; preview: localhost:5173/art.html)

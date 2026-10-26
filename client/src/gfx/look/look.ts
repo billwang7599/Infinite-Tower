@@ -27,7 +27,7 @@ export function drawPortrait(look: Look, wear?: readonly Art[]): Picture {
   return render("portrait", BODY_TYPES[look.body].portrait, pieces, colorsOf(look), FIXED);
 }
 
-/** The chibi facing `facing`; the field picks one by where the player last walked. */
+/** The chibi facing `facing`; the overworld picks one by where the player last walked. */
 export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]): Picture {
   const pieces = lookArts(look, wear).map((art) => art.chibi?.[facing]);
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);

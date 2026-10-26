@@ -1,4 +1,4 @@
-/** The field HUD's button icons (Lucide-style strokes). */
+/** The overworld HUD's button icons (Lucide-style strokes). */
 import type { ReactNode } from "react";
 
 function Icon({ children }: { children: ReactNode }) {

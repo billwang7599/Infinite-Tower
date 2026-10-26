@@ -3,11 +3,11 @@
  * Meanwhile game/start.ts (its own chunk) downloads and prepares the game behind the title, so Play only has to
  * connect and join.
  *
- *   game/     start-up, sessions, mode switching       net/      server connection, the account API
- *   field/    the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
- *   core/     keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
- *   settings/ key bindings, camera (kept on server)    ui/       React UI over the canvas (the game writes to
- *                                                                it through ui/state.ts)
+ *   game/      start-up, sessions, mode switching       net/      server connection, the account API
+ *   overworld/ the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
+ *   core/      keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
+ *   settings/  key bindings, camera (kept on server)    ui/       React UI over the canvas (the game writes to
+ *                                                                 it through ui/state.ts)
  */
 import { VIEW, type Credentials } from "@infinite-tower/shared";
 import { currentAccount, logIn, logOut, register } from "./net/account.js";
@@ -64,7 +64,7 @@ async function signOut(): Promise<void> {
 async function play(): Promise<void> {
   if (ui.title.get().phase !== "menu" || !ui.title.get().username) return;
   ui.title.set({ phase: "connecting", error: null });
-  // The server owns the field, encounters and enemies; nothing starts until it says hello.
+  // The server owns the overworld, encounters and enemies; nothing starts until it says hello.
   const joined = await Connection.open().catch((err: unknown) => {
     // The login expired since the page loaded: back to the form.
     if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", username: null, error: err.message });
@@ -86,7 +86,7 @@ async function play(): Promise<void> {
 
 /**
  * Leaves the world (hanging up on the server) and shows the title again, with `error` under Retry. The game stops
- * once the title's white covers it, so the field never blinks out in view.
+ * once the title's white covers it, so the overworld never blinks out in view.
  */
 async function backToTitle(error: string | null = null): Promise<void> {
   if (ui.title.get().phase === "returning") return;

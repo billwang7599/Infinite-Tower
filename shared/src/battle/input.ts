@@ -2,7 +2,7 @@ import { defineComponent } from "../core/ecs.js";
 
 /**
  * What an arena fighter wants to do this tick. Filled from the keyboard/mouse for the local player now,
- * from network messages later. (The field uses the simpler WalkInput, see field/layout.ts.)
+ * from network messages later. (The overworld uses the simpler WalkInput, see overworld/layout.ts.)
  */
 export interface PlayerInputData {
   /** World-space move direction, -1..1. */

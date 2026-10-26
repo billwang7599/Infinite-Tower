@@ -30,7 +30,7 @@ export const players = pgTable("players", {
   id: uuid().primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   hp: doublePrecision().notNull(),
   stamina: doublePrecision().notNull(),
-  /** Fights won (any enemy), shown on the field HUD. */
+  /** Fights won (any enemy), shown on the overworld HUD. */
   wins: integer().notNull().default(0),
   /** Key bindings, camera and mouse: only what differs from the defaults, so {} is "all defaults". */
   settings: jsonb().$type<SavedSettings>().notNull().default({}),

@@ -5,9 +5,9 @@ import {
   ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, keysOf, type ActionRef,
 } from "../../src/settings/bindings.js";
 
-const up: ActionRef = { group: "field", action: "up" };
-const character: ActionRef = { group: "field", action: "character" };
-const inventory: ActionRef = { group: "field", action: "inventory" };
+const up: ActionRef = { group: "overworld", action: "up" };
+const character: ActionRef = { group: "overworld", action: "character" };
+const inventory: ActionRef = { group: "overworld", action: "inventory" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
@@ -43,7 +43,8 @@ describe("ACTIONS and helpers", () => {
   });
 
   test("actionsOf lists a group's actions in order, tagged with the group", () => {
-    assert.deepEqual(actionsOf("field"), Object.keys(ACTIONS.field).map((action) => ({ group: "field", action })));
+    const expected = Object.keys(ACTIONS.overworld).map((action) => ({ group: "overworld", action }));
+    assert.deepEqual(actionsOf("overworld"), expected);
   });
 
   test("Escape and the Meta keys can't be bound; ordinary keys can", () => {
@@ -55,7 +56,7 @@ describe("ACTIONS and helpers", () => {
 describe("KeyBindings.bind", () => {
   test("a new key starts with the defaults", () => {
     const b = new KeyBindings();
-    assert.deepEqual(keys(b, up), ACTIONS.field.up.keys);
+    assert.deepEqual(keys(b, up), ACTIONS.overworld.up.keys);
     assert.equal(b.isDefault(), true);
   });
 
@@ -108,7 +109,7 @@ describe("KeyBindings.bind", () => {
     assert.equal(b.get(), before);
   });
 
-  test("the same key can be used in the field and in battle", () => {
+  test("the same key can be used in the overworld and in battle", () => {
     const b = new KeyBindings();
     assert.deepEqual(b.bind(jump, "KeyC", null), { ok: true, takenFrom: null, gave: null });
     assert.deepEqual(keys(b, jump), ["Space", "KeyC"]);
@@ -123,7 +124,7 @@ describe("KeyBindings.bind", () => {
       assert.deepEqual(b.bind(up, key, "KeyW"), { ok: true, takenFrom: null, gave: null });
       b.bind(up, key, null);
     }
-    assert.deepEqual(keys(b, up), ACTIONS.field.up.keys);
+    assert.deepEqual(keys(b, up), ACTIONS.overworld.up.keys);
     assert.equal(calls, 0);
   });
 

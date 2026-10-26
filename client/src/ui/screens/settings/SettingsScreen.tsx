@@ -1,5 +1,5 @@
 /**
- * The settings, over the game. Esc or the field HUD's button opens them; Esc, ✕ or Resume closes them. The
+ * The settings, over the game. Esc or the overworld HUD's button opens them; Esc, ✕ or Resume closes them. The
  * game keeps running underneath (as in a souls game, a fight doesn't pause) but gets no input meanwhile.
  */
 import { useState } from "react";

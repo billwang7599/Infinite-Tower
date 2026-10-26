@@ -1,8 +1,8 @@
 /** Screen transitions between modes: Pokémon-style white flashes into battle, a black fade back. */
 import { clamp } from "@infinite-tower/shared";
 
-/** The two modes: the 2D field (field/) and the 2.5D arena fight (battle/). */
-export type Mode = "field" | "battle";
+/** The two modes: the 2D overworld (overworld/) and the 2.5D arena fight (battle/). */
+export type Mode = "overworld" | "battle";
 
 export interface Transition {
   to: Mode;
@@ -20,7 +20,7 @@ interface TransitionFrame {
 }
 
 /** When the mode switches (screen fully covered), and when the overlay is gone. */
-const TIMING = { battle: { swapTime: 0.85, endTime: 1.25 }, field: { swapTime: 0.4, endTime: 0.8 } } as const;
+const TIMING = { battle: { swapTime: 0.85, endTime: 1.25 }, overworld: { swapTime: 0.4, endTime: 0.8 } } as const;
 /** Into battle: the white flashes, on and off every FLASH_PERIOD until FLASH_END_TIME, before the fade. */
 const FLASH_END_TIME = 0.6;
 const FLASH_PERIOD = 0.1;

@@ -1,6 +1,6 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exceptions are `settingsScreen`, `creation` and `fieldPanel`:
+ * imports React, so game code never touches it. The exceptions are `settingsScreen`, `creation` and `overworldPanel`:
  * the UI opens or closes them too, and the game watches them, to stop taking input while they have the keys.
  * `UiActions` is the other direction.
  */
@@ -50,7 +50,7 @@ export interface ToastsState {
   items: readonly ToastItem[];
 }
 
-export interface FieldHudState {
+export interface OverworldHudState {
   levelName: string;
   wins: number;
   hpFraction: number;
@@ -79,20 +79,20 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
-/** The field's side panels; one is open at a time. Neither pauses the world. */
-export type FieldPanel = "character" | "inventory";
+/** The overworld's side panels; one is open at a time. Neither pauses the world. */
+export type OverworldPanel = "character" | "inventory";
 
-export interface FieldPanelState {
-  open: FieldPanel | null;
+export interface OverworldPanelState {
+  open: OverworldPanel | null;
 }
 
 /**
- * The open bag has the keys on the field: you stand still while it's open (it's worked with the mouse, and has a
- * few keys of its own: settings/bindings.ts, `bag`). The character panel only shows things, so you walk with it
+ * The open bag has the keys on the overworld: you stand still while it's open (it's worked with the mouse, and has
+ * a few keys of its own: settings/bindings.ts, `bag`). The character panel only shows things, so you walk with it
  * open.
  */
-export const bagHasTheKeys = (mode: Mode | null, panel: FieldPanel | null): boolean =>
-  mode === "field" && panel === "inventory";
+export const bagHasTheKeys = (mode: Mode | null, panel: OverworldPanel | null): boolean =>
+  mode === "overworld" && panel === "inventory";
 
 /**
  * Making a character, on a first visit (screens/creation/). The game opens it when `welcome` has no character; it
@@ -118,7 +118,7 @@ export interface UiActions {
    * once; the server answers with the bag as it has it.
    */
   moveItem(from: Cell, to: Cell, turned: boolean): void;
-  /** Send the new character to the server, which answers with it as saved (`FieldHudState.character`). */
+  /** Send the new character to the server, which answers with it as saved (`OverworldHudState.character`). */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
   returnToTitle(): void;
@@ -130,8 +130,8 @@ export class UiState {
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly creation = new Store<CreationState>({ open: false });
-  readonly fieldPanel = new Store<FieldPanelState>({ open: null });
-  readonly field = new Store<FieldHudState>({
+  readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
+  readonly overworld = new Store<OverworldHudState>({
     levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
     bag: { cols: 0, rows: 0, items: [] },
   });
@@ -158,7 +158,7 @@ export class UiState {
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
   readonly closeCreation = (): void => this.creation.set({ open: false });
   /** Open that panel, or close it if it's the one open. */
-  readonly toggleFieldPanel = (panel: FieldPanel): void =>
-    this.fieldPanel.set({ open: this.fieldPanel.get().open === panel ? null : panel });
-  readonly closeFieldPanel = (): void => this.fieldPanel.set({ open: null });
+  readonly toggleOverworldPanel = (panel: OverworldPanel): void =>
+    this.overworldPanel.set({ open: this.overworldPanel.get().open === panel ? null : panel });
+  readonly closeOverworldPanel = (): void => this.overworldPanel.set({ open: null });
 }

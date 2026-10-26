@@ -10,8 +10,8 @@ import { createBattle } from "../battle/battle.js";
 import { createBattleScene } from "../battle/scene.js";
 import { Keyboard } from "../core/keyboard.js";
 import { Mouse } from "../core/mouse.js";
-import { createField } from "../field/field.js";
-import { createFieldScene } from "../field/scene.js";
+import { createOverworld } from "../overworld/overworld.js";
+import { createOverworldScene } from "../overworld/scene.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import { createGame, type Game } from "./game.js";
@@ -24,7 +24,7 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Game
 
   const world = new World();
   const battleScene = await createBattleScene(engine);
-  const fieldView = createFieldScene(engine);
+  const overworldView = createOverworldScene(engine);
 
   // Input stays off until a session starts (game.ts): the key that pressed Play never reaches the game, and
   // the title keeps the keys Keyboard swallows (Space, arrows).
@@ -34,7 +34,7 @@ export async function prepareGame(ui: UiState, settings: Settings): Promise<Game
     engine, world, scene: battleScene, keyboard, mouse, settings, hud: ui.battle,
     onLeave: () => game.leaveBattle(),
   });
-  const field = createField({ engine, world, view: fieldView, keyboard, settings, hud: ui.field });
-  const game = createGame({ engine, keyboard, mouse, ui, settings, battle, field });
+  const overworld = createOverworld({ engine, world, view: overworldView, keyboard, settings, hud: ui.overworld });
+  const game = createGame({ engine, keyboard, mouse, ui, settings, battle, overworld });
   return game;
 }

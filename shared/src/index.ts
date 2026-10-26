@@ -1,4 +1,4 @@
-// Code both sides run: ECS, math, the field's walking rules, the arena's components and player rules,
+// Code both sides run: ECS, math, the overworld's walking rules, the arena's components and player rules,
 // message types. No game content (enemy stats, encounter rates, levels): that is server/src.
 export * from "./core/components.js";
 export * from "./core/ecs.js";
@@ -13,8 +13,8 @@ export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";
 export * from "./items/burden.js";
-export * from "./field/layout.js";
-export * from "./field/view.js";
+export * from "./overworld/layout.js";
+export * from "./overworld/view.js";
 export * from "./net/accounts.js";
 export * from "./net/handlers.js";
 export * from "./net/settings.js";
