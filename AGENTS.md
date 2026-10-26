@@ -141,12 +141,54 @@ Where tests go and how they're written:
 - `npm test`, `npm run typecheck` and `npm run build` pass. CI (`.github/workflows/ci.yml`) runs the same three on
   every PR into `main`; don't merge a PR until its check is green (`gh pr checks <n>`).
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
-  username: "test1", password: "test1" } })` (it shares the page's cookies), open `/?debug` and click Play
+  username: "test3", password: "test3" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.field`, `window.ui`, `window.settings` and `window.encounter()` (dev server only).
   Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - In your report, say what you tested. Say plainly if nothing was hand-played.
+- Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
+  (close 4000). Use test3 or test2.
+
+## Subagents: work in parallel, keep the main chat free
+
+The user wants as much work running at once as possible, and the main chat free for their questions.
+
+- **The main chat plans, hands out and answers.** Split a request into independent pieces and give each to a
+  background subagent: building, tests, browser checks, reviews, research, watching CI. Do only quick things in the
+  main chat (answering a question, reading a file to answer it, a one-line fix). Don't sit waiting on a subagent:
+  carry on, or end the turn and say what's running.
+- **Brief each subagent fully**; it doesn't see the chat. Give it the goal, what the user decided (in their words),
+  its branch and base, worktree, ports, database and test account, what it must not touch, and what to report.
+- **Subagents don't decide game mechanics either.** One that needs a decision only the user can make stops and
+  reports the options; the main chat asks the user.
+- **Check what comes back.** A report says what the subagent meant to do. Read the diff and the check results
+  before telling the user something is done.
+- If subagents start failing on rate limits, run fewer at once.
+
+Keeping them out of each other's way (and the user's):
+
+- **One subagent, one branch, one worktree.** A subagent that changes files works in its own worktree:
+  `git worktree add /tmp/it-<branch> -b <branch> <base>`, then `npm ci` there. Don't symlink `node_modules` from
+  another checkout: `@infinite-tower/shared` would resolve to that checkout's code. Read-only work (reviews,
+  research, CI) needs no worktree.
+- **The main checkout belongs to the user and the main chat.** Subagents don't switch its branch, edit its files
+  or touch its dev servers (:8787 and :5173). Saving a server file there restarts the server under the user.
+- **No two subagents edit the same files at once.** If two pieces need the same code, run them one after the
+  other, or stack the second branch on the first. Every PR touches the docs; whichever merges second rebases and
+  fixes the conflicts.
+- **Its own database and servers, when it runs the game.** Make a database in the same Postgres container
+  (`docker compose exec -T db createdb -U infinite_tower it_<name>`), then in the worktree `npm run env:init`
+  and set its `.env`: `DATABASE_URL=postgres://infinite_tower:infinite_tower@127.0.0.1:5433/it_<name>` and its
+  own `PORT` (8790, 8791, ...). `npm run db:seed` applies the migrations and adds test1 to test3. Start the server
+  with `npm run dev -w @infinite-tower/server` and the client with `npm run dev -w @infinite-tower/client --
+  --port 5180` (5181, ...), not `npm run dev`. A branch's new migration or a test that rewrites a player then
+  can't break anyone else's game, and any test account is fine there.
+- **Git:** a subagent pushes only its own branch and opens its PR. It never merges, and never rebases or
+  force-pushes another branch. Rebasing a stack moves every branch in it, so only the main chat does that, while
+  no subagent is working on the stack.
+- **Clean up** when it's done: stop its servers, `git worktree remove` it, and drop its database
+  (`docker compose exec -T db dropdb -U infinite_tower it_<name>`).
 
 ## Architecture rules (the reasons and details are in ARCHITECTURE.md)
 
