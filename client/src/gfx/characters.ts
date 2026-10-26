@@ -1,79 +1,45 @@
 /**
- * Frames for the 24x24 pixel sprites (sprites.ts). The player is its look's chibi (gfx/look/), with a sword in the
- * arena; the boar and the "!" bubble are drawn here.
+ * Frames for the 24x24 pixel sprites (sprites.ts). The player is drawn from their look (gfx/look/): the chibi in
+ * the field, the battle sprite (from behind, sword in hand) in the arena. The boar and the "!" bubble are drawn
+ * here.
  */
 import type { Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
-import { drawLook } from "./look/look.js";
+import { drawBattle, drawLook } from "./look/look.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 export interface PlayerFrames {
-  /** The field: the chibi alone, centred. */
+  /** The field: the chibi. */
   field: SpriteDraw;
-  /** The arena: sword held upright, swung out, dropped. */
+  /** The arena: standing (and running), mid-swing, and down. */
   idle: SpriteDraw;
   slash: SpriteDraw;
   down: SpriteDraw;
 }
 
-/** The chibi's 32 pixels across fill the sprite's 24, so each of its pixels is 3/4 of a sprite pixel. */
-const CHIBI = VIEWS.chibi.width;
-const SCALE = SPRITE_PX / CHIBI;
-
-const SWORD = { blade: "#dfe6f0", shine: "#ffffff", guard: "#c9a03a", grip: "#5a3a1e" };
-
-/** The player's frames in `look`. Sword coordinates are chibi pixels, after the chibi's shift. */
+/** The player's frames in `look`. Each picture fills the sprite: 32 chibi or 64 battle pixels across its 24. */
 export function playerFrames(look: Look): PlayerFrames {
   const chibi = drawLook(look, "chibi");
-  // Picked off the chibi: the middle of its face, and its sleeve.
-  const skin = colorAt(chibi, 16, 15), sleeve = colorAt(chibi, 11, 22);
+  const stand = drawBattle(look, "stand"), slash = drawBattle(look, "slash"), down = drawBattle(look, "down");
+  const battle = SPRITE_PX / VIEWS.battle.width;
   return {
-    field: (px) => paintChibi(px, chibi, 0),
-    idle: (px) => {
-      paintChibi(px, chibi, -4);
-      rects(px, [[21, 9, 1, 13, SWORD.blade], [22, 10, 1, 12, SWORD.shine], [19, 22, 6, 1, SWORD.guard]]);
-      rects(px, [[21, 23, 2, 3, SWORD.grip], [18, 24, 4, 2, skin]]);
-    },
-    slash: (px) => {
-      paintChibi(px, chibi, -5);
-      rects(px, [[16, 21, 4, 2, sleeve], [20, 21, 2, 2, skin], [22, 19, 1, 6, SWORD.guard]]);
-      rects(px, [[23, 21, 9, 1, SWORD.blade], [23, 22, 9, 1, SWORD.shine]]);
-    },
-    down: (px) => {
-      paintLying(px, chibi);
-      rects(px, [[4, 30, 22, 1, SWORD.blade], [26, 29, 1, 3, SWORD.guard], [27, 30, 3, 1, SWORD.grip]]);
-    },
+    field: (px) => paint(px, chibi, SPRITE_PX / VIEWS.chibi.width),
+    idle: (px) => paint(px, stand, battle),
+    slash: (px) => paint(px, slash, battle),
+    down: (px) => paint(px, down, battle),
   };
 }
 
-type Rect = [x: number, y: number, w: number, h: number, color: string];
-
-function rects(px: Px, list: readonly Rect[]): void {
-  for (const [x, y, w, h, color] of list) px(x * SCALE, y * SCALE, w * SCALE, h * SCALE, color);
-}
-
-/** The chibi standing, moved `dx` of its pixels sideways. */
-function paintChibi(px: Px, pic: Picture, dx: number): void {
-  eachPixel(pic, (x, y, color) => px((x + dx) * SCALE, y * SCALE, SCALE, SCALE, color));
-}
-
-/** The chibi on its back: turned a quarter, head to the left, lying along the bottom. */
-function paintLying(px: Px, pic: Picture): void {
-  eachPixel(pic, (x, y, color) => px(y * SCALE, (x + 6) * SCALE, SCALE, SCALE, color));
-}
-
-function eachPixel(pic: Picture, visit: (x: number, y: number, color: string) => void): void {
+/** `pic`, each of its pixels `scale` sprite pixels square. */
+function paint(px: Px, pic: Picture, scale: number): void {
   for (let y = 0; y < pic.height; y++) {
     for (let x = 0; x < pic.width; x++) {
       const i = (y * pic.width + x) * 4;
-      if (pic.rgba[i + 3]) visit(x, y, colorAt(pic, x, y));
+      if (!pic.rgba[i + 3]) continue;
+      const color = `#${[0, 1, 2].map((c) => pic.rgba[i + c]!.toString(16).padStart(2, "0")).join("")}`;
+      px(x * scale, y * scale, scale, scale, color);
     }
   }
-}
-
-function colorAt(pic: Picture, x: number, y: number): string {
-  const i = (y * pic.width + x) * 4;
-  return `#${[0, 1, 2].map((c) => pic.rgba[i + c]!.toString(16).padStart(2, "0")).join("")}`;
 }
 
 /** Wild boar, side view (field). */

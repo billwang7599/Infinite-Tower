@@ -4,10 +4,10 @@
  */
 import type { Look } from "@infinite-tower/shared";
 import { useEffect, useRef } from "react";
-import { VIEWS, type View } from "../../gfx/look/art.js";
-import { drawLook } from "../../gfx/look/look.js";
+import { VIEWS } from "../../gfx/look/art.js";
+import { drawLook, type StillView } from "../../gfx/look/look.js";
 
-export function LookPicture({ look, view, className }: { look: Look; view: View; className: string }) {
+export function LookPicture({ look, view, className }: { look: Look; view: StillView; className: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const { width, height } = VIEWS[view];
   useEffect(() => {

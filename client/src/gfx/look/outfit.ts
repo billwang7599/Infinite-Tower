@@ -5,7 +5,7 @@
  */
 import { ink, type Art } from "./art.js";
 import {
-  BASE, DEEP, LIGHT, SHADOW, both, farSide, grow, minus, polygon, rect, type Mask,
+  BASE, DEEP, LIGHT, SHADOW, both, farSide, grow, minus, polygon, rect, underside, union, type Mask,
 } from "./pixels.js";
 
 export const below = (y: number): Mask => (_x, yy) => yy >= y;
@@ -73,14 +73,54 @@ export const TUNIC: Art = {
       pen.shade((x) => x >= 16, SHADOW);
     },
   },
+  battle: {
+    // From behind: the collar's back, a belt, the skirt split up the back seam and hemmed in the accent color.
+    torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
+      const hemY = waistY + 5;
+      const collar = both(grow(neck), rect(0, collarY - 1, 63, collarY));
+      const tunic = union(torso, both(grow(torso), below(waistY + 2)), collar);
+      pen.fill(tunic, ink("cloth", BASE));
+      pen.shade(farSide(tunic, 4), SHADOW);
+      pen.shade((x, y) => y <= collarY + 2 && x < middle - 1, LIGHT); // across the near shoulder
+      pen.shade(both(collar, above(collarY - 1)), LIGHT);
+      pen.shade(below(hemY), DEEP);
+      for (let y = waistY + 2; y <= hemY; y++) pen.dot(middle, y, ink("cloth", DEEP));
+      pen.fill(both(tunic, rect(0, hemY, 63, hemY)), ink("accent", BASE));
+      const belt = both(grow(torso), rect(0, waistY, 63, waistY + 1));
+      pen.fill(belt, ink("leather", BASE));
+      pen.shade(above(waistY), LIGHT, "leather");
+      pen.shade(farSide(belt, 2), SHADOW, "leather");
+    },
+    armwear: (pen, { arms, hands, middle, armpitY }) => {
+      pen.fill(arms, ink("cloth", BASE));
+      pen.shade((x) => x > middle, SHADOW);
+      pen.shade(farSide(arms, 1), DEEP);
+      pen.shade((x, y) => x < middle && !arms(x - 1, y) && y < armpitY + 4, LIGHT);
+      pen.shade(grow(minus(hands, arms)), DEEP); // the cuff, round the wrist
+    },
+  },
 };
 
 export const TROUSERS: Art = {
   chibi: { legwear: (pen, { legs }) => pen.fill(both(legs, above(27)), ink("wool", BASE)) },
+  battle: {
+    legwear: (pen, { legs }) => {
+      pen.fill(legs, ink("wool", BASE));
+      pen.shade(farSide(legs, 2), SHADOW);
+    },
+  },
 };
 
 export const BOOTS: Art = {
   chibi: { footwear: (pen, { legs }) => pen.fill(both(grow(legs), below(28)), ink("leather", BASE)) },
+  battle: {
+    footwear: (pen, { shins }) => {
+      pen.fill(shins, ink("leather", BASE));
+      pen.shade((x, y) => !shins(x, y - 1), LIGHT); // the tops
+      pen.shade(farSide(shins, 2), SHADOW);
+      pen.shade(underside(shins, 1), DEEP);
+    },
+  },
 };
 
 export const STARTER_CLOTHES: readonly Art[] = [TROUSERS, BOOTS, TUNIC];

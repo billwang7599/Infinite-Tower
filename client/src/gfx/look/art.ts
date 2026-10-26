@@ -14,12 +14,17 @@ export const VIEWS = {
   portrait: { width: 64, height: 64 },
   /** The small chibi in the world. */
   chibi: { width: 32, height: 32 },
+  /**
+   * The arena, full body and sword in hand, from behind: the arena camera always sits behind the player, who
+   * faces where they attack. The figure is 48 wide in the middle, leaving room each side for the sword.
+   */
+  battle: { width: 64, height: 64 },
 } as const;
 export type View = keyof typeof VIEWS;
 
 /** Bottom to top. Wear goes between the body parts it covers. */
 export const LAYERS = [
-  "hairBack", "body", "legwear", "footwear", "torsowear", "arms", "armwear",
+  "hairBack", "body", "legwear", "footwear", "torsowear", "weapon", "arms", "armwear",
   "head", "face", "hair", "headwear",
 ] as const;
 export type Layer = (typeof LAYERS)[number];
@@ -51,10 +56,29 @@ export interface Frame {
   shoulders: readonly [Point, Point];
 }
 
-export type Draw = (pen: Pen, frame: Frame) => void;
+/** The battle sprite's frame, in one of its poses (battle.ts): the whole body, and what the pose moves. */
+export interface BattleFrame extends Frame {
+  hands: Mask;
+  feet: Mask;
+  /** What boots cover: the shins and feet. */
+  shins: Mask;
+  /** How far the head has moved from where it sits standing (it hangs, when down). */
+  head: Point;
+  /** The sword: the middle of its grip (in the fist, unless it's been dropped), and its tip. */
+  sword: readonly [grip: Point, tip: Point];
+}
+
+/** The frame each view's drawings are handed. */
+export interface Frames {
+  portrait: Frame;
+  chibi: Frame;
+  battle: BattleFrame;
+}
+
+export type Draw<F extends Frame = Frame> = (pen: Pen, frame: F) => void;
 /** One Art in one view: what it draws on each layer. */
-export type Piece = Partial<Record<Layer, Draw>>;
-export type Art = Partial<Record<View, Piece>>;
+export type Piece<F extends Frame = Frame> = Partial<Record<Layer, Draw<F>>>;
+export type Art = { [V in View]?: Piece<Frames[V]> };
 
 /** The ramps the picked colors fill in; everything else comes from palette.ts's FIXED. */
 export interface Colors {
@@ -73,14 +97,14 @@ export interface Picture {
 }
 
 /** Draw `arts` in `view` on the body `frame`, colored with `colors` (plus `fixed`, the shared materials). */
-export function render(
-  view: View, frame: Frame, arts: readonly Art[], colors: Colors, fixed: Readonly<Record<string, Ramp>>,
+export function render<V extends View>(
+  view: V, frame: Frames[V], arts: readonly Art[], colors: Colors, fixed: Readonly<Record<string, Ramp>>,
 ): Picture {
   const { width, height } = VIEWS[view];
   const px = new Pixels(width, height);
   LAYERS.forEach((layer, i) => {
     const pen = new Pen(px, i);
-    for (const art of arts) art[view]?.[layer]?.(pen, frame);
+    for (const art of arts) (art[view] as Piece<Frames[V]> | undefined)?.[layer]?.(pen, frame);
   });
   outline(px, new Set(LAYERS.flatMap((layer, i) => (UNOUTLINED.has(layer) ? [] : [i]))));
 

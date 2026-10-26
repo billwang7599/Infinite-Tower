@@ -3,10 +3,12 @@
  * falls behind the head and shoulders, a back grid. Both are full-width rows from the picture's top. Letters
  * are tones of the hair color (d deep, s shadow, b base, l light, w shine), and a/A a tie in the accent color.
  * Outlines are added when the picture is put together (art.ts): dark where hair meets skin or the background,
- * deep where the front lies over the back. Chibi hair is drawn from shapes (chibi.ts).
+ * deep where the front lies over the back. Chibi hair, and the battle sprite's from behind, are drawn from
+ * shapes (chibi.ts, back.ts).
  */
 import { ink, type Art } from "../art.js";
 import { BASE, DEEP, LIGHT, SHADOW, SHINE, gridMask, shift, type Ink } from "../pixels.js";
+import { BACK_HAIR, drawHairFromBehind } from "./back.js";
 import { CHIBI_HAIR, drawChibiBack, drawChibiFront } from "./chibi.js";
 import { BOB } from "./bob.js";
 import { LONG } from "./long.js";
@@ -23,8 +25,11 @@ const TONES: Record<string, Ink> = {
   a: ink("accent", BASE), A: ink("accent", LIGHT),
 };
 
-function hair(portrait: PortraitHair, chibi: (typeof CHIBI_HAIR)[keyof typeof CHIBI_HAIR]): Art {
+type Style = keyof typeof CHIBI_HAIR & keyof typeof BACK_HAIR;
+
+function hair(portrait: PortraitHair, style: Style): Art {
   const { front, back } = portrait;
+  const chibi = CHIBI_HAIR[style], fromBehind = BACK_HAIR[style];
   return {
     portrait: {
       hairBack: (pen) => { if (back) pen.grid(0, 0, back, TONES); },
@@ -34,12 +39,13 @@ function hair(portrait: PortraitHair, chibi: (typeof CHIBI_HAIR)[keyof typeof CH
       },
     },
     chibi: { hairBack: (pen) => drawChibiBack(pen, chibi), hair: (pen) => drawChibiFront(pen, chibi) },
+    battle: { hair: (pen, { head }) => drawHairFromBehind(pen, fromBehind, head) },
   };
 }
 
 export const HAIR_STYLES = {
-  short: hair(SHORT, CHIBI_HAIR.short),
-  bob: hair(BOB, CHIBI_HAIR.bob),
-  long: hair(LONG, CHIBI_HAIR.long),
-  ponytail: hair(PONYTAIL, CHIBI_HAIR.ponytail),
+  short: hair(SHORT, "short"),
+  bob: hair(BOB, "bob"),
+  long: hair(LONG, "long"),
+  ponytail: hair(PONYTAIL, "ponytail"),
 } as const satisfies Record<string, Art>;

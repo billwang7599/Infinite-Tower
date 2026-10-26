@@ -6,6 +6,7 @@
  * middle of the face runs down about x = 26, the cheek reaches back to the ear (x = 42-44), and the jaw's corner
  * sits under the ear at mouth level, so a short jawline runs forward to the chin (bottom row 39).
  * Chibi: facing us, symmetric around x = 16, chin at row 19.
+ * Battle: from behind, the head is all hair (hair/back.ts), so face shapes draw nothing there.
  */
 import { ink, type Art } from "./art.js";
 import {
