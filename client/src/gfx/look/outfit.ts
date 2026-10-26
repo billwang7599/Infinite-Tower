@@ -60,46 +60,48 @@ export const TUNIC: Art = {
     },
   },
   chibi: {
-    torsowear: (pen, { torso, collarY, waistY }) => {
-      pen.fill(torso, ink("cloth", BASE));
-      pen.shade((x) => x >= 17, SHADOW);
-      pen.fill(rect(15, collarY, 16, collarY + 1), ink("linen", BASE));
-      pen.fill(both(torso, rect(0, waistY, 31, waistY)), ink("leather", BASE));
-      pen.dot(15, waistY, ink("brass", BASE));
-      pen.dot(16, waistY, ink("brass", BASE));
+    front: {
+      torsowear: (pen, { torso, collarY, waistY }) => {
+        pen.fill(torso, ink("cloth", BASE));
+        pen.shade((x) => x >= 17, SHADOW);
+        pen.fill(rect(15, collarY, 16, collarY + 1), ink("linen", BASE));
+        pen.fill(both(torso, rect(0, waistY, 31, waistY)), ink("leather", BASE));
+        pen.dot(15, waistY, ink("brass", BASE));
+        pen.dot(16, waistY, ink("brass", BASE));
+      },
+      armwear: (pen, { arms, waistY }) => {
+        pen.fill(both(arms, above(waistY)), ink("cloth", BASE));
+        pen.shade((x) => x >= 16, SHADOW);
+      },
     },
-    armwear: (pen, { arms, waistY }) => {
-      pen.fill(both(arms, above(waistY)), ink("cloth", BASE));
-      pen.shade((x) => x >= 16, SHADOW);
+    back: {
+      torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
+        pen.fill(union(torso, both(grow(neck), rect(0, collarY - 1, 31, collarY))), ink("cloth", BASE));
+        pen.shade((x) => x > middle, SHADOW);
+        pen.fill(both(grow(torso), rect(0, waistY, 31, waistY)), ink("leather", BASE));
+        for (const y of [waistY - 2, waistY + 1]) pen.dot(middle, y, ink("cloth", DEEP)); // the back seam
+      },
+      armwear: (pen, { arms, waistY }) => {
+        pen.fill(both(arms, above(waistY)), ink("cloth", BASE));
+        pen.shade((x) => x >= 16, SHADOW);
+      },
     },
-  },
-  chibiBack: {
-    torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
-      pen.fill(union(torso, both(grow(neck), rect(0, collarY - 1, 31, collarY))), ink("cloth", BASE));
-      pen.shade((x) => x > middle, SHADOW);
-      pen.fill(both(grow(torso), rect(0, waistY, 31, waistY)), ink("leather", BASE));
-      for (const y of [waistY - 2, waistY + 1]) pen.dot(middle, y, ink("cloth", DEEP)); // the back seam
-    },
-    armwear: (pen, { arms, waistY }) => {
-      pen.fill(both(arms, above(waistY)), ink("cloth", BASE));
-      pen.shade((x) => x >= 16, SHADOW);
-    },
-  },
-  chibiSide: {
-    torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
-      pen.fill(torso, ink("cloth", BASE));
-      pen.shade((x) => x > middle + 2, SHADOW);
-      const [throat] = columns(neck, collarY, 32);
-      pen.fill(rect(throat - 1, collarY - 1, throat - 1, collarY), ink("linen", BASE));
-      const belt = both(grow(torso), rect(0, waistY, 31, waistY));
-      pen.fill(belt, ink("leather", BASE));
-      pen.dot(columns(belt, waistY, 32)[0], waistY, ink("brass", BASE));
-    },
-    armwear: (pen, { arms, waistY }) => {
-      const sleeve = both(arms, above(waistY));
-      pen.fill(sleeve, ink("cloth", BASE));
-      pen.shade(farSide(sleeve, 1), SHADOW);
-      pen.shade((_x, y) => y === waistY, DEEP); // the cuff
+    side: {
+      torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
+        pen.fill(torso, ink("cloth", BASE));
+        pen.shade((x) => x > middle + 2, SHADOW);
+        const [throat] = columns(neck, collarY, 32);
+        pen.fill(rect(throat - 1, collarY - 1, throat - 1, collarY), ink("linen", BASE));
+        const belt = both(grow(torso), rect(0, waistY, 31, waistY));
+        pen.fill(belt, ink("leather", BASE));
+        pen.dot(columns(belt, waistY, 32)[0], waistY, ink("brass", BASE));
+      },
+      armwear: (pen, { arms, waistY }) => {
+        const sleeve = both(arms, above(waistY));
+        pen.fill(sleeve, ink("cloth", BASE));
+        pen.shade(farSide(sleeve, 1), SHADOW);
+        pen.shade((_x, y) => y === waistY, DEEP); // the cuff
+      },
     },
   },
   battle: {
@@ -134,12 +136,14 @@ const chibiTrousers: Piece = { legwear: (pen, { legs }) => pen.fill(both(legs, a
 const chibiBoots: Piece = { footwear: (pen, { legs }) => pen.fill(both(grow(legs), below(28)), ink("leather", BASE)) };
 
 export const TROUSERS: Art = {
-  chibi: chibiTrousers,
-  chibiBack: chibiTrousers,
-  chibiSide: {
-    legwear: (pen, { legs, middle }) => {
-      pen.fill(both(legs, above(27)), ink("wool", BASE));
-      pen.shade((x) => x > middle, SHADOW); // the far leg
+  chibi: {
+    front: chibiTrousers,
+    back: chibiTrousers,
+    side: {
+      legwear: (pen, { legs, middle }) => {
+        pen.fill(both(legs, above(27)), ink("wool", BASE));
+        pen.shade((x) => x > middle, SHADOW); // the far leg
+      },
     },
   },
   battle: {
@@ -151,13 +155,15 @@ export const TROUSERS: Art = {
 };
 
 export const BOOTS: Art = {
-  chibi: chibiBoots,
-  chibiBack: chibiBoots,
-  chibiSide: {
-    // The toes point forward, to the left.
-    footwear: (pen, { legs, middle }) => {
-      pen.fill(both(union(grow(legs), shift(legs, -2, 0)), below(28)), ink("leather", BASE));
-      pen.shade((x) => x > middle, SHADOW);
+  chibi: {
+    front: chibiBoots,
+    back: chibiBoots,
+    side: {
+      // The toes point forward, to the left.
+      footwear: (pen, { legs, middle }) => {
+        pen.fill(both(union(grow(legs), shift(legs, -2, 0)), below(28)), ink("leather", BASE));
+        pen.shade((x) => x > middle, SHADOW);
+      },
     },
   },
   battle: {

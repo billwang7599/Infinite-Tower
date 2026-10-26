@@ -224,8 +224,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
   sync, when the mouse is captured, field prediction, the title's sequence timing, character creation's steps and
-  rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), and the item
-  pictures' sizes. Rendering, the arena fight and the React screens are tried in a browser.
+  rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the item
+  pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the battle
+  sprite in each pose). Rendering, the arena fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -373,17 +374,19 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      (MouseSettings: auto lock, on by default, so a save without it reads as on)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look): the look's chibi each way on the field, its battle sprite
-                     in the arena; the boar)
+                     characters.ts (playerFrames(look): the look's chibi facing each way on the field, its battle
+                     sprite in each pose in the arena; the boar)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
-                       character panel, later dialogue), a 32x32 chibi (the world) and a 64x64 battle sprite from
-                       behind in each pose (the arena), in code. art.ts (views, layers, Frame, render), pixels.ts
-                       (Pen, masks), palette.ts (ramps), body.ts (body types), battle.ts (battle poses), head.ts
-                       (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear),
-                       sword.ts, look.ts (Look -> picture)
-    dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option, to check art
+                       character panel, later dialogue), a 32x32 chibi facing front, back or side (the world) and a
+                       64x64 battle sprite from behind in each pose (the arena), in code. art.ts (VIEWS,
+                       CHIBI_FACINGS, layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts
+                       (body types), battle.ts (POSES), head.ts (face shapes), face.ts (eye and mouth types), hair/
+                       (styles), outfit.ts + jerkin.ts (wear), sword.ts, look.ts (Look -> picture: drawPortrait,
+                       drawChibi, drawBattle)
+    dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
+                     the chibi facing each way and the battle sprite in each pose, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings,
                        character creation, title screen (the HUD and Settings only once `inWorld` and not
@@ -400,7 +403,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), Dialog.tsx (a modal's
                        backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
                        click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener),
-                       LookPicture.tsx (a look in one view on a canvas: the portrait, the chibi), ItemPicture.tsx
+                       LookPicture.tsx (a look on a canvas: the portrait, or the chibi facing front), ItemPicture.tsx
       hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats; statText.ts), inventory/ (the bag screen: InventoryPanel.tsx wires
@@ -429,12 +432,13 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
       field.ts         The mode: level loads, the walk keys, server state, the field HUD, render
       scene.ts         Babylon scene + ortho camera, FieldView, layerY, flatSprite (a quad lying on the field)
       prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
-      facing.ts        Facing (down / up / left / right): faceToward (the walk turns you), mirrorFor
+      facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
       mirror.ts        Mirror the server's actors (spawned by kind via entities/)
       components.ts    FieldPos, FieldActor, FieldSprite
       entities/        actor.ts (spawnFieldActor: position + sprite + overlays), player.ts, boar.ts, index.ts
                        (FIELD_PREFABS by ActorSnap.kind)
-      systems/         sprites.ts (glide to server positions, tuft, "!"), camera.ts (follow, the view's edge rule)
+      systems/         sprites.ts (glide to server positions, the chibi's facing, tuft, "!"), camera.ts (follow, the
+                       view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
                        campfires.ts (any theme's campfires, flickering), grass-field/ (terrain, textures)
     battle/          The 2.5D arena mode

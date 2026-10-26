@@ -1,6 +1,7 @@
 /**
- * Which way a field walker faces: toward the camera ("down" the screen), away ("up"), or to a side. The player's
- * chibi has a picture for each (front, back, side; left mirrors right). +z is up the screen.
+ * Which way a field walker faces on the screen: toward the camera ("down"), away ("up"), or to a side. +z is up
+ * the screen. The player's chibi has a picture for each: its ChibiFacing (gfx/look/) is front for down, back for
+ * up, and side for either side, mirrored for left (mirrorFor).
  */
 
 export type Facing = "down" | "up" | "left" | "right";
@@ -10,7 +11,7 @@ const DEAD_ZONE = 0.1;
 
 /**
  * Facing after walking (moveX, moveZ). It keeps facing a way it's still walking, so a diagonal doesn't flicker
- * between two pictures; otherwise it turns to the stronger axis, sideways on a tie. Standing still keeps it.
+ * between two pictures; otherwise it faces the stronger axis, sideways on a tie. Standing still keeps it.
  */
 export function faceToward(current: Facing, moveX: number, moveZ: number): Facing {
   const walking: Record<Facing, boolean> = {

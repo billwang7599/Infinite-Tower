@@ -1,5 +1,5 @@
 /**
- * The chibi's hair styles from the side, facing left (walking right mirrors it). The back of the head is hair,
+ * The chibi's hair styles facing side, to the left (walking right mirrors it). The back of the head is hair,
  * the fringe falls forward over the brow, and shorter styles leave the ear bare (head.ts draws it).
  * Drawn and lit like the front (chibi.ts).
  */

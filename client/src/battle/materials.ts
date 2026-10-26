@@ -5,6 +5,7 @@
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { DEFAULT_LOOK } from "@infinite-tower/shared";
 import { playerFrames } from "../gfx/characters.js";
+import type { Pose } from "../gfx/look/battle.js";
 import { colorMaterial } from "../gfx/materials.js";
 import { spriteMaterial } from "../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../gfx/textures.js";
@@ -17,7 +18,8 @@ export interface Materials {
   leaves: StandardMaterial;
   /** The soft round shadow under the player's sprite. */
   blobShadow: StandardMaterial;
-  player: { idle: StandardMaterial; slash: StandardMaterial; down: StandardMaterial };
+  /** The player's sprite in each pose. */
+  player: Record<Pose, StandardMaterial>;
   slashFx: StandardMaterial;
   telegraph: StandardMaterial;
 }
@@ -69,9 +71,9 @@ export function createMaterials(scene: Scene): Materials {
   return {
     grass, dirt, stone, bark, leaves, blobShadow,
     player: {
-      idle: spriteMaterial(scene, "player-idle", frames.idle),
-      slash: spriteMaterial(scene, "player-slash", frames.slash),
-      down: spriteMaterial(scene, "player-down", frames.down),
+      stand: spriteMaterial(scene, "player-stand", frames.battle.stand),
+      slash: spriteMaterial(scene, "player-slash", frames.battle.slash),
+      down: spriteMaterial(scene, "player-down", frames.battle.down),
     },
     slashFx, telegraph,
   };

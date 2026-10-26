@@ -3,14 +3,14 @@ import type { Look } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Field } from "../field/field.js";
 import { playerFrames } from "../gfx/characters.js";
+import { POSES } from "../gfx/look/battle.js";
+import { CHIBI_FACINGS } from "../gfx/look/look.js";
 import { redrawSprite } from "../gfx/sprites.js";
 
 export function applyLook(battle: Battle, field: Field, look: Look): void {
   const frames = playerFrames(look);
   const arenaSprites = battle.ctx.materials.player;
-  redrawSprite(arenaSprites.idle, frames.idle);
-  redrawSprite(arenaSprites.slash, frames.slash);
-  redrawSprite(arenaSprites.down, frames.down);
+  for (const pose of POSES) redrawSprite(arenaSprites[pose], frames.battle[pose]);
   const fieldSprites = field.view.materials.player;
-  for (const turn of ["front", "back", "side"] as const) redrawSprite(fieldSprites[turn], frames.field[turn]);
+  for (const facing of CHIBI_FACINGS) redrawSprite(fieldSprites[facing], frames.chibi[facing]);
 }

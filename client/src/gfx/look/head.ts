@@ -5,11 +5,11 @@
  * Portrait: the head is turned three-quarters to our left. The far cheek is the face's left edge (x = 18), the
  * middle of the face runs down about x = 26, the cheek reaches back to the ear (x = 42-44), and the jaw's corner
  * sits under the ear at mouth level, so a short jawline runs forward to the chin (bottom row 39).
- * Chibi: facing us, symmetric around x = 16, chin at row 19. From behind it's the back of the head and the ears;
- * from the side (facing left) one profile for every face shape, small enough that the jaw doesn't show.
+ * Chibi: facing front (toward us), symmetric around x = 16, chin at row 19. Facing back it's the back of the head
+ * and the ears; facing side (to the left), one profile for every face shape, small enough that the jaw doesn't show.
  * Battle: from behind, the head is all hair (hair/back.ts), so face shapes draw nothing there.
  */
-import { ink, type Art } from "./art.js";
+import { ink, type Art, type Piece } from "./art.js";
 import {
   BASE, DEEP, SHADOW, both, ellipse, farSide, gridMask, mirror, polygon, rect, shift, spans, symmetric, union,
   type Ink, type Mask, type Point,
@@ -29,13 +29,13 @@ const NOSE = { x: 24, y: 30 }, BLUSH_ROW = 29;
 
 const CHIBI_CRANIUM = ellipse(16, 11, 8.2, 7.6);
 const CHIBI_EARS = mirror(rect(7, 12, 7, 13), C);
-/** The chibi's head from the side, facing left: brow, nose, lips and chin. */
+/** The chibi's head facing side (left): brow, nose, lips and chin. */
 const CHIBI_PROFILE = union(ellipse(17, 11, 8.2, 7.6), polygon([
   [9.2, 8], [8.4, 12.6], [7.6, 14], [8.4, 15], [8.5, 16.4], [9.8, 18.3], [12.4, 19.3], [15.8, 19.2], [18.4, 17.4],
   [19, 13], [16, 9],
 ]));
 const CHIBI_SIDE_EAR_GRID = ["NB", "Nn", ".N"];
-/** The ear in the side view: short hair leaves it bare (hair/chibi-side.ts). */
+/** The ear, facing side: short hair leaves it bare (hair/chibi-side.ts). */
 export const CHIBI_SIDE_EAR = gridMask(18, 12, CHIBI_SIDE_EAR_GRID);
 const EAR_LEGEND: Record<string, Ink> = { N: ink("skin", DEEP), B: skin, n: ink("skin", SHADOW) };
 
@@ -57,23 +57,25 @@ function faceShape(jaw: readonly (readonly [number, number])[], chibiJaw: readon
       },
     },
     chibi: {
-      body: (pen) => pen.fill(CHIBI_EARS, skin),
-      head: (pen) => {
-        pen.castShadow(shift(chibi, 0, 1), "skin", SHADOW);
-        pen.fill(chibi, skin);
+      front: {
+        body: (pen) => pen.fill(CHIBI_EARS, skin),
+        head: (pen) => {
+          pen.castShadow(shift(chibi, 0, 1), "skin", SHADOW);
+          pen.fill(chibi, skin);
+        },
       },
+      back: CHIBI_BACK_OF_HEAD,
+      side: CHIBI_SIDE_HEAD,
     },
-    chibiBack: CHIBI_BACK_OF_HEAD,
-    chibiSide: CHIBI_SIDE_HEAD,
   };
 }
 
-const CHIBI_BACK_OF_HEAD: Art["chibiBack"] = {
+const CHIBI_BACK_OF_HEAD: Piece = {
   body: (pen) => pen.fill(CHIBI_EARS, skin),
   head: (pen) => pen.fill(CHIBI_CRANIUM, skin),
 };
 
-const CHIBI_SIDE_HEAD: Art["chibiSide"] = {
+const CHIBI_SIDE_HEAD: Piece = {
   head: (pen) => {
     pen.castShadow(shift(CHIBI_PROFILE, 0, 1), "skin", SHADOW);
     pen.fill(CHIBI_PROFILE, skin);

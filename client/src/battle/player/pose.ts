@@ -26,7 +26,7 @@ export function spritePose(player: PlayerData, alive: boolean, stretch: number):
   // We always see the player from behind, so the sprite never turns or mirrors. The slash frame has the sword arm
   // out to our right, where every swing's trail starts.
   const swinging = player.action === "slash" && player.actionTime < PLAYER.slash.duration * 0.8;
-  const frame = !alive ? "down" : swinging ? "slash" : "idle";
+  const frame = !alive ? "down" : swinging ? "slash" : "stand";
   return { frame, scaleX: 1 / stretch, scaleY: stretch };
 }
 

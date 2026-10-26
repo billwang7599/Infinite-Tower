@@ -1,35 +1,34 @@
 /**
  * Frames for the 24x24 pixel sprites (sprites.ts). The player is drawn from their look (gfx/look/): the chibi in
- * the field (front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar and
- * the "!" bubble are drawn here.
+ * the field (facing front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar
+ * and the "!" bubble are drawn here.
  */
 import type { Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
-import { CHIBI_TURNS, drawBattle, drawLook, type ChibiTurn } from "./look/look.js";
+import type { Pose } from "./look/battle.js";
+import { drawBattle, drawChibi, type ChibiFacing } from "./look/look.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 export interface PlayerFrames {
   /** The field: the chibi facing each way. The side faces right, like every side view here (sprites.ts). */
-  field: Record<ChibiTurn, SpriteDraw>;
-  /** The arena: standing (and running), mid-swing, and down. */
-  idle: SpriteDraw;
-  slash: SpriteDraw;
-  down: SpriteDraw;
+  chibi: Record<ChibiFacing, SpriteDraw>;
+  /** The arena, in each pose: standing (and running), mid-swing, and down. */
+  battle: Record<Pose, SpriteDraw>;
 }
 
 /** The player's frames in `look`. Each picture fills the sprite: 32 chibi or 64 battle pixels across its 24. */
 export function playerFrames(look: Look): PlayerFrames {
-  const chibi = (turn: ChibiTurn): SpriteDraw => {
-    const pic = drawLook(look, CHIBI_TURNS[turn]);
-    return (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, turn === "side");
+  const chibi = (facing: ChibiFacing): SpriteDraw => {
+    const pic = drawChibi(look, facing);
+    return (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side");
   };
-  const stand = drawBattle(look, "stand"), slash = drawBattle(look, "slash"), down = drawBattle(look, "down");
-  const battle = SPRITE_PX / VIEWS.battle.width;
+  const battle = (pose: Pose): SpriteDraw => {
+    const pic = drawBattle(look, pose);
+    return (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width);
+  };
   return {
-    field: { front: chibi("front"), back: chibi("back"), side: chibi("side") },
-    idle: (px) => paint(px, stand, battle),
-    slash: (px) => paint(px, slash, battle),
-    down: (px) => paint(px, down, battle),
+    chibi: { front: chibi("front"), back: chibi("back"), side: chibi("side") },
+    battle: { stand: battle("stand"), slash: battle("slash"), down: battle("down") },
   };
 }
 

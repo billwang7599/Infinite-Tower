@@ -1,7 +1,7 @@
 /** What every drawn field actor is made of: a position, the actor data, and its sprite quad. */
 import type { Mesh, StandardMaterial } from "@babylonjs/core";
 import type { Entity, Vec2, World } from "@infinite-tower/shared";
-import type { ChibiTurn } from "../../gfx/look/look.js";
+import type { ChibiFacing } from "../../gfx/look/look.js";
 import { FieldActor, FieldPos, FieldSprite } from "../components.js";
 import type { Facing } from "../facing.js";
 import { flatSprite, type FieldView } from "../scene.js";
@@ -9,8 +9,8 @@ import { flatSprite, type FieldView } from "../scene.js";
 interface FieldActorSpec {
   name: string;
   material: StandardMaterial;
-  /** A picture per way it faces (FieldSprite.turns), for the player's chibi. */
-  turns?: Record<ChibiTurn, StandardMaterial>;
+  /** A picture per way it faces (FieldSprite.facings), for the player's chibi. */
+  facings?: Record<ChibiFacing, StandardMaterial>;
   sizeTiles: number;
   facing: Facing;
   /** Glides toward the server's position (false for the predicted local player). */
@@ -29,7 +29,7 @@ export function spawnFieldActor(world: World, view: FieldView, at: Vec2, spec: F
   });
   world.add(e, FieldSprite, {
     mesh: flatSprite(view, spec.name, spec.sizeTiles, spec.material),
-    turns: spec.turns ?? null,
+    facings: spec.facings ?? null,
     alert: spec.alert ? hidden(flatSprite(view, "field-alert", 0.9, spec.alert)) : null,
     tuft: spec.tuft ? hidden(flatSprite(view, "field-tuft", 1.1, spec.tuft)) : null,
     size: spec.sizeTiles,

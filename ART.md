@@ -1,7 +1,9 @@
 # ART.md
 
 How the game's art should look, and how to make it. Read this before drawing anything. All art is code: there are
-no image files, and nothing is painted by hand outside the source.
+no image files, and nothing is painted by hand outside the source. Hand-drawn art from an artist is a plan for later
+([plan/art.md](plan/art.md)); for now it stays code-first. [What to draw](#what-to-draw) says how much there would
+be to draw.
 
 ## Characters
 
@@ -46,22 +48,24 @@ no image files, and nothing is painted by hand outside the source.
 
 Every character is one look drawn several ways. All views have a transparent background.
 
-| View | Size | What it's for |
-| --- | --- | --- |
-| portrait | 64x64 | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
-| chibi | 32x32 | the world, about 1.7 heads tall; front, back and side (facing left), one per way it walks |
-| battle | 64x64 | the arena, from behind, sword in hand; the figure is 48 wide, the sides are room for the sword |
+| View | Size | Drawn by | What it's for |
+| --- | --- | --- | --- |
+| portrait | 64x64 | `drawPortrait(look)` | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
+| chibi | 32x32 | `drawChibi(look, facing)` | the world, about 1.7 heads tall; facing front, back or side (to the left), the way it walks |
+| battle | 64x64 | `drawBattle(look, pose)` | the arena, from behind, sword in hand; the figure is 48 wide, the sides are room for the sword |
 
 The battle sprite is only ever seen from behind: the arena camera sits behind the player, who always attacks where
-it looks. It has a picture per pose (`battle.ts`): stand (also running), slash (sword arm out to our right; it's
-never mirrored, and every swing's trail starts on that side) and down (knelt, slumped, sword dropped). From behind
-the head is all hair, so face shapes, eyes and mouths draw nothing there.
+it looks. It has a picture per pose (`POSES` in `battle.ts`): stand (also running), slash (sword arm out to our
+right; it's never mirrored, and every swing's trail starts on that side) and down (knelt, slumped, sword dropped).
+From behind the head is all hair, so face shapes, eyes and mouths draw nothing there.
 
-The chibi turns the way it walks: down the screen shows the front, up the back, a side the side view (the game
-mirrors it for the other side). Front and back share a body outline; from behind there's no face, and the side
-shows only the near eye. A diagonal keeps the way it was already facing, so it doesn't flicker.
+The chibi faces the way it walks (`CHIBI_FACINGS` in `art.ts`): walking down the screen it faces front, up it faces
+back, and to a side it faces side (drawn facing left; the game mirrors it for walking right). Front and back share
+a body outline; facing back there's no face, and facing side shows only the near eye. A diagonal keeps the way it
+was already facing, so it doesn't flicker.
 
-Coming later: a chibi walk cycle, and portrait expressions for dialogue.
+Coming later: a chibi walk cycle, portrait expressions for dialogue, and battle frames from a skeleton
+([plan/art.md](plan/art.md)).
 
 ### Colors
 
@@ -71,11 +75,53 @@ new ramp and nothing else. Ramps a player picks: skin, hair, eyes (iris), outfit
 gear stay near-neutral, the accent goes on small trims only. Fixed ones everyone shares: eye whites, lash lines,
 mouth, blush, linen, wool, leather, brass, steel. Gear adds its own (iron, silk...).
 
+### What to draw
+
+How many drawings each thing needs, for whoever draws it. Read from the code: the options from `LOOK_OPTIONS`
+(`shared/src/character/character.ts`), the views from `VIEWS` and `CHIBI_FACINGS` (`art.ts`) and `POSES`
+(`battle.ts`).
+
+| View | Canvas | Drawings | Notes |
+| --- | --- | --- | --- |
+| portrait | 64x64 | 1 | three-quarters to our left; flipped to face right, no extra drawing |
+| chibi | 32x32 | 3: front, back, side | side is drawn facing left; facing right is its mirror image |
+| battle | 64x64 | 3: a pose each (stand, slash, down) | from behind; slash is mirrored on every other swing, no extra drawing |
+
+So something seen in every view and pose is 7 drawings. The axes that need drawings of their own:
+
+| Axis | Options | Each option needs |
+| --- | --- | --- |
+| body type | skinny, medium, wide | its body in every view and pose (7), and its own drawing of every wrap-around piece |
+| face shape | soft, sharp, square | 2: the portrait's jaw and the chibi's front jaw (the chibi's back and side, and battle, are shared) |
+| hair style | short, bob, long, ponytail | 5: portrait, chibi front, back and side, battle (one for every pose: it moves with the head). Hair behind the head is a second layer (`hairBack`): in the chibi's front, and the portrait's for long and ponytail |
+| eye type | round, sharp, sleepy, cat | 3: the portrait's near eye and far eye, and one chibi eye (mirrored for the other; facing side shows its first two columns). None facing back or in battle |
+| mouth type | smile, flat, grin, cat, pout | 2: the portrait's and the chibi's (facing side shows its first column). None facing back or in battle |
+
+Gender (boy, girl) changes no art. The head is the same on every body type, and hair, eyes and mouths fit every
+face shape, so none of them multiply.
+
+Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6) and accent (6) are ramps
+(`palette.ts`), and every drawing recolors with them.
+
+| Piece of gear | Drawings |
+| --- | --- |
+| on the head (a helmet) | 5: portrait, chibi front, back and side, battle (one for every pose); the same on every body |
+| held (the sword, battle only) | 3: a pose each, since each holds it at its own angle |
+| rigid on the body (a pair of shoulder guards) | 5: a view each, for both shoulders, placed at each body type's landmark |
+| wrap-around top (a chest piece) | 21: 3 body types x 7 |
+| wrap-around legs (trousers) | 12: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 3 poses in battle |
+
+Adding a body type adds a full set to every wrap-around piece (7 for a chest piece); adding a view or chibi facing
+adds one per body type to each, and one to every hair style and helmet; adding a battle pose (every animation
+frame is one) adds one per body type to each, and one to every held piece. Face shapes, hair styles, eye and
+mouth types add only their own row.
+
 ### How a character is built
 
-Everything you can see on a character is an `Art` (`gfx/look/art.ts`): for each view, one draw function per layer
-it shows up on. The body is an Art, so is each hair style, eye type, mouth and piece of clothing. A picture draws
-every Art layer by layer, bottom to top:
+Everything you can see on a character is an `Art` (`gfx/look/art.ts`): for each view (the chibi's for each way it
+faces: `{ portrait, chibi: { front, back, side }, battle }`), one draw function per layer it shows up on. The body
+is an Art, so is each hair style, eye type, mouth and piece of clothing. A picture draws every Art layer by layer,
+bottom to top:
 
 ```
 hairBack, body, legwear, footwear, torsowear, weapon, arms, armwear, head, face, hair, headwear
@@ -93,7 +139,9 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 - **Gear is drawn against the frame, never at fixed pixels**: a tunic is the torso grown by a pixel, its V-neck
   is cut at `middle`, shoulder guards sit on `shoulders`; `columns()` measures the body where gear needs a width.
   That's what makes one drawing fit every body type, so adding a body type doesn't mean redrawing items. Keep body
-  types few anyway: each is another shape gear must look right on.
+  types few anyway: each is another shape gear must look right on. This holds for today's code-drawn pieces, which
+  fit every body through its `Frame`; future artist-drawn wrap-around pieces would be one drawing per body type
+  ([plan/art.md](plan/art.md)), which is why [What to draw](#what-to-draw) counts 21 for a chest piece.
 - **The portrait's head, face and hair are hand-drawn grids**: rows of letters, one per pixel, each a tone of a
   material (`pen.grid`, with a legend). At 64x64 every pixel shows, so the parts that make a face read (eyes,
   mouth, hair clumps) are placed by hand. Hair grids are full-width rows from the top of the picture, one file per
@@ -109,25 +157,27 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 
 - **A look option** (hair style, eye type, mouth, face shape, a color): add its id to `LOOK_OPTIONS` in
   `shared/src/character/character.ts` (the server checks against it, the creation screen lists it), then its Art
-  to its list (`HAIR_STYLES`, `EYE_TYPES`, `MOUTH_TYPES`, `FACE_SHAPES`) with a piece for every view, or its ramp
-  to `palette.ts`. Until the art exists it won't compile.
+  to its list (`HAIR_STYLES`, `EYE_TYPES`, `MOUTH_TYPES`, `FACE_SHAPES`) with a piece for every view and chibi
+  facing, or its ramp to `palette.ts`. Until the art exists it won't compile.
 - **Gear**: a new Art drawing on the layers of its slot (a chest piece: `torsowear`, maybe `armwear` for
   shoulders), against the frame it's handed. Fixed materials make it look the same on everyone; use `cloth` only
   for things the player dyes. `jerkin.ts` is the example.
-- **A body type**: a new entry in `BODY_TYPES` with every frame field, for every view (`battleFrames` builds the
-  battle poses from a few widths). Then check every piece of gear on it.
-- **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then a sprite frame for it
-  (`gfx/characters.ts`).
-- **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, every
-  view and battle pose, the sample jerkin on and off, a mock dialogue and a crowd of random looks.
+- **A body type**: a new entry in `BODY_TYPES` with every frame field, for every view and chibi facing
+  (`battleFrames` builds the battle poses from a few widths). Then check every piece of gear on it.
+- **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then its sprite frame in
+  `playerFrames` (`gfx/characters.ts`) and its material (`battle/materials.ts`): both are keyed by pose, so they
+  don't compile until it's there. `battle/player/sprite.ts` picks the pose to show.
+- **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, the
+  portrait, the chibi facing each way, the battle sprite in each pose, the sample jerkin on and off, a mock dialogue
+  and a crowd of random looks.
 
 ### Don'ts
 
 - No pure black, no pure-white outlines, no colors outside a ramp.
 - No half-pixels: shapes are tested at pixel centers, grids are whole pixels.
 - No front-facing portraits: the three-quarter view is what makes a 64x64 face look alive.
-- No per-character art for gear (one drawing per view fits everyone), and no gear that only fits one hair style or
-  one body type.
+- No per-character art for gear, and no gear that only fits one hair style or one body type: today one drawing per
+  view fits everyone; hand-drawn wrap-around gear would be drawn per body type ([plan/art.md](plan/art.md)).
 - No bright, clean, saturated clothes or shiny new metal: this world is old and worn.
 
 ## Other art

@@ -2,8 +2,8 @@
  * Eye types and mouth types, as hand-drawn grids. The portrait's head is turned three-quarters to our left
  * (head.ts), so each eye type is two grids: the near eye (on the right, the full width) and the far eye
  * (narrower, its outer corner on the face's left edge). Both look at us, so the irises sit toward the right.
- * Chibi eyes are one grid, the left eye; the right is its mirror image. From the side (facing left) only the
- * near eye shows, its front two columns; from behind, no face at all.
+ * Chibi eyes are one grid, the left eye; the right is its mirror image. Facing side (to the left) only the near
+ * eye shows, its front two columns; facing back, no face at all.
  * Letters: K/k lash and lower lash, w/v eye white, H highlight, p pupil, D/d/I/L/S iris dark to light,
  * o/N/n skin lines, M/q inside the mouth, T teeth, m/b chibi mouth and brow.
  */
@@ -26,7 +26,7 @@ const NEAR_EYE = { x: 29, y: 20 }, FAR_EYE = { x: 18, y: 20 };
 const MOUTH = { x: 27, y: 33 };
 const CHIBI_EYE = { x: 11, y: 12, width: 3 };
 const CHIBI_MOUTH_Y = 16;
-/** In the side view: the eye, and the lips at the front of the face. */
+/** Facing side: the eye, and the lips at the front of the face. */
 const SIDE_EYE = { x: 10, y: 12 }, SIDE_LIPS = { x: 9, y: 16 };
 /** The first `n` columns of a grid. */
 const front = (grid: readonly string[], n: number) => grid.map((row) => row.slice(0, n));
@@ -46,13 +46,15 @@ function eyes({ near, far, chibi }: EyeType): Art {
       },
     },
     chibi: {
-      face: (pen) => {
-        const { x, y, width } = CHIBI_EYE;
-        pen.grid(x, y, chibi, LEGEND);
-        pen.grid(32 - x - width, y, chibi, LEGEND, true);
+      front: {
+        face: (pen) => {
+          const { x, y, width } = CHIBI_EYE;
+          pen.grid(x, y, chibi, LEGEND);
+          pen.grid(32 - x - width, y, chibi, LEGEND, true);
+        },
       },
+      side: { face: (pen) => pen.grid(SIDE_EYE.x, SIDE_EYE.y, front(chibi, 2), LEGEND) },
     },
-    chibiSide: { face: (pen) => pen.grid(SIDE_EYE.x, SIDE_EYE.y, front(chibi, 2), LEGEND) },
   };
 }
 
@@ -86,8 +88,10 @@ export const EYE_TYPES = {
 function mouth(portrait: readonly string[], chibi: readonly string[]): Art {
   return {
     portrait: { face: (pen) => pen.grid(MOUTH.x - Math.floor(portrait[0]!.length / 2), MOUTH.y, portrait, LEGEND) },
-    chibi: { face: (pen) => pen.grid(16 - Math.floor(chibi[0]!.length / 2), CHIBI_MOUTH_Y, chibi, LEGEND) },
-    chibiSide: { face: (pen) => pen.grid(SIDE_LIPS.x, SIDE_LIPS.y, front(chibi, 1), LEGEND) },
+    chibi: {
+      front: { face: (pen) => pen.grid(16 - Math.floor(chibi[0]!.length / 2), CHIBI_MOUTH_Y, chibi, LEGEND) },
+      side: { face: (pen) => pen.grid(SIDE_LIPS.x, SIDE_LIPS.y, front(chibi, 1), LEGEND) },
+    },
   };
 }
 
