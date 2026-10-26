@@ -10,6 +10,7 @@ import { CharacterPanel } from "./character/CharacterPanel.js";
 import { HudLayer } from "./HudLayer.js";
 import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
+import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "./layout.js";
 import { usePanelKeys } from "./panelKeys.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
@@ -82,8 +83,9 @@ function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
   return (
     <button
       type="button" id="rest-button" {...NO_FOCUS} onClick={rest}
+      style={{ bottom: REST_BUTTON_BOTTOM_PX, height: REST_BUTTON_HEIGHT_PX }}
       className={
-        "pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
+        "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
         + "border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory "
         + "transition-colors hover:bg-black/80"
       }

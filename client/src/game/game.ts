@@ -8,7 +8,7 @@
  * to the overworld.
  */
 import type { AbstractEngine } from "@babylonjs/core";
-import { itemDef, moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
+import { moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -16,8 +16,8 @@ import { frameSeconds } from "../core/time.js";
 import type { Overworld } from "../overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
+import { say } from "../ui/notifications/say.js";
 import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
-import { battleToasts } from "./battle-toasts.js";
 import { exposeDebugHandles } from "./debug.js";
 import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -80,9 +80,10 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
     updateInput();
   };
 
-  const enterBattle = ({ source, enemy, arena, vitals, stats, burden }: ServerMsgOf<"encounter">) => {
+  const enterBattle = (msg: ServerMsgOf<"encounter">) => {
+    const { enemy, arena, vitals, stats, burden } = msg;
     battle.start(enemy, arena, vitals, stats, burden);
-    ui.showToast(source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`);
+    say(ui.notifications, { kind: "encounter", source: msg.source, enemy: msg.enemy });
     setMode("battle");
   };
 
@@ -160,18 +161,17 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
         character: (msg) => applyCharacter(msg.character),
         rested(msg) {
           overworld.setVitals(msg.vitals);
-          ui.showToast("You rest by the fire. HP and stamina are restored.");
+          say(ui.notifications, { kind: "rested" });
         },
         itemUsed(msg) {
           overworld.setVitals(msg.vitals);
           overworld.setBag(msg.bag);
-          const def = itemDef(msg.item);
-          ui.showToast(`${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`);
+          say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
         bag: (msg) => overworld.setBag(msg.bag),
         battleResult(msg) {
           overworld.onBattleResult(msg);
-          for (const text of battleToasts(msg)) ui.showToast(text);
+          say(ui.notifications, { kind: "battleResult", outcome: msg });
         },
       });
       setMode("overworld");
@@ -192,7 +192,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       overworld.leave();
       ui.settingsScreen.set({ open: false });
       ui.creation.set({ open: false });
-      ui.toasts.set({ items: [] });
+      ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);
     },

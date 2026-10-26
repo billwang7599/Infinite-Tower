@@ -75,6 +75,12 @@ Decided by the user:
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
   bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. I and Esc close it, and you
   stand still while it's open (the world doesn't pause).
+- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating, a refused win) go in
+  the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
+  (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end). Messages wrap rather than run off
+  screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
+  and fades away on its own. All of it lives in `client/src/ui/notifications/`, and game code only calls
+  `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its place and words.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -237,7 +243,8 @@ Keeping them out of each other's way (and the user's):
 - **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key, and when showing one on screen, read
   it from the bindings (`keyName`). Esc and ⌘ can't be rebound.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
-  `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`.
+  `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
+  goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.
 
 ## Code style
 
