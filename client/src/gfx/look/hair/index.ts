@@ -3,7 +3,7 @@
  * falls behind the head and shoulders, a back grid. Both are full-width rows from the picture's top. Letters
  * are tones of the hair color (d deep, s shadow, b base, l light, w shine), and a/A a tie in the accent color.
  * Outlines are added when the picture is put together (art.ts): dark where hair meets skin or the background,
- * deep where the front lies over the back. Chibi hair (front, back and side), and the battle sprite's from
+ * deep where the front lies over the back. Chibi hair (facing front, back and side), and the battle sprite's from
  * behind, are drawn from shapes (chibi.ts, chibi-back.ts, chibi-side.ts, back.ts).
  */
 import { ink, type Art } from "../art.js";
@@ -41,9 +41,11 @@ function hair(portrait: PortraitHair, style: Style): Art {
         pen.grid(0, 0, front, TONES);
       },
     },
-    chibi: { hairBack: (pen) => drawBehindHead(pen, chibi), hair: (pen) => drawChibiFront(pen, chibi) },
-    chibiBack: { hair: (pen) => drawChibiFromBehind(pen, CHIBI_HAIR_BEHIND[style]) },
-    chibiSide: { hair: (pen) => drawChibiHair(pen, CHIBI_HAIR_SIDEWAYS[style], SIDEWAYS) },
+    chibi: {
+      front: { hairBack: (pen) => drawBehindHead(pen, chibi), hair: (pen) => drawChibiFront(pen, chibi) },
+      back: { hair: (pen) => drawChibiFromBehind(pen, CHIBI_HAIR_BEHIND[style]) },
+      side: { hair: (pen) => drawChibiHair(pen, CHIBI_HAIR_SIDEWAYS[style], SIDEWAYS) },
+    },
     battle: { hair: (pen, { head }) => drawHairFromBehind(pen, fromBehind, head) },
   };
 }

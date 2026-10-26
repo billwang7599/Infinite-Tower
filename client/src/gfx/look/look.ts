@@ -1,9 +1,10 @@
 /**
- * A look (shared/src/character/character.ts: the choices made at character creation) turned into pictures, one
- * per view. Each option id indexes its art or colors here, so an option shared/ lists without art doesn't compile.
+ * A look (shared/src/character/character.ts: the choices made at character creation) drawn as pictures: the
+ * portrait, the chibi facing each way, and the battle sprite in each pose. Each option id indexes its art or
+ * colors here, so an option shared/ lists without art doesn't compile.
  */
 import type { Look } from "@infinite-tower/shared";
-import { render, type Art, type Colors, type Picture } from "./art.js";
+import { render, type Art, type ChibiFacing, type Colors, type Picture } from "./art.js";
 import type { Pose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
@@ -14,28 +15,28 @@ import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN } from "./palette.js";
 import { SWORD } from "./sword.js";
 
 export type { Look };
+export { CHIBI_FACINGS, type ChibiFacing } from "./art.js";
 
 /** Everything drawn for a look: the body and head, its features, then what it wears. */
 export function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Art[] {
   return [BODY, FACE_SHAPES[look.face], HAIR_STYLES[look.hair], EYE_TYPES[look.eyes], MOUTH_TYPES[look.mouth], ...wear];
 }
 
-/** The views with one picture each: the battle sprite has a picture per pose (drawBattle). */
-export type StillView = "portrait" | "chibi" | "chibiBack" | "chibiSide";
+export function drawPortrait(look: Look, wear?: readonly Art[]): Picture {
+  const pieces = lookArts(look, wear).map((art) => art.portrait);
+  return render("portrait", BODY_TYPES[look.body].portrait, pieces, colorsOf(look), FIXED);
+}
 
-/** The chibi's view facing each way: the field picks one by where the player last walked. */
-export const CHIBI_TURNS = { front: "chibi", back: "chibiBack", side: "chibiSide" } as const satisfies Record<
-  string, StillView
->;
-export type ChibiTurn = keyof typeof CHIBI_TURNS;
-
-export function drawLook(look: Look, view: StillView, wear?: readonly Art[]): Picture {
-  return render(view, BODY_TYPES[look.body][view], lookArts(look, wear), colorsOf(look), FIXED);
+/** The chibi facing `facing`; the field picks one by where the player last walked. */
+export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]): Picture {
+  const pieces = lookArts(look, wear).map((art) => art.chibi?.[facing]);
+  return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
 /** The battle sprite in `pose`, sword in hand. */
 export function drawBattle(look: Look, pose: Pose, wear: readonly Art[] = STARTER_CLOTHES): Picture {
-  return render("battle", BODY_TYPES[look.body].battle[pose], lookArts(look, [...wear, SWORD]), colorsOf(look), FIXED);
+  const pieces = lookArts(look, [...wear, SWORD]).map((art) => art.battle);
+  return render("battle", BODY_TYPES[look.body].battle[pose], pieces, colorsOf(look), FIXED);
 }
 
 const colorsOf = (look: Look): Colors => ({

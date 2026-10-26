@@ -6,8 +6,8 @@
  * differ in how much: skinny is lean, wide is built. None of them is heavy.
  * Portrait: head and shoulders, turned three-quarters to our left like the head, so the near shoulder (right)
  * reaches further from the neck than the far one. The picture cuts off across the chest.
- * Chibi: 32x32, facing us, symmetric around x = 16. From behind it has the same outline; from the side (facing
- * left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
+ * Chibi: 32x32. Facing front (toward us) it's symmetric around x = 16, and facing back it has the same outline;
+ * facing side (to the left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
  * Battle: the whole body from behind, in each pose (battle.ts).
  */
 import type { Art, BattleFrame, Frame, Frames, Piece } from "./art.js";
@@ -76,7 +76,7 @@ function chibiFrame(b: ChibiBuild): Frame {
   };
 }
 
-/** The chibi from the side, facing left: the medium build, and the others deeper or shallower through the chest. */
+/** The chibi facing side (left): the medium build, and the others deeper or shallower through the chest. */
 function chibiSideFrame(b: ChibiBuild): Frame {
   const d = (b.shoulders - 5.6) / 2, a = (b.arm - 2.4) / 2;
   const arm = polygon([
@@ -96,26 +96,26 @@ function chibiSideFrame(b: ChibiBuild): Frame {
 
 /** The chibi's frames: front and back share an outline. */
 const chibiFrames = (b: ChibiBuild) => ({
-  chibi: chibiFrame(b),
-  chibiBack: chibiFrame(b),
-  chibiSide: chibiSideFrame(b),
+  front: chibiFrame(b),
+  back: chibiFrame(b),
+  side: chibiSideFrame(b),
 });
 
 /** Body types. Looks only: they change nothing in play. */
 export const BODY_TYPES = {
   skinny: {
     portrait: portraitFrame({ width: 0.86, neck: [30.5, 38] }),
-    ...chibiFrames({ shoulders: 5, waist: 2.6, arm: 2 }),
+    chibi: chibiFrames({ shoulders: 5, waist: 2.6, arm: 2 }),
     battle: battleFrames({ shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 }),
   },
   medium: {
     portrait: portraitFrame({ width: 1, neck: [30, 38.5] }),
-    ...chibiFrames({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
+    chibi: chibiFrames({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
     battle: battleFrames({ shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 }),
   },
   wide: {
     portrait: portraitFrame({ width: 1.1, neck: [29, 39.5] }),
-    ...chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
+    chibi: chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
     battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
 } as const satisfies Record<string, Omit<Frames, "battle"> & { battle: Record<Pose, BattleFrame> }>;
@@ -150,16 +150,18 @@ export const BODY: Art = {
       pen.shade(farSide(frame.arms, 3), SHADOW);
     },
   },
-  chibi: CHIBI,
-  chibiBack: {
-    body: (pen, { neck, torso, legs }) => {
-      pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
-      pen.fill(torso, skin);
-      pen.fill(legs, skin);
+  chibi: {
+    front: CHIBI,
+    back: {
+      body: (pen, { neck, torso, legs }) => {
+        pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
+        pen.fill(torso, skin);
+        pen.fill(legs, skin);
+      },
+      arms: CHIBI.arms,
     },
-    arms: CHIBI.arms,
+    side: CHIBI,
   },
-  chibiSide: CHIBI,
   battle: {
     body: (pen, { neck, torso, legs }) => {
       pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow

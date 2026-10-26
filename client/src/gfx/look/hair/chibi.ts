@@ -1,8 +1,8 @@
 /**
- * The chibi's hair styles from the front, drawn from shapes: a back mass behind the head, a crown, and pointed
+ * The chibi's hair styles facing front, drawn from shapes: a back mass behind the head, a crown, and pointed
  * locks over it. Cel-shaded with light from the top left: the underside and the far side in shadow, a dark line
  * where one lock lies over another, a broken shine band round the crown, and the locks' shadow on the forehead.
- * The back and side views (chibi-back.ts, chibi-side.ts) are drawn the same way.
+ * Facing back and side (chibi-back.ts, chibi-side.ts) they're drawn the same way.
  */
 import { ink } from "../art.js";
 import {

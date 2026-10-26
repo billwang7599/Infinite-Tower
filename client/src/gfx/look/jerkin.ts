@@ -29,15 +29,17 @@ export const LEATHER_JERKIN: Art = {
     },
   },
   chibi: {
-    torsowear: (pen, { torso, collarY, waistY }) => {
-      pen.fill(both(torso, both(below(collarY), above(waistY - 1))), ink("leather", BASE));
-      pen.shade((x) => x >= 17, SHADOW);
-      pen.dot(15, collarY + 1, ink("brass", LIGHT));
-    },
-    armwear: (pen, { shoulders }) => {
-      for (const [x, y] of shoulders) {
-        pen.fill((gx, gy) => Math.abs(gx + 0.5 - x) <= 1.5 && Math.abs(gy + 0.5 - y) <= 1, ink("leather", LIGHT));
-      }
+    front: {
+      torsowear: (pen, { torso, collarY, waistY }) => {
+        pen.fill(both(torso, both(below(collarY), above(waistY - 1))), ink("leather", BASE));
+        pen.shade((x) => x >= 17, SHADOW);
+        pen.dot(15, collarY + 1, ink("brass", LIGHT));
+      },
+      armwear: (pen, { shoulders }) => {
+        for (const [x, y] of shoulders) {
+          pen.fill((gx, gy) => Math.abs(gx + 0.5 - x) <= 1.5 && Math.abs(gy + 0.5 - y) <= 1, ink("leather", LIGHT));
+        }
+      },
     },
   },
 };

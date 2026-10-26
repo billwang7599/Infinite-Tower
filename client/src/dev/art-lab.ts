@@ -1,13 +1,15 @@
 /**
- * Dev-only page (/art.html on the Vite dev server, never built): every look option, every view (the chibi facing
- * each way) and battle pose, a piece of gear tried on, and a mock dialogue scene. For judging the character art,
- * not part of the game.
+ * Dev-only page (/art.html on the Vite dev server, never built): every look option in every view (the portrait,
+ * the chibi facing front, back and side, the battle sprite in each pose: stand, slash, down), a piece of gear
+ * tried on, and a mock dialogue scene. For judging the character art, not part of the game.
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "../gfx/look/art.js";
 import { POSES } from "../gfx/look/battle.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
-import { CHIBI_TURNS, drawBattle, drawLook, type Look, type StillView } from "../gfx/look/look.js";
+import {
+  CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type ChibiFacing, type Look,
+} from "../gfx/look/look.js";
 import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
 
 const LABELS: Record<keyof Look, string> = {
@@ -32,7 +34,8 @@ function canvas(pic: Picture, scale: number, style = ""): HTMLCanvasElement {
 }
 
 const wear = () => (jerkin ? [...STARTER_CLOTHES, LEATHER_JERKIN] : STARTER_CLOTHES);
-const draw = (l: Look, view: StillView) => drawLook(l, view, wear());
+const portrait = (l: Look) => drawPortrait(l, wear());
+const chibi = (l: Look, facing: ChibiFacing) => drawChibi(l, facing, wear());
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, style = "", text = ""): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -69,7 +72,7 @@ function render(): void {
   controls.append(random, gear);
   root.append(controls);
 
-  // Both views, at a few sizes
+  // The portrait and the chibi facing front, at a few sizes
   const views = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
   const caption = (node: HTMLElement, text: string) => {
     const box = el("div", "display:flex;flex-direction:column;align-items:center;gap:6px");
@@ -77,20 +80,20 @@ function render(): void {
     return box;
   };
   views.append(
-    caption(canvas(draw(look, "portrait"), 6), "portrait 64x64 at 6x"),
-    caption(canvas(draw(look, "chibi"), 6), "chibi 32x32 at 6x"),
-    caption(canvas(draw(look, "chibi"), 3), "chibi at 3x (about world size)"),
+    caption(canvas(portrait(look), 6), "portrait 64x64 at 6x"),
+    caption(canvas(chibi(look, "front"), 6), "chibi 32x32 at 6x"),
+    caption(canvas(chibi(look, "front"), 3), "chibi at 3x (about world size)"),
   );
   root.append(views);
 
-  // The chibi facing each way the field turns it: front, back, side (walking right mirrors it).
-  const turns = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
-  for (const [turn, view] of Object.entries(CHIBI_TURNS)) {
-    turns.append(caption(canvas(draw(look, view), 6), `chibi ${turn}`));
-  }
-  turns.append(caption(canvas(draw(look, "chibiSide"), 6, "transform:scaleX(-1)"), "chibi side, walking right"));
-  for (const view of Object.values(CHIBI_TURNS)) turns.append(caption(canvas(draw(look, view), 3), "3x"));
-  root.append(turns);
+  // The chibi facing each way: front, back, side (walking right mirrors the side).
+  const facings = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  for (const facing of CHIBI_FACINGS) facings.append(caption(canvas(chibi(look, facing), 6), `chibi facing ${facing}`));
+  facings.append(
+    caption(canvas(chibi(look, "side"), 6, "transform:scaleX(-1)"), "chibi facing side, walking right"),
+  );
+  for (const facing of CHIBI_FACINGS) facings.append(caption(canvas(chibi(look, facing), 3), "3x"));
+  root.append(facings);
 
   // The battle sprite: from behind, in each pose, and at about arena size.
   const battle = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
@@ -104,8 +107,8 @@ function render(): void {
     "background:radial-gradient(ellipse at 50% 35%, #2a2433, #0a090d 70%)");
   const other = randomLookStable();
   scene.append(
-    canvas(draw(other, "portrait"), 4, "position:absolute;bottom:60px;right:140px;filter:brightness(0.45)"),
-    canvas(draw(look, "portrait"), 4, "position:absolute;bottom:60px;left:140px;transform:scaleX(-1)"),
+    canvas(portrait(other), 4, "position:absolute;bottom:60px;right:140px;filter:brightness(0.45)"),
+    canvas(portrait(look), 4, "position:absolute;bottom:60px;left:140px;transform:scaleX(-1)"),
   );
   const box2 = el("div", "position:absolute;left:24px;right:24px;bottom:16px;height:110px;" +
     "background:linear-gradient(#0d0c11e6,#050507f2);border:1px solid #c9a24a88;border-radius:4px;padding:28px 20px 0");
@@ -119,7 +122,7 @@ function render(): void {
 
   // A crowd of random looks
   const crowd = el("div", "display:flex;flex-wrap:wrap;gap:12px");
-  for (const l of crowdLooks) crowd.append(canvas(draw(l, "portrait"), 2), canvas(draw(l, "chibi"), 3));
+  for (const l of crowdLooks) crowd.append(canvas(portrait(l), 2), canvas(chibi(l, "front"), 3));
   root.append(caption(crowd, "random looks"));
 }
 

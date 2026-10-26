@@ -8,7 +8,7 @@ import {
 } from "@babylonjs/core";
 import { DEFAULT_LOOK, type LevelLayout } from "@infinite-tower/shared";
 import { drawAlert, drawBoar, playerFrames } from "../gfx/characters.js";
-import type { ChibiTurn } from "../gfx/look/look.js";
+import type { ChibiFacing } from "../gfx/look/look.js";
 import { pixelMaterial, spriteMaterial, type SpriteDraw } from "../gfx/sprites.js";
 import { tuftTexture } from "../gfx/textures.js";
 
@@ -20,8 +20,8 @@ export interface FieldView {
   /** Root of the level's meshes. */
   levelRoot: TransformNode | null;
   materials: {
-    /** The player's chibi facing each way (FieldSprite.turns). */
-    player: Record<ChibiTurn, StandardMaterial>;
+    /** The player's chibi facing each way (FieldSprite.facings). */
+    player: Record<ChibiFacing, StandardMaterial>;
     boar: StandardMaterial;
     alert: StandardMaterial;
     tuft: StandardMaterial;
@@ -59,14 +59,16 @@ export function createFieldScene(engine: AbstractEngine): FieldView {
     scene, camera, level: null, levelRoot: null,
     materials: {
       tuft: pixelMaterial(scene, "field-tuft", tuftTexture(scene), { unlit: true }),
-      player: chibiMaterials(scene, playerFrames(DEFAULT_LOOK).field),
+      player: chibiMaterials(scene, playerFrames(DEFAULT_LOOK).chibi),
       boar: spriteMaterial(scene, "field-boar", drawBoar),
       alert: spriteMaterial(scene, "field-alert", drawAlert),
     },
   };
 }
 
-function chibiMaterials(scene: Scene, frames: Record<ChibiTurn, SpriteDraw>): Record<ChibiTurn, StandardMaterial> {
-  const material = (turn: ChibiTurn) => spriteMaterial(scene, `field-player-${turn}`, frames[turn]);
+function chibiMaterials(
+  scene: Scene, frames: Record<ChibiFacing, SpriteDraw>,
+): Record<ChibiFacing, StandardMaterial> {
+  const material = (facing: ChibiFacing) => spriteMaterial(scene, `field-player-${facing}`, frames[facing]);
   return { front: material("front"), back: material("back"), side: material("side") };
 }
