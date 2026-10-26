@@ -1,21 +1,18 @@
-import { PhysicsRaycastResult, Vector3 } from "@babylonjs/core";
-import { clamp, damp, Health, Player, PLAYER, type System } from "@infinite-tower/shared";
-import { Body, Layer } from "../components.js";
+import { Body, clamp, damp, Health, Player, type System } from "@infinite-tower/shared";
 import type { BattleContext } from "../context.js";
 import { PlayerSprite, spriteY } from "./components.js";
 import { spritePose, trailPose } from "./pose.js";
 
+/** The blob shadow looks this far down for the floor. */
+const SHADOW_REACH = 30;
+
 /** Per render frame: sprite frame, walk bob, squash & stretch, i-frame blink, sword trail, blob shadow. */
 export function playerSpriteSystem(ctx: BattleContext): System {
-  const vel = new Vector3(), from = new Vector3(), to = new Vector3();
-  const result = new PhysicsRaycastResult();
   const frames = ctx.materials.player;
 
   return (world, dt) => {
     for (const [, sprite, body, player, health] of world.query(PlayerSprite, Body, Player, Health)) {
-      const b = body.aggregate.body;
-      b.getLinearVelocityToRef(vel);
-      const p = body.mesh.position;
+      const p = body.pos, vel = body.vel;
       const alive = health.hp > 0;
 
       const speed = Math.hypot(vel.x, vel.z);
@@ -49,15 +46,14 @@ export function playerSpriteSystem(ctx: BattleContext): System {
         sprite.slash.setEnabled(false);
       }
 
-      // Blob shadow on the ground.
-      from.set(p.x, p.y, p.z);
-      to.set(p.x, p.y - 30, p.z);
-      ctx.physics.raycastToRef(from, to, result, { collideWith: Layer.Ground, ignoreBody: b });
-      if (result.hasHit) {
-        const height = p.y - PLAYER.height / 2 - result.hitPointWorld.y;
+      // Blob shadow on the floor.
+      const below = ctx.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;
+      if (below !== null) {
+        const floorY = p.y - below;
+        const height = p.y - body.centerHeight - floorY;
         const scale = Math.max(0.3, 1 - height * 0.12);
         sprite.shadow.isVisible = true;
-        sprite.shadow.position.set(p.x, result.hitPointWorld.y + 0.02, p.z);
+        sprite.shadow.position.set(p.x, floorY + 0.02, p.z);
         sprite.shadow.scaling.set(scale, 1, scale);
       } else {
         sprite.shadow.isVisible = false;

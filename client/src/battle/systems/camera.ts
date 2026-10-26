@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
-import { clamp, dampFactor, LocalPlayer, wrapAngle, type Entity, type System } from "@infinite-tower/shared";
-import { Body } from "../components.js";
+import { Body, clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../context.js";
 
 // Turn rates at 100% sensitivity; Settings → Camera scales all three (settings/camera.ts).
@@ -31,8 +31,8 @@ const SHAKE_CUTOFF = 0.005;
 export function cameraSystem(ctx: BattleContext): System {
   const { keyboard, mouse } = ctx;
   const focus = new Vector3(), look = new Vector3();
-  /** Each fight spawns a new player; the camera jumps to them instead of gliding over from the last fight. */
-  let followed: Entity | null = null;
+  /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
+  let followed: Fight | null = null;
 
   return (world, dt) => {
     const view = ctx.view;
@@ -48,12 +48,12 @@ export function cameraSystem(ctx: BattleContext): System {
 
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
-    const [player, , body] = row;
-    const p = body.mesh.position;
+    const p = row[2].pos;
 
     // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
-    if (player !== followed) { focus.copyFrom(p); followed = player; }
-    Vector3.LerpToRef(focus, p, dampFactor(FOLLOW_RATE, dt), focus);
+    if (ctx.fight !== followed) { focus.set(p.x, p.y, p.z); followed = ctx.fight; }
+    const k = dampFactor(FOLLOW_RATE, dt);
+    focus.set(focus.x + (p.x - focus.x) * k, focus.y + (p.y - focus.y) * k, focus.z + (p.z - focus.z) * k);
 
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).

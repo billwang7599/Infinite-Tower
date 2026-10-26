@@ -1,0 +1,86 @@
+/**
+ * The physics step: gravity, then every body moves by its velocity, through Rapier so the floor and the wall stop it
+ * (and take the speed out of whatever ran into them). Bodies bumping into each other follow the fight's own rule
+ * rather than masses: an enemy shoves a player along and a player never pushes an enemy (though a player pinned
+ * against the wall holds it back). Dodging, knocked back (hitstun) or dead, a player passes through enemies.
+ * Enemies pass through each other, and players through players.
+ */
+import type { System } from "../../../core/ecs.js";
+import type { Vec3 } from "../../../core/math.js";
+import {
+  Body, Enemy, Health, Player, type BodyData, type HealthData, type PlayerData,
+} from "../../components.js";
+import { GRAVITY } from "../../player.js";
+import type { ArenaPhysics, Contact } from "./arena-physics.js";
+
+/** Bodies this close (m) count as touching: one can't move into the other. */
+const TOUCH_MARGIN = 0.02;
+/** Overlaps up to this deep (m) are left alone: what's left of a player pushed out exactly, give or take rounding. */
+const OVERLAP_SLOP = 0.001;
+
+/** Solid to enemies: alive, not dodging and not knocked back. */
+const solidToEnemies = (player: PlayerData, health: HealthData): boolean =>
+  health.hp > 0 && player.action !== "dodge" && health.hitstun <= 0;
+
+export function moveSystem(physics: ArenaPhysics): System {
+  /** Moves `body` by `delta`, as far as the floor and the wall let it. Returns how far it went. */
+  const moveBody = (body: BodyData, delta: Vec3): Vec3 => {
+    const moved = physics.move(body.collider, delta);
+    Object.assign(body.pos, physics.position(body.collider));
+    return moved;
+  };
+  /** Moves `body` by its velocity; what the floor and the wall stopped comes off the velocity. */
+  const travel = (body: BodyData, dt: number) => {
+    Object.assign(body.vel, scaled(moveBody(body, scaled(body.vel, dt)), 1 / dt));
+  };
+  /** Moves `body` out of what it overlaps (`touch`), without speeding it up. */
+  const pushOut = (body: BodyData, touch: Contact) => moveBody(body, scaled(touch, -touch.distance));
+
+  return (world, dt) => {
+    for (const [, body] of world.query(Body)) body.vel.y += GRAVITY * dt;
+
+    // Enemies first: they go where they want, whoever is in the way...
+    const enemies: BodyData[] = [];
+    for (const [, , body] of world.query(Enemy, Body)) {
+      travel(body, dt);
+      enemies.push(body);
+    }
+
+    // ...then players: touching an enemy, a player goes no faster toward it than it comes at them (so a shove
+    // carries them along), and is then pushed out of any overlap that's left.
+    for (const [, player, body, health] of world.query(Player, Body, Health)) {
+      if (!solidToEnemies(player, health)) {
+        travel(body, dt);
+        continue;
+      }
+      for (const enemy of enemies) {
+        const touch = physics.contact(body.collider, body.pos, enemy.collider, TOUCH_MARGIN);
+        if (touch) noFasterInto(body.vel, enemy.vel, touch);
+      }
+      travel(body, dt);
+      for (const enemy of enemies) {
+        const touch = physics.contact(body.collider, body.pos, enemy.collider);
+        if (touch && touch.distance < 0) pushOut(body, touch);
+      }
+      // Pinned against the wall, the player holds the enemy back instead.
+      for (const enemy of enemies) {
+        const touch = physics.contact(enemy.collider, enemy.pos, body.collider);
+        if (!touch || touch.distance > -OVERLAP_SLOP) continue;
+        pushOut(enemy, touch);
+        noFasterInto(enemy.vel, body.vel, touch);
+      }
+    }
+    physics.step();
+  };
+}
+
+const scaled = (v: Vec3, k: number): Vec3 => ({ x: v.x * k, y: v.y * k, z: v.z * k });
+
+/** Takes out of `vel` any speed toward the thing it touches (`touch` points away from it) beyond that thing's own. */
+function noFasterInto(vel: Vec3, otherVel: Vec3, touch: Contact): void {
+  const closing = (vel.x - otherVel.x) * touch.x + (vel.y - otherVel.y) * touch.y + (vel.z - otherVel.z) * touch.z;
+  if (closing >= 0) return;
+  vel.x -= closing * touch.x;
+  vel.y -= closing * touch.y;
+  vel.z -= closing * touch.z;
+}

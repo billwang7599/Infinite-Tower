@@ -1,15 +1,15 @@
 /**
  * What every enemy does, whatever its attacks: track the target, regain poise, walk up to the target
  * ("approach"), get staggered when poise breaks, sit out "stunned", die. Attack systems run right
- * after this and may take over from "approach". Engine-free: the motor applies the result.
+ * after this and may take over from "approach". The motor turns the wanted movement into velocity.
  *
  *   approach ──attack system──▶ <attack states> ──▶ approach
  *      ▲  poise breaks (not while armored) ──▶ staggered ──┘   hp 0 ──▶ dead
  */
-import {
-  clamp, distXZ, Enemy, FighterStats, Health, LocalPlayer, moveSpeed, turnToward, wrapAngle, type System,
-} from "@infinite-tower/shared";
-import { Body } from "../../components.js";
+import type { System, World } from "../../../core/ecs.js";
+import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
+import { Body, Enemy, Health, Player } from "../../components.js";
+import { FighterStats, moveSpeed } from "../../stats.js";
 import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
@@ -17,9 +17,20 @@ const STOP_DIST = 2.2;
 /** Velocity change per second toward what the state wants: standing or walking, stunned, staggered, dead. */
 const ACCEL = { normal: 25, stunned: 60, staggered: 30, dead: 15 } as const;
 
+/** The nearest player still standing; with none, the nearest of the fallen. */
+function targetFor(world: World, from: Vec3): { pos: Vec3; alive: boolean } | null {
+  let best: { pos: Vec3; alive: boolean; dist: number } | null = null;
+  for (const [, , body, health] of world.query(Player, Body, Health)) {
+    const alive = health.hp > 0, dist = distXZ(from, body.pos);
+    if (!best || (alive && !best.alive) || (alive === best.alive && dist < best.dist)) {
+      best = { pos: body.pos, alive, dist };
+    }
+  }
+  return best;
+}
+
 export function enemyBrainSystem(): System {
   return (world, dt) => {
-    const target = world.first(LocalPlayer, Body, Health);
     for (const [e, enemy, body, health, stats] of world.query(Enemy, Body, Health, FighterStats)) {
       const def = enemy.def;
       enemy.stateTime += dt;
@@ -33,13 +44,13 @@ export function enemyBrainSystem(): System {
       }
       enemy.armored = false;
 
-      const p = body.mesh.position, sense = enemy.sense;
+      const p = body.pos, sense = enemy.sense;
       sense.dist = Infinity; sense.toYaw = enemy.yaw; sense.targetAlive = false;
+      const target = targetFor(world, p);
       if (target) {
-        const tp = target[2].mesh.position;
-        sense.dist = distXZ(p, tp);
-        sense.toYaw = Math.atan2(tp.x - p.x, tp.z - p.z);
-        sense.targetAlive = target[3].hp > 0;
+        sense.dist = distXZ(p, target.pos);
+        sense.toYaw = Math.atan2(target.pos.x - p.x, target.pos.z - p.z);
+        sense.targetAlive = target.alive;
       }
       sense.facingDot = Math.cos(wrapAngle(sense.toYaw - enemy.yaw));
 

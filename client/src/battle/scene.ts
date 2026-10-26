@@ -1,29 +1,21 @@
 /**
- * The arena's Babylon scene: Havok physics at the fixed tick, the third-person camera (driven by
- * systems/camera.ts), and the look: lights, fog, shadows and post-processing.
+ * The arena's Babylon scene: the third-person camera (driven by systems/camera.ts) and the look: lights, fog,
+ * shadows and post-processing. It only draws; the fight's physics is the Fight's own (shared).
  */
 import {
-  Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HavokPlugin, HemisphericLight,
+  Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HemisphericLight,
   ImageProcessingConfiguration, Scene, ShadowGenerator, UniversalCamera, Vector3,
-  type AbstractEngine, type Camera, type PhysicsEngineV2,
+  type AbstractEngine, type Camera,
 } from "@babylonjs/core";
-import HavokPhysics from "@babylonjs/havok";
-import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
-import { FIXED_DT, GRAVITY } from "@infinite-tower/shared";
 
 export interface BattleScene {
   scene: Scene;
-  physics: PhysicsEngineV2;
   camera: UniversalCamera;
   sunShadows: ShadowGenerator;
 }
 
-export async function createBattleScene(engine: AbstractEngine): Promise<BattleScene> {
+export function createBattleScene(engine: AbstractEngine): BattleScene {
   const scene = new Scene(engine);
-  const havok = new HavokPlugin(true, await HavokPhysics({ locateFile: () => havokWasmUrl }));
-  scene.enablePhysics(new Vector3(0, GRAVITY, 0), havok);
-  const physics = scene.getPhysicsEngine() as PhysicsEngineV2;
-  physics.setTimeStep(FIXED_DT);
 
   const camera = new UniversalCamera("camera", new Vector3(0, 4, -16), scene);
   camera.fov = 0.9;
@@ -31,7 +23,7 @@ export async function createBattleScene(engine: AbstractEngine): Promise<BattleS
   camera.inputs.clear(); // the camera system drives it
 
   const sunShadows = setupLook(scene, camera);
-  return { scene, physics, camera, sunShadows };
+  return { scene, camera, sunShadows };
 }
 
 /** Lights, fog, shadows and post-processing. Returns the sun's shadow generator. */

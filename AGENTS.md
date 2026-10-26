@@ -5,7 +5,7 @@ small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with t
 
 - `shared/`: code both sides run (simulation, message types)
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
-- `client/`: Vite, Babylon.js + Havok, React UI
+- `client/`: Vite, Babylon.js, React UI
 
 ## The docs, and keeping them current
 
@@ -81,6 +81,11 @@ Decided by the user:
   screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
   and fades away on its own. All of it lives in `client/src/ui/notifications/`, and game code only calls
   `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its place and words.
+- The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
+  with its own physics world and fixed steps, for any number of players and enemies, so the server can run the same
+  fight and the browser predicts only its own character. Fighters are moved by code, not pushed by forces, so the
+  controls stay tight. An enemy shoves a player; a player can't push an enemy; dodging, knocked back or dead, a
+  player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -166,8 +171,8 @@ Where tests go and how they're written:
   `Overworld` is made (it keeps `Math.random` as its `rng`).
 - Read tuning numbers from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires) instead of writing
   them into tests, so retuning the game doesn't break tests that aren't about the numbers.
-- What has no unit tests (Babylon rendering, React screens, the arena fight, the Postgres stores) is still tried
-  in a browser before calling it done.
+- What has no unit tests (Babylon rendering, React screens, how the arena fight feels, the Postgres stores) is
+  still tried in a browser before calling it done.
 
 ## Before calling something done
 
@@ -236,8 +241,9 @@ Keeping them out of each other's way (and the user's):
   package to the ones core may use.
 - **`shared/` is only for code both sides run.** Data only the server needs (encounter rates, spawns, enemy
   stats, drops) stays in `server/`.
-- **The arena fight still runs in the browser** and reports the result; the server can only bound what it's told.
-  Don't add new trust in client claims.
+- **The arena fight is shared code** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`), but
+  only the browser runs it for now and reports the result; the server can only bound what it's told. Don't add new
+  trust in client claims.
 - **ECS for game data** (`shared/src/core/ecs.ts`). Plain classes for services (connection, keyboard, mouse,
   prediction).
 - **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key, and when showing one on screen, read

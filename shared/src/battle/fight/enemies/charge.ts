@@ -6,9 +6,10 @@
  *   approach ─▶ chargeWindup ─▶ charge ──hits wall──▶ stunned (brain) ─▶ approach
  *                                  └──runs out──▶ chargeRecover ─▶ approach
  */
-import { ChargeAttack, Enemy, turnToward, type System } from "@infinite-tower/shared";
-import { Body } from "../../components.js";
-import type { BattleContext } from "../../context.js";
+import type { System } from "../../../core/ecs.js";
+import { turnToward } from "../../../core/math.js";
+import { Body, ChargeAttack, Enemy } from "../../components.js";
+import type { FightContext } from "../context.js";
 import { addHitAhead, enter } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
@@ -22,7 +23,7 @@ const RECOVER_ACCEL = 20;
 const WALL_MARGIN = 0.45;
 const MIN_OUTWARD_DOT = 0.3;
 
-export function chargeAttackSystem(ctx: BattleContext): System {
+export function chargeAttackSystem(ctx: Pick<FightContext, "arena" | "events">): System {
   return (world, dt) => {
     for (const [e, charge, enemy, body] of world.query(ChargeAttack, Enemy, Body)) {
       const def = charge.def, sense = enemy.sense, move = enemy.move;
@@ -48,13 +49,13 @@ export function chargeAttackSystem(ctx: BattleContext): System {
         case "charge": {
           enemy.armored = true;
           move.dirX = charge.dir.x; move.dirZ = charge.dir.z; move.speed = def.speed; move.accel = CHARGE_ACCEL;
-          const p = body.mesh.position, r = Math.hypot(p.x, p.z);
+          const p = body.pos, r = Math.hypot(p.x, p.z);
           const outward = r > 0.01 ? (p.x * move.dirX + p.z * move.dirZ) / r : 0;
           if (r > ctx.arena.radius - enemy.def.radius - WALL_MARGIN && outward > MIN_OUTWARD_DOT) {
             enter(world, e, enemy, "stunned", def.stunTime);
             charge.cooldown = def.stunTime + def.cooldown;
             move.speed = 0; move.halt = true;
-            ctx.shake = Math.max(ctx.shake, 0.35);
+            ctx.events.push({ type: "slam", enemy: e });
           } else if (enemy.stateTime >= def.maxChargeTime) {
             enter(world, e, enemy, "chargeRecover");
             charge.cooldown = def.recover + def.cooldown;

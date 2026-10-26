@@ -6,9 +6,10 @@ import { resultShown, type BattleContext } from "../context.js";
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): System {
   return (world) => {
+    if (!ctx.fight) return;
     const patch: Partial<BattleHudState> = {
-      result: ctx.fight.state,
-      showResult: resultShown(ctx.fight),
+      result: ctx.fight.outcome.state,
+      showResult: resultShown(ctx.fight.outcome),
     };
 
     const me = world.first(LocalPlayer, Health, Stamina);

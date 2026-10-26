@@ -19,7 +19,7 @@ add, move or rename files, or change how the pieces talk to each other.
 
 ```
               Browser: client/
-  ui/ (React)    game/    overworld/    battle/ (Babylon + Havok)
+  ui/ (React)    game/    overworld/    battle/ (Babylon)
        │                                 │
        │ HTTP /api                       │ WebSocket /ws
        ▼                                 ▼
@@ -33,7 +33,8 @@ add, move or rename files, or change how the pieces talk to each other.
 └──────────────────────────────────────────────────────────┘
 Arrows point at what each piece plugs into or calls.
 
-shared/: code both sides run (ECS, math, message types + Zod schemas, overworld walking, the view size)
+shared/: code both sides run (ECS, math, message types + Zod schemas, overworld walking, the view size, the arena
+         fight with its Rapier physics)
 ```
 
 Three npm workspaces. The rule: **shared = code both sides run; server = anything a player must not be able to
@@ -44,7 +45,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
 
 1. **Title.** `client/src/main.ts` mounts the React UI (the title screen), asks `GET /api/me` who's logged in, and
    starts `prepareGame()` in the background: `game/start.ts` is its own lazily loaded chunk with Babylon, so the
-   title shows first while the engine, Havok and both scenes get built behind it.
+   title shows first while the engine, the arena's physics (Rapier) and both scenes get built behind it.
 2. **Login.** The login form calls `POST /api/login` (or `/api/register`), which sets the httpOnly `it_session`
    cookie (30 days).
 3. **Join.** Play opens `/ws`; the cookie goes with it. Meanwhile the title plays its enter sequence
@@ -59,8 +60,9 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server sends `encounter` (enemy, arena, your HP / stamina, stats and burden). The client switches to
-   battle mode and runs the fight itself, then reports `battleEnd { won, vitals }`. The server checks the claim,
-   rolls drops (or, on a loss, empties the bag), saves and answers `battleResult`; Enter goes back to the overworld.
+   battle mode and runs the fight itself (the shared `Fight`), then reports `battleEnd { won, vitals }`. The server
+   checks the claim, rolls drops (or, on a loss, empties the bag), saves and answers `battleResult`; Enter goes back
+   to the overworld.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
@@ -101,27 +103,42 @@ main.ts
   order. Services (the connection, keyboard, mouse, prediction) are plain classes.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`overworld/`, mode `"overworld"`) and the fight (`battle/`, mode `"battle"`). Overworld mirrors
-  (`OverworldPos`, `OverworldActor`) and arena entities (`Fighter`, `Body`, ...) live side by side; only the active
-  mode's systems run.
-  Arena fighters are spawned on encounter and destroyed when you return.
+  (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
+  systems run. The fighters live in the fight's own world (below), made on encounter and dropped when you return.
 - **The overworld draws what the server says.** `overworld/mirror.ts` spawns a drawing per actor `kind`;
   `overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
-- **The arena runs in the browser for now.** Babylon's deterministic lockstep steps it at a fixed 60 Hz
-  (`onBeforeStep` / `onAfterStep`), only while its scene renders; render-only systems run once per frame.
-  System order (`battle/battle.ts`), fixed step: player input -> player controller -> enemy brain -> attacks ->
-  motor -> [physics] -> player ground -> combat -> outcome. Per frame: camera, player sprite, enemy model
-  animations, HUD.
-- **Havok owns dynamic-body transforms.** Systems move things by setting velocity, never position.
+- **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
+  own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
+  no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
+  one `PlayerInputData` per player (any number of players and enemies). Nothing in it is random, and Rapier's
+  deterministic build gives the same numbers on every machine, so the same setup and inputs always give the same
+  fight. Rapier loads once (`initPhysics()`, awaited by `prepareGame()` behind the title) before any fight is made.
+  System order (`fight.ts`): player controller -> enemy brain -> attacks -> motor -> physics -> player ground ->
+  combat -> outcome. It reports what happened in a step as `events` (hits, a charge slamming the wall) for the
+  client to show.
+- **The browser runs it for now** and draws it (`battle/`): Babylon's deterministic lockstep calls `onBeforeStep` at
+  a fixed 60 Hz, only while the arena's scene renders, and each call reads the keys into a `PlayerInputData` and
+  steps the fight once. The client hangs its drawings (a node that follows `Body`, the sprite, the boar model) on
+  the fight's own entities; render systems run once per frame on the fight's world: follow, camera, player sprite,
+  enemy model animations, HUD.
+- **Fighters are moved by code, not by forces.** Systems set a body's velocity (`Body.vel`); the physics step
+  (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
+  and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
+  rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
+  back), and dodging, knocked back or dead, a player passes through. Rapier simulates nothing itself
+  (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (sector: range + angle) to the attacker;
-  `combatSystem` resolves hits with plain math (no physics triggers), so the server can run the same code later.
-- **AI and animation are separate.** Enemy behavior systems only set state, facing, wanted movement and hitboxes
-  (the motor turns that into velocity); each model's animation system reads the state and poses the model.
-- **Input enters only through `PlayerInput`** (world-space move + aim), so network input can replace it later.
+  `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics.
+- **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
+  movement and hitboxes (the motor turns that into velocity); each model's animation system (client) reads the
+  state and poses the model.
+- **Input enters only as `PlayerInputData`** (world-space move + aim), so network input can replace it later.
   Keys come from `client/src/settings/bindings.ts`, never hardcoded.
-- **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes and bodies.
-- **The UI is React** (`client/src/ui/`, mounted into `#ui`); the canvas and anything in the world (sprites,
-  in-world bars) is Babylon. The game never touches the DOM: it writes plain values into stores (`ui/state.ts`,
-  e.g. `ui.battle.set({ hpFraction })`), and components read them with `useStore(store, s => s.hpFraction)`.
+- **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes.
+- **The UI is React** (`client/src/ui/`, mounted into `#ui`), the HUD's bars included; the canvas and anything in
+  the world (sprites, the boar, the sword trail) is Babylon. The game never touches the DOM: it writes plain values
+  into stores (`ui/state.ts`, e.g. `ui.battle.set({ hpFraction })`), and components read them with
+  `useStore(store, s => s.hpFraction)`.
   What the game says to the player goes through one call, `say(ui.notifications, event)` (`ui/notifications/`),
   e.g. `say(ui.notifications, { kind: "rested" })`. Its table, `EVENT_MESSAGES`, has an entry for every kind of
   `GameEvent` (a kind without one doesn't compile) with where it goes and its words: `"corner"` is a small notice
@@ -218,8 +235,11 @@ Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server appl
 (`tsx --test`); no test framework, database or browser. Each `test/` folder mirrors its `src/` and has a tsconfig
 of its own (Node's types), checked by `npm run typecheck`. New work is written test-first (see AGENTS.md).
 
-- **shared**: the ECS, math, walking (`stepWalker`, grass, campfires), the view rules, and every Zod schema (what
-  the server accepts from clients and the sentences it answers with).
+- **shared**: the ECS, math, walking (`stepWalker`, grass, campfires), the view rules, every Zod schema (what
+  the server accepts from clients and the sentences it answers with), and the arena fight, run headless with
+  enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
+  byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, the slash's reach and arc,
+  and whole fights won and lost. Each fight test file awaits `initPhysics()` first.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, battles and the
@@ -232,7 +252,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
   item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
   battle sprite in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering,
-  the arena fight and the React screens are tried in a browser.
+  how the fight feels and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -248,9 +268,9 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 - **The server is core plus outlets** (above). Game rules go in `core/`; anything that talks to the outside world
   goes in an outlet, behind a port.
 - **Every player is logged in.** No guest play; `/ws` closes sockets without a login cookie before anything else.
-- **Fights are not server-authoritative yet.** The arena runs in the browser and reports won / lost; the server
-  only refuses wins faster than the player's maximum damage allows, and HP that went up during a fight. Don't add
-  new trust in client claims. Moving the fight onto the server is planned
+- **Fights are not server-authoritative yet.** The arena's `Fight` is shared code, but only the browser runs it for
+  now and reports won / lost; the server only refuses wins faster than the player's maximum damage allows, and HP
+  that went up during a fight. Don't add new trust in client claims. Moving the fight onto the server is planned
   ([plan/server-fights.md](plan/server-fights.md)).
 - **Keys come from `client/src/settings/bindings.ts`.** When showing one on screen, read it from the bindings
   (`keyName`). Esc and ⌘ can't be rebound.
@@ -282,17 +302,27 @@ name (`MAX_BODY_BYTES`).
 
 ```
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
-  index.ts         Re-exports everything (import from "@infinite-tower/shared")
+  index.ts         Re-exports everything but the fight (import from "@infinite-tower/shared")
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom), time.ts
   overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
-  battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, LungeAttack, ChargeAttack),
-                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats + optional attacks,
-                   ArenaDef),
-                   input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed /
-                   carryLimit)
+  battle/          components.ts (Player, Health, Stamina, Body, Fighter, ActiveHit, Enemy, LungeAttack,
+                   ChargeAttack), player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
+                   optional attacks, ArenaDef), input.ts (PlayerInput), stats.ts (Stats, FighterStats,
+                   physicalDamage / moveSpeed / carryLimit)
+    fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
+                     fight.ts (Fight: its own world and physics, the system order, step(inputs), outcome, events,
+                     dispose), setup.ts (FightSetup, the one-on-one starting spots, spawning players and enemies:
+                     components + a collider, one component per attack in the def), context.ts (FightContext,
+                     FightOutcome, FightEvent), combat.ts (addHit, hits, knockback), outcome.ts (won / lost)
+      physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
+                       ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
+                       move.ts (gravity, moving every body, who shoves whom and who passes through)
+      player/          controller.ts (move, jump, slash, dodge, stamina), ground.ts (grounded, from rays)
+      enemies/         brain.ts (target, approach / poise / stagger / stun / death), lunge.ts, charge.ts, motor.ts
+                       (wanted movement -> velocity), common.ts
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -354,15 +384,16 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      `npm run db:generate`, plus drizzle-kit's meta/), seed.ts (dev data: accounts test1-3,
                      password = username; refuses to run in production)
 
-client/          Browser game: Babylon rendering, Havok physics, input, React UI.
+client/          Browser game: Babylon rendering, input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui
   vite.config.ts   Dev server :5173, proxies /ws and /api to the game server
   test/            Unit tests of the logic that runs without Babylon or the DOM, mirroring src/
   src/
     main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, start preparing the game;
                      logging in (or Play) connects, then joins; Return to title (or a lost connection) leaves
-    game/            start.ts (its own lazily loaded chunk with Babylon: prepareGame() builds the engine, Havok,
-                     both scenes and modes and input (off) once, behind the title, and returns the Game),
+    game/            start.ts (its own lazily loaded chunk with Babylon and Rapier: prepareGame() loads the
+                     physics and builds the engine, both scenes and modes and input (off) once, behind the title,
+                     and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, overworld <-> battle switching, who gets input, the
                      character from `welcome` / `character`, opening creation without one; tells the player
@@ -459,19 +490,20 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
                        campfires.ts (any theme's campfires, flickering), grass-field/ (terrain, textures)
-    battle/          The 2.5D arena mode
-      battle.ts        The mode: system order, start / end a fight (arena built / resized on demand)
-      scene.ts         Babylon scene, Havok, camera, lights / fog / shadows / post
-      context.ts       BattleContext, Fight, resultShown
-      components.ts    Body + addBody, Layer (collision groups), Meshes (+ disposers)
-      materials.ts, arena.ts (ring, stones, forest)
-      player/          spawn, components (PlayerSprite), input (keys / mouse -> PlayerInput), controller (move,
-                       jump, slash, dodge, stamina), ground (grounded raycasts), sprite (puts pose on the meshes,
-                       shadow), pose (frame and sword trail from the action, no Babylon: tested)
-      enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
-        behaviors/       brain (approach / poise / stagger / stun / death), charge, lunge, motor (velocity), common
+    battle/          The 2.5D arena mode: draws the shared Fight
+      battle.ts        The mode: start / end a fight (arena built / resized on demand), a step of the fight per
+                       lockstep tick, the render systems
+      scene.ts         Babylon scene, camera, lights / fog / shadows / post
+      context.ts       BattleContext (the fight being drawn), resultShown
+      components.ts    BodyNode (what a fighter's drawing hangs from), Meshes (+ disposers)
+      materials.ts, arena.ts (scenery: grass, stones, forest)
+      player/          spawn (the sprite, shadow and trail on the fight's player), components (PlayerSprite), input
+                       (keys / mouse -> PlayerInputData), sprite (puts pose on the meshes, shadow), pose (frame and
+                       sword trail from the action, no Babylon: tested)
+      enemies/         spawn.ts (the model on the fight's enemy)
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
-      systems/         camera, combat (hits, addHit), outcome (won / lost), hud (fills the battle HUD's store)
+      systems/         follow (drawings to their bodies), camera, impacts (shake for the fight's events), hud (fills
+                       the battle HUD's store)
 ```
 
 ## Adding things
@@ -487,8 +519,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
   `behaviors/`.
 - **An arena enemy.** An `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks. A new attack type is
   a def shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
-  (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`client/src/battle/enemies/spawn.ts`) and a system
-  in `enemies/behaviors/`; a new look is a folder in `enemies/models/` listed in its `index.ts`.
+  (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
+  `shared/src/battle/fight/enemies/`, listed in `fight.ts`; a new look is a folder in
+  `client/src/battle/enemies/models/` listed in its `index.ts`.
 - **Something kept between connections.** A field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
   (`core/content/player.ts`), read in `GameSession`'s constructor and written in `GameSession.save()`; a column in
   `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
@@ -536,6 +569,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs/` |
 | Arena camera feel | top of `client/src/battle/systems/camera.ts` |
+| Where a fight starts; the arena's wall and floor | `shared/src/battle/fight/setup.ts`, `fight/physics/arena-physics.ts` |
 | View size | `shared/src/overworld/view.ts` (`VIEW`) |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).

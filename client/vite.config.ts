@@ -16,8 +16,6 @@ export default defineConfig(({ mode }) => {
   };
   return {
     plugins: [react(), tailwindcss()],
-    // Havok ships a .wasm file that Vite's dep pre-bundler would break.
-    optimizeDeps: { exclude: ["@babylonjs/havok"] },
     server: { port: 5173, proxy: gameServer },
     preview: { proxy: gameServer },
   };

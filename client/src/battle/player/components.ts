@@ -5,11 +5,11 @@ import { defineComponent, PLAYER, type World } from "@infinite-tower/shared";
 /** The sprite quad's width and height. */
 export const SPRITE_SIZE = 1.8;
 
-/** Where the sprite's center sits above the capsule's, so its bottom edge stays on the feet. */
+/** Where the sprite's center sits above the body's, so its bottom edge stays on the feet. */
 export const spriteY = (stretch: number, bob: number): number => -PLAYER.height / 2 + (SPRITE_SIZE / 2) * stretch + bob;
 
 export interface PlayerSpriteData {
-  /** Child of the physics capsule. */
+  /** Under the body's node (BodyNode). */
   plane: Mesh;
   shadow: Mesh;
   slash: Mesh;
@@ -20,7 +20,7 @@ export interface PlayerSpriteData {
 }
 export const PlayerSprite = defineComponent<PlayerSpriteData>("PlayerSprite");
 
-/** The plane goes with the capsule (Body's disposer); the shadow and the trail aren't parented to it. */
+/** The plane goes with the body's node (BodyNode's disposer); the shadow and the trail aren't under it. */
 export function registerPlayerDisposers(world: World): void {
   world.onRemove(PlayerSprite, (_e, s) => {
     s.shadow.dispose();
