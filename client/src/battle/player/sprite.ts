@@ -11,7 +11,7 @@ const TRAIL_DURATION = 0.2;
 const TRAIL_SWEEP_RAD = 0.7;
 const TRAIL_TILT_RAD = 0.22;
 
-/** Per render frame: sprite frame & facing, walk bob, squash & stretch, i-frame blink, sword trail, blob shadow. */
+/** Per render frame: sprite frame & mirroring, walk bob, squash & stretch, i-frame blink, sword trail, blob shadow. */
 export function playerSpriteSystem(ctx: BattleContext): System {
   const vel = new Vector3(), from = new Vector3(), to = new Vector3();
   const result = new PhysicsRaycastResult();
@@ -19,7 +19,6 @@ export function playerSpriteSystem(ctx: BattleContext): System {
   const frames = ctx.materials.player;
 
   return (world, dt) => {
-    const cos = Math.cos(ctx.view.yaw), sin = Math.sin(ctx.view.yaw);
     for (const [, sprite, body, player, health] of world.query(PlayerSprite, Body, Player, Health)) {
       const b = body.aggregate.body;
       b.getLinearVelocityToRef(vel);
@@ -27,13 +26,11 @@ export function playerSpriteSystem(ctx: BattleContext): System {
       const alive = health.hp > 0;
       const slashing = player.action === "slash";
 
-      // Face left/right on screen: project onto the camera's right vector (cos, -sin). While slashing, the swing's
-      // direction decides (scaled up so it always clears the threshold below).
-      const dirX = slashing ? player.actionDir.x * 10 : vel.x, dirZ = slashing ? player.actionDir.z * 10 : vel.z;
-      const screenX = dirX * cos - dirZ * sin;
-      if (alive && Math.abs(screenX) > 0.3) sprite.facing = screenX > 0 ? 1 : -1;
-
+      // We always see the player from behind, so the sprite never turns, except the swing: its frame has the sword
+      // arm out to our right, mirrored on every other swing so the sword ends where the trail does (below).
       const swinging = slashing && player.actionTime < slash.duration * 0.8;
+      const trailSide = player.combo % 2 === 0 ? 1 : -1;
+      sprite.facing = alive && swinging && trailSide === 1 ? -1 : 1;
       const frame = !alive ? frames.down : swinging ? frames.slash : frames.idle;
       if (sprite.plane.material !== frame) sprite.plane.material = frame;
 
@@ -54,15 +51,17 @@ export function playerSpriteSystem(ctx: BattleContext): System {
       // Blink while invulnerable after a hit.
       sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);
 
-      // Sword trail: a crescent that sweeps across the aim direction, alternating sides each swing.
+      // Sword trail: a crescent that sweeps across the aim direction, alternating sides each swing: from our right
+      // to our left when `trailSide` is 1.
       const trailProgress = slashing ? (player.actionTime - (slash.windup - TRAIL_LEAD_TIME)) / TRAIL_DURATION : -1;
       if (trailProgress >= 0 && trailProgress < 1) {
-        const side = player.combo % 2 === 0 ? 1 : -1;
         const sweep = Math.min(1, trailProgress * 2.2);
         const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
         sprite.slash.setEnabled(true);
         sprite.slash.position.set(p.x, p.y + 0.15, p.z);
-        sprite.slash.rotation.set(0, aimYaw + side * TRAIL_SWEEP_RAD * (1 - 2 * sweep), side * TRAIL_TILT_RAD);
+        sprite.slash.rotation.set(
+          0, aimYaw + trailSide * TRAIL_SWEEP_RAD * (1 - 2 * sweep), trailSide * TRAIL_TILT_RAD,
+        );
         sprite.slash.visibility = 1 - trailProgress * trailProgress;
       } else if (sprite.slash.isEnabled()) {
         sprite.slash.setEnabled(false);

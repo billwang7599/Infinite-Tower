@@ -7,11 +7,13 @@
  * Portrait: head and shoulders, turned three-quarters to our left like the head, so the near shoulder (right)
  * reaches further from the neck than the far one. The picture cuts off across the chest.
  * Chibi: 32x32, facing us, symmetric around x = 16.
+ * Battle: the whole body from behind, in each pose (battle.ts).
  */
-import type { Art, Frame } from "./art.js";
+import type { Art, BattleFrame, Frame } from "./art.js";
 import { ink } from "./art.js";
+import { battleFrames, type Pose } from "./battle.js";
 import {
-  BASE, SHADOW, farSide, mirror, polygon, rect, symmetric, type Point,
+  BASE, SHADOW, farSide, mirror, polygon, rect, symmetric, union, type Point,
 } from "./pixels.js";
 
 const C = 32;
@@ -78,16 +80,19 @@ export const BODY_TYPES = {
   skinny: {
     portrait: portraitFrame({ width: 0.86, neck: [30.5, 38] }),
     chibi: chibiFrame({ shoulders: 5, waist: 2.6, arm: 2 }),
+    battle: battleFrames({ shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 }),
   },
   medium: {
     portrait: portraitFrame({ width: 1, neck: [30, 38.5] }),
     chibi: chibiFrame({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
+    battle: battleFrames({ shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 }),
   },
   wide: {
     portrait: portraitFrame({ width: 1.1, neck: [29, 39.5] }),
     chibi: chibiFrame({ shoulders: 6.4, waist: 3, arm: 3 }),
+    battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
-} as const satisfies Record<string, { portrait: Frame; chibi: Frame }>;
+} as const satisfies Record<string, { portrait: Frame; chibi: Frame; battle: Record<Pose, BattleFrame> }>;
 export type BodyType = keyof typeof BODY_TYPES;
 
 const skin = ink("skin", BASE);
@@ -116,6 +121,18 @@ export const BODY: Art = {
     arms: (pen, frame) => {
       pen.fill(frame.arms, skin);
       pen.shade(farSide(frame.arms, 1), SHADOW);
+    },
+  },
+  battle: {
+    body: (pen, { neck, torso, legs }) => {
+      pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
+      pen.fill(torso, skin);
+      pen.fill(legs, skin);
+    },
+    arms: (pen, { arms, hands }) => {
+      const limbs = union(arms, hands);
+      pen.fill(limbs, skin);
+      pen.shade(farSide(limbs, 1), SHADOW);
     },
   },
 };

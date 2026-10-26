@@ -1,11 +1,12 @@
 /**
- * Dev-only page (/art.html on the Vite dev server, never built): every look option, both views, a piece of
- * gear tried on, and a mock dialogue scene. For judging the character art, not part of the game.
+ * Dev-only page (/art.html on the Vite dev server, never built): every look option, every view and battle
+ * pose, a piece of gear tried on, and a mock dialogue scene. For judging the character art, not part of the game.
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
-import type { Picture, View } from "../gfx/look/art.js";
+import type { Picture } from "../gfx/look/art.js";
+import { POSES } from "../gfx/look/battle.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
-import { drawLook, type Look } from "../gfx/look/look.js";
+import { drawBattle, drawLook, type Look, type StillView } from "../gfx/look/look.js";
 import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
 
 const LABELS: Record<keyof Look, string> = {
@@ -29,8 +30,8 @@ function canvas(pic: Picture, scale: number, style = ""): HTMLCanvasElement {
   return c;
 }
 
-const draw = (l: Look, view: View) =>
-  drawLook(l, view, jerkin ? [...STARTER_CLOTHES, LEATHER_JERKIN] : STARTER_CLOTHES);
+const wear = () => (jerkin ? [...STARTER_CLOTHES, LEATHER_JERKIN] : STARTER_CLOTHES);
+const draw = (l: Look, view: StillView) => drawLook(l, view, wear());
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, style = "", text = ""): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -80,6 +81,12 @@ function render(): void {
     caption(canvas(draw(look, "chibi"), 3), "chibi at 3x (about world size)"),
   );
   root.append(views);
+
+  // The battle sprite: from behind, in each pose, and at about arena size.
+  const battle = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  for (const pose of POSES) battle.append(caption(canvas(drawBattle(look, pose, wear()), 5), `battle: ${pose} at 5x`));
+  battle.append(caption(canvas(drawBattle(look, "stand", wear()), 2), "at 2x"));
+  root.append(battle);
 
   // Mock dialogue, FGO style: speaker lit, the other dimmed, no portrait backgrounds. Portraits face our left, so
   // the one on the left is flipped to face the other.

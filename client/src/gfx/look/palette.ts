@@ -73,4 +73,6 @@ export const FIXED = {
   leather: ["#140e0b", "#251a14", "#36261d", "#4a3428", "#624738", "#856651"],
   /** Tarnished, with a little shine left. */
   brass: ["#251c0c", "#413218", "#5d4823", "#7c6232", "#9d8148", "#cdb577"],
+  /** Blades: cold grey, the brightest thing in the arena after the eyes. */
+  steel: ["#191c23", "#353b47", "#5c6472", "#8f98a7", "#c4ccd8", "#f2f5fa"],
 } as const satisfies Record<string, Ramp>;

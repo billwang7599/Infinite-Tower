@@ -363,13 +363,14 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look): the look's chibi on the field, plus a sword in the arena;
-                     the boar)
+                     characters.ts (playerFrames(look): the look's chibi on the field, its battle sprite in the
+                     arena; the boar)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
-                       character panel, later dialogue) and a 32x32 chibi (the world), in code. art.ts (views,
-                       layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts (body types),
-                       head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
-                       (wear), look.ts (Look -> picture)
+                       character panel, later dialogue), a 32x32 chibi (the world) and a 64x64 battle sprite from
+                       behind in each pose (the arena), in code. art.ts (views, layers, Frame, render), pixels.ts
+                       (Pen, masks), palette.ts (ramps), body.ts (body types), battle.ts (battle poses), head.ts
+                       (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear),
+                       sword.ts, look.ts (Look -> picture)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings,
@@ -426,7 +427,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
       components.ts    Body + addBody, Layer (collision groups), Meshes (+ disposers)
       materials.ts, arena.ts (ring, stones, forest)
       player/          spawn, components (PlayerSprite), input (keys / mouse -> PlayerInput), controller (move,
-                       jump, slash, dodge, stamina), ground (grounded raycasts), sprite (frames, trail, shadow)
+                       jump, slash, dodge, stamina), ground (grounded raycasts), sprite (frames, the swing's
+                       mirroring, trail, shadow)
       enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
         behaviors/       brain (approach / poise / stagger / stun / death), charge, lunge, motor (velocity), common
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)

@@ -49,10 +49,15 @@ Every character is one look drawn several ways. All views have a transparent bac
 | View | Size | What it's for |
 | --- | --- | --- |
 | portrait | 64x64 | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
-| chibi | 32x32 | the world, facing us, about 1.7 heads tall; for now the arena too, with a sword |
+| chibi | 32x32 | the world, facing us, about 1.7 heads tall |
+| battle | 64x64 | the arena, from behind, sword in hand; the figure is 48 wide, the sides are room for the sword |
 
-Coming later: a 48x64 battle sprite (front and back) for the arena, chibi back / side and a walk cycle, and portrait
-expressions for dialogue.
+The battle sprite is only ever seen from behind: the arena camera sits behind the player, who always attacks where
+it looks. It has a picture per pose (`battle.ts`): stand (also running), slash (sword arm out to our right; the
+game mirrors it on every other swing so the sword ends where the trail does) and down (knelt, slumped, sword
+dropped). From behind the head is all hair, so face shapes, eyes and mouths draw nothing there.
+
+Coming later: chibi back / side and a walk cycle, and portrait expressions for dialogue.
 
 ### Colors
 
@@ -60,7 +65,7 @@ Every material is a ramp of six tones: outline, deep, shadow, base, light, shine
 Pictures record which material and tone each pixel is, and are only colored at the end, so a new hair color is a
 new ramp and nothing else. Ramps a player picks: skin, hair, eyes (iris), outfit (cloth) and accent; cloth and
 gear stay near-neutral, the accent goes on small trims only. Fixed ones everyone shares: eye whites, lash lines,
-mouth, blush, linen, wool, leather, brass. Gear adds its own (iron, silk...).
+mouth, blush, linen, wool, leather, brass, steel. Gear adds its own (iron, silk...).
 
 ### How a character is built
 
@@ -69,7 +74,7 @@ it shows up on. The body is an Art, so is each hair style, eye type, mouth and p
 every Art layer by layer, bottom to top:
 
 ```
-hairBack, body, legwear, footwear, torsowear, arms, armwear, head, face, hair, headwear
+hairBack, body, legwear, footwear, torsowear, weapon, arms, armwear, head, face, hair, headwear
 ```
 
 then outlines every layer except `face` (eyes, brows and mouth carry their own lines) and colors it.
@@ -78,7 +83,9 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
   sit on; face shapes (`head.ts`: soft, sharp, square) only change the jaw, so every hair style and eye fits every
   face. Below the head, each body type (`body.ts`: skinny, medium, wide) is a `Frame`: the same named shapes (neck,
   torso, arms, legs) and landmarks (`middle`, `collarY`, `chestY`, `armpitY`, `waistY`, `shoulders`) in every
-  type. Every draw is handed the frame.
+  type. Every draw is handed the frame. The battle sprite's frame (`BattleFrame`) adds hands, feet, the boots'
+  `shins`, where the head has moved to (`head`) and the sword's grip and tip; a pose is that frame with its shapes
+  moved, so whatever is drawn against it follows the pose.
 - **Gear is drawn against the frame, never at fixed pixels**: a tunic is the torso grown by a pixel, its V-neck
   is cut at `middle`, shoulder guards sit on `shoulders`; `columns()` measures the body where gear needs a width.
   That's what makes one drawing fit every body type, so adding a body type doesn't mean redrawing items. Keep body
@@ -88,8 +95,9 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
   mouth, hair clumps) are placed by hand. Hair grids are full-width rows from the top of the picture, one file per
   style (`hair/`); each eye type is a near-eye and a far-eye grid. The face's outline is a few rows of spans
   (`spans()`). Grids hold tones, not colors, so every grid recolors with the player's picks.
-- **Bodies, clothes and the chibi are shapes**: polygons, ellipses, `taper()` for a pointed lock. Shading is done
-  the same way every time: fill with the base tone, then retone parts of it (the far side, a band of light).
+- **Bodies, clothes, the chibi and the battle sprite are shapes**: polygons, ellipses, `taper()` for a pointed
+  lock. Shading is done the same way every time: fill with the base tone, then retone parts of it (the far side, a
+  band of light).
 - **Casting shadows**: a layer can darken the layers under it (`pen.castShadow`), as bangs do on the forehead and
   the jaw on the neck.
 
@@ -102,10 +110,12 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 - **Gear**: a new Art drawing on the layers of its slot (a chest piece: `torsowear`, maybe `armwear` for
   shoulders), against the frame it's handed. Fixed materials make it look the same on everyone; use `cloth` only
   for things the player dyes. `jerkin.ts` is the example.
-- **A body type**: a new entry in `BODY_TYPES` with every frame field, for both views. Then check every piece of
-  gear on it.
-- **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, both
-  views, the sample jerkin on and off, a mock dialogue and a crowd of random looks.
+- **A body type**: a new entry in `BODY_TYPES` with every frame field, for every view (`battleFrames` builds the
+  battle poses from a few widths). Then check every piece of gear on it.
+- **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then a sprite frame for it
+  (`gfx/characters.ts`).
+- **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, every
+  view and battle pose, the sample jerkin on and off, a mock dialogue and a crowd of random looks.
 
 ### Don'ts
 
