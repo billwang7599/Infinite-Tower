@@ -227,7 +227,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   sync, when the mouse is captured, overworld prediction, the title's sequence timing, character creation's steps
   and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
   item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
-  battle sprite in each pose). Rendering, the arena fight and the React screens are tried in a browser.
+  battle sprite in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering,
+  the arena fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break

@@ -37,6 +37,9 @@ be to draw.
 - **Face rows** (portrait): lashes on row 21, the lower lid 27, nose 30, mouth 33, chin 39. Shoulders start at row
   45, so a short neck shows under the jaw: a long one makes the head look stuck on, none makes it look sunk in.
   The chibi's neck is 4 pixels wide, about a quarter of its head; at 2 it reads as a stalk.
+- **The chibi's legs stand together**, one block of trousers with the right leg in shadow and a dark line where
+  they meet, and a boot on each, its sole a pixel wider on the outside. Two thin legs apart under one wide boot
+  read as a bench.
 - **The jaw in three-quarter view**: the cheek runs back to the ear, the far cheek stays full down to the mouth,
   and the jaw's corner sits under the ear at mouth level. From there a short, flat jawline runs forward to a small
   rounded chin, with a row or two of straight edge at its tip. A jaw cornered up at the nose, falling in one

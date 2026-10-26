@@ -26,8 +26,8 @@ are the user's; the open questions at the end need the user's say before they're
 
 - **A missing view fails silently.** `Art`'s views are optional (`art.ts`), `look.ts` reads `art.chibi?.[facing]`
   and `render` skips what isn't there, so the piece is just invisible. `LEATHER_JERKIN` has no chibi back or side
-  and no battle piece: it vanishes when the chibi turns, and in the arena. `client/test/gfx/look.test.ts` only
-  checks that each picture has something drawn.
+  and no battle piece: it vanishes when the chibi turns, and in the arena. `client/test/gfx/look.test.ts` checks
+  that each picture has something drawn, not that each piece is in it.
 - **Fixed sizes.** `backCollar` scans the neck across 64 columns (`outfit.ts:25`); `TUNIC` draws rows as
   full-width `rect(0, y, 63, ...)` in battle (`outfit.ts:111, 119, 120`) and `rect(0, y, 31, ...)` on the chibi
   (68, 79, 81, 95), with `columns(..., 32)` (93, 97); chibi shading splits at fixed columns (`x >= 17`, `x >= 16`:
