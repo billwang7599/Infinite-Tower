@@ -7,6 +7,7 @@
 import { FIXED_DT, stepWalker, type Entity, type Vec2, type WalkInput, type World } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
 import { FieldActor, FieldPos } from "./components.js";
+import { faceToward } from "./facing.js";
 import type { FieldView } from "./scene.js";
 
 export class Prediction {
@@ -59,6 +60,6 @@ export class Prediction {
     const pos = this.world.require(this.player, FieldPos);
     const actor = this.world.require(this.player, FieldActor);
     stepWalker(level, pos, input, FIXED_DT, actor);
-    if (Math.abs(input.moveX) > 0.1) actor.facing = input.moveX > 0 ? 1 : -1;
+    actor.facing = faceToward(actor.facing, input.moveX, input.moveZ);
   }
 }

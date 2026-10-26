@@ -11,5 +11,6 @@ export function applyLook(battle: Battle, field: Field, look: Look): void {
   redrawSprite(arenaSprites.idle, frames.idle);
   redrawSprite(arenaSprites.slash, frames.slash);
   redrawSprite(arenaSprites.down, frames.down);
-  redrawSprite(field.view.materials.player, frames.field);
+  const fieldSprites = field.view.materials.player;
+  for (const turn of ["front", "back", "side"] as const) redrawSprite(fieldSprites[turn], frames.field[turn]);
 }

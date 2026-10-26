@@ -1,5 +1,6 @@
 import { dampFactor, distXZ, inTallGrass, type System } from "@infinite-tower/shared";
 import { FieldActor, FieldPos, FieldSprite } from "../components.js";
+import { mirrorFor, type Facing } from "../facing.js";
 import { layerY, type FieldView } from "../scene.js";
 
 /** Server snapshots arrive ~20x/s: glide toward them (1/s, for dampFactor); snap if far off (respawn, teleport). */
@@ -11,6 +12,8 @@ const WALK_CYCLE_RAD_PER_SEC = 12;
 const HOP_TILES = 0.12;
 /** The quad's center sits this share of its size above the feet (in +z), so the feet stay on the position. */
 const FOOT_OFFSET = 0.4;
+/** Which picture shows facing each way: the front faces the camera, "down" the screen. */
+const TURNS = { down: "front", up: "back", left: "side", right: "side" } as const satisfies Record<Facing, string>;
 
 /** Per render frame: glide to server positions, place the quads, walk hop, facing, tuft and "!". */
 export function fieldSpriteSystem(view: FieldView): System {
@@ -26,7 +29,11 @@ export function fieldSpriteSystem(view: FieldView): System {
       const hop = Math.abs(Math.sin(sprite.walkPhase)) * HOP_TILES;
 
       sprite.mesh.position.set(pos.x, layerY(pos.z, 0.3), pos.z + sprite.size * FOOT_OFFSET + hop);
-      sprite.mesh.scaling.x = actor.facing;
+      sprite.mesh.scaling.x = mirrorFor(actor.facing);
+      if (sprite.turns) {
+        const material = sprite.turns[TURNS[actor.facing]];
+        if (sprite.mesh.material !== material) sprite.mesh.material = material;
+      }
 
       // In tall grass, a tuft covers the feet (and rustles while walking).
       if (sprite.tuft) {
@@ -40,7 +47,9 @@ export function fieldSpriteSystem(view: FieldView): System {
 
       if (sprite.alert) {
         sprite.alert.setEnabled(actor.alert);
-        if (actor.alert) sprite.alert.position.set(pos.x + 0.2 * actor.facing, 0.6, pos.z + sprite.size * 0.95);
+        if (actor.alert) {
+          sprite.alert.position.set(pos.x + 0.2 * mirrorFor(actor.facing), 0.6, pos.z + sprite.size * 0.95);
+        }
       }
     }
   };

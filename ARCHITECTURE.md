@@ -363,8 +363,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look): the look's chibi on the field, its battle sprite in the
-                     arena; the boar)
+                     characters.ts (playerFrames(look): the look's chibi each way on the field, its battle sprite
+                     in the arena; the boar)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, later dialogue), a 32x32 chibi (the world) and a 64x64 battle sprite from
                        behind in each pose (the arena), in code. art.ts (views, layers, Frame, render), pixels.ts
@@ -412,7 +412,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     field/           The 2D field mode: mirrors the server
       field.ts         The mode: level loads, the walk keys, server state, the field HUD, render
       scene.ts         Babylon scene + ortho camera, FieldView, layerY, flatSprite (a quad lying on the field)
-      prediction.ts    Predict your own walking, reconcile with the server's acks
+      prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
+      facing.ts        Facing (down / up / left / right): faceToward (the walk turns you), mirrorFor
       mirror.ts        Mirror the server's actors (spawned by kind via entities/)
       components.ts    FieldPos, FieldActor, FieldSprite
       entities/        actor.ts (spawnFieldActor: position + sprite + overlays), player.ts, boar.ts, index.ts

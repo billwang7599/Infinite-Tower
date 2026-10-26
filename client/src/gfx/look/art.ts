@@ -12,8 +12,12 @@ import type { Ramp } from "./palette.js";
 export const VIEWS = {
   /** Head and shoulders, turned three-quarters to our left: dialogue and the creation screen. No background. */
   portrait: { width: 64, height: 64 },
-  /** The small chibi in the world. */
+  /** The small chibi in the world, facing us (walking down the screen). */
   chibi: { width: 32, height: 32 },
+  /** The chibi from behind (walking up the screen). */
+  chibiBack: { width: 32, height: 32 },
+  /** The chibi from the side, facing left (walking right is its mirror image). */
+  chibiSide: { width: 32, height: 32 },
   /**
    * The arena, full body and sword in hand, from behind: the arena camera always sits behind the player, who
    * faces where they attack. The figure is 48 wide in the middle, leaving room each side for the sword.
@@ -72,6 +76,10 @@ export interface BattleFrame extends Frame {
 export interface Frames {
   portrait: Frame;
   chibi: Frame;
+  /** The front's frame: from behind the body has the same outline. */
+  chibiBack: Frame;
+  /** Facing left: `middle` is the torso's middle column, and both `shoulders` are the near one. */
+  chibiSide: Frame;
   battle: BattleFrame;
 }
 

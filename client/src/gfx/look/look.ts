@@ -21,7 +21,13 @@ export function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Ar
 }
 
 /** The views with one picture each: the battle sprite has a picture per pose (drawBattle). */
-export type StillView = "portrait" | "chibi";
+export type StillView = "portrait" | "chibi" | "chibiBack" | "chibiSide";
+
+/** The chibi's view facing each way: the field picks one by where the player last walked. */
+export const CHIBI_TURNS = { front: "chibi", back: "chibiBack", side: "chibiSide" } as const satisfies Record<
+  string, StillView
+>;
+export type ChibiTurn = keyof typeof CHIBI_TURNS;
 
 export function drawLook(look: Look, view: StillView, wear?: readonly Art[]): Picture {
   return render(view, BODY_TYPES[look.body][view], lookArts(look, wear), colorsOf(look), FIXED);

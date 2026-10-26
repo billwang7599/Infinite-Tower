@@ -1,6 +1,7 @@
 /** Mirrors the server's field actors: spawn new ones, update the rest, remove the ones that are gone. */
 import type { ActorSnap, Entity, World } from "@infinite-tower/shared";
 import { FieldActor } from "./components.js";
+import { facingFromSide } from "./facing.js";
 import { FIELD_PREFABS } from "./entities/index.js";
 import type { FieldView } from "./scene.js";
 
@@ -24,7 +25,7 @@ export class ActorMirror {
       a.target!.z = s.z;
       a.vx = s.vx;
       a.vz = s.vz;
-      a.facing = s.facing;
+      a.facing = facingFromSide(s.facing);
       a.alert = s.alert;
     }
     for (const [id, e] of this.local) if (!seen.has(id)) this.remove(id, e);
