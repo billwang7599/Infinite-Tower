@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_LOOK, ITEM_IDS, MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
+import { DEFAULT_LOOK, MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
@@ -16,7 +16,8 @@ describe("parseClientMsg", () => {
       { t: "settings", settings: {} },
       { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
       { t: "rest" },
-      { t: "useItem", item: ITEM_IDS[0] },
+      { t: "useItem", at: { x: 2, y: 1 } },
+      { t: "moveItem", from: { x: 0, y: 0 }, to: { x: 3, y: 2 }, turned: true },
       { t: "debug", cmd: "encounter" },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));
@@ -63,8 +64,12 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "settings", settings: { bindings: { field: { up: ["K".repeat(33)] } } } }), null);
   });
 
-  test("useItem: only items that exist", () => {
-    assert.equal(parse({ t: "useItem", item: "elixir" }), null);
+  test("useItem and moveItem: cells are whole, non-negative numbers", () => {
+    assert.equal(parse({ t: "useItem", item: "boar-meat" }), null);
+    assert.equal(parse({ t: "useItem", at: { x: -1, y: 0 } }), null);
+    assert.equal(parse({ t: "useItem", at: { x: 0.5, y: 0 } }), null);
+    assert.equal(parse({ t: "moveItem", from: { x: 0, y: 0 }, to: { x: 1, y: "1" }, turned: false }), null);
+    assert.equal(parse({ t: "moveItem", from: { x: 0, y: 0 }, to: { x: 1, y: 1 } }), null);
   });
 
   test("debug: only known commands", () => {

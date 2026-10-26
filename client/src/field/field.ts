@@ -7,7 +7,7 @@
 import type { AbstractEngine } from "@babylonjs/core";
 import {
   FIXED_DT, nearCampfire, PLAYER,
-  type Inventory, type ServerMsgOf, type System, type Vitals, type WalkInput, type World,
+  type Bag, type ServerMsgOf, type System, type Vitals, type WalkInput, type World,
 } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
@@ -39,7 +39,7 @@ export interface Field {
   onBattleResult(msg: ServerMsgOf<"battleResult">): void;
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
-  setInventory(inventory: Inventory): void;
+  setBag(bag: Bag): void;
   /** Rest at the campfire you're standing by (the Rest key, or the HUD's button). */
   rest(): void;
   render(): void;
@@ -81,7 +81,7 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
   };
   const setVitals = (v: Vitals) =>
     hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / maxStamina });
-  const setInventory = (inventory: Inventory) => hud.set({ inventory });
+  const setBag = (bag: Bag) => hud.set({ bag });
 
   let accumulator = 0;
   return {
@@ -91,7 +91,7 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
       prediction = new Prediction(world, view, player, joinedNet);
       inBattle = false;
       maxStamina = welcome.stats.stamina;
-      hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats, inventory: welcome.inventory });
+      hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats, bag: welcome.bag });
       setVitals(welcome.vitals);
     },
     leave() {
@@ -131,11 +131,11 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
       inBattle = false;
       prediction?.reset(msg.me);
       snapFieldCamera(view, playerPos());
-      hud.set({ wins: msg.wins, inventory: msg.inventory });
+      hud.set({ wins: msg.wins, bag: msg.bag });
       setVitals(msg.vitals);
     },
     setVitals,
-    setInventory,
+    setBag,
     rest,
     render() {
       hud.set({ nearCampfire: byCampfire() });

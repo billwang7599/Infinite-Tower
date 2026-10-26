@@ -52,6 +52,16 @@ Decided by the user:
   only does the `/ws` handshake.
 - No lock-on or auto-aim in fights. Only the player turns the camera, and attacks go where it faces, so aiming
   is a skill.
+- The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
+  turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
+  fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
+- What you carry also has a weight, against a carry limit that grows with strength. Like Dark Souls' equip load:
+  over half the limit, dodging and stamina recovery get worse; over the limit, no dodging and you move slowly.
+  Equipped things will count toward it without taking bag space. (The limit is built; its effects aren't yet.)
+- After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
+  drops are packed in where they fit and the rest is left behind.)
+- Dying is hardcore: the bag is emptied, and stats go back to the start once they can grow. (Not built yet.)
+- Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -70,8 +80,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
-- Inventory: one item so far, boar meat (heals 35 HP, eaten from the inventory panel, field only, not at full HP).
-  A beaten boar drops one 60% of the time. Stacks cap at 99. Nothing to start with, and dying keeps everything.
+- Items: boar meat heals 35 HP (eaten from the inventory panel, field only, not at full HP) and weighs 0.5; a hide
+  weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
+  own. The carry limit is 30 + 3 × strength (60 for everyone now). A new bag is empty. Moving things around the
+  bag only works on the field (not mid-fight), and the server checks every move with the shared bag rules.
 - The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).
@@ -132,8 +144,8 @@ Where tests go and how they're written:
 - Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`,
   `t.mock.method(performance, "now", ...)` for fight timing, and `t.mock.method(Math, "random", ...)` before a
   `Field` is made (it keeps `Math.random` as its `rng`).
-- Read tuning numbers from the code (`PLAYER.maxHp`, `MAX_STACK`, the level's campfires) instead of writing them
-  into tests, so retuning the game doesn't break tests that aren't about the numbers.
+- Read tuning numbers from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires) instead of writing
+  them into tests, so retuning the game doesn't break tests that aren't about the numbers.
 - What has no unit tests (Babylon rendering, React screens, the arena fight, the Postgres stores) is still tried
   in a browser before calling it done.
 

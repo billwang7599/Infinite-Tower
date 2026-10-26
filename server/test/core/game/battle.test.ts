@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FIXED_DT } from "@infinite-tower/shared";
+import { emptyBag, FIXED_DT, type Bag } from "@infinite-tower/shared";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { packLoot } from "../../../src/core/game/inventory.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { fakeNow, findBoar, HOUR_MS, startSession } from "./helpers.js";
 
@@ -58,13 +59,14 @@ describe("ending a battle", () => {
     assert.equal(result.won, false);
     assert.equal(result.wins, 0);
     assert.deepEqual(result.loot, {});
+    assert.deepEqual(result.leftBehind, {});
     assert.deepEqual(session.vitals, FULL);
     assert.deepEqual(session.field.playerPos(), LEVEL.spawn);
     assert.equal(saves.length, 1);
     assert.equal(session.battle, null);
   });
 
-  test("a plausibly timed win counts, saves, and adds the loot", (t) => {
+  test("a plausibly timed win counts, saves, and packs the loot into the bag", (t) => {
     t.mock.method(Math, "random", () => 0);
     const { session, link, saves, clock } = inBattle(t);
     clock.ms += HOUR_MS;
@@ -74,11 +76,25 @@ describe("ending a battle", () => {
     assert.equal(result.won, true);
     assert.equal(result.wins, 1);
     assert.ok((result.loot["boar-meat"] ?? 0) >= 1);
-    assert.deepEqual(result.inventory, result.loot);
-    assert.deepEqual(session.inventory, result.loot);
+    assert.deepEqual(result.leftBehind, {});
+    assert.deepEqual(result.bag, packLoot(emptyBag(), result.loot).bag);
+    assert.deepEqual(session.bag, result.bag);
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
-    assert.deepEqual(saves[0]?.inventory, result.loot);
+    assert.deepEqual(saves[0]?.bag, result.bag);
+  });
+
+  test("loot the bag has no room for is left behind", (t) => {
+    t.mock.method(Math, "random", () => 0);
+    const clock = fakeNow(t);
+    const full: Bag = { cols: 1, rows: 1, items: [{ item: "boar-tusk", count: 1, x: 0, y: 0, turned: false }] };
+    const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT }, bag: full } });
+    session.debugEncounter();
+    clock.ms += HOUR_MS;
+    session.endBattle(true, HURT);
+    const result = link.last("battleResult");
+    assert.deepEqual(result.leftBehind, result.loot);
+    assert.deepEqual(session.bag, full);
   });
 
   test("a win with an unlucky roll drops nothing", (t) => {
@@ -87,7 +103,7 @@ describe("ending a battle", () => {
     clock.ms += HOUR_MS;
     session.endBattle(true, HURT);
     assert.equal(link.last("battleResult").won, true);
-    assert.deepEqual(session.inventory, {});
+    assert.deepEqual(session.bag, emptyBag());
   });
 
   test("a win keeps the player where they were", (t) => {

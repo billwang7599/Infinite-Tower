@@ -11,12 +11,14 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [multiplayer.md](multiplayer.md): other players on the field and in fights | direction |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
+| [inventory.md](inventory.md): the rest of the grid inventory (bag screen, weight, loot screen, death) | being built |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
 
 Statuses:
 
 - **direction**: what the user wants the game to become; the details aren't decided.
 - **next big step**: agreed it should happen; how is still open.
+- **being built**: decided, and coming in PRs now.
 - **idea** / **later**: mentioned and worth keeping; nothing decided, or deliberately put off.
 
 Each plan says what's decided (and by whom), what's open, and any notes gathered so far. When work on one starts,

@@ -9,7 +9,6 @@
  */
 import { z } from "zod";
 import type { Vitals } from "../battle/player.js";
-import { ITEM_IDS } from "../items/items.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -61,14 +60,20 @@ const CharacterMsg = z.object({
 /** Rest at the campfire you're standing by (the server checks you are). */
 const RestMsg = z.object({ t: z.literal("rest") });
 
-/** Use one of an item you carry (eat the meat). Only on the field. */
-const UseItemMsg = z.object({ t: z.literal("useItem"), item: z.literal(ITEM_IDS) });
+/** A bag cell (items/bag.ts). Only whole, non-negative numbers; whether it's in the bag is the bag's rules' call. */
+const CellSchema = z.object({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative() });
+
+/** Use one of the item in that cell of your bag (eat the meat). Only on the field. */
+const UseItemMsg = z.object({ t: z.literal("useItem"), at: CellSchema });
+
+/** Move what's in cell `from` so its top-left is at `to`, turned or not (`moveItem` in items/bag.ts). Field only. */
+const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: CellSchema, turned: z.boolean() });
 
 /** Dev-only commands (the server ignores them in production). */
 const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
 export const ClientMsg = z.discriminatedUnion("t", [
-  InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg, DebugMsg,
+  InputMsg, BattleEndMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg, MoveItemMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

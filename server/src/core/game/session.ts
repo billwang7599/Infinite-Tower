@@ -1,27 +1,29 @@
 /**
  * One connected player's game. Starts from their save and holds what they have (vitals, wins, settings,
- * character, inventory) and where they are: walking their field, or in a battle (battle.ts). Its public methods
+ * character, bag) and where they are: walking their field, or in a battle (battle.ts). Its public methods
  * are what a player can ask for (ws/handlers.ts calls them, one per message), and it answers through its
  * `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
 import {
-  itemDef, nearCampfire, PLAYER, type Character, type Inventory, type ItemId, type SavedSettings, type Stats,
-  type Vitals,
+  itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, type Bag, type Cell, type Character, type SavedSettings,
+  type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Field } from "../field/field.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { settleBattle, startBattle, type Battle } from "./battle.js";
-import { removeOne } from "./inventory.js";
 import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
 const STATE_EVERY_TICKS = 3;
 /** Leeway on the campfire's reach (see `nearCampfire`). */
 const REST_SLACK_TILES = 0.6;
-/** Settings changes are written at most this often (a client sending them in a loop can't hammer the database). */
-const SETTINGS_SAVE_MS = 1000;
+/**
+ * Small changes (settings, moving things around the bag) are written at most this often, so a client sending them
+ * in a loop can't hammer the database.
+ */
+const SAVE_SOON_MS = 1000;
 
 export class GameSession {
   readonly field = new Field((source, enemy) => startBattle(this, source, enemy));
@@ -33,7 +35,7 @@ export class GameSession {
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
-  inventory: Inventory;
+  bag: Bag;
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -48,14 +50,14 @@ export class GameSession {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
-    this.inventory = saved.inventory;
+    this.bag = saved.bag;
   }
 
   /** Sends `welcome`, then puts the player in the world, unless there's no character yet: that waits for one. */
   start(): void {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, inventory: this.inventory, dev: this.dev,
+      character: this.character, bag: this.bag, dev: this.dev,
     });
     if (this.character) this.enterLevel(START_LEVEL);
   }
@@ -95,30 +97,43 @@ export class GameSession {
     this.link.send({ t: "rested", vitals: this.vitals });
   }
 
-  /** Use one `item`, if the player has one and it does something now (meat when already at full HP doesn't). */
-  useItem(item: ItemId): void {
-    const healHp = itemDef(item).healHp ?? 0;
-    if (!this.inField || (this.inventory[item] ?? 0) <= 0 || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
-    this.inventory = removeOne(this.inventory, item);
+  /** Use one of the item in bag cell `at`, if it does something now (meat when already at full HP doesn't). */
+  useItem(at: Cell): void {
+    const item = this.bag.items[itemAt(this.bag, at)]?.item;
+    const healHp = item ? itemDef(item).healHp ?? 0 : 0;
+    const left = takeOne(this.bag, at);
+    if (!this.inField || !item || !left || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
+    this.bag = left;
     this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + healHp) };
     this.save();
-    this.link.send({ t: "itemUsed", item, vitals: this.vitals, inventory: this.inventory });
+    this.link.send({ t: "itemUsed", item, vitals: this.vitals, bag: this.bag });
   }
 
-  /** Writes the save now (and cancels a pending settings save). */
+  /** Move what's in bag cell `from` to `to` (shared `moveItem`), on the field. The bag goes back either way. */
+  moveItem(from: Cell, to: Cell, turned: boolean): void {
+    if (!this.inField) return;
+    const moved = moveItem(this.bag, from, to, turned);
+    if (moved) {
+      this.bag = moved;
+      this.saveSoon();
+    }
+    this.link.send({ t: "bag", bag: this.bag });
+  }
+
+  /** Writes the save now (and cancels a pending `saveSoon`). */
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
-      inventory: this.inventory,
+      bag: this.bag,
     });
   }
 
-  /** The client changed a setting: saved within a second, or on disconnect, whichever is first. */
+  /** The client changed a setting. */
   setSettings(settings: SavedSettings): void {
     this.settings = settings;
-    this.saveTimer ??= setTimeout(() => this.save(), SETTINGS_SAVE_MS);
+    this.saveSoon();
   }
 
   /** Walking around a level: not in a battle, and not still making a character. */
@@ -128,6 +143,11 @@ export class GameSession {
     if (!this.inField) return;
     this.field.step(dt);
     if (this.inField && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.field));
+  }
+
+  /** Saved within SAVE_SOON_MS, or on disconnect, whichever is first. */
+  private saveSoon(): void {
+    this.saveTimer ??= setTimeout(() => this.save(), SAVE_SOON_MS);
   }
 
   /** Load a level and tell the client. */

@@ -1,4 +1,4 @@
-import type { ItemId } from "@infinite-tower/shared";
+import type { Cell } from "@infinite-tower/shared";
 import { useState, type ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
 import { NO_FOCUS } from "../components/noFocus.js";
@@ -19,7 +19,7 @@ interface FieldHudProps extends HudProps {
   settingsScreen: Store<SettingsScreenState>;
   openSettings: () => void;
   rest: () => void;
-  useItem: (item: ItemId) => void;
+  useItem: (at: Cell) => void;
 }
 
 /** One side panel at a time (character or inventory); neither blocks walking. */

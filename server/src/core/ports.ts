@@ -2,7 +2,7 @@
  * What core needs from the outside world, as interfaces it owns. The outlets implement them: db/ the two stores,
  * ws/ the player link. main.ts picks the implementations, so swapping one is a change there and nowhere else.
  */
-import type { Character, Inventory, SavedSettings, ServerMsg, Vitals } from "@infinite-tower/shared";
+import type { Bag, Character, SavedSettings, ServerMsg, Vitals } from "@infinite-tower/shared";
 
 /** The account's id: every player logs in, there's no guest play. */
 export type PlayerId = string;
@@ -20,7 +20,7 @@ export interface PlayerSave {
   settings: SavedSettings;
   /** null until they've made one (their first visit). */
   character: Character | null;
-  inventory: Inventory;
+  bag: Bag;
 }
 
 /** What's kept about a player between connections. */

@@ -9,7 +9,7 @@ import {
 import { rollDrops } from "../content/drops.js";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import { fullVitals } from "../content/player.js";
-import { addItems } from "./inventory.js";
+import { packLoot } from "./inventory.js";
 import type { GameSession } from "./session.js";
 
 export interface Battle {
@@ -44,9 +44,10 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
   const won = claimedWin && accepted;
   const { field } = session;
   const loot = won ? rollDrops(battle.enemyId, field.rng) : {};
+  const packed = packLoot(session.bag, loot);
 
   if (won) {
-    session.inventory = addItems(session.inventory, loot);
+    session.bag = packed.bag;
     session.wins++;
     // The spawner replaces it.
     if (battle.source !== null && field.world.isAlive(battle.source)) field.world.destroy(battle.source);
@@ -61,7 +62,7 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
   session.save();
   session.link.send({
     t: "battleResult", won, accepted, me: field.playerPos(), wins: session.wins, vitals: session.vitals,
-    loot, inventory: session.inventory,
+    loot, leftBehind: packed.left, bag: session.bag,
   });
 }
 
