@@ -361,6 +361,11 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look) draws the player in a character's colors)
+      look/            The new character art (not in the game yet; ART.md is the style guide): a look drawn as a
+                       64x64 portrait and a 32x32 chibi, in code. art.ts (views, layers, Frame, render), pixels.ts
+                       (Pen, masks), palette.ts (ramps), body.ts (body types), head.ts (face shapes), face.ts (eye
+                       and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear), look.ts (Look -> picture)
+    dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings, the
                        character editor, title screen (the HUD, Settings and the editor only once `inWorld`)
