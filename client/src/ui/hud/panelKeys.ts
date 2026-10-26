@@ -6,7 +6,7 @@ export type Panel = "character" | "inventory";
 
 /**
  * The field's panel keys (field.character, field.inventory) toggle their panels. Not while a screen covers the field
- * (Settings, where the key may be getting rebound, or the character editor) or while typing in a text field.
+ * (Settings, where the key may be getting rebound) or while typing in a text field.
  */
 export function usePanelKeys(
   bindings: KeyBindings, screens: readonly Store<{ open: boolean }>[], toggle: (p: Panel) => void,

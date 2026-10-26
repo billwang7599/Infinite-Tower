@@ -32,7 +32,7 @@ export interface Game {
   leaveBattle(): void;
   rest(): void;
   useItem(item: ItemId): void;
-  /** Ask the server to save a new name / look (it answers with `character`). */
+  /** Ask the server to save the new character (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
 
@@ -59,14 +59,13 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
    * world), and the mouse only in the arena.
    */
   const updateInput = () => {
-    const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open
-      && !ui.characterScreen.get().open;
+    const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open && !ui.creation.get().open;
     keyboard.enabled = playing;
     mouse.canLock = playing && mode === "battle";
     if (!mouse.canLock) mouse.unlock();
   };
   ui.settingsScreen.subscribe(updateInput);
-  ui.characterScreen.subscribe(updateInput);
+  ui.creation.subscribe(updateInput);
   ui.title.subscribe(updateInput);
   updateInput();
 
@@ -88,15 +87,14 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     setMode("field");
   };
 
-  /** No character yet: the editor opens, and the server holds the level back until one is saved. */
+  /**
+   * No character yet: the creation screen opens, and the server holds the level back until one is made. That
+   * screen closes itself, once it has seen the saved character here and played out.
+   */
   const applyCharacter = (character: Character | null) => {
     ui.field.set({ character });
-    if (character) {
-      applyLook(battle, field, character.look);
-      ui.characterScreen.set({ open: false, firstTime: false });
-    } else {
-      ui.characterScreen.set({ open: true, firstTime: true });
-    }
+    if (character) applyLook(battle, field, character.look);
+    else ui.creation.set({ open: true });
   };
 
   const frame = (dt: number) => {
@@ -182,7 +180,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
       transition = encounter = null;
       field.leave();
       ui.settingsScreen.set({ open: false });
-      ui.characterScreen.set({ open: false, firstTime: false });
+      ui.creation.set({ open: false });
       ui.toasts.set({ items: [] });
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

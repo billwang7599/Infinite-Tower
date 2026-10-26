@@ -20,4 +20,4 @@ export const TEST_LEVEL: LevelDef = {
   safeTime: 2,
 };
 
-export const TEST_CHARACTER: Character = { name: "Tester", look: DEFAULT_LOOK };
+export const TEST_CHARACTER: Character = { name: "Tester", gender: "girl", look: DEFAULT_LOOK };

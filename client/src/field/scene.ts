@@ -52,7 +52,7 @@ export function createFieldScene(engine: AbstractEngine): FieldView {
     scene, camera, level: null, levelRoot: null,
     materials: {
       tuft: pixelMaterial(scene, "field-tuft", tuftTexture(scene), { unlit: true }),
-      player: spriteMaterial(scene, "field-player", playerFrames(DEFAULT_LOOK).idle),
+      player: spriteMaterial(scene, "field-player", playerFrames(DEFAULT_LOOK).field),
       boar: spriteMaterial(scene, "field-boar", drawBoar),
       alert: spriteMaterial(scene, "field-alert", drawAlert),
     },

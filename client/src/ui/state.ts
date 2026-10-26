@@ -1,8 +1,8 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exceptions are `settingsScreen` and `characterScreen`: the
- * UI opens and closes them too, and the game watches them, to stop taking input while one is open. `UiActions`
- * is the other direction.
+ * imports React, so game code never touches it. The exceptions are `settingsScreen` and `creation`: the UI opens
+ * or closes them too, and the game watches them, to stop taking input while one is open. `UiActions` is the other
+ * direction.
  */
 import type { Character, Credentials, Inventory, ItemId, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
@@ -79,10 +79,12 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
-/** The character editor. `firstTime`: making the character on a first visit (it can't be closed without saving). */
-export interface CharacterScreenState {
+/**
+ * Making a character, on a first visit (screens/creation/). The game opens it when `welcome` has no character; it
+ * closes itself once the character is made and its white has cleared off the world. There's no leaving it.
+ */
+export interface CreationState {
   open: boolean;
-  firstTime: boolean;
 }
 
 export type SignInKind = "login" | "register";
@@ -96,7 +98,7 @@ export interface UiActions {
   rest(): void;
   /** Use one of an item (eat the meat); the server answers with what it did. */
   useItem(item: ItemId): void;
-  /** Send a new name / look to the server; the editor closes when it answers. */
+  /** Send the new character to the server, which answers with it as saved (`FieldHudState.character`). */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
   returnToTitle(): void;
@@ -107,7 +109,7 @@ export class UiState {
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
-  readonly characterScreen = new Store<CharacterScreenState>({ open: false, firstTime: false });
+  readonly creation = new Store<CreationState>({ open: false });
   readonly field = new Store<FieldHudState>({
     levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
     inventory: {},
@@ -133,8 +135,5 @@ export class UiState {
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
-  readonly openCharacterEditor = (): void => this.characterScreen.set({ open: true, firstTime: false });
-  readonly closeCharacterEditor = (): void => {
-    if (!this.characterScreen.get().firstTime) this.characterScreen.set({ open: false });
-  };
+  readonly closeCreation = (): void => this.creation.set({ open: false });
 }

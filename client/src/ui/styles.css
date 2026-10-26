@@ -15,6 +15,10 @@
   --color-died: #a8231b;
   --color-victory: #e8c45a;
   --color-error: #ff8f86;
+  /* The creation screen: dark text and a deeper gold, on white. */
+  --color-ink: #23252e;
+  --color-gilt: #a8822a;
+  --color-ink-error: #b4302a;
 
   --text-shadow-hud: 0 2px 4px #000a;
   --text-shadow-title: 0 0 28px #e8c45a66, 0 4px 14px #000d;
@@ -26,6 +30,9 @@
   /* The title's sequence (ui/screens/title/sequence.ts). Each stage sets the duration. */
   --animate-title-out: title-out 1s ease-in both;
   --animate-white-in: white-in 1s ease-in-out both;
+  /* The creation screen (ui/screens/creation/): the System's "go on" mark, and its window opening. */
+  --animate-blink: blink 1s steps(2, jump-none) infinite;
+  --animate-window-in: window-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 
   @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
   @keyframes mote {
@@ -36,6 +43,8 @@
   @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
   @keyframes title-out { to { opacity: 0; transform: translateY(-12px); filter: blur(6px); } }
   @keyframes white-in { from { opacity: 0; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes window-in { from { opacity: 0; transform: scaleY(0.6); } }
 }
 
 @layer base {

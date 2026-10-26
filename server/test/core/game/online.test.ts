@@ -44,11 +44,13 @@ describe("joining", () => {
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
 
-  test("changing the character later doesn't send the level again", async () => {
-    const { online } = setup({ withCharacter: true });
+  test("a character is kept for good: a second one is ignored, not saved or sent", async () => {
+    const { online, store } = setup({ withCharacter: true });
     const { link, session } = await joinNew(online);
     session.setCharacter({ ...TEST_CHARACTER, name: "Renamed" });
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "level", "character"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "level"]);
+    assert.equal(store.saves.length, 0);
+    assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
 
   test("a player with a saved character gets welcome and then the level", async () => {
