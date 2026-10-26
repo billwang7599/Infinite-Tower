@@ -61,7 +61,8 @@ Decided by the user:
   bag space.
 - After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
   drops are packed in where they fit and the rest is left behind.)
-- Dying is hardcore: the bag is emptied, and stats go back to the start once they can grow. (Not built yet.)
+- Dying is hardcore: the bag is emptied. Stats go back to their defaults, but they can't change yet, so for now
+  nothing else is reset.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review

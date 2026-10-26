@@ -6,7 +6,7 @@
  * Cells are counted from the top-left: `x` is the column, `y` the row. Bags are replaced, never changed in place
  * (the session sends them to the client as they are).
  */
-import { ITEMS, type ItemId } from "./items.js";
+import { ITEMS, type ItemCounts, type ItemId } from "./items.js";
 
 export interface Cell {
   x: number;
@@ -128,6 +128,13 @@ export function takeOne(bag: Bag, cell: Cell): Bag | null {
 }
 
 export const bagWeight = (bag: Bag): number => bag.items.reduce((sum, s) => sum + ITEMS[s.item].weight * s.count, 0);
+
+/** How many of each item the bag holds, over all its stacks. */
+export function bagCounts(bag: Bag): ItemCounts {
+  const counts: ItemCounts = {};
+  for (const s of bag.items) counts[s.item] = (counts[s.item] ?? 0) + s.count;
+  return counts;
+}
 
 /** What's wrong with a bag, one line per problem; [] for a good one. */
 export function bagProblems(bag: Bag): string[] {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, STARTER_BAG, takeOne,
+  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, STARTER_BAG, takeOne,
   type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
 
@@ -248,6 +248,17 @@ describe("bagWeight", () => {
 
   test("an empty bag weighs nothing", () => {
     assert.equal(bagWeight(emptyBag()), 0);
+  });
+});
+
+describe("bagCounts", () => {
+  test("counts each item over all its stacks", () => {
+    const b = bag(4, 4, stack("boar-meat", 0, 0, 3), stack("boar-meat", 0, 1, 2), stack("boar-tusk", 3, 0));
+    assert.deepEqual(bagCounts(b), { "boar-meat": 5, "boar-tusk": 1 });
+  });
+
+  test("an empty bag holds nothing", () => {
+    assert.deepEqual(bagCounts(emptyBag()), {});
   });
 });
 

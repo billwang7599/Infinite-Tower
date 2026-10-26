@@ -4,7 +4,7 @@
  * impossible (faster than the player's best damage output allows).
  */
 import {
-  clamp, physicalDamage, PLAYER, type EnemyDef, type Entity, type Stats, type Vitals,
+  bagCounts, clamp, physicalDamage, PLAYER, type EnemyDef, type Entity, type ItemCounts, type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { rollDrops } from "../content/drops.js";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
@@ -45,6 +45,7 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
   const { field } = session;
   const loot = won ? rollDrops(battle.enemyId, field.rng) : {};
   const packed = packLoot(session.bag, loot);
+  let lost: ItemCounts = {};
 
   if (won) {
     session.bag = packed.bag;
@@ -54,7 +55,10 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
     field.world.flush();
     session.vitals = vitalsAfterWin(battle.vitals, claimed, session.stats);
   } else {
-    field.place(field.level.spawn); // you wake up back at the start, rested
+    // Dying is hardcore: everything carried is gone. You wake up back at the start, rested.
+    lost = bagCounts(session.bag);
+    session.bag = { ...session.bag, items: [] };
+    field.place(field.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
   field.resetWalk(field.level.safeTime);
@@ -62,7 +66,7 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
   session.save();
   session.link.send({
     t: "battleResult", won, accepted, me: field.playerPos(), wins: session.wins, vitals: session.vitals,
-    loot, leftBehind: packed.left, bag: session.bag,
+    loot, leftBehind: packed.left, lost, bag: session.bag,
   });
 }
 

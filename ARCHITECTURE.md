@@ -60,7 +60,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server sends `encounter` (enemy, arena, your HP / stamina, stats and burden). The client switches to
    battle mode and runs the fight itself, then reports `battleEnd { won, vitals }`. The server checks the claim,
-   rolls drops, saves and answers `battleResult`; Enter goes back to the field.
+   rolls drops (or, on a loss, empties the bag), saves and answers `battleResult`; Enter goes back to the field.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
@@ -188,7 +188,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: enemy, arena, your HP / stamina, stats and burden (how weighed down you are) |
-| `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, what was left behind, bag |
+| `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, left behind, `lost`, bag |
 | `rested`, `itemUsed` | what resting or eating did |
 | `bag` | your bag after a `moveItem`, whether or not the move was allowed |
 
@@ -315,9 +315,9 @@ server/          Node. Authoritative: levels, encounters, field actors, enemy st
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over), session.ts (GameSession, one player: their save, their field, the battle
                        they're in; a method per thing a player can ask), battle.ts (start / settle battles, refuse
-                       impossible wins and healing), inventory.ts (packLoot: drops into the bag), snapshot.ts
-                       (the state message: only actors near your screen), clock.ts (FixedClock: 60 Hz steps,
-                       catching up after stalls)
+                       impossible wins and healing; a loss empties the bag), inventory.ts (packLoot: drops
+                       into the bag), snapshot.ts (the state message: only actors near your screen), clock.ts
+                       (FixedClock: 60 Hz steps, catching up after stalls)
       field/           The field simulation. field.ts (Field: one player's world, level, systems and spawner),
                        components.ts (FieldPos, FieldActor, FieldPlayer), parts.ts (spawnActor from behavior
                        parts), context.ts (FieldContext, what systems get), player.ts (input queue + replay, grass

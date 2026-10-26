@@ -165,6 +165,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
           if (loot) ui.showToast(`You found ${loot}.`);
           const leftBehind = describeItems(msg.leftBehind);
           if (leftBehind) ui.showToast(`No room in your bag: you leave ${leftBehind} behind.`);
+          const lost = describeItems(msg.lost);
+          if (lost) ui.showToast(`Everything you carried is gone: ${lost}.`);
           if (!msg.accepted) ui.showToast("The server didn't accept that win.");
         },
       });
