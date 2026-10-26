@@ -2,11 +2,12 @@
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
  * imports React, so game code never touches it. The exceptions are `settingsScreen`, `creation` and `overworldPanel`:
  * the UI opens or closes them too, and the game watches them, to stop taking input while they have the keys.
- * `UiActions` is the other direction.
+ * The notices and the centre banner are their own piece (notifications/). `UiActions` is the other direction.
  */
 import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
+import { Notifications } from "./notifications/state.js";
 import { Store } from "./store.js";
 
 export interface ScreenState {
@@ -38,17 +39,6 @@ export interface TitleState {
  * the game, and the screens over it, take keys (App.tsx, game.ts).
  */
 export const inWorld = (mode: Mode | null, phase: TitleState["phase"]): boolean => mode !== null && phase === "playing";
-
-export interface ToastItem {
-  /** Unique per toast: the React key, and what `dismissToast` removes (the text can repeat). */
-  id: number;
-  text: string;
-}
-
-export interface ToastsState {
-  /** Oldest first. */
-  items: readonly ToastItem[];
-}
 
 export interface OverworldHudState {
   levelName: string;
@@ -127,7 +117,8 @@ export interface UiActions {
 export class UiState {
   readonly title = new Store<TitleState>({ phase: "checking", error: null, username: null });
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
-  readonly toasts = new Store<ToastsState>({ items: [] });
+  /** The notices in the corner and the banner in the centre; game code reaches them through `say`. */
+  readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
@@ -139,20 +130,6 @@ export class UiState {
     hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1, enemyAlive: false,
     result: "fighting", showResult: false,
   });
-
-  private static readonly MAX_TOASTS = 4;
-  private nextToastId = 1;
-
-  /** Oldest goes first when there are more than MAX_TOASTS. */
-  showToast(text: string): void {
-    const items = [...this.toasts.get().items, { id: this.nextToastId++, text }];
-    this.toasts.set({ items: items.slice(-UiState.MAX_TOASTS) });
-  }
-
-  /** Arrows so they can be passed as props unbound. */
-  readonly dismissToast = (id: number): void => {
-    this.toasts.set({ items: this.toasts.get().items.filter((t) => t.id !== id) });
-  };
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });

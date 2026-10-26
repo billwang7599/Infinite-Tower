@@ -7,6 +7,7 @@ import { LookPicture } from "../../components/LookPicture.js";
 import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { CHARACTER_PANEL_WIDTH_PX } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { STAT_KEYS, STAT_TEXT } from "./statText.js";
 
@@ -19,7 +20,10 @@ export function CharacterPanel({ hud, close }: PanelProps) {
   const stats = useStore(hud, (s) => s.stats);
   const character = useStore(hud, (s) => s.character);
   return (
-    <PanelFrame id="character-panel" title={character?.name ?? "Character"} titleId="character-name" close={close}>
+    <PanelFrame
+      id="character-panel" title={character?.name ?? "Character"} titleId="character-name"
+      width={CHARACTER_PANEL_WIDTH_PX} close={close}
+    >
       {character && (
         <LookPicture
           look={character.look} view="portrait"

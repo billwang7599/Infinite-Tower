@@ -13,6 +13,7 @@ import { useKeydown } from "../../components/useKeydown.js";
 import type { OverworldHudState, SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { bagPanelWidthPx } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { BagDetails } from "./BagDetails.js";
 import { BagGrid, type GridEvents } from "./BagGrid.js";
@@ -123,7 +124,7 @@ export function InventoryPanel({ hud, bindings, settingsScreen, use, move, close
   };
 
   return (
-    <PanelFrame id="inventory-panel" title="Inventory" close={close} width={bag.cols * CELL + 42}>
+    <PanelFrame id="inventory-panel" title="Inventory" close={close} width={bagPanelWidthPx(bag.cols)}>
       <div className="pointer-events-auto" onContextMenu={(e) => e.preventDefault()}>
         {stats && (
           <p id="bag-weight" className="mb-3 text-xs text-white/55 tabular-nums">

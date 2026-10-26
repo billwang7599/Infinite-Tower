@@ -121,8 +121,12 @@ main.ts
 - **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes and bodies.
 - **The UI is React** (`client/src/ui/`, mounted into `#ui`); the canvas and anything in the world (sprites,
   in-world bars) is Babylon. The game never touches the DOM: it writes plain values into stores (`ui/state.ts`,
-  e.g. `ui.battle.set({ hpFraction })`, `ui.showToast(text)`), and components read them with
-  `useStore(store, s => s.hpFraction)`.
+  e.g. `ui.battle.set({ hpFraction })`), and components read them with `useStore(store, s => s.hpFraction)`.
+  What the game says to the player goes through one call, `say(ui.notifications, event)` (`ui/notifications/`),
+  e.g. `say(ui.notifications, { kind: "rested" })`. Its table, `EVENT_MESSAGES`, has an entry for every kind of
+  `GameEvent` (a kind without one doesn't compile) with where it goes and its words: `"corner"` is a small notice
+  in the bottom-right corner (loot, a full bag, dying, resting, eating), `"centre"` the big centre banner, kept for
+  bigger events (only a fight starting so far; the arena's result banner is the fight's end).
   Writing every frame is fine: `Store.set` skips unchanged values, so a component re-renders only when the value it
   selected changes (select one primitive per `useStore` call). What the UI asks of the game (sign in, play, return
   to title) goes through `UiActions`, which `main.ts` provides.
@@ -361,10 +365,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      both scenes and modes and input (off) once, behind the title, and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, overworld <-> battle switching, who gets input, the
-                     character from `welcome` / `character`, opening creation without one), battle-toasts.ts
-                     (what a `battleResult` says: found, left behind, died / lost, refused), look.ts (repaints
-                     the player's sprites in their look), transition.ts (Mode, flash / fade), debug.ts (the dev
-                     handles on `window`)
+                     character from `welcome` / `character`, opening creation without one; tells the player
+                     what happened with `say`), look.ts (repaints the player's sprites in their look),
+                     transition.ts (Mode, flash / fade), debug.ts (the dev handles on `window`)
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per
                      type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's
                      logged in, log in, register, log out)
@@ -393,14 +396,14 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
                      the chibi facing each way and the battle sprite in each pose, to check art
     ui/              React: everything drawn over the canvas
-      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings,
+      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then notices, banner, fade, Settings,
                        character creation, title screen (the HUD and Settings only once `inWorld` and not
                        creating; creation as soon as a game runs without a character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, toasts, overworld HUD, battle HUD; bars
-                       are `...Fraction`, 0..1), `settingsScreen`, `creation` and `overworldPanel` (which side
-                       panel is open: the UI writes them too, the game watches them; the open bag has the keys,
-                       `bagHasTheKeys`), and UiActions (what the UI asks of the game: signIn, logOut, play, rest,
-                       useItem, moveItem, saveCharacter, returnToTitle). No React.
+      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD; bars are
+                       `...Fraction`, 0..1), `notifications` (notifications/), `settingsScreen`, `creation` and
+                       `overworldPanel` (which side panel is open: the UI writes them too, the game watches them;
+                       the open bag has the keys, `bagHasTheKeys`), and UiActions (what the UI asks of the game:
+                       signIn, logOut, play, rest, useItem, moveItem, saveCharacter, returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
@@ -415,8 +418,18 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        the mouse and the bag keys, BagGrid.tsx draws the grid and the hovered / selected /
                        dragged states, bagMouse.ts holds those as plain data, BagDetails.tsx the selected item,
                        ItemTooltip.tsx + itemInfo.ts the tooltip, grid.ts the cell size), PanelFrame.tsx (the
-                       side panels' box), panelKeys.ts, icons.tsx
-      overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
+                       side panels' box), layout.ts (the side panels' widths and the Rest button's place, which
+                       the notices keep clear of), panelKeys.ts, icons.tsx
+      notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
+                       `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
+                       lines), battleResult.ts (what a `battleResult` says: found, left behind, died / lost,
+                       refused), state.ts (Notifications, UiState's `notifications`: the notices' and the banner's
+                       stores, notify / announce / dismiss / clear, MAX_NOTICES), Notices.tsx (the corner: newest
+                       at the bottom, at most 5 showing, wrapping at 20rem, about 8 s each, beside an open side panel
+                       and above the Rest button), Announcement.tsx (the centre banner: one at a time, wraps in the
+                       middle 80%, no ×: it fades on its own), DismissButton.tsx (a notice's ×), useFadeOut.ts
+                       (hold, fade, dismiss)
+      overlays/        Fade.tsx (the screen's flash / fade between modes; game/transition.ts sets it)
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),
                          LoginForm.tsx, MenuButton.tsx (the big "◆ Play"), styles.ts, sequence.ts (the enter / leave
@@ -502,6 +515,11 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
   `screens/`; parts used by more than one screen go in `components/`). If the game has to feed it, add fields to a
   store in `ui/state.ts` and `set` them from game code; if it has to ask the game for something, add a function to
   `UiActions` (main.ts provides them).
+- **Something the game says to the player.** A case in `GameEvent` (`client/src/ui/notifications/say.ts`) and its
+  entry in `EVENT_MESSAGES` (TypeScript errors until you add it): `where: "corner"` (a notice) for anything small,
+  `"centre"` (the banner) only for bigger events like a fight starting; long wording gets its own file there, like
+  battleResult.ts. Game code calls `say(ui.notifications, { kind: ... })`. Test the words in
+  `client/test/ui/notifications/say.test.ts`; its placement test lists the events allowed in the centre.
 
 ## Where to tune things
 

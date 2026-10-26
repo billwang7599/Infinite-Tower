@@ -35,7 +35,8 @@ What's built so far:
   grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
   drag to move, R or a right click to turn, Enter or a double click to eat.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
-  and Settings.
+  and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner and fade;
+  only a fight starting gets the big banner in the middle.
 - **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and checks every fight result before saving it. The fight itself still runs in the
