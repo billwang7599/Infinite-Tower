@@ -173,6 +173,8 @@ Where tests go and how they're written:
 ## Code style
 
 - Strict TypeScript, ESM with `.js` in import paths, and `import type` for types (`verbatimModuleSyntax`).
+- Typecheck fails on unused imports, variables and parameters. A parameter that has to stay (a callback's
+  signature) starts with `_`, like `(_x, y) => ...`.
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
 - Words: the 2D map is the **field**, a fight is a **battle**, and the place it happens is the **arena**.
