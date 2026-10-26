@@ -16,6 +16,9 @@ small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with t
 | [plan/](plan/) | future plans and parked ideas, one file each, with what's decided and what's open | the user mentions a future plan or asks to note an idea; a plan gets built (move what's true into the other docs, then delete or trim the plan) |
 | AGENTS.md | this file | the user decides something, or tells you how they want work done |
 
+[ART.md](ART.md)'s "What to draw" counts the drawings each piece of art needs: update it whenever a look option,
+body type, view, chibi facing or battle pose is added or removed.
+
 Read ARCHITECTURE.md before changing code you haven't worked in. Keep each doc to its job: the README lists features
 in a line or two each and only the top-level folders (the full tree and the numbers live in ARCHITECTURE.md and the
 code), and plans stay out of ARCHITECTURE.md.

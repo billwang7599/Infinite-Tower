@@ -1,7 +1,9 @@
 # ART.md
 
 How the game's art should look, and how to make it. Read this before drawing anything. All art is code: there are
-no image files, and nothing is painted by hand outside the source.
+no image files, and nothing is painted by hand outside the source. Hand-drawn art from an artist is a plan for later
+([plan/art.md](plan/art.md)); for now it stays code-first. [What to draw](#what-to-draw) says how much there would
+be to draw.
 
 ## Characters
 
@@ -62,7 +64,8 @@ back, and to a side it faces side (drawn facing left; the game mirrors it for wa
 a body outline; facing back there's no face, and facing side shows only the near eye. A diagonal keeps the way it
 was already facing, so it doesn't flicker.
 
-Coming later: a chibi walk cycle, and portrait expressions for dialogue.
+Coming later: a chibi walk cycle, portrait expressions for dialogue, and battle frames from a skeleton
+([plan/art.md](plan/art.md)).
 
 ### Colors
 
@@ -71,6 +74,47 @@ Pictures record which material and tone each pixel is, and are only colored at t
 new ramp and nothing else. Ramps a player picks: skin, hair, eyes (iris), outfit (cloth) and accent; cloth and
 gear stay near-neutral, the accent goes on small trims only. Fixed ones everyone shares: eye whites, lash lines,
 mouth, blush, linen, wool, leather, brass, steel. Gear adds its own (iron, silk...).
+
+### What to draw
+
+How many drawings each thing needs, for whoever draws it. Read from the code: the options from `LOOK_OPTIONS`
+(`shared/src/character/character.ts`), the views from `VIEWS` and `CHIBI_FACINGS` (`art.ts`) and `POSES`
+(`battle.ts`).
+
+| View | Canvas | Drawings | Notes |
+| --- | --- | --- | --- |
+| portrait | 64x64 | 1 | three-quarters to our left; flipped to face right, no extra drawing |
+| chibi | 32x32 | 3: front, back, side | side is drawn facing left; facing right is its mirror image |
+| battle | 64x64 | 3: a pose each (stand, slash, down) | from behind; slash is mirrored on every other swing, no extra drawing |
+
+So something seen in every view and pose is 7 drawings. The axes that need drawings of their own:
+
+| Axis | Options | Each option needs |
+| --- | --- | --- |
+| body type | skinny, medium, wide | its body in every view and pose (7), and its own drawing of every wrap-around piece |
+| face shape | soft, sharp, square | 2: the portrait's jaw and the chibi's front jaw (the chibi's back and side, and battle, are shared) |
+| hair style | short, bob, long, ponytail | 5: portrait, chibi front, back and side, battle (one for every pose: it moves with the head). Hair behind the head is a second layer (`hairBack`): in the chibi's front, and the portrait's for long and ponytail |
+| eye type | round, sharp, sleepy, cat | 3: the portrait's near eye and far eye, and one chibi eye (mirrored for the other; facing side shows its first two columns). None facing back or in battle |
+| mouth type | smile, flat, grin, cat, pout | 2: the portrait's and the chibi's (facing side shows its first column). None facing back or in battle |
+
+Gender (boy, girl) changes no art. The head is the same on every body type, and hair, eyes and mouths fit every
+face shape, so none of them multiply.
+
+Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6) and accent (6) are ramps
+(`palette.ts`), and every drawing recolors with them.
+
+| Piece of gear | Drawings |
+| --- | --- |
+| on the head (a helmet) | 5: portrait, chibi front, back and side, battle (one for every pose); the same on every body |
+| held (the sword, battle only) | 3: a pose each, since each holds it at its own angle |
+| rigid on the body (a pair of shoulder guards) | 5: a view each, for both shoulders, placed at each body type's landmark |
+| wrap-around top (a chest piece) | 21: 3 body types x 7 |
+| wrap-around legs (trousers) | 12: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 3 poses in battle |
+
+Adding a body type adds a full set to every wrap-around piece (7 for a chest piece); adding a view or chibi facing
+adds one per body type to each, and one to every hair style and helmet; adding a battle pose (every animation
+frame is one) adds one per body type to each, and one to every held piece. Face shapes, hair styles, eye and
+mouth types add only their own row.
 
 ### How a character is built
 
@@ -95,7 +139,9 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 - **Gear is drawn against the frame, never at fixed pixels**: a tunic is the torso grown by a pixel, its V-neck
   is cut at `middle`, shoulder guards sit on `shoulders`; `columns()` measures the body where gear needs a width.
   That's what makes one drawing fit every body type, so adding a body type doesn't mean redrawing items. Keep body
-  types few anyway: each is another shape gear must look right on.
+  types few anyway: each is another shape gear must look right on. This holds for today's code-drawn pieces, which
+  fit every body through its `Frame`; future artist-drawn wrap-around pieces would be one drawing per body type
+  ([plan/art.md](plan/art.md)), which is why [What to draw](#what-to-draw) counts 21 for a chest piece.
 - **The portrait's head, face and hair are hand-drawn grids**: rows of letters, one per pixel, each a tone of a
   material (`pen.grid`, with a legend). At 64x64 every pixel shows, so the parts that make a face read (eyes,
   mouth, hair clumps) are placed by hand. Hair grids are full-width rows from the top of the picture, one file per
@@ -130,8 +176,8 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 - No pure black, no pure-white outlines, no colors outside a ramp.
 - No half-pixels: shapes are tested at pixel centers, grids are whole pixels.
 - No front-facing portraits: the three-quarter view is what makes a 64x64 face look alive.
-- No per-character art for gear (one drawing per view fits everyone), and no gear that only fits one hair style or
-  one body type.
+- No per-character art for gear, and no gear that only fits one hair style or one body type: today one drawing per
+  view fits everyone; hand-drawn wrap-around gear would be drawn per body type ([plan/art.md](plan/art.md)).
 - No bright, clean, saturated clothes or shiny new metal: this world is old and worn.
 
 ## Other art
