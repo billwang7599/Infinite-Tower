@@ -6,8 +6,8 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  FIXED_DT, nearCampfire, PLAYER,
-  type Bag, type ServerMsgOf, type System, type Vitals, type WalkInput, type World,
+  bagBurden, FIXED_DT, nearCampfire, PLAYER, walkPace,
+  type Bag, type ServerMsgOf, type Stats, type System, type Vitals, type WalkInput, type World,
 } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import { frameSeconds } from "../core/time.js";
@@ -65,7 +65,7 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
   /** From the encounter until the server's battle result: no walking, and `state` is ignored. */
   let inBattle = false;
   /** From `welcome`: stats don't change during a session. */
-  let maxStamina = 1;
+  let stats: Stats | null = null;
 
   const render: System[] = [fieldSpriteSystem(view), fieldCameraSystem(view, player)];
   view.scene.onBeforeRenderObservable.add(() => {
@@ -80,8 +80,12 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
     if (byCampfire()) net?.send({ t: "rest" });
   };
   const setVitals = (v: Vitals) =>
-    hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / maxStamina });
-  const setBag = (bag: Bag) => hud.set({ bag });
+    hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / (stats?.stamina ?? 1) });
+  /** The bag's weight also sets the walking pace, which the server walks at too. */
+  const setBag = (bag: Bag) => {
+    hud.set({ bag });
+    if (prediction && stats) prediction.pace = walkPace(bagBurden(bag, stats));
+  };
 
   let accumulator = 0;
   return {
@@ -90,8 +94,9 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
       net = joinedNet;
       prediction = new Prediction(world, view, player, joinedNet);
       inBattle = false;
-      maxStamina = welcome.stats.stamina;
-      hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats, bag: welcome.bag });
+      stats = welcome.stats;
+      hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats });
+      setBag(welcome.bag);
       setVitals(welcome.vitals);
     },
     leave() {
@@ -131,7 +136,8 @@ export function createField({ engine, world, view, keyboard, settings, hud }: Fi
       inBattle = false;
       prediction?.reset(msg.me);
       snapFieldCamera(view, playerPos());
-      hud.set({ wins: msg.wins, bag: msg.bag });
+      hud.set({ wins: msg.wins });
+      setBag(msg.bag);
       setVitals(msg.vitals);
     },
     setVitals,

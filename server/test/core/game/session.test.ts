@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { emptyBag, itemDef, PLAYER, REST_RANGE, type Bag, type ItemId } from "@infinite-tower/shared";
+import {
+  BURDEN, carryLimit, emptyBag, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE, type Bag, type BagItem, type ItemId,
+} from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { startSession } from "./helpers.js";
@@ -210,5 +212,48 @@ describe("moveItem", () => {
     session.moveItem({ x: 0, y: 0 }, { x: 3, y: 2 }, false);
     assert.deepEqual(session.bag, start);
     assert.equal(link.all("bag").length, 0);
+  });
+});
+
+describe("carry weight", () => {
+  const LIMIT = carryLimit(PLAYER_STATS);
+  const FULL_STEP = getLevel(START_LEVEL).layout.playerSpeed * FIXED_DT;
+  /** Just over the overloaded line, with a stack of meat on top: eating one drops it back under. */
+  const tuskCount = Math.floor((LIMIT * BURDEN.overloadedAt) / ITEMS["boar-tusk"].weight);
+  const meat = ITEMS["boar-meat"].stackSize;
+  const tusks: BagItem[] = Array.from({ length: tuskCount }, (_, x) => ({
+    item: "boar-tusk", count: 1, x, y: 0, turned: false,
+  }));
+  const OVERLOADED: Bag = {
+    cols: tuskCount + 1, rows: 2,
+    items: [...tusks, { item: "boar-meat", count: meat, x: tuskCount, y: 0, turned: false }],
+  };
+  const HEAVY: Bag = { cols: tuskCount, rows: 2, items: tusks };
+
+  let seq = 0;
+  /** How far one tick of walking right takes the player on the server. */
+  function stepRight(session: ReturnType<typeof startSession>["session"]): number {
+    const from = session.field.playerPos();
+    session.input(++seq, 1, 0);
+    session.tick(FIXED_DT);
+    return session.field.playerPos().x - from.x;
+  }
+  const close = (actual: number, expected: number) =>
+    assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≉ ${expected}`);
+
+  test("overloaded, the player walks the field at half speed", () => {
+    const { session } = startSession({ saved: { bag: OVERLOADED } });
+    close(stepRight(session), FULL_STEP * BURDEN.overloadedPace);
+  });
+
+  test("heavy (over the limit but not overloaded), walking is full speed", () => {
+    const { session } = startSession({ saved: { bag: HEAVY } });
+    close(stepRight(session), FULL_STEP);
+  });
+
+  test("eating back under the line restores full speed at once", () => {
+    const { session } = startSession({ saved: { vitals: { hp: 10, stamina: 20 }, bag: OVERLOADED } });
+    session.useItem({ x: tuskCount, y: 0 });
+    close(stepRight(session), FULL_STEP);
   });
 });

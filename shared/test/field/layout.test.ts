@@ -11,9 +11,16 @@ const close = (actual: number, expected: number) =>
 describe("stepWalker", () => {
   test("moves playerSpeed tiles per second and reports the velocity", () => {
     const pos: Vec2 = { x: 0, z: 0 }, vel: Velocity2 = { vx: 0, vz: 0 };
-    stepWalker(level, pos, { moveX: 1, moveZ: 0 }, 0.5, vel);
+    stepWalker(level, pos, { moveX: 1, moveZ: 0 }, 0.5, { vel });
     assert.deepEqual(pos, { x: level.playerSpeed * 0.5, z: 0 });
     assert.deepEqual(vel, { vx: level.playerSpeed, vz: 0 });
+  });
+
+  test("at a slower pace (a heavy load), covers that share of the distance", () => {
+    const pos: Vec2 = { x: 0, z: 0 }, vel: Velocity2 = { vx: 0, vz: 0 };
+    stepWalker(level, pos, { moveX: 0, moveZ: 1 }, 0.5, { vel, pace: 0.5 });
+    assert.deepEqual(pos, { x: 0, z: level.playerSpeed * 0.25 });
+    assert.deepEqual(vel, { vx: 0, vz: level.playerSpeed * 0.5 });
   });
 
   test("diagonals are no faster than straight lines", () => {

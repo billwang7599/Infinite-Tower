@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
+  BURDEN, FIXED_DT, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
 } from "@infinite-tower/shared";
 import { FieldActor, FieldPos } from "../../src/field/components.js";
 import { Prediction } from "../../src/field/prediction.js";
@@ -31,9 +31,9 @@ function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) 
 }
 
 /** Where shared stepWalker takes `from` with these inputs: what the server will compute. */
-function walk(from: Vec2, inputs: WalkInput[]): Vec2 {
+function walk(from: Vec2, inputs: WalkInput[], pace = 1): Vec2 {
   const pos = { ...from };
-  for (const input of inputs) stepWalker(LEVEL, pos, input, FIXED_DT);
+  for (const input of inputs) stepWalker(LEVEL, pos, input, FIXED_DT, { pace });
   return pos;
 }
 
@@ -73,8 +73,16 @@ describe("Prediction.step", () => {
     for (const input of inputs) prediction.step(input);
     assert.deepEqual(pos, walk({ x: 0, z: 0 }, inputs));
     const vel = { vx: 0, vz: 0 };
-    stepWalker(LEVEL, { x: 0, z: 0 }, UP_LEFT, FIXED_DT, vel);
+    stepWalker(LEVEL, { x: 0, z: 0 }, UP_LEFT, FIXED_DT, { vel });
     assert.deepEqual({ vx: actor.vx, vz: actor.vz }, vel);
+  });
+
+  test("walks at the pace it's given (an overloaded bag), as the server does", () => {
+    const { prediction, pos } = setup();
+    prediction.pace = BURDEN.overloadedPace;
+    const inputs = [RIGHT, UP_LEFT, RIGHT];
+    for (const input of inputs) prediction.step(input);
+    assert.deepEqual(pos, walk({ x: 0, z: 0 }, inputs, BURDEN.overloadedPace));
   });
 
   test("stops at the level's edge, like the server", () => {
@@ -87,8 +95,10 @@ describe("Prediction.step", () => {
 
   test("facing follows the walk in four ways, and standing still keeps it", () => {
     const { prediction, actor } = setup();
-    const walk = [{ moveX: -1, moveZ: 0 }, STILL, { moveX: 0, moveZ: 1 }, { moveX: 0.5, moveZ: 0 }, { moveX: 0, moveZ: -1 }];
-    const faced = walk.map((input) => {
+    const inputs = [
+      { moveX: -1, moveZ: 0 }, STILL, { moveX: 0, moveZ: 1 }, { moveX: 0.5, moveZ: 0 }, { moveX: 0, moveZ: -1 },
+    ];
+    const faced = inputs.map((input) => {
       prediction.step(input);
       return actor.facing;
     });
@@ -120,6 +130,16 @@ describe("Prediction.reconcile", () => {
     const at = { x: 3, z: -2 };
     prediction.reconcile(2, at);
     assert.deepEqual(pos, walk(at, inputs.slice(2)));
+  });
+
+  test("replays at the current pace", () => {
+    const { prediction, pos } = setup();
+    const inputs = [RIGHT, RIGHT, UP_LEFT];
+    for (const input of inputs) prediction.step(input);
+    prediction.pace = BURDEN.overloadedPace;
+    const at = { x: 1, z: 1 };
+    prediction.reconcile(1, at);
+    assert.deepEqual(pos, walk(at, inputs.slice(1), BURDEN.overloadedPace));
   });
 
   test("does not change the given position object", () => {

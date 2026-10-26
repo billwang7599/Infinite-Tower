@@ -10,7 +10,8 @@
  *   strength    physical damage: an attack's damage × strength / 10; and how much a player can carry (`carryLimit`)
  *
  * 10 is "average" for the multiplier stats, so a fighter with 10 everywhere plays exactly as the base numbers say.
- * HP isn't a stat: it stays `PLAYER.maxHp` / `EnemyDef.maxHp`. Stats only apply in the arena, not to field walking.
+ * HP isn't a stat: it stays `PLAYER.maxHp` / `EnemyDef.maxHp`. Stats only apply in the arena, except through the
+ * carry limit: an overloaded bag slows field walking too (items/burden.ts).
  */
 import { defineComponent } from "../core/ecs.js";
 

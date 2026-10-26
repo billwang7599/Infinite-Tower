@@ -6,7 +6,7 @@
 import type { AbstractEngine } from "@babylonjs/core";
 import {
   FIXED_DT, Fighter, Health, LocalPlayer, Stamina,
-  type ArenaDef, type EnemyDef, type Entity, type System, type Stats, type Vitals, type World,
+  type ArenaDef, type Burden, type EnemyDef, type Entity, type System, type Stats, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -45,7 +45,8 @@ const NEW_FIGHT: Fight = { state: "fighting", stateTime: 0 };
 
 export interface Battle {
   ctx: BattleContext;
-  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals, stats: Stats): void;
+  /** `vitals`, `stats` and `burden` (how weighed down the bag leaves the player): what they start with. */
+  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals, stats: Stats, burden: Burden): void;
   end(): { won: boolean; vitals: Vitals };
   render(): void;
 }
@@ -126,11 +127,11 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start(enemy, arena, vitals, stats) {
+    start(enemy, arena, vitals, stats, burden) {
       clear();
       useArena(arena);
       startVitals = vitals;
-      spawnPlayer(ctx, PLAYER_START, vitals, stats);
+      spawnPlayer(ctx, PLAYER_START, vitals, stats, burden);
       spawnEnemy(ctx, enemy, ENEMY_START, ENEMY_START_YAW);
       Object.assign(ctx.view, START_VIEW);
       Object.assign(ctx.fight, NEW_FIGHT);

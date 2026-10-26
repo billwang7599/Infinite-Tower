@@ -33,7 +33,7 @@ export function fieldPlayerSystem(ctx: FieldContext): System {
         fp.credits--;
         fp.ack = input.seq;
         const x0 = pos.x, z0 = pos.z;
-        stepWalker(layout, pos, input, FIXED_DT);
+        stepWalker(layout, pos, input, FIXED_DT, { pace: fp.pace });
         if (!inTallGrass(layout, pos.x, pos.z)) continue;
         fp.grassDist += Math.hypot(pos.x - x0, pos.z - z0);
         while (fp.grassDist >= grass.stepDist) {

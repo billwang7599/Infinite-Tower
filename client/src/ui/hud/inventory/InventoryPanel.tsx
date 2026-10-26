@@ -3,7 +3,7 @@
  * use what can be used. Like the character panel, it doesn't block walking; the field HUD's bag button or the
  * Inventory key (field.inventory) toggles it.
  */
-import { bagWeight, carryLimit, itemDef, type Cell } from "@infinite-tower/shared";
+import { bagBurden, bagWeight, carryLimit, itemDef, type Burden, type Cell } from "@infinite-tower/shared";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import type { FieldHudState } from "../../state.js";
@@ -27,6 +27,7 @@ export function InventoryPanel({ hud, use, close }: PanelProps) {
       {stats && (
         <p id="bag-weight" className="mb-3 text-xs text-white/55 tabular-nums">
           Weight {formatWeight(bagWeight(bag))} / {formatWeight(carryLimit(stats))}
+          <BurdenNote burden={bagBurden(bag, stats)} />
         </p>
       )}
       {bag.items.length === 0 && <p className="text-sm text-white/55">Nothing yet. Boars sometimes drop things.</p>}
@@ -43,7 +44,8 @@ export function InventoryPanel({ hud, use, close }: PanelProps) {
               </span>
               {def.verb && (
                 <button
-                  type="button" {...NO_FOCUS} disabled={!!def.healHp && fullHp} onClick={() => use({ x: stack.x, y: stack.y })}
+                  type="button" {...NO_FOCUS} disabled={!!def.healHp && fullHp}
+                  onClick={() => use({ x: stack.x, y: stack.y })}
                   className={`pointer-events-auto ${BUTTON.plain}`}
                 >
                   {def.verb}
@@ -57,6 +59,18 @@ export function InventoryPanel({ hud, use, close }: PanelProps) {
         })}
       </ul>
     </PanelFrame>
+  );
+}
+
+/** What carrying too much does to you right now (shared items/burden.ts). Nothing when it does nothing. */
+function BurdenNote({ burden }: { burden: Burden }) {
+  if (burden === "light") return null;
+  return (
+    <span id="bag-burden" data-burden={burden} className="block text-error">
+      {burden === "heavy"
+        ? "Heavy: dodging costs more stamina."
+        : "Overloaded: no dodging, and you walk at half speed."}
+    </span>
   );
 }
 

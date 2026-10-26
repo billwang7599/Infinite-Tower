@@ -30,5 +30,7 @@ export interface FieldPlayerData {
   grassDist: number;
   /** Seconds left without encounters. */
   safeTime: number;
+  /** Share of normal walking speed: the session sets it from the bag's weight (`walkPace`). */
+  pace: number;
 }
 export const FieldPlayer = defineComponent<FieldPlayerData>("FieldPlayer");

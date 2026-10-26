@@ -13,6 +13,8 @@ import type { FieldView } from "./scene.js";
 export class Prediction {
   private seq = 0;
   private pending: (WalkInput & { seq: number })[] = [];
+  /** Share of normal walking speed, from the bag's weight (`walkPace`), as the server walks it. */
+  pace = 1;
 
   constructor(
     private readonly world: World,
@@ -59,7 +61,7 @@ export class Prediction {
     if (!level) return;
     const pos = this.world.require(this.player, FieldPos);
     const actor = this.world.require(this.player, FieldActor);
-    stepWalker(level, pos, input, FIXED_DT, actor);
+    stepWalker(level, pos, input, FIXED_DT, { vel: actor, pace: this.pace });
     actor.facing = faceToward(actor.facing, input.moveX, input.moveZ);
   }
 }

@@ -32,7 +32,7 @@ export class Field implements FieldContext {
     ];
     this.player = this.world.spawn();
     this.world.add(this.player, FieldPos, { x: 0, z: 0 });
-    this.world.add(this.player, FieldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0 });
+    this.world.add(this.player, FieldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1 });
   }
 
   get level(): LevelDef {

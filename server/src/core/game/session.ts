@@ -5,8 +5,8 @@
  * `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
 import {
-  itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, type Bag, type Cell, type Character, type SavedSettings,
-  type Stats, type Vitals,
+  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
+  type Character, type SavedSettings, type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Field } from "../field/field.js";
@@ -35,7 +35,7 @@ export class GameSession {
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
-  bag: Bag;
+  private carried: Bag;
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -50,8 +50,19 @@ export class GameSession {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
+    this.carried = saved.bag;
     this.bag = saved.bag;
   }
+
+  /** What the player carries. Its weight sets how fast they walk the field (`walkPace`). */
+  get bag(): Bag { return this.carried; }
+  set bag(bag: Bag) {
+    this.carried = bag;
+    this.field.playerData().pace = walkPace(this.burden);
+  }
+
+  /** How weighed down the bag leaves the player. */
+  get burden(): Burden { return bagBurden(this.carried, this.stats); }
 
   /** Sends `welcome`, then puts the player in the world, unless there's no character yet: that waits for one. */
   start(): void {

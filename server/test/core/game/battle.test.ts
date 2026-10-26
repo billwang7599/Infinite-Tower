@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { emptyBag, FIXED_DT, type Bag } from "@infinite-tower/shared";
+import { carryLimit, emptyBag, FIXED_DT, ITEMS, type Bag } from "@infinite-tower/shared";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { packLoot } from "../../../src/core/game/inventory.js";
@@ -29,6 +29,21 @@ describe("starting a battle", () => {
     assert.deepEqual(msg.arena, LEVEL.arena);
     assert.deepEqual(msg.vitals, HURT);
     assert.deepEqual(msg.stats, session.stats);
+  });
+
+  test("says how weighed down the player comes in (the arena applies it)", () => {
+    const tusk = ITEMS["boar-tusk"];
+    const count = carryLimit(PLAYER_STATS) / tusk.weight + 1;
+    const heavy: Bag = {
+      cols: count, rows: tusk.rows,
+      items: Array.from({ length: count }, (_, x) => ({ item: "boar-tusk", count: 1, x, y: 0, turned: false })),
+    };
+    const { session, link } = startSession({ dev: true, saved: { bag: heavy } });
+    session.debugEncounter();
+    assert.equal(link.last("encounter").burden, "heavy");
+    const light = startSession({ dev: true });
+    light.session.debugEncounter();
+    assert.equal(light.link.last("encounter").burden, "light");
   });
 
   test("touching the field boar starts a battle against it", () => {

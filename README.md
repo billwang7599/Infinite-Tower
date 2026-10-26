@@ -29,8 +29,9 @@ What's built so far:
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
-- **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Boars
-  sometimes drop meat (heals), a hide or a tusk; what doesn't fit is left behind.
+- **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
+  limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
+  (heals), a hide or a tusk; what doesn't fit is left behind.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
   and Settings.
 - **Settings** (Esc): camera sensitivity, key bindings, return to title.

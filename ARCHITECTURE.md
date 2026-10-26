@@ -55,9 +55,10 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
 4. **Field.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
-   shared `stepWalker`. The server replays the inputs, runs the level's actors, rolls encounters and sends `state`
+   shared `stepWalker` (at the pace the bag's weight allows). The server replays the inputs, runs the level's
+   actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
-5. **Fight.** The server sends `encounter` (enemy, arena, your HP / stamina and stats). The client switches to
+5. **Fight.** The server sends `encounter` (enemy, arena, your HP / stamina, stats and burden). The client switches to
    battle mode and runs the fight itself, then reports `battleEnd { won, vitals }`. The server checks the claim,
    rolls drops, saves and answers `battleResult`; Enter goes back to the field.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
@@ -186,7 +187,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors |
-| `encounter` | a fight starts: enemy, arena, your HP / stamina and stats |
+| `encounter` | a fight starts: enemy, arena, your HP / stamina, stats and burden (how weighed down you are) |
 | `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, what was left behind, bag |
 | `rested`, `itemUsed` | what resting or eating did |
 | `bag` | your bag after a `moveItem`, whether or not the move was allowed |
@@ -288,7 +289,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    name rules)
   items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, what using one does;
                    ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
-                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by)
+                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), burden.ts
+                   (BURDEN, bagBurden: light / heavy / overloaded, and what each does to walking and dodging)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -494,6 +496,7 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 | Items: size, stack size, weight, healing | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
+| What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Field-actor behavior numbers | `server/src/core/field/prefabs/` |
 | Arena camera feel | top of `client/src/battle/systems/camera.ts` |
