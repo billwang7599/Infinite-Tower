@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { PLAYER } from "@infinite-tower/shared";
+import { emptyBag, PLAYER } from "@infinite-tower/shared";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 
 describe("player content", () => {
@@ -9,17 +9,17 @@ describe("player content", () => {
     assert.equal(fullVitals({ ...PLAYER_STATS, stamina: 7 }).stamina, 7);
   });
 
-  test("a new player is rested, with no wins, settings, character or items", () => {
+  test("a new player is rested, with no wins, settings or character, and an empty bag", () => {
     assert.deepEqual(newPlayer(), {
-      vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, inventory: {},
+      vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
     });
   });
 
   test("each new player is its own object", () => {
     const a = newPlayer(), b = newPlayer();
     a.vitals.hp = 1;
-    a.inventory["boar-meat"] = 1;
+    a.bag.items.push({ item: "boar-meat", count: 1, x: 0, y: 0, turned: false });
     assert.equal(b.vitals.hp, PLAYER.maxHp);
-    assert.deepEqual(b.inventory, {});
+    assert.deepEqual(b.bag, emptyBag());
   });
 });

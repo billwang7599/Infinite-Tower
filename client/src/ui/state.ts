@@ -4,7 +4,7 @@
  * or closes them too, and the game watches them, to stop taking input while one is open. `UiActions` is the other
  * direction.
  */
-import type { Character, Credentials, Inventory, ItemId, Stats } from "@infinite-tower/shared";
+import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
 import type { Mode } from "../game/transition.js";
 import { Store } from "./store.js";
@@ -61,7 +61,7 @@ export interface FieldHudState {
   character: Character | null;
   /** Standing by a campfire: the Rest button shows. */
   nearCampfire: boolean;
-  inventory: Inventory;
+  bag: Bag;
 }
 
 export interface BattleHudState {
@@ -96,8 +96,8 @@ export interface UiActions {
   play(): void;
   /** Rest at the campfire you're standing by. */
   rest(): void;
-  /** Use one of an item (eat the meat); the server answers with what it did. */
-  useItem(item: ItemId): void;
+  /** Use one of the item in that bag cell (eat the meat); the server answers with what it did. */
+  useItem(at: Cell): void;
   /** Send the new character to the server, which answers with it as saved (`FieldHudState.character`). */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
@@ -112,7 +112,7 @@ export class UiState {
   readonly creation = new Store<CreationState>({ open: false });
   readonly field = new Store<FieldHudState>({
     levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
-    inventory: {},
+    bag: { cols: 0, rows: 0, items: [] },
   });
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1, enemyAlive: false,

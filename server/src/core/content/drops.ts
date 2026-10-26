@@ -1,5 +1,5 @@
 /** What enemies drop when you beat them. Each entry is rolled on its own. */
-import type { Inventory, ItemId } from "@infinite-tower/shared";
+import type { ItemCounts, ItemId } from "@infinite-tower/shared";
 import type { EnemyId } from "./enemies.js";
 
 interface DropDef {
@@ -9,11 +9,15 @@ interface DropDef {
 }
 
 const DROPS: Record<EnemyId, DropDef[]> = {
-  "wild-boar": [{ item: "boar-meat", chance: 0.6, count: 1 }],
+  "wild-boar": [
+    { item: "boar-meat", chance: 0.6, count: 1 },
+    { item: "boar-hide", chance: 0.35, count: 1 },
+    { item: "boar-tusk", chance: 0.25, count: 1 },
+  ],
 };
 
-export function rollDrops(enemy: EnemyId, rng: () => number): Inventory {
-  const loot: Inventory = {};
+export function rollDrops(enemy: EnemyId, rng: () => number): ItemCounts {
+  const loot: ItemCounts = {};
   for (const d of DROPS[enemy]) if (rng() < d.chance) loot[d.item] = (loot[d.item] ?? 0) + d.count;
   return loot;
 }

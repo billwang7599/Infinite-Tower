@@ -8,6 +8,7 @@ export const handlers: Handlers<ClientMsg, GameSession> = {
   settings: (msg, s) => s.setSettings(msg.settings),
   character: (msg, s) => s.setCharacter(msg.character),
   rest: (_msg, s) => s.rest(),
-  useItem: (msg, s) => s.useItem(msg.item),
+  useItem: (msg, s) => s.useItem(msg.at),
+  moveItem: (msg, s) => s.moveItem(msg.from, msg.to, msg.turned),
   debug: (msg, s) => { if (msg.cmd === "encounter") s.debugEncounter(); },
 };

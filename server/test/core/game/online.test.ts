@@ -29,7 +29,7 @@ describe("joining", () => {
     const fresh = newPlayer();
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
-        inventory: welcome.inventory },
+        bag: welcome.bag },
       fresh,
     );
     assert.equal(welcome.dev, false);

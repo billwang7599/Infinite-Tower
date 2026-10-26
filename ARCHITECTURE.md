@@ -51,7 +51,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, inventory). With no character yet, the white the
+   `welcome` (HP / stamina, stats, settings, character, wins, bag). With no character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
 4. **Field.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
@@ -174,20 +174,22 @@ times a second, and every 3rd tick in the field it sends one.
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
 | `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
-| `useItem {item}` | used an item from the inventory |
+| `useItem {at}` | used one of the item in bag cell `at` |
+| `moveItem {from, to, turned}` | moved what's in cell `from` so its top-left is at `to` (field only) |
 | `battleEnd {won, vitals}` | the fight was decided and you left the arena |
 | `settings` | a setting changed (debounced on the client) |
 | `debug {cmd}` | dev server only: `encounter` starts a fight |
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, inventory, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, bag, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the field: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: enemy, arena, your HP / stamina and stats |
-| `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, inventory |
+| `battleResult` | the server's verdict on `battleEnd`: accepted?, wins, HP / stamina, loot, what was left behind, bag |
 | `rested`, `itemUsed` | what resting or eating did |
+| `bag` | your bag after a `moveItem`, whether or not the move was allowed |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
 (`CLOSE_CODES` in `shared/src/net/accounts.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
@@ -197,9 +199,9 @@ copy of you plus 3 tiles, so a hacked client can't see further.
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character and
-inventory, keyed by account. The `GameSession` saves after every fight, rest, item use and making a character, on
-disconnect, and within a second of a settings change. Position and level aren't saved (you start at the level's
-start), and stats aren't either (everyone has the same).
+bag, keyed by account. The `GameSession` saves after every fight, rest, item use and making a character, on
+disconnect, and within a second of a settings change or a move in the bag. Position and level aren't saved (you
+start at the level's start), and stats aren't either (everyone has the same).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -279,11 +281,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   battle/          components.ts (Player, Health, Stamina, Fighter, ActiveHit, Enemy, LungeAttack, ChargeAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats + optional attacks,
                    ArenaDef),
-                   input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
+                   input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed /
+                   carryLimit)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
-  items/           items.ts (ITEMS: name, description, what using one does; Inventory = item id -> count)
+  items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, what using one does;
+                   ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
+                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -308,7 +313,7 @@ server/          Node. Authoritative: levels, encounters, field actors, enemy st
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over), session.ts (GameSession, one player: their save, their field, the battle
                        they're in; a method per thing a player can ask), battle.ts (start / settle battles, refuse
-                       impossible wins and healing), inventory.ts (addItems, removeOne, MAX_STACK), snapshot.ts
+                       impossible wins and healing), inventory.ts (packLoot: drops into the bag), snapshot.ts
                        (the state message: only actors near your screen), clock.ts (FixedClock: 60 Hz steps,
                        catching up after stalls)
       field/           The field simulation. field.ts (Field: one player's world, level, systems and spawner),
@@ -390,8 +395,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        LookPicture.tsx (a look in one view on a canvas: the portrait, the chibi)
       hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       portrait and stats; statText.ts), inventory/ (InventoryPanel.tsx), PanelFrame.tsx (the side
-                       panels' box), panelKeys.ts, icons.tsx
+                       portrait and stats; statText.ts), inventory/ (InventoryPanel.tsx: the bag and its
+                       weight), PanelFrame.tsx (the side panels' box), panelKeys.ts, icons.tsx
       overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),
@@ -486,7 +491,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats and attacks | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |
-| Items | `shared/src/items/items.ts` |
+| Items: size, stack size, weight, healing | `shared/src/items/items.ts` |
+| Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
+| Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Field-actor behavior numbers | `server/src/core/field/prefabs/` |
 | Arena camera feel | top of `client/src/battle/systems/camera.ts` |

@@ -29,11 +29,12 @@ What's built so far:
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
-- **Inventory:** boars sometimes drop boar meat, which heals.
+- **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Boars
+  sometimes drop meat (heals), a hide or a tusk; what doesn't fit is left behind.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
   and Settings.
 - **Settings** (Esc): camera sensitivity, key bindings, return to title.
-- **Saving:** your character, vitals, wins, inventory and settings are kept with your account in Postgres.
+- **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the field and checks every fight result before saving it. The fight itself still runs in the
   browser ([plan/server-fights.md](plan/server-fights.md)).
 

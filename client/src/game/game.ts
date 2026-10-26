@@ -8,7 +8,9 @@
  * to the field.
  */
 import type { AbstractEngine } from "@babylonjs/core";
-import { itemDef, type Character, type Inventory, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
+import {
+  itemDef, type Cell, type Character, type ItemCounts, type ItemId, type ServerMsgOf,
+} from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
@@ -31,7 +33,7 @@ export interface Game {
   /** The Leave key in a decided fight: fade back to the field. */
   leaveBattle(): void;
   rest(): void;
-  useItem(item: ItemId): void;
+  useItem(at: Cell): void;
   /** Ask the server to save the new character (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
@@ -124,8 +126,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     rest() {
       if (mode === "field" && !transition) field.rest();
     },
-    useItem(item) {
-      if (mode === "field" && !transition) net?.send({ t: "useItem", item });
+    useItem(at) {
+      if (mode === "field" && !transition) net?.send({ t: "useItem", at });
     },
     saveCharacter(character) {
       net?.send({ t: "character", character });
@@ -152,14 +154,17 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
         },
         itemUsed(msg) {
           field.setVitals(msg.vitals);
-          field.setInventory(msg.inventory);
+          field.setBag(msg.bag);
           const def = itemDef(msg.item);
           ui.showToast(`${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`);
         },
+        bag: (msg) => field.setBag(msg.bag),
         battleResult(msg) {
           field.onBattleResult(msg);
           const loot = describeItems(msg.loot);
           if (loot) ui.showToast(`You found ${loot}.`);
+          const leftBehind = describeItems(msg.leftBehind);
+          if (leftBehind) ui.showToast(`No room in your bag: you leave ${leftBehind} behind.`);
           if (!msg.accepted) ui.showToast("The server didn't accept that win.");
         },
       });
@@ -189,7 +194,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
 }
 
 /** "boar meat" / "2 boar meat", or "" for nothing. */
-function describeItems(items: Inventory): string {
+function describeItems(items: ItemCounts): string {
   return (Object.entries(items) as [ItemId, number][])
     .map(([id, n]) => `${n > 1 ? `${n} ` : ""}${itemDef(id).name.toLowerCase()}`)
     .join(", ");

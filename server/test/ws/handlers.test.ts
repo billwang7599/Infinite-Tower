@@ -18,6 +18,7 @@ function fakeSession() {
     setCharacter: record("setCharacter"),
     rest: record("rest"),
     useItem: record("useItem"),
+    moveItem: record("moveItem"),
     debugEncounter: record("debugEncounter"),
   };
   return { calls, session: session as unknown as GameSession };
@@ -53,8 +54,13 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "rest" }), [["rest"]]);
   });
 
-  test("useItem uses that item", () => {
-    assert.deepEqual(handle({ t: "useItem", item: "boar-meat" }), [["useItem", "boar-meat"]]);
+  test("useItem uses the item in that cell", () => {
+    assert.deepEqual(handle({ t: "useItem", at: { x: 1, y: 2 } }), [["useItem", { x: 1, y: 2 }]]);
+  });
+
+  test("moveItem moves from one cell to another, turned or not", () => {
+    const from = { x: 0, y: 0 }, to = { x: 2, y: 1 };
+    assert.deepEqual(handle({ t: "moveItem", from, to, turned: true }), [["moveItem", from, to, true]]);
   });
 
   test("debug encounter asks for a debug battle", () => {
@@ -62,7 +68,9 @@ describe("message handlers", () => {
   });
 
   test("every client message type has a handler", () => {
-    const types: ClientMsg["t"][] = ["input", "battleEnd", "settings", "character", "rest", "useItem", "debug"];
+    const types: ClientMsg["t"][] = [
+      "input", "battleEnd", "settings", "character", "rest", "useItem", "moveItem", "debug",
+    ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });
 });

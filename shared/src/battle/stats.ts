@@ -7,7 +7,7 @@
  *   mana        the size of the mana pool (points; nothing spends mana yet: there are no spells)
  *   spellpower  spell damage, as a multiplier like strength (no spells yet)
  *   agility     arena movement speed: walk speed × agility / 10
- *   strength    physical damage: an attack's damage × strength / 10
+ *   strength    physical damage: an attack's damage × strength / 10; and how much a player can carry (`carryLimit`)
  *
  * 10 is "average" for the multiplier stats, so a fighter with 10 everywhere plays exactly as the base numbers say.
  * HP isn't a stat: it stays `PLAYER.maxHp` / `EnemyDef.maxHp`. Stats only apply in the arena, not to field walking.
@@ -26,5 +26,9 @@ const AVERAGE = 10;
 
 export const physicalDamage = (base: number, stats: Stats): number => (base * stats.strength) / AVERAGE;
 export const moveSpeed = (base: number, stats: Stats): number => (base * stats.agility) / AVERAGE;
+
+/** The carry limit (in item weight, items/items.ts): `base` for everyone, plus `perStrength` per point of strength. */
+export const CARRY = { base: 30, perStrength: 3 } as const;
+export const carryLimit = (stats: Stats): number => CARRY.base + CARRY.perStrength * stats.strength;
 
 export const FighterStats = defineComponent<Stats>("FighterStats");

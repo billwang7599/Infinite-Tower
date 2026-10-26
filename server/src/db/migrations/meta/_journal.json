@@ -43,6 +43,20 @@
       "when": 1792872943054,
       "tag": "0005_inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792997269771,
+      "tag": "0006_bag",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792997274166,
+      "tag": "0007_empty-bags",
+      "breakpoints": true
     }
   ]
 }
