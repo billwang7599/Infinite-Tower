@@ -5,7 +5,7 @@ import { spawnFieldActor } from "./actor.js";
 
 export function spawnFieldPlayer(world: World, view: FieldView, at: Vec2): Entity {
   const e = spawnFieldActor(world, view, at, {
-    name: "field-player", material: view.materials.player.front, turns: view.materials.player,
+    name: "field-player", material: view.materials.player.front, facings: view.materials.player,
     sizeTiles: 1.6, facing: "down", glide: false, tuft: view.materials.tuft,
   });
   world.add(e, LocalPlayer, true);

@@ -28,7 +28,7 @@ export function spawnPlayer(ctx: BattleContext, at: Vec3, vitals: Vitals, stats:
   plane.parent = capsule;
   plane.position.y = spriteY(1, 0);
   plane.billboardMode = Mesh.BILLBOARDMODE_Y;
-  plane.material = materials.player.idle;
+  plane.material = materials.player.stand;
 
   const shadow = MeshBuilder.CreateGround(`shadow-${e}`, { width: 1.1, height: 0.7 }, scene);
   shadow.material = materials.blobShadow;

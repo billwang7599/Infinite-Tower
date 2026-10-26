@@ -90,7 +90,7 @@ client/src/
   field/ battle/   the two modes, drawn with Babylon.js
   net/             talking to the server
   ui/              the React UI (title, HUD, panels, settings)
-  gfx/look/        character art drawn in code (style guide: ART.md; preview: localhost:5173/art.html)
+  gfx/look/        character art in code: portrait, chibi, battle (style: ART.md; preview: localhost:5173/art.html)
   gfx/items/       item pictures for the bag, drawn the same way
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR

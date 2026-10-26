@@ -1,4 +1,5 @@
 import { dampFactor, distXZ, inTallGrass, type System } from "@infinite-tower/shared";
+import type { ChibiFacing } from "../../gfx/look/look.js";
 import { FieldActor, FieldPos, FieldSprite } from "../components.js";
 import { mirrorFor, type Facing } from "../facing.js";
 import { layerY, type FieldView } from "../scene.js";
@@ -12,8 +13,10 @@ const WALK_CYCLE_RAD_PER_SEC = 12;
 const HOP_TILES = 0.12;
 /** The quad's center sits this share of its size above the feet (in +z), so the feet stay on the position. */
 const FOOT_OFFSET = 0.4;
-/** Which picture shows facing each way: the front faces the camera, "down" the screen. */
-const TURNS = { down: "front", up: "back", left: "side", right: "side" } as const satisfies Record<Facing, string>;
+/** The chibi's picture for each way it walks: the front faces the camera, "down" the screen. */
+const CHIBI_FACING = {
+  down: "front", up: "back", left: "side", right: "side",
+} as const satisfies Record<Facing, ChibiFacing>;
 
 /** Per render frame: glide to server positions, place the quads, walk hop, facing, tuft and "!". */
 export function fieldSpriteSystem(view: FieldView): System {
@@ -30,8 +33,8 @@ export function fieldSpriteSystem(view: FieldView): System {
 
       sprite.mesh.position.set(pos.x, layerY(pos.z, 0.3), pos.z + sprite.size * FOOT_OFFSET + hop);
       sprite.mesh.scaling.x = mirrorFor(actor.facing);
-      if (sprite.turns) {
-        const material = sprite.turns[TURNS[actor.facing]];
+      if (sprite.facings) {
+        const material = sprite.facings[CHIBI_FACING[actor.facing]];
         if (sprite.mesh.material !== material) sprite.mesh.material = material;
       }
 

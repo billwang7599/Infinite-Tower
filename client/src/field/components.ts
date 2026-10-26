@@ -4,7 +4,7 @@
  */
 import type { Mesh, StandardMaterial } from "@babylonjs/core";
 import { defineComponent, type Vec2, type World } from "@infinite-tower/shared";
-import type { ChibiTurn } from "../gfx/look/look.js";
+import type { ChibiFacing } from "../gfx/look/look.js";
 import type { Facing } from "./facing.js";
 
 /** Drawn position on the field (tiles). */
@@ -28,7 +28,7 @@ interface FieldSpriteData {
    * A picture for each way it can face (the player's chibi): front, back, and side drawn facing right (left
    * mirrors it). null for actors with one picture, drawn facing right (boars).
    */
-  turns: Record<ChibiTurn, StandardMaterial> | null;
+  facings: Record<ChibiFacing, StandardMaterial> | null;
   /** "!" bubble (boars). */
   alert: Mesh | null;
   /** Grass drawn over the feet in tall grass (player). */

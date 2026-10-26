@@ -1,9 +1,9 @@
 /**
  * How a character is put together. Everything you can see on a character (the body, a hair style, an eye
- * type, a tunic) is an `Art`: for each view, a draw function per layer it shows up on. A picture is every
- * Art's draws, layer by layer, bottom to top, then outlined and colored. Every draw is handed the body's
- * `Frame` (its shapes and landmarks) and draws against it, so a piece of gear is drawn once per view and fits
- * every body type.
+ * type, a tunic) is an `Art`: for each view (and each way the chibi faces), a draw function per layer it shows up
+ * on. A picture is every Art's draws, layer by layer, bottom to top, then outlined and colored. Every draw is
+ * handed the body's `Frame` (its shapes and landmarks) and draws against it, so a piece of gear is drawn once per
+ * view and fits every body type.
  */
 import { Pen, Pixels, outline, type Ink, type Mask, type Point, type Tone } from "./pixels.js";
 import type { Ramp } from "./palette.js";
@@ -12,12 +12,8 @@ import type { Ramp } from "./palette.js";
 export const VIEWS = {
   /** Head and shoulders, turned three-quarters to our left: dialogue and the creation screen. No background. */
   portrait: { width: 64, height: 64 },
-  /** The small chibi in the world, facing us (walking down the screen). */
+  /** The small chibi in the world, drawn facing each way it walks (CHIBI_FACINGS). */
   chibi: { width: 32, height: 32 },
-  /** The chibi from behind (walking up the screen). */
-  chibiBack: { width: 32, height: 32 },
-  /** The chibi from the side, facing left (walking right is its mirror image). */
-  chibiSide: { width: 32, height: 32 },
   /**
    * The arena, full body and sword in hand, from behind: the arena camera always sits behind the player, who
    * faces where they attack. The figure is 48 wide in the middle, leaving room each side for the sword.
@@ -25,6 +21,13 @@ export const VIEWS = {
   battle: { width: 64, height: 64 },
 } as const;
 export type View = keyof typeof VIEWS;
+
+/**
+ * The ways the chibi faces: front (toward us, walking down the screen), back (walking up it) and side (to the
+ * left; walking right is its mirror image).
+ */
+export const CHIBI_FACINGS = ["front", "back", "side"] as const;
+export type ChibiFacing = (typeof CHIBI_FACINGS)[number];
 
 /** Bottom to top. Wear goes between the body parts it covers. */
 export const LAYERS = [
@@ -75,18 +78,22 @@ export interface BattleFrame extends Frame {
 /** The frame each view's drawings are handed. */
 export interface Frames {
   portrait: Frame;
-  chibi: Frame;
-  /** The front's frame: from behind the body has the same outline. */
-  chibiBack: Frame;
-  /** Facing left: `middle` is the torso's middle column, and both `shoulders` are the near one. */
-  chibiSide: Frame;
+  /**
+   * Facing back it's the front's frame: from behind the body has the same outline. Facing side (left), `middle`
+   * is the torso's middle column, and both `shoulders` are the near one.
+   */
+  chibi: Record<ChibiFacing, Frame>;
   battle: BattleFrame;
 }
 
 export type Draw<F extends Frame = Frame> = (pen: Pen, frame: F) => void;
 /** One Art in one view: what it draws on each layer. */
 export type Piece<F extends Frame = Frame> = Partial<Record<Layer, Draw<F>>>;
-export type Art = { [V in View]?: Piece<Frames[V]> };
+export interface Art {
+  portrait?: Piece;
+  chibi?: Partial<Record<ChibiFacing, Piece>>;
+  battle?: Piece<BattleFrame>;
+}
 
 /** The ramps the picked colors fill in; everything else comes from palette.ts's FIXED. */
 export interface Colors {
@@ -104,15 +111,19 @@ export interface Picture {
   rgba: Uint8ClampedArray;
 }
 
-/** Draw `arts` in `view` on the body `frame`, colored with `colors` (plus `fixed`, the shared materials). */
-export function render<V extends View>(
-  view: V, frame: Frames[V], arts: readonly Art[], colors: Colors, fixed: Readonly<Record<string, Ramp>>,
+/**
+ * Draw `pieces` (each Art's piece for this picture, in the Arts' order) at `view`'s size on the body `frame`,
+ * colored with `colors` (plus `fixed`, the shared materials).
+ */
+export function render<F extends Frame>(
+  view: View, frame: F, pieces: readonly (Piece<F> | undefined)[], colors: Colors,
+  fixed: Readonly<Record<string, Ramp>>,
 ): Picture {
   const { width, height } = VIEWS[view];
   const px = new Pixels(width, height);
   LAYERS.forEach((layer, i) => {
     const pen = new Pen(px, i);
-    for (const art of arts) (art[view] as Piece<Frames[V]> | undefined)?.[layer]?.(pen, frame);
+    for (const piece of pieces) piece?.[layer]?.(pen, frame);
   });
   outline(px, new Set(LAYERS.flatMap((layer, i) => (UNOUTLINED.has(layer) ? [] : [i]))));
   return toPicture(px, { ...fixed, ...colors });

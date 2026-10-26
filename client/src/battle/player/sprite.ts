@@ -1,5 +1,6 @@
 import { PhysicsRaycastResult, Vector3 } from "@babylonjs/core";
 import { clamp, damp, Health, Player, PLAYER, type System } from "@infinite-tower/shared";
+import type { Pose } from "../../gfx/look/battle.js";
 import { Body, Layer } from "../components.js";
 import type { BattleContext } from "../context.js";
 import { PlayerSprite, spriteY } from "./components.js";
@@ -31,8 +32,8 @@ export function playerSpriteSystem(ctx: BattleContext): System {
       const swinging = slashing && player.actionTime < slash.duration * 0.8;
       const trailSide = player.combo % 2 === 0 ? 1 : -1;
       sprite.facing = alive && swinging && trailSide === 1 ? -1 : 1;
-      const frame = !alive ? frames.down : swinging ? frames.slash : frames.idle;
-      if (sprite.plane.material !== frame) sprite.plane.material = frame;
+      const pose: Pose = !alive ? "down" : swinging ? "slash" : "stand";
+      if (sprite.plane.material !== frames[pose]) sprite.plane.material = frames[pose];
 
       const speed = Math.hypot(vel.x, vel.z);
       const walking = alive && player.grounded && speed > 0.5 && player.action === "none";
