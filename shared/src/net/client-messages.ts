@@ -37,6 +37,11 @@ const SavedSettingsSchema = z.object({
   /** group -> action -> KeyboardEvent.code list */
   bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(MAX_KEYS_PER_ACTION))).optional(),
   camera: z.object({ sensitivity: z.number().optional() }).optional(),
+  /**
+   * Capture the mouse as a battle starts. Left out means on (the default): saves from before it existed have no
+   * such field. The client reads it (settings/mouse.ts); it never runs this schema, only its types.
+   */
+  mouse: z.object({ autoLock: z.boolean().optional() }).optional(),
 });
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 

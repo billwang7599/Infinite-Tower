@@ -50,7 +50,7 @@ export function SettingsScreen({ screen, open, close, settings, returnToTitle }:
           </button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-7">
-          <CameraSection camera={settings.camera} />
+          <CameraSection camera={settings.camera} mouse={settings.mouse} />
           <KeyBindingsList bindings={settings.bindings} />
         </div>
         <Footer close={close} returnToTitle={returnToTitle} />

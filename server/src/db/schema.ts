@@ -32,7 +32,7 @@ export const players = pgTable("players", {
   stamina: doublePrecision().notNull(),
   /** Fights won (any enemy), shown on the field HUD. */
   wins: integer().notNull().default(0),
-  /** Key bindings and camera: only what differs from the defaults, so {} is "all defaults". */
+  /** Key bindings, camera and mouse: only what differs from the defaults, so {} is "all defaults". */
   settings: jsonb().$type<SavedSettings>().notNull().default({}),
   /** {name, look} (shared/src/character/character.ts). null until they've made one, on their first visit. */
   character: jsonb().$type<Character>(),

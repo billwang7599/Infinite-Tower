@@ -14,6 +14,7 @@ describe("parseClientMsg", () => {
       { t: "battleEnd", won: true, vitals: { hp: 40, stamina: 12 } },
       { t: "settings", settings: { bindings: { field: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
       { t: "settings", settings: {} },
+      { t: "settings", settings: { mouse: { autoLock: false } } },
       { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
       { t: "rest" },
       { t: "useItem", at: { x: 2, y: 1 } },
@@ -62,6 +63,17 @@ describe("parseClientMsg", () => {
     const keys = Array.from({ length: MAX_KEYS_PER_ACTION + 1 }, (_, i) => `Key${i}`);
     assert.equal(parse({ t: "settings", settings: { bindings: { field: { up: keys } } } }), null);
     assert.equal(parse({ t: "settings", settings: { bindings: { field: { up: ["K".repeat(33)] } } } }), null);
+  });
+
+  test("settings: the mouse auto lock is kept as saved, may be left out (on), and must be true or false", () => {
+    const settings = (saved: object) => parse({ t: "settings", settings: saved });
+    for (const autoLock of [false, true]) {
+      const saved = { camera: { sensitivity: 2 }, mouse: { autoLock } };
+      assert.deepEqual(settings(saved), { t: "settings", settings: saved });
+    }
+    // Saved before the setting existed: still valid, and the client reads the missing field as on.
+    assert.deepEqual(settings({ mouse: {} }), { t: "settings", settings: { mouse: {} } });
+    for (const autoLock of ["false", 0, null]) assert.equal(settings({ mouse: { autoLock } }), null);
   });
 
   test("useItem and moveItem: cells are whole, non-negative numbers", () => {

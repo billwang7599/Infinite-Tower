@@ -20,22 +20,28 @@ describe("createSettings / restoreSettings", () => {
     const settings = createSettings();
     assert.equal(settings.bindings.isDefault(), true);
     assert.equal(settings.camera.isDefault(), true);
+    assert.equal(settings.mouse.isDefault(), true);
   });
 
-  test("restoreSettings fills both stores from the save", () => {
+  test("restoreSettings fills every store from the save", () => {
     const settings = createSettings();
-    restoreSettings(settings, { bindings: { battle: { jump: ["KeyX"] } }, camera: { sensitivity: 2 } });
+    restoreSettings(settings, {
+      bindings: { battle: { jump: ["KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
+    });
     assert.deepEqual(settings.bindings.toSaved(), { battle: { jump: ["KeyX"] } });
     assert.equal(settings.camera.get().sensitivity, 2);
+    assert.equal(settings.mouse.get().autoLock, false);
   });
 
-  test("restoreSettings with an empty save resets both stores", () => {
+  test("restoreSettings with an empty save (or one from before auto lock existed) resets every store", () => {
     const settings = createSettings();
     settings.camera.setSensitivity(2);
     settings.bindings.unbind({ group: "field", action: "up" }, "KeyW");
+    settings.mouse.setAutoLock(false);
     restoreSettings(settings, {});
     assert.equal(settings.bindings.isDefault(), true);
     assert.equal(settings.camera.isDefault(), true);
+    assert.equal(settings.mouse.get().autoLock, true);
   });
 });
 
@@ -68,14 +74,17 @@ describe("syncSettings", () => {
     assert.equal(net.sent.length, 1);
   });
 
-  test("the message holds both stores' saved form, and passes the server's check", (t) => {
+  test("the message holds every store's saved form, and passes the server's check", (t) => {
     const { settings, net } = setup(t);
     settings.camera.setSensitivity(2);
     settings.bindings.bind({ group: "battle", action: "jump" }, "KeyX", null);
+    settings.mouse.setAutoLock(false);
     t.mock.timers.tick(LATER_MS);
     const expected = {
       t: "settings",
-      settings: { bindings: { battle: { jump: ["Space", "KeyX"] } }, camera: { sensitivity: 2 } },
+      settings: {
+        bindings: { battle: { jump: ["Space", "KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
+      },
     };
     assert.deepEqual(net.sent, [expected]);
     assert.deepEqual(parseClientMsg(JSON.stringify(net.sent[0])), expected);
@@ -87,7 +96,15 @@ describe("syncSettings", () => {
     t.mock.timers.tick(LATER_MS);
     settings.camera.reset();
     t.mock.timers.tick(LATER_MS);
-    assert.deepEqual(net.sent.at(-1), { t: "settings", settings: { bindings: {}, camera: {} } });
+    assert.deepEqual(net.sent.at(-1), { t: "settings", settings: { bindings: {}, camera: {}, mouse: {} } });
+  });
+
+  test("switching auto lock sends it", (t) => {
+    const { settings, net } = setup(t);
+    settings.mouse.setAutoLock(false);
+    t.mock.timers.tick(LATER_MS);
+    const sent = net.sent.at(-1);
+    assert.deepEqual(sent?.t === "settings" && sent.settings.mouse, { autoLock: false });
   });
 
   test("stop() sends a waiting change at once", (t) => {

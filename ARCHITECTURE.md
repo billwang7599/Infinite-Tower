@@ -222,9 +222,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
   tests yet ([plan/tests.md](plan/tests.md)).
-- **client**: only logic that runs without Babylon or the DOM: key bindings, camera settings, settings sync,
-  field prediction, the title's sequence timing, and character creation's steps and rows. Rendering, the arena
-  fight and the React screens are tried in a browser.
+- **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
+  sync, when the mouse is captured, field prediction, the title's sequence timing, and character creation's steps
+  and rows. Rendering, the arena fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -363,11 +363,13 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's
                      logged in, log in, register, log out)
     core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer
-                     lock), buttons.ts (held + latched presses), time.ts
+                     lock: on a click in the arena, or by itself as the arena starts wanting the mouse when auto
+                     lock is on; shouldAutoLock is that rule), buttons.ts (held + latched presses), time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
-                     KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity)
+                     KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity), mouse.ts
+                     (MouseSettings: auto lock, on by default, so a save without it reads as on)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi each way on the field, its battle sprite
@@ -409,8 +411,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                          world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,
                          glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
                          space.ts
-        settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx,
-                         KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
+        settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx (sensitivity,
+                         Auto mouse lock), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
                          greeting, the panel beside the portrait and chibi, "Is this you?", saving, the farewell,
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what

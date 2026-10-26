@@ -42,7 +42,9 @@ describe("message handlers", () => {
   });
 
   test("settings are passed on whole", () => {
-    const settings = { bindings: { field: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } };
+    const settings = {
+      bindings: { field: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 }, mouse: { autoLock: false },
+    };
     assert.deepEqual(handle({ t: "settings", settings }), [["setSettings", settings]]);
   });
 

@@ -11,26 +11,31 @@ import type { SavedSettings } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
 import { KeyBindings } from "./bindings.js";
 import { CameraSettings } from "./camera.js";
+import { MouseSettings } from "./mouse.js";
 
 export interface Settings {
   bindings: KeyBindings;
   camera: CameraSettings;
+  mouse: MouseSettings;
 }
 
 /** A burst of changes (dragging the slider) goes to the server as one message. */
 const SEND_AFTER_MS = 400;
 
 export function createSettings(): Settings {
-  return { bindings: new KeyBindings(), camera: new CameraSettings() };
+  return { bindings: new KeyBindings(), camera: new CameraSettings(), mouse: new MouseSettings() };
 }
 
 export function restoreSettings(settings: Settings, saved: SavedSettings): void {
   settings.bindings.restore(saved.bindings);
   settings.camera.restore(saved.camera);
+  settings.mouse.restore(saved.mouse);
 }
 
 function toSaved(settings: Settings): SavedSettings {
-  return { bindings: settings.bindings.toSaved(), camera: settings.camera.toSaved() };
+  return {
+    bindings: settings.bindings.toSaved(), camera: settings.camera.toSaved(), mouse: settings.mouse.toSaved(),
+  };
 }
 
 /** Sends the settings to the server after each change. The returned stop() sends anything still waiting. */
