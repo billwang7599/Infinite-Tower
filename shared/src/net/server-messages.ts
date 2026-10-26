@@ -34,7 +34,7 @@ export type ServerMsg =
     t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
     inventory: Inventory; dev: boolean;
   }
-  /** The character the player made or changed, as saved. */
+  /** The character the player made, as saved. */
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
   /** Sent 20 times a second, so only what moves. The win count comes with `welcome` and `battleResult`. */

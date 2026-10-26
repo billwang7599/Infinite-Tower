@@ -10,7 +10,7 @@
 import { z } from "zod";
 import type { Vitals } from "../battle/player.js";
 import { ITEM_IDS } from "../items/items.js";
-import { CHARACTER_NAME_RULES, LOOKS, type Character, type Look, type LookPart } from "../character/character.js";
+import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
 
@@ -43,14 +43,18 @@ export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 
 const SettingsMsg = z.object({ t: z.literal("settings"), settings: SavedSettingsSchema });
 
-const lookPart = <P extends LookPart>(part: P) => z.literal(LOOKS[part].map((o) => o.id) as Look[P][]);
-
-/** Create or change your character (name + look). The server answers with `character`. */
+/** Make your character. Only once: the server ignores it if you have one. It answers with `character`. */
 const CharacterMsg = z.object({
   t: z.literal("character"),
   character: z.object({
     name: ruledText(CHARACTER_NAME_RULES, "Names"),
-    look: z.object({ cloak: lookPart("cloak"), skin: lookPart("skin"), legs: lookPart("legs") }),
+    gender: z.enum(GENDERS),
+    look: z.object({
+      body: z.enum(LOOK_OPTIONS.body), face: z.enum(LOOK_OPTIONS.face), skin: z.enum(LOOK_OPTIONS.skin),
+      hair: z.enum(LOOK_OPTIONS.hair), hairColor: z.enum(LOOK_OPTIONS.hairColor), eyes: z.enum(LOOK_OPTIONS.eyes),
+      eyeColor: z.enum(LOOK_OPTIONS.eyeColor), mouth: z.enum(LOOK_OPTIONS.mouth), outfit: z.enum(LOOK_OPTIONS.outfit),
+      accent: z.enum(LOOK_OPTIONS.accent),
+    }),
   }),
 }) satisfies z.ZodType<{ t: "character"; character: Character }>;
 

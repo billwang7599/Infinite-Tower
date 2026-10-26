@@ -2,37 +2,18 @@
  * Dev-only page (/art.html on the Vite dev server, never built): every look option, both views, a piece of
  * gear tried on, and a mock dialogue scene. For judging the character art, not part of the game.
  */
+import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture, View } from "../gfx/look/art.js";
-import { BODY_TYPES } from "../gfx/look/body.js";
-import { EYE_TYPES, MOUTH_TYPES } from "../gfx/look/face.js";
-import { FACE_SHAPES } from "../gfx/look/head.js";
-import { HAIR_STYLES } from "../gfx/look/hair/index.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
 import { drawLook, type Look } from "../gfx/look/look.js";
 import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
-import { ACCENTS, DYES, EYES, HAIR, SKIN } from "../gfx/look/palette.js";
 
-const OPTIONS: { [K in keyof Look]: readonly Look[K][] } = {
-  body: Object.keys(BODY_TYPES) as Look["body"][],
-  face: Object.keys(FACE_SHAPES) as Look["face"][],
-  skin: Object.keys(SKIN) as Look["skin"][],
-  hair: Object.keys(HAIR_STYLES) as Look["hair"][],
-  hairColor: Object.keys(HAIR) as Look["hairColor"][],
-  eyes: Object.keys(EYE_TYPES) as Look["eyes"][],
-  eyeColor: Object.keys(EYES) as Look["eyeColor"][],
-  mouth: Object.keys(MOUTH_TYPES) as Look["mouth"][],
-  outfit: Object.keys(DYES) as Look["outfit"][],
-  accent: Object.keys(ACCENTS) as Look["accent"][],
-};
 const LABELS: Record<keyof Look, string> = {
   body: "Body", face: "Face shape", skin: "Skin", hair: "Hair", hairColor: "Hair color", eyes: "Eyes",
   eyeColor: "Eye color", mouth: "Mouth", outfit: "Outfit color", accent: "Accent",
 };
 
-let look: Look = {
-  body: "medium", face: "soft", skin: "light", hair: "short", hairColor: "black", eyes: "round", eyeColor: "blue",
-  mouth: "smile", outfit: "soot", accent: "orange",
-};
+let look: Look = { ...DEFAULT_LOOK };
 let jerkin = false;
 
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;

@@ -56,19 +56,11 @@ describe("UiState screens", () => {
     assert.equal(ui.settingsScreen.get().open, false);
   });
 
-  test("the character editor opened from the field can be closed", () => {
+  test("the creation screen closes itself when it's done", () => {
     const ui = new UiState();
-    ui.openCharacterEditor();
-    assert.deepEqual(ui.characterScreen.get(), { open: true, firstTime: false });
-    ui.closeCharacterEditor();
-    assert.equal(ui.characterScreen.get().open, false);
-  });
-
-  test("the first-visit character editor can't be closed", () => {
-    const ui = new UiState();
-    ui.characterScreen.set({ open: true, firstTime: true });
-    ui.closeCharacterEditor();
-    assert.equal(ui.characterScreen.get().open, true);
+    ui.creation.set({ open: true });
+    ui.closeCreation();
+    assert.equal(ui.creation.get().open, false);
   });
 });
 

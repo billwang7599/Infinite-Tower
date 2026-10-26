@@ -1,9 +1,8 @@
 /**
- * The field's character panel: the player's name and stats, and Change look (the character editor). It doesn't
- * pause or block walking; the field HUD's button or the Character key (field.character) toggles it.
+ * The field's character panel: the player's portrait, name and stats. It doesn't pause or block walking; the field
+ * HUD's button or the Character key (field.character) toggles it. The look is kept for good, so nothing here edits it.
  */
-import { NO_FOCUS } from "../../components/noFocus.js";
-import { BUTTON } from "../../components/styles.js";
+import { LookPicture } from "../../components/LookPicture.js";
 import type { FieldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
@@ -13,14 +12,19 @@ import { STAT_KEYS, STAT_TEXT } from "./statText.js";
 interface PanelProps {
   hud: Store<FieldHudState>;
   close: () => void;
-  edit: () => void;
 }
 
-export function CharacterPanel({ hud, close, edit }: PanelProps) {
+export function CharacterPanel({ hud, close }: PanelProps) {
   const stats = useStore(hud, (s) => s.stats);
-  const name = useStore(hud, (s) => s.character?.name);
+  const character = useStore(hud, (s) => s.character);
   return (
-    <PanelFrame id="character-panel" title={name ?? "Character"} titleId="character-name" close={close}>
+    <PanelFrame id="character-panel" title={character?.name ?? "Character"} titleId="character-name" close={close}>
+      {character && (
+        <LookPicture
+          look={character.look} view="portrait"
+          className="mx-auto -mt-1 mb-3 size-[128px] border-b border-white/10"
+        />
+      )}
       {stats && (
         <dl className="flex flex-col gap-2">
           {STAT_KEYS.map((key) => (
@@ -32,12 +36,6 @@ export function CharacterPanel({ hud, close, edit }: PanelProps) {
           ))}
         </dl>
       )}
-      <button
-        type="button" id="character-edit" {...NO_FOCUS} onClick={edit}
-        className={`pointer-events-auto mt-4 w-full ${BUTTON.plain}`}
-      >
-        Change look
-      </button>
     </PanelFrame>
   );
 }

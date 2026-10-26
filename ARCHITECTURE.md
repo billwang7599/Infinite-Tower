@@ -51,8 +51,9 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, inventory). With no character yet, the client shows
-   the character editor and the server waits for a `character` message; then it sends `level`.
+   `welcome` (HP / stamina, stats, settings, character, wins, inventory). With no character yet, the white the
+   title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
+   `character` message (only one: a character is kept for good); then it sends `level`.
 4. **Field.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
    shared `stepWalker`. The server replays the inputs, runs the level's actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
@@ -171,7 +172,7 @@ times a second, and every 3rd tick in the field it sends one.
 | Client -> server | When |
 |---|---|
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
-| `character` | made or changed your character |
+| `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {item}` | used an item from the inventory |
 | `battleEnd {won, vitals}` | the fight was decided and you left the arena |
@@ -196,7 +197,7 @@ copy of you plus 3 tiles, so a hacked client can't see further.
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character and
-inventory, keyed by account. The `GameSession` saves after every fight, rest, item use and character change, on
+inventory, keyed by account. The `GameSession` saves after every fight, rest, item use and making a character, on
 disconnect, and within a second of a settings change. Position and level aren't saved (you start at the level's
 start), and stats aren't either (everyone has the same).
 
@@ -219,8 +220,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
   tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings, camera settings, settings sync,
-  field prediction and the title's sequence timing. Rendering, the arena fight and the React screens are tried in a
-  browser.
+  field prediction, the title's sequence timing, and character creation's steps and rows. Rendering, the arena
+  fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -279,8 +280,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats + optional attacks,
                    ArenaDef),
                    input.ts (PlayerInput), stats.ts (Stats, FighterStats, physicalDamage / moveSpeed)
-  character/       character.ts (Character = name + look; LOOKS: every cloak / skin / trouser option and its
-                   colors; name rules)
+  character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
+                   drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
+                   name rules)
   items/           items.ts (ITEMS: name, description, what using one does; Inventory = item id -> count)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
@@ -347,8 +349,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      both scenes and modes and input (off) once, behind the title, and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, field <-> battle switching, who gets input, the
-                     character from `welcome` / `character`), look.ts (repaints the player's sprites in their
-                     look), transition.ts (Mode, flash / fade), debug.ts (the dev handles on `window`)
+                     character from `welcome` / `character`, opening creation without one), look.ts (repaints
+                     the player's sprites in their look), transition.ts (Mode, flash / fade), debug.ts (the dev
+                     handles on `window`)
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per
                      type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's
                      logged in, log in, register, log out)
@@ -360,18 +363,21 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      KeyBindings: the player's keys), camera.ts (CameraSettings: sensitivity)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look) draws the player in a character's colors)
-      look/            The new character art (not in the game yet; ART.md is the style guide): a look drawn as a
-                       64x64 portrait and a 32x32 chibi, in code. art.ts (views, layers, Frame, render), pixels.ts
-                       (Pen, masks), palette.ts (ramps), body.ts (body types), head.ts (face shapes), face.ts (eye
-                       and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear), look.ts (Look -> picture)
+                     characters.ts (playerFrames(look): the look's chibi on the field, plus a sword in the arena;
+                     the boar)
+      look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
+                       character panel, later dialogue) and a 32x32 chibi (the world), in code. art.ts (views,
+                       layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts (body types),
+                       head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
+                       (wear), look.ts (Look -> picture)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option, to check art
     ui/              React: everything drawn over the canvas
-      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings, the
-                       character editor, title screen (the HUD, Settings and the editor only once `inWorld`)
+      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then toasts, fade, Settings,
+                       character creation, title screen (the HUD and Settings only once `inWorld` and not
+                       creating; creation as soon as a game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD; bars
-                       are `...Fraction`, 0..1), `settingsScreen` and `characterScreen` (open / closed: the UI
-                       writes them too, the game watches them), and UiActions (what the UI asks of the game:
+                       are `...Fraction`, 0..1), `settingsScreen` and `creation` (open / closed: the UI writes
+                       them too, the game watches them), and UiActions (what the UI asks of the game:
                        signIn, logOut, play, rest, useItem, saveCharacter, returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -379,11 +385,12 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), Dialog.tsx (a modal's
                        backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
-                       click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener)
+                       click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener),
+                       LookPicture.tsx (a look in one view on a canvas: the portrait, the chibi)
       hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       stats; statText.ts), inventory/ (InventoryPanel.tsx), PanelFrame.tsx (the side panels'
-                       box), panelKeys.ts, icons.tsx
+                       portrait and stats; statText.ts), inventory/ (InventoryPanel.tsx), PanelFrame.tsx (the side
+                       panels' box), panelKeys.ts, icons.tsx
       overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),
@@ -396,7 +403,11 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                          space.ts
         settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx,
                          KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
-        character/       CharacterEditor.tsx (make / change your character), SpritePreview.tsx, swatches.ts
+        creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
+                         greeting, the panel beside the portrait and chibi, "Is this you?", saving, the farewell,
+                         the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what
+                         the System says), LookMaker.tsx (the panel), options.ts (its rows), SystemWindow.tsx,
+                         useTyped.ts (text typed out), styles.ts (dark on white)
     field/           The 2D field mode: mirrors the server
       field.ts         The mode: level loads, the walk keys, server state, the field HUD, render
       scene.ts         Babylon scene + ortho camera, FieldView, layerY, flatSprite (a quad lying on the field)

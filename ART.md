@@ -49,9 +49,10 @@ Every character is one look drawn several ways. All views have a transparent bac
 | View | Size | What it's for |
 | --- | --- | --- |
 | portrait | 64x64 | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
-| chibi | 32x32 | the character in the world, facing us; about 1.7 heads tall |
+| chibi | 32x32 | the world, facing us, about 1.7 heads tall; for now the arena too, with a sword |
 
-Coming later: chibi front / back / side and a walk cycle, and portrait expressions for dialogue.
+Coming later: a 48x64 battle sprite (front and back) for the arena, chibi back / side and a walk cycle, and portrait
+expressions for dialogue.
 
 ### Colors
 
@@ -94,8 +95,10 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 
 ### Adding things
 
-- **A look option** (hair style, eye type, mouth, face shape): add an Art to its list (`HAIR_STYLES`,
-  `EYE_TYPES`, `MOUTH_TYPES`, `FACE_SHAPES`) with a piece for every view.
+- **A look option** (hair style, eye type, mouth, face shape, a color): add its id to `LOOK_OPTIONS` in
+  `shared/src/character/character.ts` (the server checks against it, the creation screen lists it), then its Art
+  to its list (`HAIR_STYLES`, `EYE_TYPES`, `MOUTH_TYPES`, `FACE_SHAPES`) with a piece for every view, or its ramp
+  to `palette.ts`. Until the art exists it won't compile.
 - **Gear**: a new Art drawing on the layers of its slot (a chest piece: `torsowear`, maybe `armwear` for
   shoulders), against the frame it's handed. Fixed materials make it look the same on everyone; use `cloth` only
   for things the player dyes. `jerkin.ts` is the example.

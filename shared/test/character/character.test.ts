@@ -1,22 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_LOOK, LOOK_PARTS, LOOKS, lookColors, type Look } from "@infinite-tower/shared";
+import { DEFAULT_LOOK, LOOK_OPTIONS, LOOK_PARTS } from "@infinite-tower/shared";
 
 test("the default look is made of real options", () => {
   for (const part of LOOK_PARTS) {
-    assert.ok(LOOKS[part].some((o) => o.id === DEFAULT_LOOK[part]), part);
+    assert.ok((LOOK_OPTIONS[part] as readonly string[]).includes(DEFAULT_LOOK[part]), part);
   }
 });
 
-test("option ids are unique within each part", () => {
+test("option ids are unique within each part, and every part has a choice", () => {
   for (const part of LOOK_PARTS) {
-    const ids = LOOKS[part].map((o) => o.id);
+    const ids = LOOK_OPTIONS[part];
     assert.equal(new Set(ids).size, ids.length, part);
+    assert.ok(ids.length >= 2, part);
   }
-});
-
-test("lookColors finds the chosen option, and falls back to the first for an unknown one", () => {
-  assert.equal(lookColors("skin", { ...DEFAULT_LOOK, skin: "dark" }), LOOKS.skin.find((o) => o.id === "dark")!.colors);
-  const stale = { ...DEFAULT_LOOK, legs: "plaid" } as unknown as Look;
-  assert.equal(lookColors("legs", stale), LOOKS.legs[0].colors);
 });

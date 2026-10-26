@@ -15,8 +15,10 @@ What's built so far:
   (lit like a shader would, on a 2D canvas, no WebGL). The game loads while you're on it. Play becomes Retry if the
   server is down. Logging in (or Play) glides into the tower, looks straight up it and speeds up it while the server
   loads you, then flashes white into the world; Return to title plays it backwards.
-- **Character:** a name and a look (cloak, skin and trouser colors), made on the first visit and changeable later.
-  The character panel shows your stats.
+- **Character creation:** a new player's way in holds on white, where a faceless System greets them; then they
+  pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
+  clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
+  kept for good. The character panel shows the portrait and your stats.
 - **Field:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
   through tall grass, starts a fight. Wider screens than 16:9 get side bars.
 - **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,

@@ -75,7 +75,9 @@ export class GameSession {
     if (this.dev && this.inField) startBattle(this, null, "wild-boar");
   }
 
+  /** Makes the player's character. Only once: a character is kept for good, so with one already this does nothing. */
   setCharacter(character: Character): void {
+    if (this.character) return;
     this.character = character;
     this.save();
     this.link.send({ t: "character", character });

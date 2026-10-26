@@ -4,7 +4,8 @@ import { DEFAULT_LOOK, ITEM_IDS, MAX_KEYS_PER_ACTION } from "@infinite-tower/sha
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
-const character = (name: string, look: object = DEFAULT_LOOK) => parse({ t: "character", character: { name, look } });
+const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = "boy") =>
+  parse({ t: "character", character: { name, gender, look } });
 
 describe("parseClientMsg", () => {
   test("accepts every kind of message", () => {
@@ -13,7 +14,7 @@ describe("parseClientMsg", () => {
       { t: "battleEnd", won: true, vitals: { hp: 40, stamina: 12 } },
       { t: "settings", settings: { bindings: { field: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
       { t: "settings", settings: {} },
-      { t: "character", character: { name: "Kirito", look: DEFAULT_LOOK } },
+      { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
       { t: "rest" },
       { t: "useItem", item: ITEM_IDS[0] },
       { t: "debug", cmd: "encounter" },
@@ -35,15 +36,25 @@ describe("parseClientMsg", () => {
   });
 
   test("character: the name follows the rules and is trimmed", () => {
-    assert.deepEqual(character("  Asuna  "), { t: "character", character: { name: "Asuna", look: DEFAULT_LOOK } });
+    assert.deepEqual(
+      character("  Asuna  ", DEFAULT_LOOK, "girl"),
+      { t: "character", character: { name: "Asuna", gender: "girl", look: DEFAULT_LOOK } },
+    );
     assert.equal(character("A"), null, "too short");
     assert.equal(character("A".repeat(17)), null, "too long");
     assert.equal(character("<script>"), null, "characters outside the rules");
   });
 
   test("character: every look part must be one of the options", () => {
-    assert.equal(character("Asuna", { ...DEFAULT_LOOK, cloak: "rainbow" }), null);
-    assert.equal(character("Asuna", { cloak: "red", skin: "light" }), null);
+    assert.equal(character("Asuna", { ...DEFAULT_LOOK, hairColor: "rainbow" }), null);
+    const { mouth: _, ...noMouth } = DEFAULT_LOOK;
+    assert.equal(character("Asuna", noMouth), null, "a part missing");
+    assert.equal(character("Asuna", { cloak: "red", skin: "light", legs: "navy" }), null, "the old look");
+  });
+
+  test("character: gender is boy or girl, and required", () => {
+    assert.equal(character("Asuna", DEFAULT_LOOK, "other"), null);
+    assert.equal(parse({ t: "character", character: { name: "Asuna", look: DEFAULT_LOOK } }), null, "no gender");
   });
 
   test("settings: limits on bindings", () => {

@@ -62,9 +62,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply only in
   fights. Player 100 / 50 / 10 / 10 / 10, boar 100 / 0 / 0 / 10 / 10 (so nothing plays differently yet). Everyone
   has the same player stats, so they aren't saved.
-- Character customization is a name (2-16 letters, digits, spaces, ' or -) and a look: cloak (6 colors), skin (4),
-  trousers (4). It's made on the first visit, before the server sends a level, and can be changed any time from
-  the character panel. It's cosmetic only.
+- A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
+  look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
+  made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
+  cosmetic only: classless, everyone starts the same.
 - Resting: each level has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within 1.6
   tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
