@@ -5,7 +5,7 @@
  */
 import { ink, type Art, type Piece } from "./art.js";
 import {
-  BASE, DEEP, LIGHT, SHADOW, both, farSide, grow, minus, polygon, rect, shift, underside, union, type Mask,
+  BASE, DEEP, LIGHT, SHADOW, both, farSide, grow, minus, polygon, rect, shift, underside, union, type Mask, type Pen,
 } from "./pixels.js";
 
 export const below = (y: number): Mask => (_x, yy) => yy >= y;
@@ -132,17 +132,41 @@ export const TUNIC: Art = {
   },
 };
 
-const chibiTrousers: Piece = { legwear: (pen, { legs }) => pen.fill(both(legs, above(27)), ink("wool", BASE)) };
-const chibiBoots: Piece = { footwear: (pen, { legs }) => pen.fill(both(grow(legs), below(28)), ink("leather", BASE)) };
+/** The chibi's boots cover the bottom two rows of its legs, and their soles the row under them. */
+const ankles = (legs: Mask): Mask => underside(legs, 2);
+/** Facing front or back: each leg a pixel further out, the left one left and the right one right. */
+const outward = (legs: Mask, middle: number): Mask => (x, y) => (x < middle ? legs(x + 1, y) : legs(x - 1, y));
+/** Facing side (left): the near leg is the front three columns of the legs; the far one shows behind it. */
+const nearLeg = (legs: Mask): Mask => (x, y) => legs(x, y) && !legs(x - 3, y);
+
+/** Facing front or back the legs stand together: the right one in shadow, a dark line where they meet. */
+function twoLegs(pen: Pen, middle: number): void {
+  pen.shade((x) => x > middle, SHADOW);
+  pen.shade((x) => x === middle, DEEP);
+}
+const chibiTrousers: Piece = {
+  legwear: (pen, { legs, middle }) => {
+    pen.fill(minus(legs, ankles(legs)), ink("wool", BASE));
+    twoLegs(pen, middle);
+  },
+};
+/** A boot on each leg, side by side, the soles a pixel wider on the outside. */
+const chibiBoots: Piece = {
+  footwear: (pen, { legs, middle }) => {
+    const soles = shift(underside(union(legs, outward(legs, middle)), 1), 0, 1);
+    pen.fill(union(ankles(legs), soles), ink("leather", BASE));
+    twoLegs(pen, middle);
+  },
+};
 
 export const TROUSERS: Art = {
   chibi: {
     front: chibiTrousers,
     back: chibiTrousers,
     side: {
-      legwear: (pen, { legs, middle }) => {
-        pen.fill(both(legs, above(27)), ink("wool", BASE));
-        pen.shade((x) => x > middle, SHADOW); // the far leg
+      legwear: (pen, { legs }) => {
+        pen.fill(minus(legs, ankles(legs)), ink("wool", BASE));
+        pen.shade(minus(legs, nearLeg(legs)), SHADOW); // the far leg, behind the near one
       },
     },
   },
@@ -159,10 +183,14 @@ export const BOOTS: Art = {
     front: chibiBoots,
     back: chibiBoots,
     side: {
-      // The toes point forward, to the left.
-      footwear: (pen, { legs, middle }) => {
-        pen.fill(both(union(grow(legs), shift(legs, -2, 0)), below(28)), ink("leather", BASE));
-        pen.shade((x) => x > middle, SHADOW);
+      // A boot on each leg, heels flush with the backs of the legs. The near boot's toe points forward (left),
+      // sloping down to the sole, and hides the far one's.
+      footwear: (pen, { legs }) => {
+        const near = nearLeg(legs), heel = underside(near, 1);
+        const nearBoot = union(ankles(near), shift(heel, -1, 0), shift(heel, -2, 1), shift(heel, 0, 1));
+        const boots = union(ankles(legs), shift(underside(legs, 1), 0, 1), nearBoot);
+        pen.fill(boots, ink("leather", BASE));
+        pen.shade(minus(boots, nearBoot), SHADOW); // the far boot
       },
     },
   },

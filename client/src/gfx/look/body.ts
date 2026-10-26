@@ -70,7 +70,7 @@ function chibiFrame(b: ChibiBuild): Frame {
     neck: rect(14, 18, 17, 20),
     torso: symmetric([[16, 19.6], [x(b.shoulders - b.arm), 19.7], [x(b.waist), 23], [x(b.waist), 26], [16, 26]], C),
     arms: mirror(polygon(arm), C),
-    legs: mirror(rect(13, 26, 14, 29), C),
+    legs: mirror(rect(13, 26, 15, 29), C), // together, the left one x 13-15 and the right x 16-18
     middle: 16, collarY: 20, chestY: 22, armpitY: 21, waistY: 24,
     shoulders: [[x(b.shoulders - b.arm / 2), 20.5], [C - x(b.shoulders - b.arm / 2), 20.5]],
   };
