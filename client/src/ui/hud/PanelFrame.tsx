@@ -7,14 +7,17 @@ interface FrameProps {
   title: string;
   titleId?: string;
   close: () => void;
+  /** In pixels, for content that needs more than the usual width. */
+  width?: number;
   children: ReactNode;
 }
 
-export function PanelFrame({ id, title, titleId, close, children }: FrameProps) {
+export function PanelFrame({ id, title, titleId, close, width, children }: FrameProps) {
   return (
     <section
       id={id}
       aria-label={title}
+      style={width === undefined ? undefined : { width }}
       className={
         "absolute top-14 right-4 w-72 rounded-sm border border-white/15 bg-night/90 px-5 py-4 font-normal "
         + "shadow-[0_12px_40px_#000a]"

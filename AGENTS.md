@@ -64,6 +64,14 @@ Decided by the user:
 - Dying is hardcore: the bag is emptied. Stats go back to their defaults, but they can't change yet, so for now
   nothing else is reset.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size).
+- The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
+  rest about 600 ms, a tooltip with its name, size, weight and what it does), selected (a click; the same item or
+  empty space deselects) or dragged (past a few pixels: a ghost under the pointer, green where it fits and red
+  where it doesn't; dropped on a bad spot or outside the bag it goes back; dragging selects it). R or a right click
+  turns the dragged item; with nothing dragged, R turns the selected item and a right click the one under the
+  pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
+  bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. I and Esc close it, and you
+  stand still while it's open (the world doesn't pause).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -82,7 +90,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
-- Items: boar meat heals 35 HP (eaten from the inventory panel, field only, not at full HP) and weighs 0.5; a hide
+- Items: boar meat heals 35 HP (eaten from the bag screen, field only, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
   bag is empty. Moving things around the bag only works on the field (not mid-fight), and the server checks every

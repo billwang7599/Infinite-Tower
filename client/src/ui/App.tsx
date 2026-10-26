@@ -26,7 +26,8 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
           {mode === "field" && (
             <FieldHud
               hud={ui.field} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
-              openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem}
+              panels={ui.fieldPanel} togglePanel={ui.toggleFieldPanel} closePanel={ui.closeFieldPanel}
+              openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
             />
           )}
           {mode === "battle" && <BattleHud hud={ui.battle} bindings={settings.bindings} />}

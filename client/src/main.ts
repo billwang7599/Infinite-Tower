@@ -114,5 +114,6 @@ mountUi(document.getElementById("ui")!, ui, settings, {
   saveCharacter: (character) => void preparing.then((game) => game.saveCharacter(character)),
   rest: () => void preparing.then((game) => game.rest()),
   useItem: (at) => void preparing.then((game) => game.useItem(at)),
+  moveItem: (from, to, turned) => void preparing.then((game) => game.moveItem(from, to, turned)),
   returnToTitle: () => void backToTitle(),
 });

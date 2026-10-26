@@ -9,7 +9,7 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  itemDef, type Cell, type Character, type ItemCounts, type ItemId, type ServerMsgOf,
+  itemDef, moveItem as moveInBag, type Cell, type Character, type ItemCounts, type ItemId, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
@@ -18,7 +18,7 @@ import { frameSeconds } from "../core/time.js";
 import type { Field } from "../field/field.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
-import { inWorld, type UiState } from "../ui/state.js";
+import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
 import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -34,6 +34,8 @@ export interface Game {
   leaveBattle(): void;
   rest(): void;
   useItem(at: Cell): void;
+  /** Move a stack in the bag: shown at once, then the server answers with the bag as it has it. */
+  moveItem(from: Cell, to: Cell, turned: boolean): void;
   /** Ask the server to save the new character (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
@@ -58,20 +60,23 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
-   * world), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
+   * world, nor the open bag), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
    */
   const updateInput = () => {
     const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open && !ui.creation.get().open;
-    keyboard.enabled = playing;
+    keyboard.enabled = playing && !bagHasTheKeys(mode, ui.fieldPanel.get().open);
     mouse.setLockable(playing && mode === "battle", settings.mouse.get().autoLock);
   };
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
+  ui.fieldPanel.subscribe(updateInput);
   ui.title.subscribe(updateInput);
   updateInput();
 
   const setMode = (next: Mode | null) => {
     mode = next;
+    // Panels are the field's: a fight, or leaving, closes them.
+    if (next !== "field") ui.closeFieldPanel();
     ui.screen.set({ mode: next });
     updateInput();
   };
@@ -127,6 +132,13 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
     },
     useItem(at) {
       if (mode === "field" && !transition) net?.send({ t: "useItem", at });
+    },
+    moveItem(from, to, turned) {
+      if (mode !== "field" || transition || !net) return;
+      const moved = moveInBag(ui.field.get().bag, from, to, turned);
+      if (!moved) return;
+      field.setBag(moved);
+      net.send({ t: "moveItem", from, to, turned });
     },
     saveCharacter(character) {
       net?.send({ t: "character", character });

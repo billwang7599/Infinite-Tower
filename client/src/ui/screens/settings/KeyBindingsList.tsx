@@ -14,7 +14,7 @@ import { keyName, mouseName } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
-const GROUP_TITLES: Record<Group, string> = { field: "Field", battle: "Battle" };
+const GROUP_TITLES: Record<Group, string> = { field: "Field", bag: "Bag", battle: "Battle" };
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {

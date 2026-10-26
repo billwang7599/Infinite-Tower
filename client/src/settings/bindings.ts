@@ -28,6 +28,14 @@ export const ACTIONS = {
     inventory: { label: "Inventory", keys: ["KeyI"] },
     rest: { label: "Rest at a campfire", keys: ["KeyE", "Enter"] },
   },
+  /**
+   * The open bag (inventory), which you work with the mouse (ui/hud/inventory/bagMouse.ts); you stand still
+   * meanwhile. Turn acts on what's dragged, or else on the selected item; use on the selected item.
+   */
+  bag: {
+    turn: { label: "Turn an item", keys: ["KeyR"], mouse: [2] },
+    use: { label: "Use the selected item (eat)", keys: ["Enter"] },
+  },
   battle: {
     forward: { label: "Move forward", keys: ["KeyW"] },
     back: { label: "Move back", keys: ["KeyS"] },
@@ -50,7 +58,7 @@ export type ActionRef = { [G in Group]: { group: G; action: Action<G> } }[Group]
 export type KeyMap = { readonly [G in Group]: { readonly [A in Action<G>]: readonly string[] } };
 
 export const GROUPS = Object.keys(ACTIONS) as Group[];
-/** Esc always opens and closes the settings; the OS keys belong to system shortcuts. */
+/** Esc always opens and closes the settings (and closes the bag); the OS keys belong to system shortcuts. */
 const RESERVED = new Set(["Escape", "MetaLeft", "MetaRight"]);
 
 export const isBindable = (code: string): boolean => !RESERVED.has(code);

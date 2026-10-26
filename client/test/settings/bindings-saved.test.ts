@@ -71,6 +71,32 @@ describe("KeyBindings saving", () => {
     assert.deepEqual(b.get(), expected.get());
   });
 
+  test("a save from the keyboard bag (cursor keys, grab) loads: what's left of it is kept, the rest ignored", () => {
+    const turn: ActionRef = { group: "bag", action: "turn" };
+    const use: ActionRef = { group: "bag", action: "use" };
+    const b = new KeyBindings();
+    b.restore({
+      field: { inventory: ["KeyB"] },
+      bag: {
+        up: ["KeyW"], down: ["KeyS"], left: ["KeyA"], right: ["KeyD"], grab: ["KeyG", "Space"], move: ["KeyM"],
+        turn: ["KeyT"],
+      },
+    });
+    assert.deepEqual(keysOf(b.get(), turn), ["KeyT"]);
+    assert.deepEqual(keysOf(b.get(), use), ACTIONS.bag.use.keys);
+    assert.deepEqual(keysOf(b.get(), inventory), ["KeyB"]);
+    assert.deepEqual(Object.keys(b.get().bag), ["turn", "use"]);
+    const saved = { field: { inventory: ["KeyB"] }, bag: { turn: ["KeyT"] } };
+    assert.deepEqual(b.toSaved(), saved, "the old ones aren't saved back");
+  });
+
+  test("a save with only removed bag actions gives the defaults", () => {
+    const b = new KeyBindings();
+    b.restore({ bag: { grab: ["KeyJ"], up: ["ArrowUp"] } });
+    assert.equal(b.isDefault(), true);
+    assert.deepEqual(b.toSaved(), {});
+  });
+
   test("restore of a non-object or a group that isn't an object gives the defaults", () => {
     for (const saved of [null, undefined, "field", 42, [], { field: "up", battle: null }]) {
       const b = new KeyBindings();

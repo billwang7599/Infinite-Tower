@@ -115,9 +115,12 @@ export function render<V extends View>(
     for (const art of arts) (art[view] as Piece<Frames[V]> | undefined)?.[layer]?.(pen, frame);
   });
   outline(px, new Set(LAYERS.flatMap((layer, i) => (UNOUTLINED.has(layer) ? [] : [i]))));
+  return toPicture(px, { ...fixed, ...colors });
+}
 
-  const ramps: Record<string, Ramp> = { ...fixed, ...colors };
-  const rgba = new Uint8ClampedArray(width * height * 4);
+/** Painted pixels in color: each one's material ramp at its tone. Unpainted ones stay see-through. */
+export function toPicture(px: Pixels, ramps: Readonly<Record<string, Ramp>>): Picture {
+  const rgba = new Uint8ClampedArray(px.width * px.height * 4);
   px.materials.forEach((material, i) => {
     if (material === null) return;
     const ramp = ramps[material];
@@ -125,7 +128,7 @@ export function render<V extends View>(
     const hex = ramp[px.tones[i] as Tone];
     rgba.set([parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16), 255], i * 4);
   });
-  return { width, height, rgba };
+  return { width: px.width, height: px.height, rgba };
 }
 
 /** Shorthand for inks: ink("hair", BASE). */
