@@ -32,6 +32,16 @@ describe("ACTIONS and helpers", () => {
     }
   });
 
+  test("the bag screen's keys only turn (R) and use (Enter); the mouse does the rest", () => {
+    assert.deepEqual(Object.keys(ACTIONS.bag), ["turn", "use"]);
+    assert.deepEqual(ACTIONS.bag.turn.keys, ["KeyR"]);
+    assert.deepEqual(ACTIONS.bag.use.keys, ["Enter"]);
+  });
+
+  test("a right click turns too, shown next to the turn keys (mouse buttons can't be rebound)", () => {
+    assert.deepEqual(ACTIONS.bag.turn.mouse, [2]);
+  });
+
   test("actionsOf lists a group's actions in order, tagged with the group", () => {
     assert.deepEqual(actionsOf("field"), Object.keys(ACTIONS.field).map((action) => ({ group: "field", action })));
   });

@@ -1,8 +1,8 @@
 /**
  * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exceptions are `settingsScreen` and `creation`: the UI opens
- * or closes them too, and the game watches them, to stop taking input while one is open. `UiActions` is the other
- * direction.
+ * imports React, so game code never touches it. The exceptions are `settingsScreen`, `creation` and `fieldPanel`:
+ * the UI opens or closes them too, and the game watches them, to stop taking input while they have the keys.
+ * `UiActions` is the other direction.
  */
 import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "../battle/context.js";
@@ -79,6 +79,21 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
+/** The field's side panels; one is open at a time. Neither pauses the world. */
+export type FieldPanel = "character" | "inventory";
+
+export interface FieldPanelState {
+  open: FieldPanel | null;
+}
+
+/**
+ * The open bag has the keys on the field: you stand still while it's open (it's worked with the mouse, and has a
+ * few keys of its own: settings/bindings.ts, `bag`). The character panel only shows things, so you walk with it
+ * open.
+ */
+export const bagHasTheKeys = (mode: Mode | null, panel: FieldPanel | null): boolean =>
+  mode === "field" && panel === "inventory";
+
 /**
  * Making a character, on a first visit (screens/creation/). The game opens it when `welcome` has no character; it
  * closes itself once the character is made and its white has cleared off the world. There's no leaving it.
@@ -98,6 +113,11 @@ export interface UiActions {
   rest(): void;
   /** Use one of the item in that bag cell (eat the meat); the server answers with what it did. */
   useItem(at: Cell): void;
+  /**
+   * Move the stack whose top-left is `from` so its top-left is at `to`, turned or not. The bag shows it moved at
+   * once; the server answers with the bag as it has it.
+   */
+  moveItem(from: Cell, to: Cell, turned: boolean): void;
   /** Send the new character to the server, which answers with it as saved (`FieldHudState.character`). */
   saveCharacter(character: Character): void;
   /** Leave the world: disconnects from the server. */
@@ -110,6 +130,7 @@ export class UiState {
   readonly toasts = new Store<ToastsState>({ items: [] });
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
   readonly creation = new Store<CreationState>({ open: false });
+  readonly fieldPanel = new Store<FieldPanelState>({ open: null });
   readonly field = new Store<FieldHudState>({
     levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
     bag: { cols: 0, rows: 0, items: [] },
@@ -136,4 +157,8 @@ export class UiState {
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
   readonly closeCreation = (): void => this.creation.set({ open: false });
+  /** Open that panel, or close it if it's the one open. */
+  readonly toggleFieldPanel = (panel: FieldPanel): void =>
+    this.fieldPanel.set({ open: this.fieldPanel.get().open === panel ? null : panel });
+  readonly closeFieldPanel = (): void => this.fieldPanel.set({ open: null });
 }

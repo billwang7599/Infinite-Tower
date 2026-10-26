@@ -176,7 +176,7 @@ times a second, and every 3rd tick in the field it sends one.
 | `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in bag cell `at` |
-| `moveItem {from, to, turned}` | moved what's in cell `from` so its top-left is at `to` (field only) |
+| `moveItem {from, to, turned}` | moved what's in cell `from` so its top-left is at `to` (field only; shown at once) |
 | `battleEnd {won, vitals}` | the fight was decided and you left the arena |
 | `settings` | a setting changed (debounced on the client) |
 | `debug {cmd}` | dev server only: `encounter` starts a fight |
@@ -223,8 +223,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   sentences, the rate limit, cache headers, the `/ws` login check); `ws/` with a fake WebSocket. `db/` has no
   tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
-  sync, when the mouse is captured, field prediction, the title's sequence timing, and character creation's steps
-  and rows. Rendering, the arena fight and the React screens are tried in a browser.
+  sync, when the mouse is captured, field prediction, the title's sequence timing, character creation's steps and
+  rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), and the item
+  pictures' sizes. Rendering, the arena fight and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(performance, "now")`,
 `t.mock.method(Math, "random")`), and tests read tuning numbers from the code, so retuning the game doesn't break
@@ -362,9 +363,9 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
     net/             connection.ts (WebSocket; queues messages until the game `listen`s with one handler per
                      type; a lost connection becomes a sentence for the title), account.ts (the /api calls: who's
                      logged in, log in, register, log out)
-    core/            keyboard.ts (off outside a session or with Settings open), mouse.ts (optional, pointer
-                     lock: on a click in the arena, or by itself as the arena starts wanting the mouse when auto
-                     lock is on; shouldAutoLock is that rule), buttons.ts (held + latched presses), time.ts
+    core/            keyboard.ts (off outside a session, with Settings open, or the bag), mouse.ts (optional,
+                     pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
+                     auto lock is on; shouldAutoLock is that rule), buttons.ts (held + latched presses), time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
@@ -374,6 +375,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi each way on the field, its battle sprite
                      in the arena; the boar)
+      items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
+                       kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, later dialogue), a 32x32 chibi (the world) and a 64x64 battle sprite from
                        behind in each pose (the arena), in code. art.ts (views, layers, Frame, render), pixels.ts
@@ -386,9 +389,10 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        character creation, title screen (the HUD and Settings only once `inWorld` and not
                        creating; creation as soon as a game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, toasts, field HUD, battle HUD; bars
-                       are `...Fraction`, 0..1), `settingsScreen` and `creation` (open / closed: the UI writes
-                       them too, the game watches them), and UiActions (what the UI asks of the game:
-                       signIn, logOut, play, rest, useItem, saveCharacter, returnToTitle). No React.
+                       are `...Fraction`, 0..1), `settingsScreen`, `creation` and `fieldPanel` (which side
+                       panel is open: the UI writes them too, the game watches them; the open bag has the keys,
+                       `bagHasTheKeys`), and UiActions (what the UI asks of the game: signIn, logOut, play, rest,
+                       useItem, moveItem, saveCharacter, returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
@@ -396,11 +400,14 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), Dialog.tsx (a modal's
                        backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
                        click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener),
-                       LookPicture.tsx (a look in one view on a canvas: the portrait, the chibi)
+                       LookPicture.tsx (a look in one view on a canvas: the portrait, the chibi), ItemPicture.tsx
       hud/             FieldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       portrait and stats; statText.ts), inventory/ (InventoryPanel.tsx: the bag and its
-                       weight), PanelFrame.tsx (the side panels' box), panelKeys.ts, icons.tsx
+                       portrait and stats; statText.ts), inventory/ (the bag screen: InventoryPanel.tsx wires
+                       the mouse and the bag keys, BagGrid.tsx draws the grid and the hovered / selected /
+                       dragged states, bagMouse.ts holds those as plain data, BagDetails.tsx the selected item,
+                       ItemTooltip.tsx + itemInfo.ts the tooltip, grid.ts the cell size), PanelFrame.tsx (the
+                       side panels' box), panelKeys.ts, icons.tsx
       overlays/        Toasts.tsx (stacked, auto-fade, × to dismiss), Fade.tsx
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),

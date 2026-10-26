@@ -31,7 +31,9 @@ What's built so far:
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag.
+  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (I) is the
+  grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
+  drag to move, R or a right click to turn, Enter or a double click to eat.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
   and Settings.
 - **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
@@ -89,6 +91,7 @@ client/src/
   net/             talking to the server
   ui/              the React UI (title, HUD, panels, settings)
   gfx/look/        character art drawn in code (style guide: ART.md; preview: localhost:5173/art.html)
+  gfx/items/       item pictures for the bag, drawn the same way
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas

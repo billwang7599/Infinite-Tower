@@ -1,33 +1,35 @@
 import type { Cell } from "@infinite-tower/shared";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
-import type { FieldHudState, SettingsScreenState } from "../state.js";
+import type { FieldPanel, FieldHudState, FieldPanelState, SettingsScreenState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
 import { HudLayer } from "./HudLayer.js";
 import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
-import { usePanelKeys, type Panel } from "./panelKeys.js";
+import { usePanelKeys } from "./panelKeys.js";
 
 type HudProps = { hud: Store<FieldHudState> };
 
 interface FieldHudProps extends HudProps {
   bindings: KeyBindings;
   settingsScreen: Store<SettingsScreenState>;
+  panels: Store<FieldPanelState>;
+  togglePanel: (panel: FieldPanel) => void;
+  closePanel: () => void;
   openSettings: () => void;
   rest: () => void;
   useItem: (at: Cell) => void;
+  moveItem: (from: Cell, to: Cell, turned: boolean) => void;
 }
 
-/** One side panel at a time (character or inventory); neither blocks walking. */
+/** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
 export function FieldHud(props: FieldHudProps) {
-  const { hud, bindings, settingsScreen, openSettings, rest, useItem } = props;
-  const [panel, setPanel] = useState<Panel | null>(null);
-  const toggle = (p: Panel) => setPanel((open) => (open === p ? null : p));
-  const close = () => setPanel(null);
+  const { hud, bindings, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
+  const panel = useStore(panels, (s) => s.open);
   usePanelKeys(bindings, [settingsScreen], toggle);
 
   return (
@@ -47,7 +49,12 @@ export function FieldHud(props: FieldHudProps) {
       </div>
       <RestButton hud={hud} rest={rest} />
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
-      {panel === "inventory" && <InventoryPanel hud={hud} use={useItem} close={close} />}
+      {panel === "inventory" && (
+        <InventoryPanel
+          hud={hud} bindings={bindings} settingsScreen={settingsScreen} use={props.useItem} move={props.moveItem}
+          close={close}
+        />
+      )}
     </HudLayer>
   );
 }

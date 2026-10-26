@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inWorld, UiState, type TitleState } from "../../src/ui/state.js";
+import { bagHasTheKeys, inWorld, UiState, type TitleState } from "../../src/ui/state.js";
 
 const texts = (ui: UiState) => ui.toasts.get().items.map((t) => t.text);
 
@@ -61,6 +61,39 @@ describe("UiState screens", () => {
     ui.creation.set({ open: true });
     ui.closeCreation();
     assert.equal(ui.creation.get().open, false);
+  });
+});
+
+describe("UiState field panels", () => {
+  test("one at a time: a panel key opens its panel, again closes it, another switches", () => {
+    const ui = new UiState();
+    assert.equal(ui.fieldPanel.get().open, null);
+    ui.toggleFieldPanel("inventory");
+    assert.equal(ui.fieldPanel.get().open, "inventory");
+    ui.toggleFieldPanel("character");
+    assert.equal(ui.fieldPanel.get().open, "character");
+    ui.toggleFieldPanel("character");
+    assert.equal(ui.fieldPanel.get().open, null);
+  });
+
+  test("closing closes whichever is open", () => {
+    const ui = new UiState();
+    ui.toggleFieldPanel("inventory");
+    ui.closeFieldPanel();
+    assert.equal(ui.fieldPanel.get().open, null);
+  });
+});
+
+describe("bagHasTheKeys", () => {
+  test("the open bag takes the keys on the field: you stand still while it's open", () => {
+    assert.equal(bagHasTheKeys("field", "inventory"), true);
+  });
+
+  test("the character panel, no panel, or the arena leave the keys to the game", () => {
+    assert.equal(bagHasTheKeys("field", "character"), false);
+    assert.equal(bagHasTheKeys("field", null), false);
+    assert.equal(bagHasTheKeys("battle", "inventory"), false);
+    assert.equal(bagHasTheKeys(null, "inventory"), false);
   });
 });
 
