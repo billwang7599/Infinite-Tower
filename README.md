@@ -24,8 +24,8 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,
   jump, stamina. You attack where the camera faces (no lock-on). The boar lunges up close and does a telegraphed
   charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits.
-- **Controls:** keyboard only, or keyboard + mouse / trackpad (click a fight to capture the mouse).
-  Every key can be rebound in Settings.
+- **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
+  click with Auto mouse lock off). Every key can be rebound in Settings.
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
@@ -34,7 +34,7 @@ What's built so far:
   (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
   and Settings.
-- **Settings** (Esc): camera sensitivity, key bindings, return to title.
+- **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the field and checks every fight result before saving it. The fight itself still runs in the
   browser ([plan/server-fights.md](plan/server-fights.md)).

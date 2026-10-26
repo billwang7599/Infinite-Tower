@@ -58,13 +58,12 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, fiel
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
-   * world), and the mouse only in the arena.
+   * world), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
    */
   const updateInput = () => {
     const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open && !ui.creation.get().open;
     keyboard.enabled = playing;
-    mouse.canLock = playing && mode === "battle";
-    if (!mouse.canLock) mouse.unlock();
+    mouse.setLockable(playing && mode === "battle", settings.mouse.get().autoLock);
   };
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);

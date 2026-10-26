@@ -80,6 +80,19 @@ describe("game sockets", () => {
     assert.equal(store.saves.length, 0);
   });
 
+  test("settings sent by the client are saved and come back in the next welcome, auto lock included", async () => {
+    const { store, connect } = setup();
+    store.saved.set(ACCOUNT.id, structuredClone(SAVED));
+    const settings = { camera: { sensitivity: 2 }, mouse: { autoLock: false } };
+    const first = await connect();
+    first.receive({ t: "settings", settings });
+    first.close(1001, "going away");
+    assert.deepEqual(store.saved.get(ACCOUNT.id)?.settings, settings);
+    const welcome = (await connect()).messages[0];
+    assert.ok(welcome?.t === "welcome");
+    assert.deepEqual(welcome.settings, settings);
+  });
+
   test("closing the socket saves the player", async () => {
     const { store, connect } = setup();
     store.saved.set(ACCOUNT.id, structuredClone(SAVED));
