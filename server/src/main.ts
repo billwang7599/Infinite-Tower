@@ -1,12 +1,12 @@
 /**
  * Infinite Tower server. Authoritative for everything a player shouldn't be able to change: levels, encounters,
- * field actors, enemy stats, fight results and progress.
+ * overworld actors, enemy stats, fight results and progress.
  *
  * It's built as ports and adapters (hexagonal). core/ is the game and knows nothing about sockets, HTTP or SQL; what
  * it needs from outside, it asks for through the interfaces in core/ports.ts. Each outlet plugs into core from one
  * side, and never into another outlet:
  *
- *   core/      the game: who's online, sessions, the field, fights, levels, content, accounts' rules
+ *   core/      the game: who's online, sessions, the overworld, fights, levels, content, accounts' rules
  *   ws/        outlet: the game socket (/ws). Messages in become session calls; the socket is the PlayerLink out
  *   api/       outlet: HTTP (Fastify). The account API (/api), the built client, and the login check on /ws
  *   db/        outlet: Postgres through Drizzle. The PlayerStore and AccountStore, migrations, the dev seed

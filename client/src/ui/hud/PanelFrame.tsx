@@ -1,4 +1,4 @@
-/** The box the field HUD's side panels (character, inventory) sit in: title, ✕, content. */
+/** The box the overworld HUD's side panels (character, inventory) sit in: title, ✕, content. */
 import type { ReactNode } from "react";
 import { NO_FOCUS } from "../components/noFocus.js";
 

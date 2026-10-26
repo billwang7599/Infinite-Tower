@@ -12,7 +12,7 @@ describe("parseClientMsg", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
       { t: "battleEnd", won: true, vitals: { hp: 40, stamina: 12 } },
-      { t: "settings", settings: { bindings: { field: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
+      { t: "settings", settings: { bindings: { overworld: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
       { t: "settings", settings: {} },
       { t: "settings", settings: { mouse: { autoLock: false } } },
       { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
@@ -61,8 +61,8 @@ describe("parseClientMsg", () => {
 
   test("settings: limits on bindings", () => {
     const keys = Array.from({ length: MAX_KEYS_PER_ACTION + 1 }, (_, i) => `Key${i}`);
-    assert.equal(parse({ t: "settings", settings: { bindings: { field: { up: keys } } } }), null);
-    assert.equal(parse({ t: "settings", settings: { bindings: { field: { up: ["K".repeat(33)] } } } }), null);
+    assert.equal(parse({ t: "settings", settings: { bindings: { overworld: { up: keys } } } }), null);
+    assert.equal(parse({ t: "settings", settings: { bindings: { overworld: { up: ["K".repeat(33)] } } } }), null);
   });
 
   test("settings: the mouse auto lock is kept as saved, may be left out (on), and must be true or false", () => {

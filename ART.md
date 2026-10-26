@@ -184,7 +184,7 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 
 - **Title screen**: a low-poly, cartoony tower with shader-like lighting, drawn on a 2D canvas
   (`ui/screens/title/backdrop/`): dark-fantasy night around a glowing white and gold tower.
-- **World and arena**: code-drawn too (`gfx/`): pixel sprites for the field and the player in the arena, simple 3D
+- **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld and the player in the arena, simple 3D
   models for enemies.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top

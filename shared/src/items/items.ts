@@ -14,7 +14,7 @@ export interface ItemDef {
   stackSize: number;
   /** One item's weight. What you carry adds up against the carry limit (`carryLimit`, battle/stats.ts). */
   weight: number;
-  /** Eating / drinking it restores this much HP (capped at max). Only on the field, not mid-fight. */
+  /** Eating / drinking it restores this much HP (capped at max). Only on the overworld, not mid-fight. */
   healHp?: number;
   /** The use button's word. */
   verb?: string;

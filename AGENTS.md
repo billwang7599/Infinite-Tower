@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Infinite Tower is a browser game, single-player for now. You walk a 2D top-down field, and fights happen in a
+Infinite Tower is a browser game, single-player for now. You walk a 2D top-down overworld, and fights happen in a
 small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with three workspaces:
 
 - `shared/`: code both sides run (simulation, message types)
@@ -60,7 +60,7 @@ Decided by the user:
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
 - What you carry also has a weight, against a carry limit that grows with strength. Like Dark Souls' equip load:
   up to the limit, nothing; over it, a dodge costs more stamina; over 120% of it, no dodging and you walk at half
-  speed (field and arena). Stamina recovery isn't affected. Equipped things will count toward it without taking
+  speed (overworld and arena). Stamina recovery isn't affected. Equipped things will count toward it without taking
   bag space.
 - After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
   drops are packed in where they fit and the rest is left behind.)
@@ -93,12 +93,12 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
-- Items: boar meat heals 35 HP (eaten from the bag screen, field only, not at full HP) and weighs 0.5; a hide
+- Items: boar meat heals 35 HP (eaten from the bag screen, overworld only, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
-  bag is empty. Moving things around the bag only works on the field (not mid-fight), and the server checks every
-  move with the shared bag rules.
-- The view is 16:9 at most (23 x 13 field tiles). Wider windows get bars on the sides; taller ones see a little
+  bag is empty. Moving things around the bag only works on the overworld (not mid-fight), and the server checks
+  every move with the shared bag rules.
+- The view is 16:9 at most (23 x 13 overworld tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).
 
@@ -156,8 +156,8 @@ Where tests go and how they're written:
   `MemoryPlayerStore`, `MemoryAccountStore`, `TEST_LEVEL`), so no database or socket is needed. The HTTP API is
   tested with `buildServer()` and `app.inject()` / `app.injectWS()`, without a port.
 - Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`,
-  `t.mock.method(performance, "now", ...)` for fight timing, and `t.mock.method(Math, "random", ...)` before a
-  `Field` is made (it keeps `Math.random` as its `rng`).
+  `t.mock.method(performance, "now", ...)` for fight timing, and `t.mock.method(Math, "random", ...)` before an
+  `Overworld` is made (it keeps `Math.random` as its `rng`).
 - Read tuning numbers from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires) instead of writing
   them into tests, so retuning the game doesn't break tests that aren't about the numbers.
 - What has no unit tests (Babylon rendering, React screens, the arena fight, the Postgres stores) is still tried
@@ -170,7 +170,7 @@ Where tests go and how they're written:
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
   username: "test3", password: "test3" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
-  `window.battle`, `window.field`, `window.ui`, `window.settings` and `window.encounter()` (dev server only).
+  `window.battle`, `window.overworld`, `window.ui`, `window.settings` and `window.encounter()` (dev server only).
   Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - In your report, say what you tested. Say plainly if nothing was hand-played.
@@ -246,7 +246,7 @@ Keeping them out of each other's way (and the user's):
   signature) starts with `_`, like `(_x, y) => ...`.
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
-- Words: the 2D map is the **field**, a fight is a **battle**, and the place it happens is the **arena**.
+- Words: the 2D map is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
 - Numbers with a unit carry it in the name: `MAX_BODY_BYTES`, `maxMessageBytes`, `SETTINGS_SAVE_MS`. Game time is
   seconds (like `dt`), so a name ending in Time, Delay or Duration is seconds; milliseconds always say `Ms`. A name
   that doesn't say what kind of number it holds gets that word: `lungeSpeed`, `poiseDamage`, `staminaRegenPerSec`.

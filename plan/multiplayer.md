@@ -5,14 +5,14 @@ it plays is decided.
 
 ## Where things stand
 
-- The server is already authoritative for the field, and every player has an account and a save. Each player has
+- The server is already authoritative for the overworld, and every player has an account and a save. Each player has
   their own `GameSession` with their own world: players can't see each other yet.
 - A second tab on the same account takes over the first (close code 4000).
 - Fights run in the browser, so they'd have to move to the server first ([server-fights.md](server-fights.md)).
 
 ## Open questions
 
-- Do players share a field (see each other walk around), and how many per field or floor (channels)?
+- Do players share an overworld (see each other walk around), and how many per overworld or floor (channels)?
 - Can players join each other's fights? How big is a party ([vision.md](vision.md))?
 - PvP or not.
 - What `state` carries when there are other players nearby (it already only sends what's near your screen).

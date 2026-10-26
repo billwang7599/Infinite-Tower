@@ -17,7 +17,7 @@ function run(to: Mode) {
 }
 
 describe("transition", () => {
-  for (const to of ["battle", "field"] as const) {
+  for (const to of ["battle", "overworld"] as const) {
     test(`into ${to}: the mode switches exactly once, on a fully covered screen`, () => {
       const frames = run(to);
       const swaps = frames.filter((f) => f.swapNow);
@@ -46,8 +46,8 @@ describe("transition", () => {
     assert.ok(frames.some((f) => f.opacity === 0) && frames.some((f) => f.opacity > 0));
   });
 
-  test("back to the field fades through black, with no flashes", () => {
-    assert.ok(run("field").every((f) => f.color === "#000"));
+  test("back to the overworld fades through black, with no flashes", () => {
+    assert.ok(run("overworld").every((f) => f.color === "#000"));
   });
 
   test("a long stalled frame still switches the mode once and ends", () => {

@@ -1,16 +1,17 @@
 /**
- * The field's character panel: the player's portrait, name and stats. It doesn't pause or block walking; the field
- * HUD's button or the Character key (field.character) toggles it. The look is kept for good, so nothing here edits it.
+ * The overworld's character panel: the player's portrait, name and stats. It doesn't pause or block walking; the
+ * overworld HUD's button or the Character key (overworld.character) toggles it. The look is kept for good, so nothing
+ * here edits it.
  */
 import { LookPicture } from "../../components/LookPicture.js";
-import type { FieldHudState } from "../../state.js";
+import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { STAT_KEYS, STAT_TEXT } from "./statText.js";
 
 interface PanelProps {
-  hud: Store<FieldHudState>;
+  hud: Store<OverworldHudState>;
   close: () => void;
 }
 

@@ -11,7 +11,7 @@
  *
  * 10 is "average" for the multiplier stats, so a fighter with 10 everywhere plays exactly as the base numbers say.
  * HP isn't a stat: it stays `PLAYER.maxHp` / `EnemyDef.maxHp`. Stats only apply in the arena, except through the
- * carry limit: an overloaded bag slows field walking too (items/burden.ts).
+ * carry limit: an overloaded bag slows overworld walking too (items/burden.ts).
  */
 import { defineComponent } from "../core/ecs.js";
 

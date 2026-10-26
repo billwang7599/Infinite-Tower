@@ -1,5 +1,5 @@
 import { BattleHud } from "./hud/BattleHud.js";
-import { FieldHud } from "./hud/FieldHud.js";
+import { OverworldHud } from "./hud/OverworldHud.js";
 import { Fade } from "./overlays/Fade.js";
 import { Toasts } from "./overlays/Toasts.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
@@ -23,10 +23,10 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
     <>
       {playing && (
         <>
-          {mode === "field" && (
-            <FieldHud
-              hud={ui.field} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
-              panels={ui.fieldPanel} togglePanel={ui.toggleFieldPanel} closePanel={ui.closeFieldPanel}
+          {mode === "overworld" && (
+            <OverworldHud
+              hud={ui.overworld} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
+              panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
             />
           )}
@@ -43,7 +43,7 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
       )}
       {mode !== null && (
         <CreationScreen
-          creation={ui.creation} field={ui.field} title={ui.title} active={inWorld(mode, phase)}
+          creation={ui.creation} overworld={ui.overworld} title={ui.title} active={inWorld(mode, phase)}
           save={actions.saveCharacter} close={ui.closeCreation}
         />
       )}

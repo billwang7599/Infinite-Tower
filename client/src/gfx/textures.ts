@@ -1,6 +1,6 @@
 /**
  * Procedural textures, drawn in code (no asset files). Textures that belong to one level theme live
- * with it instead (field/levels/<theme>/textures.ts).
+ * with it instead (overworld/levels/<theme>/textures.ts).
  */
 import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
@@ -103,7 +103,7 @@ export function pixelTexture(
   return drawnTexture(scene, name, { width: size, nearest: true, wrap: true }, draw);
 }
 
-/** Grass blades drawn over a walker's feet in tall grass (field; transparent background). */
+/** Grass blades drawn over a walker's feet in tall grass (overworld; transparent background). */
 export function tuftTexture(scene: Scene): DynamicTexture {
   const tex = pixelTexture(scene, "tuft", 16, (ctx) => {
     ctx.clearRect(0, 0, 16, 16);

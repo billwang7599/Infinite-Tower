@@ -33,10 +33,17 @@ describe("createSettings / restoreSettings", () => {
     assert.equal(settings.mouse.get().autoLock, false);
   });
 
+  test("restoreSettings loads key bindings saved under the old group name `field` as the overworld's", () => {
+    const settings = createSettings();
+    restoreSettings(settings, { bindings: { field: { rest: ["KeyF"] } }, camera: { sensitivity: 2 } });
+    assert.deepEqual(settings.bindings.get().overworld.rest, ["KeyF"]);
+    assert.deepEqual(settings.bindings.toSaved(), { overworld: { rest: ["KeyF"] } });
+  });
+
   test("restoreSettings with an empty save (or one from before auto lock existed) resets every store", () => {
     const settings = createSettings();
     settings.camera.setSensitivity(2);
-    settings.bindings.unbind({ group: "field", action: "up" }, "KeyW");
+    settings.bindings.unbind({ group: "overworld", action: "up" }, "KeyW");
     settings.mouse.setAutoLock(false);
     restoreSettings(settings, {});
     assert.equal(settings.bindings.isDefault(), true);

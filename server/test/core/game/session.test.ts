@@ -16,17 +16,17 @@ const campfire = () => {
 };
 
 describe("input", () => {
-  test("is queued while walking the field", () => {
+  test("is queued while walking the overworld", () => {
     const { session } = startSession();
     session.input(1, 1, 0);
-    assert.equal(session.field.playerData().queue.length, 1);
+    assert.equal(session.overworld.playerData().queue.length, 1);
   });
 
   test("is ignored during a battle", () => {
     const { session } = startSession({ dev: true });
     session.debugEncounter();
     session.input(1, 1, 0);
-    assert.equal(session.field.playerData().queue.length, 0);
+    assert.equal(session.overworld.playerData().queue.length, 0);
   });
 });
 
@@ -80,7 +80,7 @@ describe("debugEncounter", () => {
 describe("rest", () => {
   test("by a campfire refills HP and stamina, saves, and sends rested", () => {
     const { session, link, saves } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.field.place(campfire());
+    session.overworld.place(campfire());
     session.rest();
     assert.deepEqual(session.vitals, FULL);
     assert.equal(saves.length, 1);
@@ -91,7 +91,7 @@ describe("rest", () => {
   test("works anywhere within reach of the fire", () => {
     const fire = campfire();
     const { session, link } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.field.place({ x: fire.x + REST_RANGE * 0.9, z: fire.z });
+    session.overworld.place({ x: fire.x + REST_RANGE * 0.9, z: fire.z });
     session.rest();
     assert.deepEqual(link.last("rested").vitals, FULL);
   });
@@ -99,7 +99,7 @@ describe("rest", () => {
   test("away from the fire does nothing", () => {
     const fire = campfire();
     const { session, link, saves } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.field.place({ x: fire.x + REST_RANGE + 1, z: fire.z });
+    session.overworld.place({ x: fire.x + REST_RANGE + 1, z: fire.z });
     session.rest();
     assert.deepEqual(session.vitals, { hp: 10, stamina: 3 });
     assert.equal(saves.length, 0);
@@ -108,7 +108,7 @@ describe("rest", () => {
 
   test("at full vitals still sends rested but doesn't save", () => {
     const { session, link, saves } = startSession();
-    session.field.place(campfire());
+    session.overworld.place(campfire());
     session.rest();
     assert.deepEqual(link.last("rested").vitals, FULL);
     assert.equal(saves.length, 0);
@@ -116,7 +116,7 @@ describe("rest", () => {
 
   test("does nothing during a battle", () => {
     const { session, link } = startSession({ dev: true, saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.field.place(campfire());
+    session.overworld.place(campfire());
     session.debugEncounter();
     session.rest();
     assert.equal(link.all("rested").length, 0);
@@ -233,15 +233,15 @@ describe("carry weight", () => {
   let seq = 0;
   /** How far one tick of walking right takes the player on the server. */
   function stepRight(session: ReturnType<typeof startSession>["session"]): number {
-    const from = session.field.playerPos();
+    const from = session.overworld.playerPos();
     session.input(++seq, 1, 0);
     session.tick(FIXED_DT);
-    return session.field.playerPos().x - from.x;
+    return session.overworld.playerPos().x - from.x;
   }
   const close = (actual: number, expected: number) =>
     assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≉ ${expected}`);
 
-  test("overloaded, the player walks the field at half speed", () => {
+  test("overloaded, the player walks the overworld at half speed", () => {
     const { session } = startSession({ saved: { bag: OVERLOADED } });
     close(stepRight(session), FULL_STEP * BURDEN.overloadedPace);
   });

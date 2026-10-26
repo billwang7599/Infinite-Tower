@@ -68,10 +68,12 @@ const RestMsg = z.object({ t: z.literal("rest") });
 /** A bag cell (items/bag.ts). Only whole, non-negative numbers; whether it's in the bag is the bag's rules' call. */
 const CellSchema = z.object({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative() });
 
-/** Use one of the item in that cell of your bag (eat the meat). Only on the field. */
+/** Use one of the item in that cell of your bag (eat the meat). Only on the overworld. */
 const UseItemMsg = z.object({ t: z.literal("useItem"), at: CellSchema });
 
-/** Move what's in cell `from` so its top-left is at `to`, turned or not (`moveItem` in items/bag.ts). Field only. */
+/**
+ * Move what's in cell `from` so its top-left is at `to`, turned or not (`moveItem` in items/bag.ts). Overworld only.
+ */
 const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: CellSchema, turned: z.boolean() });
 
 /** Dev-only commands (the server ignores them in production). */

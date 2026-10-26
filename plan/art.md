@@ -131,8 +131,8 @@ placeholder, and it's the template the artist draws over.
 
 Not decided, apart from the battle skeleton above. Today there's hardly any:
 
-- The field chibi has one picture per facing (the two sides share one, mirrored). Walking is a small hop: the
-  sprite moves, the picture stays the same (`field/systems/sprites.ts`).
+- The overworld chibi has one picture per facing (the two sides share one, mirrored). Walking is a small hop: the
+  sprite moves, the picture stays the same (`overworld/systems/sprites.ts`).
 - The battle sprite swaps three stills: stand, slash and down. It bobs, squashes and stretches by moving and
   scaling the sprite, and the swing's arc is a separate effect, the sword trail (`battle/player/sprite.ts`).
 

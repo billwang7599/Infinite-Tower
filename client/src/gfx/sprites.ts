@@ -1,7 +1,7 @@
 /**
  * Pixel-art materials. Sprite frames are drawn in code (no asset files): a 24x24 "pixel" grid, 8 texels
  * per pixel, side views facing right (the drawings live in characters.ts). Used by the arena (billboards) and
- * the field (flat quads); pixelMaterial also dresses the field's ground textures.
+ * the overworld (flat quads); pixelMaterial also dresses the overworld's ground textures.
  */
 import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
 
@@ -11,7 +11,7 @@ export type SpriteDraw = (px: Px) => void;
 export interface PixelMaterialOptions {
   /** Cut out transparent pixels (alpha test, not blend): crisp edges, no sorting issues. Default true. */
   cutout?: boolean;
-  /** Ignore lights completely (the 2D field has none). Default false: lit, but mostly self-colored. */
+  /** Ignore lights completely (the 2D overworld has none). Default false: lit, but mostly self-colored. */
   unlit?: boolean;
 }
 
