@@ -9,9 +9,9 @@ import type { BattleFrame } from "./art.js";
 import { ellipse, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
 
 /**
- * stand: arms down, the sword held up and out. slash: the sword arm swung out to the side, the blade beyond it
- * (sprite.ts mirrors it on every other swing, so it ends on the side the trail does). down: knelt and slumped,
- * head hanging, the sword dropped beside them.
+ * stand: arms down, the sword held up and out. slash: the sword arm swung out to our right, the blade beyond it
+ * (never mirrored: every swing's trail starts on this side, battle/player/pose.ts). down: knelt and slumped, head
+ * hanging, the sword dropped beside them.
  */
 export const POSES = ["stand", "slash", "down"] as const;
 export type Pose = (typeof POSES)[number];

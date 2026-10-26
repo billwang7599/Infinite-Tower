@@ -437,8 +437,8 @@ client/          Browser game: Babylon rendering, Havok physics, input, React UI
       components.ts    Body + addBody, Layer (collision groups), Meshes (+ disposers)
       materials.ts, arena.ts (ring, stones, forest)
       player/          spawn, components (PlayerSprite), input (keys / mouse -> PlayerInput), controller (move,
-                       jump, slash, dodge, stamina), ground (grounded raycasts), sprite (frames, the swing's
-                       mirroring, trail, shadow)
+                       jump, slash, dodge, stamina), ground (grounded raycasts), sprite (puts pose on the meshes,
+                       shadow), pose (frame and sword trail from the action, no Babylon: tested)
       enemies/         spawn.ts (enemy prefab: body + model + Enemy + one component per attack in the def)
         behaviors/       brain (approach / poise / stagger / stun / death), charge, lunge, motor (velocity), common
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)

@@ -53,9 +53,9 @@ Every character is one look drawn several ways. All views have a transparent bac
 | battle | 64x64 | the arena, from behind, sword in hand; the figure is 48 wide, the sides are room for the sword |
 
 The battle sprite is only ever seen from behind: the arena camera sits behind the player, who always attacks where
-it looks. It has a picture per pose (`battle.ts`): stand (also running), slash (sword arm out to our right; the
-game mirrors it on every other swing so the sword ends where the trail does) and down (knelt, slumped, sword
-dropped). From behind the head is all hair, so face shapes, eyes and mouths draw nothing there.
+it looks. It has a picture per pose (`battle.ts`): stand (also running), slash (sword arm out to our right; it's
+never mirrored, and every swing's trail starts on that side) and down (knelt, slumped, sword dropped). From behind
+the head is all hair, so face shapes, eyes and mouths draw nothing there.
 
 The chibi turns the way it walks: down the screen shows the front, up the back, a side the side view (the game
 mirrors it for the other side). Front and back share a body outline; from behind there's no face, and the side

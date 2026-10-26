@@ -25,8 +25,6 @@ export interface PlayerData {
   actionTime: number;
   /** Direction of the current slash / dodge. */
   actionDir: Vec2;
-  /** Counts slashes, so swings alternate sides. */
-  combo: number;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
 }
