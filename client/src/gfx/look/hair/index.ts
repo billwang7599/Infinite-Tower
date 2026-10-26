@@ -3,13 +3,15 @@
  * falls behind the head and shoulders, a back grid. Both are full-width rows from the picture's top. Letters
  * are tones of the hair color (d deep, s shadow, b base, l light, w shine), and a/A a tie in the accent color.
  * Outlines are added when the picture is put together (art.ts): dark where hair meets skin or the background,
- * deep where the front lies over the back. Chibi hair, and the battle sprite's from behind, are drawn from
- * shapes (chibi.ts, back.ts).
+ * deep where the front lies over the back. Chibi hair (front, back and side), and the battle sprite's from
+ * behind, are drawn from shapes (chibi.ts, chibi-back.ts, chibi-side.ts, back.ts).
  */
 import { ink, type Art } from "../art.js";
 import { BASE, DEEP, LIGHT, SHADOW, SHINE, gridMask, shift, type Ink } from "../pixels.js";
 import { BACK_HAIR, drawHairFromBehind } from "./back.js";
-import { CHIBI_HAIR, drawChibiBack, drawChibiFront } from "./chibi.js";
+import { CHIBI_HAIR, drawBehindHead, drawChibiFront, drawChibiHair } from "./chibi.js";
+import { CHIBI_HAIR_BEHIND, drawChibiFromBehind } from "./chibi-back.js";
+import { CHIBI_HAIR_SIDEWAYS, SIDEWAYS } from "./chibi-side.js";
 import { BOB } from "./bob.js";
 import { LONG } from "./long.js";
 import { PONYTAIL } from "./ponytail.js";
@@ -25,7 +27,8 @@ const TONES: Record<string, Ink> = {
   a: ink("accent", BASE), A: ink("accent", LIGHT),
 };
 
-type Style = keyof typeof CHIBI_HAIR & keyof typeof BACK_HAIR;
+type Style = keyof typeof CHIBI_HAIR & keyof typeof BACK_HAIR & keyof typeof CHIBI_HAIR_BEHIND &
+  keyof typeof CHIBI_HAIR_SIDEWAYS;
 
 function hair(portrait: PortraitHair, style: Style): Art {
   const { front, back } = portrait;
@@ -38,7 +41,9 @@ function hair(portrait: PortraitHair, style: Style): Art {
         pen.grid(0, 0, front, TONES);
       },
     },
-    chibi: { hairBack: (pen) => drawChibiBack(pen, chibi), hair: (pen) => drawChibiFront(pen, chibi) },
+    chibi: { hairBack: (pen) => drawBehindHead(pen, chibi), hair: (pen) => drawChibiFront(pen, chibi) },
+    chibiBack: { hair: (pen) => drawChibiFromBehind(pen, CHIBI_HAIR_BEHIND[style]) },
+    chibiSide: { hair: (pen) => drawChibiHair(pen, CHIBI_HAIR_SIDEWAYS[style], SIDEWAYS) },
     battle: { hair: (pen, { head }) => drawHairFromBehind(pen, fromBehind, head) },
   };
 }

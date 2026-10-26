@@ -5,7 +5,7 @@ import { spawnFieldActor } from "./actor.js";
 
 export function spawnFieldBoar(world: World, view: FieldView, at: Vec2): Entity {
   return spawnFieldActor(world, view, at, {
-    name: "field-boar", material: view.materials.boar, sizeTiles: 2, facing: -1, glide: true,
+    name: "field-boar", material: view.materials.boar, sizeTiles: 2, facing: "left", glide: true,
     alert: view.materials.alert,
   });
 }

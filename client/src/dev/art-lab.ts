@@ -1,12 +1,13 @@
 /**
- * Dev-only page (/art.html on the Vite dev server, never built): every look option, every view and battle
- * pose, a piece of gear tried on, and a mock dialogue scene. For judging the character art, not part of the game.
+ * Dev-only page (/art.html on the Vite dev server, never built): every look option, every view (the chibi facing
+ * each way) and battle pose, a piece of gear tried on, and a mock dialogue scene. For judging the character art,
+ * not part of the game.
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "../gfx/look/art.js";
 import { POSES } from "../gfx/look/battle.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
-import { drawBattle, drawLook, type Look, type StillView } from "../gfx/look/look.js";
+import { CHIBI_TURNS, drawBattle, drawLook, type Look, type StillView } from "../gfx/look/look.js";
 import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
 
 const LABELS: Record<keyof Look, string> = {
@@ -81,6 +82,15 @@ function render(): void {
     caption(canvas(draw(look, "chibi"), 3), "chibi at 3x (about world size)"),
   );
   root.append(views);
+
+  // The chibi facing each way the field turns it: front, back, side (walking right mirrors it).
+  const turns = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  for (const [turn, view] of Object.entries(CHIBI_TURNS)) {
+    turns.append(caption(canvas(draw(look, view), 6), `chibi ${turn}`));
+  }
+  turns.append(caption(canvas(draw(look, "chibiSide"), 6, "transform:scaleX(-1)"), "chibi side, walking right"));
+  for (const view of Object.values(CHIBI_TURNS)) turns.append(caption(canvas(draw(look, view), 3), "3x"));
+  root.append(turns);
 
   // The battle sprite: from behind, in each pose, and at about arena size.
   const battle = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");

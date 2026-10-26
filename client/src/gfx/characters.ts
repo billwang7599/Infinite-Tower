@@ -1,16 +1,16 @@
 /**
  * Frames for the 24x24 pixel sprites (sprites.ts). The player is drawn from their look (gfx/look/): the chibi in
- * the field, the battle sprite (from behind, sword in hand) in the arena. The boar and the "!" bubble are drawn
- * here.
+ * the field (front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar and
+ * the "!" bubble are drawn here.
  */
 import type { Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
-import { drawBattle, drawLook } from "./look/look.js";
+import { CHIBI_TURNS, drawBattle, drawLook, type ChibiTurn } from "./look/look.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 export interface PlayerFrames {
-  /** The field: the chibi. */
-  field: SpriteDraw;
+  /** The field: the chibi facing each way. The side faces right, like every side view here (sprites.ts). */
+  field: Record<ChibiTurn, SpriteDraw>;
   /** The arena: standing (and running), mid-swing, and down. */
   idle: SpriteDraw;
   slash: SpriteDraw;
@@ -19,25 +19,28 @@ export interface PlayerFrames {
 
 /** The player's frames in `look`. Each picture fills the sprite: 32 chibi or 64 battle pixels across its 24. */
 export function playerFrames(look: Look): PlayerFrames {
-  const chibi = drawLook(look, "chibi");
+  const chibi = (turn: ChibiTurn): SpriteDraw => {
+    const pic = drawLook(look, CHIBI_TURNS[turn]);
+    return (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, turn === "side");
+  };
   const stand = drawBattle(look, "stand"), slash = drawBattle(look, "slash"), down = drawBattle(look, "down");
   const battle = SPRITE_PX / VIEWS.battle.width;
   return {
-    field: (px) => paint(px, chibi, SPRITE_PX / VIEWS.chibi.width),
+    field: { front: chibi("front"), back: chibi("back"), side: chibi("side") },
     idle: (px) => paint(px, stand, battle),
     slash: (px) => paint(px, slash, battle),
     down: (px) => paint(px, down, battle),
   };
 }
 
-/** `pic`, each of its pixels `scale` sprite pixels square. */
-function paint(px: Px, pic: Picture, scale: number): void {
+/** `pic`, each of its pixels `scale` sprite pixels square; `mirrored` flips it left to right. */
+function paint(px: Px, pic: Picture, scale: number, mirrored = false): void {
   for (let y = 0; y < pic.height; y++) {
     for (let x = 0; x < pic.width; x++) {
       const i = (y * pic.width + x) * 4;
       if (!pic.rgba[i + 3]) continue;
       const color = `#${[0, 1, 2].map((c) => pic.rgba[i + c]!.toString(16).padStart(2, "0")).join("")}`;
-      px(x * scale, y * scale, scale, scale, color);
+      px((mirrored ? pic.width - 1 - x : x) * scale, y * scale, scale, scale, color);
     }
   }
 }

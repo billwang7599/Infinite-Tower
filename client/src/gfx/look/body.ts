@@ -6,14 +6,15 @@
  * differ in how much: skinny is lean, wide is built. None of them is heavy.
  * Portrait: head and shoulders, turned three-quarters to our left like the head, so the near shoulder (right)
  * reaches further from the neck than the far one. The picture cuts off across the chest.
- * Chibi: 32x32, facing us, symmetric around x = 16.
+ * Chibi: 32x32, facing us, symmetric around x = 16. From behind it has the same outline; from the side (facing
+ * left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
  * Battle: the whole body from behind, in each pose (battle.ts).
  */
-import type { Art, BattleFrame, Frame } from "./art.js";
+import type { Art, BattleFrame, Frame, Frames, Piece } from "./art.js";
 import { ink } from "./art.js";
 import { battleFrames, type Pose } from "./battle.js";
 import {
-  BASE, SHADOW, farSide, mirror, polygon, rect, symmetric, union, type Point,
+  BASE, SHADOW, ellipse, farSide, mirror, polygon, rect, symmetric, union, type Point,
 } from "./pixels.js";
 
 const C = 32;
@@ -75,27 +76,65 @@ function chibiFrame(b: ChibiBuild): Frame {
   };
 }
 
+/** The chibi from the side, facing left: the medium build, and the others deeper or shallower through the chest. */
+function chibiSideFrame(b: ChibiBuild): Frame {
+  const d = (b.shoulders - 5.6) / 2, a = (b.arm - 2.4) / 2;
+  const arm = polygon([
+    [14.4 - a, 19.9], [17.6 + a, 19.9], [18.1 + a, 21.4], [17.8 + a, 24.4], [14.8 - a, 24.4], [14.2 - a, 21.4],
+  ]);
+  return {
+    neck: rect(14, 18, 16, 20),
+    torso: polygon([
+      [12.8 - d, 19.8], [18.8 + d, 19.6], [19.6 + d, 21.4], [19.2 + d, 26], [12.8 - d / 2, 26], [12.2 - d, 22.4],
+    ]),
+    arms: union(arm, ellipse(16.2, 25, 1.6 + a / 2, 1.4)),
+    legs: rect(13, 26, 17, 29),
+    middle: 15, collarY: 20, chestY: 22, armpitY: 21, waistY: 24,
+    shoulders: [[16, 20.5], [16, 20.5]],
+  };
+}
+
+/** The chibi's frames: front and back share an outline. */
+const chibiFrames = (b: ChibiBuild) => ({
+  chibi: chibiFrame(b),
+  chibiBack: chibiFrame(b),
+  chibiSide: chibiSideFrame(b),
+});
+
 /** Body types. Looks only: they change nothing in play. */
 export const BODY_TYPES = {
   skinny: {
     portrait: portraitFrame({ width: 0.86, neck: [30.5, 38] }),
-    chibi: chibiFrame({ shoulders: 5, waist: 2.6, arm: 2 }),
+    ...chibiFrames({ shoulders: 5, waist: 2.6, arm: 2 }),
     battle: battleFrames({ shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 }),
   },
   medium: {
     portrait: portraitFrame({ width: 1, neck: [30, 38.5] }),
-    chibi: chibiFrame({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
+    ...chibiFrames({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
     battle: battleFrames({ shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 }),
   },
   wide: {
     portrait: portraitFrame({ width: 1.1, neck: [29, 39.5] }),
-    chibi: chibiFrame({ shoulders: 6.4, waist: 3, arm: 3 }),
+    ...chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
     battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
-} as const satisfies Record<string, { portrait: Frame; chibi: Frame; battle: Record<Pose, BattleFrame> }>;
+} as const satisfies Record<string, Omit<Frames, "battle"> & { battle: Record<Pose, BattleFrame> }>;
 export type BodyType = keyof typeof BODY_TYPES;
 
 const skin = ink("skin", BASE);
+
+const CHIBI: Piece = {
+  body: (pen, frame) => {
+    pen.fill(frame.neck, skin);
+    pen.fill(frame.torso, skin);
+    pen.fill(frame.legs, skin);
+    pen.shade(farSide(frame.torso, 1), SHADOW);
+  },
+  arms: (pen, frame) => {
+    pen.fill(frame.arms, skin);
+    pen.shade(farSide(frame.arms, 1), SHADOW);
+  },
+};
 
 /** The skin below the head, in whatever body type's frame it's drawn in. Mostly under clothes. */
 export const BODY: Art = {
@@ -111,18 +150,16 @@ export const BODY: Art = {
       pen.shade(farSide(frame.arms, 3), SHADOW);
     },
   },
-  chibi: {
-    body: (pen, frame) => {
-      pen.fill(frame.neck, skin);
-      pen.fill(frame.torso, skin);
-      pen.fill(frame.legs, skin);
-      pen.shade(farSide(frame.torso, 1), SHADOW);
+  chibi: CHIBI,
+  chibiBack: {
+    body: (pen, { neck, torso, legs }) => {
+      pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
+      pen.fill(torso, skin);
+      pen.fill(legs, skin);
     },
-    arms: (pen, frame) => {
-      pen.fill(frame.arms, skin);
-      pen.shade(farSide(frame.arms, 1), SHADOW);
-    },
+    arms: CHIBI.arms,
   },
+  chibiSide: CHIBI,
   battle: {
     body: (pen, { neck, torso, legs }) => {
       pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow

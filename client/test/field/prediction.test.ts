@@ -23,7 +23,7 @@ function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) 
   const world = new World();
   const player = world.spawn();
   const pos = world.add(player, FieldPos, { ...start });
-  const actor = world.add(player, FieldActor, { vx: 0, vz: 0, facing: 1, alert: false, target: null });
+  const actor = world.add(player, FieldActor, { vx: 0, vz: 0, facing: "down", alert: false, target: null });
   const view = { level } as FieldView;
   const net = new FakeNet();
   const prediction = new Prediction(world, view, player, net.asConnection());
@@ -85,16 +85,14 @@ describe("Prediction.step", () => {
     assert.equal(pos.x, LEVEL.halfWidth - LEVEL.border);
   });
 
-  test("facing follows moveX, and a near-zero moveX keeps it", () => {
+  test("facing follows the walk in four ways, and standing still keeps it", () => {
     const { prediction, actor } = setup();
-    prediction.step({ moveX: -1, moveZ: 0 });
-    assert.equal(actor.facing, -1);
-    prediction.step({ moveX: 0.05, moveZ: 1 });
-    assert.equal(actor.facing, -1);
-    prediction.step({ moveX: 0.5, moveZ: 0 });
-    assert.equal(actor.facing, 1);
-    prediction.step({ moveX: 0, moveZ: -1 });
-    assert.equal(actor.facing, 1);
+    const walk = [{ moveX: -1, moveZ: 0 }, STILL, { moveX: 0, moveZ: 1 }, { moveX: 0.5, moveZ: 0 }, { moveX: 0, moveZ: -1 }];
+    const faced = walk.map((input) => {
+      prediction.step(input);
+      return actor.facing;
+    });
+    assert.deepEqual(faced, ["left", "left", "up", "right", "down"]);
   });
 
   test("with no level yet, nothing moves and nothing is sent", () => {

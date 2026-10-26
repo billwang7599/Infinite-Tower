@@ -49,7 +49,7 @@ Every character is one look drawn several ways. All views have a transparent bac
 | View | Size | What it's for |
 | --- | --- | --- |
 | portrait | 64x64 | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
-| chibi | 32x32 | the world, facing us, about 1.7 heads tall |
+| chibi | 32x32 | the world, about 1.7 heads tall; front, back and side (facing left), one per way it walks |
 | battle | 64x64 | the arena, from behind, sword in hand; the figure is 48 wide, the sides are room for the sword |
 
 The battle sprite is only ever seen from behind: the arena camera sits behind the player, who always attacks where
@@ -57,7 +57,11 @@ it looks. It has a picture per pose (`battle.ts`): stand (also running), slash (
 game mirrors it on every other swing so the sword ends where the trail does) and down (knelt, slumped, sword
 dropped). From behind the head is all hair, so face shapes, eyes and mouths draw nothing there.
 
-Coming later: chibi back / side and a walk cycle, and portrait expressions for dialogue.
+The chibi turns the way it walks: down the screen shows the front, up the back, a side the side view (the game
+mirrors it for the other side). Front and back share a body outline; from behind there's no face, and the side
+shows only the near eye. A diagonal keeps the way it was already facing, so it doesn't flicker.
+
+Coming later: a chibi walk cycle, and portrait expressions for dialogue.
 
 ### Colors
 
