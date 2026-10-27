@@ -1,11 +1,13 @@
 /**
  * One arena fight, whole: its own ECS world and physics world, stepped at a fixed rate by the players' inputs.
  * Nothing in it is random, and nothing lives outside it, so the same setup and inputs always give the same fight,
- * on any machine (Rapier's deterministic build), and a server can run many side by side. The client runs one for
- * now and draws from its state (client/src/battle/); later the server runs it and the client predicts.
+ * on any machine (Rapier's deterministic build), and a server can run many side by side. The server runs it
+ * (server/src/core/battle/); each client keeps a copy to draw, in which it predicts only its own player (`predict`)
+ * and puts everyone else where the server's states say.
  */
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { FIXED_DT } from "../../core/time.js";
+import { Health } from "../components.js";
 import { PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
 import { combatSystem } from "./combat.js";
@@ -15,6 +17,7 @@ import { chargeAttackSystem } from "./enemies/charge.js";
 import { lungeAttackSystem } from "./enemies/lunge.js";
 import { enemyMotorSystem } from "./enemies/motor.js";
 import { outcomeSystem } from "./outcome.js";
+import { predictPlayer } from "./predict.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
@@ -64,6 +67,22 @@ export class Fight {
     });
     for (const system of this.systems) system(this.world, Fight.STEP_SECONDS);
     this.world.flush();
+  }
+
+  /**
+   * The client's prediction of its own player: one step of only `player`'s movement and actions, as `step` would
+   * take them, with everyone else held where they are. No enemy moves, no hit lands and nothing is decided: that's
+   * the server's to say.
+   */
+  predict(player: Entity, input: PlayerInputData): void {
+    Object.assign(this.world.require(player, PlayerInput), input);
+    predictPlayer(this.world, this.physics, player, Fight.STEP_SECONDS);
+    this.world.flush();
+  }
+
+  /** `player` is gone (disconnected): out of the fight for good, down as if dead. outcome.ts says what that costs. */
+  leave(player: Entity): void {
+    this.world.require(player, Health).hp = 0;
   }
 
   /** Ends the fight: its entities are destroyed (their remove hooks run) and the physics world is freed. */

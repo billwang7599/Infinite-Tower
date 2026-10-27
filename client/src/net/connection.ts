@@ -35,7 +35,7 @@ export class Connection {
   /** Connect and wait for the server's `welcome`. */
   static open(): Promise<Joined> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws${pingQuery()}`);
       const net = new Connection(ws);
       let welcomed = false;
       ws.onmessage = (ev) => {
@@ -90,6 +90,15 @@ export class Connection {
     if (this.handlers) dispatch(this.handlers, msg, undefined);
     else this.backlog.push(msg);
   }
+}
+
+/**
+ * The page's `?ping=` (a dev tool: a dev server simulates that round trip for this connection), passed on to /ws
+ * as it is: the server decides what to make of it, and production ignores it.
+ */
+function pingQuery(): string {
+  const ping = new URLSearchParams(location.search).get("ping");
+  return ping === null ? "" : `?ping=${encodeURIComponent(ping)}`;
 }
 
 function closeReason(closeCode: number): string {

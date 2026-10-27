@@ -5,9 +5,8 @@ import { battleResultLines, type BattleOutcome } from "../../../src/ui/notificat
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
 
-const WIN: BattleOutcome = { won: true, accepted: true, loot: {}, leftBehind: {}, lost: {} };
-const LOSS: BattleOutcome = { won: false, accepted: true, loot: {}, leftBehind: {}, lost: {} };
-const REFUSED: BattleOutcome = { won: false, accepted: false, loot: {}, leftBehind: {}, lost: {} };
+const WIN: BattleOutcome = { won: true, loot: {}, leftBehind: {}, lost: {} };
+const LOSS: BattleOutcome = { won: false, loot: {}, leftBehind: {}, lost: {} };
 
 const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text);
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
@@ -44,13 +43,10 @@ describe("say", () => {
     assert.equal(banner(to), null);
   });
 
-  test("dying, and a refused win, are notices too", () => {
+  test("dying is a notice too", () => {
     const to = new Notifications();
     say(to, { kind: "battleResult", outcome: { ...LOSS, lost: { "boar-tusk": 1 } } });
-    say(to, { kind: "battleResult", outcome: REFUSED });
-    assert.deepEqual(notices(to), [
-      "You died. Everything you carried is gone: boar tusk.", "The server didn't accept that win.",
-    ]);
+    assert.deepEqual(notices(to), ["You died. Everything you carried is gone: boar tusk."]);
     assert.equal(banner(to), null);
   });
 

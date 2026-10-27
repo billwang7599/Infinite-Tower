@@ -8,7 +8,8 @@ it plays is decided.
 - The server is already authoritative for the overworld, and every player has an account and a save. Each player has
   their own `GameSession` with their own world: players can't see each other yet.
 - A second tab on the same account takes over the first (close code 4000).
-- Fights run in the browser, so they'd have to move to the server first ([server-fights.md](server-fights.md)).
+- Fights run on the server, built for any number of players, but every battle has one for now
+  ([server-fights.md](server-fights.md) lists what more players would need).
 
 ## Open questions
 

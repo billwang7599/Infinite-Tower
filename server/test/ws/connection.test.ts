@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { describe, test, type TestContext } from "node:test";
 import type { ClientMsg } from "@infinite-tower/shared";
 import { Connection } from "../../src/ws/connection.js";
 import { FakeSocket } from "./fake-socket.js";
@@ -60,7 +60,8 @@ describe("Connection", () => {
     socket.receive({ t: "teleport", x: 1 });
     socket.receive({ t: "input", seq: "1", moveX: 0, moveZ: 0 });
     socket.receive({ t: "input", seq: -1, moveX: 0, moveZ: 0 });
-    socket.receive({ t: "battleEnd", won: "yes", vitals: { hp: 1, stamina: 1 } });
+    socket.receive({ t: "battleEnd", won: true, vitals: { hp: 1, stamina: 1 } });
+    socket.receive({ t: "battleInput", inputs: [{ seq: 1, moveX: 9, moveZ: 0, aimX: 0, aimZ: 1 }] });
     socket.receive({ t: "useItem", at: { x: -1, y: 0 } });
     socket.receive("null");
     assert.deepEqual(received, []);
@@ -94,5 +95,68 @@ describe("Connection", () => {
     conn.onClose(() => closes++);
     socket.close(1000, "bye");
     assert.equal(closes, 1);
+  });
+});
+
+describe("Connection with a simulated ping (dev)", () => {
+  /** A connection whose round trip takes `pingMs`, on mocked timers. */
+  function slow(t: TestContext, pingMs: number) {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const socket = new FakeSocket();
+    const conn = new Connection(socket.ws, pingMs);
+    const heard: string[] = [];
+    conn.onMessage((msg) => heard.push(msg.t));
+    conn.onClose(() => heard.push("closed"));
+    return { socket, conn, heard };
+  }
+  const RESTED = { t: "rested", vitals: { hp: 1, stamina: 1 } } as const;
+
+  test("what the client sends reaches the game half the ping later, in order", (t) => {
+    const { socket, heard } = slow(t, 100);
+    socket.receive(REST);
+    t.mock.timers.tick(10);
+    socket.receive({ t: "leaveBattle" });
+    t.mock.timers.tick(39);
+    assert.deepEqual(heard, []);
+    t.mock.timers.tick(1);
+    assert.deepEqual(heard, ["rest"]);
+    t.mock.timers.tick(10);
+    assert.deepEqual(heard, ["rest", "leaveBattle"]);
+  });
+
+  test("what the game sends leaves half the ping later, in order", (t) => {
+    const { socket, conn } = slow(t, 37);
+    conn.send(RESTED);
+    conn.send({ t: "bag", bag: { cols: 1, rows: 1, items: [] } });
+    t.mock.timers.tick(18);
+    assert.deepEqual(socket.sent, []);
+    t.mock.timers.tick(1);
+    assert.deepEqual(socket.kinds(), ["rested", "bag"]);
+  });
+
+  test("the client hanging up is heard after what it sent before", (t) => {
+    const { socket, heard } = slow(t, 1000);
+    socket.receive(REST);
+    socket.close(1001, "tab closed");
+    t.mock.timers.tick(500);
+    assert.deepEqual(heard, ["rest", "closed"]);
+  });
+
+  test("the game hanging up goes after what it sent before", (t) => {
+    const { socket, conn } = slow(t, 200);
+    conn.send(RESTED);
+    conn.close(4000, "playing somewhere else");
+    assert.equal(socket.closed, null);
+    t.mock.timers.tick(100);
+    assert.deepEqual(socket.kinds(), ["rested"]);
+    assert.deepEqual(socket.closed, { code: 4000, reason: "playing somewhere else" });
+  });
+
+  test("a ping of 0 delays nothing", (t) => {
+    const { socket, conn, heard } = slow(t, 0);
+    socket.receive(REST);
+    conn.send(RESTED);
+    assert.deepEqual(heard, ["rest"]);
+    assert.deepEqual(socket.kinds(), ["rested"]);
   });
 });

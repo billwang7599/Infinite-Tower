@@ -12,8 +12,11 @@ import { sessionToken } from "../cookies.js";
 export interface GameSocket {
   /** Bigger messages are refused (by ws, close 1009) before anyone reads them. */
   maxMessageBytes: number;
-  /** A socket opened on /ws, and who its cookie says it is (null: not logged in). */
-  accept(socket: WebSocket, account: Account | null): void;
+  /**
+   * A socket opened on /ws, who its cookie says it is (null: not logged in), and the `?ping=` its page asked for (a
+   * dev tool: the game decides what to make of it).
+   */
+  accept(socket: WebSocket, account: Account | null, askedPing: string | undefined): void;
 }
 
 export interface GameSocketOptions {
@@ -36,5 +39,8 @@ export const gameSocketRoute: FastifyPluginAsync<GameSocketOptions> = async (app
         return reply.code(503).send();
       }
     },
-  }, (ws, req) => socket.accept(ws, accountOf.get(req) ?? null));
+  }, (ws, req) => {
+    const { ping } = req.query as { ping?: unknown };
+    socket.accept(ws, accountOf.get(req) ?? null, typeof ping === "string" ? ping : undefined);
+  });
 };

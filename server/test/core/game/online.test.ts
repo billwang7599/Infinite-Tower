@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { before, describe, test } from "node:test";
 import { CLOSE_CODES, FIXED_DT } from "@infinite-tower/shared";
-import { newPlayer } from "../../../src/core/content/player.js";
+import { initPhysics } from "@infinite-tower/shared/fight";
+import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
+import type { PlayerSave } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { ACCOUNT } from "./helpers.js";
+
+before(() => initPhysics());
 
 function setup(opts: { withCharacter?: boolean; dev?: boolean } = {}) {
   const store = new MemoryPlayerStore();
@@ -111,6 +115,30 @@ describe("leaving", () => {
     await joinNew(online);
     online.leave(first.session);
     assert.equal(store.saves.length, 1);
+  });
+
+  test("mid-fight, it loses the fight: the bag is emptied and saved like that", async () => {
+    const { online, store } = setup({ withCharacter: true, dev: true });
+    const meat = { item: "boar-meat", count: 3, x: 0, y: 0, turned: false } as const;
+    const bag: PlayerSave["bag"] = { ...newPlayer().bag, items: [meat] };
+    store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, bag });
+    const { session } = await joinNew(online);
+    session.debugEncounter();
+    for (let i = 0; i < 30; i++) online.tick(FIXED_DT);
+    online.leave(session);
+    assert.deepEqual(store.saved.get(ACCOUNT.id)?.bag.items, []);
+  });
+
+  test("a second tab taking over mid-fight is leaving it: the fight is lost", async () => {
+    const { online, store } = setup({ withCharacter: true, dev: true });
+    const first = await joinNew(online);
+    first.session.debugEncounter();
+    online.tick(FIXED_DT);
+    const second = await joinNew(online);
+    assert.equal(first.link.closed?.code, CLOSE_CODES.replaced);
+    assert.equal(first.session.battle?.over, true);
+    assert.deepEqual(store.saves.at(-1)?.data.vitals, fullVitals(PLAYER_STATS), "woke up rested, as after a death");
+    assert.deepEqual(second.session.vitals, fullVitals(PLAYER_STATS));
   });
 
   test("a player who left isn't ticked any more", async () => {

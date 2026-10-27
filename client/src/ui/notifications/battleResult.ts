@@ -1,18 +1,15 @@
 /**
- * What the game says when a fight's result comes back (`battleResult`): what was found, what was left behind,
- * dying and what was lost, a refused win. The fight's end itself has its own banner in the arena (BattleHud's
+ * What the game says about a fight's result (`battleResult`) once the player is back from the arena: what was found,
+ * what was left behind, dying and what was lost. The fight's end itself has its own banner in the arena (BattleHud's
  * result), so these are corner notices (say.ts).
  */
 import { itemDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 
-export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "accepted" | "loot" | "leftBehind" | "lost">;
+export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "loot" | "leftBehind" | "lost">;
 
 /** How a fight ended, in at most two lines. Item lists are as long as what was found or lost. */
 export function battleResultLines(outcome: BattleOutcome): string[] {
   const lost = describeItems(outcome.lost);
-  if (!outcome.accepted) {
-    return ["The server didn't accept that win.", ...(lost ? [`Everything you carried is gone: ${lost}.`] : [])];
-  }
   if (!outcome.won) return [lost ? `You died. Everything you carried is gone: ${lost}.` : "You died."];
   const lines: string[] = [];
   // `loot` is everything the enemy dropped, `leftBehind` included.

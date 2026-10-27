@@ -1,11 +1,11 @@
 /**
  * Mode switching and sessions. Two modes, two Babylon scenes, one ECS world:
  * - overworld: the 2D map (overworld/), its own fixed-step loop.
- * - battle:    the 2.5D arena (battle/): a shared Fight, stepped by Babylon's lockstep.
+ * - battle:    the 2.5D arena (battle/): the server's fight, drawn, with your own fighter predicted.
  * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
- * encounters and fight results; this routes its messages (one handler per message type), keeps the settings in
- * sync with it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back
- * to the overworld.
+ * encounters and fights; this routes its messages (one handler per message type), keeps the settings in sync with
+ * it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back to the
+ * overworld, where the server's result is applied and told.
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import { moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
@@ -29,7 +29,7 @@ export interface Game {
   join(joined: Joined): void;
   /** End the session: send any unsent settings, hang up, stop drawing, forget the level and any fight. */
   leave(): void;
-  /** The Leave key in a decided fight: fade back to the overworld. */
+  /** The Leave key in a decided fight (once the server's result is in): fade back to the overworld. */
   leaveBattle(): void;
   rest(): void;
   useItem(at: Cell): void;
@@ -56,6 +56,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
   let transition: Transition | null = null;
   /** The fight being flashed into or fought. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
+  /** The server's result, held while the player is still in the arena: applied when they leave it. */
+  let result: ServerMsgOf<"battleResult"> | null = null;
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
@@ -81,14 +83,23 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
   };
 
   const enterBattle = (msg: ServerMsgOf<"encounter">) => {
-    const { enemy, arena, vitals, stats, burden } = msg;
-    battle.start(enemy, arena, vitals, stats, burden);
-    say(ui.notifications, { kind: "encounter", source: msg.source, enemy: msg.enemy });
+    const to = net;
+    if (!to) return;
+    result = null;
+    battle.start(msg, (m) => to.send(m));
+    const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
+    say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
     setMode("battle");
   };
 
   const enterOverworld = () => {
-    net?.send({ t: "battleEnd", ...battle.end() });
+    battle.end();
+    net?.send({ t: "leaveBattle" });
+    if (result) {
+      overworld.onBattleResult(result);
+      say(ui.notifications, { kind: "battleResult", outcome: result });
+      result = null;
+    }
     keyboard.clearPressed();
     setMode("overworld");
   };
@@ -124,7 +135,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
   return {
     mode: () => mode,
     leaveBattle() {
-      if (mode !== "battle" || transition) return;
+      if (mode !== "battle" || transition || !result) return;
       transition = startTransition("overworld");
     },
     rest() {
@@ -169,9 +180,9 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
           say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
         bag: (msg) => overworld.setBag(msg.bag),
+        battleState: (msg) => battle.onState(msg),
         battleResult(msg) {
-          overworld.onBattleResult(msg);
-          say(ui.notifications, { kind: "battleResult", outcome: msg });
+          result = msg;
         },
       });
       setMode("overworld");
@@ -188,7 +199,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       net.close();
       net = null;
       if (mode === "battle") battle.end();
-      transition = encounter = null;
+      transition = encounter = result = null;
       overworld.leave();
       ui.settingsScreen.set({ open: false });
       ui.creation.set({ open: false });

@@ -1,6 +1,6 @@
 /**
  * Shapes of server-owned battle content. The values live in server/src/core/content and reach the client
- * with each encounter (the client needs them to draw and, for now, to run the fight).
+ * with each encounter (the client builds the same fight to draw it and predict its own player).
  *
  * An enemy is a body plus a set of optional attacks. The fight's enemy spawn (fight/setup.ts) adds one component
  * per attack (LungeAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is

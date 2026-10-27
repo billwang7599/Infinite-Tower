@@ -4,9 +4,9 @@ import { test } from "node:test";
 import type { WebSocket } from "ws";
 import { register, testApp, type TestApp } from "./app.js";
 
-async function openWs({ app }: TestApp, cookie?: string): Promise<WebSocket> {
+async function openWs({ app }: TestApp, cookie?: string, path = "/ws"): Promise<WebSocket> {
   await app.ready();
-  return app.injectWS("/ws", cookie ? { headers: { cookie } } : {});
+  return app.injectWS(path, cookie ? { headers: { cookie } } : {});
 }
 
 /** The handler runs after the client sees the upgrade, so wait a moment for it. */
@@ -71,4 +71,14 @@ test("without a cookie the lookup isn't needed, so a failing store doesn't block
   t.after(() => ws.terminate());
   await acceptedCount(server, 1);
   assert.equal(server.accepted[0]!.account, null);
+});
+
+test("the ping the page asked for (?ping=) is handed on as it came, for ws/ to judge", async (t) => {
+  const server = await testApp(t);
+  for (const path of ["/ws?ping=200", "/ws?ping=nonsense", "/ws"]) {
+    const ws = await openWs(server, undefined, path);
+    t.after(() => ws.terminate());
+  }
+  await acceptedCount(server, 3);
+  assert.deepEqual(server.accepted.map((a) => a.ping).sort(), ["200", "nonsense", undefined].sort());
 });

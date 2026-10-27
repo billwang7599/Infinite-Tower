@@ -4,7 +4,8 @@ import type { GameSession } from "../core/game/session.js";
 
 export const handlers: Handlers<ClientMsg, GameSession> = {
   input: (msg, s) => s.input(msg.seq, msg.moveX, msg.moveZ),
-  battleEnd: (msg, s) => s.endBattle(msg.won, msg.vitals),
+  battleInput: (msg, s) => s.battleInput(msg.inputs),
+  leaveBattle: (_msg, s) => s.leaveBattle(),
   settings: (msg, s) => s.setSettings(msg.settings),
   character: (msg, s) => s.setCharacter(msg.character),
   rest: (_msg, s) => s.rest(),

@@ -4,7 +4,7 @@
  * triggers: cheap, and the same on the server.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
-import { ActiveHit, Body, Enemy, Fighter, Health, Player } from "../components.js";
+import { ActiveHit, Body, Enemy, Fighter, Health, Player, type HealthData } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
 import type { FightEvent } from "./context.js";
@@ -38,14 +38,17 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
   });
 }
 
+/** Runs down a fighter's invulnerability, hitstun and hit flash (seconds). */
+export function tickHealthTimers(h: HealthData, dt: number): void {
+  h.invuln = Math.max(0, h.invuln - dt);
+  h.hitstun = Math.max(0, h.hitstun - dt);
+  h.flash = Math.max(0, h.flash - dt);
+}
+
 /** Ticks the hit timers, then resolves every live hitbox. Each hit is reported in `events`. */
 export function combatSystem(events: FightEvent[]): System {
   return (world, dt) => {
-    for (const [, h] of world.query(Health)) {
-      h.invuln = Math.max(0, h.invuln - dt);
-      h.hitstun = Math.max(0, h.hitstun - dt);
-      h.flash = Math.max(0, h.flash - dt);
-    }
+    for (const [, h] of world.query(Health)) tickHealthTimers(h, dt);
 
     for (const [, hit, attackerBody, attacker] of world.query(ActiveHit, Body, Fighter)) {
       const from = attackerBody.pos;

@@ -1,0 +1,34 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { DEFAULT_DEV_PING_MS, parseDevPing, parsePingMs } from "../src/env.js";
+
+describe("DEV_PING_MS", () => {
+  test("left out (or empty), it's the default", () => {
+    assert.equal(parseDevPing(undefined, true), DEFAULT_DEV_PING_MS);
+    assert.equal(parseDevPing("", true), DEFAULT_DEV_PING_MS);
+  });
+
+  test("any whole number of milliseconds, 0 or more", () => {
+    for (const ms of [0, 37, 150, 1000]) assert.equal(parseDevPing(String(ms), true), ms);
+  });
+
+  test("anything else stops the server, like any other bad setting", () => {
+    for (const raw of ["-1", "1.5", "abc", "50ms", " 50"]) {
+      assert.throws(() => parseDevPing(raw, true), /DEV_PING_MS/, raw);
+    }
+  });
+
+  test("production never delays, whatever is set", () => {
+    for (const raw of [undefined, "200", "nonsense"]) assert.equal(parseDevPing(raw, false), 0);
+  });
+});
+
+describe("parsePingMs (a page's ?ping=)", () => {
+  test("a whole number of milliseconds, 0 or more", () => {
+    for (const ms of [0, 37, 1000]) assert.equal(parsePingMs(String(ms)), ms);
+  });
+
+  test("anything else is no answer (the caller falls back)", () => {
+    for (const raw of [undefined, "", "-5", "1.5", "abc", "1e3"]) assert.equal(parsePingMs(raw), null, String(raw));
+  });
+});

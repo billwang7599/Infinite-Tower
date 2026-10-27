@@ -1,11 +1,18 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
-import { carryLimit, emptyBag, FIXED_DT, ITEMS, type Bag } from "@infinite-tower/shared";
+import { before, describe, test } from "node:test";
+import {
+  Body, carryLimit, emptyBag, FIXED_DT, Health, IDLE_INPUT, ITEMS, physicalDamage, PLAYER, type Bag,
+  type PlayerInputData,
+} from "@infinite-tower/shared";
+import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import type { GameSession } from "../../../src/core/game/session.js";
 import { packLoot } from "../../../src/core/game/inventory.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
-import { fakeNow, findBoar, HOUR_MS, startSession } from "./helpers.js";
+import { findBoar, startSession } from "./helpers.js";
+
+before(() => initPhysics());
 
 const FULL = fullVitals(PLAYER_STATS);
 const LEVEL = getLevel(START_LEVEL);
@@ -18,28 +25,73 @@ const CARRIED: Bag = {
     { item: "boar-tusk", count: 1, x: 1, y: 0, turned: false },
   ],
 };
+/** Long enough for any fight here to be decided. */
+const MAX_TEST_STEPS = 60 * 60;
 
-/** A dev session already in a debug battle, hurt to HURT, carrying `bag`; `clock.ms` is when it started. */
-function inBattle(t: Parameters<typeof fakeNow>[0], bag: Bag = emptyBag()) {
-  const clock = fakeNow(t);
-  const started = startSession({ dev: true, saved: { vitals: { ...HURT }, bag } });
+/** A dev session already in a debug battle, hurt to HURT, carrying `bag`. */
+function inBattle(bag: Bag = emptyBag(), vitals = HURT) {
+  const started = startSession({ dev: true, saved: { vitals: { ...vitals }, bag } });
   started.session.debugEncounter();
-  return { ...started, clock };
+  return started;
+}
+
+const fightOf = (session: GameSession) => {
+  const room = session.battle?.room;
+  if (!room) throw new Error("not in a battle");
+  return room.fight;
+};
+
+/** What the player's client would do: send `next()` each step (numbered), while the server ticks. */
+function play(session: GameSession, next: () => PlayerInputData, maxSteps = MAX_TEST_STEPS): void {
+  let seq = 0;
+  for (let i = 0; i < maxSteps && session.battle && !session.battle.over; i++) {
+    session.battleInput([{ seq: ++seq, ...next() }]);
+    session.tick(FIXED_DT);
+  }
+}
+
+/** A player who walks up to the boar and slashes at it, aiming at it the whole time. */
+function brawler(session: GameSession): () => PlayerInputData {
+  let step = 0;
+  return () => {
+    const fight = fightOf(session);
+    const me = fight.world.require(fight.players[0]!, Body).pos;
+    const it = fight.world.require(fight.enemies[0]!, Body).pos;
+    const dx = it.x - me.x, dz = it.z - me.z, dist = Math.hypot(dx, dz) || 1;
+    const aimX = dx / dist, aimZ = dz / dist, far = dist > 2.6;
+    const attack = !far && step++ % 2 === 0;
+    return { ...IDLE_INPUT, aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack };
+  };
+}
+
+/** The boar one slash from dying, then the brawler: a win, decided by the server from the player's inputs. */
+function win(session: GameSession): void {
+  const fight = fightOf(session);
+  fight.world.require(fight.enemies[0]!, Health).hp = physicalDamage(PLAYER.slash.damage, PLAYER_STATS);
+  play(session, brawler(session));
+}
+
+/** Knocked down: the next step decides the fight. */
+function lose(session: GameSession): void {
+  play(session, () => IDLE_INPUT, 1);
+  const fight = fightOf(session);
+  fight.world.require(fight.players[0]!, Health).hp = 0;
+  play(session, () => IDLE_INPUT);
 }
 
 describe("starting a battle", () => {
-  test("sends encounter with the enemy, the arena, and the player's vitals", () => {
+  test("sends encounter with the fight to build: the arena, the enemy, the player's vitals, stats and burden", () => {
     const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
     session.debugEncounter();
     const msg = link.last("encounter");
     assert.equal(msg.source, null);
-    assert.deepEqual(msg.enemy, ENEMIES["wild-boar"]);
-    assert.deepEqual(msg.arena, LEVEL.arena);
-    assert.deepEqual(msg.vitals, HURT);
-    assert.deepEqual(msg.stats, session.stats);
+    assert.equal(msg.seat, 0);
+    assert.deepEqual(msg.setup.arena, LEVEL.arena);
+    assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW }]);
+    assert.deepEqual(msg.setup.players, [{ at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light" }]);
   });
 
-  test("says how weighed down the player comes in (the arena applies it)", () => {
+  test("says how weighed down the player comes in (the fight applies it)", () => {
     const tusk = ITEMS["boar-tusk"];
     const count = carryLimit(PLAYER_STATS) / tusk.weight + 1;
     const heavy: Bag = {
@@ -48,10 +100,7 @@ describe("starting a battle", () => {
     };
     const { session, link } = startSession({ dev: true, saved: { bag: heavy } });
     session.debugEncounter();
-    assert.equal(link.last("encounter").burden, "heavy");
-    const light = startSession({ dev: true });
-    light.session.debugEncounter();
-    assert.equal(light.link.last("encounter").burden, "light");
+    assert.equal(link.last("encounter").setup.players[0]!.burden, "heavy");
   });
 
   test("touching the overworld boar starts a battle against it", () => {
@@ -64,171 +113,138 @@ describe("starting a battle", () => {
   });
 });
 
-describe("ending a battle", () => {
-  test("without a battle does nothing", () => {
-    const { session, link, saves } = startSession();
-    session.endBattle(true, FULL);
-    assert.equal(link.all("battleResult").length, 0);
-    assert.equal(saves.length, 0);
-    assert.equal(session.wins, 0);
-  });
-
-  test("a win claimed at once is refused: no win, full vitals, back at the level's spawn", (t) => {
-    const { session, link, saves } = inBattle(t);
-    session.overworld.place({ x: 3, z: 3 });
-    session.endBattle(true, { hp: 30, stamina: 10 });
-    const result = link.last("battleResult");
-    assert.equal(result.accepted, false);
-    assert.equal(result.won, false);
-    assert.equal(result.wins, 0);
-    assert.deepEqual(result.loot, {});
-    assert.deepEqual(result.leftBehind, {});
-    assert.deepEqual(session.vitals, FULL);
-    assert.deepEqual(session.overworld.playerPos(), LEVEL.spawn);
-    assert.equal(saves.length, 1);
-    assert.equal(session.battle, null);
-  });
-
-  test("a plausibly timed win counts, saves, and packs the loot into the bag", (t) => {
+describe("the server runs the fight", () => {
+  test("and decides a win from the player's inputs alone: result, loot packed, saved", (t) => {
     t.mock.method(Math, "random", () => 0);
-    const { session, link, saves, clock } = inBattle(t);
-    clock.ms += HOUR_MS;
-    session.endBattle(true, HURT);
+    const { session, link, saves } = inBattle();
+    win(session);
     const result = link.last("battleResult");
-    assert.equal(result.accepted, true);
     assert.equal(result.won, true);
     assert.equal(result.wins, 1);
     assert.ok((result.loot["boar-meat"] ?? 0) >= 1);
     assert.deepEqual(result.leftBehind, {});
+    assert.deepEqual(result.lost, {});
     assert.deepEqual(result.bag, packLoot(emptyBag(), result.loot).bag);
     assert.deepEqual(session.bag, result.bag);
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
     assert.deepEqual(saves[0]?.bag, result.bag);
-    assert.deepEqual(result.lost, {});
   });
 
-  test("loot the bag has no room for is left behind", (t) => {
-    t.mock.method(Math, "random", () => 0);
-    const clock = fakeNow(t);
-    const full: Bag = { cols: 1, rows: 1, items: [{ item: "boar-tusk", count: 1, x: 0, y: 0, turned: false }] };
-    const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT }, bag: full } });
-    session.debugEncounter();
-    clock.ms += HOUR_MS;
-    session.endBattle(true, HURT);
-    const result = link.last("battleResult");
-    assert.deepEqual(result.leftBehind, result.loot);
-    assert.deepEqual(session.bag, full);
-  });
-
-  test("a win with an unlucky roll drops nothing", (t) => {
-    t.mock.method(Math, "random", () => 0.999);
-    const { session, link, clock } = inBattle(t);
-    clock.ms += HOUR_MS;
-    session.endBattle(true, HURT);
-    assert.equal(link.last("battleResult").won, true);
-    assert.deepEqual(session.bag, emptyBag());
-  });
-
-  test("a win keeps the player where they were", (t) => {
-    const { session, clock } = inBattle(t);
+  test("a win keeps the HP and stamina the fight left, and the player where they were", () => {
+    const { session, link } = inBattle();
     const before = session.overworld.playerPos();
-    clock.ms += HOUR_MS;
-    session.endBattle(true, HURT);
+    win(session);
+    const last = link.last("battleState").me;
+    assert.deepEqual(session.vitals, { hp: last.health.hp, stamina: last.stamina.value });
+    assert.deepEqual(link.last("battleResult").vitals, session.vitals);
     assert.deepEqual(session.overworld.playerPos(), before);
   });
 
-  test("a loss empties the bag for good, saves that, and says what was lost", (t) => {
-    const { session, link, saves } = inBattle(t, CARRIED);
-    session.endBattle(false, { hp: 0, stamina: 0 });
+  test("sends what moves while it's on, about 20 times a second", () => {
+    const { session, link } = inBattle();
+    play(session, () => IDLE_INPUT, 60);
+    assert.equal(link.all("battleState").length, 20);
+  });
+
+  test("nothing a client sends can end it: leaving the arena early is ignored, the fight goes on", () => {
+    const { session, link } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 30);
+    session.leaveBattle();
+    session.battleInput([{ seq: 1, ...IDLE_INPUT, attack: true }]);
+    play(session, () => IDLE_INPUT, 30);
+    assert.equal(link.all("battleResult").length, 0);
+    assert.equal(fightOf(session).outcome.state, "fighting");
+    assert.deepEqual(session.bag, CARRIED);
+  });
+
+  test("a loss (the boar wins) empties the bag for good, refills HP, wakes the player at the start, and saves", () => {
+    const { session, link, saves } = inBattle(CARRIED, { hp: 1, stamina: 40 });
+    session.overworld.place({ x: 3, z: 3 });
+    play(session, () => IDLE_INPUT);
     const result = link.last("battleResult");
+    assert.equal(result.won, false);
+    assert.equal(link.last("battleState").me.health.hp, 0, "the boar hit them");
     assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
     assert.deepEqual(result.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.bag);
+    assert.deepEqual(result.vitals, FULL);
+    assert.deepEqual(result.me, LEVEL.spawn);
+    assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, result.bag);
   });
 
-  test("a refused win is a loss: the bag is emptied too", (t) => {
-    const { session, link } = inBattle(t, CARRIED);
-    session.endBattle(true, HURT);
-    const result = link.last("battleResult");
-    assert.equal(result.accepted, false);
-    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
+  test("a fight still going after MAX_FIGHT_TIME is lost: the bag empties", () => {
+    const { session, link } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 1);
+    fightOf(session).outcome.stateTime = MAX_FIGHT_TIME;
+    play(session, () => IDLE_INPUT, 1);
+    assert.equal(link.last("battleResult").won, false);
     assert.deepEqual(session.bag.items, []);
   });
 
-  test("a loss refills vitals and returns the player to the level's spawn", (t) => {
-    const { session, link, saves } = inBattle(t);
-    session.overworld.place({ x: 3, z: 3 });
-    session.endBattle(false, { hp: 0, stamina: 0 });
-    const result = link.last("battleResult");
-    assert.equal(result.won, false);
-    assert.equal(result.accepted, true);
-    assert.deepEqual(result.vitals, FULL);
-    assert.deepEqual(result.me, LEVEL.spawn);
-    assert.equal(saves.length, 1);
+  test("a player who disconnects mid-fight has lost it: the bag empties as on a death, and that's saved", () => {
+    const { session, saves } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 30);
+    const room = session.battle!.room;
+    session.disconnect();
+    assert.equal(room.over, true, "the fight is freed");
+    const saved = saves.at(-1);
+    assert.deepEqual(saved?.bag.items, []);
+    assert.deepEqual(saved?.vitals, FULL);
+  });
+
+  test("disconnecting after the result changes nothing more", () => {
+    const { session, saves } = inBattle(CARRIED);
+    win(session);
+    const bag = session.bag;
+    session.disconnect();
+    assert.deepEqual(saves.at(-1)?.bag, bag);
+    assert.equal(saves.at(-1)?.wins, 1);
   });
 });
 
-describe("vitals claimed after a win", () => {
-  function winWith(t: Parameters<typeof fakeNow>[0], claimed: { hp: number; stamina: number }) {
-    const { session, clock } = inBattle(t);
-    clock.ms += HOUR_MS;
-    session.endBattle(true, claimed);
-    return session.vitals;
-  }
-
-  test("are kept when they're possible", (t) => {
-    assert.deepEqual(winWith(t, { hp: 20, stamina: 5 }), { hp: 20, stamina: 5 });
-  });
-
-  test("more HP than the player came in with becomes what they came in with", (t) => {
-    assert.equal(winWith(t, { hp: HURT.hp + 30, stamina: 5 }).hp, HURT.hp);
-  });
-
-  test("0 HP on a win becomes 1", (t) => {
-    assert.equal(winWith(t, { hp: 0, stamina: 5 }).hp, 1);
-  });
-
-  test("stamina above the max becomes the max", (t) => {
-    assert.equal(winWith(t, { hp: 20, stamina: PLAYER_STATS.stamina + 50 }).stamina, PLAYER_STATS.stamina);
-  });
-
-  test("negative stamina becomes 0", (t) => {
-    assert.equal(winWith(t, { hp: 20, stamina: -5 }).stamina, 0);
+describe("leaving the arena", () => {
+  test("after the result, the player stays in the arena (no overworld) until they leave it", () => {
+    const { session, link } = inBattle();
+    lose(session);
+    const sent = link.sent.length;
+    for (let i = 0; i < 10; i++) session.tick(FIXED_DT);
+    assert.equal(link.sent.length, sent);
+    session.leaveBattle();
+    assert.equal(session.battle, null);
+    for (let i = 0; i < 3; i++) session.tick(FIXED_DT);
+    assert.equal(link.all("state").length, 1, "the overworld goes on");
   });
 });
 
 describe("the overworld after a battle", () => {
-  test("winning against the overworld boar removes it", (t) => {
-    const clock = fakeNow(t);
-    const { session } = startSession();
-    const { boar, pos } = findBoar(session);
-    session.overworld.place(pos);
-    session.tick(FIXED_DT);
-    clock.ms += HOUR_MS;
-    session.endBattle(true, FULL);
+  function touchBoar() {
+    const started = startSession();
+    const found = findBoar(started.session);
+    started.session.overworld.place(found.pos);
+    started.session.tick(FIXED_DT);
+    return { ...started, ...found };
+  }
+
+  test("winning against the overworld boar removes it", () => {
+    const { session, boar } = touchBoar();
+    win(session);
     assert.equal(session.overworld.world.isAlive(boar), false);
   });
 
-  test("losing leaves the overworld boar in place", (t) => {
-    fakeNow(t);
-    const { session } = startSession();
-    const { boar, pos } = findBoar(session);
-    session.overworld.place(pos);
-    session.tick(FIXED_DT);
-    session.endBattle(false, FULL);
+  test("losing leaves the overworld boar in place", () => {
+    const { session, boar } = touchBoar();
+    lose(session);
+    session.leaveBattle();
     assert.equal(session.overworld.world.isAlive(boar), true);
   });
 
-  test("the level's safe time blocks a new encounter right away, and only for that long", (t) => {
-    fakeNow(t);
-    const { session, link } = startSession();
-    const { pos } = findBoar(session);
-    session.overworld.place(pos);
-    session.tick(FIXED_DT);
-    session.endBattle(false, FULL);
+  test("the level's safe time blocks a new encounter right away, and only for that long", () => {
+    const { session, link } = touchBoar();
+    lose(session);
+    session.leaveBattle();
 
     const safeTicks = Math.floor(LEVEL.safeTime / FIXED_DT) - 1;
     for (let i = 0; i < safeTicks; i++) {

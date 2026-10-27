@@ -16,6 +16,7 @@
  * `npm run typecheck` enforces the rule (server/scripts/check-layers.ts).
  */
 import { fileURLToPath } from "node:url";
+import { initPhysics } from "@infinite-tower/shared/fight";
 import { startServer } from "./api/server.js";
 import { Accounts } from "./core/accounts/accounts.js";
 import { FixedClock } from "./core/game/clock.js";
@@ -23,7 +24,7 @@ import { OnlinePlayers } from "./core/game/online.js";
 import { PgAccountStore } from "./db/account-store.js";
 import { connectDb, errorText } from "./db/db.js";
 import { PgPlayerStore } from "./db/player-store.js";
-import { DEV, PORT } from "./env.js";
+import { DEV, DEV_PING_MS, PORT } from "./env.js";
 import { gameSockets } from "./ws/sockets.js";
 
 const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url));
@@ -36,6 +37,8 @@ const exitOn = (tag: string) => (err: unknown): never => {
   process.exit(1);
 };
 
+// The arena's physics (Rapier) loads once, before any fight is made.
+await initPhysics();
 const db = await connectDb().catch(exitOn("db"));
 const accounts = new Accounts(new PgAccountStore(db));
 const online = new OnlinePlayers(new PgPlayerStore(db), DEV);
@@ -45,9 +48,10 @@ await startServer({
   clientDist: CLIENT_DIST,
   accounts,
   secureCookies: !DEV,
-  socket: gameSockets(online),
+  socket: gameSockets(online, { dev: DEV, pingMs: DEV_PING_MS }),
 }).catch(exitOn("server"));
 console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`);
+if (DEV_PING_MS > 0) console.log(`[server] simulating a ${DEV_PING_MS} ms ping (DEV_PING_MS; ?ping=N per page)`);
 
 const clock = new FixedClock((dt) => online.tick(dt));
 let last = performance.now();

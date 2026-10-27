@@ -77,6 +77,11 @@ export class ArenaPhysics {
     return { x, y, z };
   }
 
+  /** Puts a collider's center at `center`, through anything (the client placing what the server's states say). */
+  place(handle: number, center: Vec3): void {
+    this.collider(handle).setTranslation({ x: center.x, y: center.y, z: center.z });
+  }
+
   /**
    * Moves a collider by `delta`, stopped and slid along by the floor and the wall. Returns how far it went. Across
    * the floor first, against the wall only, then up or down, against the floor only: a body resting on the floor

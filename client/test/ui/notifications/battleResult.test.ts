@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 
-const WIN: BattleOutcome = { won: true, accepted: true, loot: {}, leftBehind: {}, lost: {} };
-const LOSS: BattleOutcome = { won: false, accepted: true, loot: {}, leftBehind: {}, lost: {} };
-const REFUSED: BattleOutcome = { won: false, accepted: false, loot: {}, leftBehind: {}, lost: {} };
+const WIN: BattleOutcome = { won: true, loot: {}, leftBehind: {}, lost: {} };
+const LOSS: BattleOutcome = { won: false, loot: {}, leftBehind: {}, lost: {} };
 
 describe("battleResultLines", () => {
   test("a win says what was found", () => {
@@ -39,14 +38,5 @@ describe("battleResultLines", () => {
 
   test("dying with an empty bag still says you died", () => {
     assert.deepEqual(battleResultLines(LOSS), ["You died."]);
-  });
-
-  test("a refused win says so first, then what is gone", () => {
-    const said = battleResultLines({ ...REFUSED, lost: { "boar-hide": 1 } });
-    assert.deepEqual(said, ["The server didn't accept that win.", "Everything you carried is gone: boar hide."]);
-  });
-
-  test("a refused win with an empty bag only says it was refused", () => {
-    assert.deepEqual(battleResultLines(REFUSED), ["The server didn't accept that win."]);
   });
 });
