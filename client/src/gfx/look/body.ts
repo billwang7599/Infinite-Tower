@@ -12,7 +12,7 @@
  */
 import type { Art, BattleFrame, Frame, Frames, Piece } from "./art.js";
 import { ink } from "./art.js";
-import { battleFrames, type Pose } from "./battle.js";
+import { battleFrames, type Pose, type SwordPose } from "./battle.js";
 import {
   BASE, SHADOW, ellipse, farSide, mirror, polygon, rect, symmetric, union, type Point,
 } from "./pixels.js";
@@ -118,7 +118,9 @@ export const BODY_TYPES = {
     chibi: chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
     battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
-} as const satisfies Record<string, Omit<Frames, "battle"> & { battle: Record<Pose, BattleFrame> }>;
+} as const satisfies Record<
+  string, Omit<Frames, "battle"> & { battle: Record<Pose | SwordPose, readonly BattleFrame[]> }
+>;
 export type BodyType = keyof typeof BODY_TYPES;
 
 const skin = ink("skin", BASE);

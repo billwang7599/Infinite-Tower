@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { DEFAULT_LOOK, LOOK_OPTIONS } from "@infinite-tower/shared";
 import { VIEWS, type Art, type Picture } from "../../src/gfx/look/art.js";
-import { POSES } from "../../src/gfx/look/battle.js";
+import { POSES, SWORD_POSES, type SwordPose } from "../../src/gfx/look/battle.js";
 import { BODY_TYPES } from "../../src/gfx/look/body.js";
 import { LEATHER_JERKIN } from "../../src/gfx/look/jerkin.js";
 import { CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait } from "../../src/gfx/look/look.js";
@@ -19,7 +19,9 @@ const pictures = (wear: readonly Art[]) => [
   ...CHIBI_FACINGS.map((facing) => ({
     name: `chibi ${facing}`, view: VIEWS.chibi, pic: drawChibi(DEFAULT_LOOK, facing, wear),
   })),
-  ...POSES.map((pose) => ({ name: `battle ${pose}`, view: VIEWS.battle, pic: drawBattle(DEFAULT_LOOK, pose, wear) })),
+  ...POSES.map((pose) => ({
+    name: `battle ${pose}`, view: VIEWS.battle, pic: drawBattle(DEFAULT_LOOK, pose, 0, wear),
+  })),
 ];
 
 const opaquePixels = (pic: Picture) =>
@@ -43,6 +45,73 @@ describe("look pictures", () => {
       for (const { name, pic } of pictures(wear)) assert.ok(opaquePixels(pic) > 0, `${name}: nothing drawn`);
     });
   }
+});
+
+describe("the sword fight's poses", () => {
+  test("a swing has a wind-up, a strike and a follow-through; a stab three frames, a block and a stagger two", () => {
+    assert.deepEqual(SWORD_POSES, {
+      "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-bt": 3,
+      "swing-tlbr": 3, "swing-brtl": 3, "swing-trbl": 3, "swing-bltr": 3,
+      stab: 3, block: 2, stagger: 2,
+    });
+  });
+
+  test("every frame is drawn at the battle size, on every body type with every hair style", () => {
+    for (const body of LOOK_OPTIONS.body) {
+      for (const hair of LOOK_OPTIONS.hair) {
+        for (const [pose, count] of Object.entries(SWORD_POSES) as [SwordPose, number][]) {
+          assert.equal(BODY_TYPES[body].battle[pose].length, count, `${body} ${pose}`);
+          for (let frame = 0; frame < count; frame++) {
+            const name = `${body} ${hair} ${pose} ${frame}`;
+            const pic = drawBattle({ ...DEFAULT_LOOK, body, hair }, pose, frame);
+            assert.equal(pic.width, VIEWS.battle.width, name);
+            assert.equal(pic.height, VIEWS.battle.height, name);
+            assert.ok(opaquePixels(pic) > 0, `${name}: nothing drawn`);
+          }
+        }
+      }
+    }
+  });
+
+  test("there's no frame past a pose's last", () => {
+    assert.throws(() => drawBattle(DEFAULT_LOOK, "block", SWORD_POSES.block), RangeError);
+    assert.throws(() => drawBattle(DEFAULT_LOOK, "stand", 1), RangeError);
+  });
+
+  test("every sword stays in the picture", () => {
+    for (const body of LOOK_OPTIONS.body) {
+      for (const pose of Object.keys(SWORD_POSES) as SwordPose[]) {
+        BODY_TYPES[body].battle[pose].forEach(({ sword }, frame) => {
+          for (const [x, y] of sword) {
+            const inside = x >= 0 && x <= VIEWS.battle.width && y >= 0 && y <= VIEWS.battle.height;
+            assert.ok(inside, `${body} ${pose} ${frame}: the sword reaches ${x}, ${y}`);
+          }
+        });
+      }
+    }
+  });
+
+  // The swings are named for the way the sword moves on screen (y grows down it): swing-tlbr goes from the top
+  // left to the bottom right.
+  test("each swing's sword tip moves frame by frame the way the swing is named", () => {
+    const ways: Record<string, readonly [x: number, y: number]> = { l: [-1, 0], r: [1, 0], t: [0, -1], b: [0, 1] };
+    const toward = (side: string, axis: 0 | 1) => [...side].reduce((sum, c) => sum + ways[c]![axis], 0);
+    for (const body of LOOK_OPTIONS.body) {
+      for (const pose of Object.keys(SWORD_POSES).filter((p) => p.startsWith("swing-")) as SwordPose[]) {
+        const name = pose.slice("swing-".length), half = name.length / 2;
+        const [from, to] = [name.slice(0, half), name.slice(half)];
+        const tips = BODY_TYPES[body].battle[pose].map(({ sword: [, tip] }) => tip);
+        for (const axis of [0, 1] as const) {
+          const way = Math.sign(toward(to, axis) - toward(from, axis));
+          if (!way) continue;
+          tips.slice(1).forEach((tip, i) => {
+            const step = tip[axis] - tips[i]![axis];
+            assert.equal(Math.sign(step), way, `${body} ${pose} ${i + 1}: the tip moved ${step} along ${"xy"[axis]}`);
+          });
+        }
+      }
+    }
+  });
 });
 
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);

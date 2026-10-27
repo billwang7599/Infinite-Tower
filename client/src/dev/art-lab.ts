@@ -1,11 +1,12 @@
 /**
  * Dev-only page (/art.html on the Vite dev server, never built): every look option in every view (the portrait,
- * the chibi facing front, back and side, the battle sprite in each pose: stand, slash, down), a piece of gear
- * tried on, and a mock dialogue scene. For judging the character art, not part of the game.
+ * the chibi facing front, back and side, the battle sprite in each pose: stand, slash, down, and every frame of
+ * the sword fight's poses), a piece of gear tried on, and a mock dialogue scene. For judging the character art,
+ * not part of the game.
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "../gfx/look/art.js";
-import { POSES } from "../gfx/look/battle.js";
+import { POSES, SWORD_POSES, type SwordPose } from "../gfx/look/battle.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
 import {
   CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type ChibiFacing, type Look,
@@ -97,9 +98,20 @@ function render(): void {
 
   // The battle sprite: from behind, in each pose, and at about arena size.
   const battle = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
-  for (const pose of POSES) battle.append(caption(canvas(drawBattle(look, pose, wear()), 5), `battle: ${pose} at 5x`));
-  battle.append(caption(canvas(drawBattle(look, "stand", wear()), 2), "at 2x"));
+  for (const pose of POSES) {
+    battle.append(caption(canvas(drawBattle(look, pose, 0, wear()), 5), `battle: ${pose} at 5x`));
+  }
+  battle.append(caption(canvas(drawBattle(look, "stand", 0, wear()), 2), "at 2x"));
   root.append(battle);
+
+  // The sword fight's poses, not in the arena yet: every frame, in order, at 3x.
+  const moves = el("div", "display:flex;gap:20px 28px;flex-wrap:wrap");
+  for (const [pose, count] of Object.entries(SWORD_POSES) as [SwordPose, number][]) {
+    const frames = el("div", "display:flex;gap:2px");
+    for (let frame = 0; frame < count; frame++) frames.append(canvas(drawBattle(look, pose, frame, wear()), 3));
+    moves.append(caption(frames, `${pose}: ${count} frames`));
+  }
+  root.append(caption(moves, "battle: the sword fight's poses, frame by frame"));
 
   // Mock dialogue, FGO style: speaker lit, the other dimmed, no portrait backgrounds. Portraits face our left, so
   // the one on the left is flipped to face the other.
