@@ -1,11 +1,12 @@
 /**
- * Battles, from the server's side. The fight itself still runs in the browser, so the server can't
- * verify every hit yet; it picks the enemy, times the fight, and refuses wins that are physically
- * impossible (faster than the player's best damage output allows).
+ * Battles, from a player's session: starting one (the fight itself runs in a BattleRoom, core/battle/), what its end
+ * does to the player (wins, loot, the bag, HP and stamina, saved at once), and leaving the arena afterwards.
  */
+import { bagCounts, type Entity, type ItemCounts, type Vitals } from "@infinite-tower/shared";
 import {
-  bagCounts, clamp, physicalDamage, PLAYER, type EnemyDef, type Entity, type ItemCounts, type Stats, type Vitals,
-} from "@infinite-tower/shared";
+  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
+} from "@infinite-tower/shared/fight";
+import { BattleRoom } from "../battle/room.js";
 import { rollDrops } from "../content/drops.js";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import { fullVitals } from "../content/player.js";
@@ -16,32 +17,42 @@ export interface Battle {
   /** The actor that started it (removed if you win), or null for tall grass. */
   source: Entity | null;
   enemyId: EnemyId;
-  /** performance.now() when the encounter was sent. */
-  startedAtMs: number;
-  /** What the player came in with. */
-  vitals: Vitals;
+  room: BattleRoom;
+  /** Which of the room's players this one is. */
+  seat: number;
+  /** The fight is over for the player (and settled): they're still in the arena until they leave it. */
+  over: boolean;
 }
-
-/** A win faster than this share of the fastest possible kill is refused: a little slack, so a perfect fight passes. */
-const MIN_KILL_TIME_SHARE = 0.9;
 
 export function startBattle(session: GameSession, source: Entity | null, enemyId: EnemyId): void {
   const { overworld, vitals } = session;
-  session.battle = { source, enemyId, startedAtMs: performance.now(), vitals };
+  const setup: FightSetup = {
+    arena: overworld.level.arena,
+    players: [{ at: PLAYER_START, vitals, stats: session.stats, burden: session.burden }],
+    enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW }],
+  };
+  const room = new BattleRoom(setup, [{
+    link: session.link,
+    onEnd: (result, after) => settleBattle(session, result, after),
+  }]);
+  session.battle = { source, enemyId, room, seat: 0, over: false };
   overworld.resetWalk(0);
-  session.link.send({
-    t: "encounter", source, enemy: ENEMIES[enemyId], arena: overworld.level.arena, me: overworld.playerPos(), vitals,
-    stats: session.stats, burden: session.burden,
-  });
+  session.link.send({ t: "encounter", source, me: overworld.playerPos(), seat: 0, setup });
 }
 
-/** The client left a decided fight claiming `claimedWin`, with `claimed` HP and stamina left. */
-export function settleBattle(session: GameSession, claimedWin: boolean, claimed: Vitals): void {
+/** The arena's Leave key, after the result: back to the overworld. Mid-fight it does nothing. */
+export function leaveArena(session: GameSession): void {
+  if (session.battle?.over) session.battle = null;
+}
+
+/** The fight is over for the player: `result`, with `after` the HP and stamina it left them. */
+function settleBattle(session: GameSession, result: PlayerResult, after: Vitals): void {
   const battle = session.battle;
   if (!battle) return;
-  const fightTime = (performance.now() - battle.startedAtMs) / 1000;
-  const accepted = !claimedWin || isPlausibleWin(ENEMIES[battle.enemyId], session.stats, fightTime);
-  const won = claimedWin && accepted;
+  battle.over = true;
+  // Gone with nothing won or lost: the save keeps what they came in with.
+  if (result === "left" || result === "fighting") return;
+  const won = result === "won";
   const { overworld } = session;
   const loot = won ? rollDrops(battle.enemyId, overworld.rng) : {};
   const packed = packLoot(session.bag, loot);
@@ -53,7 +64,8 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
     // The spawner replaces it.
     if (battle.source !== null && overworld.world.isAlive(battle.source)) overworld.world.destroy(battle.source);
     overworld.world.flush();
-    session.vitals = vitalsAfterWin(battle.vitals, claimed, session.stats);
+    // A winner is standing (a teammate's win, later, could leave them down).
+    session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
     // Dying is hardcore: everything carried is gone. You wake up back at the start, rested.
     lost = bagCounts(session.bag);
@@ -62,30 +74,9 @@ export function settleBattle(session: GameSession, claimedWin: boolean, claimed:
     session.vitals = fullVitals(session.stats);
   }
   overworld.resetWalk(overworld.level.safeTime);
-  session.battle = null;
   session.save();
   session.link.send({
-    t: "battleResult", won, accepted, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
+    t: "battleResult", won, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
     loot, leftBehind: packed.left, lost, bag: session.bag,
   });
-}
-
-/**
- * The fight runs in the browser, so the server can only bound what it's told: nothing heals during a fight,
- * and a winner is still standing.
- */
-function vitalsAfterWin(before: Vitals, claimed: Vitals, stats: Stats): Vitals {
-  return { hp: clamp(claimed.hp, 1, before.hp), stamina: clamp(claimed.stamina, 0, stats.stamina) };
-}
-
-/** Shortest possible kill: every slash chained back to back, every one landing, at the player's strength. */
-function minKillTime(enemy: EnemyDef, stats: Stats): number {
-  const s = PLAYER.slash;
-  const slashes = Math.ceil(enemy.maxHp / physicalDamage(s.damage, stats));
-  return (slashes - 1) * s.chainAfter + s.windup;
-}
-
-/** `fightTime` is measured by the server, from sending the encounter to receiving the result. */
-function isPlausibleWin(enemy: EnemyDef, stats: Stats, fightTime: number): boolean {
-  return fightTime >= minKillTime(enemy, stats) * MIN_KILL_TIME_SHARE;
 }

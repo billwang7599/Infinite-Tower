@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { CLOSE_CODES, emptyBag } from "@infinite-tower/shared";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
-import { gameSockets } from "../../src/ws/sockets.js";
+import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
 import { MemoryPlayerStore } from "../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../fixtures/level.js";
 import { FakeSocket } from "./fake-socket.js";
@@ -18,12 +18,12 @@ const SAVED: PlayerSave = {
 /** Lets a pending store load (and what follows it) finish. */
 const settle = () => new Promise(setImmediate);
 
-function setup() {
+function setup(ping: PingOptions = { dev: false, pingMs: 0 }) {
   const store = new MemoryPlayerStore();
-  const sockets = gameSockets(new OnlinePlayers(store, false));
-  const connect = async (account: Account | null = ACCOUNT) => {
+  const sockets = gameSockets(new OnlinePlayers(store, false), ping);
+  const connect = async (account: Account | null = ACCOUNT, requestedPing?: string) => {
     const socket = new FakeSocket();
-    sockets.accept(socket.ws, account);
+    sockets.accept(socket.ws, account, requestedPing);
     await settle();
     return socket;
   };
@@ -120,7 +120,7 @@ describe("game sockets", () => {
     const { store, sockets } = setup();
     const release = store.hold();
     const socket = new FakeSocket();
-    sockets.accept(socket.ws, ACCOUNT);
+    sockets.accept(socket.ws, ACCOUNT, undefined);
     socket.close(1001, "going away");
     release();
     await settle();
@@ -132,7 +132,7 @@ describe("game sockets", () => {
     const { store, sockets } = setup();
     const release = store.hold();
     const socket = new FakeSocket();
-    sockets.accept(socket.ws, ACCOUNT);
+    sockets.accept(socket.ws, ACCOUNT, undefined);
     socket.receive({ t: "character", character: TEST_CHARACTER });
     release();
     await settle();
@@ -154,5 +154,33 @@ describe("game sockets", () => {
   test("set a positive message size limit", () => {
     const { sockets } = setup();
     assert.ok(Number.isInteger(sockets.maxMessageBytes) && sockets.maxMessageBytes > 0);
+  });
+});
+
+describe("the simulated ping (dev only)", () => {
+  const DEV = { dev: true, pingMs: 50 };
+
+  test("is the env's for every connection, unless the page asks for another", () => {
+    assert.equal(connectionPingMs(DEV, undefined), 50);
+    for (const ms of [0, 37, 1000]) assert.equal(connectionPingMs(DEV, String(ms)), ms);
+  });
+
+  test("a ?ping= that isn't a whole number of ms, 0 or more, gets the env's", () => {
+    for (const asked of ["", "-5", "1.5", "fast"]) assert.equal(connectionPingMs(DEV, asked), 50, asked);
+  });
+
+  test("is never on in production, whatever's asked", () => {
+    assert.equal(connectionPingMs({ dev: false, pingMs: 0 }, "200"), 0);
+    assert.equal(connectionPingMs({ dev: false, pingMs: 300 }, undefined), 0);
+  });
+
+  test("delays that connection's messages half the ping each way", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const { store, connect } = setup({ dev: true, pingMs: 0 });
+    store.saved.set(ACCOUNT.id, structuredClone(SAVED));
+    const socket = await connect(ACCOUNT, "200");
+    assert.deepEqual(socket.sent, []);
+    t.mock.timers.tick(100);
+    assert.deepEqual(socket.kinds(), ["welcome", "level"]);
   });
 });

@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { IDLE_INPUT, isIdle, quantizeInput, type PlayerInputData } from "@infinite-tower/shared";
+
+const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_INPUT, ...over });
+
+describe("isIdle", () => {
+  test("standing still with nothing pressed is idle, wherever the camera looks", () => {
+    assert.equal(isIdle(IDLE_INPUT), true);
+    assert.equal(isIdle(input({ aimX: 1, aimZ: 0 })), true);
+  });
+
+  test("moving or holding any button isn't", () => {
+    for (const over of [{ moveX: 0.5 }, { moveZ: -1 }, { jump: true }, { attack: true }, { dodge: true }]) {
+      assert.equal(isIdle(input(over)), false, JSON.stringify(over));
+    }
+  });
+});
+
+describe("quantizeInput", () => {
+  test("rounds the move and the aim to 3 decimals, the buttons as they are", () => {
+    const raw = input({ moveX: 0.70710678, moveZ: -0.70710678, aimX: 0.12345, aimZ: 0.99235, attack: true });
+    const rounded = input({ moveX: 0.707, moveZ: -0.707, aimX: 0.123, aimZ: 0.992, attack: true });
+    assert.deepEqual(quantizeInput(raw), rounded);
+  });
+
+  test("survives JSON unchanged, so both sides run the same numbers", () => {
+    const rounded = quantizeInput(input({ moveX: Math.SQRT1_2, moveZ: -0.1, aimX: Math.sin(1), aimZ: Math.cos(1) }));
+    assert.deepEqual(JSON.parse(JSON.stringify(rounded)), rounded);
+  });
+});

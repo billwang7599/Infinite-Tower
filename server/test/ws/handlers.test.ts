@@ -13,7 +13,8 @@ function fakeSession() {
   const record = (method: string) => (...args: unknown[]) => { calls.push([method, ...args]); };
   const session = {
     input: record("input"),
-    endBattle: record("endBattle"),
+    battleInput: record("battleInput"),
+    leaveBattle: record("leaveBattle"),
     setSettings: record("setSettings"),
     setCharacter: record("setCharacter"),
     rest: record("rest"),
@@ -35,10 +36,13 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "input", seq: 7, moveX: -1, moveZ: 0.5 }), [["input", 7, -1, 0.5]]);
   });
 
-  test("battleEnd reports the claimed result and vitals", () => {
-    const vitals = { hp: 40, stamina: 12 };
-    assert.deepEqual(handle({ t: "battleEnd", won: true, vitals }), [["endBattle", true, vitals]]);
-    assert.deepEqual(handle({ t: "battleEnd", won: false, vitals }), [["endBattle", false, vitals]]);
+  test("battleInput hands on the steps' inputs", () => {
+    const inputs = [{ seq: 4, moveX: 0, moveZ: 1, aimX: 0, aimZ: 1, jump: false, attack: true, dodge: false }];
+    assert.deepEqual(handle({ t: "battleInput", inputs }), [["battleInput", inputs]]);
+  });
+
+  test("leaveBattle leaves the arena", () => {
+    assert.deepEqual(handle({ t: "leaveBattle" }), [["leaveBattle"]]);
   });
 
   test("settings are passed on whole", () => {
@@ -71,7 +75,7 @@ describe("message handlers", () => {
 
   test("every client message type has a handler", () => {
     const types: ClientMsg["t"][] = [
-      "input", "battleEnd", "settings", "character", "rest", "useItem", "moveItem", "debug",
+      "input", "battleInput", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem", "debug",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

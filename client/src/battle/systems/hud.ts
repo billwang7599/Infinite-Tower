@@ -8,8 +8,8 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
   return (world) => {
     if (!ctx.fight) return;
     const patch: Partial<BattleHudState> = {
-      result: ctx.fight.outcome.state,
-      showResult: resultShown(ctx.fight.outcome),
+      result: ctx.outcome.state,
+      showResult: resultShown(ctx.outcome),
     };
 
     const me = world.first(LocalPlayer, Health, Stamina);

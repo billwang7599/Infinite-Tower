@@ -32,9 +32,11 @@ export function boarAnimationSystem(): System {
       // Pose targets. headPitch > 0 = nose down; lean > 0 = front down.
       let headPitch = 0, lean = 0, roll = 0, tremble = 0, yOff = 0, zOff = 0, glow = 0;
       let rollRate = 12;
+      // Down is dead, whatever its last state: the server's fight stops on the step that decides it.
+      const state = health.hp > 0 ? enemy.state : "dead";
       const t = enemy.stateTime;
       const lunge = world.get(e, LungeAttack)?.def, charge = world.get(e, ChargeAttack)?.def;
-      switch (enemy.state) {
+      switch (state) {
         case "lungeWindup": {
           const k = lunge ? Math.min(1, t / lunge.windup) : 1;
           headPitch = 0.5 * k; zOff = -0.3 * k; lean = -0.1 * k; tremble = 0.015 * k;
@@ -80,10 +82,10 @@ export function boarAnimationSystem(): System {
         damp(nodes.model.position.z, zOff, 14, dt),
       );
 
-      nodes.stars.setEnabled(enemy.state === "stunned");
-      if (enemy.state === "stunned") nodes.stars.rotation.y += dt * 5;
+      nodes.stars.setEnabled(state === "stunned");
+      if (state === "stunned") nodes.stars.rotation.y += dt * 5;
 
-      const telegraphOn = enemy.state === "chargeWindup";
+      const telegraphOn = state === "chargeWindup";
       nodes.telegraph.setEnabled(telegraphOn);
       if (telegraphOn && charge) {
         nodes.telegraph.visibility = 0.2 + 0.8 * Math.min(1, t / (charge.windup - charge.lockAt));

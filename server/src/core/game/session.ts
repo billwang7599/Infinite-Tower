@@ -1,18 +1,18 @@
 /**
  * One connected player's game. Starts from their save and holds what they have (vitals, wins, settings,
- * character, bag) and where they are: walking their overworld, or in a battle (battle.ts). Its public methods
- * are what a player can ask for (ws/handlers.ts calls them, one per message), and it answers through its
- * `PlayerLink`. Not to be confused with a login session (core/accounts).
+ * character, bag) and where they are: walking their overworld, or in a battle (battle.ts), whose fight it ticks.
+ * Its public methods are what a player can ask for (ws/handlers.ts calls them, one per message), and it answers
+ * through its `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
 import {
-  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
-  type Character, type SavedSettings, type Stats, type Vitals,
+  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type BattleInput,
+  type Burden, type Cell, type Character, type SavedSettings, type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
-import { settleBattle, startBattle, type Battle } from "./battle.js";
+import { leaveArena, startBattle, type Battle } from "./battle.js";
 import { stateMsg } from "./snapshot.js";
 
 /** Send `state` every this many ticks (60 Hz / 3 = 20 Hz). */
@@ -78,9 +78,25 @@ export class GameSession {
     if (this.inOverworld) this.overworld.input(seq, moveX, moveZ);
   }
 
-  /** The client left a decided fight; battle.ts checks what it claims. */
-  endBattle(claimedWin: boolean, vitals: Vitals): void {
-    settleBattle(this, claimedWin, vitals);
+  /** What the player did in their fight, step by step. The server runs the fight: nothing else can end it. */
+  battleInput(inputs: readonly BattleInput[]): void {
+    const battle = this.battle;
+    if (battle && !battle.over) battle.room.input(battle.seat, inputs);
+  }
+
+  /** The Leave key after a fight's result: back to the overworld (ignored mid-fight). */
+  leaveBattle(): void {
+    leaveArena(this);
+  }
+
+  /**
+   * The player's connection is gone (closed, lost, or taken over by another tab). Mid-fight, they're out of it, and
+   * the fight's rules say what that costs (outcome.ts: LEAVING_LOSES). Then everything is saved.
+   */
+  disconnect(): void {
+    const battle = this.battle;
+    if (battle && !battle.over) battle.room.leave(battle.seat);
+    this.save();
   }
 
   /** Dev servers only: a battle right now, without finding one. */
@@ -151,7 +167,12 @@ export class GameSession {
   /** Walking around a level: not in a battle, and not still making a character. */
   get inOverworld(): boolean { return this.battle === null && this.overworld.hasLevel; }
 
+  /** One fixed step: of the battle, if there's one (its room steps at FIXED_DT), or else the overworld. */
   tick(dt: number): void {
+    if (this.battle) {
+      this.battle.room.tick();
+      return;
+    }
     if (!this.inOverworld) return;
     this.overworld.step(dt);
     if (this.inOverworld && ++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld));

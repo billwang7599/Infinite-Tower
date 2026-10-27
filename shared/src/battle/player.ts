@@ -1,6 +1,6 @@
 /**
- * Player tuning for the arena. Shared: the client predicts its own player with these and a server
- * would re-run them. Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
+ * Player tuning for the arena. Shared: the server's fight runs them, and the client predicts its own player with
+ * them. Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
  * arena size are server content (server/src/core/content).
  *
  * Units: seconds, meters, m/s and m/s², unless the name or comment says otherwise.

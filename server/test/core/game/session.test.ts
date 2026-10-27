@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { before, describe, test } from "node:test";
 import {
   BURDEN, carryLimit, emptyBag, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE, type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
+import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { startSession } from "./helpers.js";
+
+before(() => initPhysics());
 
 const MEAT_HEAL_HP = itemDef("boar-meat").healHp ?? 0;
 const FULL = fullVitals(PLAYER_STATS);

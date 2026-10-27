@@ -1,16 +1,16 @@
 /**
- * The battle mode: the 2.5D arena fight, drawn. The fight itself is a shared Fight (its own world and physics);
- * Babylon's deterministic lockstep calls onBeforeStep at FIXED_DT, and each call reads the keys and steps the fight
- * once, so the arena only moves while its scene is the one being rendered. Render systems draw the fight's state
- * once per frame.
+ * The battle mode: the 2.5D arena fight, drawn. The server runs the fight; this keeps a copy of it (the shared Fight,
+ * built from the encounter's setup) to draw. Babylon's deterministic lockstep calls onBeforeStep at FIXED_DT, only
+ * while the arena's scene renders, and each call reads the keys, predicts your own fighter one step (prediction.ts)
+ * and moves everyone else along the server's states (mirror.ts). Each `battleState` corrects your fighter and feeds
+ * the mirror; the inputs go out once a frame. Render systems draw the fight's state once per frame.
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  Health, LocalPlayer, Stamina,
-  type ArenaDef, type Burden, type EnemyDef, type Entity, type PlayerInputData, type System, type Stats,
-  type Vitals, type World,
+  FIXED_DT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf,
+  type System, type World,
 } from "@infinite-tower/shared";
-import { ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START } from "@infinite-tower/shared/fight";
+import { Fight } from "@infinite-tower/shared/fight";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
@@ -18,15 +18,17 @@ import type { Settings } from "../settings/settings.js";
 import type { BattleHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { buildArena } from "./arena.js";
-import { registerArenaDisposers, registerFighterDisposers } from "./components.js";
+import { DrawOffset, easeCorrection, registerArenaDisposers, registerFighterDisposers } from "./components.js";
 import { resultShown, type BattleContext } from "./context.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
 import { addEnemyModel } from "./enemies/spawn.js";
 import { createMaterials } from "./materials.js";
+import { FightMirror } from "./mirror.js";
 import { registerPlayerDisposers } from "./player/components.js";
 import { readPlayerInput } from "./player/input.js";
 import { addPlayerSprite } from "./player/spawn.js";
 import { playerSpriteSystem } from "./player/sprite.js";
+import { BattlePrediction } from "./prediction.js";
 import type { BattleScene } from "./scene.js";
 import { cameraSystem } from "./systems/camera.js";
 import { followSystem } from "./systems/follow.js";
@@ -38,9 +40,12 @@ const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
 
 export interface Battle {
   ctx: BattleContext;
-  /** `vitals`, `stats` and `burden` (how weighed down the bag leaves the player): what they start with. */
-  start(enemy: EnemyDef, arena: ArenaDef, vitals: Vitals, stats: Stats, burden: Burden): void;
-  end(): { won: boolean; vitals: Vitals };
+  /** A fight starts: build the server's fight from `encounter`. Your inputs go out through `send`. */
+  start(encounter: ServerMsgOf<"encounter">, send: (msg: ClientMsg) => void): void;
+  /** The server's state of the fight. */
+  onState(msg: ServerMsgOf<"battleState">): void;
+  /** Leaving the arena: the fight's copy is dropped. */
+  end(): void;
   render(): void;
 }
 
@@ -66,6 +71,7 @@ export function createBattle(opts: BattleOptions): Battle {
     arena: { radius: 0 },
     view: { ...START_VIEW },
     fight: null,
+    outcome: { state: "fighting", stateTime: 0 },
     shake: 0,
   };
   let arenaScenery: Entity | null = null;
@@ -78,16 +84,21 @@ export function createBattle(opts: BattleOptions): Battle {
     arenaScenery = buildArena(ctx);
   };
 
+  /** The fight's: made on start, dropped on end. */
+  let prediction: BattlePrediction | null = null;
+  let mirror: FightMirror | null = null;
+  let me: Entity | null = null;
+
   const input: PlayerInputData = { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false };
   scene.onBeforeStepObservable.add(() => {
-    const fight = ctx.fight;
-    if (!fight) return;
+    if (!ctx.fight || !prediction || !mirror) return;
     // After the fight, the leave key (Enter / E by default) goes back, once the result has been on screen a moment.
     const leave = keyboard.consumePressed(settings.bindings.get().battle.leave);
-    if (leave && resultShown(fight.outcome)) opts.onLeave();
+    if (leave && resultShown(ctx.outcome)) opts.onLeave();
     readPlayerInput(ctx, input);
-    fight.step([input]);
-    shakeForImpacts(ctx, fight.events);
+    prediction.step(input);
+    mirror.step();
+    ctx.outcome.stateTime += FIXED_DT;
   });
 
   const render: System[] = [
@@ -97,43 +108,46 @@ export function createBattle(opts: BattleOptions): Battle {
   ];
   scene.onBeforeRenderObservable.add(() => {
     const dt = frameSeconds(engine);
+    prediction?.flush();
     if (ctx.fight) for (const s of render) s(ctx.fight.world, dt);
   });
 
-  /** What the fight started with: reported back if the player somehow isn't there at the end. */
-  let startVitals: Vitals = { hp: 0, stamina: 0 };
-
   return {
     ctx,
-    start(enemy, arena, vitals, stats, burden) {
+    start({ setup, seat }, send) {
       ctx.fight?.dispose();
-      useArena(arena);
-      startVitals = vitals;
-      const fight = new Fight({
-        arena,
-        players: [{ at: PLAYER_START, vitals, stats, burden }],
-        enemies: [{ def: enemy, at: ENEMY_START, yaw: ENEMY_START_YAW }],
-      });
+      useArena(setup.arena);
+      const fight = new Fight(setup);
       registerFighterDisposers(fight.world);
       registerPlayerDisposers(fight.world);
       for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(fight.world);
-      const me = fight.players[0]!;
+      me = fight.players[seat]!;
       fight.world.add(me, LocalPlayer, true);
-      addPlayerSprite(ctx, fight.world, me);
+      fight.world.add(me, DrawOffset, { x: 0, y: 0, z: 0 });
+      for (const e of fight.players) addPlayerSprite(ctx, fight.world, e);
       for (const e of fight.enemies) addEnemyModel(ctx, fight.world, e);
       ctx.fight = fight;
+      ctx.outcome = { state: "fighting", stateTime: 0 };
+      prediction = new BattlePrediction(fight, me, send);
+      mirror = new FightMirror(fight, seat);
       Object.assign(ctx.view, START_VIEW);
       ctx.shake = 0;
       keyboard.clearPressed();
     },
+    onState(msg) {
+      if (!ctx.fight || !prediction || !mirror || me === null) return;
+      easeCorrection(ctx.fight.world.require(me, DrawOffset), prediction.reconcile(msg));
+      mirror.push(msg);
+      shakeForImpacts(ctx, msg.events);
+      if (msg.outcome === ctx.outcome.state) return;
+      ctx.outcome = { state: msg.outcome, stateTime: 0 };
+      if (msg.outcome !== "fighting") prediction.stop();
+    },
     end() {
-      const fight = ctx.fight;
-      const won = fight?.outcome.state === "won";
-      const me = fight?.world.first(LocalPlayer, Health, Stamina);
-      const vitals = me ? { hp: me[2].hp, stamina: me[3].value } : startVitals;
-      fight?.dispose();
+      ctx.fight?.dispose();
       ctx.fight = null;
-      return { won, vitals };
+      prediction = mirror = null;
+      me = null;
     },
     render: () => scene.render(),
   };

@@ -1,4 +1,4 @@
-/** Arena enemies: stats and attacks. Sent to the client with each encounter (it draws and runs the fight). */
+/** Arena enemies: stats and attacks. The server's fight runs them; each encounter sends them to the client to draw. */
 import type { EnemyDef } from "@infinite-tower/shared";
 
 const WILD_BOAR: EnemyDef = {

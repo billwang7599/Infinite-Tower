@@ -1,4 +1,5 @@
 import { Body, clamp, damp, Health, Player, type System } from "@infinite-tower/shared";
+import { BodyNode } from "../components.js";
 import type { BattleContext } from "../context.js";
 import { PlayerSprite, spriteY } from "./components.js";
 import { spritePose, trailPose } from "./pose.js";
@@ -11,8 +12,9 @@ export function playerSpriteSystem(ctx: BattleContext): System {
   const frames = ctx.materials.player;
 
   return (world, dt) => {
-    for (const [, sprite, body, player, health] of world.query(PlayerSprite, Body, Player, Health)) {
-      const p = body.pos, vel = body.vel;
+    for (const [, sprite, body, player, health, drawn] of world.query(PlayerSprite, Body, Player, Health, BodyNode)) {
+      // Where it's drawn (systems/follow.ts), so the trail and the shadow stay with the sprite.
+      const p = drawn.node.position, vel = body.vel;
       const alive = health.hp > 0;
 
       const speed = Math.hypot(vel.x, vel.z);

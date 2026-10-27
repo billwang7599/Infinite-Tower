@@ -32,6 +32,8 @@ export interface BattleContext {
   view: { yaw: number; pitch: number };
   /** The fight being drawn, from the encounter until the player leaves the arena. */
   fight: Fight | null;
+  /** How the fight stands, as the server last said (its clock runs here, for when to show the result). */
+  outcome: FightOutcome;
   /** Camera shake amplitude, decays over time. Add to it for impacts. */
   shake: number;
 }

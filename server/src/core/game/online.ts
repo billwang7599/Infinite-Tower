@@ -27,12 +27,15 @@ export class OnlinePlayers {
     });
   }
 
-  /** Saves once, however many times it's called (a replaced session's link also reports closing). */
+  /**
+   * Once, however many times it's called (a replaced session's link also reports closing): the session disconnects
+   * (a fight still on is left: see GameSession.disconnect) and saves.
+   */
   leave(session: GameSession): void {
     const id = session.account.id;
     if (this.byAccount.get(id) !== session) return;
     this.byAccount.delete(id);
-    session.save();
+    session.disconnect();
   }
 
   /** One fixed step for every session (game/clock.ts). */

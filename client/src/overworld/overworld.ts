@@ -34,7 +34,7 @@ export interface Overworld {
   update(dt: number, frozen: boolean): void;
   onLevel(msg: ServerMsgOf<"level">): void;
   onState(msg: ServerMsgOf<"state">): void;
-  /** Walking stops until the battle's result arrives (the server sends it once the client sends `battleEnd`). */
+  /** Walking stops until the player is back from the arena with the battle's result. */
   onEncounter(msg: ServerMsgOf<"encounter">): void;
   onBattleResult(msg: ServerMsgOf<"battleResult">): void;
   /** Rested, or used an item. */
@@ -62,7 +62,7 @@ export function createOverworld({ engine, world, view, keyboard, settings, hud }
   /** One per session (its input numbering starts over with the server's). */
   let prediction: Prediction | null = null;
   let net: Connection | null = null;
-  /** From the encounter until the server's battle result: no walking, and `state` is ignored. */
+  /** From the encounter until back from the arena with the result: no walking, and `state` is ignored. */
   let inBattle = false;
   /** From `welcome`: stats don't change during a session. */
   let stats: Stats | null = null;

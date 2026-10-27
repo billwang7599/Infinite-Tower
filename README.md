@@ -40,8 +40,10 @@ What's built so far:
   only a fight starting gets the big banner in the middle.
 - **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
-- **Server:** runs the overworld and checks every fight result before saving it. The fight itself still runs in the
-  browser ([plan/server-fights.md](plan/server-fights.md)).
+- **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. The
+  browser sends only its inputs and predicts your own moves, so they answer at once; the boar is drawn from the
+  server's states. Leaving mid-fight loses it (the bag empties, as on a death); a fight ends as a loss after 10
+  minutes.
 
 ## Running it
 
@@ -68,9 +70,13 @@ npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```
 
-Local settings (database user, password and port, `DATABASE_URL`, the server's `PORT`) live in `.env`, which is
-git-ignored. `npm run dev` copies it from `.env.example` the first time. Changing `POSTGRES_USER`, `_PASSWORD` or
-`_DB` after the database exists needs `npm run db:reset`.
+Local settings (database user, password and port, `DATABASE_URL`, the server's `PORT`, `DEV_PING_MS`) live in
+`.env`, which is git-ignored. `npm run dev` copies it from `.env.example` the first time. Changing `POSTGRES_USER`,
+`_PASSWORD` or `_DB` after the database exists needs `npm run db:reset`.
+
+**A simulated ping (dev only).** The dev server delays the game's messages by half of `DEV_PING_MS` each way (50 ms
+if it's left out; any whole number of ms, 0 for none), so prediction can be felt on localhost. For one tab, add
+`?ping=N` to the page's address (http://localhost:5173/?ping=200); no restart needed. Production never delays.
 
 **Troubleshooting.**
 

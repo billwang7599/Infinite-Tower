@@ -14,8 +14,8 @@ export interface TestApp {
   app: FastifyInstance;
   store: MemoryAccountStore;
   accounts: Accounts;
-  /** Every socket handed to the game, with the account its cookie said. */
-  accepted: { ws: WebSocket; account: Account | null }[];
+  /** Every socket handed to the game, with the account its cookie said and the ping its page asked for. */
+  accepted: { ws: WebSocket; account: Account | null; ping: string | undefined }[];
 }
 
 export const INDEX_HTML = "<!doctype html><title>test</title>";
@@ -35,7 +35,7 @@ export async function testApp(t: TestContext, opts: { secureCookies?: boolean } 
     clientDist,
     accounts,
     secureCookies: opts.secureCookies ?? false,
-    socket: { maxMessageBytes: 1024, accept: (ws, account) => accepted.push({ ws, account }) },
+    socket: { maxMessageBytes: 1024, accept: (ws, account, ping) => accepted.push({ ws, account, ping }) },
   });
   t.after(async () => {
     for (const { ws } of accepted) ws.terminate();

@@ -75,7 +75,7 @@ Decided by the user:
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
   bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. I and Esc close it, and you
   stand still while it's open (the world doesn't pause).
-- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating, a refused win) go in
+- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating) go in
   the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
   (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end). Messages wrap rather than run off
   screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
@@ -86,6 +86,15 @@ Decided by the user:
   fight and the browser predicts only its own character. Fighters are moved by code, not pushed by forces, so the
   controls stay tight. An enemy shoves a player; a player can't push an enemy; dodging, knocked back or dead, a
   player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
+- The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The client sends
+  only its inputs, predicts only its own character (restoring the server's state and replaying what it hasn't run)
+  and draws everyone else from the server's states. A player who disconnects mid-fight has lost it: the bag empties
+  as on a death. A fight still undecided after a time limit ends as a loss, a guard on the server's resources. Both
+  are named constants in `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the
+  agent's pick of a generous value), for the user to change.
+- Dev servers simulate a network ping on the game socket, half each way and in order, so prediction can be felt
+  locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
+  Production never delays.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -166,9 +175,9 @@ Where tests go and how they're written:
 - Server core is tested through its ports with the fakes in `server/test/fixtures/` (`FakeLink`,
   `MemoryPlayerStore`, `MemoryAccountStore`, `TEST_LEVEL`), so no database or socket is needed. The HTTP API is
   tested with `buildServer()` and `app.inject()` / `app.injectWS()`, without a port.
-- Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`,
-  `t.mock.method(performance, "now", ...)` for fight timing, and `t.mock.method(Math, "random", ...)` before an
-  `Overworld` is made (it keeps `Math.random` as its `rng`).
+- Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`, and
+  `t.mock.method(Math, "random", ...)` before an `Overworld` is made (it keeps `Math.random` as its `rng`). A fight
+  needs no clock: tests step it (`session.tick`, `room.tick`), and test files that make one await `initPhysics()`.
 - Read tuning numbers from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires) instead of writing
   them into tests, so retuning the game doesn't break tests that aren't about the numbers.
 - What has no unit tests (Babylon rendering, React screens, how the arena fight feels, the Postgres stores) is
@@ -241,9 +250,9 @@ Keeping them out of each other's way (and the user's):
   package to the ones core may use.
 - **`shared/` is only for code both sides run.** Data only the server needs (encounter rates, spawns, enemy
   stats, drops) stays in `server/`.
-- **The arena fight is shared code** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`), but
-  only the browser runs it for now and reports the result; the server can only bound what it's told. Don't add new
-  trust in client claims.
+- **The arena fight is shared code** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`), and
+  the server runs it and decides it. The client sends only inputs (checked with Zod) and predicts only its own
+  character; no client message may claim a result, a hit or HP.
 - **ECS for game data** (`shared/src/core/ecs.ts`). Plain classes for services (connection, keyboard, mouse,
   prediction).
 - **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key, and when showing one on screen, read

@@ -51,82 +51,88 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
  */
 export function playerControllerSystem(): System {
   return (world, dt) => {
-    for (const [e, player, input, body, health, stamina, stats]
-      of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
-      const v = body.vel;
-      const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
-      const alive = health.hp > 0;
-
-      // Edge-detect presses and buffer them, so a press slightly early still counts.
-      const attackPressed = input.attack && !player.attackHeld, dodgePressed = input.dodge && !player.dodgeHeld;
-      player.attackBuffer = attackPressed ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
-      player.dodgeBuffer = dodgePressed ? PLAYER.inputBuffer : Math.max(0, player.dodgeBuffer - dt);
-      player.attackHeld = input.attack;
-      player.dodgeHeld = input.dodge;
-
-      if (!alive || health.hitstun > 0) {
-        // Knocked back or dead: no control, slide to a stop on the ground.
-        if (player.action !== "none") { player.action = "none"; world.remove(e, ActiveHit); }
-        player.attackBuffer = player.dodgeBuffer = 0;
-        if (player.grounded) {
-          const slowdown = PLAYER.accel * 0.4 * dt;
-          v.x = approach(v.x, 0, slowdown);
-          v.z = approach(v.z, 0, slowdown);
-        }
-      } else {
-        const slash = PLAYER.slash, dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
-        const free = player.action === "none" || (player.action === "slash" && player.actionTime >= slash.chainAfter);
-        if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
-          let dx = input.moveX, dz = input.moveZ;
-          const len = Math.hypot(dx, dz);
-          if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
-          else { dx /= len; dz /= len; }
-          startAction(world, e, player, "dodge", dx, dz);
-          spend(stamina, dodgeStamina);
-          player.dodgeBuffer = 0;
-        } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
-          startAction(world, e, player, "slash", input.aimX, input.aimZ);
-          spend(stamina, slash.cost);
-          player.attackBuffer = 0;
-        }
-
-        const t = player.actionTime, dir = player.actionDir;
-        switch (player.action) {
-          case "slash": {
-            if (t >= slash.windup && t < slash.windup + slash.active) {
-              // Active frames: the hitbox exists and the swing carries you forward a little.
-              if (!world.has(e, ActiveHit)) addHit(world, e, dir.x, dir.z, slash);
-              v.x = dir.x * slash.lungeSpeed;
-              v.z = dir.z * slash.lungeSpeed;
-            } else {
-              world.remove(e, ActiveHit);
-              const maxSpeed = walkSpeed * slash.moveFactor, accel = PLAYER.accel * dt;
-              v.x = approach(v.x, input.moveX * maxSpeed, accel);
-              v.z = approach(v.z, input.moveZ * maxSpeed, accel);
-            }
-            if (t >= slash.duration) player.action = "none";
-            break;
-          }
-          case "dodge": {
-            const progress = Math.min(1, t / dodge.duration);
-            const speed = dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress;
-            v.x = dir.x * speed;
-            v.z = dir.z * speed;
-            if (t >= dodge.duration) player.action = "none";
-            break;
-          }
-          case "none":
-            locomotion(player, input, v, dt, walkSpeed);
-            break;
-        }
-        player.actionTime += dt;
-      }
-      player.jumpHeld = input.jump;
-
-      // Stamina: paused during actions, regenerates after a short delay.
-      if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
-      else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
-      else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
+    for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
+      controlPlayer(world, e, dt);
     }
   };
+}
+
+/** One step of player `e`'s controller (the system above, or the client's prediction of its own player). */
+export function controlPlayer(world: World, e: Entity, dt: number): void {
+  const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
+  const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
+  const v = body.vel;
+  const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
+  const alive = health.hp > 0;
+
+  // Edge-detect presses and buffer them, so a press slightly early still counts.
+  const attackPressed = input.attack && !player.attackHeld, dodgePressed = input.dodge && !player.dodgeHeld;
+  player.attackBuffer = attackPressed ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
+  player.dodgeBuffer = dodgePressed ? PLAYER.inputBuffer : Math.max(0, player.dodgeBuffer - dt);
+  player.attackHeld = input.attack;
+  player.dodgeHeld = input.dodge;
+
+  if (!alive || health.hitstun > 0) {
+    // Knocked back or dead: no control, slide to a stop on the ground.
+    if (player.action !== "none") { player.action = "none"; world.remove(e, ActiveHit); }
+    player.attackBuffer = player.dodgeBuffer = 0;
+    if (player.grounded) {
+      const slowdown = PLAYER.accel * 0.4 * dt;
+      v.x = approach(v.x, 0, slowdown);
+      v.z = approach(v.z, 0, slowdown);
+    }
+  } else {
+    const slash = PLAYER.slash, dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
+    const free = player.action === "none" || (player.action === "slash" && player.actionTime >= slash.chainAfter);
+    if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
+      let dx = input.moveX, dz = input.moveZ;
+      const len = Math.hypot(dx, dz);
+      if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
+      else { dx /= len; dz /= len; }
+      startAction(world, e, player, "dodge", dx, dz);
+      spend(stamina, dodgeStamina);
+      player.dodgeBuffer = 0;
+    } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
+      startAction(world, e, player, "slash", input.aimX, input.aimZ);
+      spend(stamina, slash.cost);
+      player.attackBuffer = 0;
+    }
+
+    const t = player.actionTime, dir = player.actionDir;
+    switch (player.action) {
+      case "slash": {
+        if (t >= slash.windup && t < slash.windup + slash.active) {
+          // Active frames: the hitbox exists and the swing carries you forward a little.
+          if (!world.has(e, ActiveHit)) addHit(world, e, dir.x, dir.z, slash);
+          v.x = dir.x * slash.lungeSpeed;
+          v.z = dir.z * slash.lungeSpeed;
+        } else {
+          world.remove(e, ActiveHit);
+          const maxSpeed = walkSpeed * slash.moveFactor, accel = PLAYER.accel * dt;
+          v.x = approach(v.x, input.moveX * maxSpeed, accel);
+          v.z = approach(v.z, input.moveZ * maxSpeed, accel);
+        }
+        if (t >= slash.duration) player.action = "none";
+        break;
+      }
+      case "dodge": {
+        const progress = Math.min(1, t / dodge.duration);
+        const speed = dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress;
+        v.x = dir.x * speed;
+        v.z = dir.z * speed;
+        if (t >= dodge.duration) player.action = "none";
+        break;
+      }
+      case "none":
+        locomotion(player, input, v, dt, walkSpeed);
+        break;
+    }
+    player.actionTime += dt;
+  }
+  player.jumpHeld = input.jump;
+
+  // Stamina: paused during actions, regenerates after a short delay.
+  if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
+  else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
+  else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
 }
