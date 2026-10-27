@@ -1,14 +1,15 @@
 /**
- * The battle mode: the 2.5D arena fight, drawn. The server runs the fight; this keeps a copy of it (the shared Fight,
- * built from the encounter's setup) to draw. Babylon's deterministic lockstep calls onBeforeStep at FIXED_DT, only
- * while the arena's scene renders, and each call reads the keys, predicts your own fighter one step (prediction.ts)
- * and moves everyone else along the server's states (mirror.ts). Each `battleState` corrects your fighter and feeds
- * the mirror; the inputs go out once a frame. Render systems draw the fight's state once per frame.
+ * The battle mode: the 2.5D arena fight, drawn. The client runs its own copy of the whole fight (the shared Fight,
+ * built from the encounter's setup) and draws it as it runs: your fighter, the enemies, hits and all answer at once.
+ * Each frame the arena's scene renders, the keys are read and the fight runs as many steps as its clock says (one
+ * a frame at 60 frames a second: pace.ts) through sync.ts, which sends the inputs, checks the server's hashes and,
+ * when they differ, loads the server's fight and replays. The result is the server's alone: the banner waits for
+ * battleResult. Then the render systems draw the fight.
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  FIXED_DT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf,
-  type System, type World,
+  Body, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf,
+  type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Keyboard } from "../core/keyboard.js";
@@ -23,17 +24,15 @@ import { resultShown, type BattleContext } from "./context.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
 import { addEnemyModel } from "./enemies/spawn.js";
 import { createMaterials } from "./materials.js";
-import { FightMirror } from "./mirror.js";
 import { registerPlayerDisposers } from "./player/components.js";
 import { readPlayerInput } from "./player/input.js";
 import { addPlayerSprite } from "./player/spawn.js";
 import { playerSpriteSystem } from "./player/sprite.js";
-import { BattlePrediction } from "./prediction.js";
 import type { BattleScene } from "./scene.js";
-import { cameraSystem } from "./systems/camera.js";
+import { FightSync } from "./sync.js";
+import { addImpactShake, cameraSystem } from "./systems/camera.js";
 import { followSystem } from "./systems/follow.js";
 import { hudSystem } from "./systems/hud.js";
-import { shakeForImpacts } from "./systems/impacts.js";
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
@@ -42,8 +41,12 @@ export interface Battle {
   ctx: BattleContext;
   /** A fight starts: build the server's fight from `encounter`. Your inputs go out through `send`. */
   start(encounter: ServerMsgOf<"encounter">, send: (msg: ClientMsg) => void): void;
-  /** The server's state of the fight. */
-  onState(msg: ServerMsgOf<"battleState">): void;
+  /** The server's hash of its fight: checked against your copy's. */
+  onHash(msg: ServerMsgOf<"battleHash">): void;
+  /** The server's whole fight: your copy takes it and replays your inputs since. */
+  onSync(msg: ServerMsgOf<"battleSync">): void;
+  /** The server has decided the fight (battleResult): now the result shows. */
+  onResult(won: boolean): void;
   /** Leaving the arena: the fight's copy is dropped. */
   end(): void;
   render(): void;
@@ -71,6 +74,7 @@ export function createBattle(opts: BattleOptions): Battle {
     arena: { radius: 0 },
     view: { ...START_VIEW },
     fight: null,
+    sync: null,
     outcome: { state: "fighting", stateTime: 0 },
     shake: 0,
   };
@@ -84,22 +88,22 @@ export function createBattle(opts: BattleOptions): Battle {
     arenaScenery = buildArena(ctx);
   };
 
-  /** The fight's: made on start, dropped on end. */
-  let prediction: BattlePrediction | null = null;
-  let mirror: FightMirror | null = null;
-  let me: Entity | null = null;
-
   const input: PlayerInputData = { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false };
-  scene.onBeforeStepObservable.add(() => {
-    if (!ctx.fight || !prediction || !mirror) return;
+  /** The fight's steps due this frame, with the keys as they are now. */
+  const runFight = (fight: Fight, sync: FightSync) => {
     // After the fight, the leave key (Enter / E by default) goes back, once the result has been on screen a moment.
     const leave = keyboard.consumePressed(settings.bindings.get().battle.leave);
     if (leave && resultShown(ctx.outcome)) opts.onLeave();
+    // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
+    const steps = sync.pace.stepsDue(fight.steps);
+    if (steps === 0) return;
     readPlayerInput(ctx, input);
-    prediction.step(input);
-    mirror.step();
-    ctx.outcome.stateTime += FIXED_DT;
-  });
+    for (let i = 0; i < steps; i++) {
+      sync.advance(input);
+      addImpactShake(ctx, fight.events);
+    }
+    sync.flush();
+  };
 
   const render: System[] = [
     followSystem(), cameraSystem(ctx), playerSpriteSystem(ctx),
@@ -108,9 +112,15 @@ export function createBattle(opts: BattleOptions): Battle {
   ];
   scene.onBeforeRenderObservable.add(() => {
     const dt = frameSeconds(engine);
-    prediction?.flush();
-    if (ctx.fight) for (const s of render) s(ctx.fight.world, dt);
+    const { fight, sync } = ctx;
+    if (!fight || !sync) return;
+    runFight(fight, sync);
+    for (const s of render) s(fight.world, dt);
   });
+
+  /** Every fighter's position, to ease the drawings over a correction. */
+  const positions = (fight: Fight): Vec3[] =>
+    [...fight.players, ...fight.enemies].map((e) => ({ ...fight.world.require(e, Body).pos }));
 
   return {
     ctx,
@@ -121,33 +131,40 @@ export function createBattle(opts: BattleOptions): Battle {
       registerFighterDisposers(fight.world);
       registerPlayerDisposers(fight.world);
       for (const model of Object.values(ENEMY_MODELS)) model.registerDisposers(fight.world);
-      me = fight.players[seat]!;
-      fight.world.add(me, LocalPlayer, true);
-      fight.world.add(me, DrawOffset, { x: 0, y: 0, z: 0 });
+      fight.world.add(fight.players[seat]!, LocalPlayer, true);
       for (const e of fight.players) addPlayerSprite(ctx, fight.world, e);
       for (const e of fight.enemies) addEnemyModel(ctx, fight.world, e);
+      for (const e of [...fight.players, ...fight.enemies]) fight.world.add(e, DrawOffset, { x: 0, y: 0, z: 0 });
       ctx.fight = fight;
-      ctx.outcome = { state: "fighting", stateTime: 0 };
-      prediction = new BattlePrediction(fight, me, send);
-      mirror = new FightMirror(fight, seat);
+      ctx.sync = new FightSync(fight, seat, send);
+      ctx.outcome = ctx.sync.outcome;
       Object.assign(ctx.view, START_VIEW);
       ctx.shake = 0;
+      // The last fight's result off the HUD before it shows again (its systems write it from the next frame on).
+      opts.hud.set({ result: "fighting", showResult: false });
       keyboard.clearPressed();
     },
-    onState(msg) {
-      if (!ctx.fight || !prediction || !mirror || me === null) return;
-      easeCorrection(ctx.fight.world.require(me, DrawOffset), prediction.reconcile(msg));
-      mirror.push(msg);
-      shakeForImpacts(ctx, msg.events);
-      if (msg.outcome === ctx.outcome.state) return;
-      ctx.outcome = { state: msg.outcome, stateTime: 0 };
-      if (msg.outcome !== "fighting") prediction.stop();
+    onHash(msg) {
+      ctx.sync?.onHash(msg);
+    },
+    onSync(msg) {
+      const { fight, sync } = ctx;
+      if (!fight || !sync) return;
+      const before = positions(fight);
+      sync.onSync(msg);
+      // Bodies jump to where they should be; their drawings ease after them.
+      [...fight.players, ...fight.enemies].forEach((e, i) => {
+        const { pos } = fight.world.require(e, Body), was = before[i]!;
+        easeCorrection(fight.world.require(e, DrawOffset), { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z });
+      });
+    },
+    onResult(won) {
+      ctx.sync?.onResult(won);
     },
     end() {
       ctx.fight?.dispose();
       ctx.fight = null;
-      prediction = mirror = null;
-      me = null;
+      ctx.sync = null;
     },
     render: () => scene.render(),
   };

@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { IDLE_INPUT, isIdle, quantizeInput, type PlayerInputData } from "@infinite-tower/shared";
+import { IDLE_INPUT, quantizeInput, sameInput, type PlayerInputData } from "@infinite-tower/shared";
 
 const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_INPUT, ...over });
 
-describe("isIdle", () => {
-  test("standing still with nothing pressed is idle, wherever the camera looks", () => {
-    assert.equal(isIdle(IDLE_INPUT), true);
-    assert.equal(isIdle(input({ aimX: 1, aimZ: 0 })), true);
+describe("sameInput", () => {
+  test("the same move, aim and buttons are the same input", () => {
+    assert.equal(sameInput(input({ moveX: 0.5, attack: true }), input({ moveX: 0.5, attack: true })), true);
   });
 
-  test("moving or holding any button isn't", () => {
-    for (const over of [{ moveX: 0.5 }, { moveZ: -1 }, { jump: true }, { attack: true }, { dodge: true }]) {
-      assert.equal(isIdle(input(over)), false, JSON.stringify(over));
-    }
+  test("any field that differs makes it a change (sent to the server)", () => {
+    const changes = [
+      { moveX: 0.5 }, { moveZ: -1 }, { aimX: 1, aimZ: 0 }, { jump: true }, { attack: true }, { dodge: true },
+    ];
+    for (const o of changes) assert.equal(sameInput(IDLE_INPUT, input(o)), false, JSON.stringify(o));
   });
 });
 

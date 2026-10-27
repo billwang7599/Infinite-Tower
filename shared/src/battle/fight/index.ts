@@ -3,10 +3,9 @@
 export { Fight } from "./fight.js";
 export type { FightEvent, FightOutcome, FightState } from "./context.js";
 export { LEAVING_LOSES, MAX_FIGHT_TIME, playerResult, type PlayerResult } from "./outcome.js";
-export { readPlayerState, writePlayerState } from "./player-state.js";
 export { initPhysics } from "./physics/init.js";
 export type { ArenaPhysics } from "./physics/arena-physics.js";
 export {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type FightSetup, type PlayerSetup,
 } from "./setup.js";
-export type { PlayerState } from "../snapshot.js";
+export type { EnemySnapshot, FightSnapshot, HitSnapshot, PlayerSnapshot } from "./state.js";

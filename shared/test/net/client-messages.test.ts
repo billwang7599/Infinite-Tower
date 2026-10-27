@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, type BattleInput } from "@infinite-tower/shared";
+import { DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, type StepInput } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
@@ -8,16 +8,22 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
   parse({ t: "character", character: { name, gender, look } });
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
-const STEP: BattleInput = {
-  seq: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false,
+const STEP: StepInput = {
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false,
 };
-const battleInput = (...inputs: unknown[]) => parse({ t: "battleInput", inputs });
+/** A battleInput up to the last input's step (or step 1). */
+const battleInput = (...inputs: unknown[]) => {
+  const last = inputs.at(-1) as { step?: unknown } | undefined;
+  return parse({ t: "battleInput", upTo: typeof last?.step === "number" ? last.step : 1, inputs });
+};
 
 describe("parseClientMsg", () => {
   test("accepts every kind of message", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
-      { t: "battleInput", inputs: [STEP, { ...STEP, seq: 2, attack: true }] },
+      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: true }] },
+      { t: "battleInput", upTo: 7, inputs: [] },
+      { t: "battleResync" },
       { t: "leaveBattle" },
       { t: "settings", settings: { bindings: { overworld: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
       { t: "settings", settings: {} },
@@ -42,16 +48,26 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "battleEnd", won: true, vitals: { hp: 40, stamina: 12 } }), null);
   });
 
-  test("battleInput: one or more steps, at most MAX_INPUTS_PER_MESSAGE", () => {
-    assert.equal(battleInput(), null);
-    const most = Array.from({ length: MAX_INPUTS_PER_MESSAGE }, (_, i) => ({ ...STEP, seq: i + 1 }));
-    assert.deepEqual(battleInput(...most), { t: "battleInput", inputs: most });
-    assert.equal(battleInput(...most, { ...STEP, seq: MAX_INPUTS_PER_MESSAGE + 1 }), null);
-    assert.equal(parse({ t: "battleInput", inputs: STEP }), null, "not a list");
+  test("battleInput: up to MAX_INPUTS_PER_MESSAGE changes, or none (just how far the player has got)", () => {
+    assert.deepEqual(battleInput(), { t: "battleInput", upTo: 1, inputs: [] });
+    const most = Array.from({ length: MAX_INPUTS_PER_MESSAGE }, (_, i) => ({ ...STEP, step: i + 1 }));
+    assert.deepEqual(battleInput(...most), { t: "battleInput", upTo: MAX_INPUTS_PER_MESSAGE, inputs: most });
+    assert.equal(battleInput(...most, { ...STEP, step: MAX_INPUTS_PER_MESSAGE + 1 }), null);
+    assert.equal(parse({ t: "battleInput", upTo: 1, inputs: STEP }), null, "not a list");
+    assert.equal(parse({ t: "battleInput", inputs: [STEP] }), null, "no upTo");
   });
 
-  test("battleInput: seq is a whole number from 1", () => {
-    for (const seq of [0, -1, 1.5, "2", null]) assert.equal(battleInput({ ...STEP, seq }), null, `seq ${seq}`);
+  test("battleInput: steps and upTo are whole numbers from 1", () => {
+    for (const step of [0, -1, 1.5, "2", null]) assert.equal(battleInput({ ...STEP, step }), null, `step ${step}`);
+    for (const upTo of [0, -1, 1.5, "2", null]) {
+      assert.equal(parse({ t: "battleInput", upTo, inputs: [] }), null, `upTo ${upTo}`);
+    }
+  });
+
+  test("battleInput: the changes come in step order, none after upTo", () => {
+    assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 3 }, { ...STEP, step: 3 }] }), null);
+    assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 4 }, { ...STEP, step: 2 }] }), null);
+    assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 6 }] }), null);
   });
 
   test("battleInput: every field is there, with the right type", () => {
@@ -73,7 +89,7 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput({ ...STEP, moveX: 1.2, moveZ: 1.2 }), null);
     // Two walk keys at once, turned by the camera: up to √2, rounded to 3 decimals.
     const diagonal = { ...STEP, moveX: 1.414, moveZ: 0 };
-    assert.deepEqual(battleInput(diagonal), { t: "battleInput", inputs: [diagonal] });
+    assert.deepEqual(battleInput(diagonal), { t: "battleInput", upTo: 1, inputs: [diagonal] });
   });
 
   test("input: seq is a whole number, not negative", () => {

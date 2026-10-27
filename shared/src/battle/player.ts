@@ -1,6 +1,6 @@
 /**
- * Player tuning for the arena. Shared: the server's fight runs them, and the client predicts its own player with
- * them. Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
+ * Player tuning for the arena. Shared: the server's fight runs them, and so does the client's own copy of it.
+ * Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
  * arena size are server content (server/src/core/content).
  *
  * Units: seconds, meters, m/s and m/s², unless the name or comment says otherwise.
@@ -36,7 +36,7 @@ export const PLAYER = {
     windup: 0.09,
     active: 0.1,
     duration: 0.4,
-    /** The next slash may start this far into the current one. */
+    /** The next slash, or a dodge, may start this far into the current one (a dodge pressed before then waits). */
     chainAfter: 0.28,
     /** From the player's center to the target's surface. */
     range: 2.3,
@@ -53,7 +53,8 @@ export const PLAYER = {
   dodge: {
     cost: 22,
     duration: 0.42,
-    iframeStart: 0.03,
+    /** From the dodge's first step: a dodge on the step a hit lands beats it (the user's call). */
+    iframeStart: 0,
     iframeEnd: 0.32,
     speed: 12,
     endSpeed: 3,

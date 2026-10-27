@@ -1,6 +1,6 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, Stamina,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput, Stamina,
   type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Stats, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
@@ -78,11 +78,26 @@ export function dumpState(fight: Fight): string {
       health: fight.world.get(e, Health),
       stamina: fight.world.get(e, Stamina),
       player: fight.world.get(e, Player),
-      enemy: enemyData && { ...enemyData, def: enemyData.def.id },
+      input: fight.world.get(e, PlayerInput),
+      // `sense` and `move` are worked out afresh each step before they're read: not part of the state.
+      enemy: enemyData && { ...enemyData, def: enemyData.def.id, sense: undefined, move: undefined },
       lunge: fight.world.get(e, LungeAttack)?.cooldown,
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
     };
   });
-  return JSON.stringify({ outcome: fight.outcome, rows });
+  return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows });
+}
+
+/**
+ * A busy player that only looks at the step number, so two fights get the same inputs whatever happens in them:
+ * turning, running in every direction (into the wall too: the arena is small), slashing, dodging and jumping.
+ */
+export function busy(step: number): PlayerInputData {
+  const turn = step * 0.05, run = Math.floor(step / 40) * 1.3;
+  return input({
+    aimX: Math.round(Math.sin(turn) * 1000) / 1000, aimZ: Math.round(Math.cos(turn) * 1000) / 1000,
+    moveX: Math.round(Math.sin(run) * 1000) / 1000, moveZ: Math.round(Math.cos(run) * 1000) / 1000,
+    attack: step % 9 < 2, dodge: step % 47 === 0, jump: step % 83 < 10,
+  });
 }

@@ -60,11 +60,12 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
-   setup (arena, enemy, your HP / stamina, stats and burden). The client flashes into battle mode and builds the same
-   fight to draw. It sends its inputs (`battleInput`) and predicts only its own fighter; the server runs the fight
-   (hits, damage, stamina, deaths), sends `battleState` 20 times a second, and the moment it's decided, rolls drops
-   (or, on a loss, empties the bag), saves and sends `battleResult`. Enter leaves the arena (`leaveBattle`) and the
-   overworld goes on.
+   setup (arena, enemy, your HP / stamina, stats and burden). The client flashes into battle mode, builds the same
+   fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
+   The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
+   4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
+   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag), saves and sends
+   `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death.
    A second tab on the same account takes over: the first one is closed and lands on the title.
@@ -104,7 +105,7 @@ main.ts
 ## Client: two modes, one ECS world
 
 - **Game data is ECS** (`shared/src/core/ecs.ts`: world, components, queries). Systems are functions run in a fixed
-  order. Services (the connection, keyboard, mouse, prediction) are plain classes.
+  order. Services (the connection, keyboard, mouse, prediction, the fight's sync) are plain classes.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`overworld/`, mode `"overworld"`) and the fight (`battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
@@ -116,34 +117,43 @@ main.ts
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
-  one `PlayerInputData` per player (any number of players and enemies). Nothing in it is random, and Rapier's
-  deterministic build gives the same numbers on every machine, so the same setup and inputs always give the same
-  fight. Rapier loads once (`initPhysics()`: as the server starts, and in `prepareGame()` behind the title) before
-  any fight is made. System order (`fight.ts`): player controller -> enemy brain -> attacks -> motor -> physics ->
-  player ground -> combat -> outcome. It reports what happened in a step as `events` (hits, a charge slamming the
-  wall). How a fight ends is `fight/outcome.ts`: lost when no player stands, won when no enemy does, lost after
-  `MAX_FIGHT_TIME` (10 minutes, a guard on the server's resources), and a player who disconnects is down and has
-  lost it (`LEAVING_LOSES`).
-- **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle steps the fight at 60 Hz with each
-  player's next input (`InputQueue`: in order, at most one a step, the last one again when none has come), from
-  the moment every player has sent their first input (they're past the flash into the arena). It's authoritative:
-  hits, damage, stamina, deaths and the result. Every 3rd step (20 a second) and once more as it's decided, each
-  player gets a `battleState`: themselves exactly, everyone else rounded, what happened since, and which of their
-  inputs it has run. Then each player's `onEnd` settles the battle for them (`core/game/battle.ts`) and the fight is
-  freed. A room takes any number of players; every battle has one for now, and that player's session steps it.
-- **The browser predicts its own fighter and mirrors the rest** (`battle/`). It builds the same `Fight` from the
-  encounter's setup, to draw it and to predict in. Babylon's deterministic lockstep calls `onBeforeStep` at a fixed
-  60 Hz, only while the arena's scene renders; each call reads the keys into a `PlayerInputData`, and
-  `battle/prediction.ts` rounds it for the wire, queues it to send (idle after idle isn't sent: the server repeats
-  the last input) and steps only your fighter with it (`Fight.predict`: your controller, movement, ground and hit
-  timers; no enemy moves, no hit lands), so moving, slashing and dodging answer at once. Each `battleState` puts
-  your fighter exactly where the server has it (`writePlayerState`) and replays the steps the server hasn't run
-  (`ack`, `repeats`); a correction eases out over a few frames (`DrawOffset`). Everyone else is drawn by
-  `battle/mirror.ts` 5 steps (83 ms) behind the newest state, between the two around that moment, never guessed
-  ahead; their colliders go with them, so your prediction bumps into them where you see them. HP, hits and the
-  result are only ever the server's. The client hangs its drawings (a node that follows `Body`, the sprite, the
-  boar model) on the fight's own entities; render systems run once per frame on the fight's world: follow,
-  camera, player sprite, enemy model animations, HUD.
+  one `PlayerInputData` per player (any number of players and enemies), counted in `steps`. Nothing in it is random,
+  and Rapier's deterministic build gives the same numbers on every machine, so the same setup and inputs always give
+  the same fight. Its whole state goes out and back in as plain JSON (`save()` / `load()`, `fight/state.ts`: what
+  changes in a fight, exactly; the colliders are put where their bodies are), and `hash()` (`fight/hash.ts`) is a
+  fingerprint of it with every number rounded to 2 decimals. Rapier loads once (`initPhysics()`: as the server
+  starts, and in `prepareGame()` behind the title) before any fight is made. System order (`fight.ts`): player
+  controller -> enemy brain -> attacks -> motor -> physics -> player ground -> combat -> outcome. It reports what
+  happened in a step as `events` (hits, a charge slamming the wall). How a fight ends is `fight/outcome.ts`: lost
+  when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes, a guard on the server's
+  resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
+- **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle, from the moment every player has
+  sent their first input (they're past the flash into the arena). It keeps a clock (steps since the fight started,
+  one a 60 Hz tick) and runs the fight up to it as soon as it knows every player's input for the next step
+  (`InputTimeline`: each change of input from its step until the next, known up to the client's `upTo`). It holds a
+  step back for a late input at most `MAX_INPUT_DELAY` (200 ms); then it runs the step without it (the player's
+  input held; after `SILENT_STOP_STEPS` of that in a row, their move keys let go), and the input counts on the next
+  step when it comes, its presses kept. It never runs past its clock, and drops inputs for steps more than
+  `MAX_INPUT_LEAD_STEPS` ahead of it. It's authoritative: hits, damage, stamina, deaths and the result. After every
+  `HASH_EVERY_STEPS`-th step (4 a second) each player gets a `battleHash`; asked (`battleResync`), it sends the whole
+  fight (`battleSync`), and does once more as it's decided. Then each player's `onEnd` settles the battle for them
+  (`core/game/battle.ts`) and the fight is freed. A room takes any number of players; every battle has one for now,
+  and that player's session steps it.
+- **The browser runs its own copy of the whole fight** (`battle/`). It builds the same `Fight` from the encounter's
+  setup and runs it as it draws it, enemies and hits included, so the boar reacts to you at once. Each frame the
+  arena's scene renders, its clock (`battle/pace.ts`: real time since the fight's first step at 60 steps a second,
+  catching up after a slow frame, plus an offset that keeps it in step with the server's clock) says how many steps
+  are due; the keys are read into a `PlayerInputData` and `battle/sync.ts` (`FightSync`) runs the fight that many
+  steps with it, rounded for the wire, and queues it to send if it changed, tagged with its step (and, every few
+  steps, how far it has run). It keeps 1 s of its inputs and its own hashes: when the server's hash for a step
+  differs from its own, it asks for the server's fight, loads it and replays its inputs since; every fighter's
+  drawing eases over the jump (`DrawOffset`). The offset comes from the lateness each hash reports, less what the
+  client knows it caused itself (it was behind its own clock): ahead when its inputs come late, back when they come
+  too early. (Babylon's own lockstep isn't used: it would catch up stalls a second time.) HP and hits show at once
+  from the client's copy, but the result is only ever the server's: the banner waits for `battleResult` (timed from
+  the step the client's copy was decided on, if it agrees). The client hangs its drawings (a node that follows
+  `Body`, the sprite, the boar model) on the fight's own entities; render systems run once per frame on the fight's
+  world: follow, camera, player sprite, enemy model animations, HUD.
 - **Fighters are moved by code, not by forces.** Systems set a body's velocity (`Body.vel`); the physics step
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
@@ -212,8 +222,9 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
 
 While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zod check; dropped if invalid, more
 than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
-`GameSession`, which answers with `link.send(...)`. `state` and `battleState` aren't answers: the clock ticks every
-session 60 times a second, and every 3rd tick it sends one (`state` on the overworld, `battleState` in a fight).
+`GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks every
+session 60 times a second; on the overworld every 3rd tick sends a `state`, and in a fight every 15th step of the
+server's fight a `battleHash`.
 
 | Client -> server | When |
 |---|---|
@@ -222,7 +233,8 @@ session 60 times a second, and every 3rd tick it sends one (`state` on the overw
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in bag cell `at` |
 | `moveItem {from, to, turned}` | moved cell `from`'s item so its top-left is at `to` (overworld only; shown at once) |
-| `battleInput {inputs}` | in a fight, once a frame: each step's input, numbered (idle after idle isn't sent) |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step, and the last step run |
+| `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
 | `debug {cmd}` | dev server only: `encounter` starts a fight |
@@ -234,7 +246,8 @@ session 60 times a second, and every 3rd tick it sends one (`state` on the overw
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats and burden) and your `seat` in it |
-| `battleState` | 20 a second in a fight, and as it's decided: `ack`, you exactly, the others, events, outcome |
+| `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
+| `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
 | `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, bag |
 | `rested`, `itemUsed` | what resting or eating did |
 | `bag` | your bag after a `moveItem`, whether or not the move was allowed |
@@ -244,19 +257,25 @@ Close codes the client handles: 4001 not logged in (login form), 4000 the accoun
 lost". Positions in `state` are rounded to 1 cm, and it only carries actors within the 16:9 view of the server's
 copy of you plus 3 tiles, so a hacked client can't see further.
 
-**A fight on the wire.** The client numbers every step of its fight (`seq`) and sends each step's input, rounded to 3
-decimals so it predicts with exactly what the server runs; an idle step after an idle one isn't sent. The server
-checks each input (`battleInput`'s Zod schema: the aim is a direction, the move no longer than two keys make) and
-runs at most one a step (`InputQueue`); with none waiting it runs the last one again and counts it (`repeats`, so
-the client knows which of its unsent idle steps that covered), and after 15 such steps of a moving input it takes
-the player to have stopped. More than 4 waiting (a stall) are folded into the next, their presses kept.
-`battleState` (about 0.7 KB, 14 KB/s for one player against one boar) carries the player's own `PlayerState`
-unrounded, so the client can restore it exactly, and the other fighters rounded (`PlayerSnap`, `EnemySnap`), with
-the events since the last one by fighter index (players in seat order, then enemies). There's no message that
-says how a fight ended: only the server's fight decides it.
+**A fight on the wire.** Both sides number the fight's steps from 1. Each frame the client sends the changes of its
+input since the last message, each tagged with the step it's for and rounded to 3 decimals (so both sides run the
+same numbers), and `upTo`, the last step its copy has run; with nothing new, `upTo` alone every 3 steps
+(`INPUT_HEARTBEAT_STEPS`). The server checks each message (`battleInput`'s Zod schema: steps in order and not after
+`upTo`, the aim a direction, the move no longer than two keys make) and runs every input on its own step, as
+above: up to `MAX_INPUT_DELAY` (0.2 s, `MAX_INPUT_DELAY_STEPS` = 12) late it waits, later it runs it on its next
+step, more than `MAX_INPUT_LEAD_STEPS` (6) ahead of its clock it drops it. After every `HASH_EVERY_STEPS`-th step
+(15: 4 a second) it sends `battleHash`: the step, the hash of its fight there (`Fight.hash`: the whole state, every
+number rounded to 2 decimals, so last-bit differences between machines don't count until they grow), and how late
+the player's inputs come (`lateSteps`, for `pace.ts`). The client compares it with its own hash at that step (kept
+for 1 s; a hash for a step it hasn't run yet waits until it has), and on a mismatch sends `battleResync` once; the
+server answers with `battleSync`, its whole fight (`FightSnapshot`, about 1.5 KB of exact JSON) at its own step, at
+most every 5 steps (`MIN_SYNC_GAP_STEPS`); the client loads it and replays its inputs since (or, behind it, jumps
+there). That's about 0.45 KB/s down for one player against one boar, against 14 KB/s of 20-a-second states before;
+up, about 7 KB/s while the camera turns every step, a fraction of that while it doesn't. There's no message that
+says how a fight ended: only the server's fight decides it, and its final `battleSync` and `battleResult` say so.
 
 **A simulated ping (dev only).** A dev server delays every game socket's messages by half of `DEV_PING_MS` each way
-(`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so prediction can be
+(`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so the netcode can be
 felt on localhost. A page can ask for another with `?ping=N` (the client passes it on to `/ws`; anything but a whole
 number of ms gets the `.env`'s). Production never delays.
 
@@ -281,24 +300,36 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the server accepts from clients and the sentences it answers with), and the arena fight, run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, the slash's reach and arc,
-  whole fights won and lost, the time limit and leaving, predicting one player (exactly what the fight's own steps
-  give them, moving nobody else), and a player's state written into another fight playing on the same. Each fight
-  test file awaits `initPhysics()` first. Also the battle inputs' rounding and what counts as idle.
+  whole fights won and lost, the time limit and leaving, a fight's whole state (exact through JSON; loaded into a new
+  fight, or one that went its own way, it plays on step for step the same, live hitboxes included), its hash (the
+  same for the same inputs, changed by anything that matters, not by a last-bit difference), a dodge's i-frames
+  step by step (a dodge on the very step a hit lands beats it; its stamina and burden costs), and a dodge pressed
+  during a slash waiting for it to let go (on any step of it, once, ahead of a buffered slash, through a save and a
+  rollback). Each fight test file awaits `initPhysics()` first. Also the battle inputs' rounding and what counts as
+  a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items,
   accounts and passwords are all tested without a database or a socket, and so are battles: the server deciding a
   win from the player's inputs alone, a loss emptying the bag, leaving mid-fight (or a second tab) losing it, the
-  time limit, the room (waiting for the first input, `battleState` every 3 steps with `ack` / `repeats`, events by
-  index, ending and freeing the fight) and the input queue (order, repeats, the timeout, folding a backlog).
+  time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an in-order wire
+  that can hold messages back): waiting for the first input, each input on its own step hash for hash, never past
+  its clock, waiting for a late input up to `MAX_INPUT_DELAY_STEPS` and running a later one on its next step,
+  dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
+  `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
+  late, with the same hit or miss and HP on both sides; and the input timeline (changes held, late presses kept,
+  too far ahead dropped, a silent player stopping, lateness).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
   `DEV_PING_MS`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
-  sync, when the mouse is captured, overworld prediction, the fight's prediction (what's sent, matching the server,
-  converging after a correction it couldn't foresee, idle steps the server repeated) and mirror (drawn a set delay
-  behind, between two states, holding at the last), the title's sequence timing, character creation's steps
+  sync, when the mouse is captured, overworld prediction, the fight's sync (only changes sent, with their steps and
+  heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync asked, the server's
+  fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice nor dropped; the
+  result and its banner waiting for the server) and pace (real time's steps, catching up after a stall, a backlog
+  dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news ignored), the
+  title's sequence timing, character creation's steps
   and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
   item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
   battle sprite in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering,
@@ -318,8 +349,9 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
   goes in an outlet, behind a port.
 - **Every player is logged in.** No guest play; `/ws` closes sockets without a login cookie before anything else.
 - **Fights are server-authoritative.** The arena's `Fight` is shared code; the server runs it and decides hits,
-  damage, stamina, deaths and the result. The client sends only its inputs, predicts only its own fighter and draws
-  everyone else from the server's states. There's no message a client could claim a result with; keep it that way.
+  damage, stamina, deaths and the result. The client runs its own copy to show it at once, sends only its inputs
+  (tagged with their steps) and takes the server's fight whenever the hashes differ. There's no message a client
+  could claim a result with, and the result shows only when the server's comes; keep it that way.
 - **Keys come from `client/src/settings/bindings.ts`.** When showing one on screen, read it from the bindings
   (`keyName`). Esc and ⌘ can't be rebound.
 - **Text is escaped by JSX**, so server or player strings can be rendered safely. No `innerHTML` or
@@ -358,21 +390,21 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Body, Fighter, ActiveHit, Enemy, LungeAttack,
                    ChargeAttack), player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
-                   optional attacks, ArenaDef), input.ts (PlayerInput; BattleInput, a step's input on the wire;
-                   IDLE_INPUT, isIdle, quantizeInput), snapshot.ts (a fight on the wire: PlayerState, exact;
-                   PlayerSnap / EnemySnap, rounded; BattleEvent), stats.ts (Stats, FighterStats, physicalDamage /
-                   moveSpeed / carryLimit)
+                   optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
+                   with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
+                   agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
+                   FighterStats, physicalDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
-                     fight.ts (Fight: its own world and physics, the system order, step(inputs), predict(player,
-                     input), leave(player), outcome, events, dispose), setup.ts (FightSetup, the one-on-one
+                     fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
+                     load / hash, leave(player), outcome, events, dispose), setup.ts (FightSetup, the one-on-one
                      starting spots, spawning players and enemies: components + a collider, one component per
                      attack in the def), context.ts (FightContext, FightOutcome, FightEvent), combat.ts (addHit,
                      hits, knockback, the hit timers), outcome.ts (won / lost; MAX_FIGHT_TIME, LEAVING_LOSES,
-                     playerResult), predict.ts (one player's own step, for the client's prediction),
-                     player-state.ts (readPlayerState / writePlayerState: a player exactly, out and back in)
+                     playerResult), state.ts (FightSnapshot: the whole state, exactly, out and back in; saveFight,
+                     loadFight), hash.ts (hashFight: the state's fingerprint, numbers rounded to 2 decimals)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
-                       move.ts (gravity, moving every body, who shoves whom and who passes through; predictMove)
+                       move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, slash, dodge, stamina; controlPlayer), ground.ts (grounded, from
                        rays; groundPlayer)
       enemies/         brain.ts (target, approach / poise / stagger / stun / death), lunge.ts, charge.ts, motor.ts
@@ -397,7 +429,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
   scripts/         check-layers.ts (the hexagonal import rules; run by `npm run typecheck`)
   test/            Unit tests, mirroring src/. fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
-                   MemoryAccountStore: core's ports in memory), level.ts (TEST_LEVEL, TEST_CHARACTER)
+                   MemoryAccountStore: core's ports in memory), level.ts (TEST_LEVEL, TEST_CHARACTER), fight.ts
+                   (a BattleRoom against a FakeClient's copy of the fight, over a wire that can hold messages back)
   src/
     main.ts          The only file that sees everything: loads the fight's physics, builds db -> core -> api + ws,
                      plugs them together, runs the tick timer
@@ -413,10 +446,11 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        emptying the bag, vitals; leave the arena), inventory.ts (packLoot: drops into the bag),
                        snapshot.ts (the state message: only actors near your screen), clock.ts (FixedClock: 60 Hz
                        steps, catching up after stalls)
-      battle/          The fight, run by the server. room.ts (BattleRoom: steps a Fight with each player's inputs,
-                       waits for their first, sends battleState, ends and frees it; SNAPSHOT_EVERY_STEPS),
-                       inputs.ts (InputQueue: one input a step, repeats, the timeout, folding a backlog),
-                       snapshot.ts (fighters rounded for battleState, events by index)
+      battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
+                       input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
+                       battleHash and battleSync, ends and frees it; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
+                       inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
+                       on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one player's world, level, systems and
                        spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer), parts.ts (spawnActor
                        from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
@@ -553,15 +587,17 @@ client/          Browser game: Babylon rendering, input, React UI.
                        view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
                        campfires.ts (any theme's campfires, flickering), grass-field/ (terrain, textures)
-    battle/          The 2.5D arena mode: draws the server's fight, predicting your own fighter
+    battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
       battle.ts        The mode: start / end a fight (arena built / resized on demand; the fight's copy from the
-                       encounter's setup), per lockstep tick a predicted step and the mirror's, the server's states
-                       in, the inputs out once a frame, the render systems
-      prediction.ts    BattlePrediction: your inputs (rounded, numbered, idle repeats not sent), your fighter
-                       predicted, reconciled with each battleState (restore, replay what the server hasn't run)
-      mirror.ts        FightMirror: everyone else drawn between the server's states, a few steps behind
+                       encounter's setup), per frame the fight's steps (as many as pace.ts says) and the inputs
+                       out, hashes, syncs and the result in, the render systems
+      sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
+                       server's hashes, loads its fight and replays on a mismatch; the server's outcome; stats
+                       (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
+      pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
+                       MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
       scene.ts         Babylon scene, camera, lights / fog / shadows / post
-      context.ts       BattleContext (the fight being drawn, its outcome as the server says), resultShown
+      context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says), resultShown
       components.ts    BodyNode (what a fighter's drawing hangs from), DrawOffset (a correction easing out),
                        Meshes (+ disposers)
       materials.ts, arena.ts (scenery: grass, stones, forest)
@@ -570,8 +606,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                        sword trail from the action, no Babylon: tested)
       enemies/         spawn.ts (the model on the fight's enemy)
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
-      systems/         follow (drawings to their bodies, easing corrections), camera, impacts (shake for the
-                       server's events), hud (fills the battle HUD's store)
+      systems/         follow (drawings to their bodies, easing corrections), camera (the orbit, and its shake
+                       for each step's hard hits: addImpactShake), hud (fills the battle HUD's store)
 ```
 
 ## Adding things
@@ -640,9 +676,10 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Where a fight starts | `shared/src/battle/fight/setup.ts` |
 | The arena's wall and floor | `shared/src/battle/fight/physics/arena-physics.ts` |
 | How a fight ends: time limit, leaving mid-fight | `shared/src/battle/fight/outcome.ts` |
-| Fight netcode: state rate, start wait | `server/src/core/battle/room.ts` |
-| Fight netcode: input backlog, timeout | `server/src/core/battle/inputs.ts` |
-| Fight netcode: how far behind others are drawn | `client/src/battle/mirror.ts` |
+| Fight netcode: hash rate, how late an input may be, how far ahead | `shared/src/battle/netcode.ts` |
+| Fight netcode: start wait, resync gap | `server/src/core/battle/room.ts` |
+| Fight netcode: a silent player letting go | `server/src/core/battle/inputs.ts` |
+| Fight netcode: heartbeat, history, pacing | `client/src/battle/sync.ts`, `client/src/battle/pace.ts` |
 | View size | `shared/src/overworld/view.ts` (`VIEW`) |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).

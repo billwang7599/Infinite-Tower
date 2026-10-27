@@ -61,7 +61,7 @@ describe("Connection", () => {
     socket.receive({ t: "input", seq: "1", moveX: 0, moveZ: 0 });
     socket.receive({ t: "input", seq: -1, moveX: 0, moveZ: 0 });
     socket.receive({ t: "battleEnd", won: true, vitals: { hp: 1, stamina: 1 } });
-    socket.receive({ t: "battleInput", inputs: [{ seq: 1, moveX: 9, moveZ: 0, aimX: 0, aimZ: 1 }] });
+    socket.receive({ t: "battleInput", upTo: 1, inputs: [{ step: 1, moveX: 9, moveZ: 0, aimX: 0, aimZ: 1 }] });
     socket.receive({ t: "useItem", at: { x: -1, y: 0 } });
     socket.receive("null");
     assert.deepEqual(received, []);

@@ -19,7 +19,7 @@ export function playerGroundSystem(physics: ArenaPhysics): System {
   };
 }
 
-/** One player's `grounded` and `airTime` after a physics step (the system above, or the client's prediction). */
+/** One player's `grounded` and `airTime` after a physics step. */
 export function groundPlayer(physics: ArenaPhysics, player: PlayerData, body: BodyData, dt: number): void {
   const p = body.pos, reach = body.centerHeight + GROUND_PROBE;
   const grounded = body.vel.y <= MAX_GROUNDED_RISE

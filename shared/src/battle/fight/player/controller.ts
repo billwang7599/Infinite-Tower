@@ -57,7 +57,7 @@ export function playerControllerSystem(): System {
   };
 }
 
-/** One step of player `e`'s controller (the system above, or the client's prediction of its own player). */
+/** One step of player `e`'s controller. */
 export function controlPlayer(world: World, e: Entity, dt: number): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
@@ -65,10 +65,14 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
   const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
   const alive = health.hp > 0;
 
-  // Edge-detect presses and buffer them, so a press slightly early still counts.
+  // Edge-detect presses and buffer them, so a press slightly early still counts. A dodge waits out a slash however
+  // early in it it's pressed (the user's call): its buffer only starts running down once the slash lets go.
+  const slash = PLAYER.slash;
+  const slashLocked = player.action === "slash" && player.actionTime < slash.chainAfter;
   const attackPressed = input.attack && !player.attackHeld, dodgePressed = input.dodge && !player.dodgeHeld;
   player.attackBuffer = attackPressed ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
-  player.dodgeBuffer = dodgePressed ? PLAYER.inputBuffer : Math.max(0, player.dodgeBuffer - dt);
+  if (dodgePressed) player.dodgeBuffer = PLAYER.inputBuffer;
+  else if (!slashLocked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
 
@@ -82,8 +86,8 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
       v.z = approach(v.z, 0, slowdown);
     }
   } else {
-    const slash = PLAYER.slash, dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
-    const free = player.action === "none" || (player.action === "slash" && player.actionTime >= slash.chainAfter);
+    const dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
+    const free = player.action === "none" || (player.action === "slash" && !slashLocked);
     if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);

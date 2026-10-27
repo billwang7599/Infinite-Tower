@@ -82,17 +82,30 @@ Decided by the user:
   and fades away on its own. All of it lives in `client/src/ui/notifications/`, and game code only calls
   `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its place and words.
 - The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
-  with its own physics world and fixed steps, for any number of players and enemies, so the server can run the same
-  fight and the browser predicts only its own character. Fighters are moved by code, not pushed by forces, so the
+  with its own physics world and fixed steps, for any number of players and enemies, so the server and the browser
+  run the same fight on the same inputs. Fighters are moved by code, not pushed by forces, so the
   controls stay tight. An enemy shoves a player; a player can't push an enemy; dodging, knocked back or dead, a
   player passes through enemies. Projectiles, when they come, are ray or shape casts, not physics bodies.
-- The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The client sends
-  only its inputs, predicts only its own character (restoring the server's state and replaying what it hasn't run)
-  and draws everyone else from the server's states. A player who disconnects mid-fight has lost it: the bag empties
-  as on a death. A fight still undecided after a time limit ends as a loss, a guard on the server's resources. Both
-  are named constants in `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the
-  agent's pick of a generous value), for the user to change.
-- Dev servers simulate a network ping on the game socket, half each way and in order, so prediction can be felt
+- The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The browser runs
+  the whole fight itself too (you and the enemies) and shows it at once, so the boar reacts without lag; it sends
+  only its inputs, each tagged with the fight step it's for. The server runs them on those steps: an input up to
+  200 ms late still runs on its own step (the server waits for it), a later one on the server's next step, and one
+  for a step too far ahead of the server's clock is dropped, so a client can't run ahead of real time. Four times a
+  second the server sends a hash of its fight's state; a client whose copy differs asks for the whole state, loads
+  it and replays its inputs since. The result banner, loot, the bag and saving wait for the server's result (the
+  client may keep animating). Tunable: `MAX_INPUT_DELAY` and `HASH_EVERY_STEPS` in `shared/src/battle/netcode.ts`.
+  Another player, later, may lag on your screen; your own character is always instant.
+- A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
+  and the server alike (`PLAYER.dodge.iframeStart` is 0).
+- A dodge pressed during a slash isn't lost, however early in it: it waits, without cutting the slash short, and
+  starts on the first step the slash lets another action start (`PLAYER.slash.chainAfter`, when the next slash may
+  chain). If the player can't dodge then (no stamina, overloaded, in the air), the press runs out like any early
+  press (`PLAYER.inputBuffer`). With a slash buffered too, the dodge goes first, as before.
+- A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
+  time limit ends as a loss, a guard on the server's resources. Both are named constants in
+  `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
+  generous value), for the user to change.
+- Dev servers simulate a network ping on the game socket, half each way and in order, so the netcode can be felt
   locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
   Production never delays.
 
@@ -251,10 +264,10 @@ Keeping them out of each other's way (and the user's):
 - **`shared/` is only for code both sides run.** Data only the server needs (encounter rates, spawns, enemy
   stats, drops) stays in `server/`.
 - **The arena fight is shared code** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`), and
-  the server runs it and decides it. The client sends only inputs (checked with Zod) and predicts only its own
-  character; no client message may claim a result, a hit or HP.
+  the server runs it and decides it. The client runs its own copy and sends only inputs tagged with their steps
+  (checked with Zod); no client message may claim a result, a hit or HP.
 - **ECS for game data** (`shared/src/core/ecs.ts`). Plain classes for services (connection, keyboard, mouse,
-  prediction).
+  prediction, the fight's sync).
 - **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key, and when showing one on screen, read
   it from the bindings (`keyName`). Esc and ⌘ can't be rebound.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in

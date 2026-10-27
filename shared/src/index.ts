@@ -9,7 +9,7 @@ export * from "./battle/components.js";
 export * from "./battle/player.js";
 export * from "./battle/defs.js";
 export * from "./battle/input.js";
-export type * from "./battle/snapshot.js";
+export * from "./battle/netcode.js";
 export * from "./battle/stats.js";
 export * from "./character/character.js";
 export * from "./items/items.js";

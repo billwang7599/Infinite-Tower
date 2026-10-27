@@ -6,6 +6,7 @@ import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import type { Settings } from "../settings/settings.js";
 import type { Materials } from "./materials.js";
+import type { FightSync } from "./sync.js";
 
 /** Seconds a decided fight waits before showing the result and taking the leave key. */
 const RESULT_DELAY = 1;
@@ -30,10 +31,12 @@ export interface BattleContext {
    * forward = (sin yaw, cos yaw). Movement is camera-relative.
    */
   view: { yaw: number; pitch: number };
-  /** The fight being drawn, from the encounter until the player leaves the arena. */
+  /** The fight being drawn (your own copy, run at once), from the encounter until the player leaves the arena. */
   fight: Fight | null;
-  /** How the fight stands, as the server last said (its clock runs here, for when to show the result). */
+  /** Keeps `fight` in line with the server's (sync.ts); its `stats` count the checks and corrections. */
+  sync: FightSync | null;
+  /** How the fight stands, as the server says (its clock runs here, for when to show the result). */
   outcome: FightOutcome;
-  /** Camera shake amplitude, decays over time. Add to it for impacts. */
+  /** Camera shake amplitude, decays over time. Hard hits add to it (addImpactShake, systems/camera.ts). */
   shake: number;
 }

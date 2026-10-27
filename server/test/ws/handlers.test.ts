@@ -14,6 +14,7 @@ function fakeSession() {
   const session = {
     input: record("input"),
     battleInput: record("battleInput"),
+    battleResync: record("battleResync"),
     leaveBattle: record("leaveBattle"),
     setSettings: record("setSettings"),
     setCharacter: record("setCharacter"),
@@ -36,9 +37,13 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "input", seq: 7, moveX: -1, moveZ: 0.5 }), [["input", 7, -1, 0.5]]);
   });
 
-  test("battleInput hands on the steps' inputs", () => {
-    const inputs = [{ seq: 4, moveX: 0, moveZ: 1, aimX: 0, aimZ: 1, jump: false, attack: true, dodge: false }];
-    assert.deepEqual(handle({ t: "battleInput", inputs }), [["battleInput", inputs]]);
+  test("battleInput hands on how far the client has got and its changes, each with its step", () => {
+    const inputs = [{ step: 4, moveX: 0, moveZ: 1, aimX: 0, aimZ: 1, jump: false, attack: true, dodge: false }];
+    assert.deepEqual(handle({ t: "battleInput", upTo: 6, inputs }), [["battleInput", 6, inputs]]);
+  });
+
+  test("battleResync asks for the whole fight", () => {
+    assert.deepEqual(handle({ t: "battleResync" }), [["battleResync"]]);
   });
 
   test("leaveBattle leaves the arena", () => {
@@ -75,7 +80,8 @@ describe("message handlers", () => {
 
   test("every client message type has a handler", () => {
     const types: ClientMsg["t"][] = [
-      "input", "battleInput", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem", "debug",
+      "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
+      "debug",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core";
 import { Body, clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
-import type { Fight } from "@infinite-tower/shared/fight";
+import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../context.js";
 
 // Turn rates at 100% sensitivity; Settings → Camera scales all three (settings/camera.ts).
@@ -23,10 +23,18 @@ const LOOK_HEIGHT = 1.3;
 const SHAKE_DECAY_PER_SEC = 9;
 const SHAKE_CUTOFF = 0.005;
 
+/** After each step of the fight: shake the camera for what hit hard in it (cameraSystem decays the shake). */
+export function addImpactShake(ctx: BattleContext, events: readonly FightEvent[]): void {
+  for (const event of events) {
+    const shake = event.type === "slam" ? 0.35 : event.team === "player" ? 0.15 + event.damage * 0.008 : 0.06;
+    ctx.shake = Math.max(ctx.shake, shake);
+  }
+}
+
 /**
  * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full
  * 360°. Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player
- * attacks (see player/input.ts). Also applies impact shake.
+ * attacks (see player/input.ts). Also applies the impact shake (addImpactShake), decaying it.
  */
 export function cameraSystem(ctx: BattleContext): System {
   const { keyboard, mouse } = ctx;

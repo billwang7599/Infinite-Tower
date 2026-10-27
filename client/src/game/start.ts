@@ -5,7 +5,7 @@
  * connection leave()s, and the next Play joins again with everything still built.
  */
 import { Engine } from "@babylonjs/core";
-import { FIXED_DT, World } from "@infinite-tower/shared";
+import { World } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { createBattle } from "../battle/battle.js";
 import { createBattleScene } from "../battle/scene.js";
@@ -19,8 +19,8 @@ import { createGame, type Game } from "./game.js";
 
 export async function prepareGame(ui: UiState, settings: Settings): Promise<Game> {
   const canvas = document.getElementById("game") as HTMLCanvasElement;
-  // Deterministic lockstep: the battle scene steps the fight at a fixed FIXED_DT (max 4 per frame).
-  const engine = new Engine(canvas, true, { deterministicLockstep: true, lockstepMaxSteps: 4, timeStep: FIXED_DT });
+  // Each mode keeps its own fixed-step clock (the arena's: battle/pace.ts).
+  const engine = new Engine(canvas, true);
   window.addEventListener("resize", () => engine.resize());
 
   // Rapier loads here, behind the title, so a fight never waits for it.

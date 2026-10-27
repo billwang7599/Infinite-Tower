@@ -1,71 +1,88 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { IDLE_INPUT, type BattleInput, type PlayerInputData } from "@infinite-tower/shared";
-import { INPUT_TIMEOUT_STEPS, InputQueue, MAX_WAITING_INPUTS } from "../../../src/core/battle/inputs.js";
+import { IDLE_INPUT, MAX_INPUT_LEAD_STEPS, type PlayerInputData, type StepInput } from "@infinite-tower/shared";
+import { InputTimeline, SILENT_STOP_STEPS } from "../../../src/core/battle/inputs.js";
 
 const WALK: PlayerInputData = { ...IDLE_INPUT, moveZ: 1 };
-const step = (seq: number, over: Partial<PlayerInputData> = {}): BattleInput => ({ seq, ...IDLE_INPUT, ...over });
-const withoutSeq = ({ seq: _, ...input }: BattleInput): PlayerInputData => input;
+const at = (step: number, over: Partial<PlayerInputData> = {}): StepInput => ({ step, ...IDLE_INPUT, ...over });
 
-describe("InputQueue", () => {
-  test("before any input: idle, nothing acked, not started", () => {
-    const queue = new InputQueue();
-    assert.equal(queue.started, false);
-    assert.deepEqual(queue.next(), IDLE_INPUT);
-    assert.equal(queue.ack, 0);
+/** Takes the inputs for steps `from`..`to` in turn. */
+const takeRange = (timeline: InputTimeline, from: number, to: number): PlayerInputData[] => {
+  const taken: PlayerInputData[] = [];
+  for (let step = from; step <= to; step++) taken.push(timeline.take(step));
+  return taken;
+};
+
+describe("InputTimeline", () => {
+  test("before anything has come: not started, nothing known, idle", () => {
+    const timeline = new InputTimeline();
+    assert.equal(timeline.started, false);
+    assert.equal(timeline.known(1), false);
+    assert.deepEqual(timeline.take(1), IDLE_INPUT);
   });
 
-  test("takes one input a step, in order, and acks it", () => {
-    const queue = new InputQueue();
-    const inputs = [step(1, WALK), step(2, { attack: true }), step(3)];
-    queue.push(inputs);
-    assert.equal(queue.started, true);
-    for (const input of inputs) {
-      assert.deepEqual(queue.next(), withoutSeq(input));
-      assert.equal(queue.ack, input.seq);
-      assert.equal(queue.repeats, 0);
-    }
+  test("each change runs from its own step until the next one; steps up to upTo are known", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(6, [at(1, WALK), at(3, { attack: true }), at(4)], 0);
+    assert.equal(timeline.started, true);
+    assert.equal(timeline.known(6), true);
+    assert.equal(timeline.known(7), false);
+    assert.deepEqual(takeRange(timeline, 1, 6), [
+      WALK, WALK, { ...IDLE_INPUT, attack: true }, IDLE_INPUT, IDLE_INPUT, IDLE_INPUT,
+    ]);
   });
 
-  test("ignores an input it already has, or one older than the newest", () => {
-    const queue = new InputQueue();
-    queue.push([step(1), step(2, WALK)]);
-    queue.push([step(2, { dodge: true }), step(1, { attack: true }), step(3, { jump: true })]);
-    assert.deepEqual([queue.next(), queue.next(), queue.next()], [IDLE_INPUT, WALK, { ...IDLE_INPUT, jump: true }]);
+  test("ignores a change it already has, or one older than the newest", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(3, [at(2, WALK), at(3, { jump: true })], 0);
+    timeline.receive(4, [at(3, { dodge: true })], 0);
+    timeline.receive(4, [at(1, { attack: true })], 0);
+    const jump = { ...IDLE_INPUT, jump: true };
+    assert.deepEqual(takeRange(timeline, 1, 4), [IDLE_INPUT, WALK, jump, jump]);
   });
 
-  test("with none waiting, runs the last one again and counts it; a new one starts the count over", () => {
-    const queue = new InputQueue();
-    queue.push([step(1, WALK)]);
-    queue.next();
-    assert.deepEqual([queue.next(), queue.next()], [WALK, WALK]);
-    assert.deepEqual({ ack: queue.ack, repeats: queue.repeats }, { ack: 1, repeats: 2 });
-    queue.push([step(5)]);
-    assert.deepEqual(queue.next(), IDLE_INPUT);
-    assert.deepEqual({ ack: queue.ack, repeats: queue.repeats }, { ack: 5, repeats: 0 });
+  test("a change that came after its step was run counts on the next step, its presses kept", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    // A tap: dodge down on step 3, up on step 4; both arrive after step 5 ran.
+    timeline.receive(7, [at(3, { ...WALK, dodge: true }), at(4, WALK)], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, dodge: true }, "pressed on the first step it can be");
+    assert.deepEqual(timeline.take(7), WALK, "and let go after");
   });
 
-  test("a player who goes quiet while moving is taken to have stopped, after INPUT_TIMEOUT_STEPS (aim kept)", () => {
-    const queue = new InputQueue();
-    queue.push([step(1, { ...WALK, aimX: 1, aimZ: 0, attack: true })]);
-    queue.next();
-    for (let i = 0; i < INPUT_TIMEOUT_STEPS; i++) assert.equal(queue.next().moveZ, 1, `repeat ${i + 1}`);
-    assert.deepEqual(queue.next(), { ...IDLE_INPUT, aimX: 1, aimZ: 0 });
+  test("a change for a step too far ahead of the server's clock is dropped, and upTo held back", () => {
+    const timeline = new InputTimeline();
+    const now = 10, limit = now + MAX_INPUT_LEAD_STEPS;
+    timeline.receive(limit + 5, [at(limit, WALK), at(limit + 1, { attack: true })], now);
+    assert.equal(timeline.known(limit), true);
+    assert.equal(timeline.known(limit + 1), false);
+    assert.deepEqual(takeRange(timeline, limit, limit + 2), [WALK, WALK, WALK]);
   });
 
-  test("more than MAX_WAITING_INPUTS waiting (after a stall): the oldest go, their presses kept in the next", () => {
-    const queue = new InputQueue();
-    const late = Array.from({ length: MAX_WAITING_INPUTS + 3 }, (_, i) => step(i + 1, WALK));
-    late[0] = step(1, { ...WALK, attack: true });
-    queue.push(late);
-    const first = queue.next();
-    assert.equal(queue.ack, 4, "1 to 3 were merged into 4");
-    assert.deepEqual(first, { ...WALK, attack: true });
-    let taken = 1;
-    while (queue.repeats === 0) {
-      queue.next();
-      taken++;
-    }
-    assert.equal(taken - 1, MAX_WAITING_INPUTS, "then one a step, as usual");
+  test("a step it doesn't know yet repeats the player's input; silent for long, they stop moving", () => {
+    const timeline = new InputTimeline();
+    const held = { ...WALK, aimX: 1, aimZ: 0, attack: true };
+    timeline.receive(1, [at(1, held)], 0);
+    timeline.take(1);
+    const guessed = takeRange(timeline, 2, 2 + SILENT_STOP_STEPS - 1);
+    assert.ok(guessed.every((input) => JSON.stringify(input) === JSON.stringify(held)), "held while it might be late");
+    assert.deepEqual(timeline.take(2 + SILENT_STOP_STEPS), { ...held, moveX: 0, moveZ: 0 }, "then stopped, aim kept");
+    timeline.receive(30, [], 20);
+    assert.deepEqual(timeline.take(2 + SILENT_STOP_STEPS + 1), held, "known again: what they hold");
+  });
+
+  test("tells how late the player's inputs come: the best since it last told, or how long they've been silent", () => {
+    const timeline = new InputTimeline();
+    // On time: the input for the server's next step (now + 1) arrives before that step.
+    timeline.receive(14, [], 13);
+    assert.deepEqual(timeline.lateness(14), { lateSteps: 0, heardStep: 14 });
+    timeline.receive(10, [], 13);
+    timeline.receive(12, [], 14);
+    timeline.receive(14, [], 18);
+    assert.deepEqual(timeline.lateness(20), { lateSteps: 3, heardStep: 12 });
+    assert.deepEqual(timeline.lateness(25), { lateSteps: 11, heardStep: 14 }, "nothing since: silent for 11 steps");
+    timeline.receive(30, [], 27);
+    assert.deepEqual(timeline.lateness(28), { lateSteps: -2, heardStep: 30 }, "early");
   });
 });

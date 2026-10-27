@@ -1,125 +1,154 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Health, IDLE_INPUT, physicalDamage, PLAYER, type EnemyDef, type PlayerInputData, type Vitals,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, MAX_INPUT_LEAD_STEPS, Player, PLAYER, Stamina,
+  type PlayerInputData,
 } from "@infinite-tower/shared";
-import {
-  ENEMY_START, ENEMY_START_YAW, initPhysics, LEAVING_LOSES, MAX_FIGHT_TIME, PLAYER_START, readPlayerState,
-  type FightSetup, type PlayerResult,
-} from "@infinite-tower/shared/fight";
-import { BattleRoom, MAX_START_WAIT_TIME, SNAPSHOT_EVERY_STEPS } from "../../../src/core/battle/room.js";
-import { ENEMIES } from "../../../src/core/content/enemies.js";
+import { Fight, initPhysics, LEAVING_LOSES, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
+import { MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS } from "../../../src/core/battle/room.js";
 import { PLAYER_STATS } from "../../../src/core/content/player.js";
-import { FakeLink } from "../../fixtures/fakes.js";
+import { FakeClient, openRoom, setupWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
-/** The wild boar, rooted to the spot and harmless. */
-const STATUE: EnemyDef = { ...ENEMIES["wild-boar"], walkSpeed: 0, turnRate: 0, attacks: {} };
 const STEP_SECONDS = 1 / 60;
-const SLASH_DAMAGE = physicalDamage(PLAYER.slash.damage, PLAYER_STATS);
-
-function setupWith(enemyAt = ENEMY_START): FightSetup {
-  return {
-    arena: { radius: 16 },
-    players: [{ at: PLAYER_START, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
-      burden: "light" }],
-    enemies: [{ def: STATUE, at: enemyAt, yaw: ENEMY_START_YAW }],
-  };
-}
-
-/** A room with one player on a FakeLink; `ended` records how the fight ended for them. */
-function open(setup = setupWith()) {
-  const link = new FakeLink();
-  const ended: { result: PlayerResult; vitals: Vitals }[] = [];
-  const room = new BattleRoom(setup, [{ link, onEnd: (result, vitals) => ended.push({ result, vitals }) }]);
-  let seq = 0;
-  /** One step: the player's input (if any), then the room's tick. */
-  const play = (input: PlayerInputData | null = IDLE_INPUT) => {
-    if (input) room.input(0, [{ seq: ++seq, ...input }]);
-    room.tick();
-  };
-  return { link, room, ended, play };
-}
+const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_INPUT, ...over });
+/** Walks about, slashes and dodges: something different every few steps. */
+const script = (step: number): PlayerInputData => input({
+  moveX: step % 50 < 25 ? 1 : -0.5, moveZ: step % 30 < 15 ? 0.6 : -1, aimX: step % 40 < 20 ? 0 : 1,
+  aimZ: step % 40 < 20 ? 1 : 0, attack: step % 13 === 0, dodge: step % 37 === 0,
+});
 
 describe("a battle room", () => {
   test("waits for the player's first input before the fight starts (they're still flashing into the arena)", () => {
-    const { link, room, play } = open();
+    const { link, room, play } = openRoom();
     for (let i = 0; i < 30; i++) play(null);
-    assert.equal(link.all("battleState").length, 0);
-    assert.equal(room.fight.outcome.stateTime, 0);
+    assert.equal(room.fight.steps, 0);
+    assert.equal(link.sent.length, 0);
     play();
-    assert.ok(room.fight.outcome.stateTime > 0);
+    assert.equal(room.fight.steps, 1);
   });
 
-  test("starts without it after MAX_START_WAIT_TIME", () => {
-    const { room, play } = open();
-    for (let i = 0; i < Math.ceil(MAX_START_WAIT_TIME / STEP_SECONDS) + 1; i++) play(null);
-    assert.ok(room.fight.outcome.stateTime > 0);
+  test("starts without it after MAX_START_WAIT_TIME, and goes on without it", () => {
+    const { room, tick } = openRoom();
+    const wait = Math.ceil(MAX_START_WAIT_TIME / STEP_SECONDS) + 1;
+    for (let i = 0; i < wait + MAX_INPUT_DELAY_STEPS + 10; i++) tick();
+    assert.ok(room.fight.steps >= 10, `${room.fight.steps} steps`);
   });
 
-  test("sends battleState every SNAPSHOT_EVERY_STEPS steps, with the last input it ran", () => {
-    const { link, play } = open();
-    for (let i = 0; i < SNAPSHOT_EVERY_STEPS * 4; i++) play();
-    const states = link.all("battleState");
-    assert.equal(states.length, 4);
-    assert.deepEqual(states.map((s) => s.step), [1, 2, 3, 4].map((n) => n * SNAPSHOT_EVERY_STEPS));
-    assert.deepEqual(states.map((s) => s.ack), states.map((s) => s.step));
-    assert.ok(states.every((s) => s.repeats === 0 && s.outcome === "fighting"));
+  test("runs each input on the step it was made for: its fight is the client's, hash for hash", () => {
+    const { link, room, client, play } = openRoom();
+    const hashes = new Map<number, number>();
+    for (let step = 1; step <= 8 * HASH_EVERY_STEPS; step++) {
+      play(script(step));
+      hashes.set(client.fight.steps, client.fight.hash());
+    }
+    const sent = link.all("battleHash");
+    assert.deepEqual(sent.map((m) => m.step), [1, 2, 3, 4, 5, 6, 7, 8].map((n) => n * HASH_EVERY_STEPS));
+    for (const msg of sent) assert.equal(msg.hash, hashes.get(msg.step), `step ${msg.step}`);
+    assert.deepEqual(room.fight.save(), client.fight.save());
   });
 
-  test("counts the steps it ran with no new input", () => {
-    const { link, play } = open();
+  test("never runs the fight ahead of its own clock, whatever the client says", () => {
+    const { room, tick } = openRoom();
+    const client = new FakeClient(setupWith());
+    const inputs = Array.from({ length: 40 }, () => client.step(script(1))).flatMap((s) => s.inputs);
+    room.input(0, 40, inputs.slice(0, 16));
+    for (let i = 1; i <= 3; i++) {
+      tick();
+      assert.ok(room.fight.steps <= i, `tick ${i}: ${room.fight.steps} steps`);
+    }
+  });
+
+  test("waits up to MAX_INPUT_DELAY_STEPS for a late input, and runs it on its own step", () => {
+    const { room, client, play } = openRoom();
     play();
-    for (let i = 1; i < SNAPSHOT_EVERY_STEPS; i++) play(null);
-    const { ack, repeats } = link.last("battleState");
-    assert.deepEqual({ ack, repeats }, { ack: 1, repeats: SNAPSHOT_EVERY_STEPS - 1 });
+    const late = MAX_INPUT_DELAY_STEPS - 3;
+    play(input({ attack: true }), late);
+    for (let i = 0; i < late; i++) {
+      assert.equal(room.fight.steps, 1, "held back, waiting for step 2");
+      play(IDLE_INPUT);
+    }
+    for (let i = 0; i < 10; i++) play(IDLE_INPUT);
+    assert.deepEqual(room.fight.save(), client.fight.save(), "the slash ran on step 2, as on the client");
   });
 
-  test("sends the player themselves exactly, everyone else rounded to the centimetre, their own seat empty", () => {
-    const { link, room, play } = open();
-    for (let i = 0; i < SNAPSHOT_EVERY_STEPS * 5; i++) play({ ...IDLE_INPUT, moveX: 0.3, moveZ: 0.9 });
-    const state = link.last("battleState");
-    assert.deepEqual(state.me, readPlayerState(room.fight, room.fight.players[0]!));
-    assert.deepEqual(state.players, [null]);
-    const boar = room.fight.world.require(room.fight.enemies[0]!, Body).pos;
-    const sent = state.enemies[0]!;
-    assert.ok(Math.abs(sent.x - boar.x) <= 0.005 && Math.abs(sent.z - boar.z) <= 0.005);
-    assert.equal(sent.x, Math.round(sent.x * 100) / 100);
-    assert.equal(sent.hp, STATUE.maxHp);
-    assert.equal(sent.state, "approach");
-  });
-
-  test("sends what happened since the last state, fighters by index (players, then enemies)", () => {
-    const close = { x: PLAYER_START.x, y: PLAYER_START.y, z: PLAYER_START.z + 2.5 };
-    const { link, play } = open(setupWith(close));
+  test("an input later than that runs on the server's next step instead (the client is corrected)", () => {
+    const { room, client, play } = openRoom();
     play();
-    play({ ...IDLE_INPUT, attack: true });
-    for (let i = 0; i < 20; i++) play();
-    const events = link.all("battleState").flatMap((s) => s.events);
-    assert.deepEqual(events, [{ type: "hit", target: 1, team: "enemy", damage: SLASH_DAMAGE }]);
+    const late = MAX_INPUT_DELAY_STEPS + 3;
+    play(input({ attack: true }), late);
+    for (let i = 0; i < late + 10; i++) play(IDLE_INPUT);
+    assert.notDeepEqual(room.fight.save(), client.fight.save());
+    // Steps 2.. ran without it until it came, MAX_INPUT_DELAY_STEPS + 3 ticks late; it ran on the next one.
+    const ranAt = 2 + late - MAX_INPUT_DELAY_STEPS;
+    const expected = new Fight(setupWith());
+    while (expected.steps < room.fight.steps) expected.step([input({ attack: expected.steps + 1 === ranAt })]);
+    assert.deepEqual(room.fight.save(), expected.save());
   });
 
-  test("when it's decided: a last battleState at once, then the result; the fight is freed", () => {
-    const { link, room, ended, play } = open();
+  test("drops inputs for steps further ahead of its clock than MAX_INPUT_LEAD_STEPS", () => {
+    const { room, play } = openRoom();
+    play();
+    const ahead = room.fight.steps + 1 + MAX_INPUT_LEAD_STEPS + 1;
+    room.input(0, ahead, [{ step: ahead, ...input({ attack: true }) }]);
+    for (let i = 0; i < 40; i++) play(null);
+    const player = room.fight.world.require(room.fight.players[0]!, Player);
+    assert.equal(player.action, "none");
+    assert.equal(room.fight.world.require(room.fight.players[0]!, Stamina).value, PLAYER_STATS.stamina);
+  });
+
+  test("a client gone silent: the fight goes on in real time, MAX_INPUT_DELAY_STEPS behind its clock", () => {
+    const { room, play } = openRoom();
+    play();
+    for (let i = 0; i < 100; i++) play(null);
+    assert.equal(room.fight.steps, 101 - MAX_INPUT_DELAY_STEPS);
+  });
+
+  test("says in every hash how late the player's inputs come", () => {
+    const { link, play } = openRoom();
+    for (let i = 0; i < HASH_EVERY_STEPS; i++) play();
+    assert.equal(link.last("battleHash").lateSteps, 0);
+    for (let i = 0; i < HASH_EVERY_STEPS * 4; i++) play(IDLE_INPUT, i < 4 ? 0 : 7);
+    assert.ok(link.last("battleHash").lateSteps >= 6, `${link.last("battleHash").lateSteps}`);
+  });
+
+  test("asked to resync, sends its whole fight at its step; not again within MIN_SYNC_GAP_STEPS", () => {
+    const { link, room, play } = openRoom();
+    for (let i = 0; i < 20; i++) play(script(i + 1));
+    room.resync(0);
+    const sync = link.last("battleSync");
+    assert.equal(sync.step, room.fight.steps);
+    assert.deepEqual(sync.fight, room.fight.save());
+    room.resync(0);
+    assert.equal(link.all("battleSync").length, 1);
+    for (let i = 0; i < MIN_SYNC_GAP_STEPS; i++) play();
+    room.resync(0);
+    assert.equal(link.all("battleSync").length, 2);
+  });
+
+  test("when it's decided: a last battleSync with the whole fight at once, then the result; the fight is freed", () => {
+    const { link, room, ended, play } = openRoom();
     play();
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
     play();
-    assert.equal(link.last("battleState").outcome, "won");
-    assert.equal(link.last("battleState").step, 2, "not waiting for the next round of states");
-    assert.equal(ended.length, 1);
-    assert.equal(ended[0]!.result, "won");
+    const last = link.last("battleSync");
+    assert.equal(last.step, 2);
+    assert.equal(last.fight.outcome.state, "won");
+    assert.deepEqual(ended.map((e) => e.result), ["won"]);
     assert.deepEqual(ended[0]!.vitals, { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina });
     assert.equal(room.over, true);
     const sent = link.sent.length;
     for (let i = 0; i < 10; i++) play();
+    room.resync(0);
     assert.equal(link.sent.length, sent, "nothing after");
     assert.equal(ended.length, 1);
   });
 
   test("the player's vitals at the end are the fight's", () => {
-    const { room, ended, play } = open();
-    play({ ...IDLE_INPUT, attack: true });
+    const { room, ended, play } = openRoom();
+    play();
+    play(input({ attack: true }));
     for (let i = 0; i < 30; i++) play();
     const { hp } = Object.assign(room.fight.world.require(room.fight.players[0]!, Health), { hp: 37 });
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
@@ -129,7 +158,7 @@ describe("a battle room", () => {
   });
 
   test("a player who leaves mid-fight is told at once how it ended for them; with nobody left, it's freed", () => {
-    const { link, room, ended, play } = open();
+    const { link, room, ended, play } = openRoom();
     for (let i = 0; i < 10; i++) play();
     const sent = link.sent.length;
     room.leave(0);
@@ -139,11 +168,11 @@ describe("a battle room", () => {
     assert.equal(link.sent.length, sent, "nothing more is sent to them");
   });
 
-  test("a fight that runs past MAX_FIGHT_TIME ends as a loss", () => {
-    const { room, ended, play } = open();
+  test("a silent client still loses when the fight runs past MAX_FIGHT_TIME", () => {
+    const { room, ended, play } = openRoom();
     play();
     room.fight.outcome.stateTime = MAX_FIGHT_TIME;
-    play();
+    for (let i = 0; i < MAX_INPUT_DELAY_STEPS + 2 && !room.over; i++) play(null);
     assert.deepEqual(ended.map((e) => e.result), ["lost"]);
   });
 });
