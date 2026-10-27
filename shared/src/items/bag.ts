@@ -1,10 +1,6 @@
 /**
- * The bag: a grid that items are fitted into, like Resident Evil 4's case or an extraction shooter's backpack. Each
- * item covers a rectangle of cells (`ItemDef.cols` × `rows`) and can be turned 90°; a single-cell item stacks up to
- * its `stackSize` in one cell. Shared, so the client fits things by the same rules the server checks them with.
- *
- * Cells are counted from the top-left: `x` is the column, `y` the row. Bags are replaced, never changed in place
- * (the session sends them to the client as they are).
+ * The bag: a grid of cells, `x` the column and `y` the row from the top-left. Each item covers a rectangle and can be
+ * turned 90°; a single-cell item stacks in one cell. Bags are replaced, never changed in place.
  */
 import { ITEMS, type ItemCounts, type ItemId } from "./items.js";
 
@@ -13,7 +9,7 @@ export interface Cell {
   y: number;
 }
 
-/** One stack in the bag, by its top-left cell. */
+/** One stack, by its top-left cell. */
 export interface BagItem extends Cell {
   item: ItemId;
   count: number;
@@ -27,7 +23,6 @@ export interface Bag {
   items: BagItem[];
 }
 
-/** Every character's bag, for now. */
 export const STARTER_BAG = { cols: 6, rows: 4 } as const;
 
 export const emptyBag = (): Bag => ({ cols: STARTER_BAG.cols, rows: STARTER_BAG.rows, items: [] });
@@ -46,14 +41,11 @@ const areaOf = (s: BagItem): Area => ({ x: s.x, y: s.y, ...footprint(s.item, s.t
 const overlap = (a: Area, b: Area) =>
   a.x < b.x + b.cols && b.x < a.x + a.cols && a.y < b.y + b.rows && b.y < a.y + a.rows;
 
-/** The index of the stack covering `cell`, or -1 if it's empty. */
+/** -1 if the cell is empty. */
 export const itemAt = (bag: Bag, cell: Cell): number =>
   bag.items.findIndex((s) => overlap(areaOf(s), { ...cell, cols: 1, rows: 1 }));
 
-/**
- * Whether `item` fits with its top-left at `at`: on whole cells, inside the bag, and on cells no other stack covers.
- * `ignore` is the index of a stack that doesn't count (the one being moved).
- */
+/** Whether `item` fits with its top-left at `at`. `ignore`: the index of a stack that doesn't count (the one moved). */
 export function fits(bag: Bag, item: ItemId, at: Cell, turned: boolean, ignore = -1): boolean {
   const area = { x: at.x, y: at.y, ...footprint(item, turned) };
   if (!Number.isInteger(area.x) || !Number.isInteger(area.y) || area.x < 0 || area.y < 0) return false;
@@ -71,10 +63,7 @@ function findRoom(bag: Bag, item: ItemId): { at: Cell; turned: boolean } | null 
   return null;
 }
 
-/**
- * `count` of `item` put in the bag: first topping up stacks of it, then in new stacks wherever they fit (see
- * `findRoom`). `left` is how many there wasn't room for.
- */
+/** Tops up stacks of `item` first, then makes new ones where they fit. `left`: how many there wasn't room for. */
 export function addItem(bag: Bag, item: ItemId, count: number): { bag: Bag; left: number } {
   const { stackSize } = ITEMS[item];
   let left = count;
@@ -96,9 +85,8 @@ export function addItem(bag: Bag, item: ItemId, count: number): { bag: Bag; left
 }
 
 /**
- * The stack covering `from` moved so its top-left is at `to`, turned or not. Dropped on another stack of the same
- * item, it tops that one up instead, and what doesn't fit stays where it was. null if nothing would change, or it
- * doesn't fit there.
+ * The stack covering `from` moved so its top-left is at `to`. Dropped on a stack of the same item it tops that one up
+ * instead, the rest staying put. null if nothing would change, or it doesn't fit there.
  */
 export function moveItem(bag: Bag, from: Cell, to: Cell, turned: boolean): Bag | null {
   const i = itemAt(bag, from);
@@ -119,7 +107,7 @@ export function moveItem(bag: Bag, from: Cell, to: Cell, turned: boolean): Bag |
   return { ...bag, items: bag.items.map((s, k) => k === i ? { ...s, x: to.x, y: to.y, turned } : s) };
 }
 
-/** The bag with one fewer of the stack covering `cell` (gone after its last one), or null if the cell is empty. */
+/** null if the cell is empty. */
 export function takeOne(bag: Bag, cell: Cell): Bag | null {
   const i = itemAt(bag, cell);
   if (i < 0) return null;
@@ -129,7 +117,6 @@ export function takeOne(bag: Bag, cell: Cell): Bag | null {
 
 export const bagWeight = (bag: Bag): number => bag.items.reduce((sum, s) => sum + ITEMS[s.item].weight * s.count, 0);
 
-/** How many of each item the bag holds, over all its stacks. */
 export function bagCounts(bag: Bag): ItemCounts {
   const counts: ItemCounts = {};
   for (const s of bag.items) counts[s.item] = (counts[s.item] ?? 0) + s.count;

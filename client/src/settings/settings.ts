@@ -1,11 +1,6 @@
 /**
- * The player's settings: one store per kind. main.ts makes them once and hands this one object to the game
- * (which reads them every tick) and to the UI (whose settings screen edits them). They live on the server with
- * the player's save: `welcome` brings them (`restoreSettings`) and, while playing, every change is sent back
- * (`syncSettings`). Before logging in they're the defaults.
- *
- * A new kind of setting is a store here (with `restore` / `toSaved`, listed in the three functions below), a
- * field in `SavedSettingsSchema` (shared/src/net/client-messages.ts), and a section in ui/screens/settings/.
+ * The player's settings, one store per kind, made once by main.ts. They live on the server with the save: `welcome`
+ * brings them, and every change is sent back.
  */
 import type { SavedSettings } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
@@ -44,7 +39,7 @@ function toSaved(settings: Settings): SavedSettings {
   };
 }
 
-/** Sends the settings to the server after each change. The returned stop() sends anything still waiting. */
+/** The returned stop() sends anything still waiting. */
 export function syncSettings(settings: Settings, net: Connection): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const send = () => {

@@ -18,7 +18,7 @@ export type { Look };
 export { CHIBI_FACINGS, type ChibiFacing } from "./art.js";
 
 /** Everything drawn for a look: the body and head, its features, then what it wears. */
-export function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Art[] {
+function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Art[] {
   return [BODY, FACE_SHAPES[look.face], HAIR_STYLES[look.hair], EYE_TYPES[look.eyes], MOUTH_TYPES[look.mouth], ...wear];
 }
 

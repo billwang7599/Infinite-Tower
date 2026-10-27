@@ -1,7 +1,4 @@
-/**
- * Building entities from parts. A behavior exports a factory that returns a Part (its component with
- * defaults filled in); a prefab is a list of parts. See prefabs/boar.ts.
- */
+/** A behavior's factory returns a Part (its component, defaults filled in); a prefab is a list of parts. */
 import type { ComponentType, Entity, Vec2, World } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "./components.js";
 
@@ -11,7 +8,7 @@ export function part<T>(type: ComponentType<T>, data: T): Part {
   return (world, e) => { world.add(e, type, data); };
 }
 
-/** An overworld actor at `at`, drawn by the client prefab `kind`, with the given behaviors. */
+/** `kind`: the client prefab that draws it. */
 export function spawnActor(world: World, kind: OverworldActorData["kind"], at: Vec2, parts: Part[]): Entity {
   const e = world.spawn();
   world.add(e, OverworldPos, { x: at.x, z: at.z });

@@ -1,7 +1,6 @@
 /**
- * The combat arena's scenery: a trampled clearing ringed by standing stones, forest beyond. Sized by the
- * level's ArenaDef; returns its entity so the battle can rebuild it when the size changes. The floor and the wall
- * you bump into are the fight's physics (shared: ArenaPhysics), which the stones and the grass only show.
+ * The arena's scenery: a clearing ringed by standing stones, forest beyond. Returns its entity, to rebuild it when
+ * the size changes. The floor and the wall you bump into are the fight's physics; this only shows them.
  */
 import { MeshBuilder, type Mesh } from "@babylonjs/core";
 import { seededRandom, type Entity } from "@infinite-tower/shared";

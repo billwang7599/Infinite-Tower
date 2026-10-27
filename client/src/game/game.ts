@@ -1,19 +1,20 @@
 /**
- * Mode switching and sessions. Two modes, two Babylon scenes, one ECS world:
- * - overworld: the 2D map (overworld/), its own fixed-step loop.
- * - battle:    the 2.5D arena (battle/): your own copy of the whole fight, run at once and kept in line with the
- *              server's, which decides it.
- * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
- * encounters and fights; this routes its messages (one handler per message type), keeps the settings in sync with
- * it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back to the
- * overworld, where the server's result is applied and told.
+ * Sessions and switching between the two modes (overworld/, battle/). A session (join -> leave) is one connection;
+ * this routes its messages, keeps the settings in sync, and runs the transitions: an encounter flashes into battle,
+ * leaving a decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import type { AbstractEngine } from "@babylonjs/core";
-import { moveItem as moveInBag, type Cell, type Character, type ServerMsgOf } from "@infinite-tower/shared";
+import {
+  moveItem as moveInBag, type Cell, type Character, type Look, type ServerMsgOf,
+} from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
+import { BATTLE_FRAMES, playerFrames } from "../gfx/characters.js";
+import type { Pose, SwordPose } from "../gfx/look/battle.js";
+import { CHIBI_FACINGS } from "../gfx/look/look.js";
+import { redrawSprite } from "../gfx/sprites.js";
 import type { Overworld } from "../overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { startPinging, type Pinging } from "../net/ping.js";
@@ -21,23 +22,21 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
-import { applyLook } from "./look.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
 
 export interface Game {
   /** null outside a session. */
   mode(): Mode | null;
-  /** Start a session on a connection the server has welcomed. */
+  /** On a connection the server has welcomed. */
   join(joined: Joined): void;
-  /** End the session: send any unsent settings, hang up, stop drawing, forget the level and any fight. */
+  /** Sends any unsent settings, hangs up, stops drawing, forgets the level and any fight. */
   leave(): void;
-  /** The Leave key in a decided fight (once the server's result is in): fade back to the overworld. */
+  /** Once the server's result is in: fade back to the overworld. */
   leaveBattle(): void;
   rest(): void;
   useItem(at: Cell): void;
-  /** Move a stack in the bag: shown at once, then the server answers with the bag as it has it. */
+  /** Shown at once, then the server answers with the bag as it has it. */
   moveItem(from: Cell, to: Cell, turned: boolean): void;
-  /** Ask the server to save the new character (it answers with `character`). */
   saveCharacter(character: Character): void;
 }
 
@@ -59,7 +58,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
   let transition: Transition | null = null;
   /** The fight being flashed into or fought. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
-  /** The server's result, held while the player is still in the arena: applied when they leave it. */
+  /** Held while the player is still in the arena: applied when they leave it. */
   let result: ServerMsgOf<"battleResult"> | null = null;
 
   /**
@@ -107,10 +106,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
     setMode("overworld");
   };
 
-  /**
-   * No character yet: the creation screen opens, and the server holds the level back until one is made. That
-   * screen closes itself, once it has seen the saved character here and played out.
-   */
+  /** No character yet: the creation screen opens (it closes itself), and the server holds the level back. */
   const applyCharacter = (character: Character | null) => {
     ui.overworld.set({ character });
     if (character) applyLook(battle, overworld, character.look);
@@ -219,4 +215,14 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       setMode(null);
     },
   };
+}
+
+/** Paints the player's sprites, overworld and arena, in their look. */
+function applyLook(battle: Battle, overworld: Overworld, look: Look): void {
+  const frames = playerFrames(look);
+  const arenaSprites = battle.ctx.materials.player;
+  for (const pose of Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]) {
+    arenaSprites[pose].forEach((material, i) => redrawSprite(material, frames.battle[pose][i]!));
+  }
+  for (const facing of CHIBI_FACINGS) redrawSprite(overworld.view.materials.player[facing], frames.chibi[facing]);
 }

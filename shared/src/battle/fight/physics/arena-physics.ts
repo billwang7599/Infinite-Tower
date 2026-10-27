@@ -1,8 +1,6 @@
 /**
- * One fight's physics world (Rapier): the arena's floor and its ring of wall, and a collider per fighter. Nothing in
- * it is simulated by Rapier: fighters are moved by code (move.ts), and Rapier answers how far they get before the
- * floor or the wall stops them (its kinematic character controller), where two bodies touch, and ray casts.
- * Gravity is ours too (GRAVITY, applied in move.ts).
+ * One fight's physics world: the floor, a ring of wall and a collider per fighter. Rapier simulates nothing: code
+ * moves the fighters (move.ts), and Rapier answers how far they get, where two bodies touch, and ray casts.
  */
 import type {
   Collider, ColliderDesc, KinematicCharacterController, Ray, World as RapierWorld,
@@ -37,8 +35,7 @@ export class ArenaPhysics {
   private readonly mover: KinematicCharacterController;
   private readonly ray: Ray;
 
-  /** `radius`: the arena's, from its ArenaDef. */
-  constructor(radius: number) {
+  constructor(arenaRadius: number) {
     const R = rapier();
     this.world = new R.World({ x: 0, y: 0, z: 0 });
     this.world.timestep = FIXED_DT;
@@ -47,8 +44,8 @@ export class ArenaPhysics {
 
     const half = FLOOR_SIZE / 2;
     this.add(R.ColliderDesc.cuboid(half, 0.5, half).setTranslation(0, -0.5, 0), groups(Layer.Ground, ALL_LAYERS));
-    // Each box's thickness points at the center, so their inner faces make a ring of flat walls at `radius`.
-    const ringRadius = radius + WALL.thickness / 2;
+    // Each box's thickness points at the center, so their inner faces make a ring of flat walls at the radius.
+    const ringRadius = arenaRadius + WALL.thickness / 2;
     const segmentLength = (2 * Math.PI * ringRadius) / WALL.segments + 0.2;
     for (let i = 0; i < WALL.segments; i++) {
       const a = (i / WALL.segments) * Math.PI * 2;
@@ -71,13 +68,13 @@ export class ArenaPhysics {
     return this.add(desc, groups(layer, Layer.Ground | Layer.Wall));
   }
 
-  /** Where the collider's center is. */
+  /** The collider's center. */
   position(handle: number): Vec3 {
     const { x, y, z } = this.collider(handle).translation();
     return { x, y, z };
   }
 
-  /** Puts a collider's center at `center`, through anything (loading a fight's state: fight/state.ts). */
+  /** Puts a collider's center at `center`, through anything (loading a fight's state). */
   place(handle: number, center: Vec3): void {
     this.collider(handle).setTranslation({ x: center.x, y: center.y, z: center.z });
   }
@@ -116,7 +113,7 @@ export class ArenaPhysics {
     this.world.step();
   }
 
-  /** The whole physics world as bytes (to compare two fights). */
+  /** As bytes, to compare two fights. */
   snapshot(): Uint8Array {
     return this.world.takeSnapshot();
   }

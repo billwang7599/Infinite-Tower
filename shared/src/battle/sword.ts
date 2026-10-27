@@ -1,11 +1,7 @@
 /**
- * The sword: the attacks it makes (eight swings and a stab; blocking is held, see PLAYER.block), the starter
- * sword's stats, the shape each attack hits (from the sword's length), how one swing chains into the next and
- * the momentum a chain builds, and parrying. Directions are as the player sees them on screen: "lr" goes from
- * left to right, "tlbr" from top-left to bottom-right. An enemy's swing is named as the player facing it sees it,
- * so a swing is parried by its reverse ("lr" by "rl"): the blades meet.
- *
- * Every number here is a tuning knob. Units: seconds and meters.
+ * The sword's attacks, their hit shapes, chaining, momentum and parrying. Directions are as the player sees them on
+ * screen ("tlbr": top-left to bottom-right). An enemy's swing is named as the player facing it sees it, so a swing
+ * is parried by its reverse ("lr" by "rl"): the blades meet. Units: seconds and meters.
  */
 import { FIXED_DT } from "../core/time.js";
 
@@ -14,8 +10,7 @@ export type SwingDir = (typeof SWING_DIRS)[number];
 export const ATTACK_KINDS = [...SWING_DIRS, "stab"] as const;
 export type AttackKind = (typeof ATTACK_KINDS)[number];
 
-/** The line a swing runs along: across, up and down, and the two diagonals. */
-export type SwingLine = "horizontal" | "vertical" | "falling" | "rising";
+type SwingLine = "horizontal" | "vertical" | "falling" | "rising";
 
 const LINE: Record<SwingDir, SwingLine> = {
   lr: "horizontal", rl: "horizontal", tb: "vertical", bt: "vertical",
@@ -86,17 +81,14 @@ export const CHAIN = {
   /** From a swing's start to its blade going live, by how it follows the last one (at momentum 0). */
   startupTime: { opening: 0.1, reverse: 0.05, other: 0.1, perpendicular: 0.16 } satisfies Record<ChainKind, number>,
   stabStartupTime: 0.14,
-  /**
-   * The blade is live this long, then the attack recovers for `recoverTime`. The next attack, or a dodge, may start
-   * as soon as the blade is done; pressed earlier, it waits (the user's call).
-   */
+  /** The blade is live this long, then the attack recovers for `recoverTime`. */
   activeTime: 0.1,
   recoverTime: 0.08,
   /** A chain lives on this long after an attack ends; the next swing then still chains. */
   gapTime: 0.25,
 } as const;
 
-/** How far into its attack the player may start the next one, or a dodge: once the blade is done. */
+/** How far into its attack the player may start the next one, or a dodge (pressed earlier, it waits). */
 export const lettingGoAt = (attack: { startup: number }): number => attack.startup + CHAIN.activeTime;
 
 export const MOMENTUM = {

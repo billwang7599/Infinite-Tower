@@ -1,9 +1,11 @@
 import type { Cell } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
+import { actionOf } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
+import { useKeydown } from "../components/useKeydown.js";
 import type {
   OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState,
 } from "../state.js";
@@ -14,7 +16,6 @@ import { HudLayer } from "./HudLayer.js";
 import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "./layout.js";
-import { usePanelKeys } from "./panelKeys.js";
 import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
@@ -37,7 +38,12 @@ interface OverworldHudProps extends HudProps {
 export function OverworldHud(props: OverworldHudProps) {
   const { hud, bindings, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
   const panel = useStore(panels, (s) => s.open);
-  usePanelKeys(bindings, [settingsScreen], toggle);
+  // The panel keys, but not under Settings (where the key may be getting rebound) or while typing in a text field.
+  useKeydown((e) => {
+    if (e.repeat || e.target instanceof HTMLInputElement || settingsScreen.get().open) return;
+    const action = actionOf(bindings.get(), "overworld", e.code);
+    if (action === "character" || action === "inventory") toggle(action);
+  });
 
   return (
     <HudLayer id="overworld-hud">

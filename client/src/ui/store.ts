@@ -1,7 +1,4 @@
-/**
- * A tiny observable object: the bridge between game code and React. Calling `set` every frame is fine;
- * listeners only hear about it when a value actually changed.
- */
+/** The bridge between game code and React. `set` every frame is fine: listeners only hear of real changes. */
 export class Store<T extends object> {
   private state: T;
   private readonly listeners = new Set<() => void>();

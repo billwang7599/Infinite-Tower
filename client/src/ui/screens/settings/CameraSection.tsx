@@ -1,7 +1,4 @@
-/**
- * The camera settings: a sensitivity slider (drag it, or focus it and use the arrow keys), and Auto mouse lock
- * (a checkbox), since the captured mouse is what turns the arena camera.
- */
+/** Sensitivity, and Auto mouse lock, since the captured mouse is what turns the arena camera. */
 import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
 import type { MouseSettings } from "../../../settings/mouse.js";
 import { BUTTON } from "../../components/styles.js";

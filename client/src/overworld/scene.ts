@@ -1,7 +1,4 @@
-/**
- * The overworld's Babylon scene: top-down 2D with an orthographic camera, every surface a flat textured quad.
- * The level itself (ground, tall grass, border) is drawn by levels/, picked by the layout's theme.
- */
+/** The overworld's Babylon scene: top-down 2D with an orthographic camera, every surface a flat textured quad. */
 import {
   Camera, Color4, FreeCamera, MeshBuilder, Scene, Vector3, type AbstractEngine, type Mesh, type StandardMaterial,
   type TransformNode,
@@ -15,9 +12,8 @@ import { tuftTexture } from "../gfx/textures.js";
 export interface OverworldView {
   scene: Scene;
   camera: FreeCamera;
-  /** The level you're in (from the server's `level` message); null until the first one arrives. */
+  /** null until the server's first `level`. */
   level: LevelLayout | null;
-  /** Root of the level's meshes. */
   levelRoot: TransformNode | null;
   materials: {
     /** The player's chibi facing each way (OverworldSprite.facings). */

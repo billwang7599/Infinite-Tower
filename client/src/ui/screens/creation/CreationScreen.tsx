@@ -1,9 +1,7 @@
 /**
- * A new player's first visit: making their character, on the white the enter sequence flashes into. It's under the
- * title screen, so the title's white clears onto this white; it starts once the title has gone (`active`). The
- * System greets them, then the panel: a name, boy or girl, a look, with the portrait and the chibi beside it.
- * Begin, then Yes, sends it to the server; once it's saved the System says goodbye and the white clears off the
- * world. There's no leaving it: closing the tab means starting over (nothing is saved until Yes).
+ * A new player making their character, on the white the enter sequence flashes into (under the title, so the title's
+ * white clears onto it). The System greets them, then the panel; Yes sends it to the server, and once it's saved the
+ * System says goodbye and the white clears off the world. Nothing is saved until Yes.
  */
 import { CHARACTER_NAME_RULES, DEFAULT_LOOK, type Character } from "@infinite-tower/shared";
 import { useEffect, useReducer, useState } from "react";

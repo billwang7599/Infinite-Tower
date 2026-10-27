@@ -1,7 +1,4 @@
-/**
- * Arena-fight components: the state of a Fight (battle/fight/). Plain data only; the physics world holds the
- * colliders (by handle) and the client's drawings hang off the same entities (client/src/battle/components.ts).
- */
+/** A Fight's state, as plain data. The physics world holds the colliders, by handle. */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
@@ -13,7 +10,7 @@ export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger";
 
 export interface PlayerData {
   grounded: boolean;
-  /** Seconds since last on ground (coyote time). */
+  /** Seconds since last on the ground (coyote time). */
   airTime: number;
   jumpHeld: boolean;
   /** The attack held on the last step: a different one is a new press. */
@@ -45,11 +42,9 @@ export const Player = defineComponent<PlayerData>("Player");
 export interface HealthData {
   hp: number;
   max: number;
-  /** Seconds of invulnerability left (after being hit). */
+  /** Seconds left of each, after being hit. */
   invuln: number;
-  /** Seconds left without control (after being hit). */
   hitstun: number;
-  /** Seconds left of the hit flash (visual). */
   flash: number;
 }
 export const Health = defineComponent<HealthData>("Health");
@@ -57,31 +52,23 @@ export const Health = defineComponent<HealthData>("Health");
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");
 
-/**
- * A fighter's body in the arena's physics. Code moves it by setting `vel`; each step the physics moves the collider
- * that far, stopped and slid by the ground and the wall, and writes back where it got to and how fast it went.
- */
+/** Code moves a body by setting `vel`; the physics step moves the collider and writes back `pos` and `vel`. */
 export interface BodyData {
   /** The collider's center (m). */
   pos: Vec3;
-  /** m/s. */
   vel: Vec3;
   /** From the feet up to `pos` (m). */
   centerHeight: number;
-  /** The collider's handle in the fight's ArenaPhysics. */
   collider: number;
 }
 export const Body = defineComponent<BodyData>("Body");
 
 export type TeamId = "player" | "enemy";
-/** Anything that can hit or be hit. `radius` is its hurt radius on the ground plane. */
+/** Anything that can hit or be hit. `radius`: its hurt radius on the ground plane. */
 export interface FighterData { team: TeamId; radius: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 
-/**
- * An attack's hitbox while it is active: an arc in front of the attacker, or a ray (a stab).
- * Added when the swing/charge becomes active, removed when it ends. Each target is hit at most once.
- */
+/** An attack's hitbox while its blade (or body) is live: an arc in front, or a ray (a stab). Hits each target once. */
 export interface ActiveHitData {
   shape: "arc" | "ray";
   dirX: number;
@@ -92,19 +79,18 @@ export interface ActiveHitData {
   minDot: number;
   /** A ray's reach either side of its line, to the target's surface. */
   width: number;
-  /** A sword's swing or stab (parried and blocked by its kind), or null: a body blow (a boar's), never parried. */
+  /** A sword's swing or stab, or null: a body blow (a boar's), never parried. */
   attack: AttackKind | null;
   damage: number;
   knockback: number;
   lift: number;
   poiseDamage: number;
-  /** Targets this attack has already hit. */
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
 
 /** Where the enemy's target is, refreshed each step before the behaviors run. */
-export interface EnemySense {
+interface EnemySense {
   dist: number;
   /** The yaw that would face the target. */
   toYaw: number;
@@ -114,7 +100,7 @@ export interface EnemySense {
 }
 
 /** What the behaviors want this step; the motor turns it into velocity. */
-export interface EnemyMove {
+interface EnemyMove {
   dirX: number;
   dirZ: number;
   speed: number;
@@ -123,21 +109,14 @@ export interface EnemyMove {
   halt: boolean;
 }
 
-/**
- * What an enemy is doing: the states every enemy has, then each attack's own. Attacks may only start from
- * "approach". A new attack adds its states here.
- */
+/** The states every enemy has, then each attack's own. Attacks only start from "approach". */
 export type EnemyState =
   | "approach" | "stunned" | "parried" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
   | "swordWindup" | "sword" | "swordRecover";
 
-/**
- * Any arena enemy. Its AI is split into behaviors: the enemy systems handle approaching, poise,
- * stagger, stun and death; each attack component (below) has its own system that starts the attack
- * and runs its phases. Models animate from `state`.
- */
+/** Any arena enemy. Each attack component (below) has its own system; models animate from `state`. */
 export interface EnemyData {
   def: EnemyDef;
   state: EnemyState;
@@ -145,7 +124,7 @@ export interface EnemyData {
   stateTime: number;
   /** Seconds the current state lasts ("stunned", "parried", "staggered", a sword's wind-up). */
   duration: number;
-  /** Facing (see yaw convention in core/math.ts). */
+  /** Facing (the yaw convention is in core/math.ts). */
   yaw: number;
   poise: number;
   /** Can't be staggered right now (mid-charge, say). Attack systems set it each step. */
@@ -157,7 +136,7 @@ export const Enemy = defineComponent<EnemyData>("Enemy");
 
 export interface AttackState<D> {
   def: D;
-  /** Seconds until usable again (ticks down all the time). */
+  /** Seconds until usable again. */
   cooldown: number;
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }

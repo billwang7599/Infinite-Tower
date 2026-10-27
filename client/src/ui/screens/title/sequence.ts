@@ -1,14 +1,7 @@
 /**
- * The title's two sequences, as timing only (TitleScreen.tsx draws them):
- *
- *   enter (Play, or a login that worked): the title text fades, the view glides into the tower to its middle and
- *         looks straight up it (it goes up forever, into the light), then rushes up it, speeding up, until the game
- *         is ready (the server has loaded the player and the level), at least for a while; a white flash, and the
- *         white clears over the world.
- *   leave (Return to title, or a lost connection): white over the world (the game stops under it, at
- *         LEAVE_COVERED_MS), falling back down the tower to a stop, looking down, backing out of it, the menu.
- *
- * With reduced motion there are no camera moves and no rush to watch, just the fades.
+ * The title's two sequences, as timing only. Enter: the view glides into the tower, looks up it and rushes up until
+ * the game is ready, then a white flash clears over the world. Leave: white over the world (the game stops under it,
+ * at LEAVE_COVERED_MS), falling back down and out of the tower. With reduced motion, just the fades.
  */
 import type { TitleState } from "../../state.js";
 

@@ -1,16 +1,13 @@
 /**
- * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). Click the canvas to capture it
- * (pointer lock), Esc releases it. With the Auto mouse lock setting on it's also captured, without a click, the
- * moment the arena wants it. Optional: everything also works keyboard-only. Movement and buttons only count while
- * captured.
+ * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left): captured (pointer lock) by a click on
+ * the canvas, or by Auto mouse lock, and let go with Esc. Movement and buttons only count while captured.
  */
 import { Buttons } from "./buttons.js";
 
 export interface LockChange {
-  /** Whether the current mode wanted the mouse before this change, and now. */
+  /** Whether the current mode wanted the mouse before, and now. */
   wasLockable: boolean;
   lockable: boolean;
-  /** The Auto mouse lock setting. */
   autoLock: boolean;
   locked: boolean;
 }
@@ -56,10 +53,7 @@ export class Mouse extends Buttons {
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
   }
 
-  /**
-   * Whether the current mode wants the mouse. Not any more: let go of it. Wanted from now on: capture it at
-   * once if `autoLock` (the setting) says so.
-   */
+  /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured at once if `autoLock`. */
   setLockable(lockable: boolean, autoLock: boolean): void {
     const wasLockable = this.lockable;
     this.lockable = lockable;
@@ -67,10 +61,7 @@ export class Mouse extends Buttons {
     if (!lockable) this.unlock();
   }
 
-  /**
-   * Ask for the pointer lock. Never rejects: a browser may refuse one without a recent click or key press (or
-   * right after the player let go with Esc), and then a click on the canvas asks again.
-   */
+  /** Never rejects: a browser may refuse without a recent click (then a click on the canvas asks again). */
   async lock(): Promise<void> {
     try {
       await this.canvas.requestPointerLock?.();
@@ -79,13 +70,13 @@ export class Mouse extends Buttons {
     }
   }
 
-  /** Let go of the pointer lock (leaving the arena) and forget all buttons. */
+  /** Lets go of the pointer lock and forgets all buttons. */
   unlock(): void {
     if (this.locked) this.doc.exitPointerLock();
     this.releaseAll(true);
   }
 
-  /** Mouse movement since the last call, in pixels. */
+  /** Pixels moved since the last call. */
   consumeDelta(): { dx: number; dy: number } {
     const d = { dx: this.dx, dy: this.dy };
     this.dx = this.dy = 0;

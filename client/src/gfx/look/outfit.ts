@@ -14,14 +14,14 @@ export const above = (y: number): Mask => (_x, yy) => yy <= y;
 export const vNeck = (middle: number, top: number, depth: number, half: number): Mask =>
   polygon([[middle - half, top], [middle + 0.5, top + depth], [middle + half + 1, top]]);
 /** The first and last column `mask` covers on row `y`. */
-export function columns(mask: Mask, y: number, width: number): [number, number] {
+function columns(mask: Mask, y: number, width: number): [number, number] {
   let first = -1, last = -1;
   for (let x = 0; x < width; x++) if (mask(x, y)) { if (first < 0) first = x; last = x; }
   return [first, last];
 }
 
 /** The collar behind the portrait's neck, standing up from the shoulders: all of it that shows round a V-neck. */
-export function backCollar(neck: Mask, collarY: number): Mask {
+function backCollar(neck: Mask, collarY: number): Mask {
   const [, back] = columns(neck, collarY - 3, 64);
   return polygon([[back - 1, collarY - 1], [back + 1, collarY - 5], [back + 4, collarY - 4], [back + 4.5, collarY]]);
 }
@@ -31,7 +31,7 @@ export function backCollar(neck: Mask, collarY: number): Mask {
  * Cel-shaded with the light from our left: the near side of the chest and the near arm in shadow, the light
  * along the tops of the shoulders.
  */
-export const TUNIC: Art = {
+const TUNIC: Art = {
   portrait: {
     torsowear: (pen, { torso, neck, middle, collarY }) => {
       const opening = vNeck(middle, collarY - 4, 10, 5);
@@ -159,7 +159,7 @@ const chibiBoots: Piece = {
   },
 };
 
-export const TROUSERS: Art = {
+const TROUSERS: Art = {
   chibi: {
     front: chibiTrousers,
     back: chibiTrousers,
@@ -178,7 +178,7 @@ export const TROUSERS: Art = {
   },
 };
 
-export const BOOTS: Art = {
+const BOOTS: Art = {
   chibi: {
     front: chibiBoots,
     back: chibiBoots,

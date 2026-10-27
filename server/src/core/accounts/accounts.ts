@@ -1,7 +1,6 @@
 /**
- * Accounts and login sessions: the rules, on top of an `AccountStore` (db/account-store.ts). A login session is a
- * random token the browser keeps in an httpOnly cookie (api/cookies.ts); the store only gets the token's SHA-256,
- * so a leaked database can't be replayed as logins.
+ * Accounts and login sessions. A login session is a random token in an httpOnly cookie; the store only gets its
+ * SHA-256, so a leaked database can't be replayed as logins.
  */
 import { createHash, randomBytes } from "node:crypto";
 import type { Account, AccountStore, PlayerId } from "../ports.js";
@@ -22,7 +21,6 @@ export class Accounts {
     return this.store.create(username, await hashPassword(password));
   }
 
-  /** The account, if the username exists and the password matches. */
   async verify(username: string, password: string): Promise<Account | null> {
     const found = await this.store.find(username);
     if (!found || !(await verifyPassword(password, found.passwordHash))) return null;
@@ -38,7 +36,7 @@ export class Accounts {
     return { token, expires };
   }
 
-  /** The logged-in account for a cookie's token, or null if it's unknown or expired. */
+  /** null if the token is unknown or expired. */
   async forToken(token: string): Promise<Account | null> {
     const found = await this.store.findSession(hashToken(token));
     return found && found.expires > new Date() ? found.account : null;

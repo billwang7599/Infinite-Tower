@@ -1,4 +1,4 @@
-/** Zod for `TextRules` (text-rules.ts). Server-side only, like every Zod schema: kept out of the package index. */
+/** Zod for `TextRules`: server-side only, like every Zod schema, so it's kept out of the package index. */
 import { z } from "zod";
 import { rulesHint, type TextRules } from "./text-rules.js";
 

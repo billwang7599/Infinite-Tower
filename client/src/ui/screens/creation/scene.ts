@@ -10,7 +10,7 @@
  */
 import { GREETING, SAVE_FAILED } from "./lines.js";
 
-export type Step = "greet" | "make" | "confirm" | "saving" | "farewell" | "out";
+type Step = "greet" | "make" | "confirm" | "saving" | "farewell" | "out";
 
 export interface Scene {
   step: Step;

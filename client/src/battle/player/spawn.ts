@@ -1,4 +1,4 @@
-/** The arena player's drawing, on the fight's player entity: billboard sprite, blob shadow, the sword's effects. */
+/** The arena player's drawing, on the fight's player: billboard sprite, blob shadow, the sword's effects. */
 import { Mesh, MeshBuilder, TransformNode, Vector3 } from "@babylonjs/core";
 import { attackShape, Body, STARTER_SWORD, type Entity, type World } from "@infinite-tower/shared";
 import { BodyNode } from "../components.js";
@@ -8,7 +8,6 @@ import { PlayerSprite, SPRITE_SIZE, spriteY } from "./components.js";
 /** The sword trail's length (m), end to end. */
 export const TRAIL_WIDTH = 2.2;
 
-/** Draws the fight's player `e` (in the fight's `world`). */
 export function addPlayerSprite(ctx: BattleContext, world: World, e: Entity): void {
   const { scene, materials } = ctx;
   const node = new TransformNode(`player-${e}`, scene);

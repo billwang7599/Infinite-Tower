@@ -19,8 +19,9 @@ are the user's; the open questions at the end need the user's say before they're
   and then fills pixels, so its edges stay clean.
 - Hand-drawn pixels already exist as letter grids: the portrait's hair, eyes and mouths (`pen.grid` with a legend
   of material and tone, `hair/index.ts`, `face.ts`).
-- The battle poses (stand, slash, down) are hand-set numbers per pose in `battleFrames` (`battle.ts`): slash's
-  shoulder and hand points, down's `shift(mask, 0, 9)` and `head: [0, 14]`, each pose's sword ends.
+- The battle poses are hand-set numbers: stand, slash and down per pose in `battleFrames` (`battle.ts`; slash's
+  shoulder and hand points, down's `shift(mask, 0, 9)` and `head: [0, 14]`, each pose's sword ends), and the sword
+  fight's frames as keys from the shoulders in `moves.ts`.
 
 ### Weaknesses to fix
 
@@ -76,7 +77,7 @@ pictures are never scaled to a body; they fit by kind of piece:
 | Rigid, on the body | shoulder guards, buckle, chest emblem | the same picture per view, placed at each body type's landmark |
 | Wraps the body | breastplate, coat, trousers | the artist adjusts it to each body type: one picture per body type, view and battle pose |
 
-So a helmet is 5 pictures and a wrap-around chest piece 21 (3 bodies x 7), and every body type, view, facing or
+So a helmet is 5 pictures and a wrap-around chest piece 114 (3 bodies x 38), and every body type, view, facing or
 pose added multiplies the wrap-around ones: the counts are in [What to draw](../ART.md#what-to-draw).
 
 **Artist templates**: one per body type x view (x battle pose), the bare body faint underneath and the
@@ -99,9 +100,8 @@ mask is one more reserved color, "no hair here", that draws nothing. An earlier 
   `battle.ts` already draws a limb between two points). Code gear draws against the frame as now, so it follows.
 - Pinned pictures attach to a bone and are drawn at a few angles; the nearest one is used. Never rotated in code:
   rotating pixel art smears it. Wrap-around pictures are drawn per frame, on that frame's template.
-- When the look changes, every frame is redrawn (not rotated copies) into one sprite sheet. Today each pose is its
-  own material (`player: Record<Pose, StandardMaterial>` in `battle/materials.ts`), repainted by `game/look.ts`:
-  fine for three, not for thirty.
+- When the look changes, every frame is redrawn (not rotated copies) into one sprite sheet. Today each frame is its
+  own material (`player` in `battle/materials.ts`), all 34 repainted by `applyLook` (`game/game.ts`).
 - Not chosen now: limb textures rotated in Babylon (loses the crisp pixel look); rendering a 3D model as pixels,
   Dead Cells style (a separate pipeline; only if animation gets very ambitious).
 - Portraits are the easiest place to go fully hand-drawn: one view, no animation.
@@ -113,7 +113,7 @@ where code art looks worst (the chin, the neck, tube arms). Until there's an art
 placeholder, and it's the template the artist draws over.
 
 - **Layers, not whole characters.** Body, face shape, eyes, mouth and hair stay separate pictures, so the options
-  still mix. The counts are in [What to draw](../ART.md#what-to-draw): 7 per body type, 2 per face shape (the
+  still mix. The counts are in [What to draw](../ART.md#what-to-draw): 38 per body type, 2 per face shape (the
   chibi's back and side of the head are shared by all), 3 per eye type, 2 per mouth, 5 per hair style.
 - **Reserved colors.** Drawn in the material palette above: skin in the six tones of `skin`, clothes in `cloth`,
   hair in `hair`, and so on, so the player's skin, hair and dye picks still recolor it.
@@ -133,8 +133,9 @@ Not decided, apart from the battle skeleton above. Today there's hardly any:
 
 - The overworld chibi has one picture per facing (the two sides share one, mirrored). Walking is a small hop: the
   sprite moves, the picture stays the same (`overworld/systems/sprites.ts`).
-- The battle sprite swaps three stills: stand, slash and down. It bobs, squashes and stretches by moving and
-  scaling the sprite, and the swing's arc is a separate effect, the sword trail (`battle/player/sprite.ts`).
+- The battle sprite plays the sword fight's frames (a wind-up, strike and follow-through per swing; the stab, block
+  and stagger) and stands or kneels in single stills. It bobs, squashes and stretches by moving and scaling the
+  sprite, and the swing's arc is a separate effect, the sword trail (`battle/player/sprite.ts`).
 
 Three ways to animate:
 
@@ -157,7 +158,7 @@ A suggestion, per view:
 
 At runtime all three end the same way: each character's sprite sheet is drawn once when it loads, and the game
 picks a frame each tick. Nothing is redrawn per frame. That's true today too: the sprites are drawn once (and again
-when the look changes: `game/look.ts`), and the per-frame code only moves them and swaps their materials.
+when the look changes: `game/game.ts`), and the per-frame code only moves them and swaps their materials.
 
 ## PNG export and artist templates (not built)
 
@@ -187,7 +188,7 @@ Code-first for now (top), so none of these is scheduled. Each step is its own PR
    [PNG export](#png-export-and-artist-templates-not-built)), landmark points on every frame, the hair mask, and
    one sample hand-made helmet (placeholder art until there's an artist). ART.md gets the artist's how-to and stops
    saying all art is code.
-3. **Battle skeleton.** Remake stand, slash and down from joint angles, pixel-identical to today's or with the
+3. **Battle skeleton.** Remake the battle poses from joint angles, pixel-identical to today's or with the
    differences approved by the user on art.html. Then the sprite sheet, then new frames.
 
 ## Open questions

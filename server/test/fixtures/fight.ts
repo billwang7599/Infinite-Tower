@@ -15,7 +15,7 @@ import { PLAYER_STATS } from "../../src/core/content/player.js";
 import { FakeLink } from "./fakes.js";
 
 /** The wild boar, rooted to the spot and harmless. */
-export const STATUE: EnemyDef = { ...ENEMIES["wild-boar"], walkSpeed: 0, turnRate: 0, attacks: {} };
+const STATUE: EnemyDef = { ...ENEMIES["wild-boar"], walkSpeed: 0, turnRate: 0, attacks: {} };
 
 export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerAt = PLAYER_START): FightSetup {
   return {

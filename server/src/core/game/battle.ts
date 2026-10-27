@@ -1,8 +1,7 @@
-/**
- * Battles, from a player's session: starting one (the fight itself runs in a BattleRoom, core/battle/), what its end
- * does to the player (wins, loot, the bag, HP and stamina, saved at once), and leaving the arena afterwards.
- */
-import { bagCounts, type Entity, type ItemCounts, type Vitals } from "@infinite-tower/shared";
+/** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
+import {
+  addItem, bagCounts, type Bag, type Entity, type ItemCounts, type ItemId, type Vitals,
+} from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
 } from "@infinite-tower/shared/fight";
@@ -10,7 +9,6 @@ import { BattleRoom } from "../battle/room.js";
 import { rollDrops } from "../content/drops.js";
 import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import { fullVitals } from "../content/player.js";
-import { packLoot } from "./inventory.js";
 import type { GameSession } from "./session.js";
 
 export interface Battle {
@@ -20,7 +18,7 @@ export interface Battle {
   room: BattleRoom;
   /** Which of the room's players this one is. */
   seat: number;
-  /** The fight is over for the player (and settled): they're still in the arena until they leave it. */
+  /** Over and settled: they're still in the arena until they leave it. */
   over: boolean;
 }
 
@@ -43,12 +41,19 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
   session.link.send({ t: "encounter", source, me: overworld.playerPos(), seat: 0, setup });
 }
 
-/** The arena's Leave key, after the result: back to the overworld. Mid-fight it does nothing. */
-export function leaveArena(session: GameSession): void {
-  if (session.battle?.over) session.battle = null;
+/** `loot` packed into `bag` where it fits; `left` is what there was no room for. */
+export function packLoot(bag: Bag, loot: ItemCounts): { bag: Bag; left: ItemCounts } {
+  let packed = bag;
+  const left: ItemCounts = {};
+  for (const [item, count] of Object.entries(loot) as [ItemId, number][]) {
+    const added = addItem(packed, item, count);
+    packed = added.bag;
+    if (added.left > 0) left[item] = added.left;
+  }
+  return { bag: packed, left };
 }
 
-/** The fight is over for the player: `result`, with `after` the HP and stamina it left them. */
+/** `after`: the HP and stamina the fight left them. */
 function settleBattle(session: GameSession, result: PlayerResult, after: Vitals): void {
   const battle = session.battle;
   if (!battle) return;

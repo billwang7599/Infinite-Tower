@@ -1,15 +1,13 @@
 /**
- * The bag as a grid: its cells and what's in them, with the mouse's three states drawn apart (bagMouse.ts): a light
- * highlight behind the hovered item (and its tooltip once the pointer rests), a gold outline on the selected one,
- * and while dragging, a ghost under the pointer, green where it fits and red where it doesn't, with a dashed outline
- * where it would land. It only draws and reports the pointer; the panel decides what that does.
+ * The bag as a grid, with the mouse's states drawn (bagMouse.ts): hovered, selected, and dragged (a ghost, green
+ * where it fits and red where it doesn't). It only draws and reports the pointer; the panel decides what that does.
  */
-import { footprint, type Bag, type BagItem, type Cell } from "@infinite-tower/shared";
-import { useRef, type MouseEvent } from "react";
-import { ItemPicture } from "../../components/ItemPicture.js";
+import { footprint, ITEMS, type Bag, type BagItem, type Cell, type ItemId } from "@infinite-tower/shared";
+import { useEffect, useRef, type MouseEvent } from "react";
+import { drawItem } from "../../../gfx/items/items.js";
 import { hoveredStack, landing, selectedStack, type BagMouse, type Pointer } from "./bagMouse.js";
 import { CELL, SCALE } from "./grid.js";
-import { ItemTooltip } from "./ItemTooltip.js";
+import { itemInfo } from "./itemInfo.js";
 
 /** MouseEvent.button, and its bit in PointerEvent.buttons. */
 const MAIN = { button: 0, bit: 1 };
@@ -29,9 +27,9 @@ export interface GridEvents {
 interface GridProps {
   bag: Bag;
   mouse: BagMouse;
-  /** Whether the dragged item can go down where it would land. */
+  /** The dragged item can go down where it would land. */
   fits: boolean;
-  /** Where in its grip cell the dragged item is held, in pixels, so the ghost doesn't jump as the drag starts. */
+  /** Where in its grip cell the dragged item is held, in pixels. */
   grab: Cell;
   on: GridEvents;
 }
@@ -149,5 +147,49 @@ function Box({ id, stack, className }: { id: string; stack: BagItem; className: 
       id={id} data-x={stack.x} data-y={stack.y}
       className={`pointer-events-none absolute ${className}`} style={area(stack, footprint(stack.item, stack.turned))}
     />
+  );
+}
+
+/** `scale` screen pixels per art pixel. A turned item is the same picture turned 90° clockwise. */
+function ItemPicture({ item, turned, scale }: { item: ItemId; turned: boolean; scale: number }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const pic = drawItem(item);
+  useEffect(() => {
+    canvas.current?.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pic.rgba), pic.width), 0, 0);
+  }, [pic]);
+  const { cols, rows } = ITEMS[item];
+  return (
+    <canvas
+      ref={canvas} width={pic.width} height={pic.height} aria-hidden data-item={item}
+      className="absolute top-1/2 left-1/2 [image-rendering:pixelated]"
+      style={{
+        width: pic.width * scale, height: pic.height * scale,
+        transform: `translate(-50%, -50%)${turned && cols !== rows ? " rotate(90deg)" : ""}`,
+      }}
+    />
+  );
+}
+
+/** Just below the stack; on the bag's right half it hangs leftward. */
+function ItemTooltip({ stack, bag }: { stack: BagItem; bag: Bag }) {
+  const info = itemInfo(stack);
+  const { cols, rows } = footprint(stack.item, stack.turned);
+  const side = stack.x + cols / 2 > bag.cols / 2
+    ? { right: (bag.cols - stack.x - cols) * CELL }
+    : { left: stack.x * CELL };
+  return (
+    <div
+      id="bag-tooltip" role="tooltip" data-item={stack.item}
+      className={
+        "pointer-events-none absolute z-30 w-max max-w-60 rounded-sm border border-white/20 bg-night/95 px-3 py-2 "
+        + "text-xs font-normal shadow-[0_8px_24px_#000a]"
+      }
+      style={{ top: (stack.y + rows) * CELL + 4, ...side }}
+    >
+      <div className="text-sm font-semibold">{info.name}</div>
+      <div className="text-white/65 tabular-nums">Size {info.size}</div>
+      <div className="text-white/65 tabular-nums">Weight {info.weight}</div>
+      {info.effect && <div className="text-stamina">{info.effect}</div>}
+    </div>
   );
 }

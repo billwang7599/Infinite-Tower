@@ -1,4 +1,4 @@
-/** HUD settings, saved with the rest (settings.ts): for now just whether the ping shows. */
+/** For now just whether the ping shows. */
 import type { SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 

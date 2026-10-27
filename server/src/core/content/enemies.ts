@@ -1,4 +1,4 @@
-/** Arena enemies: stats and attacks. The server's fight runs them; each encounter sends them to the client to draw. */
+/** Arena enemies: stats and attacks, sent with each encounter. */
 import { SWING_DIRS, type EnemyDef } from "@infinite-tower/shared";
 
 const WILD_BOAR: EnemyDef = {
@@ -30,12 +30,7 @@ const WILD_BOAR: EnemyDef = {
   },
 };
 
-/**
- * Floor 1's swordsman. It walks up and swings in chains of two or three, any direction or a stab, each with a wind-up
- * to read. A swing is parried by the reverse swing, a stab only blocked (or dodged). On guard it parries your swings
- * (but not within `parryReaction` of coming back on guard, nor for `parryCooldown` after a parry) and blocks your
- * stabs: hit it while it recovers from a chain, or while it's stunned from a parry.
- */
+/** Floor 1's swordsman: hit it while it recovers from a chain, or while it's stunned from a parry. */
 const KOBOLD_SWORDSMAN: EnemyDef = {
   id: "kobold-swordsman",
   name: "Kobold Swordsman",

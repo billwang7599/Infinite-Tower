@@ -1,7 +1,4 @@
-/**
- * Every API error is an `ApiError` ({error}) whose sentence the title screen shows as is. Routes throw HttpError;
- * failed body checks and Fastify's own errors (bad JSON, too big, ...) get their sentence here.
- */
+/** Every API error is an `ApiError`. Routes throw HttpError; body checks and Fastify's errors get a sentence here. */
 import type { ApiError } from "@infinite-tower/shared";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";

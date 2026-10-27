@@ -1,8 +1,7 @@
 /**
- * One client socket, and the player's `PlayerLink` (core/ports.ts). Incoming text is checked against the shared
- * Zod schemas before anything else sees it; outgoing messages are typed. A client that keeps sending garbage is
- * disconnected. On a dev server it can simulate a ping: everything in, the close included, and everything out waits
- * half of it, in order (delay.ts). It answers pings itself, through send(), so a simulated ping delays the pong too.
+ * One client socket: the player's `PlayerLink`. Incoming text is checked with the shared Zod schemas first. A dev
+ * server can simulate a ping: everything each way, the close included, waits half of it, in order. Pings are
+ * answered here, through send(), so a simulated ping delays the pong too.
  */
 import type { ClientMsg, MsgOf, ServerMsg } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
@@ -20,7 +19,7 @@ export class Connection implements PlayerLink {
   private readonly incoming: DelayLine;
   private readonly outgoing: DelayLine;
 
-  /** `pingMs`: the round trip to simulate (dev only; 0 is none). */
+  /** `pingMs`: the round trip to simulate (0 is none). */
   constructor(private readonly ws: WebSocket, pingMs = 0) {
     this.incoming = new DelayLine(pingMs / 2);
     this.outgoing = new DelayLine(pingMs / 2);

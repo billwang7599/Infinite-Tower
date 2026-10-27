@@ -9,12 +9,14 @@ small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with t
 
 ## The docs, and keeping them current
 
-| File | What's in it | Update it when |
-|---|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | how the pieces fit and talk, the rules, every folder and file, recipes for adding things, where to tune | you add, move or rename a file, or change how things talk to each other |
-| [README.md](README.md) | a short description, the list of finished features, how to run it, the top-level folders | a feature is finished, or commands or top-level folders change |
-| [plan/](plan/) | future plans and parked ideas, one file each, with what's decided and what's open | the user mentions a future plan or asks to note an idea; a plan gets built (move what's true into the other docs, then delete or trim the plan) |
-| AGENTS.md | this file | the user decides something, or tells you how they want work done |
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the pieces fit and talk, the rules, every folder and file, recipes for
+  adding things, where to tune. Update it when you add, move or rename a file, or change how things talk.
+- [README.md](README.md): a short description, the finished features, how to run it, the top-level folders. Update
+  it when a feature is finished, or commands or top-level folders change.
+- [plan/](plan/): future plans and parked ideas, one file each, with what's decided and what's open. Update it when
+  the user mentions a future plan or asks to note an idea, or a plan gets built (move what's true into the other
+  docs, then delete or trim the plan).
+- AGENTS.md: this file. Update it when the user decides something, or tells you how they want work done.
 
 [ART.md](ART.md)'s "What to draw" counts the drawings each piece of art needs: update it whenever a look option,
 body type, view, chibi facing or battle pose is added or removed.

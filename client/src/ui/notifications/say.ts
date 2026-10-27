@@ -1,13 +1,11 @@
 /**
- * Everything the game tells the player goes through `say`: game code says what happened (a `GameEvent`), and
- * EVENT_MESSAGES says where that shows and in what words. The rule (AGENTS.md): small things are notices in the
- * bottom-right corner; the centre banner is only for big events, which so far is only a fight starting.
+ * Everything the game tells the player goes through `say`: game code says what happened, and EVENT_MESSAGES where it
+ * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import { itemDef, type EnemyDef, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
 
-/** Something that happened that the player is told about. */
 export type GameEvent =
   /** A fight starting. `source` is the actor that touched you, or null for tall grass. */
   | { kind: "encounter"; source: ServerMsgOf<"encounter">["source"]; enemy: Pick<EnemyDef, "name"> }

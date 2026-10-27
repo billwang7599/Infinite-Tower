@@ -3,19 +3,18 @@ import { OverworldHud } from "./hud/OverworldHud.js";
 import { panelWidthPx } from "./hud/layout.js";
 import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
-import { Fade } from "./overlays/Fade.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
 import { SettingsScreen } from "./screens/settings/SettingsScreen.js";
 import { TitleScreen } from "./screens/title/TitleScreen.js";
 import type { Settings } from "../settings/settings.js";
-import { inWorld, type UiActions, type UiState } from "./state.js";
+import { inWorld, type ScreenState, type UiActions, type UiState } from "./state.js";
+import type { Store } from "./store.js";
 import { useStore } from "./useStore.js";
 
 /**
- * Later children draw on top: HUD, notices and the banner, the fade, the settings, character creation, then the
- * title screen. The HUD and the settings only exist once the title has cleared off the world and the player has a
- * character. The notices keep clear of the overworld HUD's side panel and Rest button. Creation is there as soon
- * as a game runs without one, under the title, so the title's white clears onto its white.
+ * Later children draw on top. The HUD and the settings only exist once the title has cleared off the world and the
+ * player has a character. Creation is there as soon as a game runs without one, under the title, so the title's white
+ * clears onto its white.
  */
 export function App({ ui, settings, actions }: { ui: UiState; settings: Settings; actions: UiActions }) {
   const mode = useStore(ui.screen, (s) => s.mode);
@@ -65,4 +64,11 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
       <TitleScreen title={ui.title} actions={actions} />
     </>
   );
+}
+
+/** The flash / fade between modes. No CSS transition: game/transition.ts sets the opacity every frame. */
+function Fade({ screen }: { screen: Store<ScreenState> }) {
+  const color = useStore(screen, (s) => s.fadeColor);
+  const opacity = useStore(screen, (s) => s.fadeOpacity);
+  return <div id="fade" className="pointer-events-none fixed inset-0" style={{ background: color, opacity }} />;
 }

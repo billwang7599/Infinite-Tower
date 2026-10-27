@@ -5,7 +5,7 @@
  * Portrait: the head is turned three-quarters to our left. The far cheek is the face's left edge (x = 18), the
  * middle of the face runs down about x = 26, the cheek reaches back to the ear (x = 42-44), and the jaw's corner
  * sits under the ear at mouth level, so a short jawline runs forward to the chin (bottom row 39).
- * Chibi: facing front (toward us), symmetric around x = 16, chin at row 19. Facing back it's the back of the head
+ * Chibi: facing front, symmetric around x = 16, chin at row 19. Facing back it's the back of the head
  * and the ears; facing side (to the left), one profile for every face shape, small enough that the jaw doesn't show.
  * Battle: from behind, the head is all hair (hair/back.ts), so face shapes draw nothing there.
  */

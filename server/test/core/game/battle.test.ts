@@ -7,8 +7,8 @@ import {
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { packLoot } from "../../../src/core/game/inventory.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { findBoar, startSession } from "./helpers.js";
 
@@ -264,5 +264,27 @@ describe("the overworld after a battle", () => {
       session.tick(FIXED_DT);
     }
     assert.equal(link.all("encounter").length, 2);
+  });
+});
+
+const MEAT_STACK = ITEMS["boar-meat"].stackSize;
+
+describe("packLoot", () => {
+  test("puts everything in the bag when there's room", () => {
+    const { bag, left } = packLoot(emptyBag(), { "boar-meat": 2, "boar-tusk": 1 });
+    assert.deepEqual(left, {});
+    assert.deepEqual(bag.items.map((s) => [s.item, s.count]), [["boar-meat", 2], ["boar-tusk", 1]]);
+  });
+
+  test("what doesn't fit is left behind, by item", () => {
+    const tiny: Bag = { cols: 1, rows: 1, items: [] };
+    const { bag, left } = packLoot(tiny, { "boar-meat": MEAT_STACK + 1, "boar-hide": 1 });
+    assert.deepEqual(left, { "boar-meat": 1, "boar-hide": 1 });
+    assert.deepEqual(bag.items.map((s) => [s.item, s.count]), [["boar-meat", MEAT_STACK]]);
+  });
+
+  test("no loot leaves the bag as it was", () => {
+    const start = emptyBag();
+    assert.deepEqual(packLoot(start, {}), { bag: start, left: {} });
   });
 });

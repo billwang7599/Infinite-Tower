@@ -1,12 +1,8 @@
-/**
- * Small engine-free math helpers.
- * Yaw convention everywhere: yaw 0 faces +z, forward = (sin yaw, cos yaw), right = (cos yaw, -sin yaw).
- */
+/** Yaw everywhere: 0 faces +z, forward = (sin yaw, cos yaw), right = (cos yaw, -sin yaw). */
 
 export interface Vec3 { x: number; y: number; z: number }
 export interface Vec2 { x: number; z: number }
 
-/** Move `current` toward `target` by at most `maxDelta`. */
 export function approach(current: number, target: number, maxDelta: number): number {
   return current < target ? Math.min(current + maxDelta, target) : Math.max(current - maxDelta, target);
 }
@@ -20,20 +16,16 @@ export function wrapAngle(a: number): number {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
-/** Turn angle `current` toward `target` the short way round, by at most `maxStep`. */
+/** The short way round, by at most `maxStep`. */
 export function turnToward(current: number, target: number, maxStep: number): number {
   return current + clamp(wrapAngle(target - current), -maxStep, maxStep);
 }
 
-/**
- * Frame-rate independent smoothing: the fraction of the remaining gap to close this frame.
- * Higher `rate` = snappier (about 1/rate seconds to close most of the gap).
- */
+/** Frame-rate independent smoothing: the share of the gap to close this frame (about 1/rate seconds for most). */
 export function dampFactor(rate: number, dt: number): number {
   return 1 - Math.exp(-rate * dt);
 }
 
-/** Ease `current` toward `target` (see dampFactor). */
 export function damp(current: number, target: number, rate: number, dt: number): number {
   return current + (target - current) * dampFactor(rate, dt);
 }
@@ -43,12 +35,11 @@ export function roundTo(x: number, decimals: number): number {
   return Math.round(x * scale) / scale;
 }
 
-/** Distance between two points on the ground plane (y ignored). */
 export function distXZ(a: Vec2, b: Vec2): number {
   return Math.hypot(b.x - a.x, b.z - a.z);
 }
 
-/** Deterministic pseudo-random (mulberry32): same seed, same sequence. */
+/** mulberry32: same seed, same sequence. */
 export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -58,10 +49,7 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
-/**
- * seededRandom's generator one number at a time, its state a plain number: for a fight, which keeps the state in
- * its own (saved and hashed) state. Returns the number (0..1) and the state to pass next time.
- */
+/** seededRandom one number (0..1) at a time, its state a plain number a fight can keep in its own. */
 export function nextRandom(state: number): [value: number, next: number] {
   const a = (state + 0x6d2b79f5) >>> 0;
   let t = a;

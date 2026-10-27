@@ -1,15 +1,11 @@
 /**
- * The battle mode: the 2.5D arena fight, drawn. The client runs its own copy of the whole fight (the shared Fight,
- * built from the encounter's setup) and draws it as it runs: your fighter, the enemies, hits and all answer at once.
- * Each frame the arena's scene renders, the keys are read and the fight runs as many steps as its clock says (one
- * a frame at 60 frames a second: pace.ts) through sync.ts, which sends the inputs, checks the server's hashes and,
- * when they differ, loads the server's fight and replays. The result is the server's alone: the banner waits for
- * battleResult. Then the render systems draw the fight.
+ * The battle mode: the client's own copy of the whole fight, drawn as it runs. Each frame the keys are read and the
+ * fight runs as many steps as its clock says (pace.ts) through sync.ts; then the render systems draw it.
  */
-import type { AbstractEngine } from "@babylonjs/core";
+import { TransformNode, type AbstractEngine } from "@babylonjs/core";
 import {
-  Body, copyInput, IDLE_INPUT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type ServerMsgOf,
-  type System, type Vec3, type World,
+  Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity,
+  type ServerMsgOf, type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../core/actions.js";
@@ -20,10 +16,11 @@ import type { Settings } from "../settings/settings.js";
 import type { BattleHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { buildArena } from "./arena.js";
-import { DrawOffset, easeCorrection, registerArenaDisposers, registerFighterDisposers } from "./components.js";
+import {
+  BodyNode, DrawOffset, easeCorrection, registerArenaDisposers, registerFighterDisposers,
+} from "./components.js";
 import { resultShown, type BattleContext } from "./context.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
-import { addEnemyModel } from "./enemies/spawn.js";
 import { createMaterials } from "./materials.js";
 import { registerPlayerDisposers } from "./player/components.js";
 import { readPlayerInput } from "./player/input.js";
@@ -32,21 +29,20 @@ import { playerSpriteSystem } from "./player/sprite.js";
 import type { BattleScene } from "./scene.js";
 import { FightSync } from "./sync.js";
 import { addImpactShake, cameraSystem } from "./systems/camera.js";
-import { followSystem } from "./systems/follow.js";
 import { hudSystem } from "./systems/hud.js";
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
+/** How fast a correction's offset eases away (about 1/rate seconds). */
+const CORRECTION_EASE_RATE = 15;
 
 export interface Battle {
   ctx: BattleContext;
-  /** A fight starts: build the server's fight from `encounter`. Your inputs go out through `send`. */
+  /** Builds the server's fight from `encounter`. Your inputs go out through `send`. */
   start(encounter: ServerMsgOf<"encounter">, send: (msg: ClientMsg) => void): void;
-  /** The server's hash of its fight: checked against your copy's. */
   onHash(msg: ServerMsgOf<"battleHash">): void;
-  /** The server's whole fight: your copy takes it and replays your inputs since. */
   onSync(msg: ServerMsgOf<"battleSync">): void;
-  /** The server has decided the fight (battleResult): now the result shows. */
+  /** battleResult: now the result shows. */
   onResult(won: boolean): void;
   /** Leaving the arena: the fight's copy is dropped. */
   end(): void;
@@ -169,5 +165,29 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.sync = null;
     },
     render: () => scene.render(),
+  };
+}
+
+/** On the fight's enemy `e`: a node that follows its body, and the model its def names. */
+function addEnemyModel(ctx: BattleContext, world: World, e: Entity): void {
+  const node = new TransformNode(`enemy-${e}`, ctx.scene);
+  const at = world.require(e, Body).pos;
+  node.position.set(at.x, at.y, at.z);
+  world.add(e, BodyNode, { node });
+  const enemy = world.require(e, Enemy);
+  ENEMY_MODELS[enemy.def.model].add(ctx, world, e, node, enemy.def, enemy.yaw);
+}
+
+/** Per render frame: each fighter's drawing goes where its body is, plus its easing correction. */
+function followSystem(): System {
+  return (world, dt) => {
+    for (const [, { node }, { pos }] of world.query(BodyNode, Body)) node.position.set(pos.x, pos.y, pos.z);
+    const k = 1 - dampFactor(CORRECTION_EASE_RATE, dt);
+    for (const [, { node }, offset] of world.query(BodyNode, DrawOffset)) {
+      offset.x *= k;
+      offset.y *= k;
+      offset.z *= k;
+      node.position.addInPlaceFromFloats(offset.x, offset.y, offset.z);
+    }
   };
 }

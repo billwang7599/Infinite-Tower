@@ -1,7 +1,4 @@
-/**
- * The arena's Babylon scene: the third-person camera (driven by systems/camera.ts) and the look: lights, fog,
- * shadows and post-processing. It only draws; the fight's physics is the Fight's own (shared).
- */
+/** The arena's Babylon scene: the third-person camera, lights, fog, shadows and post-processing. */
 import {
   Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HemisphericLight,
   ImageProcessingConfiguration, Scene, ShadowGenerator, UniversalCamera, Vector3,
@@ -26,7 +23,7 @@ export function createBattleScene(engine: AbstractEngine): BattleScene {
   return { scene, camera, sunShadows };
 }
 
-/** Lights, fog, shadows and post-processing. Returns the sun's shadow generator. */
+/** Returns the sun's shadow generator. */
 function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
   const sky = new Color3(0.42, 0.5, 0.62);
   scene.clearColor = new Color4(sky.r, sky.g, sky.b, 1);

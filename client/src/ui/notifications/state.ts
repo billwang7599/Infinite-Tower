@@ -1,11 +1,6 @@
-/**
- * The notices in the corner and the banner in the centre: the stores they're drawn from (Notices.tsx,
- * Announcement.tsx) and what changes them. Game code doesn't call these directly: it tells `say` (say.ts) what
- * happened, which picks the words and the place.
- */
+/** The stores of the notices in the corner and the banner in the centre. Game code goes through `say`, not these. */
 import { Store } from "../store.js";
 
-/** A line the game says to the player: a notice in the corner, or the banner in the centre. */
 export interface Message {
   /** Unique per message: the React key, and what dismissing goes by (the text can repeat). */
   id: number;
@@ -17,13 +12,11 @@ export interface Notice extends Message {
   leaving: boolean;
 }
 
-/** Small notices, bottom right: everything but a fight starting (drops, the bag, resting, eating, dying). */
 export interface NoticesState {
   /** Oldest first. */
   items: readonly Notice[];
 }
 
-/** The big centre banner, kept for bigger events (a fight starting). One at a time. */
 export interface AnnouncementState {
   current: Message | null;
 }
@@ -38,7 +31,7 @@ export class Notifications {
   private static readonly MAX_NOTICE_ROWS = 2 * Notifications.MAX_NOTICES;
   private nextMessageId = 1;
 
-  /** A small notice in the corner. Past MAX_NOTICES the oldest showing one is marked leaving. */
+  /** Past MAX_NOTICES the oldest showing one is marked leaving. */
   notify(text: string): void {
     const items = [...this.notices.get().items, { id: this.nextMessageId++, text, leaving: false }];
     const showing = items.filter((n) => !n.leaving);
@@ -47,7 +40,7 @@ export class Notifications {
     this.notices.set({ items: next.slice(-Notifications.MAX_NOTICE_ROWS) });
   }
 
-  /** The centre banner, for bigger events. A new one replaces the one up. */
+  /** A new banner replaces the one up. */
   announce(text: string): void {
     this.announcement.set({ current: { id: this.nextMessageId++, text } });
   }

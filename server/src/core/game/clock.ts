@@ -1,7 +1,4 @@
-/**
- * Fixed 60 Hz steps from however much time really passed, catching up after a stall (at most 0.25 s of it).
- * The timer that calls `advance` is main.ts's.
- */
+/** Fixed steps from however much time really passed, catching up after a stall (at most 0.25 s of it). */
 import { FIXED_DT } from "@infinite-tower/shared";
 
 const MAX_CATCH_UP_TIME = 0.25;

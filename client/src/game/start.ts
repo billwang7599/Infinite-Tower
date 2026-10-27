@@ -1,8 +1,6 @@
 /**
- * The game, built once and joined once per session. main.ts imports this lazily (its own chunk: Babylon and
- * the arena's physics, nearly all of the download) and calls prepareGame() as soon as it arrives, while the title is
- * up: engine, physics, both scenes and modes, input off. Play connects and join()s; Return to title or a lost
- * connection leave()s, and the next Play joins again with everything still built.
+ * The game, built once behind the title and joined once per session. Its own lazily loaded chunk: Babylon and the
+ * arena's physics are nearly all of the download.
  */
 import { Engine } from "@babylonjs/core";
 import { World } from "@infinite-tower/shared";

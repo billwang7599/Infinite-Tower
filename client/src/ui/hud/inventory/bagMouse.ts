@@ -1,8 +1,6 @@
 /**
- * The bag screen's mouse as plain data: what's hovered, what's selected and what's dragged, kept apart. Hovering
- * only shows (and, once the pointer rests, a tooltip); a click selects (the selected stack is what Use and R act
- * on); a press that moves drags. Whether a move is allowed is the shared bag rules' call (`moveItem`), the same ones
- * the server checks with; a drop here only says what to ask the server for.
+ * The bag screen's mouse as plain data: hovered, selected and dragged, kept apart. Whether a move is allowed is the
+ * shared bag rules' call; a drop here only says what to ask the server for.
  */
 import {
   footprint, itemAt, itemDef, moveItem, type Bag, type BagItem, type Cell, type ItemId,
@@ -22,7 +20,7 @@ export interface Pointer {
   y: number;
 }
 
-export interface Drag {
+interface Drag {
   /** The stack's top-left when the drag started: what the server knows it by. */
   from: Cell;
   item: ItemId;
@@ -31,7 +29,7 @@ export interface Drag {
   grip: Cell;
 }
 
-export interface Hover {
+interface Hover {
   /** The hovered stack's top-left. */
   stack: Cell;
   /** When the pointer last moved over it, while the tooltip waits. */
@@ -179,7 +177,7 @@ export function rightPress(m: BagMouse, bag: Bag): Turned {
 }
 
 /** Whether using it would do anything: it has a use, and food isn't wasted at full HP (the server refuses). */
-export function canUse(stack: BagItem, fullHp: boolean): boolean {
+function canUse(stack: BagItem, fullHp: boolean): boolean {
   const def = itemDef(stack.item);
   return !!def.verb && !(def.healHp && fullHp);
 }

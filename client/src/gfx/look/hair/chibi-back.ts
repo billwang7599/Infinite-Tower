@@ -1,5 +1,5 @@
 /**
- * The chibi's hair styles facing back (walking away from us, up the screen). The whole head is hair: a crown,
+ * The chibi's hair styles facing back (walking up the screen). The whole head is hair: a crown,
  * and locks hanging from it over the back of the head and, for longer styles, the shoulders and back. Drawn
  * and lit like the front (chibi.ts), but nothing falls on a face.
  */

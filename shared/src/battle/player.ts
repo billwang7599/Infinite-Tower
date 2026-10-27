@@ -1,12 +1,6 @@
-/**
- * Player tuning for the arena. Shared: the server's fight runs them, and so does the client's own copy of it.
- * Stats (strength, agility, stamina…) scale some of these: see stats.ts. Enemy stats and
- * arena size are server content (server/src/core/content).
- *
- * Units: seconds, meters, m/s and m/s², unless the name or comment says otherwise.
- */
+/** Player tuning for the arena, at stats of 10 (stats.ts). Units: seconds, meters, m/s and m/s². */
 
-/** m/s², for everything in the arena. Tuned together with `PLAYER.jumpSpeed`. */
+/** For everything in the arena. Tuned together with `PLAYER.jumpSpeed`. */
 export const GRAVITY = -24;
 
 export const PLAYER = {
@@ -65,7 +59,7 @@ export const PLAYER = {
   dodge: {
     cost: 22,
     duration: 0.42,
-    /** From the dodge's first step: a dodge on the step a hit lands beats it (the user's call). */
+    /** From the dodge's first step: a dodge on the step a hit lands beats it. */
     iframeStart: 0,
     iframeEnd: 0.32,
     speed: 12,
@@ -73,10 +67,7 @@ export const PLAYER = {
   },
 } as const;
 
-/**
- * HP and stamina. They carry over from one fight to the next; the server holds them in between. Max stamina is
- * `Stats.stamina`.
- */
+/** Carried from one fight to the next; max stamina is `Stats.stamina`. */
 export interface Vitals {
   hp: number;
   stamina: number;

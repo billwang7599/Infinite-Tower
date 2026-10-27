@@ -1,13 +1,10 @@
-/**
- * Client-side overworld entities. They only mirror the server: the local player (tagged LocalPlayer) is
- * predicted from your inputs, everything else is drawn where the server says it is (mirror.ts).
- */
+/** Overworld entities: the local player (LocalPlayer) is predicted, everything else drawn where the server says. */
 import type { Mesh, StandardMaterial } from "@babylonjs/core";
 import { defineComponent, type Vec2, type World } from "@infinite-tower/shared";
 import type { ChibiFacing } from "../gfx/look/look.js";
 import type { Facing } from "./facing.js";
 
-/** Drawn position on the overworld (tiles). */
+/** Drawn position, in tiles. */
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
 interface OverworldActorData {
@@ -24,14 +21,10 @@ export const OverworldActor = defineComponent<OverworldActorData>("OverworldActo
 /** The quad drawing an overworld entity, plus optional overlays. */
 interface OverworldSpriteData {
   mesh: Mesh;
-  /**
-   * A picture for each way it can face (the player's chibi): front, back, and side drawn facing right (left
-   * mirrors it). null for actors with one picture, drawn facing right (boars).
-   */
+  /** A picture for each way it can face (the player's chibi); null for actors with one picture. */
   facings: Record<ChibiFacing, StandardMaterial> | null;
-  /** "!" bubble (boars). */
   alert: Mesh | null;
-  /** Grass drawn over the feet in tall grass (player). */
+  /** Grass drawn over the feet in tall grass. */
   tuft: Mesh | null;
   /** Tiles across. */
   size: number;

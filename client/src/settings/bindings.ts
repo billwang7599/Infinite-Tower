@@ -1,17 +1,9 @@
 /**
- * Key bindings: every action, its default keys, and the player's changes (saved on the server with the rest of
- * their settings, settings.ts). The settings screen edits them; game code asks about actions (core/actions.ts),
- * so a change applies at once.
- * Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed; they're listed here
- * so the settings screen can show them next to the keys.
- *
- * Three groups: general works in the overworld and in the arena, the other two only there. So a general key is on
- * nothing else, but the overworld and the arena may share keys.
- *
- * The arena is played keyboard-first: the left hand on WASD (Q / E turn the camera, F dodges, Space jumps, Shift
- * blocks), the right on the sword: U I O / J K L / M , . a grid where K stabs and each other key swings from
- * its side to the opposite one (U from top-left to bottom-right). The mouse's left button swings left to right
- * too, and its right button dodges.
+ * Every action, its default keys, and the player's changes. Game code asks about actions (core/actions.ts), so a
+ * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed;
+ * they're listed so the settings screen can show them. Three groups: general works in the overworld and in the
+ * arena, the other two only there; so a general key is on nothing else, but the overworld and the arena may share
+ * keys. The arena is keyboard-first: the left hand on WASD, the right on the sword's U I O / J K L / M , . grid.
  */
 import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
@@ -33,10 +25,7 @@ export const ACTIONS = {
     character: { label: "Character panel", keys: ["KeyC"] },
     inventory: { label: "Inventory", keys: ["KeyB"] },
   },
-  /**
-   * The open bag (inventory) is worked with the mouse (ui/hud/inventory/bagMouse.ts); you stand still meanwhile.
-   * Turn acts on what's dragged, or else on the selected item; use on the selected item.
-   */
+  /** Turn acts on what's dragged, or else on the selected item; use on the selected item. */
   overworld: {
     rest: { label: "Rest at a campfire", keys: ["KeyE"] },
     turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
@@ -109,11 +98,10 @@ export class KeyBindings extends Store<KeyMap> {
   }
 
   /**
-   * Take the player's saved keys. Only the actions they changed are saved, so a new default reaches everything
-   * they didn't touch; anything unreadable (an older format, an action that's gone) falls back to the defaults, and
-   * actions saved where they used to be (MOVED_FROM) load where they are now. Saved keys that now put one key on
-   * two actions working together (saved before the defaults moved) send general back to its defaults if it clashes
-   * with another group's defaults, and then any group still clashing.
+   * Only the actions they changed are saved, so a new default reaches everything they didn't touch; anything
+   * unreadable falls back to the defaults, and actions saved where they used to be (MOVED_FROM) load where they are
+   * now. Saved keys that now put one key on two actions working together (saved before the defaults moved) send
+   * general back to its defaults if it clashes with another group's defaults, and then any group still clashing.
    */
   restore(saved: unknown): void {
     const defaults = buildMap(defaultKeys);
@@ -208,7 +196,7 @@ function buildMap(keysFor: (ref: ActionRef) => readonly string[]): KeyMap {
   return map as unknown as KeyMap;
 }
 
-/** Whether any key is on two actions among these groups. */
+/** Any key on two actions among these groups. */
 function clashes(...groups: Keys[]): boolean {
   const all = groups.flatMap((g) => Object.values(g).flat());
   return new Set(all).size !== all.length;

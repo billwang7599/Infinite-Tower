@@ -24,8 +24,8 @@ still open.
   seen coming (an input of yours that ran late) can still pop. In headless Chrome, steady pings of 50, 200 and
   500 ms needed none in a dozen whole fights; freezing the page for 600 ms cost 2. Real jitter will tell.
 - **Bandwidth.** Down: a `battleHash` (about 85 bytes) 4 times a second, about 0.45 KB/s, and a `battleSync` (about
-  1.2 KB) only when the copies differ; before, 20 states a second came to about 15 KB/s. Up: a change of input per
-  step while the camera turns (about 7 KB/s, much as before), far less while it's still. Sending the move and the aim
+  1.2 KB) only when the copies differ. Up: a change of input per step while the camera turns (about 7 KB/s), far
+  less while it's still. Sending the move and the aim
   as small integers, or only the fields that changed, would cut the upload if it matters.
 - **Alt-tab.** The browser stops drawing a hidden tab, so its fight and its inputs stop. The server waits 200 ms, then
   runs on with the player's last input; after `SILENT_STOP_STEPS` (15) such steps it takes them to have let go of

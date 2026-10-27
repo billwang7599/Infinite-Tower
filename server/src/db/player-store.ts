@@ -5,10 +5,7 @@ import { players } from "./schema.js";
 
 /** Players in Postgres: the `players` table (schema.ts). */
 export class PgPlayerStore implements PlayerStore {
-  /**
-   * Each player's latest queued query. Loads and saves for one player run one after another, so an older
-   * save can't land after a newer one, and reconnecting reads what the last connection saved.
-   */
+  /** Each player's latest query: one player's loads and saves run in order, so an older save can't land last. */
   private readonly last = new Map<PlayerId, Promise<unknown>>();
 
   constructor(private readonly db: Db) {}

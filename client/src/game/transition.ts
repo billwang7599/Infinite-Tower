@@ -1,7 +1,6 @@
 /** Screen transitions between modes: Pokémon-style white flashes into battle, a black fade back. */
 import { clamp } from "@infinite-tower/shared";
 
-/** The two modes: the 2D overworld (overworld/) and the 2.5D arena fight (battle/). */
 export type Mode = "overworld" | "battle";
 
 export interface Transition {
@@ -14,7 +13,7 @@ export interface Transition {
 interface TransitionFrame {
   color: string;
   opacity: number;
-  /** True on the one frame where the screen is covered and the mode should switch. */
+  /** On the one frame the screen is covered and the mode should switch. */
   swapNow: boolean;
   done: boolean;
 }

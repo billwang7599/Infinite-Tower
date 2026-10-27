@@ -1,7 +1,4 @@
-/**
- * The HTTP server (Fastify): the account API (/api), the door to the game socket (/ws), and the built client in
- * production. In dev, Vite serves the client and proxies /ws and /api here.
- */
+/** The HTTP server: the account API (/api), the door to the game socket (/ws), and the built client in production. */
 import { join, sep } from "node:path";
 import fastifyCookie from "@fastify/cookie";
 import fastifyRateLimit from "@fastify/rate-limit";
@@ -19,7 +16,7 @@ export interface ServerOptions {
   /** client/dist; in dev Vite serves the client and proxies /ws and /api here. */
   clientDist: string;
   accounts: Accounts;
-  /** Only sent over HTTPS: on in production, off for dev's plain http://localhost. */
+  /** HTTPS only: on in production, off for dev's plain http://localhost. */
   secureCookies: boolean;
   socket: GameSocket;
 }
@@ -63,7 +60,7 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
   return app;
 }
 
-/** Listens on every interface (like Node's default), so the server is reachable from outside in production. */
+/** On every interface, so it's reachable from outside in production. */
 export async function startServer(opts: ServerOptions): Promise<void> {
   const app = await buildServer(opts);
   await app.listen({ port: opts.port, host: "::" });

@@ -1,7 +1,4 @@
-/**
- * The account API under /api (the routes are listed in shared/src/net/accounts.ts).
- * Each body is checked against its shared Zod schema before the handler runs.
- */
+/** The account API under /api. Each body is checked against its shared Zod schema before the handler runs. */
 import type { AccountInfo } from "@infinite-tower/shared";
 import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/account-requests";
 import type { FastifyReply } from "fastify";
@@ -16,10 +13,7 @@ export interface AccountRoutesOptions {
   secureCookies: boolean;
 }
 
-/**
- * Tries at logging in and signing up, together, per IP address. Password hashing is slow on purpose, and this
- * keeps guessing slow too (and the server's CPU free).
- */
+/** Logging in and signing up, together, per IP: keeps guessing slow, and the server's CPU free. */
 const LOGIN_LIMIT = { max: 20, timeWindow: "1 minute" };
 
 export const accountRoutes: FastifyPluginAsyncZod<AccountRoutesOptions> = async (app, { accounts, secureCookies }) => {

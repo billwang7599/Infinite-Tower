@@ -1,11 +1,8 @@
-/**
- * Procedural textures, drawn in code (no asset files). Textures that belong to one level theme live
- * with it instead (overworld/levels/<theme>/textures.ts).
- */
+/** Procedural textures, drawn in code. Those of one level theme live with its renderer (overworld/levels/). */
 import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 
-export interface DrawnTextureOptions {
+interface DrawnTextureOptions {
   /** Pixels; height defaults to width. */
   width: number;
   height?: number;
@@ -19,7 +16,7 @@ export interface DrawnTextureOptions {
 }
 
 /** A texture drawn once with the 2D canvas API. */
-export function drawnTexture(
+function drawnTexture(
   scene: Scene, name: string, opts: DrawnTextureOptions, draw: (ctx: CanvasRenderingContext2D) => void,
 ): DynamicTexture {
   const { width, height = width, mipmaps = false, nearest = false } = opts;

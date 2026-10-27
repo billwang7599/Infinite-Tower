@@ -5,17 +5,12 @@ import {
 import type { Overworld } from "../overworld/overworld.js";
 import { OverworldActor, OverworldPos } from "../overworld/components.js";
 
-/**
- * Numbers go out as JSON text, where a raw float is ~18 characters. 2 decimals is 1 cm, far below
- * what can be seen, and takes each actor in `state` (sent 20x/s) from ~140 to ~90 bytes.
- */
+/** 1 cm, far below what can be seen, takes each actor from ~140 to ~90 bytes of JSON. */
 const forWire = (x: number) => roundTo(x, 2);
 
 /**
- * Only actors this many tiles around the player's screen are sent, so a hacked client can't see further. The
- * margin is because the screen never quite matches the server's copy: the client predicts ahead of it, its
- * camera trails, sprites have width and other actors are drawn a little late. Actors then appear and vanish
- * off-screen, even on a slow connection.
+ * Only actors this many tiles around the player's screen are sent, so a hacked client can't see further. The margin
+ * covers the client's screen never quite matching the server's copy (prediction, the camera's lag, sprite widths).
  */
 const VIEW_MARGIN_TILES = 3;
 

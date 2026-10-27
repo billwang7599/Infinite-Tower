@@ -1,26 +1,20 @@
-/**
- * How a fight ends. It's lost when no player is standing (dead, or gone: see LEAVING_LOSES), won when no enemy is,
- * and lost when it's still undecided after MAX_FIGHT_TIME. The two constants are choices, not physics: kept here so
- * they're easy to find and change.
- */
+/** How a fight ends: lost when no player stands, won when no enemy does, lost after MAX_FIGHT_TIME. */
 import type { System } from "../../core/ecs.js";
 import { Fighter, Health } from "../components.js";
 import type { FightOutcome, FightState } from "./context.js";
 
-/** Seconds a fight may go on. Still undecided then, it's lost: a guard on the server's resources, not a clock. */
+/** Seconds a fight may go on: a guard on the server's resources. */
 export const MAX_FIGHT_TIME = 10 * 60;
 
 /**
- * A player who disconnects mid-fight (closes the tab, loses the connection, plays in another tab) is out of it, down
- * as if dead, and has lost it: their bag empties as on a death, so leaving can't escape one. Were it false, they'd
- * be out of it with nothing won or lost (the HP, stamina and bag they came in with).
+ * A player who disconnects mid-fight is down as if dead and has lost it (the bag empties), so leaving can't escape a
+ * death. Were it false, they'd leave with what they came in with.
  */
 export const LEAVING_LOSES = true;
 
-/** How a fight came out for one player: as it did for everyone, or "left" (gone, with LEAVING_LOSES off). */
+/** "left": gone, with LEAVING_LOSES off. */
 export type PlayerResult = FightState | "left";
 
-/** The fight's result for one player: the fight's own, except for a player who `left` it (LEAVING_LOSES). */
 export function playerResult(outcome: FightOutcome, left: boolean): PlayerResult {
   if (left) return LEAVING_LOSES ? "lost" : "left";
   return outcome.state;

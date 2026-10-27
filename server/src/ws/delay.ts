@@ -1,8 +1,4 @@
-/**
- * A dev tool: a line that holds each callback `delayMs` before running it, always in the order they came. Every
- * message of a connection goes through one of these each way when the dev server simulates a ping (env.ts), so a
- * slow network can be felt on localhost without anything arriving out of order.
- */
+/** Holds each callback `delayMs` before running it, in the order they came: the dev server's simulated ping. */
 export class DelayLine {
   private readonly waiting: (() => void)[] = [];
 

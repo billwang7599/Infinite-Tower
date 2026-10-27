@@ -1,11 +1,7 @@
 /**
- * Checks the server's layering (main.ts explains it); `npm run typecheck` runs this after tsc.
- *
- * - core/ imports only core/ and the packages in CORE_PACKAGES: no outlet, no env.ts, no pg, ws, http, ...
- * - an outlet (ws/, api/, db/) imports itself, core/, env.ts and any package, but never another outlet.
- * - every file is in one of those folders, or is main.ts / env.ts at the top.
- *
- * Prints each broken import and exits 1, or prints nothing.
+ * Checks the server's layering; `npm run typecheck` runs it. core/ imports only core/ and CORE_PACKAGES; an outlet
+ * (ws/, api/, db/) imports itself, core/, env.ts and any package, never another outlet; every other file is main.ts or
+ * env.ts. Prints each broken import and exits 1, or prints nothing.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";

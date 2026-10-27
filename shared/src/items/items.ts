@@ -1,20 +1,15 @@
-/**
- * Items: what each one is and does, how much bag it takes up and what it weighs. Shared, since the bag screen shows
- * the same numbers the server applies. Who drops what (and how often) is server content:
- * server/src/core/content/drops.ts. Where a player's items sit is their bag (bag.ts), which only the server changes.
- */
+/** What each item is and does. Who drops what is server content (server/src/core/content/drops.ts). */
 
 export interface ItemDef {
   name: string;
   description: string;
-  /** Bag cells it covers, lying flat: `cols` across, `rows` down. Turning it swaps them. */
+  /** Bag cells it covers, lying flat. */
   cols: number;
   rows: number;
-  /** How many share one cell. More than one only for single-cell items. */
+  /** More than one only for single-cell items. */
   stackSize: number;
-  /** One item's weight. What you carry adds up against the carry limit (`carryLimit`, battle/stats.ts). */
   weight: number;
-  /** Eating / drinking it restores this much HP (capped at max). Only on the overworld, not mid-fight. */
+  /** Using it restores this much HP. Only on the overworld. */
   healHp?: number;
   /** The use button's word. */
   verb?: string;
@@ -38,7 +33,7 @@ export const ITEMS = {
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 
-/** A count of each item, such as what an enemy dropped. An item there's none of is absent. */
+/** An item there's none of is absent. */
 export type ItemCounts = Partial<Record<ItemId, number>>;
 
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];

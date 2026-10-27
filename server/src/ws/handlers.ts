@@ -1,4 +1,4 @@
-/** Each (already validated) client message, as a call on the player's session. One handler per message type. */
+/** Each (already validated) client message, as a call on the player's session. */
 import type { Handlers } from "@infinite-tower/shared";
 import type { GameSession } from "../core/game/session.js";
 import type { SessionMsg } from "./connection.js";

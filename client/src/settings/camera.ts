@@ -1,9 +1,4 @@
-/**
- * Camera settings (saved on the server with the rest of the player's settings, settings.ts). For now just the
- * sensitivity: one multiplier on how fast the arena camera turns and tilts, from the mouse / trackpad and from
- * the turn / tilt keys alike. The battle camera reads `settings.camera.get()` every tick, so a change applies at
- * once, mid-fight too.
- */
+/** The sensitivity: one multiplier on how fast the arena camera turns and tilts, from the mouse and keys alike. */
 import { clamp, roundTo, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
@@ -20,14 +15,13 @@ export class CameraSettings extends Store<CameraPrefs> {
     super({ sensitivity: SENSITIVITY.default });
   }
 
-  /** Anything unreadable or out of range (an older format, say) falls back to the default. */
+  /** Anything unreadable or out of range falls back to the default. */
   restore(saved: SavedCamera): void {
     const value = saved?.sensitivity;
     const ok = typeof value === "number" && value >= SENSITIVITY.min && value <= SENSITIVITY.max;
     this.set({ sensitivity: ok ? value : SENSITIVITY.default });
   }
 
-  /** Nothing when it's the default. */
   toSaved(): NonNullable<SavedCamera> {
     return this.isDefault() ? {} : { sensitivity: this.get().sensitivity };
   }
