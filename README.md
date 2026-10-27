@@ -40,10 +40,11 @@ What's built so far:
   only a fight starting gets the big banner in the middle.
 - **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
-- **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. The
-  browser sends only its inputs and predicts your own moves, so they answer at once; the boar is drawn from the
-  server's states. Leaving mid-fight loses it (the bag empties, as on a death); a fight ends as a loss after 10
-  minutes.
+- **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
+  fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
+  inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's
+  copy 4 times a second and corrects it when they differ. The result shows only once the server says so. Leaving
+  mid-fight loses it (the bag empties, as on a death); a fight ends as a loss after 10 minutes.
 
 ## Running it
 
@@ -75,7 +76,7 @@ Local settings (database user, password and port, `DATABASE_URL`, the server's `
 `_PASSWORD` or `_DB` after the database exists needs `npm run db:reset`.
 
 **A simulated ping (dev only).** The dev server delays the game's messages by half of `DEV_PING_MS` each way (50 ms
-if it's left out; any whole number of ms, 0 for none), so prediction can be felt on localhost. For one tab, add
+if it's left out; any whole number of ms, 0 for none), so the netcode can be felt on localhost. For one tab, add
 `?ping=N` to the page's address (http://localhost:5173/?ping=200); no restart needed. Production never delays.
 
 **Troubleshooting.**

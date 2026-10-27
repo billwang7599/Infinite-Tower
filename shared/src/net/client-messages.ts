@@ -8,7 +8,7 @@
  * "@infinite-tower/shared/net/client-messages".
  */
 import { z } from "zod";
-import { MAX_INPUTS_PER_MESSAGE, type BattleInput } from "../battle/input.js";
+import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -30,8 +30,11 @@ const MAX_MOVE_LENGTH = Math.SQRT2 + 0.01;
 /** The aim is a direction: length 1, give or take the rounding. */
 const AIM_LENGTH_SLACK = 0.01;
 
-const BattleInputSchema = z.object({
-  seq: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+/** A fight's step number: they count from 1. */
+const FightStep = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+
+const StepInputSchema = z.object({
+  step: FightStep,
   moveX: z.number(),
   moveZ: z.number(),
   aimX: z.number(),
@@ -42,17 +45,23 @@ const BattleInputSchema = z.object({
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies
-  z.ZodType<BattleInput>;
+  z.ZodType<StepInput>;
 
 /**
- * What the player did in a fight, one input per step of theirs, numbered (`seq`). Steps standing idle after another
- * idle one aren't sent (the server runs the last input again). The server runs the fight and decides it: there's no
- * message that says how it ended.
+ * What the player did in a fight: each change of input with the step it's for (it holds until the next), in step
+ * order, and `upTo`, the last step their fight has run (so the server knows nothing changed until then). The
+ * server runs the fight and decides it: there's no message that says how it ended.
  */
 const BattleInputMsg = z.object({
   t: z.literal("battleInput"),
-  inputs: z.array(BattleInputSchema).min(1).max(MAX_INPUTS_PER_MESSAGE),
-});
+  upTo: FightStep,
+  inputs: z.array(StepInputSchema).max(MAX_INPUTS_PER_MESSAGE),
+})
+  .refine((m) => m.inputs.every((input, i) => input.step > (m.inputs[i - 1]?.step ?? 0)), "steps out of order")
+  .refine((m) => m.inputs.every((input) => input.step <= m.upTo), "a step after upTo");
+
+/** The client's copy of the fight doesn't match the server's hash: it asks for the whole fight (`battleSync`). */
+const BattleResyncMsg = z.object({ t: z.literal("battleResync") });
 
 /** The player left the arena after the fight's result (the Leave key): back to the overworld. Ignored mid-fight. */
 const LeaveBattleMsg = z.object({ t: z.literal("leaveBattle") });
@@ -110,7 +119,8 @@ const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: C
 const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
 export const ClientMsg = z.discriminatedUnion("t", [
-  InputMsg, BattleInputMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg, MoveItemMsg, DebugMsg,
+  InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
+  MoveItemMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

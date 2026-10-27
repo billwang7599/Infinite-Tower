@@ -5,7 +5,7 @@
  * against the wall holds it back). Dodging, knocked back (hitstun) or dead, a player passes through enemies.
  * Enemies pass through each other, and players through players.
  */
-import type { Entity, System, World } from "../../../core/ecs.js";
+import type { System } from "../../../core/ecs.js";
 import type { Vec3 } from "../../../core/math.js";
 import {
   Body, Enemy, Health, Player, type BodyData, type HealthData, type PlayerData,
@@ -40,18 +40,6 @@ export function moveSystem(physics: ArenaPhysics): System {
     }
     physics.step();
   };
-}
-
-/**
- * The client's prediction of its own player (Fight.predict): moves player `e` as moveSystem would, with every enemy
- * standing where it is (the client puts them where the server's states say) and never pushed back by the player.
- */
-export function predictMove(physics: ArenaPhysics, world: World, e: Entity, dt: number): void {
-  const body = world.require(e, Body);
-  body.vel.y += GRAVITY * dt;
-  const enemies = [...world.query(Enemy, Body)].map(([, , enemy]) => enemy);
-  bodyMover(physics).movePlayer(world.require(e, Player), body, world.require(e, Health), enemies, dt);
-  physics.step();
 }
 
 function bodyMover(physics: ArenaPhysics) {

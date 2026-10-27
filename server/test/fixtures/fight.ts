@@ -1,0 +1,81 @@
+/**
+ * A fight from both ends, for testing the server's BattleRoom: the client's side (the same shared Fight, stepped
+ * with the player's input every step, as the browser runs it) and the wire between them, which can hold any message
+ * back for a number of server ticks.
+ */
+import {
+  IDLE_INPUT, PLAYER, sameInput, type EnemyDef, type PlayerInputData, type StepInput, type Vitals,
+} from "@infinite-tower/shared";
+import {
+  ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START, type FightSetup, type PlayerResult,
+} from "@infinite-tower/shared/fight";
+import { BattleRoom } from "../../src/core/battle/room.js";
+import { ENEMIES } from "../../src/core/content/enemies.js";
+import { PLAYER_STATS } from "../../src/core/content/player.js";
+import { FakeLink } from "./fakes.js";
+
+/** The wild boar, rooted to the spot and harmless. */
+export const STATUE: EnemyDef = { ...ENEMIES["wild-boar"], walkSpeed: 0, turnRate: 0, attacks: {} };
+
+export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerAt = PLAYER_START): FightSetup {
+  return {
+    arena: { radius: 16 },
+    players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
+      burden: "light" }],
+    enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
+  };
+}
+
+/** One battleInput: the changes since the last one, and the last step the client has run. */
+export interface Sent { upTo: number; inputs: StepInput[] }
+
+/** The browser's side: its own copy of the fight, run with its inputs at once, and one message per step. */
+export class FakeClient {
+  readonly fight: Fight;
+  private last: PlayerInputData | null = null;
+
+  constructor(setup: FightSetup) {
+    this.fight = new Fight(setup);
+  }
+
+  /** One step with `input`; returns what goes to the server for it. */
+  step(input: PlayerInputData = IDLE_INPUT): Sent {
+    const step = this.fight.steps + 1;
+    const changed = !this.last || !sameInput(this.last, input);
+    this.last = input;
+    this.fight.step([input]);
+    return { upTo: step, inputs: changed ? [{ step, ...input }] : [] };
+  }
+}
+
+/**
+ * A room with one player on a FakeLink and their client, played in lockstep: each round the client runs its next
+ * step and sends it, and the server ticks once. A message can be held back some ticks; like the socket, the wire
+ * keeps order, so what was sent after it waits too.
+ */
+export function openRoom(setup = setupWith()) {
+  const link = new FakeLink();
+  const ended: { result: PlayerResult; vitals: Vitals }[] = [];
+  const room = new BattleRoom(setup, [{ link, onEnd: (result, vitals) => ended.push({ result, vitals }) }]);
+  const client = new FakeClient(setup);
+  const wire: { at: number; sent: Sent }[] = [];
+  let ticks = 0;
+
+  /** The server's next tick, after delivering what has arrived by then. */
+  const tick = () => {
+    ticks++;
+    while (wire[0] && wire[0].at <= ticks) {
+      const { sent } = wire.shift()!;
+      room.input(0, sent.upTo, sent.inputs);
+    }
+    room.tick();
+  };
+
+  /** One round: the client's step `input` (unless null: it stays silent), then one server tick. */
+  const play = (input: PlayerInputData | null = IDLE_INPUT, delay = 0) => {
+    if (input) wire.push({ at: ticks + 1 + delay, sent: client.step(input) });
+    tick();
+  };
+
+  return { link, room, ended, client, play, tick };
+}

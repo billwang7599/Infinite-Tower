@@ -3,14 +3,15 @@
  *
  * Flow: `welcome` once, then `level` whenever you enter a level (also right after welcome). In the
  * overworld the client sends one `input` per fixed tick and predicts its own movement; the server replays
- * the inputs, runs the level, and sends `state` ~20x/s with the last input it processed (`ack`). A fight is the
- * same: `encounter`, then the client's `battleInput`s and the server's `battleState`s, until `battleResult`.
+ * the inputs, runs the level, and sends `state` ~20x/s with the last input it processed (`ack`). A fight:
+ * `encounter`, then the client runs the whole fight itself and sends its `battleInput`s; the server runs the same
+ * fight, sends `battleHash` 4 times a second (and `battleSync`, the whole fight, when the client asks), and the
+ * last `battleSync` and `battleResult` as it's decided.
  */
 import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/player.js";
-import type { FightState } from "../battle/fight/context.js";
 import type { FightSetup } from "../battle/fight/setup.js";
-import type { BattleEvent, EnemySnap, PlayerSnap, PlayerState } from "../battle/snapshot.js";
+import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
 import type { Bag } from "../items/bag.js";
@@ -47,14 +48,13 @@ export type ServerMsg =
    * same one (the arena, the enemies, every player with the vitals, stats and burden they come in with); you're
    * `setup.players[seat]`. `me`: where you stand on the overworld. */
   | { t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup }
-  /** The fight, 20 times a second while it's on, and once more as it's decided. `step`: the fight's steps so far.
-   * `ack`: your last input the server ran, and `repeats` how many steps since it ran it again (none had come).
-   * `me`: you, exactly; `players` everyone in seat order (yours null: it's `me`) and `enemies`, rounded to draw them.
-   * `events`: what happened since the last one. */
-  | {
-    t: "battleState"; step: number; ack: number; repeats: number; outcome: FightState; me: PlayerState;
-    players: (PlayerSnap | null)[]; enemies: EnemySnap[]; events: BattleEvent[];
-  }
+  /** After every HASH_EVERY_STEPS-th step of the server's fight: its state's `hash` (Fight.hash) after `step`.
+   * `lateSteps`: how late your inputs reach the server (the best since the last hash; negative: early), measured
+   * on your input up to `heardStep`; your client keeps its fight in step by it (client/src/battle/pace.ts). */
+  | { t: "battleHash"; step: number; hash: number; lateSteps: number; heardStep: number }
+  /** The server's whole fight after `step`: the answer to `battleResync`, and once more as the fight is decided
+   * (then `battleResult` follows). `lateSteps` and `heardStep` as in battleHash. */
+  | { t: "battleSync"; step: number; fight: FightSnapshot; lateSteps: number; heardStep: number }
   /** You used one `item`: what it did to your vitals, and your bag now. */
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; bag: Bag }
   /** Your bag, after you moved something in it (whether or not the move was allowed). */

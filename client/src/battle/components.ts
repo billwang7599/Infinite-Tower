@@ -12,7 +12,7 @@ export interface BodyNodeData { node: TransformNode }
 export const BodyNode = defineComponent<BodyNodeData>("BodyNode");
 
 /**
- * How far your fighter's drawing is from its body (m): when the server corrects your prediction, the body jumps to
+ * How far a fighter's drawing is from its body (m): when the server's fight corrects your copy, the body jumps to
  * the right place at once and the drawing eases after it (systems/follow.ts), so small corrections don't pop.
  */
 export const DrawOffset = defineComponent<Vec3>("DrawOffset");

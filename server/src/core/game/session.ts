@@ -5,8 +5,8 @@
  * through its `PlayerLink`. Not to be confused with a login session (core/accounts).
  */
 import {
-  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type BattleInput,
-  type Burden, type Cell, type Character, type SavedSettings, type Stats, type Vitals,
+  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
+  type Character, type SavedSettings, type StepInput, type Stats, type Vitals,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
@@ -78,10 +78,19 @@ export class GameSession {
     if (this.inOverworld) this.overworld.input(seq, moveX, moveZ);
   }
 
-  /** What the player did in their fight, step by step. The server runs the fight: nothing else can end it. */
-  battleInput(inputs: readonly BattleInput[]): void {
+  /**
+   * What the player did in their fight: each change of input with its step, and how far their own copy has run. The
+   * server runs the fight: nothing else can end it.
+   */
+  battleInput(upTo: number, inputs: readonly StepInput[]): void {
     const battle = this.battle;
-    if (battle && !battle.over) battle.room.input(battle.seat, inputs);
+    if (battle && !battle.over) battle.room.input(battle.seat, upTo, inputs);
+  }
+
+  /** The player's copy of their fight differs from the server's hash: send them the whole fight. */
+  battleResync(): void {
+    const battle = this.battle;
+    if (battle && !battle.over) battle.room.resync(battle.seat);
   }
 
   /** The Leave key after a fight's result: back to the overworld (ignored mid-fight). */

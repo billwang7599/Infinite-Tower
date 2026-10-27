@@ -1,67 +1,96 @@
 /**
- * One player's inputs in a fight, as the server takes them: in order, at most one a step (a client can't act faster
- * by sending more). When none is waiting, the last one runs again: that's how a client's idle steps go unsent, and
- * what happens while its inputs are late. `ack` and `repeats` tell the client which: its prediction replays from
- * there (client/src/battle/prediction.ts).
+ * One player's inputs in a fight, as the server takes them. The client sends each change of input with the step it's
+ * for, and `upTo`, the last step its own fight has run: so up to there the server knows exactly what the player did
+ * on every step (the last change holds until the next) and runs it on that step. What comes too late for its step
+ * (the room has run it already: see room.ts) counts on the next step instead, presses kept, and the client is
+ * corrected. A step the server has to run without knowing repeats what the player held; after SILENT_STOP_STEPS of
+ * those in a row, the player is taken to have let go of the move keys (a client that stalls doesn't keep running).
  */
-import { IDLE_INPUT, isIdle, type BattleInput, type PlayerInputData } from "@infinite-tower/shared";
+import { IDLE_INPUT, MAX_INPUT_LEAD_STEPS, type PlayerInputData, type StepInput } from "@infinite-tower/shared";
 
-/**
- * More inputs than this waiting (they came late, in a bunch), and the oldest are folded into the next one, their
- * presses kept: the player's actions don't lag behind their keys for the rest of the fight.
- */
-export const MAX_WAITING_INPUTS = 4;
-/**
- * After this many steps with no new input, a player still moving or holding a button is taken to have let go: a
- * client that stalls or lags doesn't keep running in a line. (Idle steps aren't sent, but idle needs no stopping.)
- */
-export const INPUT_TIMEOUT_STEPS = 15;
+/** Steps run in a row without the player's input before they're taken to have stopped moving. */
+export const SILENT_STOP_STEPS = 15;
 
-const inputOf = (i: PlayerInputData): PlayerInputData => ({
-  moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-});
+/** How late a player's inputs reach the server, in steps (negative: early), measured on their input up to a step. */
+export interface Lateness { lateSteps: number; heardStep: number }
 
-export class InputQueue {
-  /** The last input taken. */
-  private input: PlayerInputData = { ...IDLE_INPUT };
-  private readonly waiting: BattleInput[] = [];
-  /** The newest seq that came. */
-  private newest = 0;
-  /** The seq of the last input taken (0: none yet). */
-  ack = 0;
-  /** Steps since `ack` that ran it again. */
-  repeats = 0;
+export class InputTimeline {
+  /** The last step the player has said what they did on. */
+  private heard = 0;
+  /** Changes not run yet, in step order. */
+  private readonly waiting: StepInput[] = [];
+  private newestChange = 0;
+  /** What the player holds, as of the last step run. */
+  private held: PlayerInputData = { ...IDLE_INPUT };
+  /** Steps run in a row without knowing the player's input. */
+  private guessed = 0;
+  /** The best lateness since `lateness` was last asked for. */
+  private best: Lateness | null = null;
+  private heardFrom = false;
 
-  /** Whether any input has come: the player is in the arena. */
+  /** Whether anything has come: the player is in the arena. */
   get started(): boolean {
-    return this.newest > 0;
+    return this.heardFrom;
   }
 
-  /** Inputs that came; one the queue already has, or older than its newest, is ignored. */
-  push(inputs: readonly BattleInput[]): void {
+  /**
+   * A `battleInput` that came while the room's clock was at `now`. A change it has already, or for a step it has
+   * had a later change for, is ignored; one more than MAX_INPUT_LEAD_STEPS ahead of the clock is dropped.
+   */
+  receive(upTo: number, inputs: readonly StepInput[], now: number): void {
+    this.heardFrom = true;
+    const limit = now + MAX_INPUT_LEAD_STEPS;
     for (const input of inputs) {
-      if (input.seq <= this.newest) continue;
-      this.newest = input.seq;
+      if (input.step <= this.newestChange || input.step > limit) continue;
+      this.newestChange = input.step;
       this.waiting.push(input);
     }
+    this.heard = Math.max(this.heard, Math.min(upTo, limit));
+    // The clock's next step is now + 1: an input for it, here now, is just in time.
+    const lateSteps = now + 1 - upTo;
+    if (!this.best || lateSteps < this.best.lateSteps) this.best = { lateSteps, heardStep: upTo };
   }
 
-  /** The input for the next step. */
-  next(): PlayerInputData {
-    while (this.waiting.length > MAX_WAITING_INPUTS) {
-      const late = this.waiting.shift()!, into = this.waiting[0]!;
-      into.jump ||= late.jump;
-      into.attack ||= late.attack;
-      into.dodge ||= late.dodge;
+  /** Whether the player has said what they did on `step`. */
+  known(step: number): boolean {
+    return step <= this.heard;
+  }
+
+  /**
+   * The input to run on `step`, the fight's next. Changes too late for their own steps count on this one: the first
+   * of them with a button down as it was made (a dodge goes where it was aimed), every button pressed in any of them
+   * held down for this step; the step after runs what the player holds now.
+   */
+  take(step: number): PlayerInputData {
+    let late: PlayerInputData | null = null;
+    const pressed = { jump: false, attack: false, dodge: false };
+    while (this.waiting[0] && this.waiting[0].step <= step) {
+      const { step: madeFor, ...change } = this.waiting.shift()!;
+      if (madeFor < step) {
+        if (!late && (change.jump || change.attack || change.dodge)) late = change;
+        pressed.jump ||= change.jump;
+        pressed.attack ||= change.attack;
+        pressed.dodge ||= change.dodge;
+      }
+      this.held = change;
     }
-    const taken = this.waiting.shift();
-    if (taken) {
-      this.input = inputOf(taken);
-      this.ack = taken.seq;
-      this.repeats = 0;
-    } else if (++this.repeats > INPUT_TIMEOUT_STEPS && !isIdle(this.input)) {
-      this.input = { ...IDLE_INPUT, aimX: this.input.aimX, aimZ: this.input.aimZ };
+    const base = late ?? this.held;
+    const input = {
+      ...base, jump: this.held.jump || pressed.jump, attack: this.held.attack || pressed.attack,
+      dodge: this.held.dodge || pressed.dodge,
+    };
+    if (this.known(step)) {
+      this.guessed = 0;
+      return input;
     }
-    return this.input;
+    return ++this.guessed > SILENT_STOP_STEPS ? { ...input, moveX: 0, moveZ: 0 } : input;
+  }
+
+  /** How late the player's inputs have come since this was last asked (at clock `now`): the best of them, or, with
+   * none, how long the player has been silent. */
+  lateness(now: number): Lateness {
+    const found = this.best ?? { lateSteps: now - this.heard, heardStep: this.heard };
+    this.best = null;
+    return found;
   }
 }

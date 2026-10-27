@@ -1,7 +1,8 @@
 /**
  * Mode switching and sessions. Two modes, two Babylon scenes, one ECS world:
  * - overworld: the 2D map (overworld/), its own fixed-step loop.
- * - battle:    the 2.5D arena (battle/): the server's fight, drawn, with your own fighter predicted.
+ * - battle:    the 2.5D arena (battle/): your own copy of the whole fight, run at once and kept in line with the
+ *              server's, which decides it.
  * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
  * encounters and fights; this routes its messages (one handler per message type), keeps the settings in sync with
  * it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back to the
@@ -180,9 +181,11 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
           say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
         bag: (msg) => overworld.setBag(msg.bag),
-        battleState: (msg) => battle.onState(msg),
+        battleHash: (msg) => battle.onHash(msg),
+        battleSync: (msg) => battle.onSync(msg),
         battleResult(msg) {
           result = msg;
+          battle.onResult(msg.won);
         },
       });
       setMode("overworld");

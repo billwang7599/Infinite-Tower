@@ -1,14 +1,15 @@
 /**
  * One arena fight, whole: its own ECS world and physics world, stepped at a fixed rate by the players' inputs.
  * Nothing in it is random, and nothing lives outside it, so the same setup and inputs always give the same fight,
- * on any machine (Rapier's deterministic build), and a server can run many side by side. The server runs it
- * (server/src/core/battle/); each client keeps a copy to draw, in which it predicts only its own player (`predict`)
- * and puts everyone else where the server's states say.
+ * on any machine (Rapier's deterministic build), and a server can run many side by side. The server runs it and
+ * decides it (server/src/core/battle/); each client runs its own copy at once with its inputs (that's what it
+ * draws), checks it against the server's hash (`hash`) and, when they differ, loads the server's state (`load`) and
+ * replays its inputs since (client/src/battle/sync.ts).
  */
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { FIXED_DT } from "../../core/time.js";
 import { Health } from "../components.js";
-import { PlayerInput, type PlayerInputData } from "../input.js";
+import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
 import { combatSystem } from "./combat.js";
 import type { FightContext, FightEvent, FightOutcome } from "./context.js";
@@ -16,13 +17,14 @@ import { enemyBrainSystem } from "./enemies/brain.js";
 import { chargeAttackSystem } from "./enemies/charge.js";
 import { lungeAttackSystem } from "./enemies/lunge.js";
 import { enemyMotorSystem } from "./enemies/motor.js";
+import { hashFight } from "./hash.js";
 import { outcomeSystem } from "./outcome.js";
-import { predictPlayer } from "./predict.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
 import { playerGroundSystem } from "./player/ground.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
+import { loadFight, saveFight, type FightSnapshot } from "./state.js";
 
 export class Fight {
   /** Every step is this long. */
@@ -38,6 +40,8 @@ export class Fight {
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
   /** What happened in the last step (see FightEvent). */
   readonly events: FightEvent[] = [];
+  /** Steps run so far: the number of the last one (steps count from 1). */
+  steps = 0;
   /** The systems, in the order that is the game's contract. */
   private readonly systems: System[];
 
@@ -63,21 +67,26 @@ export class Fight {
     this.events.length = 0;
     this.players.forEach((e, i) => {
       const input = inputs[i];
-      if (input) Object.assign(this.world.require(e, PlayerInput), input);
+      if (input) Object.assign(this.world.require(e, PlayerInput), copyInput(input));
     });
     for (const system of this.systems) system(this.world, Fight.STEP_SECONDS);
     this.world.flush();
+    this.steps++;
   }
 
-  /**
-   * The client's prediction of its own player: one step of only `player`'s movement and actions, as `step` would
-   * take them, with everyone else held where they are. No enemy moves, no hit lands and nothing is decided: that's
-   * the server's to say.
-   */
-  predict(player: Entity, input: PlayerInputData): void {
-    Object.assign(this.world.require(player, PlayerInput), input);
-    predictPlayer(this.world, this.physics, player, Fight.STEP_SECONDS);
-    this.world.flush();
+  /** The whole state, as plain JSON (state.ts). */
+  save(): FightSnapshot {
+    return saveFight(this);
+  }
+
+  /** Makes this fight (built from the same setup) exactly as `snapshot` says, step count and colliders included. */
+  load(snapshot: FightSnapshot): void {
+    loadFight(this, snapshot);
+  }
+
+  /** A fingerprint of the state, rounded as hash.ts says: the same on two machines whose fights agree. */
+  hash(): number {
+    return hashFight(this);
   }
 
   /** `player` is gone (disconnected): out of the fight for good, down as if dead. outcome.ts says what that costs. */

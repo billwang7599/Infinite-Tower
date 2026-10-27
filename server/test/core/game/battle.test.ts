@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, carryLimit, emptyBag, FIXED_DT, Health, IDLE_INPUT, ITEMS, physicalDamage, PLAYER, type Bag,
-  type PlayerInputData,
+  Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage, PLAYER,
+  type Bag, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -41,11 +41,12 @@ const fightOf = (session: GameSession) => {
   return room.fight;
 };
 
-/** What the player's client would do: send `next()` each step (numbered), while the server ticks. */
+/** What the player's client would do: send `next()` for each step (numbered), while the server ticks. */
 function play(session: GameSession, next: () => PlayerInputData, maxSteps = MAX_TEST_STEPS): void {
-  let seq = 0;
+  const fight = fightOf(session);
   for (let i = 0; i < maxSteps && session.battle && !session.battle.over; i++) {
-    session.battleInput([{ seq: ++seq, ...next() }]);
+    const step = fight.steps + 1;
+    session.battleInput(step, [{ step, ...next() }]);
     session.tick(FIXED_DT);
   }
 }
@@ -135,23 +136,25 @@ describe("the server runs the fight", () => {
     const { session, link } = inBattle();
     const before = session.overworld.playerPos();
     win(session);
-    const last = link.last("battleState").me;
+    const last = link.last("battleSync").fight.players[0]!;
     assert.deepEqual(session.vitals, { hp: last.health.hp, stamina: last.stamina.value });
     assert.deepEqual(link.last("battleResult").vitals, session.vitals);
     assert.deepEqual(session.overworld.playerPos(), before);
   });
 
-  test("sends what moves while it's on, about 20 times a second", () => {
+  test("checks the client's copy with a hash of the fight 4 times a second, and sends no states", () => {
     const { session, link } = inBattle();
     play(session, () => IDLE_INPUT, 60);
-    assert.equal(link.all("battleState").length, 20);
+    assert.equal(link.all("battleHash").length, 60 / HASH_EVERY_STEPS);
+    assert.equal(link.all("battleSync").length, 0);
   });
 
   test("nothing a client sends can end it: leaving the arena early is ignored, the fight goes on", () => {
     const { session, link } = inBattle(CARRIED);
     play(session, () => IDLE_INPUT, 30);
     session.leaveBattle();
-    session.battleInput([{ seq: 1, ...IDLE_INPUT, attack: true }]);
+    session.battleResync();
+    session.battleInput(31, [{ step: 31, ...IDLE_INPUT, attack: true }]);
     play(session, () => IDLE_INPUT, 30);
     assert.equal(link.all("battleResult").length, 0);
     assert.equal(fightOf(session).outcome.state, "fighting");
@@ -164,7 +167,7 @@ describe("the server runs the fight", () => {
     play(session, () => IDLE_INPUT);
     const result = link.last("battleResult");
     assert.equal(result.won, false);
-    assert.equal(link.last("battleState").me.health.hp, 0, "the boar hit them");
+    assert.equal(link.last("battleSync").fight.players[0]!.health.hp, 0, "the boar hit them");
     assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
     assert.deepEqual(result.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.bag);

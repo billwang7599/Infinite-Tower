@@ -32,7 +32,7 @@ export function boarAnimationSystem(): System {
       // Pose targets. headPitch > 0 = nose down; lean > 0 = front down.
       let headPitch = 0, lean = 0, roll = 0, tremble = 0, yOff = 0, zOff = 0, glow = 0;
       let rollRate = 12;
-      // Down is dead, whatever its last state: the server's fight stops on the step that decides it.
+      // Down is dead, whatever its state says: its brain only notices on the step after the killing blow.
       const state = health.hp > 0 ? enemy.state : "dead";
       const t = enemy.stateTime;
       const lunge = world.get(e, LungeAttack)?.def, charge = world.get(e, ChargeAttack)?.def;
