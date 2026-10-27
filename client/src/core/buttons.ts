@@ -1,26 +1,15 @@
-/** Held and pressed buttons. Presses are latched until consumed, so a tap shorter than a tick is never lost. */
-
-/** Counts presses on every Buttons, so the keyboard's and the mouse's can be put in order. */
+// Shared by every Buttons, so the keyboard's and the mouse's presses can be put in order.
 let pressCount = 0;
 
 export class Buttons {
   private readonly down = new Set<string>();
-  /** Latched presses, each with its press count. */
+  // Latched until cleared, so a tap shorter than a tick is never lost.
   private readonly pressed = new Map<string, number>();
 
-  isDown(which: (button: string) => boolean): boolean {
-    for (const b of this.down) if (which(b)) return true;
-    return false;
+  get held(): ReadonlySet<string> {
+    return this.down;
   }
 
-  /** Any passing `which` pressed since the last call (clears those latches). */
-  consumePressed(which: (button: string) => boolean): boolean {
-    let any = false;
-    for (const b of this.pressed.keys()) if (which(b) && this.pressed.delete(b)) any = true;
-    return any;
-  }
-
-  /** The latched presses, each with its count: a later press, on any Buttons, counts higher. */
   get presses(): ReadonlyMap<string, number> {
     return this.pressed;
   }
@@ -29,7 +18,6 @@ export class Buttons {
     this.pressed.clear();
   }
 
-  /** `repeat`: an auto-repeat while held, not a new press. */
   protected press(b: string, repeat = false): void {
     if (!repeat) this.pressed.set(b, ++pressCount);
     this.down.add(b);
@@ -39,7 +27,6 @@ export class Buttons {
     this.down.delete(b);
   }
 
-  /** Forget everything held (focus lost, pointer unlocked), and optionally the latched presses too. */
   protected releaseAll(alsoPressed = false): void {
     this.down.clear();
     if (alsoPressed) this.pressed.clear();

@@ -59,14 +59,14 @@ describe("ACTIONS and helpers", () => {
 
   test("the arena: u i o / j l / m , . swing from their key's side, k stabs, Shift blocks, F dodges, Space jumps", () => {
     const battle = new KeyBindings().get().battle;
-    assert.deepEqual(battle.swingTLBR, ["KeyU"]);
-    assert.deepEqual(battle.swingTB, ["KeyI"]);
-    assert.deepEqual(battle.swingTRBL, ["KeyO"]);
-    assert.deepEqual(battle.swingLR, ["KeyJ"]);
-    assert.deepEqual(battle.swingRL, ["KeyL"]);
-    assert.deepEqual(battle.swingBLTR, ["KeyM"]);
-    assert.deepEqual(battle.swingBT, ["Comma"]);
-    assert.deepEqual(battle.swingBRTL, ["Period"]);
+    assert.deepEqual(battle.tlbr, ["KeyU"]);
+    assert.deepEqual(battle.tb, ["KeyI"]);
+    assert.deepEqual(battle.trbl, ["KeyO"]);
+    assert.deepEqual(battle.lr, ["KeyJ"]);
+    assert.deepEqual(battle.rl, ["KeyL"]);
+    assert.deepEqual(battle.bltr, ["KeyM"]);
+    assert.deepEqual(battle.bt, ["Comma"]);
+    assert.deepEqual(battle.brtl, ["Period"]);
     assert.deepEqual(battle.stab, ["KeyK"]);
     assert.deepEqual(battle.block, ["ShiftLeft", "ShiftRight"]);
     assert.deepEqual(battle.dodge, ["KeyF"]);
@@ -75,7 +75,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.turnLeft, ["KeyQ", "ArrowLeft"]);
     assert.deepEqual(battle.turnRight, ["KeyE", "ArrowRight"]);
     assert.deepEqual(battle.leave, ["Enter"]);
-    assert.deepEqual(ACTIONS.battle.swingLR.mouse, [0], "the left button: the default swing");
+    assert.deepEqual(ACTIONS.battle.lr.mouse, [0], "the left button: the default swing");
     assert.deepEqual(ACTIONS.battle.dodge.mouse, [2]);
   });
 

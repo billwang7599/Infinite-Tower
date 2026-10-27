@@ -6,6 +6,7 @@ import { Notices } from "./notifications/Notices.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
 import { SettingsScreen } from "./screens/settings/SettingsScreen.js";
 import { TitleScreen } from "./screens/title/TitleScreen.js";
+import type { Actions } from "../core/actions.js";
 import type { Settings } from "../settings/settings.js";
 import { inWorld, type ScreenState, type UiActions, type UiState } from "./state.js";
 import type { Store } from "./store.js";
@@ -16,7 +17,14 @@ import { useStore } from "./useStore.js";
  * player has a character. Creation is there as soon as a game runs without one, under the title, so the title's white
  * clears onto its white.
  */
-export function App({ ui, settings, actions }: { ui: UiState; settings: Settings; actions: UiActions }) {
+interface AppProps {
+  ui: UiState;
+  settings: Settings;
+  input: Actions;
+  actions: UiActions;
+}
+
+export function App({ ui, settings, input, actions }: AppProps) {
   const mode = useStore(ui.screen, (s) => s.mode);
   const phase = useStore(ui.title, (s) => s.phase);
   const creating = useStore(ui.creation, (s) => s.open);
@@ -31,7 +39,7 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
         <>
           {mode === "overworld" && (
             <OverworldHud
-              hud={ui.overworld} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud}
+              hud={ui.overworld} input={input} ping={ui.ping} hudSettings={settings.hud}
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
@@ -52,16 +60,16 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
       {playing && (
         <SettingsScreen
           screen={ui.settingsScreen} open={ui.openSettings} close={ui.closeSettings}
-          settings={settings} returnToTitle={actions.returnToTitle}
+          settings={settings} input={input} returnToTitle={actions.returnToTitle}
         />
       )}
       {mode !== null && (
         <CreationScreen
           creation={ui.creation} overworld={ui.overworld} title={ui.title} active={inWorld(mode, phase)}
-          save={actions.saveCharacter} close={ui.closeCreation}
+          input={input} save={actions.saveCharacter} close={ui.closeCreation}
         />
       )}
-      <TitleScreen title={ui.title} actions={actions} />
+      <TitleScreen title={ui.title} input={input} actions={actions} />
     </>
   );
 }

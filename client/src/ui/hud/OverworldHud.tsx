@@ -1,11 +1,10 @@
 import type { Cell } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
-import { actionOf } from "../../core/actions.js";
-import type { KeyBindings } from "../../settings/bindings.js";
+import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
-import { useKeydown } from "../components/useKeydown.js";
+import { useAction } from "../components/useAction.js";
 import type {
   OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState,
 } from "../state.js";
@@ -21,7 +20,7 @@ import { Ping } from "./Ping.js";
 type HudProps = { hud: Store<OverworldHudState> };
 
 interface OverworldHudProps extends HudProps {
-  bindings: KeyBindings;
+  input: Actions;
   ping: Store<PingState>;
   hudSettings: HudSettings;
   settingsScreen: Store<SettingsScreenState>;
@@ -36,13 +35,13 @@ interface OverworldHudProps extends HudProps {
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
 export function OverworldHud(props: OverworldHudProps) {
-  const { hud, bindings, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
+  const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
   const panel = useStore(panels, (s) => s.open);
-  // The panel keys, but not under Settings (where the key may be getting rebound) or while typing in a text field.
-  useKeydown((e) => {
-    if (e.repeat || e.target instanceof HTMLInputElement || settingsScreen.get().open) return;
-    const action = actionOf(bindings.get(), "overworld", e.code);
-    if (action === "character" || action === "inventory") toggle(action);
+  useAction(input, ["character", "inventory"], (panel, repeat) => {
+    if (!repeat) toggle(panel);
+  });
+  useAction(input, ["rest"], (_action, repeat) => {
+    if (!repeat) rest();
   });
 
   return (
@@ -65,7 +64,7 @@ export function OverworldHud(props: OverworldHudProps) {
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
         <InventoryPanel
-          hud={hud} bindings={bindings} settingsScreen={settingsScreen} use={props.useItem} move={props.moveItem}
+          hud={hud} input={input} settingsScreen={settingsScreen} use={props.useItem} move={props.moveItem}
           close={close}
         />
       )}

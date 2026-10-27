@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { bagHasTheKeys, inWorld, UiState, type TitleState } from "../../src/ui/state.js";
+import type { Mode } from "../../src/game/transition.js";
+import { inWorld, UiState, whoHasTheKeys, type TitleState } from "../../src/ui/state.js";
 
 describe("UiState screens", () => {
   test("settings open and close", () => {
@@ -39,16 +40,57 @@ describe("UiState overworld panels", () => {
   });
 });
 
-describe("bagHasTheKeys", () => {
-  test("the open bag takes the keys on the overworld: you stand still while it's open", () => {
-    assert.equal(bagHasTheKeys("overworld", "inventory"), true);
+describe("whoHasTheKeys", () => {
+  const playing = (mode: Mode = "overworld") => {
+    const ui = new UiState();
+    ui.title.set({ phase: "playing" });
+    return { ui, mode };
+  };
+
+  test("the title has them until it has cleared off a game, and again as it comes back", () => {
+    const ui = new UiState();
+    assert.deepEqual(whoHasTheKeys(ui, null), ["title"]);
+    for (const phase of ["menu", "loading", "entering", "returning"] as const) {
+      ui.title.set({ phase });
+      assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["title"], phase);
+    }
+    ui.creation.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["title"], "the white still under the title");
   });
 
-  test("the character panel, no panel, or the arena leave the keys to the game", () => {
-    assert.equal(bagHasTheKeys("overworld", "character"), false);
-    assert.equal(bagHasTheKeys("overworld", null), false);
-    assert.equal(bagHasTheKeys("battle", "inventory"), false);
-    assert.equal(bagHasTheKeys(null, "inventory"), false);
+  test("with nothing over it, the world has them: the overworld or the arena", () => {
+    assert.deepEqual(whoHasTheKeys(playing().ui, "overworld"), ["overworld"]);
+    assert.deepEqual(whoHasTheKeys(playing().ui, "battle"), ["battle"]);
+  });
+
+  test("the open bag is over the overworld: you stand still while it's open", () => {
+    const { ui, mode } = playing();
+    ui.toggleOverworldPanel("inventory");
+    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag"]);
+  });
+
+  test("the character panel only shows things: the world keeps the keys", () => {
+    const { ui, mode } = playing();
+    ui.toggleOverworldPanel("character");
+    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
+  });
+
+  test("Settings is over the bag and the world, in either mode", () => {
+    const { ui } = playing("overworld");
+    ui.toggleOverworldPanel("inventory");
+    ui.openSettings();
+    assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["overworld", "bag", "settings"]);
+    const battle = playing("battle").ui;
+    battle.toggleOverworldPanel("inventory");
+    battle.openSettings();
+    assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "settings"]);
+  });
+
+  test("character creation is over everything once the title has cleared onto it", () => {
+    const { ui, mode } = playing();
+    ui.creation.set({ open: true });
+    ui.openSettings();
+    assert.equal(whoHasTheKeys(ui, mode).at(-1), "creation");
   });
 });
 

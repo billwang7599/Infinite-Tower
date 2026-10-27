@@ -1,15 +1,16 @@
 /**
- * Shown on load, before anything connects. Logged out, it's the login form; logged in, Play (one of PLAY_KEYS,
- * or a click) asks the game to join, and Log out is under it. If the server can't be reached the error shows here
- * and Play becomes Retry.
+ * Shown on load, before anything connects. Logged out, it's the login form; logged in, Play (a MENUS key or a click)
+ * asks the game to join, and Log out is under it. If the server can't be reached the error shows here and Play
+ * becomes Retry.
  *
  * Joining plays the enter sequence (sequence.ts; the camera's path is backdrop/path.ts): the text fades, the view
  * glides into the tower to its middle, looks straight up it, and rushes up it, faster and faster, while the server
  * loads the player; then a white flash clears over the world. Return to title plays it backwards.
  */
 import { useEffect } from "react";
+import type { Actions } from "../../../core/actions.js";
 import { keepFocus } from "../../components/noFocus.js";
-import { useKeydown } from "../../components/useKeydown.js";
+import { useAction } from "../../components/useAction.js";
 import type { TitleState, UiActions } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
@@ -20,8 +21,6 @@ import { stageMs, type Stage } from "./sequence.js";
 import { LINK } from "./styles.js";
 import { useReducedMotion, useSequence } from "./useSequence.js";
 
-/** Fixed, not from the key bindings: those come with the server's welcome, which is after Play. */
-const PLAY_KEYS = ["Enter", "Space", "KeyJ"];
 const RISE = "animate-rise motion-reduce:animate-none";
 const PROGRESS: Partial<Record<TitleState["phase"], string>> = {
   signingIn: "Logging in…", connecting: "Connecting…", loading: "Loading…", entering: "Entering…",
@@ -38,9 +37,15 @@ const WHITE: Partial<Record<Stage, string>> = {
 const PROGRESS_LINE =
   "absolute inset-x-0 bottom-[14%] animate-white-in text-center text-xs tracking-[0.5em] text-white/60 uppercase";
 
-type Actions = Pick<UiActions, "play" | "signIn" | "logOut">;
+type TitleActions = Pick<UiActions, "play" | "signIn" | "logOut">;
 
-export function TitleScreen({ title, actions }: { title: Store<TitleState>; actions: Actions }) {
+interface TitleProps {
+  title: Store<TitleState>;
+  input: Actions;
+  actions: TitleActions;
+}
+
+export function TitleScreen({ title, input, actions }: TitleProps) {
   const phase = useStore(title, (s) => s.phase);
   const error = useStore(title, (s) => s.error);
   const username = useStore(title, (s) => s.username);
@@ -48,11 +53,10 @@ export function TitleScreen({ title, actions }: { title: Store<TitleState>; acti
   const still = useReducedMotion();
   const ready = phase === "menu" && stage === "menu";
 
-  useKeydown((e) => {
-    if (!PLAY_KEYS.includes(e.code)) return;
-    e.preventDefault();
-    if (!e.repeat) actions.play();
-  }, { enabled: ready && !!username });
+  useAction(input, ["play"], (_action, repeat) => {
+    if (!ready || !username) return false;
+    if (!repeat) actions.play();
+  });
 
   // The title has cleared off the world: it's the player's now.
   useEffect(() => {

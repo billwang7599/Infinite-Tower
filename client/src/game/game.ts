@@ -8,7 +8,7 @@ import {
   moveItem as moveInBag, type Cell, type Character, type Look, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
-import type { Keyboard } from "../core/keyboard.js";
+import type { Actions } from "../core/actions.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
 import { BATTLE_FRAMES, playerFrames } from "../gfx/characters.js";
@@ -20,7 +20,7 @@ import type { Connection, Joined } from "../net/connection.js";
 import { startPinging, type Pinging } from "../net/ping.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
-import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
+import { whoHasTheKeys, type UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
 
@@ -42,7 +42,7 @@ export interface Game {
 
 interface GameParts {
   engine: AbstractEngine;
-  keyboard: Keyboard;
+  actions: Actions;
   mouse: Mouse;
   ui: UiState;
   settings: Settings;
@@ -50,7 +50,7 @@ interface GameParts {
   overworld: Overworld;
 }
 
-export function createGame({ engine, keyboard, mouse, ui, settings, battle, overworld }: GameParts): Game {
+export function createGame({ engine, actions, mouse, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let stopSync = () => {};
@@ -66,9 +66,9 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
    * world, nor the open bag), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
    */
   const updateInput = () => {
-    const playing = inWorld(mode, ui.title.get().phase) && !ui.settingsScreen.get().open && !ui.creation.get().open;
-    keyboard.enabled = playing && !bagHasTheKeys(mode, ui.overworldPanel.get().open);
-    mouse.setLockable(playing && mode === "battle", settings.mouse.get().autoLock);
+    const layers = whoHasTheKeys(ui, mode);
+    actions.setLayers(layers);
+    mouse.setLockable(layers.at(-1) === "battle", settings.mouse.get().autoLock);
   };
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
@@ -102,7 +102,6 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       say(ui.notifications, { kind: "battleResult", outcome: result });
       result = null;
     }
-    keyboard.clearPressed();
     setMode("overworld");
   };
 

@@ -44,15 +44,14 @@ export function addImpactShake(ctx: BattleContext, events: readonly FightEvent[]
  * attacks (see player/input.ts). Also applies the impact shake (addImpactShake), decaying it.
  */
 export function cameraSystem(ctx: BattleContext): System {
-  const { actions, mouse } = ctx;
+  const { mouse } = ctx;
   const focus = new Vector3(), look = new Vector3();
   /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
   let followed: Fight | null = null;
 
   return (world, dt) => {
     const view = ctx.view;
-    const turn = actions.axis("battle", "turnLeft", "turnRight");
-    const tilt = actions.axis("battle", "lookUp", "lookDown");
+    const { turn, look: tilt } = ctx.polled;
     const { dx, dy } = mouse.consumeDelta();
     const sensitivity = ctx.settings.camera.get().sensitivity;
     view.yaw = wrapAngle(view.yaw + (turn * YAW_RAD_PER_SEC * dt + dx * MOUSE_RAD_PER_PX) * sensitivity);

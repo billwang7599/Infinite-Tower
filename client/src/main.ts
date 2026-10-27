@@ -3,6 +3,9 @@
  * chunk) prepares the game behind the title, so Play only has to connect and join.
  */
 import { VIEW, type Credentials } from "@infinite-tower/shared";
+import { Actions } from "./core/actions.js";
+import { Keyboard } from "./core/keyboard.js";
+import { Mouse } from "./core/mouse.js";
 import { currentAccount, logIn, logOut, register } from "./net/account.js";
 import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
 import { createSettings } from "./settings/settings.js";
@@ -15,8 +18,10 @@ document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW
 
 const ui = new UiState();
 const settings = createSettings();
+const mouse = new Mouse(document.getElementById("game") as HTMLCanvasElement);
+const input = new Actions(settings.bindings, new Keyboard(), mouse);
 
-const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings));
+const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings, input, mouse));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
 preparing.catch((err: unknown) => {
   if (["checking", "menu", "signingIn"].includes(ui.title.get().phase)) fail(err);
@@ -97,7 +102,7 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-mountUi(document.getElementById("ui")!, ui, settings, {
+mountUi(document.getElementById("ui")!, ui, settings, input, {
   signIn: (kind, credentials) => void signIn(kind, credentials),
   logOut: () => void signOut(),
   play: () => void play(),

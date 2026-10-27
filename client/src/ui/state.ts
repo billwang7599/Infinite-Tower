@@ -5,6 +5,7 @@
  */
 import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
+import type { Layer } from "../core/actions.js";
 import type { Mode } from "../game/transition.js";
 import { Notifications } from "./notifications/state.js";
 import { Store } from "./store.js";
@@ -80,8 +81,14 @@ export interface OverworldPanelState {
 }
 
 /** You stand still while the bag is open; the character panel only shows things, so you walk with it open. */
-export const bagHasTheKeys = (mode: Mode | null, panel: OverworldPanel | null): boolean =>
-  mode === "overworld" && panel === "inventory";
+export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
+  if (mode === null || !inWorld(mode, ui.title.get().phase)) return ["title"];
+  const layers: Layer[] = [mode];
+  if (mode === "overworld" && ui.overworldPanel.get().open === "inventory") layers.push("bag");
+  if (ui.settingsScreen.get().open) layers.push("settings");
+  if (ui.creation.get().open) layers.push("creation");
+  return layers;
+}
 
 /** The game opens it when `welcome` has no character; it closes itself once one is made. There's no leaving it. */
 export interface CreationState {

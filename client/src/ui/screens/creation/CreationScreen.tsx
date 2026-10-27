@@ -5,8 +5,10 @@
  */
 import { CHARACTER_NAME_RULES, DEFAULT_LOOK, type Character } from "@infinite-tower/shared";
 import { useEffect, useReducer, useState } from "react";
+import type { Actions } from "../../../core/actions.js";
+import type { MenuAction } from "../../../settings/bindings.js";
 import { LookPicture } from "../../components/LookPicture.js";
-import { useKeydown } from "../../components/useKeydown.js";
+import { useAction } from "../../components/useAction.js";
 import type { CreationState, OverworldHudState, TitleState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
@@ -18,10 +20,8 @@ import { nextScene, START, type Scene } from "./scene.js";
 import { SystemWindow } from "./SystemWindow.js";
 import { useTyped } from "./useTyped.js";
 
-/** Fixed, like the title's: Enter / Space / J go on. */
-const GO_ON_KEYS = ["Enter", "Space", "KeyJ"];
 /** Yes / Not yet. */
-const CHOICE_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyW", "KeyS"];
+const CHOICE_ACTIONS: readonly MenuAction<"creation">[] = ["menuLeft", "menuRight", "menuUp", "menuDown"];
 /** The server answers a valid character at once; no answer by then means it refused it. */
 const SAVE_TIMEOUT_MS = 5000;
 /** The farewell goes on by itself this long after it's typed. */
@@ -42,6 +42,7 @@ interface CreationProps {
   title: Store<TitleState>;
   /** The title has cleared off this screen. */
   active: boolean;
+  input: Actions;
   save: (character: Character) => void;
   /** Done: the white has cleared off the world. */
   close: () => void;
@@ -52,7 +53,7 @@ export function CreationScreen({ creation, ...props }: CreationProps & { creatio
   return open ? <Creation {...props} /> : null;
 }
 
-function Creation({ overworld, title, active, save, close }: CreationProps) {
+function Creation({ overworld, title, active, input, save, close }: CreationProps) {
   const username = useStore(title, (s) => s.username);
   const saved = useStore(overworld, (s) => s.character);
   const still = useReducedMotion();
@@ -105,23 +106,19 @@ function Creation({ overworld, title, active, save, close }: CreationProps) {
     dispatch({ type: "answer", yes });
   };
 
-  // Capture, and stopped here: a key that moves the scene on mustn't also reach the panel it opens (its listener is
-  // added before this key reaches it). Only the panel's own keys get past, while it's up. Esc goes nowhere.
-  useKeydown((e) => {
-    if (step === "make" && e.code !== "Escape") return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    const goesOn = GO_ON_KEYS.includes(e.code) && !e.repeat;
+  useAction(input, ["goBack", "confirm", "goOn", ...CHOICE_ACTIONS], (action, repeat) => {
+    if (step === "make") return action === "goBack";
+    const goesOn = (action === "confirm" || action === "goOn") && !repeat;
     if (step === "greet" || step === "farewell") {
       if (goesOn) goOn();
     } else if (step === "confirm") {
-      if (e.code === "Escape") respond(false);
+      if (action === "goBack") respond(false);
       else if (!typed.done) {
         if (goesOn) typed.finish();
-      } else if (CHOICE_KEYS.includes(e.code)) setAnswer((a) => 1 - a);
+      } else if (CHOICE_ACTIONS.includes(action)) setAnswer((a) => 1 - a);
       else if (goesOn) respond(answer === 0);
     }
-  }, { enabled: active, capture: true });
+  });
 
   const making = step === "make" || step === "confirm" || step === "saving";
   const greeting = step === "greet";
@@ -169,7 +166,7 @@ function Creation({ overworld, title, active, save, close }: CreationProps) {
           <LookMaker
             name={name} setName={(n) => { setName(n); setNameError(null); }} choices={choices}
             setChoices={setChoices} begin={begin} error={nameError ?? scene.error} enabled={step === "make"}
-            shown={making}
+            shown={making} input={input}
           />
         </div>
       )}

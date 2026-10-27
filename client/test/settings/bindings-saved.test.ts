@@ -234,3 +234,13 @@ describe("KeyBindings saved before one key per swing", () => {
     assert.deepEqual(b.toSaved(), { battle: { stab: ["KeyY"] } });
   });
 });
+
+describe("KeyBindings saved before the swings were named as the fight names them", () => {
+  test("a swing saved under its old name loads where it is now, and saves under the new one", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { swingLR: ["KeyY"], swingBRTL: ["KeyH"] } });
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "lr" }), ["KeyY"]);
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "brtl" }), ["KeyH"]);
+    assert.deepEqual(b.toSaved(), { battle: { lr: ["KeyY"], brtl: ["KeyH"] } });
+  });
+});

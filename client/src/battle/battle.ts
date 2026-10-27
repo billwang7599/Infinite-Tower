@@ -9,7 +9,6 @@ import {
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../core/actions.js";
-import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
 import type { Settings } from "../settings/settings.js";
@@ -53,7 +52,6 @@ export interface BattleOptions {
   engine: AbstractEngine;
   world: World;
   scene: BattleScene;
-  keyboard: Keyboard;
   mouse: Mouse;
   actions: Actions;
   settings: Settings;
@@ -62,12 +60,12 @@ export interface BattleOptions {
 }
 
 export function createBattle(opts: BattleOptions): Battle {
-  const { engine, world, keyboard, actions, settings } = opts;
+  const { engine, world, actions, settings } = opts;
   const { scene, camera, sunShadows } = opts.scene;
   registerArenaDisposers(world);
 
   const ctx: BattleContext = {
-    world, scene, camera, actions, mouse: opts.mouse, settings, sunShadows,
+    world, scene, camera, polled: actions.poll(), mouse: opts.mouse, settings, sunShadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
     view: { ...START_VIEW },
@@ -89,13 +87,12 @@ export function createBattle(opts: BattleOptions): Battle {
   const input = copyInput(IDLE_INPUT);
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
-    // After the fight, the leave key (Enter by default) goes back, once the result has been on screen a moment.
-    const leave = actions.consumePressed("battle", "leave");
-    if (leave && resultShown(ctx.outcome)) opts.onLeave();
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
     const steps = sync.pace.stepsDue(fight.steps);
     if (steps === 0) return;
-    readPlayerInput(ctx, input);
+    ctx.polled = actions.poll();
+    if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
+    readPlayerInput(ctx.polled, ctx.view.yaw, input);
     for (let i = 0; i < steps; i++) {
       sync.advance(input);
       addImpactShake(ctx, fight.events);
@@ -137,10 +134,10 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.sync = new FightSync(fight, seat, send);
       ctx.outcome = ctx.sync.outcome;
       Object.assign(ctx.view, START_VIEW);
+      ctx.polled = actions.poll();
       ctx.shake = 0;
       // The last fight's result off the HUD before it shows again (its systems write it from the next frame on).
       opts.hud.set({ result: "fighting", showResult: false });
-      keyboard.clearPressed();
     },
     onHash(msg) {
       ctx.sync?.onHash(msg);
