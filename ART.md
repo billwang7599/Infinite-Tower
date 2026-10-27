@@ -59,16 +59,16 @@ Every character is one look drawn several ways. All views have a transparent bac
 
 The battle sprite is only ever seen from behind: the arena camera sits behind the player, who always attacks where
 it looks. It has a picture per pose (`POSES` in `battle.ts`): stand (also running), slash (sword arm out to our
-right; it's never mirrored, and every swing's trail starts on that side) and down (knelt, slumped, sword dropped).
+right, never mirrored; the arena shows the sword fight's swings instead) and down (knelt, slumped, sword dropped).
 From behind the head is all hair, so face shapes, eyes and mouths draw nothing there.
 
-The sword fight's poses (`SWORD_POSES` in `battle.ts`, drawn in `moves.ts`; not in the arena yet) have a few frames
-each, played in order: `drawBattle(look, pose, frame)`. Eight swings, named for the way the blade moves on screen
-(`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through; a stab, a block, a stagger. A
-wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the right
-hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
-the body is hidden by it, so the strike shows the blade where it comes out beside the head; a frame's `swordLayer`
-puts the sword under the body (in front of the player) or over the head (the overhead block).
+The sword fight's poses (`SWORD_POSES` in `battle.ts`, drawn in `moves.ts`, played by `battle/player/pose.ts`)
+have a few frames each, played in order: `drawBattle(look, pose, frame)`. Eight swings, named for the way the blade
+moves on screen (`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through; a stab, a block, a
+stagger. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
+right hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
+the body is hidden by it, so the strike shows the blade where it comes out beside the head; a frame's `swordLayer` puts
+the sword under the body (in front of the player) or over the head (the overhead block).
 
 The chibi faces the way it walks (`CHIBI_FACINGS` in `art.ts`): walking down the screen it faces front, up it faces
 back, and to a side it faces side (drawn facing left; the game mirrors it for walking right). Front and back share
@@ -177,7 +177,7 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
   (`battleFrames` builds the battle poses from a few widths). Then check every piece of gear on it.
 - **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then its sprite frame in
   `playerFrames` (`gfx/characters.ts`) and its material (`battle/materials.ts`): both are keyed by pose, so they
-  don't compile until it's there. `battle/player/sprite.ts` picks the pose to show. A sword-fight pose: its name
+  don't compile until it's there. `battle/player/pose.ts` picks the pose and its frame. A sword-fight pose: its name
   and frame count in `SWORD_POSES` and its frames' keys in `moves.ts` (hands and sword tip from the shoulders).
 - **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, the
   portrait, the chibi facing each way, the battle sprite in each pose and every sword-fight frame, the sample jerkin

@@ -3,24 +3,18 @@
  * unit-tested; sprite.ts puts it on the meshes.
  */
 import { CHAIN, isSwing, liveStep, FIXED_DT, type PlayerData, type SwingDir } from "@infinite-tower/shared";
-import type { Materials } from "../materials.js";
 
 /** The trail starts this long before the swing's blade goes live, and shows this long in all (seconds). */
 const TRAIL_LEAD_TIME = 0.03;
 const TRAIL_DURATION = 0.2;
 /** The stab's thrust shows from a little before its blade goes live, out and back over this long (seconds). */
 const THRUST_DURATION = 0.16;
+/** A block shows raising the sword this long, then braced (seconds). */
+const BLOCK_RAISE_TIME = 0.1;
 
-/**
- * Every pose the player's battle sprite has, by name. The art (gfx/look/battle.ts) draws only some so far: each
- * of the others stands in with one of those (PLACEHOLDER_FRAME) until it's drawn.
- */
+/** Every pose the player's battle sprite shows, by name (its frames: gfx/look/battle.ts). */
 export type PlayerPose =
   | "stand" | "down" | `swing-${SwingDir}` | "stab" | "block" | "stagger";
-export type SpriteFrame = keyof Materials["player"];
-
-const PLACEHOLDER_FRAME = (pose: PlayerPose): SpriteFrame =>
-  pose === "stand" || pose === "down" ? pose : pose === "block" || pose === "stagger" ? "stand" : "slash";
 
 /** Each swing's way across the screen as the player sees it (x right, y up), from behind them or facing a foe. */
 export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
@@ -31,15 +25,20 @@ export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
 
 export interface SpritePose {
   pose: PlayerPose;
-  /** What's drawn for it for now. */
-  frame: SpriteFrame;
+  /** Which of its frames. */
+  frame: number;
   /** The quad's scale: squash and stretch only. It's never mirrored (a negative x would). */
   scaleX: number;
   scaleY: number;
 }
 
-/** `stretch`: the smoothed squash / stretch factor (sprite.ts). */
-export function spritePose(player: PlayerData, alive: boolean, stretch: number): SpritePose {
+/**
+ * `stretch`: the smoothed squash / stretch factor (sprite.ts). `stagger`: its hitstun left, of how much it began
+ * with (the player's actionTime stands still while staggered).
+ */
+export function spritePose(
+  player: PlayerData, alive: boolean, stretch: number, stagger = { left: 0, of: 0 },
+): SpritePose {
   // We always see the player from behind, so the sprite never turns or mirrors; the trail shows the direction.
   const attacking = player.action === "attack" && player.actionTime < player.startup + CHAIN.activeTime + 0.08;
   const pose: PlayerPose = !alive ? "down"
@@ -47,7 +46,12 @@ export function spritePose(player: PlayerData, alive: boolean, stretch: number):
     : player.action === "block" ? "block"
     : player.action === "stagger" ? "stagger"
     : "stand";
-  return { pose, frame: PLACEHOLDER_FRAME(pose), scaleX: 1 / stretch, scaleY: stretch };
+  const step = Math.round(player.actionTime / FIXED_DT), live = liveStep(player.startup);
+  const frame = pose === "block" ? (player.actionTime < BLOCK_RAISE_TIME ? 0 : 1)
+    : pose === "stagger" ? (stagger.left > stagger.of / 2 ? 0 : 1)
+    : !attacking || !alive ? 0
+    : step < live ? 0 : step < live + liveStep(CHAIN.activeTime) ? 1 : 2;
+  return { pose, frame, scaleX: 1 / stretch, scaleY: stretch };
 }
 
 export interface TrailPose {

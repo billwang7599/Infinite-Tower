@@ -32,12 +32,13 @@ export function playerSpriteSystem(ctx: BattleContext): System {
         : !player.grounded ? 1 + clamp(Math.abs(vel.y) * 0.015, -0.12, 0.15)
         : 1;
       sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
-      const pose = spritePose(player, alive, sprite.stretch);
-      const frame = frames[pose.frame];
+      sprite.staggerTime = player.action === "stagger" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
+      const pose = spritePose(player, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
+      const frame = frames[pose.pose][pose.frame]!;
       if (sprite.plane.material !== frame) sprite.plane.material = frame;
       sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
       sprite.plane.position.y = spriteY(sprite.stretch, bob);
-      sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(player.actionTime * 45) * 0.06 : 0;
+      sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(health.hitstun * 45) * 0.06 : 0;
 
       // Blink while invulnerable after a hit.
       sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);

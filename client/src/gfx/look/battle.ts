@@ -18,7 +18,7 @@ export const POSES = ["stand", "slash", "down"] as const;
 export type Pose = (typeof POSES)[number];
 
 /**
- * The sword fight's poses (moves.ts), not shown in the arena yet, and how many frames each has, played in order.
+ * The sword fight's poses (moves.ts) and how many frames each has, played in order (battle/player/pose.ts).
  * A swing is named for the way the sword moves on screen (swing-tlbr: from the top left to the bottom right), in
  * three frames: wind-up, strike, follow-through. stab: drawn back, thrust into the screen, lunged. block: raising
  * the sword, then braced behind it. stagger: knocked back, then stumbling, off balance.

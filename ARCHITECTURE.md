@@ -541,7 +541,7 @@ client/          Browser game: Babylon rendering, input, React UI.
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
-                     sprite in each pose in the arena; the boar, the kobold)
+                     sprite's frames in each pose in the arena, BATTLE_FRAMES; the boar, the kobold)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
@@ -634,7 +634,7 @@ client/          Browser game: Babylon rendering, input, React UI.
       materials.ts, arena.ts (scenery: grass, stones, forest)
       player/          spawn (the sprite, shadow, and the sword's trail, thrust and guard on the fight's player),
                        components (PlayerSprite), input (actions -> PlayerInputData),
-                       sprite (puts pose on the meshes, shadow), pose (pose and its stand-in frame, the trail's line
+                       sprite (puts pose on the meshes, shadow), pose (pose and its frame, the trail's line
                        and the stab's thrust from the action, no Babylon: tested)
       enemies/         spawn.ts (the model on the fight's enemy)
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
