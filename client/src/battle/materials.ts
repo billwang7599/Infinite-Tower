@@ -21,6 +21,8 @@ export interface Materials {
   /** The player's sprite in each pose. */
   player: Record<Pose, StandardMaterial>;
   slashFx: StandardMaterial;
+  /** The block's guard in front of the player. */
+  guardFx: StandardMaterial;
   telegraph: StandardMaterial;
 }
 
@@ -61,6 +63,12 @@ export function createMaterials(scene: Scene): Materials {
   slashFx.alpha = 0.9;
   slashFx.backFaceCulling = false;
 
+  const guardFx = new StandardMaterial("guard-fx", scene);
+  guardFx.disableLighting = true;
+  guardFx.emissiveColor = new Color3(0.6, 0.8, 1.2);
+  guardFx.alpha = 0.3;
+  guardFx.backFaceCulling = false;
+
   const telegraph = new StandardMaterial("telegraph", scene);
   telegraph.diffuseTexture = telegraphTexture(scene);
   telegraph.useAlphaFromDiffuseTexture = true;
@@ -75,6 +83,6 @@ export function createMaterials(scene: Scene): Materials {
       slash: spriteMaterial(scene, "player-slash", frames.battle.slash),
       down: spriteMaterial(scene, "player-down", frames.battle.down),
     },
-    slashFx, telegraph,
+    slashFx, guardFx, telegraph,
   };
 }

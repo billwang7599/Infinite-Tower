@@ -1,12 +1,17 @@
 /**
- * Key bindings: every keyboard action, its default keys, and the player's changes (saved on the server with the
- * rest of their settings, settings.ts). The settings screen edits them; game code reads `bindings.get()` every
- * tick, so a change applies at once.
+ * Key bindings: every action, its default keys, and the player's changes (saved on the server with the rest of
+ * their settings, settings.ts). The settings screen edits them; game code asks about actions (core/actions.ts),
+ * so a change applies at once.
  * Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed; they're listed here
  * so the settings screen can show them next to the keys.
  *
- * The defaults give the arena two equal setups: keyboard only (laptop: left hand on WASD + Space, right hand
- * on the home row, vim-style H/L turn the camera) and keyboard + mouse / trackpad.
+ * Three groups: general works in the overworld and in the arena, the other two only there. So a general key is on
+ * nothing else, but the overworld and the arena may share keys.
+ *
+ * The arena is played keyboard-first: the left hand on WASD (Q / E turn the camera, F dodges, Space jumps, Shift
+ * blocks), the right on the sword: U I O / J K L / M , . a grid where K stabs and each other key swings from
+ * its side to the opposite one (U from top-left to bottom-right). The mouse's left button swings left to right
+ * too, and its right button dodges.
  */
 import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
@@ -19,41 +24,48 @@ interface ActionDef {
 }
 
 export const ACTIONS = {
-  overworld: {
-    up: { label: "Walk up", keys: ["KeyW", "ArrowUp"] },
-    down: { label: "Walk down", keys: ["KeyS", "ArrowDown"] },
-    left: { label: "Walk left", keys: ["KeyA", "ArrowLeft"] },
-    right: { label: "Walk right", keys: ["KeyD", "ArrowRight"] },
-    character: { label: "Character panel", keys: ["KeyC"] },
-    inventory: { label: "Inventory", keys: ["KeyI"] },
-    rest: { label: "Rest at a campfire", keys: ["KeyE", "Enter"] },
-  },
-  /**
-   * The open bag (inventory), which you work with the mouse (ui/hud/inventory/bagMouse.ts); you stand still
-   * meanwhile. Turn acts on what's dragged, or else on the selected item; use on the selected item.
-   */
-  bag: {
-    turn: { label: "Turn an item", keys: ["KeyR"], mouse: [2] },
-    use: { label: "Use the selected item (eat)", keys: ["Enter"] },
-  },
-  battle: {
-    forward: { label: "Move forward", keys: ["KeyW"] },
-    back: { label: "Move back", keys: ["KeyS"] },
+  general: {
+    menu: { label: "Settings", keys: ["Escape"] },
+    forward: { label: "Move forward (up)", keys: ["KeyW"] },
+    back: { label: "Move back (down)", keys: ["KeyS"] },
     left: { label: "Move left", keys: ["KeyA"] },
     right: { label: "Move right", keys: ["KeyD"] },
+    character: { label: "Character panel", keys: ["KeyC"] },
+    inventory: { label: "Inventory", keys: ["KeyB"] },
+  },
+  /**
+   * The open bag (inventory) is worked with the mouse (ui/hud/inventory/bagMouse.ts); you stand still meanwhile.
+   * Turn acts on what's dragged, or else on the selected item; use on the selected item.
+   */
+  overworld: {
+    rest: { label: "Rest at a campfire", keys: ["KeyE"] },
+    turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
+    useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
+  },
+  /** Swings are named by how they cross the screen, listed in the order of their keys' grid. */
+  battle: {
+    swingTLBR: { label: "Swing top-left to bottom-right", keys: ["KeyU"] },
+    swingTB: { label: "Swing top to bottom", keys: ["KeyI"] },
+    swingTRBL: { label: "Swing top-right to bottom-left", keys: ["KeyO"] },
+    swingLR: { label: "Swing left to right", keys: ["KeyJ"], mouse: [0] },
+    stab: { label: "Stab", keys: ["KeyK"] },
+    swingRL: { label: "Swing right to left", keys: ["KeyL"] },
+    swingBLTR: { label: "Swing bottom-left to top-right", keys: ["KeyM"] },
+    swingBT: { label: "Swing bottom to top", keys: ["Comma"] },
+    swingBRTL: { label: "Swing bottom-right to top-left", keys: ["Period"] },
+    block: { label: "Block (hold)", keys: ["ShiftLeft", "ShiftRight"] },
+    dodge: { label: "Dodge", keys: ["KeyF"], mouse: [2] },
     jump: { label: "Jump", keys: ["Space"] },
-    attack: { label: "Attack", keys: ["KeyJ"], mouse: [0] },
-    dodge: { label: "Dodge", keys: ["KeyK", "ShiftLeft", "ShiftRight"], mouse: [2] },
-    turnLeft: { label: "Turn camera left", keys: ["KeyH", "ArrowLeft"] },
-    turnRight: { label: "Turn camera right", keys: ["KeyL", "ArrowRight"] },
+    turnLeft: { label: "Turn camera left", keys: ["KeyQ", "ArrowLeft"] },
+    turnRight: { label: "Turn camera right", keys: ["KeyE", "ArrowRight"] },
     lookUp: { label: "Tilt camera up", keys: ["ArrowUp"] },
     lookDown: { label: "Tilt camera down", keys: ["ArrowDown"] },
-    leave: { label: "Leave a finished fight", keys: ["Enter", "KeyE"] },
+    leave: { label: "Leave a finished fight", keys: ["Enter"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
 
 export type Group = keyof typeof ACTIONS;
-type Action<G extends Group> = keyof (typeof ACTIONS)[G] & string;
+export type Action<G extends Group> = G extends Group ? keyof (typeof ACTIONS)[G] & string : never;
 export type ActionRef = { [G in Group]: { group: G; action: Action<G> } }[Group];
 export type KeyMap = { readonly [G in Group]: { readonly [A in Action<G>]: readonly string[] } };
 
@@ -62,6 +74,8 @@ export const GROUPS = Object.keys(ACTIONS) as Group[];
 const RESERVED = new Set(["Escape", "MetaLeft", "MetaRight"]);
 
 export const isBindable = (code: string): boolean => !RESERVED.has(code);
+/** An action on a reserved key (the settings, on Esc) keeps it: shown, like the mouse buttons, but not changed. */
+export const isFixed = (ref: ActionRef): boolean => !actionDef(ref).keys.some(isBindable);
 
 export function actionsOf(group: Group): ActionRef[] {
   return Object.keys(ACTIONS[group]).map((action) => ({ group, action }) as ActionRef);
@@ -78,13 +92,14 @@ export function actionDef(ref: ActionRef): ActionDef {
 }
 
 /**
- * What `bind` did. A key does one thing per mode, so it comes off any other action there (`takenFrom`); if
- * that was the other action's only key, it gets the replaced key instead (`gave`). Adding a key that is
- * another action's only key is refused, since that would leave the other action with none; so is adding a key
- * to an action that already has MAX_KEYS_PER_ACTION (`full`: replace one of its keys instead).
+ * What `bind` did. A key does one thing wherever it works, so it comes off any other action there (`takenFrom`: a
+ * general key may come off both an overworld and a battle action); an action it was the only key of gets the
+ * replaced key instead (`gave`). Adding a key that is another action's only key is refused, since that would leave
+ * the other action with none (so is a swap that would put the replaced key on two actions); so is adding a key to an
+ * action that already has MAX_KEYS_PER_ACTION (`full`: replace one of its keys instead).
  */
 export type BindResult =
-  | { ok: true; takenFrom: ActionRef | null; gave: string | null }
+  | { ok: true; takenFrom: ActionRef[]; gave: string | null }
   | { ok: false; onlyKeyOf: ActionRef }
   | { ok: false; full: true };
 
@@ -95,13 +110,20 @@ export class KeyBindings extends Store<KeyMap> {
 
   /**
    * Take the player's saved keys. Only the actions they changed are saved, so a new default reaches everything
-   * they didn't touch; anything unreadable (an older format, an action that's gone) falls back to the defaults.
+   * they didn't touch; anything unreadable (an older format, an action that's gone) falls back to the defaults, and
+   * actions saved where they used to be (MOVED_FROM) load where they are now. Saved keys that now put one key on
+   * two actions working together (saved before the defaults moved) send general back to its defaults if it clashes
+   * with another group's defaults, and then any group still clashing.
    */
   restore(saved: unknown): void {
-    this.set(buildMap((ref) => {
-      const keys = prop(savedGroup(saved, ref.group), ref.action);
-      return isKeyList(keys) ? keys : defaultKeys(ref);
-    }));
+    const defaults = buildMap(defaultKeys);
+    let map = buildMap((ref) => {
+      const keys = savedKeys(saved, ref);
+      return isKeyList(keys) && !isFixed(ref) ? keys : defaultKeys(ref);
+    });
+    if (PLACES.some((place) => clashes(map.general, defaults[place]))) map = { ...map, general: defaults.general };
+    for (const place of PLACES) if (clashes(map.general, map[place])) map = { ...map, [place]: defaults[place] };
+    this.set(map);
   }
 
   /** What `restore` takes: the actions that differ from the defaults. */
@@ -118,35 +140,33 @@ export class KeyBindings extends Store<KeyMap> {
 
   /** Put `key` on an action, in place of `replace` or (null) added after its keys. */
   bind(ref: ActionRef, key: string, replace: string | null): BindResult {
-    const keys = groupOf(this.get(), ref.group);
-    const own = keys[ref.action]!;
-    if (!isBindable(key) || key === replace) return { ok: true, takenFrom: null, gave: null };
+    const map = this.get();
+    if (isFixed(ref) || !isBindable(key) || key === replace) return { ok: true, takenFrom: [], gave: null };
 
-    const owner = Object.keys(keys).find((a) => a !== ref.action && keys[a]!.includes(key));
-    const ownerRef = owner === undefined ? null : ({ group: ref.group, action: owner } as ActionRef);
-    const swap = ownerRef !== null && keys[owner!]!.length === 1;
-    if (swap && replace === null) return { ok: false, onlyKeyOf: ownerRef };
+    const owners = holders(map, ref.group, key, ref);
+    const swapped = owners.filter((o) => keysOf(map, o).length === 1);
+    const stuck = swapped.find((o) => replace === null || holders(map, o.group, replace, ref).length > 0);
+    if (stuck) return { ok: false, onlyKeyOf: stuck };
 
-    const kept = own.filter((k) => k !== key);
+    const kept = keysOf(map, ref).filter((k) => k !== key);
     const at = replace === null ? -1 : kept.indexOf(replace);
     if (at < 0 && kept.length >= MAX_KEYS_PER_ACTION) return { ok: false, full: true };
-
-    const next = { ...keys };
-    if (owner !== undefined) next[owner] = swap ? [replace!] : keys[owner]!.filter((k) => k !== key);
     if (at >= 0) kept[at] = key;
     else kept.push(key);
-    next[ref.action] = kept;
 
-    this.update(ref.group, next);
-    return { ok: true, takenFrom: ownerRef, gave: swap ? replace : null };
+    let next = withKeys(map, ref, kept);
+    for (const o of owners) {
+      next = withKeys(next, o, swapped.includes(o) ? [replace!] : keysOf(map, o).filter((k) => k !== key));
+    }
+    this.set(next);
+    return { ok: true, takenFrom: owners, gave: swapped.length > 0 ? replace : null };
   }
 
   /** Drop one key, as long as the action keeps at least one. */
   unbind(ref: ActionRef, key: string): void {
-    const keys = groupOf(this.get(), ref.group);
-    const own = keys[ref.action]!;
+    const own = keysOf(this.get(), ref);
     if (own.length <= 1) return;
-    this.update(ref.group, { ...keys, [ref.action]: own.filter((k) => k !== key) });
+    this.set(withKeys(this.get(), ref, own.filter((k) => k !== key)));
   }
 
   reset(): void {
@@ -157,37 +177,68 @@ export class KeyBindings extends Store<KeyMap> {
     const map = this.get();
     return GROUPS.every((group) => actionsOf(group).every((ref) => sameKeys(keysOf(map, ref), defaultKeys(ref))));
   }
-
-  private update(group: Group, keys: Keys): void {
-    this.set({ [group]: keys } as Partial<KeyMap>);
-  }
 }
 
-type Keys = Record<string, readonly string[]>;
-const groupOf = (map: KeyMap, group: Group): Keys => map[group] as Keys;
+type Keys = { readonly [action: string]: readonly string[] };
+const groupOf = (map: KeyMap, group: Group): Keys => map[group];
 const defaultKeys = (ref: ActionRef): readonly string[] => actionDef(ref).keys;
 const sameKeys = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((k, i) => k === b[i]);
 
+/** Where the player can be: each works with general's keys and its own. */
+const PLACES = ["overworld", "battle"] as const;
+/** The groups whose keys work together with `group`'s, so no key may be on two of their actions. */
+const together = (group: Group): readonly Group[] => (group === "general" ? GROUPS : ["general", group]);
+
+/** The actions other than `except` that have `key` among the groups working together with `group`. */
+function holders(map: KeyMap, group: Group, key: string, except: ActionRef): ActionRef[] {
+  return together(group).flatMap(actionsOf).filter((a) => !sameAction(a, except) && keysOf(map, a).includes(key));
+}
+
+const withKeys = (map: KeyMap, ref: ActionRef, keys: readonly string[]): KeyMap =>
+  ({ ...map, [ref.group]: { ...map[ref.group], [ref.action]: keys } });
+
 function buildMap(keysFor: (ref: ActionRef) => readonly string[]): KeyMap {
-  const map: Record<string, Keys> = {};
+  const map: Record<string, Record<string, readonly string[]>> = {};
   for (const group of GROUPS) {
-    const keys: Keys = {};
+    const keys: Record<string, readonly string[]> = {};
     for (const ref of actionsOf(group)) keys[ref.action] = keysFor(ref);
     map[group] = keys;
   }
   return map as unknown as KeyMap;
 }
 
+/** Whether any key is on two actions among these groups. */
+function clashes(...groups: Keys[]): boolean {
+  const all = groups.flatMap((g) => Object.values(g).flat());
+  return new Set(all).size !== all.length;
+}
+
 const prop = (o: unknown, key: string): unknown =>
   typeof o === "object" && o !== null ? (o as Record<string, unknown>)[key] : undefined;
 
-/** Groups that used to be saved under another name. The next save writes the new name and drops the old. */
-const OLD_GROUP_NAMES: Partial<Record<Group, string>> = { overworld: "field" };
+/**
+ * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
+ * the overworld was the field, movement and the panels were per mode, and the bag had a group of its own.
+ */
+const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
+  "general.forward": ["battle.forward", "overworld.up", "field.up"],
+  "general.back": ["battle.back", "overworld.down", "field.down"],
+  "general.left": ["battle.left", "overworld.left", "field.left"],
+  "general.right": ["battle.right", "overworld.right", "field.right"],
+  "general.character": ["overworld.character", "field.character"],
+  "general.inventory": ["overworld.inventory", "field.inventory"],
+  "overworld.rest": ["field.rest"],
+  "overworld.turnItem": ["bag.turn"],
+  "overworld.useItem": ["bag.use"],
+};
 
-function savedGroup(saved: unknown, group: Group): unknown {
-  const old = OLD_GROUP_NAMES[group];
-  return prop(saved, group) ?? (old === undefined ? undefined : prop(saved, old));
+function savedKeys(saved: unknown, ref: ActionRef): unknown {
+  const at = `${ref.group}.${ref.action}`;
+  return [at, ...MOVED_FROM[at] ?? []]
+    .map((place) => place.split("."))
+    .map(([group, action]) => prop(prop(saved, group!), action!))
+    .find((keys) => keys !== undefined);
 }
 
 const isKeyList = (v: unknown): v is string[] =>

@@ -1,4 +1,6 @@
-import { Enemy, Health, LocalPlayer, roundTo, Stamina, type System } from "@infinite-tower/shared";
+import {
+  Enemy, Health, LocalPlayer, momentumDamage, Player, roundTo, Stamina, type System,
+} from "@infinite-tower/shared";
 import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { resultShown, type BattleContext } from "../context.js";
@@ -12,10 +14,11 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
       showResult: resultShown(ctx.outcome),
     };
 
-    const me = world.first(LocalPlayer, Health, Stamina);
+    const me = world.first(LocalPlayer, Health, Stamina, Player);
     if (me) {
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
+      patch.comboMultiplier = me[4].combo === null ? 1 : roundTo(momentumDamage(me[4].momentum), 2);
     }
 
     const enemy = world.first(Enemy, Health);
@@ -24,6 +27,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
       patch.enemyName = enemy[1].def.name;
       patch.enemyHpFraction = fraction(enemy[2].hp, enemy[2].max);
     }
+    patch.cue = me?.[4].action === "stagger" ? "staggered" : "none";
 
     hud.set(patch);
   };

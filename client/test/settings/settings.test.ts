@@ -46,7 +46,7 @@ describe("createSettings / restoreSettings", () => {
   test("restoreSettings with an empty save (or one from before auto lock existed) resets every store", () => {
     const settings = createSettings();
     settings.camera.setSensitivity(2);
-    settings.bindings.unbind({ group: "overworld", action: "up" }, "KeyW");
+    settings.bindings.unbind({ group: "battle", action: "turnLeft" }, "KeyQ");
     settings.mouse.setAutoLock(false);
     settings.hud.setShowPing(false);
     restoreSettings(settings, {});

@@ -5,26 +5,38 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef } from "./defs.js";
+import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
 
-export type PlayerAction = "none" | "slash" | "dodge";
+/** "attack": a swing or the stab (`attack` says which). "stagger": the guard broken (in hitstun). */
+export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger";
 
 export interface PlayerData {
   grounded: boolean;
   /** Seconds since last on ground (coyote time). */
   airTime: number;
   jumpHeld: boolean;
-  attackHeld: boolean;
+  /** The attack held on the last step: a different one is a new press. */
+  attackHeld: AttackKind | null;
   dodgeHeld: boolean;
-  /** Seconds left on a buffered (early) press of jump / attack / dodge. */
+  /** Seconds left on a buffered (early) press of jump / attack / dodge, and the attack pressed. */
   jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
+  queued: AttackKind | null;
   action: PlayerAction;
   /** Seconds since the current action started. */
   actionTime: number;
-  /** Direction of the current slash / dodge. */
+  /** Direction of the current attack / dodge / block. */
   actionDir: Vec2;
+  /** The current (or last) attack, its start (seconds until its blade is live) and its damage multiplier. */
+  attack: AttackKind;
+  startup: number;
+  power: number;
+  /** The last swing of the chain going on (null: none), the seconds it lives on after an attack, its momentum. */
+  combo: AttackKind | null;
+  comboTime: number;
+  momentum: number;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
 }
@@ -67,16 +79,19 @@ export interface FighterData { team: TeamId; radius: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 
 /**
- * An attack's hitbox while it is active: a sector in front of the attacker.
+ * An attack's hitbox while it is active: an arc in front of the attacker, or a ray (a stab).
  * Added when the swing/charge becomes active, removed when it ends. Each target is hit at most once.
  */
 export interface ActiveHitData {
+  shape: "arc" | "ray";
   dirX: number;
   dirZ: number;
-  /** Reach from the attacker's center to the target's surface. */
+  /** Reach from the attacker's center to the target's surface (a ray's length). */
   range: number;
-  /** Minimum cos(angle) between dir and the target: 1 = straight ahead only, -1 = all around. */
+  /** An arc's minimum cos(angle) between dir and the target: 1 = straight ahead only, -1 = all around. */
   minDot: number;
+  /** A ray's reach either side of its line, to the target's surface. */
+  width: number;
   damage: number;
   knockback: number;
   lift: number;

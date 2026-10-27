@@ -48,11 +48,31 @@ describe("a fight's hash", () => {
       ["the player's hitstun", (f) => { f.world.require(f.players[0]!, Health).hitstun += 0.1; }],
       ["the player's action", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.action = p.action === "dodge" ? "slash" : "dodge";
+        p.action = p.action === "dodge" ? "block" : "dodge";
       }],
+      ["the attack", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.attack = p.attack === "lr" ? "tb" : "lr";
+      }],
+      ["the attack's startup", (f) => { f.world.require(f.players[0]!, Player).startup += 0.05; }],
+      ["the attack's power", (f) => { f.world.require(f.players[0]!, Player).power += 0.25; }],
+      ["the queued attack", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.queued = p.queued === "stab" ? "bt" : "stab";
+      }],
+      ["the chain", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.combo = p.combo === "rl" ? "lr" : "rl";
+      }],
+      ["the chain's clock", (f) => { f.world.require(f.players[0]!, Player).comboTime += 0.05; }],
+      ["the momentum", (f) => { f.world.require(f.players[0]!, Player).momentum += 0.25; }],
       ["the action's clock", (f) => { f.world.require(f.players[0]!, Player).actionTime += 0.05; }],
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
-      ["a held button", (f) => { const p = f.world.require(f.players[0]!, Player); p.attackHeld = !p.attackHeld; }],
+      ["a held button", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.attackHeld = p.attackHeld ? null : "tb";
+      }],
+      ["a held block", (f) => { const i = f.world.require(f.players[0]!, PlayerInput); i.block = !i.block; }],
       ["being on the ground", (f) => { const p = f.world.require(f.players[0]!, Player); p.grounded = !p.grounded; }],
       ["the player's input", (f) => { f.world.require(f.players[0]!, PlayerInput).moveX += 0.5; }],
       ["the boar's position", (f) => { f.world.require(f.enemies[0]!, Body).pos.z -= 0.02; }],
@@ -66,7 +86,8 @@ describe("a fight's hash", () => {
       ["the charge's cooldown", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).cooldown += 0.05; }],
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
-        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, alreadyHit: new Set(),
+        shape: "arc", dirX: 0, dirZ: 1, range: 1, minDot: 0, width: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0,
+        alreadyHit: new Set<number>(),
       }); }],
     ];
     for (const [what, change] of changes) {

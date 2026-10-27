@@ -4,7 +4,7 @@ import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
 import { Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
-import { PlayerInput } from "../input.js";
+import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
@@ -32,11 +32,12 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   const collider = physics.addCapsule(center, PLAYER_HALF_SEGMENT, PLAYER.radius, Layer.Player);
   const pos = physics.position(collider);
   world.add(e, Body, { pos, vel: { x: 0, y: 0, z: 0 }, centerHeight: PLAYER_CENTER_HEIGHT, collider });
-  world.add(e, PlayerInput, { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false });
+  world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: false, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0,
-    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden,
+    attackHeld: null, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0, queued: null,
+    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
+    attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
   });
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });

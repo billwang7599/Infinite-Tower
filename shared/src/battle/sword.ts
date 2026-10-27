@@ -1,0 +1,123 @@
+/**
+ * The sword: the attacks it makes (eight swings and a stab; blocking is held, see PLAYER.block), the starter
+ * sword's stats, the shape each attack hits (from the sword's length), how one swing chains into the next and
+ * the momentum a chain builds. Directions are as the player sees them on screen: "lr" goes from left to right,
+ * "tlbr" from top-left to bottom-right.
+ *
+ * Every number here is a tuning knob. Units: seconds and meters.
+ */
+import { FIXED_DT } from "../core/time.js";
+
+export const SWING_DIRS = ["lr", "rl", "tb", "bt", "tlbr", "brtl", "trbl", "bltr"] as const;
+export type SwingDir = (typeof SWING_DIRS)[number];
+export const ATTACK_KINDS = [...SWING_DIRS, "stab"] as const;
+export type AttackKind = (typeof ATTACK_KINDS)[number];
+
+/** The line a swing runs along: across, up and down, and the two diagonals. */
+export type SwingLine = "horizontal" | "vertical" | "falling" | "rising";
+
+const LINE: Record<SwingDir, SwingLine> = {
+  lr: "horizontal", rl: "horizontal", tb: "vertical", bt: "vertical",
+  tlbr: "falling", brtl: "falling", trbl: "rising", bltr: "rising",
+};
+const REVERSE: Record<SwingDir, SwingDir> = {
+  lr: "rl", rl: "lr", tb: "bt", bt: "tb", tlbr: "brtl", brtl: "tlbr", trbl: "bltr", bltr: "trbl",
+};
+const PERPENDICULAR: Record<SwingLine, SwingLine> = {
+  horizontal: "vertical", vertical: "horizontal", falling: "rising", rising: "falling",
+};
+
+export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "stab";
+export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
+export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
+
+export interface Sword {
+  /** The blade (m): every attack's reach grows with it. */
+  length: number;
+  /** At strength 10, before momentum. */
+  damage: number;
+  /** Swings start this many times faster (1: as CHAIN says). */
+  speed: number;
+}
+
+/** Everyone's sword, until there are others to pick. */
+export const STARTER_SWORD: Sword = { length: 1.1, damage: 9, speed: 1 };
+
+/** From a fighter's center to the hilt (m): the blade's length goes on from there. */
+const ARM_REACH = 0.8;
+
+/**
+ * Each line's hit shape: its reach as a share of arm plus blade, and its arc (degrees, all of it). Horizontal
+ * swings are wide and short, vertical ones narrow and long; the stab is a ray `STAB_WIDTH` either side.
+ */
+const SHAPES: Record<SwingLine, { reachFactor: number; arcDeg: number }> = {
+  horizontal: { reachFactor: 1, arcDeg: 160 },
+  falling: { reachFactor: 1.15, arcDeg: 110 },
+  rising: { reachFactor: 1.15, arcDeg: 110 },
+  vertical: { reachFactor: 1.3, arcDeg: 60 },
+};
+const STAB_REACH_FACTOR = 1.75;
+const STAB_WIDTH = 0.15;
+
+/**
+ * What an attack hits. An arc: targets whose surface is within `range` of the attacker's center, no more than the
+ * angle `minDot` (a cosine) off the aim. A ray: within `width` of the line from the center `range` along the aim.
+ */
+export interface HitShape { shape: "arc" | "ray"; range: number; minDot: number; width: number }
+
+export function attackShape(attack: AttackKind, sword: Pick<Sword, "length">): HitShape {
+  const reach = ARM_REACH + sword.length;
+  if (!isSwing(attack)) return { shape: "ray", range: reach * STAB_REACH_FACTOR, minDot: 1, width: STAB_WIDTH };
+  const { reachFactor, arcDeg } = SHAPES[LINE[attack]];
+  return { shape: "arc", range: reach * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)), width: 0 };
+}
+
+/** How a swing follows the last one: not at all (an opening), back along its line, across it, or anything else. */
+export type ChainKind = "opening" | "reverse" | "perpendicular" | "other";
+
+export function chainKind(last: AttackKind | null, next: SwingDir): ChainKind {
+  if (last === null || !isSwing(last)) return "opening";
+  if (REVERSE[last] === next) return "reverse";
+  return PERPENDICULAR[LINE[last]] === LINE[next] ? "perpendicular" : "other";
+}
+
+export const CHAIN = {
+  /** From a swing's start to its blade going live, by how it follows the last one (at momentum 0). */
+  startupTime: { opening: 0.1, reverse: 0.05, other: 0.1, perpendicular: 0.16 } satisfies Record<ChainKind, number>,
+  stabStartupTime: 0.14,
+  /**
+   * The blade is live this long, then the attack recovers for `recoverTime`. The next attack, or a dodge, may start
+   * as soon as the blade is done; pressed earlier, it waits (the user's call).
+   */
+  activeTime: 0.1,
+  recoverTime: 0.08,
+  /** A chain lives on this long after an attack ends; the next swing then still chains. */
+  gapTime: 0.25,
+} as const;
+
+/** How far into its attack the player may start the next one, or a dodge: once the blade is done. */
+export const lettingGoAt = (attack: { startup: number }): number => attack.startup + CHAIN.activeTime;
+
+export const MOMENTUM = {
+  /** Gained by each chained swing, by how it follows the last. */
+  gain: { opening: 0, reverse: 1, other: 0.5, perpendicular: 0.25 } satisfies Record<ChainKind, number>,
+  max: 4,
+  /** Each point: this much more damage (×2 at the most) and this much sooner a start (×0.6 at the most). */
+  damagePerPoint: 0.25,
+  maxDamage: 2,
+  speedPerPoint: 0.1,
+  /** A stab chained as a finisher spends the momentum: this much more damage per point. */
+  stabBonusPerPoint: 0.5,
+} as const;
+
+export const momentumDamage = (momentum: number): number =>
+  Math.min(MOMENTUM.maxDamage, 1 + momentum * MOMENTUM.damagePerPoint);
+
+/** A swing's start (seconds), from how it follows the last, the chain's momentum and the sword's speed. */
+export function startupTime(kind: ChainKind, momentum: number, speed: number): number {
+  const scale = 1 - Math.min(momentum, MOMENTUM.max) * MOMENTUM.speedPerPoint;
+  return (CHAIN.startupTime[kind] * scale) / speed;
+}
+
+/** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */
+export const liveStep = (startup: number): number => Math.round(startup / FIXED_DT);

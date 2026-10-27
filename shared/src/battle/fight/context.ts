@@ -16,7 +16,9 @@ export interface FightOutcome {
 export type FightEvent =
   | { type: "hit"; target: Entity; team: TeamId; damage: number }
   /** A charging enemy slammed into the wall. */
-  | { type: "slam"; enemy: Entity };
+  | { type: "slam"; enemy: Entity }
+  /** `target` blocked a hit; short of stamina, its guard broke (a player staggered). */
+  | { type: "block"; target: Entity; guardBreak: boolean };
 
 export interface FightContext {
   world: World;

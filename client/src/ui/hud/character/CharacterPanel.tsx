@@ -1,6 +1,6 @@
 /**
  * The overworld's character panel: the player's portrait, name and stats. It doesn't pause or block walking; the
- * overworld HUD's button or the Character key (overworld.character) toggles it. The look is kept for good, so nothing
+ * overworld HUD's button or the Character key (general.character) toggles it. The look is kept for good, so nothing
  * here edits it.
  */
 import { LookPicture } from "../../components/LookPicture.js";

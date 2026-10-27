@@ -9,13 +9,14 @@ before(() => initPhysics());
 const PLAYER_AT = { x: 0, y: 0.05, z: -6 };
 const BOAR_AT = { x: 0, y: 0.05, z: 4 };
 
-/** A player who walks up to the enemy and slashes at it, every other step a fresh press. */
+/** A player who walks up to the enemy and swings at it, left and right, every other step a fresh press. */
 function brawler(fight: Fight) {
   return (step: number): PlayerInputData => {
     const me = bodyOf(fight, fight.players[0]!).pos, it = bodyOf(fight, fight.enemies[0]!).pos;
     const dx = it.x - me.x, dz = it.z - me.z, dist = Math.hypot(dx, dz) || 1;
     const aimX = dx / dist, aimZ = dz / dist, far = dist > 2.6;
-    return input({ aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack: step % 2 === 0 });
+    const attack = step % 4 === 0 ? "lr" : step % 4 === 2 ? "rl" : null;
+    return input({ aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack });
   };
 }
 
@@ -43,7 +44,7 @@ describe("a fight", () => {
     assert.ok(Buffer.from(second.physics).equals(Buffer.from(first.physics)), "the physics worlds match byte for byte");
   });
 
-  test("a player who keeps slashing at the boar wins", () => {
+  test("a player who keeps swinging at the boar wins", () => {
     const fight = new Fight({ arena: ARENA, players: [player(PLAYER_AT)], enemies: [enemy(BOAR, BOAR_AT)] });
     assert.equal(fightOut(fight, 60, brawler(fight)), "won");
     assert.ok(fight.world.require(fight.players[0]!, Health).hp > 0);

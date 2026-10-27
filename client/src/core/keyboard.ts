@@ -1,6 +1,6 @@
 /**
  * The keyboard, by KeyboardEvent.code (physical position, any layout). The whole game is playable
- * keyboard-only; see mouse.ts for the optional mouse. What each key does: settings/bindings.ts.
+ * keyboard-only; see mouse.ts for the optional mouse. What each key does: actions.ts.
  */
 import { Buttons } from "./buttons.js";
 
@@ -9,7 +9,7 @@ const SWALLOW = new Set([
   "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
 ]);
 
-export class Keyboard extends Buttons<string> {
+export class Keyboard extends Buttons {
   private on = false;
 
   constructor(target: Window = window) {
@@ -36,10 +36,5 @@ export class Keyboard extends Buttons<string> {
     if (on === this.on) return;
     this.on = on;
     if (!on) this.releaseAll(true);
-  }
-
-  /** -1, 0 or 1 from two sets of keys. */
-  axis(negative: readonly string[], positive: readonly string[]): number {
-    return (this.isDown(positive) ? 1 : 0) - (this.isDown(negative) ? 1 : 0);
   }
 }

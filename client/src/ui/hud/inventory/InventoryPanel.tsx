@@ -8,6 +8,7 @@
  */
 import { bagBurden, bagWeight, carryLimit, type Burden, type Cell } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
+import { actionOf } from "../../../core/actions.js";
 import type { KeyBindings } from "../../../settings/bindings.js";
 import { useKeydown } from "../../components/useKeydown.js";
 import type { OverworldHudState, SettingsScreenState } from "../../state.js";
@@ -92,15 +93,15 @@ export function InventoryPanel({ hud, bindings, settingsScreen, use, move, close
 
   useKeydown((e) => {
     if (settingsOpen || e.repeat || e.target instanceof HTMLInputElement) return;
-    const keys = bindings.get().bag;
-    if (keys.turn.includes(e.code)) turnWith(turnKey);
-    else if (keys.use.includes(e.code)) applyUse(current());
+    const action = actionOf(bindings.get(), "overworld", e.code);
+    if (action === "turnItem") turnWith(turnKey);
+    else if (action === "useItem") applyUse(current());
     else return;
     e.preventDefault();
   });
   // Esc closes the bag before it would open the settings (their listener is on the bubble phase).
   useKeydown((e) => {
-    if (e.code !== "Escape" || e.repeat || settingsScreen.get().open) return;
+    if (actionOf(bindings.get(), "overworld", e.code) !== "menu" || e.repeat || settingsScreen.get().open) return;
     e.preventDefault();
     e.stopPropagation();
     close();

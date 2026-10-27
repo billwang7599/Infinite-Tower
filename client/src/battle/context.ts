@@ -2,7 +2,7 @@
 import type { Scene, ShadowGenerator, UniversalCamera } from "@babylonjs/core";
 import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
-import type { Keyboard } from "../core/keyboard.js";
+import type { Actions } from "../core/actions.js";
 import type { Mouse } from "../core/mouse.js";
 import type { Settings } from "../settings/settings.js";
 import type { Materials } from "./materials.js";
@@ -18,7 +18,8 @@ export interface BattleContext {
   world: World;
   scene: Scene;
   camera: UniversalCamera;
-  keyboard: Keyboard;
+  actions: Actions;
+  /** Its movement turns the camera; its buttons come through `actions`. */
   mouse: Mouse;
   settings: Settings;
   materials: Materials;

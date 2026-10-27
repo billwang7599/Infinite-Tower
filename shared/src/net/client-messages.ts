@@ -9,6 +9,7 @@
  */
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
+import { ATTACK_KINDS } from "../battle/sword.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -40,8 +41,9 @@ const StepInputSchema = z.object({
   aimX: z.number(),
   aimZ: z.number(),
   jump: z.boolean(),
-  attack: z.boolean(),
+  attack: z.enum(ATTACK_KINDS).nullable(),
   dodge: z.boolean(),
+  block: z.boolean(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage, PLAYER,
-  type Bag, type PlayerInputData,
+  Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
+  STARTER_SWORD, type Bag, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -60,7 +60,7 @@ function brawler(session: GameSession): () => PlayerInputData {
     const it = fight.world.require(fight.enemies[0]!, Body).pos;
     const dx = it.x - me.x, dz = it.z - me.z, dist = Math.hypot(dx, dz) || 1;
     const aimX = dx / dist, aimZ = dz / dist, far = dist > 2.6;
-    const attack = !far && step++ % 2 === 0;
+    const attack = !far && step++ % 2 === 0 ? (step % 4 === 1 ? "lr" : "rl") : null;
     return { ...IDLE_INPUT, aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack };
   };
 }
@@ -68,7 +68,7 @@ function brawler(session: GameSession): () => PlayerInputData {
 /** The boar one slash from dying, then the brawler: a win, decided by the server from the player's inputs. */
 function win(session: GameSession): void {
   const fight = fightOf(session);
-  fight.world.require(fight.enemies[0]!, Health).hp = physicalDamage(PLAYER.slash.damage, PLAYER_STATS);
+  fight.world.require(fight.enemies[0]!, Health).hp = physicalDamage(STARTER_SWORD.damage, PLAYER_STATS);
   play(session, brawler(session));
 }
 
@@ -154,7 +154,7 @@ describe("the server runs the fight", () => {
     play(session, () => IDLE_INPUT, 30);
     session.leaveBattle();
     session.battleResync();
-    session.battleInput(31, [{ step: 31, ...IDLE_INPUT, attack: true }]);
+    session.battleInput(31, [{ step: 31, ...IDLE_INPUT, attack: "lr" }]);
     play(session, () => IDLE_INPUT, 30);
     assert.equal(link.all("battleResult").length, 0);
     assert.equal(fightOf(session).outcome.state, "fighting");
