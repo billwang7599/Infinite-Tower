@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  dodgeCost, FIXED_DT, Player, PLAYER, Stamina, type PlayerAction, type PlayerInputData, type Vitals,
+  CHAIN, dodgeCost, FIXED_DT, Player, PLAYER, Stamina, STARTER_SWORD, startupTime, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -11,22 +11,22 @@ await initPhysics();
 /** What the player does on each step (1 is the fight's first). */
 type Script = (step: number) => PlayerInputData;
 
-/** The slash's first step (the player has landed by then). */
-const SLASH_AT = 5;
+/** The swing's first step (the player has landed by then). */
+const SWING_AT = 5;
 
-/** Steps from a slash's first step to the first one on which it lets another action start (`chainAfter`). */
+/** Steps from a swing's first step to the first one on which it lets another action start (once its blade is done). */
 const stepsUntil = (time: number): number => {
   let t = 0, n = 0;
   for (; t < time; n++) t += FIXED_DT;
   return n;
 };
-const LOCKED_STEPS = stepsUntil(PLAYER.slash.chainAfter);
-/** The first step a dodge can start on after the slash at SLASH_AT. */
-const LET_GO_AT = SLASH_AT + LOCKED_STEPS;
+const LOCKED_STEPS = stepsUntil(startupTime("opening", 0, STARTER_SWORD.speed) + CHAIN.activeTime);
+/** The first step a dodge can start on after the swing at SWING_AT. */
+const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
-/** Slashes on SLASH_AT; `presses` says what else is pressed on which step (a tap: held that step only). */
-const slashThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
-  (step) => input({ ...(step === SLASH_AT ? { attack: true } : {}), ...presses[step] });
+/** Swinges on SWING_AT; `presses` says what else is pressed on which step (a tap: held that step only). */
+const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
+  (step) => input({ ...(step === SWING_AT ? { attack: "lr" } : {}), ...presses[step] });
 
 const newFight = (vitals?: Vitals) => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, vitals ? { vitals } : {})],
@@ -54,63 +54,64 @@ function play(script: Script, to = 90, fight = newFight()): Played {
 /** Through JSON, as it goes over the wire. */
 const wire = (snap: FightSnapshot): FightSnapshot => JSON.parse(JSON.stringify(snap));
 
-describe("a dodge pressed during a slash (the user's call: it waits for the slash, then goes)", () => {
-  test("the setup: a slash on SLASH_AT that lets go some steps later", () => {
-    const { actions, dodgeStarts } = play(slashThen({}));
-    assert.equal(actions[SLASH_AT - 1], "slash");
+describe("a dodge pressed during a swing (the user's call: it waits for the swing, then goes)", () => {
+  test("the setup: a swing on SWING_AT that lets go some steps later", () => {
+    const { actions, dodgeStarts } = play(swingThen({}));
+    assert.equal(actions[SWING_AT - 1], "attack");
     assert.ok(LOCKED_STEPS > 2, `${LOCKED_STEPS} steps`);
     assert.deepEqual(dodgeStarts, []);
   });
 
-  test("pressed on any step of the slash, its first to its last, it starts on the step the slash lets go", () => {
+  test("pressed on any step of the swing, its first to its last, it starts on the step the swing lets go", () => {
     for (let k = 1; k < LOCKED_STEPS; k++) {
-      const { actions, dodgeStarts, staminas } = play(slashThen({ [SLASH_AT + k]: { dodge: true } }));
-      assert.deepEqual(actions.slice(SLASH_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("slash"),
-        `pressed ${k} steps in: the slash isn't cut short`);
+      const { actions, dodgeStarts, staminas } = play(swingThen({ [SWING_AT + k]: { dodge: true } }));
+      assert.deepEqual(actions.slice(SWING_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("attack"),
+        `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
-      assert.equal(staminas[LET_GO_AT - 1], STATS.stamina - PLAYER.slash.cost - dodgeCost("light")!,
-        `pressed ${k} steps in: one slash and one dodge paid for`);
+      assert.equal(staminas[LET_GO_AT - 1], STATS.stamina - PLAYER.swing.cost - dodgeCost("light")!,
+        `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });
 
-  test("pressed once the slash has let go, it starts at once, as before", () => {
+  test("pressed once the swing has let go, it starts at once, as before", () => {
     for (let k = LOCKED_STEPS; k < LOCKED_STEPS + 5; k++) {
-      assert.deepEqual(play(slashThen({ [SLASH_AT + k]: { dodge: true } })).dodgeStarts, [SLASH_AT + k]);
+      assert.deepEqual(play(swingThen({ [SWING_AT + k]: { dodge: true } })).dodgeStarts, [SWING_AT + k]);
     }
   });
 
-  test("held through the slash, or tapped twice in it, it's still one dodge", () => {
-    const held: Script = (step) => input({ attack: step === SLASH_AT, dodge: step > SLASH_AT && step < 80 });
+  test("held through the swing, or tapped twice in it, it's still one dodge", () => {
+    const held: Script = (step) =>
+      input({ attack: step === SWING_AT ? "lr" : null, dodge: step > SWING_AT && step < 80 });
     assert.deepEqual(play(held).dodgeStarts, [LET_GO_AT]);
-    const twice = slashThen({ [SLASH_AT + 1]: { dodge: true }, [LET_GO_AT - 2]: { dodge: true } });
+    const twice = swingThen({ [SWING_AT + 1]: { dodge: true }, [LET_GO_AT - 2]: { dodge: true } });
     assert.deepEqual(play(twice).dodgeStarts, [LET_GO_AT]);
   });
 
-  test("with another slash buffered too, the dodge goes first and the slash isn't kept for after it", () => {
-    for (const attackAt of [SLASH_AT + 2, LET_GO_AT - 1]) {
-      const script = slashThen({ [SLASH_AT + 1]: { dodge: true }, [attackAt]: { attack: true } });
+  test("with another swing buffered too, the dodge goes first and the swing isn't kept for after it", () => {
+    for (const attackAt of [SWING_AT + 2, LET_GO_AT - 1]) {
+      const script = swingThen({ [SWING_AT + 1]: { dodge: true }, [attackAt]: { attack: "lr" } });
       const { actions, dodgeStarts } = play(script);
-      assert.deepEqual(dodgeStarts, [LET_GO_AT], `slash pressed on ${attackAt}`);
-      assert.ok(!actions.slice(LET_GO_AT).includes("slash"), `slash pressed on ${attackAt}`);
+      assert.deepEqual(dodgeStarts, [LET_GO_AT], `swing pressed on ${attackAt}`);
+      assert.ok(!actions.slice(LET_GO_AT).includes("attack"), `swing pressed on ${attackAt}`);
     }
   });
 
-  test("if the player can't dodge when the slash lets go (no stamina), the press isn't kept: it runs out", () => {
-    // Enough for the slash (it refills a little first), which leaves none.
+  test("if the player can't dodge when the swing lets go (no stamina), the press isn't kept: it runs out", () => {
+    // Enough for the swing (it refills a little first), which leaves none.
     const tired = newFight({ hp: PLAYER.maxHp, stamina: 1 });
-    const { actions, dodgeStarts, staminas } = play(slashThen({ [SLASH_AT + 1]: { dodge: true } }), 200, tired);
-    assert.equal(actions[SLASH_AT - 1], "slash");
+    const { actions, dodgeStarts, staminas } = play(swingThen({ [SWING_AT + 1]: { dodge: true } }), 200, tired);
+    assert.equal(actions[SWING_AT - 1], "attack");
     assert.equal(staminas[LET_GO_AT - 1], 0);
     assert.ok(tired.world.require(tired.players[0]!, Stamina).value > dodgeCost("light")!, "stamina came back");
     assert.deepEqual(dodgeStarts, []);
   });
 
   test("a waiting dodge is in the state and the hash: saved and loaded, or rolled back, it plays on the same", () => {
-    const script = slashThen({ [SLASH_AT + 1]: { dodge: true } });
+    const script = swingThen({ [SWING_AT + 1]: { dodge: true } });
     const right = play(script);
-    for (const at of [SLASH_AT + 1, SLASH_AT + 3, LET_GO_AT - 1]) {
+    for (const at of [SWING_AT + 1, SWING_AT + 3, LET_GO_AT - 1]) {
       const first = play(script, at);
-      const unpressed = play(slashThen({}), at);
+      const unpressed = play(swingThen({}), at);
       assert.notEqual(first.fight.hash(), unpressed.fight.hash(), `step ${at}: the waiting dodge is in the hash`);
 
       const loaded = newFight();
@@ -120,8 +121,8 @@ describe("a dodge pressed during a slash (the user's call: it waits for the slas
       assert.equal(dumpState(went.fight), dumpState(right.fight), `loaded at ${at}`);
       assert.equal(went.fight.hash(), right.fight.hash(), `loaded at ${at}`);
 
-      // A copy that went its own way (it never pressed dodge, and ran on past the slash) rolled back to step `at`.
-      const wrong = play(slashThen({}), LET_GO_AT + 10).fight;
+      // A copy that went its own way (it never pressed dodge, and ran on past the swing) rolled back to step `at`.
+      const wrong = play(swingThen({}), LET_GO_AT + 10).fight;
       wrong.load(wire(first.fight.save()));
       const rolledBack = play(script, 90, wrong);
       assert.deepEqual(rolledBack.dodgeStarts, [LET_GO_AT], `rolled back at ${at}`);

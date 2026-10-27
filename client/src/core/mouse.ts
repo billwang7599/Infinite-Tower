@@ -1,7 +1,8 @@
 /**
- * Mouse / trackpad, by MouseEvent.button. Click the canvas to capture it (pointer lock), Esc releases it. With
- * the Auto mouse lock setting on it's also captured, without a click, the moment the arena wants it.
- * Optional: everything also works keyboard-only. Movement and buttons only count while captured.
+ * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). Click the canvas to capture it
+ * (pointer lock), Esc releases it. With the Auto mouse lock setting on it's also captured, without a click, the
+ * moment the arena wants it. Optional: everything also works keyboard-only. Movement and buttons only count while
+ * captured.
  */
 import { Buttons } from "./buttons.js";
 
@@ -22,7 +23,7 @@ export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: Lock
   return autoLock && lockable && !wasLockable && !locked;
 }
 
-export class Mouse extends Buttons<number> {
+export class Mouse extends Buttons {
   private dx = 0;
   private dy = 0;
   locked = false;
@@ -43,9 +44,9 @@ export class Mouse extends Buttons<number> {
       else if (!this.lockable) doc.exitPointerLock();
     });
     canvas.addEventListener("mousedown", (e) => {
-      if (this.locked) this.press(e.button);
+      if (this.locked) this.press(`Mouse${e.button}`);
     });
-    win.addEventListener("mouseup", (e) => this.release(e.button));
+    win.addEventListener("mouseup", (e) => this.release(`Mouse${e.button}`));
     doc.addEventListener("mousemove", (e) => {
       if (!this.locked) return;
       this.dx += e.movementX;

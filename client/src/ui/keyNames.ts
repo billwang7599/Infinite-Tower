@@ -4,7 +4,7 @@ const KEY_NAMES: Record<string, string> = {
   BracketLeft: "[", BracketRight: "]", Minus: "-", Equal: "=",
   ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→",
   ShiftLeft: "Left Shift", ShiftRight: "Right Shift", ControlLeft: "Left Ctrl", ControlRight: "Right Ctrl",
-  AltLeft: "Left Alt", AltRight: "Right Alt", CapsLock: "Caps Lock",
+  AltLeft: "Left Alt", AltRight: "Right Alt", CapsLock: "Caps Lock", Escape: "Esc",
 };
 
 export function keyName(code: string): string {

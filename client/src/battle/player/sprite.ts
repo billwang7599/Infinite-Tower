@@ -2,12 +2,16 @@ import { Body, clamp, damp, Health, Player, type System } from "@infinite-tower/
 import { BodyNode } from "../components.js";
 import type { BattleContext } from "../context.js";
 import { PlayerSprite, spriteY } from "./components.js";
-import { spritePose, trailPose } from "./pose.js";
+import { TRAIL_WIDTH } from "./spawn.js";
+import { spritePose, thrustPose, trailPose } from "./pose.js";
 
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
 
-/** Per render frame: sprite frame, walk bob, squash & stretch, i-frame blink, sword trail, blob shadow. */
+/**
+ * Per render frame: sprite frame, walk bob, squash & stretch, a stagger's shake, i-frame blink, the sword's trail,
+ * thrust and guard, blob shadow.
+ */
 export function playerSpriteSystem(ctx: BattleContext): System {
   const frames = ctx.materials.player;
 
@@ -33,20 +37,33 @@ export function playerSpriteSystem(ctx: BattleContext): System {
       if (sprite.plane.material !== frame) sprite.plane.material = frame;
       sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
       sprite.plane.position.y = spriteY(sprite.stretch, bob);
+      sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(player.actionTime * 45) * 0.06 : 0;
 
       // Blink while invulnerable after a hit.
       sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);
 
+      const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
       const trail = trailPose(player);
+      sprite.trail.setEnabled(trail !== null);
       if (trail) {
-        const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
-        sprite.slash.setEnabled(true);
-        sprite.slash.position.set(p.x, p.y + 0.15, p.z);
-        sprite.slash.rotation.set(0, aimYaw + trail.yawRad, trail.tiltRad);
+        // A metre ahead at the sprite's chest, across the view; the cut grows from its start end.
+        sprite.trail.position.set(p.x + player.actionDir.x, p.y + 0.35, p.z + player.actionDir.z);
+        sprite.trail.rotation.set(0, aimYaw, trail.rollRad);
+        sprite.slash.position.x = trail.from * TRAIL_WIDTH / 2;
+        sprite.slash.scaling.x = -trail.from * trail.reach;
         sprite.slash.visibility = trail.visibility;
-      } else if (sprite.slash.isEnabled()) {
-        sprite.slash.setEnabled(false);
       }
+      const thrust = thrustPose(player);
+      sprite.thrust.setEnabled(thrust !== null);
+      if (thrust) {
+        sprite.thrust.position.set(p.x, p.y + 0.25, p.z);
+        sprite.thrust.rotation.y = aimYaw;
+        sprite.thrust.scaling.set(1, 1, thrust.reach);
+        for (const mesh of sprite.thrust.getChildMeshes()) mesh.visibility = thrust.visibility;
+      }
+      sprite.guard.setEnabled(alive && player.action === "block");
+      sprite.guard.position.set(p.x, p.y, p.z);
+      sprite.guard.rotation.y = aimYaw;
 
       // Blob shadow on the floor.
       const below = ctx.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;

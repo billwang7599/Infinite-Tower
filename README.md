@@ -22,24 +22,31 @@ What's built so far:
   kept for good. The character panel shows the portrait and your stats.
 - **Overworld:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
   through tall grass, starts a fight. Wider screens than 16:9 get side bars.
-- **Fights:** a 2D sprite against a 3D boar in a small round arena. Slash (chained), dodge roll with i-frames,
-  jump, stamina. You attack where the camera faces (no lock-on). The boar lunges up close and does a telegraphed
-  charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits.
+- **Fights:** a 2D sprite against a 3D boar in a small round arena. A sword with eight swings (one per way across
+  the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
+  short, vertical ones narrow and long, the stab a long thin line. Swings chain: the next starts quicker or slower
+  by how it follows the last (the reverse swing quickest) and builds momentum, more damage a hit (the HUD shows the
+  combo), until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops what hits it
+  from in front for stamina, and breaks, staggering you, when the stamina runs out. You attack where the camera
+  faces (no lock-on). The boar lunges up close and does a telegraphed charge from further away (it's stunned if it
+  hits the wall), and staggers after a few quick hits.
 - **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
-  click with Auto mouse lock off). Every key can be rebound in Settings.
+  click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q / E turn the
+  camera, Space jumps, F (or a right click) dodges, Shift blocks; U I O / J K L / M , . is a grid where K stabs
+  and each other key swings from its side to the opposite one (J or a left click: left to right).
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (I) is the
+  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (B) is the
   grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
   drag to move, R or a right click to turn, Enter or a double click to eat.
 - **HUD:** HP and stamina bars, boars beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
   and fade; only a fight starting gets the big banner in the middle.
-- **Settings** (Esc): camera sensitivity, auto mouse lock and show ping (both on by default), key bindings, return
-  to title.
+- **Settings** (Esc): camera sensitivity, auto mouse lock and show ping (both on by default), key bindings (general:
+  Esc, WASD, the panels; the overworld's; the arena's), return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its

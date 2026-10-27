@@ -1,22 +1,32 @@
 /**
- * Held + pressed tracking for any kind of button (key codes, mouse buttons). Presses are latched until
+ * Held + pressed tracking for any kind of button (key codes, mouse buttons as "Mouse0"…). Presses are latched until
  * consumed, so a tap shorter than one fixed tick is never lost. Keyboard and Mouse feed it from DOM events.
  */
-export class Buttons<B> {
-  private readonly down = new Set<B>();
-  private readonly pressed = new Set<B>();
 
-  /** True if any of `buttons` is held. */
-  isDown(buttons: readonly B[]): boolean {
-    for (const b of buttons) if (this.down.has(b)) return true;
+/** Counts presses on every Buttons, so the keyboard's and the mouse's can be put in order. */
+let pressCount = 0;
+
+export class Buttons {
+  private readonly down = new Set<string>();
+  /** Latched presses, each with its press count. */
+  private readonly pressed = new Map<string, number>();
+
+  /** True if any held button passes `which`. */
+  isDown(which: (button: string) => boolean): boolean {
+    for (const b of this.down) if (which(b)) return true;
     return false;
   }
 
-  /** True if any of the buttons was pressed since the last call (clears those latches). */
-  consumePressed(buttons: readonly B[]): boolean {
+  /** True if any button passing `which` was pressed since the last call (clears those latches). */
+  consumePressed(which: (button: string) => boolean): boolean {
     let any = false;
-    for (const b of buttons) if (this.pressed.delete(b)) any = true;
+    for (const b of this.pressed.keys()) if (which(b) && this.pressed.delete(b)) any = true;
     return any;
+  }
+
+  /** The latched presses, each with its count: a later press, on any Buttons, counts higher. */
+  get presses(): ReadonlyMap<string, number> {
+    return this.pressed;
   }
 
   clearPressed(): void {
@@ -24,12 +34,12 @@ export class Buttons<B> {
   }
 
   /** `repeat`: an auto-repeat event while held (counts as held, not as a new press). */
-  protected press(b: B, repeat = false): void {
-    if (!repeat) this.pressed.add(b);
+  protected press(b: string, repeat = false): void {
+    if (!repeat) this.pressed.set(b, ++pressCount);
     this.down.add(b);
   }
 
-  protected release(b: B): void {
+  protected release(b: string): void {
     this.down.delete(b);
   }
 

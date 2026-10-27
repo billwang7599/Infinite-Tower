@@ -124,9 +124,9 @@ main.ts
   fingerprint of it with every number rounded to 2 decimals. Rapier loads once (`initPhysics()`: as the server
   starts, and in `prepareGame()` behind the title) before any fight is made. System order (`fight.ts`): player
   controller -> enemy brain -> attacks -> motor -> physics -> player ground -> combat -> outcome. It reports what
-  happened in a step as `events` (hits, a charge slamming the wall). How a fight ends is `fight/outcome.ts`: lost
-  when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes, a guard on the server's
-  resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
+  happened in a step as `events` (hits, blocks, a charge slamming the wall). How a fight ends is
+  `fight/outcome.ts`: lost when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes,
+  a guard on the server's resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
 - **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle, from the moment every player has
   sent their first input (they're past the flash into the arena). It keeps a clock (steps since the fight started,
   one a 60 Hz tick) and runs the fight up to it as soon as it knows every player's input for the next step
@@ -160,13 +160,17 @@ main.ts
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
   back), and dodging, knocked back or dead, a player passes through. Rapier simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
-- **Attacks are data.** An attack's active frames add an `ActiveHit` (sector: range + angle) to the attacker;
-  `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics.
+- **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range
+  + width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player
+  blocking and facing the hit stops it for stamina, anything else lands. The player's attacks and their shapes
+  come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
+  to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
+  `MOMENTUM`).
 - **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's animation system (client) reads the
   state and poses the model.
 - **Input enters only as `PlayerInputData`** (world-space move + aim): from the keys in the browser, from
-  `battleInput` on the server. Keys come from `client/src/settings/bindings.ts`, never hardcoded.
+  `battleInput` on the server. Keys come from `client/src/settings/bindings.ts` as actions, never hardcoded.
 - **Destroy is deferred** to `world.flush()` at the end of each tick; remove hooks dispose meshes.
 - **The UI is React** (`client/src/ui/`, mounted into `#ui`), the HUD's bars included; the canvas and anything in
   the world (sprites, the boar, the sword trail) is Babylon. The game never touches the DOM: it writes plain values
@@ -305,14 +309,15 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **shared**: the ECS, math, walking (`stepWalker`, grass, campfires), the view rules, every Zod schema (what
   the server accepts from clients and the sentences it answers with), and the arena fight, run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
-  byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, the slash's reach and arc,
-  whole fights won and lost, the time limit and leaving, a fight's whole state (exact through JSON; loaded into a new
-  fight, or one that went its own way, it plays on step for step the same, live hitboxes included), its hash (the
-  same for the same inputs, changed by anything that matters, not by a last-bit difference), a dodge's i-frames
-  step by step (a dodge on the very step a hit lands beats it; its stamina and burden costs), and a dodge pressed
-  during a slash waiting for it to let go (on any step of it, once, ahead of a buffered slash, through a save and a
-  rollback). Each fight test file awaits `initPhysics()` first. Also the battle inputs' rounding and what counts as
-  a change.
+  byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, each attack's reach and
+  shape, chaining (each kind's start) and momentum (built, capped, lost, spent by a stab), blocking (stamina, push back,
+  only in front, the guard breaking), whole fights won and lost, the time limit and leaving, a fight's whole state
+  (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
+  hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
+  difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
+  costs), and a dodge pressed during a swing waiting for it to let go (on any step of it, once, ahead of a buffered
+  swing, through a save and a rollback). Each fight test file awaits `initPhysics()` first. Also the battle inputs'
+  rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items,
@@ -329,17 +334,19 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
   `DEV_PING_MS`; a `ping` answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
-- **client**: only logic that runs without Babylon or the DOM: key bindings, camera, mouse and HUD settings, settings
-  sync, when the mouse is captured, overworld prediction, the fight's sync (only changes sent, with their steps and
-  heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync asked, the server's
-  fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice nor dropped; the
-  result and its banner waiting for the server) and pace (real time's steps, catching up after a stall, a backlog
-  dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news ignored), the
-  title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
-  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
-  item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
-  battle sprite in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering,
-  how the fight feels and the React screens are tried in a browser.
+- **client**: only logic that runs without Babylon or the DOM: key bindings (a save that clashes with new defaults
+  falls back to them), what the keys and buttons ask for (actions; the attack pressed last), the player's pose,
+  sword trail and thrust, camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld
+  prediction, the fight's sync (only changes sent,
+  with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
+  asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
+  nor dropped; the result and its banner waiting for the server) and pace (real time's steps, catching up after a stall,
+  a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news
+  ignored), the title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
+  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the item
+  pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite
+  in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering, how the fight
+  feels and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
 tuning numbers from the code, so retuning the game doesn't break them.
@@ -358,8 +365,8 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
   damage, stamina, deaths and the result. The client runs its own copy to show it at once, sends only its inputs
   (tagged with their steps) and takes the server's fight whenever the hashes differ. There's no message a client
   could claim a result with, and the result shows only when the server's comes; keep it that way.
-- **Keys come from `client/src/settings/bindings.ts`.** When showing one on screen, read it from the bindings
-  (`keyName`). Esc and ⌘ can't be rebound.
+- **Keys come from `client/src/settings/bindings.ts`.** Game code asks about actions (`core/actions.ts`). When
+  showing a key on screen, read it from the bindings (`keyName`). Esc (the settings) and ⌘ can't be rebound.
 - **Text is escaped by JSX**, so server or player strings can be rendered safely. No `innerHTML` or
   `dangerouslySetInnerHTML`.
 - **Small, single-purpose files** (roughly under 200 lines). Add a folder per new mode, enemy or screen rather than
@@ -399,20 +406,22 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
-                   FighterStats, physicalDamage / moveSpeed / carryLimit)
+                   FighterStats, physicalDamage / moveSpeed / carryLimit), sword.ts (the sword's attacks:
+                   SWING_DIRS, ATTACK_KINDS, STARTER_SWORD, attackShape; CHAIN and MOMENTUM: how swings chain)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, leave(player), outcome, events, dispose), setup.ts (FightSetup, the one-on-one
                      starting spots, spawning players and enemies: components + a collider, one component per
                      attack in the def), context.ts (FightContext, FightOutcome, FightEvent), combat.ts (addHit,
-                     hits, knockback, the hit timers), outcome.ts (won / lost; MAX_FIGHT_TIME, LEAVING_LOSES,
-                     playerResult), state.ts (FightSnapshot: the whole state, exactly, out and back in; saveFight,
-                     loadFight), hash.ts (hashFight: the state's fingerprint, numbers rounded to 2 decimals)
+                     hits in an arc or a ray, blocking, knockback, the hit timers, endCombo), outcome.ts (won /
+                     lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
+                     exactly, out and back in; saveFight, loadFight), hash.ts (hashFight: the state's fingerprint,
+                     numbers rounded to 2 decimals)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
-      player/          controller.ts (move, jump, slash, dodge, stamina; controlPlayer), ground.ts (grounded, from
-                       rays; groundPlayer)
+      player/          controller.ts (move, jump, attacks and their chains, block, dodge, stamina; controlPlayer),
+                       ground.ts (grounded, from rays; groundPlayer)
       enemies/         brain.ts (target, approach / poise / stagger / stun / death), lunge.ts, charge.ts, motor.ts
                        (wanted movement -> velocity), common.ts
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
@@ -507,13 +516,17 @@ client/          Browser game: Babylon rendering, input, React UI.
                      logged in, log in, register, log out), ping.ts (startPinging: the HUD's ping, every 2 s)
     core/            keyboard.ts (off outside a session, with Settings open, or the bag), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
-                     auto lock is on; shouldAutoLock is that rule), buttons.ts (held + latched presses), time.ts
+                     auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
+                     latched presses, counted in order), actions.ts (actionOf: the bindings turned around, key ->
+                     action, general's plus the place's; Actions: the keyboard and mouse asked about actions, and
+                     the attack: the last pressed, held), time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
-                     back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
-                     KeyBindings: the player's keys; keys saved under the old group name `field` load as the
-                     overworld's), camera.ts (CameraSettings: sensitivity), mouse.ts (MouseSettings: auto lock, on
-                     by default, so a save without it reads as on), hud.ts (HudSettings: show ping, the same way)
+                     back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
+                     keys, fixed mouse buttons; KeyBindings: the player's keys; keys saved where they used to be,
+                     MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
+                     (MouseSettings: auto lock, on by default, so a save without it reads as on), hud.ts
+                     (HudSettings: show ping, the same way)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
@@ -608,9 +621,10 @@ client/          Browser game: Babylon rendering, input, React UI.
       components.ts    BodyNode (what a fighter's drawing hangs from), DrawOffset (a correction easing out),
                        Meshes (+ disposers)
       materials.ts, arena.ts (scenery: grass, stones, forest)
-      player/          spawn (the sprite, shadow and trail on the fight's player), components (PlayerSprite), input
-                       (keys / mouse -> PlayerInputData), sprite (puts pose on the meshes, shadow), pose (frame and
-                       sword trail from the action, no Babylon: tested)
+      player/          spawn (the sprite, shadow, and the sword's trail, thrust and guard on the fight's player),
+                       components (PlayerSprite), input (actions -> PlayerInputData),
+                       sprite (puts pose on the meshes, shadow), pose (pose and its stand-in frame, the trail's line
+                       and the stab's thrust from the action, no Babylon: tested)
       enemies/         spawn.ts (the model on the fight's enemy)
         models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
       systems/         follow (drawings to their bodies, easing corrections), camera (the orbit, and its shake
@@ -648,8 +662,9 @@ client/          Browser game: Babylon rendering, input, React UI.
 - **Something core needs from outside** (a clock, mail, another database). An interface in `core/ports.ts`, an
   implementation in an outlet (or a new outlet folder, added to `OUTLETS` in `server/scripts/check-layers.ts`),
   and one line in `main.ts` passing it in. Core never imports the implementation.
-- **A key binding.** The action in `ACTIONS` (`client/src/settings/bindings.ts`, label + default keys), read with
-  `settings.bindings.get().<group>.<action>`; the settings screen lists it on its own.
+- **A key binding.** The action in `ACTIONS` (`client/src/settings/bindings.ts`, label + default keys) in general,
+  overworld or battle, asked about with `actions.isDown(<place>, <action>)` / `consumePressed`, or `actionOf` in a
+  keydown listener; the settings screen lists it on its own.
 - **A new kind of setting.** A store in `client/src/settings/` with `restore` / `toSaved` (see camera.ts), added to
   `Settings`, `createSettings()`, `restoreSettings()` and `toSaved()` in settings.ts, a field in
   `SavedSettingsSchema` (`shared/src/net/client-messages.ts`), and a section in `ui/screens/settings/` shown by
@@ -669,7 +684,8 @@ client/          Browser game: Babylon rendering, input, React UI.
 
 | What | Where |
 |---|---|
-| Player HP, speeds, slash, dodge (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
+| Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
+| The sword: reach, damage, how swings chain, momentum | `shared/src/battle/sword.ts` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats and attacks | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |

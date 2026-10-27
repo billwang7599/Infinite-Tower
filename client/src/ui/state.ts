@@ -54,9 +54,15 @@ export interface OverworldHudState {
   bag: Bag;
 }
 
+/** A word over the fight for a moment of it: you're staggered (your guard broken). */
+export type BattleCue = "none" | "staggered";
+
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
+  /** The damage multiplier the chain's momentum gives the next swing: 1 with no chain going. */
+  comboMultiplier: number;
+  cue: BattleCue;
   enemyName: string;
   enemyHpFraction: number;
   enemyAlive: boolean;
@@ -133,7 +139,8 @@ export class UiState {
     bag: { cols: 0, rows: 0, items: [] },
   });
   readonly battle = new Store<BattleHudState>({
-    hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1, enemyAlive: false,
+    hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
+    enemyAlive: false,
     result: "fighting", showResult: false,
   });
 

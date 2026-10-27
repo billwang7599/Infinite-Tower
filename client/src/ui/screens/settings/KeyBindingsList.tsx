@@ -1,11 +1,12 @@
 /**
- * Every key binding, one row per action, grouped by mode. Click a key to change it (the next key pressed
- * takes its place; Esc cancels), + to add one, × to drop one. Mouse buttons are fixed and only shown.
+ * Every key binding, one row per action, in its group (general, overworld, battle). Click a key to change it (the next
+ * key pressed takes its place; Esc cancels), + to add one, × to drop one. Mouse buttons and Esc are fixed and only
+ * shown.
  */
 import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import { useState } from "react";
 import {
-  actionDef, actionsOf, GROUPS, isBindable, keysOf, sameAction,
+  actionDef, actionsOf, GROUPS, isBindable, isFixed, keysOf, sameAction,
   type ActionRef, type BindResult, type Group, type KeyBindings, type KeyMap,
 } from "../../../settings/bindings.js";
 import { BUTTON } from "../../components/styles.js";
@@ -14,7 +15,7 @@ import { keyName, mouseName } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
-const GROUP_TITLES: Record<Group, string> = { overworld: "Overworld", bag: "Bag", battle: "Battle" };
+const GROUP_TITLES: Record<Group, string> = { general: "General", overworld: "Overworld", battle: "Battle" };
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {
@@ -109,6 +110,7 @@ interface RowProps {
 
 function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }: RowProps) {
   const def = actionDef(action);
+  const fixed = isFixed(action);
   return (
     <div data-action={`${action.group}.${action.action}`} className={SETTING_ROW}>
       <span className={SETTING_LABEL}>{def.label}</span>
@@ -118,14 +120,15 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
             <PressAKey key={key} />
           ) : (
             <KeyChip
-              key={key} code={key} change={() => listenFor(key)} remove={keys.length > 1 ? () => unbind(key) : null}
+              key={key} code={key} change={fixed ? null : () => listenFor(key)}
+              remove={!fixed && keys.length > 1 ? () => unbind(key) : null}
             />
           ),
         )}
         {waitingFor === null ? (
           <PressAKey />
         ) : (
-          keys.length < MAX_KEYS_PER_ACTION && (
+          !fixed && keys.length < MAX_KEYS_PER_ACTION && (
             <button
               type="button"
               aria-label={`Add a key for ${def.label}`}
@@ -147,7 +150,14 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
   );
 }
 
-function KeyChip({ code, change, remove }: { code: string; change: () => void; remove: (() => void) | null }) {
+interface ChipProps {
+  code: string;
+  /** null: fixed, only shown. */
+  change: (() => void) | null;
+  remove: (() => void) | null;
+}
+
+function KeyChip({ code, change, remove }: ChipProps) {
   const name = keyName(code);
   return (
     <span
@@ -157,12 +167,16 @@ function KeyChip({ code, change, remove }: { code: string; change: () => void; r
         + "font-semibold"
       }
     >
-      <button
-        type="button" aria-label={`Change ${name}`} onClick={change}
-        className="min-w-7 cursor-pointer px-2 transition-colors hover:text-victory"
-      >
-        {name}
-      </button>
+      {change ? (
+        <button
+          type="button" aria-label={`Change ${name}`} onClick={change}
+          className="min-w-7 cursor-pointer px-2 transition-colors hover:text-victory"
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="flex min-w-7 items-center justify-center px-2 text-white/60">{name}</span>
+      )}
       {remove && (
         <button
           type="button"
@@ -199,8 +213,9 @@ function bindNotice(result: BindResult, code: string, action: ActionRef): string
   const label = (a: ActionRef) => actionDef(a).label;
   if (!result.ok && "full" in result) return `${label(action)} has no room for another key. Replace one of its keys.`;
   if (!result.ok) return `${key} is the only key for ${label(result.onlyKeyOf)}. Give that one another key first.`;
-  const { takenFrom, gave } = result;
-  if (takenFrom && gave) return `Swapped: ${key} is now ${label(action)}, ${keyName(gave)} is now ${label(takenFrom)}.`;
-  if (takenFrom) return `${key} is now ${label(action)} instead of ${label(takenFrom)}.`;
+  const { gave } = result;
+  const takenFrom = result.takenFrom.map(label).join(" and ");
+  if (takenFrom && gave) return `Swapped: ${key} is now ${label(action)}, ${keyName(gave)} is now ${takenFrom}.`;
+  if (takenFrom) return `${key} is now ${label(action)} instead of ${takenFrom}.`;
   return "";
 }

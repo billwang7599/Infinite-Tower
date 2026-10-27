@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, type StepInput } from "@infinite-tower/shared";
+import {
+  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, type StepInput,
+} from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
@@ -9,7 +11,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
-  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false,
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
 };
 /** A battleInput up to the last input's step (or step 1). */
 const battleInput = (...inputs: unknown[]) => {
@@ -21,7 +23,7 @@ describe("parseClientMsg", () => {
   test("accepts every kind of message", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
-      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: true }] },
+      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "tlbr", block: true }] },
       { t: "battleInput", upTo: 7, inputs: [] },
       { t: "battleResync" },
       { t: "leaveBattle" },
@@ -77,9 +79,19 @@ describe("parseClientMsg", () => {
       assert.equal(battleInput(missing), null, `without ${key}`);
     }
     assert.equal(battleInput({ ...STEP, attack: "yes" }), null);
+    assert.equal(battleInput({ ...STEP, attack: true }), null, "the old single attack");
+    assert.equal(battleInput({ ...STEP, block: "held" }), null);
     assert.equal(battleInput({ ...STEP, dodge: 1 }), null);
     assert.equal(battleInput({ ...STEP, moveX: "1" }), null);
     assert.equal(battleInput({ ...STEP, aimZ: null }), null);
+  });
+
+  test("battleInput: the attack is one of the ten things a sword does (blocking is its own field), or none", () => {
+    for (const attack of [...ATTACK_KINDS, null]) {
+      assert.deepEqual(battleInput({ ...STEP, attack }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, attack }] });
+    }
+    assert.equal(battleInput({ ...STEP, attack: "block" }), null);
+    assert.equal(battleInput({ ...STEP, attack: "LR" }), null);
   });
 
   test("battleInput: the aim is a direction (length 1), the move no longer than the keys can make", () => {

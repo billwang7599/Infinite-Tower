@@ -8,10 +8,11 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  Body, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf,
+  Body, copyInput, IDLE_INPUT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity, type ServerMsgOf,
   type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
+import type { Actions } from "../core/actions.js";
 import type { Keyboard } from "../core/keyboard.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
@@ -58,18 +59,19 @@ export interface BattleOptions {
   scene: BattleScene;
   keyboard: Keyboard;
   mouse: Mouse;
+  actions: Actions;
   settings: Settings;
   hud: Store<BattleHudState>;
   onLeave: () => void;
 }
 
 export function createBattle(opts: BattleOptions): Battle {
-  const { engine, world, keyboard, settings } = opts;
+  const { engine, world, keyboard, actions, settings } = opts;
   const { scene, camera, sunShadows } = opts.scene;
   registerArenaDisposers(world);
 
   const ctx: BattleContext = {
-    world, scene, camera, keyboard, mouse: opts.mouse, settings, sunShadows,
+    world, scene, camera, actions, mouse: opts.mouse, settings, sunShadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
     view: { ...START_VIEW },
@@ -88,11 +90,11 @@ export function createBattle(opts: BattleOptions): Battle {
     arenaScenery = buildArena(ctx);
   };
 
-  const input: PlayerInputData = { moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false };
+  const input = copyInput(IDLE_INPUT);
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
-    // After the fight, the leave key (Enter / E by default) goes back, once the result has been on screen a moment.
-    const leave = keyboard.consumePressed(settings.bindings.get().battle.leave);
+    // After the fight, the leave key (Enter by default) goes back, once the result has been on screen a moment.
+    const leave = actions.consumePressed("battle", "leave");
     if (leave && resultShown(ctx.outcome)) opts.onLeave();
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
     const steps = sync.pace.stepsDue(fight.steps);

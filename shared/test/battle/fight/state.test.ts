@@ -53,7 +53,7 @@ describe("a fight's whole state", () => {
   test("loaded into a fight that went its own way, it's put back exactly and plays on the same", () => {
     const right = newFight(), wrong = newFight();
     runTo(right, 400);
-    runTo(wrong, 380, () => input({ moveX: -1, attack: true }));
+    runTo(wrong, 380, (step) => input({ moveX: -1, attack: step % 2 ? "tb" : null }));
     wrong.load(wire(right.save()));
     for (let i = 0; i < 300; i++) {
       right.step([busy(right.steps + 1)]);
@@ -64,14 +64,14 @@ describe("a fight's whole state", () => {
 
   test("a live hitbox comes back with whom it has already hit, checked in the same order", () => {
     const fight = newFight();
-    // Find a step with a live slash that has hit the boar.
+    // Find a step with a live swing that has hit the boar.
     let found = false;
     while (!found && fight.steps < 2000) {
       fight.step([busy(fight.steps + 1)]);
       const hit = fight.world.get(fight.players[0]!, ActiveHit);
       found = !!hit && hit.alreadyHit.size > 0;
     }
-    assert.ok(found, "the busy player lands a slash");
+    assert.ok(found, "the busy player lands a swing");
     const snap = wire(fight.save());
     assert.deepEqual(snap.hits.find((h) => h.by === 0)?.alreadyHit, [1]);
     const copy = newFight();

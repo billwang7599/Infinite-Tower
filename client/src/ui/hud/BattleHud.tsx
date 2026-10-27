@@ -3,7 +3,7 @@ import type { HudSettings } from "../../settings/hud.js";
 import { Bar } from "../components/Bar.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { keyName } from "../keyNames.js";
-import type { BattleHudState, PingState } from "../state.js";
+import type { BattleCue, BattleHudState, PingState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
@@ -27,6 +27,7 @@ export function BattleHud({ hud, bindings, ping, hudSettings }: BattleHudProps) 
       <div className="absolute top-3 right-4">
         <Ping ping={ping} hud={hudSettings} />
       </div>
+      <Cue hud={hud} />
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
     </HudLayer>
@@ -36,9 +37,30 @@ export function BattleHud({ hud, bindings, ping, hudSettings }: BattleHudProps) 
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
+  const combo = useStore(hud, (s) => s.comboMultiplier);
   return (
     <div className="absolute top-3 left-4">
       <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
+      <div id="combo" className={`mt-1 font-title text-sm text-victory ${combo > 1 ? "opacity-100" : "opacity-0"}`}>
+        Combo ×{combo.toFixed(2)}
+      </div>
+    </div>
+  );
+}
+
+const CUE_WORDS: Record<Exclude<BattleCue, "none">, string> = { staggered: "Staggered" };
+
+/** A word over the fight while it holds: you're staggered. */
+function Cue({ hud }: HudProps) {
+  const cue = useStore(hud, (s) => s.cue);
+  return (
+    <div
+      id="battle-cue"
+      className={`absolute top-[28%] left-1/2 -translate-x-1/2 font-title text-3xl tracking-[3px] text-died ${
+        cue === "none" ? "opacity-0" : "opacity-100"
+      } transition-opacity duration-150`}
+    >
+      {cue === "none" ? "" : CUE_WORDS[cue]}
     </div>
   );
 }

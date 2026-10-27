@@ -3,6 +3,7 @@
  * game keeps running underneath (as in a souls game, a fight doesn't pause) but gets no input meanwhile.
  */
 import { useState } from "react";
+import { actionOf } from "../../../core/actions.js";
 import type { Settings } from "../../../settings/settings.js";
 import { Dialog } from "../../components/Dialog.js";
 import { BUTTON, DIALOG_BOX, DIALOG_TITLE } from "../../components/styles.js";
@@ -26,7 +27,7 @@ export function SettingsScreen({ screen, open, close, settings, returnToTitle }:
   const isOpen = useStore(screen, (s) => s.open);
 
   useKeydown((e) => {
-    if (e.code !== "Escape" || e.repeat) return;
+    if (actionOf(settings.bindings.get(), "general", e.code) !== "menu" || e.repeat) return;
     e.preventDefault();
     if (isOpen) close();
     else open();

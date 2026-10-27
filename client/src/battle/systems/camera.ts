@@ -23,30 +23,35 @@ const LOOK_HEIGHT = 1.3;
 const SHAKE_DECAY_PER_SEC = 9;
 const SHAKE_CUTOFF = 0.005;
 
-/** After each step of the fight: shake the camera for what hit hard in it (cameraSystem decays the shake). */
-export function addImpactShake(ctx: BattleContext, events: readonly FightEvent[]): void {
-  for (const event of events) {
-    const shake = event.type === "slam" ? 0.35 : event.team === "player" ? 0.15 + event.damage * 0.008 : 0.06;
-    ctx.shake = Math.max(ctx.shake, shake);
+/** How hard each event shakes the camera: a slam, a hit taken or dealt, a blow on the guard. */
+function shakeOf(event: FightEvent): number {
+  switch (event.type) {
+    case "slam": return 0.35;
+    case "hit": return event.team === "player" ? 0.15 + event.damage * 0.008 : 0.06;
+    case "block": return event.guardBreak ? 0.2 : 0.08;
   }
 }
 
+/** After each step of the fight: shake the camera for what hit hard in it (cameraSystem decays the shake). */
+export function addImpactShake(ctx: BattleContext, events: readonly FightEvent[]): void {
+  for (const event of events) ctx.shake = Math.max(ctx.shake, shakeOf(event));
+}
+
 /**
- * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (H/L) turn it a full
+ * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (Q/E) turn it a full
  * 360°. Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player
  * attacks (see player/input.ts). Also applies the impact shake (addImpactShake), decaying it.
  */
 export function cameraSystem(ctx: BattleContext): System {
-  const { keyboard, mouse } = ctx;
+  const { actions, mouse } = ctx;
   const focus = new Vector3(), look = new Vector3();
   /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
   let followed: Fight | null = null;
 
   return (world, dt) => {
     const view = ctx.view;
-    const keys = ctx.settings.bindings.get().battle;
-    const turn = keyboard.axis(keys.turnLeft, keys.turnRight);
-    const tilt = keyboard.axis(keys.lookUp, keys.lookDown);
+    const turn = actions.axis("battle", "turnLeft", "turnRight");
+    const tilt = actions.axis("battle", "lookUp", "lookDown");
     const { dx, dy } = mouse.consumeDelta();
     const sensitivity = ctx.settings.camera.get().sensitivity;
     view.yaw = wrapAngle(view.yaw + (turn * YAW_RAD_PER_SEC * dt + dx * MOUSE_RAD_PER_PX) * sensitivity);

@@ -1,5 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
+import { FIXED_DT } from "../../../core/time.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
 import {
   ActiveHit, Body, Health, Player, Stamina, type PlayerAction, type PlayerData, type StaminaData,
@@ -7,9 +8,13 @@ import {
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
-import { addHit } from "../combat.js";
+import {
+  attackShape, CHAIN, chainKind, isSwing, lettingGoAt, liveStep, MOMENTUM, momentumDamage, STARTER_SWORD, startupTime,
+  type AttackKind,
+} from "../../sword.js";
+import { addHit, endCombo } from "../combat.js";
 
-/** Start a slash or dodge toward (x, z), ending the last slash's hitbox if it's still live. */
+/** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   world.remove(e, ActiveHit);
   player.action = action;
@@ -20,6 +25,28 @@ function startAction(world: World, e: Entity, player: PlayerData, action: Player
 function spend(stamina: StaminaData, cost: number): void {
   stamina.value = Math.max(0, stamina.value - cost);
   stamina.regenDelay = PLAYER.staminaRegenDelay;
+}
+
+/**
+ * Start `attack`: a swing chains when the last attack is still going or only just over, its start quicker or
+ * slower by how it follows the last swing, and builds momentum; a stab chained after swings spends the momentum.
+ */
+function startAttack(world: World, e: Entity, player: PlayerData, input: PlayerInputData, attack: AttackKind): void {
+  const chained = player.combo !== null && (player.action === "attack" || player.comboTime > 0);
+  if (!chained) endCombo(player);
+  if (isSwing(attack)) {
+    const kind = chainKind(player.combo, attack);
+    player.momentum = Math.min(MOMENTUM.max, player.momentum + MOMENTUM.gain[kind]);
+    player.startup = startupTime(kind, player.momentum, STARTER_SWORD.speed);
+    player.power = momentumDamage(player.momentum);
+    player.combo = attack;
+  } else {
+    player.startup = CHAIN.stabStartupTime / STARTER_SWORD.speed;
+    player.power = PLAYER.stab.damageFactor * (1 + player.momentum * MOMENTUM.stabBonusPerPoint);
+    endCombo(player);
+  }
+  startAction(world, e, player, "attack", input.aimX, input.aimZ);
+  player.attack = attack;
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
@@ -43,11 +70,18 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
   if (!input.jump && player.jumpHeld && v.y > 0) v.y *= PLAYER.jumpCutMultiplier;
 }
 
+/** Walk at `factor` of `speed` while busy (swinging, blocking). */
+function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
+  const accel = PLAYER.accel * dt;
+  v.x = approach(v.x, input.moveX * speed, accel);
+  v.z = approach(v.z, input.moveZ * speed, accel);
+}
+
 /**
  * Player controller + combat actions. Runs before the physics step and only ever writes velocity (the physics
- * moves the body). Slash goes where the player aims (the camera's facing); dodge goes where they move, or backwards
- * if standing still. A heavy bag makes the dodge cost more; an overloaded one rules it out and halves the walking
- * speed (items/burden.ts).
+ * moves the body). Attacks go where the player aims (the camera's facing); dodge goes where they move, or backwards
+ * if standing still; block is held, guarding where they aim. A heavy bag makes the dodge cost more; an overloaded
+ * one rules it out and halves the walking speed (items/burden.ts).
  */
 export function playerControllerSystem(): System {
   return (world, dt) => {
@@ -65,20 +99,27 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
   const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
   const alive = health.hp > 0;
 
-  // Edge-detect presses and buffer them, so a press slightly early still counts. A dodge waits out a slash however
-  // early in it it's pressed (the user's call): its buffer only starts running down once the slash lets go.
-  const slash = PLAYER.slash;
-  const slashLocked = player.action === "slash" && player.actionTime < slash.chainAfter;
-  const attackPressed = input.attack && !player.attackHeld, dodgePressed = input.dodge && !player.dodgeHeld;
-  player.attackBuffer = attackPressed ? PLAYER.inputBuffer : Math.max(0, player.attackBuffer - dt);
+  // Edge-detect presses and buffer them, so a press slightly early still counts. A dodge or the next attack waits out
+  // an attack however early in it it's pressed (the user's call): its buffer only runs down once the attack lets go.
+  const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
+  const attackPressed = input.attack !== null && input.attack !== player.attackHeld;
+  const dodgePressed = input.dodge && !player.dodgeHeld;
+  if (attackPressed) {
+    player.queued = input.attack;
+    player.attackBuffer = PLAYER.inputBuffer;
+  } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
   if (dodgePressed) player.dodgeBuffer = PLAYER.inputBuffer;
-  else if (!slashLocked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
+  else if (!locked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
+  if (player.action !== "attack" && player.comboTime > 0) {
+    player.comboTime -= dt;
+    if (player.comboTime <= 0) endCombo(player);
+  }
 
   if (!alive || health.hitstun > 0) {
-    // Knocked back or dead: no control, slide to a stop on the ground.
-    if (player.action !== "none") { player.action = "none"; world.remove(e, ActiveHit); }
+    // Knocked back, staggered or dead: no control, slide to a stop on the ground.
+    if (player.action !== "none" && player.action !== "stagger") { player.action = "none"; world.remove(e, ActiveHit); }
     player.attackBuffer = player.dodgeBuffer = 0;
     if (player.grounded) {
       const slowdown = PLAYER.accel * 0.4 * dt;
@@ -86,8 +127,9 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
       v.z = approach(v.z, 0, slowdown);
     }
   } else {
+    if (player.action === "stagger") player.action = "none";
     const dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
-    const free = player.action === "none" || (player.action === "slash" && !slashLocked);
+    const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
     if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
@@ -96,29 +138,46 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
       startAction(world, e, player, "dodge", dx, dz);
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
-    } else if (free && player.attackBuffer > 0 && stamina.value > 0) {
-      startAction(world, e, player, "slash", input.aimX, input.aimZ);
-      spend(stamina, slash.cost);
+      endCombo(player);
+    } else if (free && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
+      startAttack(world, e, player, input, player.queued);
+      spend(stamina, isSwing(player.queued) ? PLAYER.swing.cost : PLAYER.stab.cost);
       player.attackBuffer = 0;
+    } else if (player.action === "none" && input.block && player.grounded) {
+      startAction(world, e, player, "block", input.aimX, input.aimZ);
+      endCombo(player);
     }
 
     const t = player.actionTime, dir = player.actionDir;
     switch (player.action) {
-      case "slash": {
-        if (t >= slash.windup && t < slash.windup + slash.active) {
-          // Active frames: the hitbox exists and the swing carries you forward a little.
-          if (!world.has(e, ActiveHit)) addHit(world, e, dir.x, dir.z, slash);
-          v.x = dir.x * slash.lungeSpeed;
-          v.z = dir.z * slash.lungeSpeed;
+      case "attack": {
+        const stab = !isSwing(player.attack), move = stab ? PLAYER.stab : PLAYER.swing;
+        // The step into the attack: its blade is live from `liveStep` for the active time.
+        const step = Math.round(t / FIXED_DT), live = liveStep(player.startup);
+        if (step >= live && step < live + liveStep(CHAIN.activeTime)) {
+          if (!world.has(e, ActiveHit)) {
+            addHit(world, e, dir.x, dir.z, {
+              ...attackShape(player.attack, STARTER_SWORD), damage: STARTER_SWORD.damage * player.power,
+              poiseDamage: move.poiseDamage,
+            });
+          }
+          v.x = dir.x * move.lungeSpeed;
+          v.z = dir.z * move.lungeSpeed;
         } else {
           world.remove(e, ActiveHit);
-          const maxSpeed = walkSpeed * slash.moveFactor, accel = PLAYER.accel * dt;
-          v.x = approach(v.x, input.moveX * maxSpeed, accel);
-          v.z = approach(v.z, input.moveZ * maxSpeed, accel);
+          shuffle(input, v, dt, walkSpeed * PLAYER.swing.moveFactor);
         }
-        if (t >= slash.duration) player.action = "none";
+        if (t >= player.startup + CHAIN.activeTime + CHAIN.recoverTime) {
+          player.action = "none";
+          if (player.combo !== null) player.comboTime = CHAIN.gapTime;
+        }
         break;
       }
+      case "block":
+        player.actionDir = { x: input.aimX, z: input.aimZ };
+        shuffle(input, v, dt, walkSpeed * PLAYER.block.moveFactor);
+        if (!input.block) player.action = "none";
+        break;
       case "dodge": {
         const progress = Math.min(1, t / dodge.duration);
         const speed = dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress;
@@ -135,7 +194,7 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
   }
   player.jumpHeld = input.jump;
 
-  // Stamina: paused during actions, regenerates after a short delay.
+  // Stamina: paused during actions (blocking too), regenerates after a short delay.
   if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);

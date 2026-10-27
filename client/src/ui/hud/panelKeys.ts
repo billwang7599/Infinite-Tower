@@ -1,10 +1,11 @@
+import { actionOf } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
 import { useKeydown } from "../components/useKeydown.js";
 import type { OverworldPanel } from "../state.js";
 import type { Store } from "../store.js";
 
 /**
- * The overworld's panel keys (overworld.character, overworld.inventory) toggle their panels. Not while a screen
+ * The panel keys (general.character, general.inventory) toggle their panels. Not while a screen
  * covers the overworld (Settings, where the key may be getting rebound) or while typing in a text field.
  */
 export function usePanelKeys(
@@ -12,8 +13,7 @@ export function usePanelKeys(
 ): void {
   useKeydown((e) => {
     if (e.repeat || e.target instanceof HTMLInputElement || screens.some((s) => s.get().open)) return;
-    const keys = bindings.get().overworld;
-    if (keys.character.includes(e.code)) toggle("character");
-    else if (keys.inventory.includes(e.code)) toggle("inventory");
+    const action = actionOf(bindings.get(), "overworld", e.code);
+    if (action === "character" || action === "inventory") toggle(action);
   });
 }

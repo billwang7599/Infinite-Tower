@@ -1,6 +1,6 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput, Stamina,
+  ActiveHit, ATTACK_KINDS, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput, Stamina,
   type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Stats, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
@@ -53,7 +53,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: false, dodge: false,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -91,13 +91,15 @@ export function dumpState(fight: Fight): string {
 
 /**
  * A busy player that only looks at the step number, so two fights get the same inputs whatever happens in them:
- * turning, running in every direction (into the wall too: the arena is small), slashing, dodging and jumping.
+ * turning, running in every direction (into the wall too: the arena is small), every attack in turn, blocking,
+ * dodging and jumping.
  */
 export function busy(step: number): PlayerInputData {
   const turn = step * 0.05, run = Math.floor(step / 40) * 1.3;
   return input({
     aimX: Math.round(Math.sin(turn) * 1000) / 1000, aimZ: Math.round(Math.cos(turn) * 1000) / 1000,
     moveX: Math.round(Math.sin(run) * 1000) / 1000, moveZ: Math.round(Math.cos(run) * 1000) / 1000,
-    attack: step % 9 < 2, dodge: step % 47 === 0, jump: step % 83 < 10,
+    attack: step % 9 < 2 ? ATTACK_KINDS[Math.floor(step / 9) % ATTACK_KINDS.length]! : null,
+    dodge: step % 47 === 0, jump: step % 83 < 10, block: step % 101 > 88,
   });
 }

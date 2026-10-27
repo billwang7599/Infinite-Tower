@@ -9,11 +9,9 @@ import {
   bagBurden, FIXED_DT, nearCampfire, PLAYER, walkPace,
   type Bag, type ServerMsgOf, type Stats, type System, type Vitals, type WalkInput, type World,
 } from "@infinite-tower/shared";
-import type { Keyboard } from "../core/keyboard.js";
+import type { Actions } from "../core/actions.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection, Joined } from "../net/connection.js";
-import type { KeyMap } from "../settings/bindings.js";
-import type { Settings } from "../settings/settings.js";
 import type { OverworldHudState } from "../ui/state.js";
 import type { Store } from "../ui/store.js";
 import { OverworldPos, registerOverworldDisposers } from "./components.js";
@@ -49,12 +47,11 @@ interface OverworldOptions {
   engine: AbstractEngine;
   world: World;
   view: OverworldView;
-  keyboard: Keyboard;
-  settings: Settings;
+  actions: Actions;
   hud: Store<OverworldHudState>;
 }
 
-export function createOverworld({ engine, world, view, keyboard, settings, hud }: OverworldOptions): Overworld {
+export function createOverworld({ engine, world, view, actions, hud }: OverworldOptions): Overworld {
   registerOverworldDisposers(world);
   const player = spawnOverworldPlayer(world, view, { x: 0, z: 0 });
   const actors = new ActorMirror(world, view);
@@ -108,11 +105,10 @@ export function createOverworld({ engine, world, view, keyboard, settings, hud }
     },
     update(dt, frozen) {
       if (frozen || inBattle || !view.level || !prediction) { accumulator = 0; return; }
-      const keys = settings.bindings.get().overworld;
-      if (keyboard.consumePressed(keys.rest)) rest();
+      if (actions.consumePressed("overworld", "rest")) rest();
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
-        prediction.step(readWalkInput(keyboard, keys));
+        prediction.step(readWalkInput(actions));
         accumulator -= FIXED_DT;
       }
     },
@@ -150,7 +146,7 @@ export function createOverworld({ engine, world, view, keyboard, settings, hud }
   };
 }
 
-/** The overworld's walk keys -> a walk input. Screen-aligned: up is +z. */
-function readWalkInput(keyboard: Keyboard, keys: KeyMap["overworld"]): WalkInput {
-  return { moveX: keyboard.axis(keys.left, keys.right), moveZ: keyboard.axis(keys.down, keys.up) };
+/** The movement keys -> a walk input. Screen-aligned: forward is up the map, +z. */
+function readWalkInput(actions: Actions): WalkInput {
+  return { moveX: actions.axis("overworld", "left", "right"), moveZ: actions.axis("overworld", "back", "forward") };
 }

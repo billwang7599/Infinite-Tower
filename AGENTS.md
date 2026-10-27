@@ -73,7 +73,7 @@ Decided by the user:
   where it doesn't; dropped on a bad spot or outside the bag it goes back; dragging selects it). R or a right click
   turns the dragged item; with nothing dragged, R turns the selected item and a right click the one under the
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
-  bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. I and Esc close it, and you
+  bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. B and Esc close it, and you
   stand still while it's open (the world doesn't pause).
 - Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating) go in
   the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
@@ -97,10 +97,19 @@ Decided by the user:
   Another player, later, may lag on your screen; your own character is always instant.
 - A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
-- A dodge pressed during a slash isn't lost, however early in it: it waits, without cutting the slash short, and
-  starts on the first step the slash lets another action start (`PLAYER.slash.chainAfter`, when the next slash may
-  chain). If the player can't dodge then (no stamina, overloaded, in the air), the press runs out like any early
-  press (`PLAYER.inputBuffer`). With a slash buffered too, the dodge goes first, as before.
+- A dodge (or the next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting
+  the attack short, and starts on the first step the attack lets another action start, as soon as its blade is done
+  (`lettingGoAt` in `shared/src/battle/sword.ts`). If the player can't dodge then (no stamina, overloaded, in the
+  air), the press runs out like any early press (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes
+  first.
+- The sword (hand-tested and approved): eight swings, named by their way across the screen, and a stab, each on its
+  own key in a U I O / J K L / M , . grid (K stabs; each other key swings from its side to the opposite one); block
+  is held (Shift), Space jumps, F dodges, Q / E turn the camera. A swing's reach and arc come from the sword's
+  length and its line (horizontal wide and short, vertical narrow and long; the stab a long thin ray). Swings chain:
+  the next one's start depends on how it follows the last (the reverse quickest, a perpendicular one slowest), and
+  a chain builds momentum (more damage, a quicker start) until a gap, a block, a dodge or a hit taken; a stab after
+  a chain spends it. A block stops a hit from in front for stamina and pushes you back; short of stamina, the guard
+  breaks and you're staggered. Numbers: `shared/src/battle/sword.ts` and `PLAYER` in `player.ts`.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
@@ -268,8 +277,10 @@ Keeping them out of each other's way (and the user's):
   (checked with Zod); no client message may claim a result, a hit or HP.
 - **ECS for game data** (`shared/src/core/ecs.ts`). Plain classes for services (connection, keyboard, mouse,
   prediction, the fight's sync).
-- **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key, and when showing one on screen, read
-  it from the bindings (`keyName`). Esc and ⌘ can't be rebound.
+- **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key: ask about the action
+  (`client/src/core/actions.ts`), and when showing a key on screen, read it from the bindings (`keyName`). Three
+  groups: general (both places), the overworld's and the arena's; a general key is on nothing else, the other two
+  may share. Esc (the settings) and ⌘ can't be rebound.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
   `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
   goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.

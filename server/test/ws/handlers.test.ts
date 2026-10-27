@@ -39,7 +39,8 @@ describe("message handlers", () => {
   });
 
   test("battleInput hands on how far the client has got and its changes, each with its step", () => {
-    const inputs = [{ step: 4, moveX: 0, moveZ: 1, aimX: 0, aimZ: 1, jump: false, attack: true, dodge: false }];
+    const inputs = [{ step: 4, moveX: 0, moveZ: 1, aimX: 0, aimZ: 1, jump: false, attack: "lr" as const, dodge: false,
+      block: false }];
     assert.deepEqual(handle({ t: "battleInput", upTo: 6, inputs }), [["battleInput", 6, inputs]]);
   });
 

@@ -1,9 +1,12 @@
-/** The arena player's drawing, on the fight's player entity: billboard sprite, blob shadow, slash trail. */
+/** The arena player's drawing, on the fight's player entity: billboard sprite, blob shadow, the sword's effects. */
 import { Mesh, MeshBuilder, TransformNode, Vector3 } from "@babylonjs/core";
-import { Body, PLAYER, type Entity, type World } from "@infinite-tower/shared";
+import { attackShape, Body, STARTER_SWORD, type Entity, type World } from "@infinite-tower/shared";
 import { BodyNode } from "../components.js";
 import type { BattleContext } from "../context.js";
 import { PlayerSprite, SPRITE_SIZE, spriteY } from "./components.js";
+
+/** The sword trail's length (m), end to end. */
+export const TRAIL_WIDTH = 2.2;
 
 /** Draws the fight's player `e` (in the fight's `world`). */
 export function addPlayerSprite(ctx: BattleContext, world: World, e: Entity): void {
@@ -25,24 +28,48 @@ export function addPlayerSprite(ctx: BattleContext, world: World, e: Entity): vo
   shadow.material = materials.blobShadow;
   shadow.isPickable = false;
 
-  // Sword trail: a flat crescent in front of the player (local +z), shown during the swing. It spans the same
-  // arc the slash hits, so what you see is what hits.
-  const halfArc = Math.acos(PLAYER.slash.minDot);
+  // Sword trail: a cut across the view in front of the player, a shallow arc from x = 0 to TRAIL_WIDTH (pointed at
+  // both ends), turned to the swing's line and grown from its start (sprite.ts). Drawn over the sprite.
   const inner: Vector3[] = [], outer: Vector3[] = [];
   for (let i = 0; i <= 24; i++) {
-    const u = i / 24 * 2 - 1; // -1..1 along the arc
-    const a = u * halfArc;
-    const thick = Math.cos(u * Math.PI / 2); // pointed tips
-    const ro = 2.1, ri = ro - 0.15 - 0.85 * thick;
-    inner.push(new Vector3(Math.sin(a) * ri, 0, Math.cos(a) * ri));
-    outer.push(new Vector3(Math.sin(a) * ro, 0, Math.cos(a) * ro));
+    const u = i / 24, x = u * TRAIL_WIDTH, bulge = Math.sin(u * Math.PI);
+    const y = bulge * 0.22, thick = 0.04 + 0.2 * bulge;
+    inner.push(new Vector3(x, y - thick / 2, 0));
+    outer.push(new Vector3(x, y + thick / 2, 0));
   }
+  const trail = new TransformNode(`trail-${e}`, scene);
   const slash = MeshBuilder.CreateRibbon(
     `slash-${e}`, { pathArray: [inner, outer], sideOrientation: Mesh.DOUBLESIDE }, scene,
   );
+  slash.parent = trail;
   slash.material = materials.slashFx;
   slash.isPickable = false;
-  slash.setEnabled(false);
+  slash.renderingGroupId = 1;
+  trail.setEnabled(false);
 
-  world.add(e, PlayerSprite, { plane, shadow, slash, walkPhase: 0, stretch: 1 });
+  // The stab: a thin streak out along the aim, as long as the stab reaches.
+  const thrust = new TransformNode(`thrust-${e}`, scene);
+  const reach = attackShape("stab", STARTER_SWORD).range;
+  const streak = MeshBuilder.CreateCylinder(
+    `streak-${e}`, { height: reach, diameterTop: 0.02, diameterBottom: 0.12, tessellation: 8 }, scene,
+  );
+  streak.parent = thrust;
+  streak.rotation.x = Math.PI / 2;
+  streak.position.z = reach / 2;
+  streak.material = materials.slashFx;
+  streak.isPickable = false;
+  streak.renderingGroupId = 1;
+  thrust.setEnabled(false);
+
+  // The block: a pale disc held up in front, drawn over the sprite.
+  const guard = new TransformNode(`guard-${e}`, scene);
+  const disc = MeshBuilder.CreateDisc(`guard-disc-${e}`, { radius: 0.6, tessellation: 24 }, scene);
+  disc.parent = guard;
+  disc.position.set(0, 0.25, 0.6);
+  disc.material = materials.guardFx;
+  disc.isPickable = false;
+  disc.renderingGroupId = 1;
+  guard.setEnabled(false);
+
+  world.add(e, PlayerSprite, { plane, shadow, trail, slash, thrust, guard, walkPhase: 0, stretch: 1 });
 }

@@ -27,28 +27,38 @@ export const PLAYER = {
   staminaRegenPerSec: 45,
   /** Stamina starts refilling this long after an action ends. */
   staminaRegenDelay: 0.6,
-  /** Presses this early still count (queue the next slash / dodge). */
+  /** Presses this early still count (queue the next attack / dodge). */
   inputBuffer: 0.2,
   hurtInvuln: 0.6,
 
-  slash: {
+  /** Swings and the stab: how fast and how far they go is the sword's and the chain's (sword.ts). */
+  swing: {
     cost: 16,
-    windup: 0.09,
-    active: 0.1,
-    duration: 0.4,
-    /** The next slash, or a dodge, may start this far into the current one (a dodge pressed before then waits). */
-    chainAfter: 0.28,
-    /** From the player's center to the target's surface. */
-    range: 2.3,
-    /** cos(70°): a 140° arc. */
-    minDot: 0.34,
-    /** At strength 10. */
-    damage: 9,
     poiseDamage: 12,
-    /** The swing carries you forward at this speed while its hitbox is live. */
+    /** The swing carries you forward at this speed while its blade is live. */
     lungeSpeed: 4,
     /** Fraction of move speed allowed while swinging. */
     moveFactor: 0.25,
+  },
+  stab: {
+    cost: 20,
+    /** Its damage is the sword's times this (and, chained as a finisher, the momentum's bonus: sword.ts). */
+    damageFactor: 1.25,
+    poiseDamage: 18,
+    lungeSpeed: 4,
+  },
+  /** Held: stops what hits from in front for stamina. */
+  block: {
+    /** cos of half the guarded arc in front of the aim: 0.34 is 140°. */
+    minDot: 0.34,
+    /** Stamina a blocked hit costs, per point of its damage. Short of it, the guard breaks. */
+    staminaPerDamage: 1,
+    /** A blocked hit's knockback pushes the player back at this share of it. */
+    pushbackFactor: 0.6,
+    /** Staggered this long when the guard breaks. */
+    guardBreakTime: 0.8,
+    /** Fraction of move speed while blocking. */
+    moveFactor: 0.4,
   },
   dodge: {
     cost: 22,
