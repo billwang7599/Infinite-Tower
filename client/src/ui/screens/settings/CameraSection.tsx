@@ -6,9 +6,7 @@ import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
 import type { MouseSettings } from "../../../settings/mouse.js";
 import { BUTTON } from "../../components/styles.js";
 import { useStore } from "../../useStore.js";
-import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
-
-const FOCUS_RING = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-victory";
+import { FOCUS_RING, SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
 export function CameraSection({ camera, mouse }: { camera: CameraSettings; mouse: MouseSettings }) {
   const sensitivity = useStore(camera, (s) => s.sensitivity);

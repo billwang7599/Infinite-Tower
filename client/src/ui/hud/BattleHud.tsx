@@ -1,21 +1,32 @@
 import type { KeyBindings } from "../../settings/bindings.js";
+import type { HudSettings } from "../../settings/hud.js";
 import { Bar } from "../components/Bar.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { keyName } from "../keyNames.js";
-import type { BattleHudState } from "../state.js";
+import type { BattleHudState, PingState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
+import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<BattleHudState> };
 
 /** The dark band behind the result, fading out above and below. */
 const RESULT_BAND = "bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)]";
 
-export function BattleHud({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
+interface BattleHudProps extends HudProps {
+  bindings: KeyBindings;
+  ping: Store<PingState>;
+  hudSettings: HudSettings;
+}
+
+export function BattleHud({ hud, bindings, ping, hudSettings }: BattleHudProps) {
   return (
     <HudLayer id="battle-hud">
       <Vitals hud={hud} />
+      <div className="absolute top-3 right-4">
+        <Ping ping={ping} hud={hudSettings} />
+      </div>
       <BossBar hud={hud} />
       <ResultBanner hud={hud} bindings={bindings} />
     </HudLayer>

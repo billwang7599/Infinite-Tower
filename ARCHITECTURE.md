@@ -224,7 +224,7 @@ While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zo
 than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
 `GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks every
 session 60 times a second; on the overworld every 3rd tick sends a `state`, and in a fight every 15th step of the
-server's fight a `battleHash`.
+server's fight a `battleHash`. A `ping` never reaches the session: `Connection` answers it with a `pong` itself.
 
 | Client -> server | When |
 |---|---|
@@ -237,6 +237,7 @@ server's fight a `battleHash`.
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
+| `ping {id}` | every 2 s, for the HUD's ping |
 | `debug {cmd}` | dev server only: `encounter` starts a fight |
 
 | Server -> client | When |
@@ -251,6 +252,7 @@ server's fight a `battleHash`.
 | `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, bag |
 | `rested`, `itemUsed` | what resting or eating did |
 | `bag` | your bag after a `moveItem`, whether or not the move was allowed |
+| `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
 (`CLOSE_CODES` in `shared/src/net/accounts.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
@@ -278,6 +280,10 @@ says how a fight ended: only the server's fight decides it, and its final `battl
 (`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so the netcode can be
 felt on localhost. A page can ask for another with `?ping=N` (the client passes it on to `/ws`; anything but a whole
 number of ms gets the `.env`'s). Production never delays.
+
+**The HUD's ping.** `client/src/net/ping.ts` sends a `ping` every 2 s and puts the average of the last 4 round
+trips in `ui.ping`; `ui/hud/Ping.tsx` shows it in both HUDs unless Show ping (`settings.hud`) is off. The `pong` is
+delayed like everything else, so `?ping=200` reads about 200.
 
 ## Saving
 
@@ -322,14 +328,14 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
-  `DEV_PING_MS`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
-- **client**: only logic that runs without Babylon or the DOM: key bindings, camera and mouse settings, settings
+  `DEV_PING_MS`; a `ping` answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
+- **client**: only logic that runs without Babylon or the DOM: key bindings, camera, mouse and HUD settings, settings
   sync, when the mouse is captured, overworld prediction, the fight's sync (only changes sent, with their steps and
   heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync asked, the server's
   fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice nor dropped; the
   result and its banner waiting for the server) and pace (real time's steps, catching up after a stall, a backlog
   dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news ignored), the
-  title's sequence timing, character creation's steps
+  title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
   and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the
   item pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the
   battle sprite in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering,
@@ -467,7 +473,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      joins the player; the connection's simulated ping), connection.ts (one socket = the
                      PlayerLink: Zod-checked in, typed out, delayed both ways by a dev ping), delay.ts (DelayLine:
                      a FIFO that holds each message for a while, in order), handlers.ts (each ClientMsg -> one call
-                     on the session)
+                     on the session; connection.ts answers `ping` itself)
     api/             Outlet: HTTP, on Fastify. server.ts (builds the app: plugins, JSON-only bodies, the built
                      client from client/dist, with hashed assets/ cached for good), cookies.ts (the httpOnly login
                      cookie), errors.ts (every error as `{error}` with a sentence the title screen can show)
@@ -498,7 +504,7 @@ client/          Browser game: Babylon rendering, input, React UI.
     net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
                      account.ts (the /api calls: who's
-                     logged in, log in, register, log out)
+                     logged in, log in, register, log out), ping.ts (startPinging: the HUD's ping, every 2 s)
     core/            keyboard.ts (off outside a session, with Settings open, or the bag), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
                      auto lock is on; shouldAutoLock is that rule), buttons.ts (held + latched presses), time.ts
@@ -507,7 +513,7 @@ client/          Browser game: Babylon rendering, input, React UI.
                      back), bindings.ts (ACTIONS: every action, label, default keys, fixed mouse buttons;
                      KeyBindings: the player's keys; keys saved under the old group name `field` load as the
                      overworld's), camera.ts (CameraSettings: sensitivity), mouse.ts (MouseSettings: auto lock, on
-                     by default, so a save without it reads as on)
+                     by default, so a save without it reads as on), hud.ts (HudSettings: show ping, the same way)
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
@@ -527,7 +533,7 @@ client/          Browser game: Babylon rendering, input, React UI.
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then notices, banner, fade, Settings,
                        character creation, title screen (the HUD and Settings only once `inWorld` and not
                        creating; creation as soon as a game runs without a character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD; bars are
+      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping; bars are
                        `...Fraction`, 0..1), `notifications` (notifications/), `settingsScreen`, `creation` and
                        `overworldPanel` (which side panel is open: the UI writes them too, the game watches them;
                        the open bag has the keys, `bagHasTheKeys`), and UiActions (what the UI asks of the game:
@@ -540,14 +546,14 @@ client/          Browser game: Babylon rendering, input, React UI.
                        backdrop), styles.ts (BUTTON, TEXT_INPUT, DIALOG_BOX / DIALOG_TITLE), noFocus.ts (buttons a
                        click can't focus, so Space / Enter stay with the game), useKeydown.ts (a window key listener),
                        LookPicture.tsx (a look on a canvas: the portrait, or the chibi facing front), ItemPicture.tsx
-      hud/             OverworldHud.tsx (HP / stamina, wins, level name, character + settings buttons),
+      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, character + settings buttons),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats; statText.ts), inventory/ (the bag screen: InventoryPanel.tsx wires
                        the mouse and the bag keys, BagGrid.tsx draws the grid and the hovered / selected /
                        dragged states, bagMouse.ts holds those as plain data, BagDetails.tsx the selected item,
                        ItemTooltip.tsx + itemInfo.ts the tooltip, grid.ts the cell size), PanelFrame.tsx (the
                        side panels' box), layout.ts (the side panels' widths and the Rest button's place, which
-                       the notices keep clear of), panelKeys.ts, icons.tsx
+                       the notices keep clear of), panelKeys.ts, icons.tsx, Ping.tsx (both HUDs' ping)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
                        `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
                        lines), battleResult.ts (what a `battleResult` says: found, left behind, died / lost,
@@ -568,7 +574,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                          glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
                          space.ts
         settings/        SettingsScreen.tsx (Esc toggles, Return to title), CameraSection.tsx (sensitivity,
-                         Auto mouse lock), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
+                         Auto mouse lock), HudSection.tsx (Show ping), KeyBindingsList.tsx (rebinding), styles.ts
+                         (a setting's row)
         creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
                          greeting, the panel beside the portrait and chibi, "Is this you?", saving, the farewell,
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what

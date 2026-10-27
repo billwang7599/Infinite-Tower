@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { dispatch, type ClientMsg } from "@infinite-tower/shared";
+import { dispatch } from "@infinite-tower/shared";
 import type { GameSession } from "../../src/core/game/session.js";
+import type { SessionMsg } from "../../src/ws/connection.js";
 import { handlers } from "../../src/ws/handlers.js";
 import { TEST_CHARACTER } from "../fixtures/level.js";
 
@@ -26,7 +27,7 @@ function fakeSession() {
   return { calls, session: session as unknown as GameSession };
 }
 
-function handle(msg: ClientMsg): Call[] {
+function handle(msg: SessionMsg): Call[] {
   const { calls, session } = fakeSession();
   dispatch(handlers, msg, session);
   return calls;
@@ -78,8 +79,8 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "debug", cmd: "encounter" }), [["debugEncounter"]]);
   });
 
-  test("every client message type has a handler", () => {
-    const types: ClientMsg["t"][] = [
+  test("every session message type has a handler", () => {
+    const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
       "debug",
     ];

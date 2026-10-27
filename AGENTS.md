@@ -291,7 +291,7 @@ Keeping them out of each other's way (and the user's):
 - Comments only where they explain something non-obvious (why, units, gotchas). Don't write comments that restate
   a name or a type.
 - Styling is Tailwind v4 classes, with theme tokens in `client/src/ui/styles.css`. Write class names out in full.
-- No on-screen control hints or fps counters.
+- No on-screen control hints or fps counters; the HUD's ping (Show ping in Settings hides it) is the one exception.
 - Markdown is wrapped at 120 columns (tables and code blocks may run longer). When editing a paragraph, rewrap
   only the lines you changed.
 
