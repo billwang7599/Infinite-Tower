@@ -15,6 +15,9 @@
   --color-died: #a8231b;
   --color-victory: #e8c45a;
   --color-error: #ff8f86;
+  --color-ping-good: #6fd27a;
+  --color-ping-fair: #f0b23c;
+  --color-ping-poor: #ff6a5c;
   /* The creation screen: dark text and a deeper gold, on white. */
   --color-ink: #23252e;
   --color-gilt: #a8822a;

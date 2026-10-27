@@ -32,12 +32,15 @@ export function App({ ui, settings, actions }: { ui: UiState; settings: Settings
         <>
           {mode === "overworld" && (
             <OverworldHud
-              hud={ui.overworld} bindings={settings.bindings} settingsScreen={ui.settingsScreen}
+              hud={ui.overworld} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud}
+              settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
             />
           )}
-          {mode === "battle" && <BattleHud hud={ui.battle} bindings={settings.bindings} />}
+          {mode === "battle" && (
+            <BattleHud hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} />
+          )}
         </>
       )}
       <Notices

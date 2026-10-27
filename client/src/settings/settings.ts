@@ -11,30 +11,36 @@ import type { SavedSettings } from "@infinite-tower/shared";
 import type { Connection } from "../net/connection.js";
 import { KeyBindings } from "./bindings.js";
 import { CameraSettings } from "./camera.js";
+import { HudSettings } from "./hud.js";
 import { MouseSettings } from "./mouse.js";
 
 export interface Settings {
   bindings: KeyBindings;
   camera: CameraSettings;
   mouse: MouseSettings;
+  hud: HudSettings;
 }
 
 /** A burst of changes (dragging the slider) goes to the server as one message. */
 const SEND_AFTER_MS = 400;
 
 export function createSettings(): Settings {
-  return { bindings: new KeyBindings(), camera: new CameraSettings(), mouse: new MouseSettings() };
+  return {
+    bindings: new KeyBindings(), camera: new CameraSettings(), mouse: new MouseSettings(), hud: new HudSettings(),
+  };
 }
 
 export function restoreSettings(settings: Settings, saved: SavedSettings): void {
   settings.bindings.restore(saved.bindings);
   settings.camera.restore(saved.camera);
   settings.mouse.restore(saved.mouse);
+  settings.hud.restore(saved.hud);
 }
 
 function toSaved(settings: Settings): SavedSettings {
   return {
     bindings: settings.bindings.toSaved(), camera: settings.camera.toSaved(), mouse: settings.mouse.toSaved(),
+    hud: settings.hud.toSaved(),
   };
 }
 

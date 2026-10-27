@@ -81,6 +81,8 @@ const SavedSettingsSchema = z.object({
    * such field. The client reads it (settings/mouse.ts); it never runs this schema, only its types.
    */
   mouse: z.object({ autoLock: z.boolean().optional() }).optional(),
+  /** Left out means on, as with `mouse.autoLock`. */
+  hud: z.object({ showPing: z.boolean().optional() }).optional(),
 });
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 
@@ -115,12 +117,15 @@ const UseItemMsg = z.object({ t: z.literal("useItem"), at: CellSchema });
  */
 const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: CellSchema, turned: z.boolean() });
 
+/** For the HUD's ping: the connection answers at once with a `pong` of the same `id`; the game never sees it. */
+const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
+
 /** Dev-only commands (the server ignores them in production). */
 const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, DebugMsg,
+  MoveItemMsg, PingMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

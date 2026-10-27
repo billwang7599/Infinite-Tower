@@ -67,7 +67,9 @@ export type ServerMsg =
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; leftBehind: ItemCounts;
     lost: ItemCounts; bag: Bag;
-  };
+  }
+  /** The answer to `ping`. */
+  | { t: "pong"; id: number };
 
 /** One server message by its `t`: `ServerMsgOf<"state">`. */
 export type ServerMsgOf<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;

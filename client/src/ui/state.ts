@@ -69,6 +69,11 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
+export interface PingState {
+  /** Null until a session's first pong. */
+  ms: number | null;
+}
+
 /** The overworld's side panels; one is open at a time. Neither pauses the world. */
 export type OverworldPanel = "character" | "inventory";
 
@@ -120,6 +125,7 @@ export class UiState {
   /** The notices in the corner and the banner in the centre; game code reaches them through `say`. */
   readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
+  readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
   readonly overworld = new Store<OverworldHudState>({

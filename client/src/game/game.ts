@@ -16,6 +16,7 @@ import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
 import type { Overworld } from "../overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
+import { startPinging, type Pinging } from "../net/ping.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
 import { bagHasTheKeys, inWorld, type UiState } from "../ui/state.js";
@@ -54,6 +55,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let stopSync = () => {};
+  let pinging: Pinging | null = null;
   let transition: Transition | null = null;
   /** The fight being flashed into or fought. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
@@ -159,6 +161,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       net = joined.net;
       restoreSettings(settings, joined.welcome.settings);
       stopSync = syncSettings(settings, net);
+      pinging = startPinging(net, (ms) => ui.ping.set({ ms }));
       // Before `listen`: the level may already be waiting in the connection's backlog.
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
@@ -187,6 +190,7 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
           result = msg;
           battle.onResult(msg.won);
         },
+        pong: (msg) => pinging?.pong(msg.id),
       });
       setMode("overworld");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
@@ -198,6 +202,9 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       if (!net) return;
       stopSync();
       stopSync = () => {};
+      pinging?.stop();
+      pinging = null;
+      ui.ping.set({ ms: null });
       engine.stopRenderLoop();
       net.close();
       net = null;

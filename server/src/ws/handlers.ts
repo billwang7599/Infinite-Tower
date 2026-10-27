@@ -1,8 +1,9 @@
 /** Each (already validated) client message, as a call on the player's session. One handler per message type. */
-import type { ClientMsg, Handlers } from "@infinite-tower/shared";
+import type { Handlers } from "@infinite-tower/shared";
 import type { GameSession } from "../core/game/session.js";
+import type { SessionMsg } from "./connection.js";
 
-export const handlers: Handlers<ClientMsg, GameSession> = {
+export const handlers: Handlers<SessionMsg, GameSession> = {
   input: (msg, s) => s.input(msg.seq, msg.moveX, msg.moveZ),
   battleInput: (msg, s) => s.battleInput(msg.upTo, msg.inputs),
   battleResync: (_msg, s) => s.battleResync(),

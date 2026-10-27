@@ -89,6 +89,15 @@ describe("Connection", () => {
     assert.equal(socket.closed?.code, 1008);
   });
 
+  test("answers a ping with a pong of the same id, and doesn't hand it to the game", () => {
+    const { socket, received } = connect();
+    socket.receive({ t: "ping", id: 7 });
+    socket.receive(REST);
+    socket.receive({ t: "ping", id: 8 });
+    assert.deepEqual(socket.messages, [{ t: "pong", id: 7 }, { t: "pong", id: 8 }]);
+    assert.deepEqual(received, [REST]);
+  });
+
   test("onClose runs when the socket closes", () => {
     const { socket, conn } = connect();
     let closes = 0;
@@ -150,6 +159,21 @@ describe("Connection with a simulated ping (dev)", () => {
     t.mock.timers.tick(100);
     assert.deepEqual(socket.kinds(), ["rested"]);
     assert.deepEqual(socket.closed, { code: 4000, reason: "playing somewhere else" });
+  });
+
+  test("a ping's pong comes back the whole simulated round trip later, after what was sent before it", (t) => {
+    const { socket, conn } = slow(t, 200);
+    socket.receive({ t: "ping", id: 1 });
+    t.mock.timers.tick(50);
+    conn.send(RESTED);
+    // Ticked in steps: a mocked timer set inside another's callback counts from the end of that tick.
+    t.mock.timers.tick(50);
+    t.mock.timers.tick(50);
+    assert.deepEqual(socket.kinds(), ["rested"]);
+    t.mock.timers.tick(49);
+    assert.deepEqual(socket.kinds(), ["rested"]);
+    t.mock.timers.tick(1);
+    assert.deepEqual(socket.messages, [RESTED, { t: "pong", id: 1 }]);
   });
 
   test("a ping of 0 delays nothing", (t) => {

@@ -35,10 +35,11 @@ What's built so far:
   (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (I) is the
   grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
   drag to move, R or a right click to turn, Enter or a double click to eat.
-- **HUD:** HP and stamina bars, boars beaten, the level's name, and buttons for the character panel, the inventory
-  and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner and fade;
-  only a fight starting gets the big banner in the middle.
-- **Settings** (Esc): camera sensitivity, auto mouse lock (on by default), key bindings, return to title.
+- **HUD:** HP and stamina bars, boars beaten, the level's name, the ping, and buttons for the character panel, the
+  inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
+  and fade; only a fight starting gets the big banner in the middle.
+- **Settings** (Esc): camera sensitivity, auto mouse lock and show ping (both on by default), key bindings, return
+  to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
@@ -77,7 +78,8 @@ Local settings (database user, password and port, `DATABASE_URL`, the server's `
 
 **A simulated ping (dev only).** The dev server delays the game's messages by half of `DEV_PING_MS` each way (50 ms
 if it's left out; any whole number of ms, 0 for none), so the netcode can be felt on localhost. For one tab, add
-`?ping=N` to the page's address (http://localhost:5173/?ping=200); no restart needed. Production never delays.
+`?ping=N` to the page's address (http://localhost:5173/?ping=200; the HUD's ping then reads about 200); no restart
+needed. Production never delays.
 
 **Troubleshooting.**
 

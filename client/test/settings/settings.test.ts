@@ -21,16 +21,19 @@ describe("createSettings / restoreSettings", () => {
     assert.equal(settings.bindings.isDefault(), true);
     assert.equal(settings.camera.isDefault(), true);
     assert.equal(settings.mouse.isDefault(), true);
+    assert.equal(settings.hud.isDefault(), true);
   });
 
   test("restoreSettings fills every store from the save", () => {
     const settings = createSettings();
     restoreSettings(settings, {
       bindings: { battle: { jump: ["KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
+      hud: { showPing: false },
     });
     assert.deepEqual(settings.bindings.toSaved(), { battle: { jump: ["KeyX"] } });
     assert.equal(settings.camera.get().sensitivity, 2);
     assert.equal(settings.mouse.get().autoLock, false);
+    assert.equal(settings.hud.get().showPing, false);
   });
 
   test("restoreSettings loads key bindings saved under the old group name `field` as the overworld's", () => {
@@ -45,10 +48,12 @@ describe("createSettings / restoreSettings", () => {
     settings.camera.setSensitivity(2);
     settings.bindings.unbind({ group: "overworld", action: "up" }, "KeyW");
     settings.mouse.setAutoLock(false);
+    settings.hud.setShowPing(false);
     restoreSettings(settings, {});
     assert.equal(settings.bindings.isDefault(), true);
     assert.equal(settings.camera.isDefault(), true);
     assert.equal(settings.mouse.get().autoLock, true);
+    assert.equal(settings.hud.get().showPing, true);
   });
 });
 
@@ -86,11 +91,13 @@ describe("syncSettings", () => {
     settings.camera.setSensitivity(2);
     settings.bindings.bind({ group: "battle", action: "jump" }, "KeyX", null);
     settings.mouse.setAutoLock(false);
+    settings.hud.setShowPing(false);
     t.mock.timers.tick(LATER_MS);
     const expected = {
       t: "settings",
       settings: {
         bindings: { battle: { jump: ["Space", "KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
+        hud: { showPing: false },
       },
     };
     assert.deepEqual(net.sent, [expected]);
@@ -103,7 +110,7 @@ describe("syncSettings", () => {
     t.mock.timers.tick(LATER_MS);
     settings.camera.reset();
     t.mock.timers.tick(LATER_MS);
-    assert.deepEqual(net.sent.at(-1), { t: "settings", settings: { bindings: {}, camera: {}, mouse: {} } });
+    assert.deepEqual(net.sent.at(-1), { t: "settings", settings: { bindings: {}, camera: {}, mouse: {}, hud: {} } });
   });
 
   test("switching auto lock sends it", (t) => {

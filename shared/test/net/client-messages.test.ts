@@ -33,6 +33,7 @@ describe("parseClientMsg", () => {
       { t: "useItem", at: { x: 2, y: 1 } },
       { t: "moveItem", from: { x: 0, y: 0 }, to: { x: 3, y: 2 }, turned: true },
       { t: "debug", cmd: "encounter" },
+      { t: "ping", id: 0 },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));
   });
@@ -135,6 +136,18 @@ describe("parseClientMsg", () => {
     // Saved before the setting existed: still valid, and the client reads the missing field as on.
     assert.deepEqual(settings({ mouse: {} }), { t: "settings", settings: { mouse: {} } });
     for (const autoLock of ["false", 0, null]) assert.equal(settings({ mouse: { autoLock } }), null);
+  });
+
+  test("settings: show ping may be left out (on), and must be true or false", () => {
+    const settings = (hud: object) => parse({ t: "settings", settings: { hud } });
+    for (const hud of [{ showPing: false }, {}]) assert.deepEqual(settings(hud), { t: "settings", settings: { hud } });
+    for (const showPing of ["true", 1, null]) assert.equal(settings({ showPing }), null);
+  });
+
+  test("ping: its id is a whole number from 0", () => {
+    for (const id of [-1, 1.5, "3", null, undefined, Number.MAX_SAFE_INTEGER + 2]) {
+      assert.equal(parse({ t: "ping", id }), null, `id ${id}`);
+    }
   });
 
   test("useItem and moveItem: cells are whole, non-negative numbers", () => {

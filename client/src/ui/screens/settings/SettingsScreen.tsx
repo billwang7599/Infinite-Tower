@@ -11,6 +11,7 @@ import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { CameraSection } from "./CameraSection.js";
+import { HudSection } from "./HudSection.js";
 import { KeyBindingsList } from "./KeyBindingsList.js";
 
 interface SettingsProps {
@@ -51,6 +52,7 @@ export function SettingsScreen({ screen, open, close, settings, returnToTitle }:
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-7">
           <CameraSection camera={settings.camera} mouse={settings.mouse} />
+          <HudSection hud={settings.hud} />
           <KeyBindingsList bindings={settings.bindings} />
         </div>
         <Footer close={close} returnToTitle={returnToTitle} />

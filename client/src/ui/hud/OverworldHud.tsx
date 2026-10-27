@@ -1,9 +1,12 @@
 import type { Cell } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
 import type { KeyBindings } from "../../settings/bindings.js";
+import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
-import type { OverworldPanel, OverworldHudState, OverworldPanelState, SettingsScreenState } from "../state.js";
+import type {
+  OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState,
+} from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
@@ -12,11 +15,14 @@ import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "./layout.js";
 import { usePanelKeys } from "./panelKeys.js";
+import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
 
 interface OverworldHudProps extends HudProps {
   bindings: KeyBindings;
+  ping: Store<PingState>;
+  hudSettings: HudSettings;
   settingsScreen: Store<SettingsScreenState>;
   panels: Store<OverworldPanelState>;
   togglePanel: (panel: OverworldPanel) => void;
@@ -38,6 +44,7 @@ export function OverworldHud(props: OverworldHudProps) {
       <PlayerStatus hud={hud} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />
+        <Ping ping={props.ping} hud={props.hudSettings} />
         <HudButton id="inventory-button" label="Inventory" onClick={() => toggle("inventory")}>
           <BagIcon />
         </HudButton>
