@@ -12,7 +12,7 @@ const TELEGRAPH_LENGTH = 14;
 
 /** The boar's node hierarchy, posed every frame by boarAnimationSystem. */
 export interface BoarModelData {
-  /** Follows the physics body; rotated to the boar's facing. */
+  /** Under the body's node; rotated to the boar's facing. */
   root: TransformNode;
   /** Child of root: lean, tremble, fall over. */
   model: TransformNode;
@@ -38,8 +38,10 @@ export function registerBoarDisposers(world: World): void {
   });
 }
 
-/** Builds the boar under the physics collider (`parent`), facing `yaw`, and adds its BoarModel component. */
-export function addBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: EnemyDef, yaw: number): void {
+/** Builds the boar under the body's node (`parent`), facing `yaw`, and adds its BoarModel component. */
+export function addBoarModel(
+  ctx: BattleContext, world: World, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number,
+): void {
   const { scene, sunShadows } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
@@ -143,7 +145,7 @@ export function addBoarModel(ctx: BattleContext, e: Entity, parent: Mesh, def: E
 
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
-  ctx.world.add(e, BoarModel, {
+  world.add(e, BoarModel, {
     root, model, head, legs, stars, telegraph, materials, baseEmissive, eyes, gait: 0, visualYaw: yaw,
   });
 }

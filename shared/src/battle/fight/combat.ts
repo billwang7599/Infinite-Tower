@@ -1,10 +1,13 @@
-import { Vector3 } from "@babylonjs/core";
-import {
-  ActiveHit, Enemy, Fighter, FighterStats, Health, physicalDamage, Player, PLAYER,
-  type Entity, type System, type World,
-} from "@infinite-tower/shared";
-import { Body } from "../components.js";
-import type { BattleContext } from "../context.js";
+/**
+ * Hits. An attack's active frames put an ActiveHit (a sector: range + angle) on the attacker, and after each
+ * physics step every live one is checked against every fighter of the other team with plain math, not physics
+ * triggers: cheap, and the same on the server.
+ */
+import type { Entity, System, World } from "../../core/ecs.js";
+import { ActiveHit, Body, Enemy, Fighter, Health, Player } from "../components.js";
+import { PLAYER } from "../player.js";
+import { FighterStats, physicalDamage } from "../stats.js";
+import type { FightEvent } from "./context.js";
 
 /** Seconds a fighter flashes after a hit. */
 const HIT_FLASH_TIME = 0.12;
@@ -35,13 +38,8 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
   });
 }
 
-/**
- * After each physics step: tick the hit timers, then resolve every active hitbox against every fighter of the other
- * team. Hitboxes are sectors (range + angle) checked with plain math, not physics triggers: cheap, deterministic
- * and identical on a future server.
- */
-export function combatSystem(ctx: BattleContext): System {
-  const knock = new Vector3();
+/** Ticks the hit timers, then resolves every live hitbox. Each hit is reported in `events`. */
+export function combatSystem(events: FightEvent[]): System {
   return (world, dt) => {
     for (const [, h] of world.query(Health)) {
       h.invuln = Math.max(0, h.invuln - dt);
@@ -50,7 +48,7 @@ export function combatSystem(ctx: BattleContext): System {
     }
 
     for (const [, hit, attackerBody, attacker] of world.query(ActiveHit, Body, Fighter)) {
-      const from = attackerBody.mesh.position;
+      const from = attackerBody.pos;
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
         if (targetFighter.team === attacker.team || targetHealth.hp <= 0 || targetHealth.invuln > 0) continue;
         if (hit.alreadyHit.has(target)) continue;
@@ -59,7 +57,7 @@ export function combatSystem(ctx: BattleContext): System {
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
 
-        const to = targetBody.mesh.position;
+        const to = targetBody.pos;
         const dx = to.x - from.x, dz = to.z - from.z;
         const dist = Math.hypot(dx, dz);
         if (dist - targetFighter.radius > hit.range) continue;
@@ -68,6 +66,7 @@ export function combatSystem(ctx: BattleContext): System {
         hit.alreadyHit.add(target);
         targetHealth.hp = Math.max(0, targetHealth.hp - hit.damage);
         targetHealth.flash = HIT_FLASH_TIME;
+        events.push({ type: "hit", target, team: targetFighter.team, damage: hit.damage });
 
         if (player) {
           // Player got hit: knocked back (along the attack, pushed away from the attacker), brief loss of control.
@@ -77,13 +76,10 @@ export function combatSystem(ctx: BattleContext): System {
           let knockZ = hit.dirZ * 0.5 + (dist > 0.01 ? dz / dist : hit.dirZ) * 0.5;
           const knockLen = Math.hypot(knockX, knockZ) || 1;
           knockX /= knockLen; knockZ /= knockLen;
-          knock.set(knockX * hit.knockback, hit.lift, knockZ * hit.knockback);
-          targetBody.aggregate.body.setLinearVelocity(knock);
-          ctx.shake = Math.max(ctx.shake, 0.15 + hit.damage * 0.008);
+          Object.assign(targetBody.vel, { x: knockX * hit.knockback, y: hit.lift, z: knockZ * hit.knockback });
         } else {
           const enemy = world.get(target, Enemy);
           if (enemy) enemy.poise -= hit.poiseDamage;
-          ctx.shake = Math.max(ctx.shake, 0.06);
         }
       }
     }

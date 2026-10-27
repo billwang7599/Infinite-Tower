@@ -1,8 +1,8 @@
 /** Helpers shared by the enemy behaviors. */
-import {
-  ActiveHit, type AttackDef, type EnemyData, type EnemyState, type Entity, type World,
-} from "@infinite-tower/shared";
-import { addHit } from "../../systems/combat.js";
+import type { Entity, World } from "../../../core/ecs.js";
+import { ActiveHit, type EnemyData, type EnemyState } from "../../components.js";
+import type { AttackDef } from "../../defs.js";
+import { addHit } from "../combat.js";
 
 /** Switch state: restart its clock and end any live hitbox. */
 export function enter(world: World, e: Entity, enemy: EnemyData, state: EnemyState, duration = 0): void {

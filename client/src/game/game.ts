@@ -1,7 +1,7 @@
 /**
  * Mode switching and sessions. Two modes, two Babylon scenes, one ECS world:
  * - overworld: the 2D map (overworld/), its own fixed-step loop.
- * - battle:    the 2.5D arena (battle/), stepped by Babylon's lockstep + Havok.
+ * - battle:    the 2.5D arena (battle/): a shared Fight, stepped by Babylon's lockstep.
  * Everything is built once. A session (join -> leave) is one connection to the server, which decides levels,
  * encounters and fight results; this routes its messages (one handler per message type), keeps the settings in
  * sync with it, and runs the transitions: an encounter flashes into battle, leaving a decided fight fades back

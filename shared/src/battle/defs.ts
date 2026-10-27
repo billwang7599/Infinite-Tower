@@ -2,7 +2,7 @@
  * Shapes of server-owned battle content. The values live in server/src/core/content and reach the client
  * with each encounter (the client needs them to draw and, for now, to run the fight).
  *
- * An enemy is a body plus a set of optional attacks. The client's enemy prefab adds one component
+ * An enemy is a body plus a set of optional attacks. The fight's enemy spawn (fight/setup.ts) adds one component
  * per attack (LungeAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
  * mostly a new combination of existing attacks.
  *
@@ -65,8 +65,8 @@ export interface EnemyDef {
   model: "boar";
   maxHp: number;
   stats: Stats;
+  /** Its body is a ball this big. It shoves players aside however heavy it is; players never push it. */
   radius: number;
-  mass: number;
   /** At agility 10. */
   walkSpeed: number;
   /** rad/s */

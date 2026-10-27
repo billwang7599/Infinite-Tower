@@ -7,7 +7,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | Plan | Status |
 |---|---|
 | [vision.md](vision.md): the game this is growing into (floors of a tower, souls-like fights) | direction |
-| [server-fights.md](server-fights.md): run the arena fight on the server | next big step |
+| [server-fights.md](server-fights.md): run the arena fight on the server (the fight is shared code now) | being built |
 | [multiplayer.md](multiplayer.md): other players on the overworld and in fights | direction |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |

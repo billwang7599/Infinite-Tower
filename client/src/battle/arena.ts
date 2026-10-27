@@ -1,31 +1,18 @@
 /**
- * The combat arena: a trampled clearing ringed by standing stones, forest beyond. Sized by the
- * level's ArenaDef; returns its entities so the battle can rebuild it when the size changes.
+ * The combat arena's scenery: a trampled clearing ringed by standing stones, forest beyond. Sized by the
+ * level's ArenaDef; returns its entity so the battle can rebuild it when the size changes. The floor and the wall
+ * you bump into are the fight's physics (shared: ArenaPhysics), which the stones and the grass only show.
  */
-import { MeshBuilder, PhysicsShapeType, type Mesh } from "@babylonjs/core";
+import { MeshBuilder, type Mesh } from "@babylonjs/core";
 import { seededRandom, type Entity } from "@infinite-tower/shared";
-import { addBody, Layer, Meshes } from "./components.js";
+import { Meshes } from "./components.js";
 import type { BattleContext } from "./context.js";
 
-export function buildArena(ctx: BattleContext): Entity[] {
-  const parts: Entity[] = [];
+export function buildArena(ctx: BattleContext): Entity {
   const { world, scene, materials, sunShadows } = ctx;
   const radius = ctx.arena.radius;
   const decor: Mesh[] = [];
   const rand = seededRandom(7); // same stones and trees every time
-
-  const addCollider = (mesh: Mesh, layer: number) => {
-    const e = world.spawn();
-    addBody(world, e, mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.6, layer });
-    mesh.freezeWorldMatrix();
-    parts.push(e);
-  };
-
-  // Ground: an invisible thick box for physics, visible grass + a dirt circle on top.
-  const groundBox = MeshBuilder.CreateBox("ground-collider", { width: 120, depth: 120, height: 1 }, scene);
-  groundBox.position.y = -0.5;
-  groundBox.isVisible = false;
-  addCollider(groundBox, Layer.Ground);
 
   const grass = MeshBuilder.CreateGround("grass", { width: 120, height: 120 }, scene);
   grass.material = materials.grass;
@@ -39,19 +26,7 @@ export function buildArena(ctx: BattleContext): Entity[] {
   dirt.receiveShadows = true;
   decor.push(dirt);
 
-  // Wall: invisible collider ring just outside the radius...
-  const segments = 40;
-  const segLen = (2 * Math.PI * (radius + 0.5)) / segments + 0.2;
-  for (let i = 0; i < segments; i++) {
-    const a = (i / segments) * Math.PI * 2;
-    const wall = MeshBuilder.CreateBox(`wall-${i}`, { width: segLen, height: 4, depth: 1 }, scene);
-    wall.position.set(Math.sin(a) * (radius + 0.5), 2, Math.cos(a) * (radius + 0.5));
-    wall.rotation.y = a;
-    wall.isVisible = false;
-    addCollider(wall, Layer.Wall);
-  }
-
-  // ...shown as a ring of standing stones.
+  // The wall, shown as a ring of standing stones just outside it.
   const stones = 30;
   for (let i = 0; i < stones; i++) {
     const a = ((i + rand() * 0.4) / stones) * Math.PI * 2;
@@ -100,6 +75,5 @@ export function buildArena(ctx: BattleContext): Entity[] {
   for (const m of decor) m.freezeWorldMatrix();
   const decorEntity = world.spawn();
   world.add(decorEntity, Meshes, { meshes: decor });
-  parts.push(decorEntity);
-  return parts;
+  return decorEntity;
 }

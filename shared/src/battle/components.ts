@@ -1,9 +1,9 @@
 /**
- * Arena-fight components. The fight still runs in the client for now; a server-side fight would reuse these.
- * Plain data only. Engine handles (meshes, physics bodies) live in client/src/battle/components.ts.
+ * Arena-fight components: the state of a Fight (battle/fight/). Plain data only; the physics world holds the
+ * colliders (by handle) and the client's drawings hang off the same entities (client/src/battle/components.ts).
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
-import type { Vec2 } from "../core/math.js";
+import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef } from "./defs.js";
 import type { Burden } from "../items/burden.js";
 
@@ -44,6 +44,22 @@ export const Health = defineComponent<HealthData>("Health");
 
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");
+
+/**
+ * A fighter's body in the arena's physics. Code moves it by setting `vel`; each step the physics moves the collider
+ * that far, stopped and slid by the ground and the wall, and writes back where it got to and how fast it went.
+ */
+export interface BodyData {
+  /** The collider's center (m). */
+  pos: Vec3;
+  /** m/s. */
+  vel: Vec3;
+  /** From the feet up to `pos` (m). */
+  centerHeight: number;
+  /** The collider's handle in the fight's ArenaPhysics. */
+  collider: number;
+}
+export const Body = defineComponent<BodyData>("Body");
 
 export type TeamId = "player" | "enemy";
 /** Anything that can hit or be hit. `radius` is its hurt radius on the ground plane. */

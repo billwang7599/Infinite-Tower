@@ -4,7 +4,7 @@
  * connect and join.
  *
  *   game/      start-up, sessions, mode switching       net/      server connection, the account API
- *   overworld/ the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (Havok)
+ *   overworld/ the 2D map mode (+ level renderers)      battle/   the 2.5D arena fight mode (draws a Fight)
  *   core/      keyboard, mouse, frame time              gfx/      procedural textures + pixel-art sprites
  *   settings/  key bindings, camera (kept on server)    ui/       React UI over the canvas (the game writes to
  *                                                                 it through ui/state.ts)

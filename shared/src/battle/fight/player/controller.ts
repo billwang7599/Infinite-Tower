@@ -1,10 +1,13 @@
-import { Vector3 } from "@babylonjs/core";
+import type { Entity, System, World } from "../../../core/ecs.js";
+import { approach, type Vec3 } from "../../../core/math.js";
+import { dodgeCost, walkPace } from "../../../items/burden.js";
 import {
-  approach, ActiveHit, dodgeCost, FighterStats, Health, moveSpeed, Player, PlayerInput, Stamina, PLAYER, walkPace,
-  type Entity, type PlayerAction, type PlayerData, type PlayerInputData, type StaminaData, type System, type World,
-} from "@infinite-tower/shared";
-import { Body, Layer } from "../components.js";
-import { addHit } from "../systems/combat.js";
+  ActiveHit, Body, Health, Player, Stamina, type PlayerAction, type PlayerData, type StaminaData,
+} from "../../components.js";
+import { PlayerInput, type PlayerInputData } from "../../input.js";
+import { PLAYER } from "../../player.js";
+import { FighterStats, moveSpeed } from "../../stats.js";
+import { addHit } from "../combat.js";
 
 /** Start a slash or dodge toward (x, z), ending the last slash's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
@@ -20,7 +23,7 @@ function spend(stamina: StaminaData, cost: number): void {
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
-function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: number, speed: number): void {
+function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
   let ix = input.moveX, iz = input.moveZ;
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
@@ -41,19 +44,17 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vector3, dt: 
 }
 
 /**
- * Player controller + combat actions. Runs before each physics step and only ever writes velocity
- * (Havok owns the position). Slash goes where the player aims (the camera's facing); dodge goes
- * where they move, or backwards if standing still. A heavy bag makes the dodge cost more; an overloaded one rules
- * it out and halves the walking speed (items/burden.ts).
+ * Player controller + combat actions. Runs before the physics step and only ever writes velocity (the physics
+ * moves the body). Slash goes where the player aims (the camera's facing); dodge goes where they move, or backwards
+ * if standing still. A heavy bag makes the dodge cost more; an overloaded one rules it out and halves the walking
+ * speed (items/burden.ts).
  */
 export function playerControllerSystem(): System {
-  const v = new Vector3();
   return (world, dt) => {
     for (const [e, player, input, body, health, stamina, stats]
       of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
-      const b = body.aggregate.body;
+      const v = body.vel;
       const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
-      b.getLinearVelocityToRef(v);
       const alive = health.hp > 0;
 
       // Edge-detect presses and buffer them, so a press slightly early still counts.
@@ -126,13 +127,6 @@ export function playerControllerSystem(): System {
       if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
       else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
       else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
-
-      b.setLinearVelocity(v);
-
-      // Pass through enemies while dodging, knocked back or dead.
-      const solidToEnemies = alive && player.action !== "dodge" && health.hitstun <= 0;
-      const mask = Layer.Ground | Layer.Wall | (solidToEnemies ? Layer.Enemy : 0);
-      if (body.aggregate.shape.filterCollideMask !== mask) body.aggregate.shape.filterCollideMask = mask;
     }
   };
 }

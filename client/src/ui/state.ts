@@ -5,7 +5,7 @@
  * The notices and the centre banner are their own piece (notifications/). `UiActions` is the other direction.
  */
 import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
-import type { FightState } from "../battle/context.js";
+import type { FightState } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
 import { Notifications } from "./notifications/state.js";
 import { Store } from "./store.js";

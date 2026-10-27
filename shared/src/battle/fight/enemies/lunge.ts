@@ -3,7 +3,9 @@
  *
  *   approach ─▶ lungeWindup ─▶ lunge ─▶ lungeRecover ─▶ approach
  */
-import { Enemy, LungeAttack, turnToward, type System } from "@infinite-tower/shared";
+import type { System } from "../../../core/ecs.js";
+import { turnToward } from "../../../core/math.js";
+import { Enemy, LungeAttack } from "../../components.js";
 import { addHitAhead, enter } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */

@@ -1,8 +1,7 @@
-import { Color3, Vector3 } from "@babylonjs/core";
+import { Color3 } from "@babylonjs/core";
 import {
-  ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapAngle, type System,
+  Body, ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapAngle, type System,
 } from "@infinite-tower/shared";
-import { Body } from "../../../components.js";
 import { BoarModel } from "./model.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI, 0] as const; // diagonal pairs move together
@@ -15,14 +14,12 @@ const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
  *   charge: head down, front hoof scrapes the ground, eyes glow, red line on the ground
  */
 export function boarAnimationSystem(): System {
-  const vel = new Vector3();
   let clock = 0;
 
   return (world, dt) => {
     clock += dt;
     for (const [e, nodes, enemy, health, body] of world.query(BoarModel, Enemy, Health, Body)) {
-      body.aggregate.body.getLinearVelocityToRef(vel);
-      const speed = Math.hypot(vel.x, vel.z);
+      const speed = Math.hypot(body.vel.x, body.vel.z);
 
       nodes.visualYaw += wrapAngle(enemy.yaw - nodes.visualYaw) * dampFactor(15, dt);
       nodes.root.rotation.y = nodes.visualYaw;

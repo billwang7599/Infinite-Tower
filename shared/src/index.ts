@@ -1,5 +1,6 @@
 // Code both sides run: ECS, math, the overworld's walking rules, the arena's components and player rules,
-// message types. No game content (enemy stats, encounter rates, levels): that is server/src.
+// message types. No game content (enemy stats, encounter rates, levels): that is server/src. The arena fight itself
+// is its own entry point, "@infinite-tower/shared/fight" (battle/fight/index.ts), so Rapier only loads where it runs.
 export * from "./core/components.js";
 export * from "./core/ecs.js";
 export * from "./core/math.js";

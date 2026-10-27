@@ -3,7 +3,8 @@
 A browser game in progress: an SAO-style souls-like where you explore a 2D overworld and fight monsters in small 2.5D
 arenas. Single-player for now.
 
-Babylon.js + Havok in the browser, React + Tailwind for the UI, a Node server (Fastify + ws), Postgres (Drizzle).
+Babylon.js in the browser, Rapier for the arena's physics, React + Tailwind for the UI, a Node server (Fastify + ws),
+Postgres (Drizzle).
 
 ## Features
 
@@ -82,7 +83,7 @@ git-ignored. `npm run dev` copies it from `.env.example` the first time. Changin
 ## Files
 
 ```
-shared/            code the server and the browser both run: ECS, math, fight rules and data, the Zod messages
+shared/            code the server and the browser both run: ECS, math, the arena fight (Rapier), the Zod messages
 server/src/
   core/            the game itself: accounts, the overworld, encounters, saving rules (no I/O)
   api/  ws/  db/   what plugs into core: HTTP (Fastify), the game socket, Postgres (Drizzle)
