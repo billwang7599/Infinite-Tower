@@ -1,13 +1,15 @@
 /**
  * Enemy models by EnemyDef.model. A model builds its meshes under the enemy's node (BodyNode) and adds its
  * own component, animates it with its own render system, and disposes it when the enemy is removed.
- * New look: add a folder next to boar/ and list it here.
+ * New look: add a folder next to boar/ and kobold/ and list it here.
  */
 import type { TransformNode } from "@babylonjs/core";
 import type { EnemyDef, Entity, System, World } from "@infinite-tower/shared";
 import type { BattleContext } from "../../context.js";
 import { boarAnimationSystem } from "./boar/animation.js";
 import { addBoarModel, registerBoarDisposers } from "./boar/model.js";
+import { koboldAnimationSystem } from "./kobold/animation.js";
+import { addKoboldModel, registerKoboldDisposers } from "./kobold/model.js";
 
 export interface EnemyModel {
   /** Builds the model under `node` (which follows the body), facing `yaw`, and adds its component to `e` in `world`. */
@@ -19,4 +21,5 @@ export interface EnemyModel {
 
 export const ENEMY_MODELS: Record<EnemyDef["model"], EnemyModel> = {
   boar: { add: addBoarModel, animation: boarAnimationSystem, registerDisposers: registerBoarDisposers },
+  kobold: { add: addKoboldModel, animation: koboldAnimationSystem, registerDisposers: registerKoboldDisposers },
 };

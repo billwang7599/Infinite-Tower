@@ -35,6 +35,7 @@ describe("parseClientMsg", () => {
       { t: "useItem", at: { x: 2, y: 1 } },
       { t: "moveItem", from: { x: 0, y: 0 }, to: { x: 3, y: 2 }, turned: true },
       { t: "debug", cmd: "encounter" },
+      { t: "debug", cmd: "encounter", enemy: "kobold-swordsman" },
       { t: "ping", id: 0 },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));

@@ -4,11 +4,11 @@
  */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, LungeDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
 
-/** "attack": a swing or the stab (`attack` says which). "stagger": the guard broken (in hitstun). */
+/** "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun). */
 export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger";
 
 export interface PlayerData {
@@ -92,6 +92,8 @@ export interface ActiveHitData {
   minDot: number;
   /** A ray's reach either side of its line, to the target's surface. */
   width: number;
+  /** A sword's swing or stab (parried and blocked by its kind), or null: a body blow (a boar's), never parried. */
+  attack: AttackKind | null;
   damage: number;
   knockback: number;
   lift: number;
@@ -126,9 +128,10 @@ export interface EnemyMove {
  * "approach". A new attack adds its states here.
  */
 export type EnemyState =
-  | "approach" | "stunned" | "staggered" | "dead"
+  | "approach" | "stunned" | "parried" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
-  | "chargeWindup" | "charge" | "chargeRecover";
+  | "chargeWindup" | "charge" | "chargeRecover"
+  | "swordWindup" | "sword" | "swordRecover";
 
 /**
  * Any arena enemy. Its AI is split into behaviors: the enemy systems handle approaching, poise,
@@ -140,7 +143,7 @@ export interface EnemyData {
   state: EnemyState;
   /** Seconds in the current state. */
   stateTime: number;
-  /** Seconds the current generic state lasts ("stunned", "staggered"). */
+  /** Seconds the current state lasts ("stunned", "parried", "staggered", a sword's wind-up). */
   duration: number;
   /** Facing (see yaw convention in core/math.ts). */
   yaw: number;
@@ -159,5 +162,17 @@ export interface AttackState<D> {
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
+/** A swordsman's chains of swings. Its random numbers come from `rng`, a seed kept in the fight (and its hash). */
+export interface SwordAttackData extends AttackState<SwordDef> {
+  /** The attack winding up, swinging or last swung. */
+  attack: AttackKind;
+  /** Swings still to come in this chain after the current one. */
+  swingsLeft: number;
+  rng: number;
+  /** Seconds until it can parry again. */
+  parryCooldown: number;
+}
+
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
+export const SwordAttack = defineComponent<SwordAttackData>("SwordAttack");

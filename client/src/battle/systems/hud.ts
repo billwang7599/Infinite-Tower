@@ -27,7 +27,8 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
       patch.enemyName = enemy[1].def.name;
       patch.enemyHpFraction = fraction(enemy[2].hp, enemy[2].max);
     }
-    patch.cue = me?.[4].action === "stagger" ? "staggered" : "none";
+    patch.cue = enemy?.[1].state === "parried" && patch.enemyAlive ? "parried"
+      : me?.[4].action === "stagger" ? "staggered" : "none";
 
     hud.set(patch);
   };

@@ -122,8 +122,8 @@ const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: C
 /** For the HUD's ping: the connection answers at once with a `pong` of the same `id`; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
-/** Dev-only commands (the server ignores them in production). */
-const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]) });
+/** Dev-only commands (the server ignores them in production). `encounter` fights `enemy` (an id), or a wild boar. */
+const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]), enemy: z.string().max(32).optional() });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,

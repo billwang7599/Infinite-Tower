@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inTallGrass } from "@infinite-tower/shared";
 import type { EnemyId } from "../../../src/core/content/enemies.js";
+import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { OVERWORLD_PREFABS } from "../../../src/core/overworld/prefabs/index.js";
+import { testOverworld } from "../overworld/helpers.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/levels/level.js";
 
@@ -60,5 +62,21 @@ describe("getLevel", () => {
     for (const s of level.spawns) assert.ok(s.prefab in OVERWORLD_PREFABS);
     assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
     assert.ok(level.grass.stepDist > 0);
+  });
+
+  test("the Kobold Swordsman has a patch of its own: one spawns on the start level, away from the boar", () => {
+    const level = getLevel(START_LEVEL);
+    const kobold = level.spawns.find((s) => s.prefab === "kobold");
+    const boar = level.spawns.find((s) => s.prefab === "boar");
+    assert.ok(kobold && boar);
+    assert.ok(Math.hypot(kobold.at.x - boar.at.x, kobold.at.z - boar.at.z) > 8);
+    assert.equal(inTallGrass(level.layout, kobold.at.x, kobold.at.z), false);
+  });
+
+  test("the overworld kobold starts a Kobold Swordsman fight when it touches you", () => {
+    const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
+    const e = OVERWORLD_PREFABS.kobold(f.world, { x: 0, z: 0 });
+    touchSystem(f.ctx)(f.world, 0.1);
+    assert.deepEqual(f.encounters, [{ source: e, enemy: "kobold-swordsman" }]);
   });
 });

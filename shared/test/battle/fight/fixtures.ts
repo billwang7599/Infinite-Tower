@@ -1,7 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput, Stamina,
-  type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Stats, type Vec3,
+  SwordAttack, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Stats, type SwordDef,
+  type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -43,6 +44,21 @@ export const BOAR: EnemyDef = {
   },
 };
 
+/** One swing at a time, its wind-up as the Kobold's; never walks, and attacks only once (cooldown 99). */
+export const sword = (over: Partial<SwordDef>): SwordDef => ({
+  length: 1, damage: 12, knockback: 0, lift: 0, triggerDist: 3, windup: 0.6, chainWindup: 0.45, active: 0.12,
+  speed: 0, recover: 0.8, minChain: 1, maxChain: 1, moves: ["lr"], cooldown: 99, firstDelay: 0,
+  parryReaction: 0.3, parryCooldown: 1.5, ...over,
+});
+
+/** A swordsman like the Kobold, rooted to the spot: one "lr" swing (as the player sees it) as soon as it can. */
+export const SWORDSMAN: EnemyDef = {
+  ...ENEMY_BASE, model: "kobold", radius: 0.5, turnRate: 3, attacks: { sword: sword({}) },
+};
+
+/** A swordsman that only guards (it never attacks): it parries badly timed swings and blocks stabs. */
+export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { sword: sword({ firstDelay: 999 }) } };
+
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light", ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
@@ -83,6 +99,7 @@ export function dumpState(fight: Fight): string {
       enemy: enemyData && { ...enemyData, def: enemyData.def.id, sense: undefined, move: undefined },
       lunge: fight.world.get(e, LungeAttack)?.cooldown,
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
+      sword: fight.world.get(e, SwordAttack) && { ...fight.world.get(e, SwordAttack), def: undefined },
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
     };
   });

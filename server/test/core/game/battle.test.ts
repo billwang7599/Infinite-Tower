@@ -88,7 +88,9 @@ describe("starting a battle", () => {
     assert.equal(msg.source, null);
     assert.equal(msg.seat, 0);
     assert.deepEqual(msg.setup.arena, LEVEL.arena);
-    assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW }]);
+    const seed = msg.setup.enemies[0]?.seed;
+    assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
+    assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     assert.deepEqual(msg.setup.players, [{ at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light" }]);
   });
 

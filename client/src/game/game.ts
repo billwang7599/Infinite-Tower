@@ -195,7 +195,8 @@ export function createGame({ engine, keyboard, mouse, ui, settings, battle, over
       setMode("overworld");
       engine.runRenderLoop(() => frame(frameSeconds(engine)));
       exposeDebugHandles({
-        battle, overworld, ui, settings, mode: () => mode, encounter: () => net?.send({ t: "debug", cmd: "encounter" }),
+        battle, overworld, ui, settings, mode: () => mode,
+        encounter: (enemy?: string) => net?.send({ t: "debug", cmd: "encounter", enemy }),
       });
     },
     leave() {

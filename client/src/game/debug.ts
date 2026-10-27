@@ -3,7 +3,7 @@
  * `?debug` in the URL): `battle` and `overworld` hold each mode's world and scene (the fighters are in
  * `battle.fight.world`, while a fight is on), `components` every component type, `ui` the HUD stores, `settings`
  * the player's settings, `mode()` the current mode, and `encounter()` starts a fight (the server only allows it in
- * dev).
+ * dev): against a wild boar, or the enemy named (`encounter("kobold-swordsman")`).
  */
 import * as shared from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";
@@ -21,7 +21,7 @@ interface DebugHandles {
   ui: UiState;
   settings: Settings;
   mode: () => Mode | null;
-  encounter: () => void;
+  encounter: (enemy?: string) => void;
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {

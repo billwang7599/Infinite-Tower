@@ -1,5 +1,5 @@
 /** Arena enemies: stats and attacks. The server's fight runs them; each encounter sends them to the client to draw. */
-import type { EnemyDef } from "@infinite-tower/shared";
+import { SWING_DIRS, type EnemyDef } from "@infinite-tower/shared";
 
 const WILD_BOAR: EnemyDef = {
   id: "wild-boar",
@@ -30,5 +30,37 @@ const WILD_BOAR: EnemyDef = {
   },
 };
 
-export const ENEMIES = { "wild-boar": WILD_BOAR } satisfies Record<string, EnemyDef>;
+/**
+ * Floor 1's swordsman. It walks up and swings in chains of two or three, any direction or a stab, each with a wind-up
+ * to read. A swing is parried by the reverse swing, a stab only blocked (or dodged). On guard it parries your swings
+ * (but not within `parryReaction` of coming back on guard, nor for `parryCooldown` after a parry) and blocks your
+ * stabs: hit it while it recovers from a chain, or while it's stunned from a parry.
+ */
+const KOBOLD_SWORDSMAN: EnemyDef = {
+  id: "kobold-swordsman",
+  name: "Kobold Swordsman",
+  model: "kobold",
+  maxHp: 160,
+  stats: { stamina: 100, mana: 0, spellpower: 0, agility: 10, strength: 10 },
+  radius: 0.5,
+  walkSpeed: 2.6,
+  turnRate: 4,
+  poise: 40,
+  poiseRegen: 10,
+  staggerTime: 0.8,
+  attacks: {
+    sword: {
+      length: 1.1, damage: 14, knockback: 5, lift: 1.5,
+      triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, active: 0.12, speed: 3, recover: 0.9,
+      minChain: 2, maxChain: 3, moves: [...SWING_DIRS, "stab"],
+      cooldown: 1.2, firstDelay: 1.5, parryReaction: 0.3, parryCooldown: 1.5,
+    },
+  },
+};
+
+export const ENEMIES = {
+  "wild-boar": WILD_BOAR, "kobold-swordsman": KOBOLD_SWORDSMAN,
+} satisfies Record<string, EnemyDef>;
 export type EnemyId = keyof typeof ENEMIES;
+
+export const isEnemyId = (id: string): id is EnemyId => Object.hasOwn(ENEMIES, id);

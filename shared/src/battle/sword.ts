@@ -1,8 +1,9 @@
 /**
  * The sword: the attacks it makes (eight swings and a stab; blocking is held, see PLAYER.block), the starter
  * sword's stats, the shape each attack hits (from the sword's length), how one swing chains into the next and
- * the momentum a chain builds. Directions are as the player sees them on screen: "lr" goes from left to right,
- * "tlbr" from top-left to bottom-right.
+ * the momentum a chain builds, and parrying. Directions are as the player sees them on screen: "lr" goes from
+ * left to right, "tlbr" from top-left to bottom-right. An enemy's swing is named as the player facing it sees it,
+ * so a swing is parried by its reverse ("lr" by "rl"): the blades meet.
  *
  * Every number here is a tuning knob. Units: seconds and meters.
  */
@@ -121,3 +122,19 @@ export function startupTime(kind: ChainKind, momentum: number, speed: number): n
 
 /** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */
 export const liveStep = (startup: number): number => Math.round(startup / FIXED_DT);
+
+export const PARRY = {
+  /** A swing is parried when the reverse swing's blade went live no more than this long before it lands. */
+  window: 0.15,
+  /** The parried attacker is stunned this long, knocked back this far (m), and takes this much more damage. */
+  stunTime: 1,
+  knockbackDist: 1.5,
+  bonusDamage: 1.5,
+  /** How fast (m/s²) the knocked-back attacker slides to a stop. */
+  slideDecel: 30,
+  /** A player parried by an enemy is staggered this long, knocked back at this speed (m/s). */
+  playerStaggerTime: 0.5,
+  playerKnockbackSpeed: 6,
+  /** Only an attacker within this cosine of where the parrier faces can be parried. */
+  minDot: 0.5,
+} as const;

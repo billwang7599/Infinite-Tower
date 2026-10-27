@@ -24,12 +24,15 @@ export interface Battle {
   over: boolean;
 }
 
+const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
+
 export function startBattle(session: GameSession, source: Entity | null, enemyId: EnemyId): void {
   const { overworld, vitals } = session;
   const setup: FightSetup = {
     arena: overworld.level.arena,
     players: [{ at: PLAYER_START, vitals, stats: session.stats, burden: session.burden }],
-    enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW }],
+    // Its random numbers' seed (a swordsman's swings) is the server's pick, so a client can't choose it.
+    enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
   const room = new BattleRoom(setup, [{
     link: session.link,

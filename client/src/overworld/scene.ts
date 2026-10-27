@@ -7,7 +7,7 @@ import {
   type TransformNode,
 } from "@babylonjs/core";
 import { DEFAULT_LOOK, type LevelLayout } from "@infinite-tower/shared";
-import { drawAlert, drawBoar, playerFrames } from "../gfx/characters.js";
+import { drawAlert, drawBoar, drawKobold, playerFrames } from "../gfx/characters.js";
 import type { ChibiFacing } from "../gfx/look/look.js";
 import { pixelMaterial, spriteMaterial, type SpriteDraw } from "../gfx/sprites.js";
 import { tuftTexture } from "../gfx/textures.js";
@@ -23,6 +23,7 @@ export interface OverworldView {
     /** The player's chibi facing each way (OverworldSprite.facings). */
     player: Record<ChibiFacing, StandardMaterial>;
     boar: StandardMaterial;
+    kobold: StandardMaterial;
     alert: StandardMaterial;
     tuft: StandardMaterial;
   };
@@ -61,6 +62,7 @@ export function createOverworldScene(engine: AbstractEngine): OverworldView {
       tuft: pixelMaterial(scene, "overworld-tuft", tuftTexture(scene), { unlit: true }),
       player: chibiMaterials(scene, playerFrames(DEFAULT_LOOK).chibi),
       boar: spriteMaterial(scene, "overworld-boar", drawBoar),
+      kobold: spriteMaterial(scene, "overworld-kobold", drawKobold),
       alert: spriteMaterial(scene, "overworld-alert", drawAlert),
     },
   };

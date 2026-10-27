@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina, SwordAttack,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BOAR, busy, enemy, player } from "./fixtures.js";
+import { ARENA, BOAR, busy, enemy, player, SWORDSMAN } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -12,8 +12,7 @@ const newFight = () => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: -5 })], enemies: [enemy(BOAR, { x: 0, y: 0.05, z: 3 })],
 });
 
-function busyFight(steps = 240): Fight {
-  const fight = newFight();
+function busyFight(steps = 240, fight = newFight()): Fight {
   while (fight.steps < steps) fight.step([busy(fight.steps + 1)]);
   return fight;
 }
@@ -87,11 +86,25 @@ describe("a fight's hash", () => {
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
         shape: "arc", dirX: 0, dirZ: 1, range: 1, minDot: 0, width: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0,
-        alreadyHit: new Set<number>(),
+        attack: null, alreadyHit: new Set<number>(),
       }); }],
     ];
-    for (const [what, change] of changes) {
-      const fight = busyFight();
+    const swordChanges: [string, (f: Fight) => void][] = [
+      ["the sword's random numbers", (f) => { f.world.require(f.enemies[0]!, SwordAttack).rng += 1; }],
+      ["the sword's cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).cooldown += 0.05; }],
+      ["the sword's parry cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).parryCooldown += 0.05; }],
+      ["the swing it's on", (f) => {
+        const s = f.world.require(f.enemies[0]!, SwordAttack);
+        s.attack = s.attack === "lr" ? "stab" : "lr";
+      }],
+      ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, SwordAttack).swingsLeft += 1; }],
+      ["being parried", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "parried"; }],
+    ];
+    const swordFight = () => busyFight(240, new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: -3 })], enemies: [enemy(SWORDSMAN, { x: 0, y: 0.05, z: 3 })],
+    }));
+    for (const [what, change] of [...changes, ...swordChanges]) {
+      const fight = swordChanges.some(([w]) => w === what) ? swordFight() : busyFight();
       const before = fight.hash();
       change(fight);
       assert.notEqual(fight.hash(), before, what);

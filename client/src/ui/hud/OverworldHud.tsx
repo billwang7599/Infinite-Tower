@@ -77,7 +77,7 @@ function PlayerStatus({ hud }: HudProps) {
       {name && <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
       <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
       <div id="overworld-wins" className="text-[13px] font-normal">
-        Boars defeated: <span className="font-semibold text-victory">{wins}</span>
+        Foes defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>
     </div>
   );
