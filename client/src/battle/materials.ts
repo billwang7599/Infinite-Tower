@@ -5,9 +5,9 @@
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { DEFAULT_LOOK } from "@infinite-tower/shared";
 import { playerFrames } from "../gfx/characters.js";
-import type { Pose } from "../gfx/look/battle.js";
+import type { Pose, SwordPose } from "../gfx/look/battle.js";
 import { colorMaterial } from "../gfx/materials.js";
-import { spriteMaterial } from "../gfx/sprites.js";
+import { spriteMaterial, type SpriteDraw } from "../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../gfx/textures.js";
 
 export interface Materials {
@@ -18,8 +18,8 @@ export interface Materials {
   leaves: StandardMaterial;
   /** The soft round shadow under the player's sprite. */
   blobShadow: StandardMaterial;
-  /** The player's sprite in each pose. */
-  player: Record<Pose, StandardMaterial>;
+  /** The player's sprite: every pose's frames. */
+  player: Record<Pose | SwordPose, StandardMaterial[]>;
   slashFx: StandardMaterial;
   /** The block's guard in front of the player. */
   guardFx: StandardMaterial;
@@ -76,13 +76,10 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.disableLighting = true;
   telegraph.zOffset = -3;
 
-  return {
-    grass, dirt, stone, bark, leaves, blobShadow,
-    player: {
-      stand: spriteMaterial(scene, "player-stand", frames.battle.stand),
-      slash: spriteMaterial(scene, "player-slash", frames.battle.slash),
-      down: spriteMaterial(scene, "player-down", frames.battle.down),
-    },
-    slashFx, guardFx, telegraph,
-  };
+  const player = {} as Materials["player"];
+  for (const [pose, draws] of Object.entries(frames.battle) as [Pose | SwordPose, SpriteDraw[]][]) {
+    player[pose] = draws.map((draw, i) => spriteMaterial(scene, `player-${pose}-${i}`, draw));
+  }
+
+  return { grass, dirt, stone, bark, leaves, blobShadow, player, slashFx, guardFx, telegraph };
 }

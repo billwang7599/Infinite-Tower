@@ -34,7 +34,8 @@ What's built so far:
   hits the wall), and staggers after a few quick hits. The Kobold Swordsman swings in chains of two or three (any
   way, or a stab), each with a wind-up to read: the reverse swing just before one lands parries it (the Kobold is
   stunned and takes more damage); a stab can only be blocked or dodged. On guard it parries your swings and blocks
-  your stabs, so hit it while it recovers from a chain or is stunned.
+  your stabs, so hit it while it recovers from a chain or is stunned. Your sprite winds up, strikes and follows
+  through on every swing and the stab, raises its guard to block, and reels when staggered.
 - **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q / E turn the
   camera, Space jumps, F (or a right click) dodges, Shift blocks; U I O / J K L / M , . is a grid where K stabs

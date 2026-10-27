@@ -22,6 +22,8 @@ export interface PlayerSpriteData {
   walkPhase: number;
   /** Smoothed squash/stretch factor. */
   stretch: number;
+  /** The hitstun the current stagger began with (0: not staggered). */
+  staggerTime: number;
 }
 export const PlayerSprite = defineComponent<PlayerSpriteData>("PlayerSprite");
 

@@ -22,7 +22,7 @@ export function addPlayerSprite(ctx: BattleContext, world: World, e: Entity): vo
   plane.parent = node;
   plane.position.y = spriteY(1, 0);
   plane.billboardMode = Mesh.BILLBOARDMODE_Y;
-  plane.material = materials.player.stand;
+  plane.material = materials.player.stand[0]!;
 
   const shadow = MeshBuilder.CreateGround(`shadow-${e}`, { width: 1.1, height: 0.7 }, scene);
   shadow.material = materials.blobShadow;
@@ -71,5 +71,5 @@ export function addPlayerSprite(ctx: BattleContext, world: World, e: Entity): vo
   disc.renderingGroupId = 1;
   guard.setEnabled(false);
 
-  world.add(e, PlayerSprite, { plane, shadow, trail, slash, thrust, guard, walkPhase: 0, stretch: 1 });
+  world.add(e, PlayerSprite, { plane, shadow, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0 });
 }

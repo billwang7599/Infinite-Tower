@@ -5,16 +5,19 @@
  */
 import type { Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
-import type { Pose } from "./look/battle.js";
+import { SWORD_POSES, type Pose, type SwordPose } from "./look/battle.js";
 import { drawBattle, drawChibi, type ChibiFacing } from "./look/look.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 export interface PlayerFrames {
   /** The overworld: the chibi facing each way. The side faces right, like every side view here (sprites.ts). */
   chibi: Record<ChibiFacing, SpriteDraw>;
-  /** The arena, in each pose: standing (and running), mid-swing, and down. */
-  battle: Record<Pose, SpriteDraw>;
+  /** The arena: every pose's frames (BATTLE_FRAMES). */
+  battle: Record<Pose | SwordPose, SpriteDraw[]>;
 }
+
+/** How many frames each of the arena's poses has. */
+export const BATTLE_FRAMES: Record<Pose | SwordPose, number> = { stand: 1, slash: 1, down: 1, ...SWORD_POSES };
 
 /** The player's frames in `look`. Each picture fills the sprite: 32 chibi or 64 battle pixels across its 24. */
 export function playerFrames(look: Look): PlayerFrames {
@@ -22,14 +25,14 @@ export function playerFrames(look: Look): PlayerFrames {
     const pic = drawChibi(look, facing);
     return (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side");
   };
-  const battle = (pose: Pose): SpriteDraw => {
-    const pic = drawBattle(look, pose);
-    return (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width);
-  };
-  return {
-    chibi: { front: chibi("front"), back: chibi("back"), side: chibi("side") },
-    battle: { stand: battle("stand"), slash: battle("slash"), down: battle("down") },
-  };
+  const battle = {} as PlayerFrames["battle"];
+  for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
+    battle[pose] = Array.from({ length: count }, (_, frame): SpriteDraw => {
+      const pic = drawBattle(look, pose, frame);
+      return (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width);
+    });
+  }
+  return { chibi: { front: chibi("front"), back: chibi("back"), side: chibi("side") }, battle };
 }
 
 /** `pic`, each of its pixels `scale` sprite pixels square; `mirrored` flips it left to right. */
