@@ -7,6 +7,9 @@ small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with t
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
 - `client/`: Vite, Babylon.js, React UI
 
+The user's rules for every project (subagents, comments and code style, test-first, PRs and stacks) are in
+`~/.pi/agent/AGENTS.md`. This file has only what's specific to this repo.
+
 ## The docs, and keeping them current
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): how the pieces fit and talk, the rules, every folder and file, recipes for
@@ -16,7 +19,8 @@ small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with t
 - [plan/](plan/): future plans and parked ideas, one file each, with what's decided and what's open. Update it when
   the user mentions a future plan or asks to note an idea, or a plan gets built (move what's true into the other
   docs, then delete or trim the plan).
-- AGENTS.md: this file. Update it when the user decides something, or tells you how they want work done.
+- AGENTS.md: this file. Update it when the user decides something about this repo or game. How they want work
+  done in general goes in `~/.pi/agent/AGENTS.md`.
 
 [ART.md](ART.md)'s "What to draw" counts the drawings each piece of art needs: update it whenever a look option,
 body type, view, chibi facing or battle pose is added or removed.
@@ -192,14 +196,8 @@ If the server won't start, see "Troubleshooting" in the README.
 
 ## Test first
 
-The user wants test-first work. For a feature or a bug fix:
-
-1. If it involves a game mechanic, settle it with the user first (above). The tests then say what was agreed.
-2. Write the tests that describe the new behavior, run `npm test` and see them fail for the right reason.
-3. Write the code until they pass, then clean up with the tests still passing.
-4. If a new test finds a bug in existing code, fix it in the same PR. Don't leave a skipped test for a known bug.
-
-Where tests go and how they're written:
+Test-first as in the global rules; if it involves a game mechanic, settle it with the user first (above), so the
+tests say what was agreed. Where tests go and how they're written:
 
 - In each workspace's `test/` folder, mirroring `src/`: `server/test/core/game/session.test.ts` tests
   `server/src/core/game/session.ts`. Node's runner (`node:test`, `node:assert/strict`), run through tsx; no test
@@ -210,8 +208,7 @@ Where tests go and how they're written:
 - Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`, and
   `t.mock.method(Math, "random", ...)` before an `Overworld` is made (it keeps `Math.random` as its `rng`). A fight
   needs no clock: tests step it (`session.tick`, `room.tick`), and test files that make one await `initPhysics()`.
-- Read tuning numbers from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires) instead of writing
-  them into tests, so retuning the game doesn't break tests that aren't about the numbers.
+- Tuning numbers come from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires).
 - What has no unit tests (Babylon rendering, React screens, how the arena fight feels, the Postgres stores) is
   still tried in a browser before calling it done.
 
@@ -225,37 +222,20 @@ Where tests go and how they're written:
   `window.battle`, `window.overworld`, `window.ui`, `window.settings` and `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold). Skip this when the user says it isn't needed.
 - The docs above match what you changed.
-- In your report, say what you tested. Say plainly if nothing was hand-played.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.
 
-## Subagents: work in parallel, keep the main chat free
+## Subagents in this repo
 
-The user wants as much work running at once as possible, and the main chat free for their questions.
+The global rules apply; here is how to set one up in this repo.
 
-- **The main chat plans, hands out and answers.** Split a request into independent pieces and give each to a
-  background subagent: building, tests, browser checks, reviews, research, watching CI. Do only quick things in the
-  main chat (answering a question, reading a file to answer it, a one-line fix). Don't sit waiting on a subagent:
-  carry on, or end the turn and say what's running.
-- **Brief each subagent fully**; it doesn't see the chat. Give it the goal, what the user decided (in their words),
-  its branch and base, worktree, ports, database and test account, what it must not touch, and what to report.
 - **Subagents don't decide game mechanics either.** One that needs a decision only the user can make stops and
   reports the options; the main chat asks the user.
-- **Check what comes back.** A report says what the subagent meant to do. Read the diff and the check results
-  before telling the user something is done.
-- If subagents start failing on rate limits, run fewer at once.
-
-Keeping them out of each other's way (and the user's):
-
-- **One subagent, one branch, one worktree.** A subagent that changes files works in its own worktree:
-  `git worktree add /tmp/it-<branch> -b <branch> <base>`, then `npm ci` there. Don't symlink `node_modules` from
-  another checkout: `@infinite-tower/shared` would resolve to that checkout's code. Read-only work (reviews,
-  research, CI) needs no worktree.
-- **The main checkout belongs to the user and the main chat.** Subagents don't switch its branch, edit its files
-  or touch its dev servers (:8787 and :5173). Saving a server file there restarts the server under the user.
-- **No two subagents edit the same files at once.** If two pieces need the same code, run them one after the
-  other, or stack the second branch on the first. Every PR touches the docs; whichever merges second rebases and
-  fixes the conflicts.
+- **Worktree:** `git worktree add /tmp/it-<branch> -b <branch> <base>`, then `npm ci` there. Don't symlink
+  `node_modules` from another checkout: `@infinite-tower/shared` would resolve to that checkout's code.
+- **The user's dev servers are :8787 and :5173** in the main checkout. Saving a server file there restarts the
+  server under the user.
+- **Every PR touches the docs**; whichever merges second rebases and fixes the conflicts.
 - **Its own database and servers, when it runs the game.** Make a database in the same Postgres container
   (`docker compose exec -T db createdb -U infinite_tower it_<name>`), then in the worktree `npm run env:init`
   and set its `.env`: `DATABASE_URL=postgres://infinite_tower:infinite_tower@127.0.0.1:5433/it_<name>` and its
@@ -263,11 +243,7 @@ Keeping them out of each other's way (and the user's):
   with `npm run dev -w @infinite-tower/server` and the client with `npm run dev -w @infinite-tower/client --
   --port 5180` (5181, ...), not `npm run dev`. A branch's new migration or a test that rewrites a player then
   can't break anyone else's game, and any test account is fine there.
-- **Git:** a subagent pushes only its own branch and opens its PR. It never merges, and never rebases or
-  force-pushes another branch. Rebasing a stack moves every branch in it, so only the main chat does that, while
-  no subagent is working on the stack.
-- **Clean up** when it's done: stop its servers, `git worktree remove` it, and drop its database
-  (`docker compose exec -T db dropdb -U infinite_tower it_<name>`).
+- **Clean up:** drop its database with `docker compose exec -T db dropdb -U infinite_tower it_<name>`.
 
 ## Architecture rules (the reasons and details are in ARCHITECTURE.md)
 
@@ -303,33 +279,18 @@ Keeping them out of each other's way (and the user's):
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
 - Words: the 2D map is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
-- Numbers with a unit carry it in the name: `MAX_BODY_BYTES`, `maxMessageBytes`, `SETTINGS_SAVE_MS`. Game time is
-  seconds (like `dt`), so a name ending in Time, Delay or Duration is seconds; milliseconds always say `Ms`. A name
-  that doesn't say what kind of number it holds gets that word: `lungeSpeed`, `poiseDamage`, `staminaRegenPerSec`.
+- Game time is seconds (like `dt`), so a name ending in Time, Delay or Duration is seconds; milliseconds always say
+  `Ms`. A name that doesn't say what kind of number it holds gets that word: `lungeSpeed`, `poiseDamage`,
+  `staminaRegenPerSec`.
 - Keep files small and single-purpose (roughly under 200 lines). Make a folder per mode, enemy or screen
   (`client/src/ui/screens/<name>/`); UI used by more than one screen goes in `ui/components/`. Small math goes in
   `shared/src/core/math.ts`.
-- **Comments are rare; the user keeps finding too many.** Default to none. Write one only for a why, a unit or a
-  gotcha the code can't show, in one line (two at most). No file headers, no doc comments that narrate what a
-  function does, restate a name or type, point at other files or tell the design story; that goes in
-  ARCHITECTURE.md if anywhere. Before committing, read your diff's added comments and cut them. Subagent briefs
-  repeat this rule.
 - Styling is Tailwind v4 classes, with theme tokens in `client/src/ui/styles.css`. Write class names out in full.
 - No on-screen control hints or fps counters; the HUD's ping (Show ping in Settings hides it) is the one exception.
-- Markdown is wrapped at 120 columns (tables and code blocks may run longer). When editing a paragraph, rewrap
-  only the lines you changed.
 
 ## Git and PRs
 
-- One PR per feature. If a request mixes features, they go in separate PRs.
-- Branch off an up-to-date `main`. PRs are squash-merged.
-- Stacked PRs (when asked for): each branch is cut from the one below, and its PR's base is that branch. After
-  the bottom one is squash-merged, rebase the next onto `main` (`git rebase --onto main <old base> <branch>`) and
-  retarget its PR to `main` **before** it's merged; a PR merged while its base is still the old branch lands in
-  that branch, not in `main`.
-- To change an open PR, amend its commit, `git push --force-with-lease`, and update the PR description. If the PR
-  has already been merged, make a new branch off `main` instead.
+- PRs are squash-merged.
 - Never commit `.bookmarks`.
-- A PR description covers what changed, how it was tested, and what's not done yet.
 - Read inline review comments with `gh api repos/billwang7599/Infinite-Tower/pulls/<n>/comments`, and resolve
   each thread after fixing it.
