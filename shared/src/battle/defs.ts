@@ -10,6 +10,7 @@
  */
 
 import type { Stats } from "./stats.js";
+import type { AttackKind } from "./sword.js";
 
 export interface ArenaDef {
   radius: number;
@@ -53,16 +54,49 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
+/**
+ * A swordsman's attacks: chains of `minChain` to `maxChain` swings (or stabs), each picked at random from `moves`
+ * and never the one just before; each winds up so the player can read it, and lands like the player's do (its hit
+ * shape from `length`, sword.ts). On guard (walking up, not attacking, recovering or stunned) and back on guard at
+ * least `parryReaction`, it parries a player's swing aimed at it, then can't again for `parryCooldown`; it blocks a
+ * stab on guard.
+ */
+export interface SwordDef {
+  length: number;
+  damage: number;
+  knockback: number;
+  lift: number;
+  /** Starts a chain within this center distance, facing the target. */
+  triggerDist: number;
+  /** Seconds of wind-up before a chain's first swing, and before each one it chains into. */
+  windup: number;
+  chainWindup: number;
+  /** Seconds the blade is live, stepping forward this fast (m/s). */
+  active: number;
+  speed: number;
+  /** Seconds after a chain's last swing before it's on guard again: its opening. */
+  recover: number;
+  minChain: number;
+  maxChain: number;
+  moves: AttackKind[];
+  /** Seconds before it can start another chain (after recovering), and before its first. */
+  cooldown: number;
+  firstDelay: number;
+  parryReaction: number;
+  parryCooldown: number;
+}
+
 export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
+  sword?: SwordDef;
 }
 
 export interface EnemyDef {
   id: string;
   name: string;
   /** Which 3D model the client builds (client/src/battle/enemies/models). */
-  model: "boar";
+  model: "boar" | "kobold";
   maxHp: number;
   stats: Stats;
   /** Its body is a ball this big. It shoves players aside however heavy it is; players never push it. */

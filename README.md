@@ -20,16 +20,21 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** a 2D top-down grass field with a boar that wanders and chases you on sight. Touching it, or walking
-  through tall grass, starts a fight. Wider screens than 16:9 get side bars.
-- **Fights:** a 2D sprite against a 3D boar in a small round arena. A sword with eight swings (one per way across
+- **Overworld:** a 2D top-down grass field with a boar and, in a corner of its own, a Kobold Swordsman, which wander
+  and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
+  than 16:9 get side bars.
+- **Fights:** a 2D sprite against a 3D boar or Kobold Swordsman in a small round arena.
+  A sword with eight swings (one per way across
   the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
   short, vertical ones narrow and long, the stab a long thin line. Swings chain: the next starts quicker or slower
   by how it follows the last (the reverse swing quickest) and builds momentum, more damage a hit (the HUD shows the
   combo), until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops what hits it
   from in front for stamina, and breaks, staggering you, when the stamina runs out. You attack where the camera
   faces (no lock-on). The boar lunges up close and does a telegraphed charge from further away (it's stunned if it
-  hits the wall), and staggers after a few quick hits.
+  hits the wall), and staggers after a few quick hits. The Kobold Swordsman swings in chains of two or three (any
+  way, or a stab), each with a wind-up to read: the reverse swing just before one lands parries it (the Kobold is
+  stunned and takes more damage); a stab can only be blocked or dodged. On guard it parries your swings and blocks
+  your stabs, so hit it while it recovers from a chain or is stunned.
 - **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q / E turn the
   camera, Space jumps, F (or a right click) dodges, Shift blocks; U I O / J K L / M , . is a grid where K stabs
@@ -42,7 +47,7 @@ What's built so far:
   (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (B) is the
   grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
   drag to move, R or a right click to turn, Enter or a double click to eat.
-- **HUD:** HP and stamina bars, boars beaten, the level's name, the ping, and buttons for the character panel, the
+- **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
   and fade; only a fight starting gets the big banner in the middle.
 - **Settings** (Esc): camera sensitivity, auto mouse lock and show ping (both on by default), key bindings (general:

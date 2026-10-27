@@ -1,10 +1,10 @@
 /**
  * One arena fight, whole: its own ECS world and physics world, stepped at a fixed rate by the players' inputs.
- * Nothing in it is random, and nothing lives outside it, so the same setup and inputs always give the same fight,
- * on any machine (Rapier's deterministic build), and a server can run many side by side. The server runs it and
- * decides it (server/src/core/battle/); each client runs its own copy at once with its inputs (that's what it
- * draws), checks it against the server's hash (`hash`) and, when they differ, loads the server's state (`load`) and
- * replays its inputs since (client/src/battle/sync.ts).
+ * Its only random numbers come from seeds in its own state, and nothing lives outside it, so the same setup and
+ * inputs always give the same fight, on any machine (Rapier's deterministic build), and a server can run many side
+ * by side. The server runs it and decides it (server/src/core/battle/); each client runs its own copy at once with
+ * its inputs (that's what it draws), checks it against the server's hash (`hash`) and, when they differ, loads the
+ * server's state (`load`) and replays its inputs since (client/src/battle/sync.ts).
  */
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { FIXED_DT } from "../../core/time.js";
@@ -16,6 +16,7 @@ import type { FightContext, FightEvent, FightOutcome } from "./context.js";
 import { enemyBrainSystem } from "./enemies/brain.js";
 import { chargeAttackSystem } from "./enemies/charge.js";
 import { lungeAttackSystem } from "./enemies/lunge.js";
+import { swordAttackSystem } from "./enemies/sword.js";
 import { enemyMotorSystem } from "./enemies/motor.js";
 import { hashFight } from "./hash.js";
 import { outcomeSystem } from "./outcome.js";
@@ -56,7 +57,7 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), enemyMotorSystem(),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), swordAttackSystem(), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), outcomeSystem(this.outcome),
     ];

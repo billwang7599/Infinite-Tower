@@ -117,8 +117,9 @@ main.ts
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
-  one `PlayerInputData` per player (any number of players and enemies), counted in `steps`. Nothing in it is random,
-  and Rapier's deterministic build gives the same numbers on every machine, so the same setup and inputs always give
+  one `PlayerInputData` per player (any number of players and enemies), counted in `steps`. Its only random numbers
+  come from seeds in its own state (a swordsman's swings; the server picks the seed), and Rapier's deterministic
+  build gives the same numbers on every machine, so the same setup and inputs always give
   the same fight. Its whole state goes out and back in as plain JSON (`save()` / `load()`, `fight/state.ts`: what
   changes in a fight, exactly; the colliders are put where their bodies are), and `hash()` (`fight/hash.ts`) is a
   fingerprint of it with every number rounded to 2 decimals. Rapier loads once (`initPhysics()`: as the server
@@ -162,7 +163,10 @@ main.ts
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range
   + width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player
-  blocking and facing the hit stops it for stamina, anything else lands. The player's attacks and their shapes
+  may parry an enemy's swing (the reverse swing, live within `PARRY.window` before it lands: the enemy is stunned)
+  or block it (held, facing it: stopped for stamina); a swordsman on guard parries a player's swing (the player is
+  staggered) and blocks a stab; anything else lands. An enemy's swing is named as the player facing it sees it.
+  The player's attacks and their shapes
   come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
   to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
   `MOMENTUM`).
@@ -242,7 +246,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
 | `ping {id}` | every 2 s, for the HUD's ping |
-| `debug {cmd}` | dev server only: `encounter` starts a fight |
+| `debug {cmd, enemy?}` | dev server only: `encounter` starts a fight against `enemy` (an id), or a wild boar |
 
 | Server -> client | When |
 |---|---|
@@ -328,7 +332,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   its clock, waiting for a late input up to `MAX_INPUT_DELAY_STEPS` and running a later one on its next step,
   dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
-  late, with the same hit or miss and HP on both sides; and the input timeline (changes held, late presses kept,
+  late, with the same hit or miss and HP on both sides; parrying the Kobold's swing the same way; the Kobold as
+  tuned, beaten by a player who reads its wind-ups whatever its seed; and the input timeline (changes held, late
+  presses kept,
   too far ahead dropped, a silent player stopping, lateness).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
@@ -397,17 +403,20 @@ name (`MAX_BODY_BYTES`).
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   index.ts         Re-exports everything but the fight (import from "@infinite-tower/shared")
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
-                   math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom), time.ts
+                   math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom, nextRandom),
+                   time.ts
   overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Health, Stamina, Body, Fighter, ActiveHit, Enemy, LungeAttack,
-                   ChargeAttack), player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
+                   ChargeAttack, SwordAttack),
+                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
                    FighterStats, physicalDamage / moveSpeed / carryLimit), sword.ts (the sword's attacks:
-                   SWING_DIRS, ATTACK_KINDS, STARTER_SWORD, attackShape; CHAIN and MOMENTUM: how swings chain)
+                   SWING_DIRS, ATTACK_KINDS, STARTER_SWORD, attackShape; CHAIN and MOMENTUM: how swings chain;
+                   PARRY)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, leave(player), outcome, events, dispose), setup.ts (FightSetup, the one-on-one
@@ -422,8 +431,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, attacks and their chains, block, dodge, stamina; controlPlayer),
                        ground.ts (grounded, from rays; groundPlayer)
-      enemies/         brain.ts (target, approach / poise / stagger / stun / death), lunge.ts, charge.ts, motor.ts
-                       (wanted movement -> velocity), common.ts
+      enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
+                       sword.ts (a swordsman's seeded chains of swings), motor.ts (wanted movement -> velocity),
+                       common.ts
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -471,11 +481,12 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
                        + replay, grass encounters, findPlayer), spawner.ts
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
-        prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), index.ts (OVERWORLD_PREFABS by id)
+        prefabs/         boar.ts (= wander + chaseOnSight + encounterOnTouch), kobold.ts (the same, a Kobold
+                         Swordsman fight), index.ts (OVERWORLD_PREFABS by id)
       levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts
                        (registry), grass-field.ts
-      content/         enemies.ts (ENEMIES by id), player.ts (PLAYER_STATS, fullVitals, newPlayer), drops.ts
-                       (what each enemy drops and how often; rollDrops)
+      content/         enemies.ts (ENEMIES by id, isEnemyId), player.ts (PLAYER_STATS, fullVitals, newPlayer),
+                       drops.ts (what each enemy drops and how often; rollDrops)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -530,7 +541,7 @@ client/          Browser game: Babylon rendering, input, React UI.
     gfx/             textures.ts (procedural textures; drawnTexture), materials.ts (colorMaterial), props.ts
                      (scenery art: the campfire), sprites.ts (pixelMaterial, spriteMaterial, redrawSprite),
                      characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
-                     sprite in each pose in the arena; the boar)
+                     sprite in each pose in the arena; the boar, the kobold)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
@@ -601,8 +612,8 @@ client/          Browser game: Babylon rendering, input, React UI.
       facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
       mirror.ts        Mirror the server's actors (spawned by kind via entities/)
       components.ts    OverworldPos, OverworldActor, OverworldSprite
-      entities/        actor.ts (spawnOverworldActor: position + sprite + overlays), player.ts, boar.ts, index.ts
-                       (OVERWORLD_PREFABS by ActorSnap.kind)
+      entities/        actor.ts (spawnOverworldActor: position + sprite + overlays), player.ts, boar.ts, kobold.ts,
+                       index.ts (OVERWORLD_PREFABS by ActorSnap.kind)
       systems/         sprites.ts (glide to server positions, the chibi's facing, tuft, "!"), camera.ts (follow, the
                        view's edge rule)
       levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel),
@@ -626,7 +637,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                        sprite (puts pose on the meshes, shadow), pose (pose and its stand-in frame, the trail's line
                        and the stab's thrust from the action, no Babylon: tested)
       enemies/         spawn.ts (the model on the fight's enemy)
-        models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation)
+        models/          index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
+                         (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
       systems/         follow (drawings to their bodies, easing corrections), camera (the orbit, and its shake
                        for each step's hard hits: addImpactShake), hud (fills the battle HUD's store)
 ```
@@ -685,7 +697,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | What | Where |
 |---|---|
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| The sword: reach, damage, how swings chain, momentum | `shared/src/battle/sword.ts` |
+| The sword: reach, damage, how swings chain, momentum, parrying | `shared/src/battle/sword.ts` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats and attacks | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |

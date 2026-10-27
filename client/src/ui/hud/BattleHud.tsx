@@ -48,17 +48,17 @@ function Vitals({ hud }: HudProps) {
   );
 }
 
-const CUE_WORDS: Record<Exclude<BattleCue, "none">, string> = { staggered: "Staggered" };
+const CUE_WORDS: Record<Exclude<BattleCue, "none">, string> = { parried: "Parried!", staggered: "Staggered" };
 
-/** A word over the fight while it holds: you're staggered. */
+/** A word over the fight while it holds: you parried it, or you're staggered. */
 function Cue({ hud }: HudProps) {
   const cue = useStore(hud, (s) => s.cue);
   return (
     <div
       id="battle-cue"
-      className={`absolute top-[28%] left-1/2 -translate-x-1/2 font-title text-3xl tracking-[3px] text-died ${
-        cue === "none" ? "opacity-0" : "opacity-100"
-      } transition-opacity duration-150`}
+      className={`absolute top-[28%] left-1/2 -translate-x-1/2 font-title text-3xl tracking-[3px] ${
+        cue === "parried" ? "text-victory" : "text-died"
+      } ${cue === "none" ? "opacity-0" : "opacity-100"} transition-opacity duration-150`}
     >
       {cue === "none" ? "" : CUE_WORDS[cue]}
     </div>

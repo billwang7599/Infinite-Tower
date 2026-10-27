@@ -23,11 +23,12 @@ const LOOK_HEIGHT = 1.3;
 const SHAKE_DECAY_PER_SEC = 9;
 const SHAKE_CUTOFF = 0.005;
 
-/** How hard each event shakes the camera: a slam, a hit taken or dealt, a blow on the guard. */
+/** How hard each event shakes the camera: a slam, a hit taken or dealt, blades meeting, a blow on the guard. */
 function shakeOf(event: FightEvent): number {
   switch (event.type) {
     case "slam": return 0.35;
     case "hit": return event.team === "player" ? 0.15 + event.damage * 0.008 : 0.06;
+    case "parry": return 0.2;
     case "block": return event.guardBreak ? 0.2 : 0.08;
   }
 }

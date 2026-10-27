@@ -14,6 +14,8 @@ const DROPS: Record<EnemyId, DropDef[]> = {
     { item: "boar-hide", chance: 0.35, count: 1 },
     { item: "boar-tusk", chance: 0.25, count: 1 },
   ],
+  // Nothing yet: there are no kobold items.
+  "kobold-swordsman": [],
 };
 
 export function rollDrops(enemy: EnemyId, rng: () => number): ItemCounts {

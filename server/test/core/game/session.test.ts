@@ -66,6 +66,19 @@ describe("debugEncounter", () => {
     assert.equal(link.all("encounter").length, 1);
   });
 
+  test("starts a battle against the enemy asked for, or the wild boar", () => {
+    const { session, link } = startSession({ dev: true });
+    session.debugEncounter("kobold-swordsman");
+    assert.equal(link.last("encounter").setup.enemies[0]?.def.id, "kobold-swordsman");
+  });
+
+  test("an enemy that doesn't exist starts nothing", () => {
+    const { session, link } = startSession({ dev: true });
+    session.debugEncounter("dragon");
+    assert.equal(session.battle, null);
+    assert.equal(link.all("encounter").length, 0);
+  });
+
   test("does nothing on a production server", () => {
     const { session, link } = startSession({ dev: false });
     session.debugEncounter();

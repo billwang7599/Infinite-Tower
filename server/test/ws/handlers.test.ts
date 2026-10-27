@@ -76,8 +76,10 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "moveItem", from, to, turned: true }), [["moveItem", from, to, true]]);
   });
 
-  test("debug encounter asks for a debug battle", () => {
-    assert.deepEqual(handle({ t: "debug", cmd: "encounter" }), [["debugEncounter"]]);
+  test("debug encounter asks for a debug battle, against the enemy named if there is one", () => {
+    assert.deepEqual(handle({ t: "debug", cmd: "encounter" }), [["debugEncounter", undefined]]);
+    assert.deepEqual(handle({ t: "debug", cmd: "encounter", enemy: "kobold-swordsman" }),
+      [["debugEncounter", "kobold-swordsman"]]);
   });
 
   test("every session message type has a handler", () => {

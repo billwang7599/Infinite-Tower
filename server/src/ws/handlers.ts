@@ -13,5 +13,5 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   rest: (_msg, s) => s.rest(),
   useItem: (msg, s) => s.useItem(msg.at),
   moveItem: (msg, s) => s.moveItem(msg.from, msg.to, msg.turned),
-  debug: (msg, s) => { if (msg.cmd === "encounter") s.debugEncounter(); },
+  debug: (msg, s) => { if (msg.cmd === "encounter") s.debugEncounter(msg.enemy); },
 };

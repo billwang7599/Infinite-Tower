@@ -2,7 +2,9 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
-import { Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina } from "../components.js";
+import {
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, SwordAttack,
+} from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
@@ -16,8 +18,8 @@ export const ENEMY_START_YAW = Math.PI;
 
 /** `vitals`, `stats` and `burden` (how weighed down the bag leaves them): what they come in with. */
 export interface PlayerSetup { at: Vec3; vitals: Vitals; stats: Stats; burden: Burden }
-/** `at`: the feet. `yaw`: which way it faces. */
-export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number }
+/** `at`: the feet. `yaw`: which way it faces. `seed`: its random numbers' (the server picks it; 1 if left out). */
+export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
 export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[] }
 
 /** From the feet to the capsule's center, and from there to each cap's middle. */
@@ -47,14 +49,20 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
 }
 
 /** How to add each kind of attack to an entity: one component per attack, each with its own system (enemies/). */
-type AddAttack<K extends keyof EnemyAttacks> = (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>) => void;
+type AddAttack<K extends keyof EnemyAttacks> =
+  (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>, seed: number) => void;
 const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
+  sword: (world, e, def, seed) => {
+    world.add(e, SwordAttack, {
+      def, cooldown: def.firstDelay, attack: def.moves[0] ?? "lr", swingsLeft: 0, rng: seed >>> 0, parryCooldown: 0,
+    });
+  },
 };
 
 /** An arena enemy built from its def (sent by the server with the encounter): body, brain, one part per attack. */
-export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw }: EnemySetup): Entity {
+export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, seed = 1 }: EnemySetup): Entity {
   const e = world.spawn();
   const collider = physics.addBall(centerAbove(at, def.radius), def.radius, Layer.Enemy);
   const pos = physics.position(collider);
@@ -65,7 +73,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw }
     move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false },
   });
   for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {
-    if (attack) ATTACKS[kind](world, e, attack);
+    if (attack) ATTACKS[kind](world, e, attack, seed);
   }
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });

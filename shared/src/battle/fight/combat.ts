@@ -1,17 +1,20 @@
 /**
  * Hits. An attack's active frames put an ActiveHit (an arc, or a stab's ray) on the attacker, and after each
  * physics step every live one is checked against every fighter of the other team with plain math, not physics
- * triggers: cheap, and the same on the server. What a hit does then: a player may block it (held, facing it);
- * anything else lands.
+ * triggers: cheap, and the same on the server. What a hit does then: a player may parry it (the reverse swing, in
+ * time) or block it (held, facing it); a swordsman on guard parries a player's swing and blocks a stab; anything
+ * else lands.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
+import { FIXED_DT } from "../../core/time.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, type ActiveHitData, type HealthData, type PlayerData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, SwordAttack, type ActiveHitData, type HealthData,
+  type PlayerData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
-import type { HitShape } from "../sword.js";
+import { isSwing, liveStep, PARRY, reverseOf, type AttackKind, type HitShape } from "../sword.js";
 import type { FightEvent } from "./context.js";
 
 /** Seconds a fighter flashes after a hit. */
@@ -31,6 +34,8 @@ export interface HitSpec extends Partial<Pick<HitShape, "shape" | "width">> {
   knockback?: number;
   lift?: number;
   poiseDamage?: number;
+  /** A sword's swing or stab; a body blow (the default) can't be parried. */
+  attack?: AttackKind | null;
 }
 
 /** Make an attack's hitbox live on `e`, aimed along (dirX, dirZ), hitting as hard as `e`'s strength says. */
@@ -39,11 +44,11 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
     shape: attack.shape ?? "arc", dirX, dirZ, range: attack.range, minDot: attack.minDot, width: attack.width ?? 0,
     damage: physicalDamage(attack.damage, world.require(e, FighterStats)),
     knockback: attack.knockback ?? 0, lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0,
-    alreadyHit: new Set(),
+    attack: attack.attack ?? null, alreadyHit: new Set(),
   });
 }
 
-/** The chain is broken (a gap, a block, a dodge, a hit taken): its momentum is gone. */
+/** The chain is broken (a gap, a block, a dodge, a hit taken, being parried): its momentum is gone. */
 export function endCombo(player: PlayerData): void {
   player.combo = null;
   player.comboTime = 0;
@@ -84,6 +89,8 @@ function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0, along
   Object.assign(vel, { x: (x / len) * speed, y: lift, z: (z / len) * speed });
 }
 
+type Resolved = "landed" | "blocked" | "parried";
+
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
 export function combatSystem(events: FightEvent[]): System {
   return (world, dt) => {
@@ -100,19 +107,34 @@ export function combatSystem(events: FightEvent[]): System {
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
 
         hit.alreadyHit.add(target);
-        if (player) hitPlayer(world, events, attacker, hit, target, player);
-        else hitEnemy(world, events, hit, target);
+        const resolved = player
+          ? hitPlayer(world, events, attacker, hit, target, player)
+          : hitEnemy(world, events, attacker, hit, target);
+        // Parried, the attacker's hitbox is gone.
+        if (resolved === "parried") break;
       }
     }
   };
 }
 
-/** A hit reaching a player: blocked, or landing. */
+/** A hit reaching a player: parried by the reverse swing in time, blocked, or landing. */
 function hitPlayer(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData,
-): void {
+): Resolved {
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health), stamina = world.require(target, Stamina);
+
+  const swing = hit.attack !== null && isSwing(hit.attack) ? hit.attack : null;
+  if (swing && player.action === "attack" && player.attack === reverseOf(swing)
+    && faces(body.pos, player.actionDir, from, PARRY.minDot)) {
+    // Steps since the player's blade went live (the controller ran this step: its clock is one step on).
+    const sinceLive = Math.round(player.actionTime / FIXED_DT) - 1 - liveStep(player.startup);
+    if (sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT)) {
+      parryEnemy(world, attacker, body.pos);
+      events.push({ type: "parry", by: target, target: attacker });
+      return "parried";
+    }
+  }
 
   const dir = { x: hit.dirX, z: hit.dirZ };
   if (player.action === "block" && faces(body.pos, player.actionDir, from, PLAYER.block.minDot)) {
@@ -120,30 +142,72 @@ function hitPlayer(
     const guardBreak = stamina.value < cost;
     stamina.value = Math.max(0, stamina.value - cost);
     stamina.regenDelay = PLAYER.staminaRegenDelay;
+    const chip = hit.attack !== null && isSwing(hit.attack) ? hit.damage * block.chipFraction : 0;
+    health.hp = Math.max(0, health.hp - chip);
     knock(body.pos, from, body.vel, hit.knockback * block.pushbackFactor, 0, dir);
     if (guardBreak) {
       player.action = "stagger";
       health.hitstun = block.guardBreakTime;
     }
     events.push({ type: "block", target, guardBreak });
-    return;
+    return "blocked";
   }
 
-  // It lands: knocked back (along the attack, pushed away from the attacker), a brief loss of control.
+  // It lands. A sword (swing or stab) only hurts, as the player's does; anything else also knocks back and stuns.
   health.hp = Math.max(0, health.hp - hit.damage);
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
-  health.hitstun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
-  knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
+  if (hit.attack === null) {
+    health.hitstun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
+    knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
+  }
   endCombo(player);
   events.push({ type: "hit", target, team: "player", damage: hit.damage });
+  return "landed";
 }
 
-/** A hit reaching an enemy: it lands. */
-function hitEnemy(world: World, events: FightEvent[], hit: ActiveHitData, target: Entity): void {
+/** The enemy `e`'s swing was parried by a player at `by`: stunned, knocked back, its chain cut short. */
+function parryEnemy(world: World, e: Entity, by: Vec3): void {
+  const enemy = world.require(e, Enemy), body = world.require(e, Body);
+  Object.assign(enemy, { state: "parried", stateTime: 0, duration: PARRY.stunTime });
+  world.remove(e, ActiveHit);
+  // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
+  knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
+  const sword = world.get(e, SwordAttack);
+  if (sword) sword.cooldown = Math.max(sword.cooldown, PARRY.stunTime + sword.def.cooldown);
+}
+
+/** A hit reaching an enemy: a swordsman on guard parries a swing (blocks a stab); anything else lands. */
+function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): Resolved {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
-  health.hp = Math.max(0, health.hp - hit.damage);
+  const at = world.require(target, Body).pos, from = world.require(attacker, Body);
+  const sword = world.get(target, SwordAttack);
+  const onGuard = sword !== undefined && enemy.state === "approach" && enemy.stateTime >= sword.def.parryReaction
+    && faces(at, { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, from.pos, PARRY.minDot);
+  if (onGuard && hit.attack !== null) {
+    if (!isSwing(hit.attack)) {
+      events.push({ type: "block", target, guardBreak: false });
+      return "blocked";
+    }
+    const player = world.get(attacker, Player);
+    if (sword.parryCooldown <= 0 && player) {
+      sword.parryCooldown = sword.def.parryCooldown;
+      player.action = "stagger";
+      world.require(attacker, Health).hitstun = PARRY.playerStaggerTime;
+      world.remove(attacker, ActiveHit);
+      knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed);
+      endCombo(player);
+      events.push({ type: "parry", by: target, target: attacker });
+      return "parried";
+    }
+  }
+
+  // Parried, it takes more damage, but its poise is spared: a parry's stun doesn't run on into a stagger.
+  const parried = enemy.state === "parried";
+  const damage = hit.damage * (parried ? PARRY.bonusDamage : 1);
+  health.hp = Math.max(0, health.hp - damage);
   health.flash = HIT_FLASH_TIME;
-  enemy.poise -= hit.poiseDamage;
-  events.push({ type: "hit", target, team: "enemy", damage: hit.damage });
+  if (!parried) enemy.poise -= hit.poiseDamage;
+  events.push({ type: "hit", target, team: "enemy", damage });
+  return "landed";
 }

@@ -8,6 +8,7 @@ import {
   bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
   type Character, type SavedSettings, type StepInput, type Stats, type Vitals,
 } from "@infinite-tower/shared";
+import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";
@@ -108,9 +109,9 @@ export class GameSession {
     this.save();
   }
 
-  /** Dev servers only: a battle right now, without finding one. */
-  debugEncounter(): void {
-    if (this.dev && this.inOverworld) startBattle(this, null, "wild-boar");
+  /** Dev servers only: a battle right now against `enemy` (an EnemyId; a wild boar if left out), not found. */
+  debugEncounter(enemy = "wild-boar"): void {
+    if (this.dev && this.inOverworld && isEnemyId(enemy)) startBattle(this, null, enemy);
   }
 
   /** Makes the player's character. Only once: a character is kept for good, so with one already this does nothing. */

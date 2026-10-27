@@ -54,8 +54,8 @@ export interface OverworldHudState {
   bag: Bag;
 }
 
-/** A word over the fight for a moment of it: you're staggered (your guard broken). */
-export type BattleCue = "none" | "staggered";
+/** A word over the fight for a moment of it: you parried the enemy, or you're staggered (parried, guard broken). */
+export type BattleCue = "none" | "parried" | "staggered";
 
 export interface BattleHudState {
   hpFraction: number;

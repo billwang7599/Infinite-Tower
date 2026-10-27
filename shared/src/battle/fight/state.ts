@@ -4,14 +4,14 @@
  * exact: numbers survive JSON as they are. Only what changes during a fight is in it, because the setup (arena,
  * defs, stats, burden, maximums) is the same on both sides; an enemy's `sense` and `move` aren't either, as its
  * brain works them out afresh every step before anything reads them. The physics world is rebuilt from it: Rapier
- * simulates nothing here, so a collider is just where its body is. There's no random number generator in a fight;
- * one, if it's ever added, has to be in here (and so in the hash).
+ * simulates nothing here, so a collider is just where its body is. A fight's only random numbers are a sword
+ * attack's, from the seed it keeps (`rng`), which is in here and so in the hash.
  */
 import type { Entity } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Stamina, type ActiveHitData, type EnemyData,
-  type HealthData, type PlayerData, type StaminaData,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Stamina, SwordAttack, type ActiveHitData,
+  type EnemyData, type HealthData, type PlayerData, type StaminaData, type SwordAttackData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
@@ -30,6 +30,7 @@ export interface EnemySnapshot extends FighterSnapshot {
   enemy: Omit<EnemyData, "def" | "sense" | "move">;
   lunge: { cooldown: number } | null;
   charge: { cooldown: number; dir: Vec2 } | null;
+  sword: Omit<SwordAttackData, "def"> | null;
 }
 
 /** A live hitbox: whose it is and whom it has hit, as fighter indices (the players in seat order, then enemies). */
@@ -46,6 +47,10 @@ export interface FightSnapshot {
 }
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
+
+function withoutDef({ def: _, ...state }: SwordAttackData): Omit<SwordAttackData, "def"> {
+  return state;
+}
 
 export function saveFight(fight: Fight): FightSnapshot {
   const { world } = fight;
@@ -66,11 +71,12 @@ export function saveFight(fight: Fight): FightSnapshot {
     }),
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
-      const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack);
+      const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), sword = world.get(e, SwordAttack);
       return {
         ...fighter(e), enemy,
         lunge: lunge ? { cooldown: lunge.cooldown } : null,
         charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
+        sword: sword ? withoutDef(sword) : null,
       };
     }),
     hits: [...world.query(ActiveHit)].map(([e, { alreadyHit, ...hit }]) => ({
@@ -106,6 +112,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack);
     if (lunge && s.lunge) lunge.cooldown = s.lunge.cooldown;
     if (charge && s.charge) Object.assign(charge, { cooldown: s.charge.cooldown, dir: { ...s.charge.dir } });
+    const sword = world.get(e, SwordAttack);
+    if (sword && s.sword) Object.assign(sword, s.sword);
   });
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });

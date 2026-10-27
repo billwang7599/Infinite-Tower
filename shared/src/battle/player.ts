@@ -51,6 +51,8 @@ export const PLAYER = {
   block: {
     /** cos of half the guarded arc in front of the aim: 0.34 is 140°. */
     minDot: 0.34,
+    /** A swing blocked still does this share of its damage; a stab or a body blow does none. */
+    chipFraction: 0.2,
     /** Stamina a blocked hit costs, per point of its damage. Short of it, the guard breaks. */
     staminaPerDamage: 1,
     /** A blocked hit's knockback pushes the player back at this share of it. */

@@ -158,7 +158,7 @@ export function controlPlayer(world: World, e: Entity, dt: number): void {
           if (!world.has(e, ActiveHit)) {
             addHit(world, e, dir.x, dir.z, {
               ...attackShape(player.attack, STARTER_SWORD), damage: STARTER_SWORD.damage * player.power,
-              poiseDamage: move.poiseDamage,
+              poiseDamage: move.poiseDamage, attack: player.attack,
             });
           }
           v.x = dir.x * move.lungeSpeed;
