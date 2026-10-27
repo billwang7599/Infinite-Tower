@@ -1,7 +1,4 @@
-/**
- * One player's overworld: their own ECS world (single-player for now) with the level's actors and the player walking
- * it, run by the overworld systems. The session owns it and is told through `onEncounter` when a battle should start.
- */
+/** One player's overworld: their own ECS world, with the level's actors and the player walking it. */
 import { World, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
 import type { EnemyId } from "../content/enemies.js";
 import type { LevelDef } from "../levels/level.js";
@@ -21,7 +18,7 @@ export class Overworld implements OverworldContext {
   private current: LevelDef | null = null;
   private spawner: Spawner | null = null;
   private readonly systems: System[];
-  /** Highest input seq accepted (older or repeated ones are ignored). */
+  /** Highest input seq accepted. */
   private lastSeq = 0;
   private encounterStarted = false;
 
@@ -47,7 +44,7 @@ export class Overworld implements OverworldContext {
     this.onEncounter(source, enemy);
   }
 
-  /** Load a level: clear the old one's actors, place the player at its spawn, spawn the new actors. */
+  /** Clears the old level's actors, places the player at the spawn, spawns the new actors. */
   enter(level: LevelDef): void {
     this.spawner?.clear();
     this.current = level;
@@ -65,14 +62,14 @@ export class Overworld implements OverworldContext {
     this.world.flush();
   }
 
-  /** A walking input (the client sends one per tick while moving). Older or repeated ones are ignored. */
+  /** Older or repeated inputs are ignored. */
   input(seq: number, moveX: number, moveZ: number): void {
     if (seq <= this.lastSeq) return;
     this.lastSeq = seq;
     queueInput(this.playerData(), { seq, moveX, moveZ });
   }
 
-  /** Reset walking state after a battle or teleport: no stale inputs or encounter progress. */
+  /** After a battle or teleport: no stale inputs or encounter progress. */
   resetWalk(safeTime: number): void {
     const walk = this.playerData();
     walk.queue.length = 0;

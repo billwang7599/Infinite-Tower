@@ -1,34 +1,61 @@
 /**
  * One arena fight, whole: its own ECS world and physics world, stepped at a fixed rate by the players' inputs.
- * Its only random numbers come from seeds in its own state, and nothing lives outside it, so the same setup and
- * inputs always give the same fight, on any machine (Rapier's deterministic build), and a server can run many side
- * by side. The server runs it and decides it (server/src/core/battle/); each client runs its own copy at once with
- * its inputs (that's what it draws), checks it against the server's hash (`hash`) and, when they differ, loads the
- * server's state (`load`) and replays its inputs since (client/src/battle/sync.ts).
+ * Nothing lives outside it and nothing in it is random but its own seeds, so the same setup and inputs give the
+ * same fight on any machine. The server runs it and decides it; each client runs its own copy (client/src/battle/).
  */
 import { World, type Entity, type System } from "../../core/ecs.js";
+import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import { Health } from "../components.js";
+import { Body, Enemy, Health, Player } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
+import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
 import type { FightContext, FightEvent, FightOutcome } from "./context.js";
 import { enemyBrainSystem } from "./enemies/brain.js";
 import { chargeAttackSystem } from "./enemies/charge.js";
 import { lungeAttackSystem } from "./enemies/lunge.js";
 import { swordAttackSystem } from "./enemies/sword.js";
-import { enemyMotorSystem } from "./enemies/motor.js";
-import { hashFight } from "./hash.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
-import { playerGroundSystem } from "./player/ground.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
-import { loadFight, saveFight, type FightSnapshot } from "./state.js";
+import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
+
+/** How far below the feet a ray still finds the floor. */
+const GROUND_PROBE = 0.08;
+/** Rising faster than this (m/s), a player isn't on the ground, whatever is under their feet. */
+const MAX_GROUNDED_RISE = 0.5;
+const RAY_SPREAD = PLAYER.radius * 0.7;
+const RAY_OFFSETS = [[0, 0], [RAY_SPREAD, 0], [-RAY_SPREAD, 0], [0, RAY_SPREAD], [0, -RAY_SPREAD]] as const;
+
+/** After each physics step: a few short rays down from the feet decide `grounded`. */
+function playerGroundSystem(physics: ArenaPhysics): System {
+  return (world, dt) => {
+    for (const [, player, body] of world.query(Player, Body)) {
+      const p = body.pos, reach = body.centerHeight + GROUND_PROBE;
+      const grounded = body.vel.y <= MAX_GROUNDED_RISE
+        && RAY_OFFSETS.some(([ox, oz]) => physics.floorBelow(p.x + ox, p.y, p.z + oz, reach) !== null);
+      player.grounded = grounded;
+      player.airTime = grounded ? 0 : player.airTime + dt;
+    }
+  };
+}
+
+/** Turns each enemy's wanted movement (Enemy.move) into velocity, after its behaviors and before the physics. */
+function enemyMotorSystem(): System {
+  return (world, dt) => {
+    for (const [, enemy, body] of world.query(Enemy, Body)) {
+      const v = body.vel, m = enemy.move;
+      if (m.halt) v.x = v.z = 0;
+      v.x = approach(v.x, m.dirX * m.speed, m.accel * dt);
+      v.z = approach(v.z, m.dirZ * m.speed, m.accel * dt);
+    }
+  };
+}
 
 export class Fight {
-  /** Every step is this long. */
   static readonly STEP_SECONDS = FIXED_DT;
 
   /** The fighters' components. Whoever draws the fight may add their own to the same entities. */
@@ -39,11 +66,11 @@ export class Fight {
   readonly players: readonly Entity[];
   readonly enemies: readonly Entity[];
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
-  /** What happened in the last step (see FightEvent). */
+  /** What happened in the last step. */
   readonly events: FightEvent[] = [];
   /** Steps run so far: the number of the last one (steps count from 1). */
   steps = 0;
-  /** The systems, in the order that is the game's contract. */
+  /** In the order that is the game's contract. */
   private readonly systems: System[];
 
   /** Needs initPhysics() to have finished. */
@@ -75,27 +102,26 @@ export class Fight {
     this.steps++;
   }
 
-  /** The whole state, as plain JSON (state.ts). */
   save(): FightSnapshot {
     return saveFight(this);
   }
 
-  /** Makes this fight (built from the same setup) exactly as `snapshot` says, step count and colliders included. */
+  /** Makes this fight (built from the same setup) exactly as `snapshot` says. */
   load(snapshot: FightSnapshot): void {
     loadFight(this, snapshot);
   }
 
-  /** A fingerprint of the state, rounded as hash.ts says: the same on two machines whose fights agree. */
+  /** The same on two machines whose fights agree. */
   hash(): number {
     return hashFight(this);
   }
 
-  /** `player` is gone (disconnected): out of the fight for good, down as if dead. outcome.ts says what that costs. */
+  /** `player` disconnected: down as if dead, for good (outcome.ts says what that costs). */
   leave(player: Entity): void {
     this.world.require(player, Health).hp = 0;
   }
 
-  /** Ends the fight: its entities are destroyed (their remove hooks run) and the physics world is freed. */
+  /** Destroys the entities (their remove hooks run) and frees the physics world. */
   dispose(): void {
     for (const e of [...this.players, ...this.enemies]) this.world.destroy(e);
     this.world.flush();

@@ -1,8 +1,4 @@
-/**
- * What the game says about a fight's result (`battleResult`) once the player is back from the arena: what was found,
- * what was left behind, dying and what was lost. The fight's end itself has its own banner in the arena (BattleHud's
- * result), so these are corner notices (say.ts).
- */
+/** What the game says about a fight's result once the player is back from the arena (the arena has its banner). */
 import { itemDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 
 export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "loot" | "leftBehind" | "lost">;

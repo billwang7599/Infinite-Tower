@@ -1,7 +1,4 @@
-/**
- * The game socket. api/ has already checked the upgrade's login and opened it; this plugs it into core: the socket
- * becomes the player's `PlayerLink`, and each message it brings is one call on their session.
- */
+/** The game socket, once api/ has checked the login and opened it: plugged into core as the player's link. */
 import { CLOSE_CODES, dispatch } from "@infinite-tower/shared";
 import type { WebSocket } from "ws";
 import type { OnlinePlayers } from "../core/game/online.js";
@@ -13,10 +10,10 @@ import { handlers } from "./handlers.js";
 /** Messages are small JSON; anything bigger is refused by ws (close 1009). */
 const MAX_MESSAGE_BYTES = 16 * 1024;
 
-/** The simulated ping (a dev tool): on a dev server, `pingMs` (DEV_PING_MS) unless the page asks for another. */
+/** On a dev server, `pingMs` (DEV_PING_MS) unless the page asks for another. */
 export interface PingOptions { dev: boolean; pingMs: number }
 
-/** The round trip one connection simulates: none in production; in dev the page's `?ping=` if it's valid. */
+/** None in production; in dev the page's `?ping=` if it's valid. */
 export function connectionPingMs({ dev, pingMs }: PingOptions, asked: string | undefined): number {
   return dev ? parsePingMs(asked) ?? pingMs : 0;
 }

@@ -1,9 +1,8 @@
 # Inventory
 
-Status: **being built**, as stacked PRs. Built: the bag (a grid with weights), what carrying too much does,
-dying emptying the bag, and the bag screen (see `shared/src/items/` and `ui/hud/inventory/` in
-[ARCHITECTURE.md](../ARCHITECTURE.md)); what's left is below.
-The user's decisions are in [AGENTS.md](../AGENTS.md).
+Status: **being built**. Built: the bag (a grid with weights), what carrying too much does, dying (or leaving a
+fight) emptying the bag, and the bag screen (see `shared/src/items/` and `ui/hud/inventory/` in
+[ARCHITECTURE.md](../ARCHITECTURE.md)); what's left is below. The user's decisions are in [AGENTS.md](../AGENTS.md).
 
 ## Next
 
@@ -15,9 +14,6 @@ The user's decisions are in [AGENTS.md](../AGENTS.md).
 - The carry weight's effects can't happen yet: a tusk and a stack of meat both weigh 2.5 per cell, so a full 6 x 4
   bag weighs at most 60, exactly the limit. Heavier items, equipment, a bigger bag or a lower limit would change
   that.
-
-- Leaving mid-fight: closing the tab (or losing the connection) during a fight drops the fight and saves the bag
-  and the HP you came in with, so quitting escapes a death. Should leaving mid-fight count as dying?
 - Equipment: equipped things weigh but take no bag space. Is the sword an item you carry, and can it be lost?
 - Splitting a stack (taking some of it), dropping items on the overworld, and sorting the bag.
 - The weight is still a line of text ("Weight 8 / 60"); a bar against the limit could replace it.

@@ -1,6 +1,5 @@
 /**
- * The WebSocket to the game server (/ws; Vite proxies it in dev). JSON messages typed by
- * shared/src/net. Messages that arrive before the game calls `listen` are queued, so nothing sent
+ * The WebSocket to the game server. Messages that arrive before the game calls `listen` are queued, so nothing sent
  * right after `welcome` (like the first `level`) is lost while the game is still loading.
  */
 import {
@@ -32,7 +31,7 @@ export class Connection {
 
   private constructor(private readonly ws: WebSocket) {}
 
-  /** Connect and wait for the server's `welcome`. */
+  /** Connects and waits for the server's `welcome`. */
   static open(): Promise<Joined> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws${pingQuery()}`);
@@ -53,22 +52,19 @@ export class Connection {
     });
   }
 
-  /** Start handling messages (one handler per type), beginning with any that queued up. */
+  /** Beginning with any that queued up. */
   listen(handlers: GameHandlers): void {
     this.handlers = handlers;
     for (const msg of this.backlog.splice(0)) this.receive(msg);
   }
 
-  /**
-   * `handler` runs once if the socket closes without `close()` being called; `reason` is a sentence for the title.
-   * If it already closed (say, while the game was still loading), it runs right away.
-   */
+  /** Runs once if the socket closes without `close()`, or at once if it already has; `reason` is for the title. */
   onLost(handler: (reason: string) => void): void {
     this.lostHandler = handler;
     if (this.lostReason !== null) handler(this.lostReason);
   }
 
-  /** Hang up on purpose: no `onLost`, and nothing more is delivered. */
+  /** On purpose: no `onLost`, and nothing more is delivered. */
   close(): void {
     this.hungUp = true;
     this.lostHandler = null;
@@ -92,10 +88,7 @@ export class Connection {
   }
 }
 
-/**
- * The page's `?ping=` (a dev tool: a dev server simulates that round trip for this connection), passed on to /ws
- * as it is: the server decides what to make of it, and production ignores it.
- */
+/** The page's `?ping=`, passed on as it is: a dev server simulates that round trip, production ignores it. */
 function pingQuery(): string {
   const ping = new URLSearchParams(location.search).get("ping");
   return ping === null ? "" : `?ping=${encodeURIComponent(ping)}`;

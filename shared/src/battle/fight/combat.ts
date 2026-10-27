@@ -1,23 +1,18 @@
 /**
- * Hits. An attack's active frames put an ActiveHit (an arc, or a stab's ray) on the attacker, and after each
- * physics step every live one is checked against every fighter of the other team with plain math, not physics
- * triggers: cheap, and the same on the server. What a hit does then: a player may parry it (the reverse swing, in
- * time) or block it (held, facing it); a swordsman on guard parries a player's swing and blocks a stab; anything
- * else lands.
+ * Hits, checked after each physics step with plain math, not physics triggers. A player may parry a hit (the
+ * reverse swing, in time) or block it; a swordsman on guard parries a player's swing and blocks a stab.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, SwordAttack, type ActiveHitData, type HealthData,
-  type PlayerData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, SwordAttack, type ActiveHitData, type PlayerData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
 import { isSwing, liveStep, PARRY, reverseOf, type AttackKind, type HitShape } from "../sword.js";
 import type { FightEvent } from "./context.js";
 
-/** Seconds a fighter flashes after a hit. */
 const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
 const MIN_ANGLE_CHECK_DIST = 0.3;
@@ -25,7 +20,7 @@ const MIN_ANGLE_CHECK_DIST = 0.3;
 const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
 
-/** What a hitbox needs from an attack: an arc unless it says otherwise; knockback, lift, poise damage default to 0. */
+/** An arc unless it says otherwise; knockback, lift and poise damage default to 0. */
 export interface HitSpec extends Partial<Pick<HitShape, "shape" | "width">> {
   range: number;
   minDot: number;
@@ -38,7 +33,7 @@ export interface HitSpec extends Partial<Pick<HitShape, "shape" | "width">> {
   attack?: AttackKind | null;
 }
 
-/** Make an attack's hitbox live on `e`, aimed along (dirX, dirZ), hitting as hard as `e`'s strength says. */
+/** Make an attack's hitbox live on `e`, aimed along (dirX, dirZ), scaled by `e`'s strength. */
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
   world.add(e, ActiveHit, {
     shape: attack.shape ?? "arc", dirX, dirZ, range: attack.range, minDot: attack.minDot, width: attack.width ?? 0,
@@ -53,13 +48,6 @@ export function endCombo(player: PlayerData): void {
   player.combo = null;
   player.comboTime = 0;
   player.momentum = 0;
-}
-
-/** Runs down a fighter's invulnerability, hitstun and hit flash (seconds). */
-export function tickHealthTimers(h: HealthData, dt: number): void {
-  h.invuln = Math.max(0, h.invuln - dt);
-  h.hitstun = Math.max(0, h.hitstun - dt);
-  h.flash = Math.max(0, h.flash - dt);
 }
 
 /** Whether a target at `to`, `radius` round, is in `hit`'s shape from `from`. */
@@ -80,7 +68,7 @@ function faces(from: Vec3, dir: Vec2, to: Vec3, minDot: number): boolean {
   return dist <= MIN_ANGLE_CHECK_DIST || (dx * dir.x + dz * dir.z) / dist >= minDot;
 }
 
-/** Sets `body` moving away from `from` at `speed` (m/s), plus `lift`. */
+/** Sets `vel` moving `body` away from `from` at `speed` (m/s), plus `lift`. */
 function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0, along?: Vec2): void {
   const dx = body.x - from.x, dz = body.z - from.z, dist = Math.hypot(dx, dz);
   let x = dist > 0.01 ? dx / dist : (along?.x ?? 0), z = dist > 0.01 ? dz / dist : (along?.z ?? 1);
@@ -94,14 +82,17 @@ type Resolved = "landed" | "blocked" | "parried";
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
 export function combatSystem(events: FightEvent[]): System {
   return (world, dt) => {
-    for (const [, h] of world.query(Health)) tickHealthTimers(h, dt);
+    for (const [, h] of world.query(Health)) {
+      h.invuln = Math.max(0, h.invuln - dt);
+      h.hitstun = Math.max(0, h.hitstun - dt);
+      h.flash = Math.max(0, h.flash - dt);
+    }
 
     for (const [attacker, hit, attackerBody, attackerFighter] of world.query(ActiveHit, Body, Fighter)) {
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
         if (targetFighter.team === attackerFighter.team || targetHealth.hp <= 0 || targetHealth.invuln > 0) continue;
         if (hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
-        // Dodge i-frames.
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
@@ -110,8 +101,7 @@ export function combatSystem(events: FightEvent[]): System {
         const resolved = player
           ? hitPlayer(world, events, attacker, hit, target, player)
           : hitEnemy(world, events, attacker, hit, target);
-        // Parried, the attacker's hitbox is gone.
-        if (resolved === "parried") break;
+        if (resolved === "parried") break; // the attacker's hitbox is gone
       }
     }
   };

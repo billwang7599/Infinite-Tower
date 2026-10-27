@@ -1,7 +1,4 @@
-/**
- * The keyboard, by KeyboardEvent.code (physical position, any layout). The whole game is playable
- * keyboard-only; see mouse.ts for the optional mouse. What each key does: actions.ts.
- */
+/** The keyboard, by KeyboardEvent.code (physical position, any layout). The whole game is playable with it alone. */
 import { Buttons } from "./buttons.js";
 
 /** Keys the browser would otherwise use (scrolling, moving focus, Firefox's quick find). */
@@ -24,10 +21,7 @@ export class Keyboard extends Buttons {
     target.addEventListener("blur", () => this.releaseAll());
   }
 
-  /**
-   * Off (the default) while the title or the settings screen has the keyboard: keys are ignored and left to
-   * the page, and anything held or pressed is forgotten.
-   */
+  /** Off (the default) while a screen has the keyboard: keys are left to the page, and held ones forgotten. */
   get enabled(): boolean {
     return this.on;
   }

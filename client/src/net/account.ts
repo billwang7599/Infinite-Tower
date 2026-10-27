@@ -1,7 +1,4 @@
-/**
- * The account API (routes in shared/src/net/accounts.ts). The browser sends and keeps the login cookie on its
- * own; page scripts never see it. Failures become sentences the title screen can show.
- */
+/** The account API. The browser keeps the login cookie itself; failures become sentences for the title screen. */
 import type { AccountInfo, ApiError, Credentials } from "@infinite-tower/shared";
 import { SERVER_UNREACHABLE } from "./connection.js";
 

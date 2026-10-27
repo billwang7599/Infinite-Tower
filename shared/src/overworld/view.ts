@@ -1,7 +1,6 @@
 /**
- * How much of the overworld a screen shows. 16:9 is the widest view: wider windows get side bars, taller ones see
- * a little less width, so no screen shape gets to see more. The client's camera and the server's choice of
- * which actors to send (server/src/core/game/snapshot.ts) both follow these rules.
+ * How much of the overworld a screen shows, at most 16:9, so no screen shape sees more. The client's camera and the
+ * server's choice of actors to send both follow it.
  */
 import { clamp, type Vec2 } from "../core/math.js";
 import type { LevelLayout } from "./layout.js";

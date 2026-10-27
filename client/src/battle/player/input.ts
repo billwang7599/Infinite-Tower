@@ -1,11 +1,7 @@
 import type { PlayerInputData } from "@infinite-tower/shared";
 import type { BattleContext } from "../context.js";
 
-/**
- * Keyboard (+ optional mouse) -> the local player's input for the next step of the fight. Movement is
- * camera-relative and the aim is the camera's facing, both converted to world space here, so the fight never needs
- * to know about the camera.
- */
+/** The keys (and mouse) -> the player's input, in world space, so the fight never needs to know about the camera. */
 export function readPlayerInput({ actions, view }: BattleContext, input: PlayerInputData): void {
   const right = actions.axis("battle", "left", "right");
   const forward = actions.axis("battle", "back", "forward");

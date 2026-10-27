@@ -1,8 +1,6 @@
 /**
- * Dev-only page (/art.html on the Vite dev server, never built): every look option in every view (the portrait,
- * the chibi facing front, back and side, the battle sprite in each pose: stand, slash, down, and every frame of
- * the sword fight's poses), a piece of gear tried on, and a mock dialogue scene. For judging the character art,
- * not part of the game.
+ * Dev-only page (/art.html on the Vite dev server, never built) for judging the character art: every look option in
+ * every view, pose and frame, a piece of gear tried on, and a mock dialogue scene.
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "../gfx/look/art.js";

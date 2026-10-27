@@ -11,10 +11,7 @@ export interface Pinging {
   stop(): void;
 }
 
-/**
- * The first ping goes one interval in, not at once: just after joining, the page is busy building the world, so that
- * reply would be handled late and skew the average.
- */
+/** The first ping goes one interval in: just after joining, the page is busy, so its reply would skew the average. */
 export function startPinging(
   net: Pick<Connection, "send">, report: (ms: number) => void, now: () => number = () => performance.now(),
 ): Pinging {

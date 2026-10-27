@@ -1,8 +1,6 @@
 /**
- * Overworld (2D map) levels: the part of a level the client is allowed to see, plus the walking rules.
- * The server owns levels (server/src/core/levels) and sends the layout when you enter one. Walking is
- * shared so the client can predict its own movement and the server can replay the same inputs.
- * Units are tiles; +z is up on screen, +x is right.
+ * The part of an overworld level the client may see, and the walking rules: shared, so the client predicts its
+ * walking and the server replays the same inputs. Units are tiles; +z is up on screen, +x is right.
  */
 import { clamp, distXZ, type Vec2 } from "../core/math.js";
 
@@ -62,10 +60,7 @@ export interface WalkOptions {
   pace?: number;
 }
 
-/**
- * Move `pos` one step by an input. Must stay deterministic: the client predicts with it and the server replays the
- * same inputs.
- */
+/** Must stay deterministic: the client predicts with it and the server replays the same inputs. */
 export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number, opts: WalkOptions = {}): void {
   let ix = clamp(input.moveX, -1, 1), iz = clamp(input.moveZ, -1, 1);
   const len = Math.hypot(ix, iz);

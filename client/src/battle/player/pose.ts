@@ -1,7 +1,4 @@
-/**
- * What the arena player's sprite, sword trail and stab show, worked out from their action. No Babylon here, so it's
- * unit-tested; sprite.ts puts it on the meshes.
- */
+/** What the arena player's sprite, sword trail and stab show, from their action. No Babylon, so it's tested. */
 import { CHAIN, isSwing, liveStep, FIXED_DT, type PlayerData, type SwingDir } from "@infinite-tower/shared";
 
 /** The trail starts this long before the swing's blade goes live, and shows this long in all (seconds). */
@@ -12,8 +9,8 @@ const THRUST_DURATION = 0.16;
 /** A block shows raising the sword this long, then braced (seconds). */
 const BLOCK_RAISE_TIME = 0.1;
 
-/** Every pose the player's battle sprite shows, by name (its frames: gfx/look/battle.ts). */
-export type PlayerPose =
+/** Its frames: gfx/look/battle.ts. */
+type PlayerPose =
   | "stand" | "down" | `swing-${SwingDir}` | "stab" | "block" | "stagger";
 
 /** Each swing's way across the screen as the player sees it (x right, y up), from behind them or facing a foe. */
@@ -27,7 +24,7 @@ export interface SpritePose {
   pose: PlayerPose;
   /** Which of its frames. */
   frame: number;
-  /** The quad's scale: squash and stretch only. It's never mirrored (a negative x would). */
+  /** Squash and stretch only: it's never mirrored. */
   scaleX: number;
   scaleY: number;
 }
@@ -39,7 +36,6 @@ export interface SpritePose {
 export function spritePose(
   player: PlayerData, alive: boolean, stretch: number, stagger = { left: 0, of: 0 },
 ): SpritePose {
-  // We always see the player from behind, so the sprite never turns or mirrors; the trail shows the direction.
   const attacking = player.action === "attack" && player.actionTime < player.startup + CHAIN.activeTime + 0.08;
   const pose: PlayerPose = !alive ? "down"
     : attacking ? (isSwing(player.attack) ? `swing-${player.attack}` : "stab")

@@ -1,8 +1,7 @@
 /**
- * Everything the game tells the HTML UI. Game code writes these stores and React reads them; nothing here
- * imports React, so game code never touches it. The exceptions are `settingsScreen`, `creation` and `overworldPanel`:
- * the UI opens or closes them too, and the game watches them, to stop taking input while they have the keys.
- * The notices and the centre banner are their own piece (notifications/). `UiActions` is the other direction.
+ * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
+ * The UI writes `settingsScreen`, `creation` and `overworldPanel` too, and the game watches them. `UiActions` is the
+ * other direction.
  */
 import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
@@ -19,25 +18,18 @@ export interface ScreenState {
 
 export interface TitleState {
   /**
-   * checking (asking the server who's logged in) -> menu. In the menu, logged out shows the login form
-   * (submitting it is `signingIn`, then back to menu, logged in); logged in shows Play. Play is
-   * connecting -> loading -> entering (the game has joined; the title clears off it) -> playing (the title is
-   * gone, and the game gets input: game.ts). A failed connection goes back to menu with `error` (Play becomes
-   * Retry); anything failing after that is `failed` and needs a reload. Return to title, or losing the connection
-   * while playing, is returning (the game stops under the white), then menu. How each looks:
-   * ui/screens/title/sequence.ts.
+   * checking (who's logged in?) -> menu (the login form, `signingIn` while it's sent, or Play). Play is connecting ->
+   * loading -> entering (the title clears off the game) -> playing. A failed connection goes back to menu with
+   * `error`; anything failing after that is `failed` and needs a reload. Return to title, or a lost connection, is
+   * returning, then menu.
    */
   phase: "checking" | "menu" | "signingIn" | "connecting" | "loading" | "failed" | "entering" | "playing"
     | "returning";
   error: string | null;
-  /** The logged-in account's username, or null. */
   username: string | null;
 }
 
-/**
- * The player is in the world: a game is running and the title has cleared off it. Only then do the HUDs show and
- * the game, and the screens over it, take keys (App.tsx, game.ts).
- */
+/** A game is running and the title has cleared off it: only then do the HUDs show and anything take keys. */
 export const inWorld = (mode: Mode | null, phase: TitleState["phase"]): boolean => mode !== null && phase === "playing";
 
 export interface OverworldHudState {
@@ -45,22 +37,22 @@ export interface OverworldHudState {
   wins: number;
   hpFraction: number;
   staminaFraction: number;
-  /** The player's stats, for the character panel (null before `welcome`). */
+  /** null before `welcome`. */
   stats: Stats | null;
-  /** Their name and look (null until they've made a character). */
+  /** null until they've made one. */
   character: Character | null;
-  /** Standing by a campfire: the Rest button shows. */
+  /** The Rest button shows. */
   nearCampfire: boolean;
   bag: Bag;
 }
 
-/** A word over the fight for a moment of it: you parried the enemy, or you're staggered (parried, guard broken). */
+/** A word over the fight for a moment: you parried the enemy, or you're staggered. */
 export type BattleCue = "none" | "parried" | "staggered";
 
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
-  /** The damage multiplier the chain's momentum gives the next swing: 1 with no chain going. */
+  /** What the chain's momentum multiplies the next swing's damage by: 1 with no chain going. */
   comboMultiplier: number;
   cue: BattleCue;
   enemyName: string;
@@ -76,7 +68,7 @@ export interface SettingsScreenState {
 }
 
 export interface PingState {
-  /** Null until a session's first pong. */
+  /** null until a session's first pong. */
   ms: number | null;
 }
 
@@ -87,18 +79,11 @@ export interface OverworldPanelState {
   open: OverworldPanel | null;
 }
 
-/**
- * The open bag has the keys on the overworld: you stand still while it's open (it's worked with the mouse, and has
- * a few keys of its own: settings/bindings.ts, `bag`). The character panel only shows things, so you walk with it
- * open.
- */
+/** You stand still while the bag is open; the character panel only shows things, so you walk with it open. */
 export const bagHasTheKeys = (mode: Mode | null, panel: OverworldPanel | null): boolean =>
   mode === "overworld" && panel === "inventory";
 
-/**
- * Making a character, on a first visit (screens/creation/). The game opens it when `welcome` has no character; it
- * closes itself once the character is made and its white has cleared off the world. There's no leaving it.
- */
+/** The game opens it when `welcome` has no character; it closes itself once one is made. There's no leaving it. */
 export interface CreationState {
   open: boolean;
 }
@@ -110,18 +95,11 @@ export interface UiActions {
   signIn(kind: SignInKind, credentials: Credentials): void;
   logOut(): void;
   play(): void;
-  /** Rest at the campfire you're standing by. */
   rest(): void;
-  /** Use one of the item in that bag cell (eat the meat); the server answers with what it did. */
   useItem(at: Cell): void;
-  /**
-   * Move the stack whose top-left is `from` so its top-left is at `to`, turned or not. The bag shows it moved at
-   * once; the server answers with the bag as it has it.
-   */
+  /** Shown at once; the server answers with the bag as it has it. */
   moveItem(from: Cell, to: Cell, turned: boolean): void;
-  /** Send the new character to the server, which answers with it as saved (`OverworldHudState.character`). */
   saveCharacter(character: Character): void;
-  /** Leave the world: disconnects from the server. */
   returnToTitle(): void;
 }
 
@@ -147,7 +125,6 @@ export class UiState {
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
   readonly closeCreation = (): void => this.creation.set({ open: false });
-  /** Open that panel, or close it if it's the one open. */
   readonly toggleOverworldPanel = (panel: OverworldPanel): void =>
     this.overworldPanel.set({ open: this.overworldPanel.get().open === panel ? null : panel });
   readonly closeOverworldPanel = (): void => this.overworldPanel.set({ open: null });

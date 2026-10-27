@@ -1,7 +1,4 @@
-/**
- * The database's tables, in TypeScript. Queries are typed from these. After changing a table, run
- * `npm run db:generate -- --name <what-changed>` to write the migration into migrations/, and commit both.
- */
+/** The tables. After changing one, run `npm run db:generate -- --name <what-changed>` and commit the migration. */
 import type { Bag, Character, SavedSettings } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
 import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
@@ -32,11 +29,11 @@ export const players = pgTable("players", {
   stamina: doublePrecision().notNull(),
   /** Fights won (any enemy), shown on the overworld HUD. */
   wins: integer().notNull().default(0),
-  /** Key bindings, camera and mouse: only what differs from the defaults, so {} is "all defaults". */
+  /** Only what differs from the defaults, so {} is "all defaults". */
   settings: jsonb().$type<SavedSettings>().notNull().default({}),
-  /** {name, look} (shared/src/character/character.ts). null until they've made one, on their first visit. */
+  /** null until they've made one, on their first visit. */
   character: jsonb().$type<Character>(),
-  /** Their bag: its size and where each item sits (shared/src/items/bag.ts). Named "inventory" in the database. */
+  /** Named "inventory" in the database. */
   bag: jsonb("inventory").$type<Bag>().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

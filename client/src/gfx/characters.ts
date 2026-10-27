@@ -1,8 +1,4 @@
-/**
- * Frames for the 24x24 pixel sprites (sprites.ts). The player is drawn from their look (gfx/look/): the chibi in
- * the overworld (facing front, back and side), the battle sprite (from behind, sword in hand) in the arena. The boar
- * and the "!" bubble are drawn here.
- */
+/** Frames for the 24x24 pixel sprites (sprites.ts): the player's from their look (gfx/look/), the rest drawn here. */
 import type { Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
 import { SWORD_POSES, type Pose, type SwordPose } from "./look/battle.js";

@@ -1,13 +1,6 @@
 /**
- * What carrying too much does, like Dark Souls' equip load. The bag's weight (`bagWeight`) against the carry limit
- * (`carryLimit`, from strength):
- *
- *   light       up to the limit: nothing
- *   heavy       over the limit: a dodge costs `heavyDodgeCost` times the stamina
- *   overloaded  over `overloadedAt` times the limit: no dodging, and walking (overworld and arena) at `overloadedPace`
- *
- * Shared: the server walks the overworld at this pace and the client predicts it; the arena reads the burden the
- * server sends with the encounter.
+ * What carrying too much does, like Dark Souls' equip load: over the carry limit, a dodge costs `heavyDodgeCost`
+ * times the stamina; over `overloadedAt` times it, no dodging, and walking (overworld and arena) at `overloadedPace`.
  */
 import { PLAYER } from "../battle/player.js";
 import { carryLimit, type Stats } from "../battle/stats.js";
@@ -24,10 +17,9 @@ export function burdenOf(weight: number, limit: number): Burden {
 
 export const bagBurden = (bag: Bag, stats: Stats): Burden => burdenOf(bagWeight(bag), carryLimit(stats));
 
-/** Share of the normal walking speed. */
 export const walkPace = (burden: Burden): number => burden === "overloaded" ? BURDEN.overloadedPace : 1;
 
-/** Stamina a dodge costs, or null when you can't dodge at all. */
+/** null: no dodging at all. */
 export function dodgeCost(burden: Burden): number | null {
   if (burden === "overloaded") return null;
   return burden === "heavy" ? PLAYER.dodge.cost * BURDEN.heavyDodgeCost : PLAYER.dodge.cost;

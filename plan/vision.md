@@ -10,7 +10,7 @@ Status: **direction** (the user's). Details are undecided unless listed under "D
 - **Exploration on a simple 2D top-down map; fights in a small 2.5D arena**, Pokémon-style: walking through tall
   grass or touching a monster pulls you into a small round arena where the monster is 3D and players are 2D
   sprites.
-- **Single-player first.** The current prototype (one grass field, one boar) is single-player on purpose;
+- **Single-player first.** The current prototype (one grass field, a boar and a kobold) is single-player on purpose;
   multiplayer comes later ([multiplayer.md](multiplayer.md)).
 
 ## Decided so far

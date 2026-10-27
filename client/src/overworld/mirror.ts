@@ -1,12 +1,12 @@
 /** Mirrors the server's overworld actors: spawn new ones, update the rest, remove the ones that are gone. */
 import type { ActorSnap, Entity, World } from "@infinite-tower/shared";
 import { OverworldActor } from "./components.js";
+import { OVERWORLD_PREFABS } from "./entities.js";
 import { facingFromSide } from "./facing.js";
-import { OVERWORLD_PREFABS } from "./entities/index.js";
 import type { OverworldView } from "./scene.js";
 
 export class ActorMirror {
-  /** Server entity id -> local entity. */
+  /** Server id -> local entity. */
   private readonly local = new Map<number, Entity>();
 
   constructor(private readonly world: World, private readonly view: OverworldView) {}
@@ -32,7 +32,7 @@ export class ActorMirror {
     this.world.flush();
   }
 
-  /** Forget every actor (entering another level). */
+  /** Entering another level. */
   clear(): void {
     for (const [id, e] of this.local) this.remove(id, e);
     this.world.flush();

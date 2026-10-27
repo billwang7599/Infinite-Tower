@@ -1,12 +1,7 @@
 /**
- * The client's own copy of the fight, run whole and at once: you, the enemies, hits and all, so what you see answers
- * your keys on the next step. Each step it runs the fight with your input (rounded as the wire rounds it), and
- * queues the input to send if it changed, tagged with its step; `upTo` tells the server how far this copy has run,
- * so it knows nothing changed until then. The server runs the same fight on the same inputs at the same steps, and
- * four times a second its hash (battleHash) is checked against this copy's at that step. When they differ (an input
- * reached the server too late for its step, or another machine's maths drifted), the client asks for the server's
- * fight (battleResync), loads it (battleSync) and replays its own inputs since. The result is only ever the
- * server's: `outcome` stays "fighting" until battleResult comes, whatever this copy says.
+ * The client's own copy of the fight, run whole and at once so it answers your keys on the next step. It sends each
+ * change of input with its step, checks the server's hashes against its own, and on a mismatch loads the server's
+ * fight and replays its inputs since. The result is only ever the server's: `outcome` waits for battleResult.
  */
 import {
   copyInput, FIXED_DT, HASH_EVERY_STEPS, Health, MAX_INPUT_DELAY_STEPS, MAX_INPUTS_PER_MESSAGE, Player, PlayerInput,
@@ -18,7 +13,7 @@ import { Pace } from "./pace.js";
 /** With nothing new to send, the client still says how far it has got this often (steps). */
 export const INPUT_HEARTBEAT_STEPS = 3;
 /** Steps of inputs and hashes kept, to check against and to replay (1 s): more than a round trip. */
-export const HISTORY_STEPS = 60;
+const HISTORY_STEPS = 60;
 /** Asked for the server's fight and none came in this many steps: ask again. */
 const RESYNC_RETRY_STEPS = 60;
 /** A hit only the server saw counts as one through a dodge you were shown if the dodge started this recently. */
@@ -37,12 +32,11 @@ export interface SyncStats {
 }
 
 export class FightSync {
-  /** How the fight stands as the server says: the result banner waits for it. */
+  /** As the server says. */
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
   readonly stats: SyncStats = {
     checks: 0, mismatches: 0, restores: 0, corrections: 0, hiddenHits: 0, hiddenDodgeHits: 0,
   };
-  /** The fight's clock: how many steps to run each frame, in step with the server's. */
   readonly pace: Pace;
   /** Your input on each recent step, oldest first, one per step. */
   private history: StepInput[] = [];
@@ -75,7 +69,7 @@ export class FightSync {
     return this.fight.players[this.seat]!;
   }
 
-  /** One step of the fight, with your input (from the keys). Its events are the fight's `events` until the next. */
+  /** One step, with your input. Its events are the fight's `events` until the next. */
   advance(raw: PlayerInputData): void {
     const input = quantizeInput(raw);
     const step = this.fight.steps + 1;
@@ -91,7 +85,7 @@ export class FightSync {
     if (this.outcome.state !== "fighting") this.outcome.stateTime += FIXED_DT;
   }
 
-  /** Sends the changes queued since the last flush, and how far the fight has run (once a frame). */
+  /** Once a frame: the changes queued since the last flush, and how far the fight has run. */
   flush(): void {
     const upTo = this.fight.steps;
     if (this.decided || (this.outbox.length === 0 && upTo - this.sentUpTo < INPUT_HEARTBEAT_STEPS)) return;
@@ -105,7 +99,7 @@ export class FightSync {
     this.pace.sent(upTo);
   }
 
-  /** The server's hash after `step`: checked against this copy's (now, or once this copy gets there). */
+  /** Checked against this copy's hash at `step`, now or once this copy gets there. */
   onHash({ step, hash, lateSteps, heardStep }: ServerMsgOf<"battleHash">): void {
     if (this.decided) return;
     this.pace.report(lateSteps, heardStep, this.fight.steps);
@@ -120,7 +114,7 @@ export class FightSync {
     }
   }
 
-  /** The server's whole fight after `step`: loaded, then your inputs since are replayed on it. */
+  /** Loads the server's fight, then replays your inputs since on it. */
   onSync({ step, fight, lateSteps, heardStep }: ServerMsgOf<"battleSync">): void {
     if (this.decided) return;
     this.askedAt = null;
@@ -148,7 +142,7 @@ export class FightSync {
     if (this.lastDodgeStep >= present - DODGE_LOOKBACK_STEPS) this.stats.hiddenDodgeHits++;
   }
 
-  /** The server's result (battleResult): the fight is over, and the banner may show. */
+  /** battleResult: the fight is over, and the banner may show. */
   onResult(won: boolean): void {
     const state = won ? "won" : "lost";
     this.decided = true;
@@ -159,7 +153,7 @@ export class FightSync {
     Object.assign(this.outcome, { state, stateTime });
   }
 
-  /** Runs steps `from`..`to` again with your inputs on them (your held input where none is kept). */
+  /** Steps `from`..`to` again with your inputs (your held input where none is kept). */
   private replay(from: number, to: number): void {
     const first = this.history[0]?.step ?? Infinity;
     for (let step = from; step <= to; step++) {
@@ -168,7 +162,7 @@ export class FightSync {
     }
   }
 
-  /** The fight's next step: your input, everyone else's last; the hash taken if it's a step the server checks. */
+  /** Your input, everyone else's last; the hash taken if it's a step the server checks. */
   private run(input: PlayerInputData): void {
     const inputs: PlayerInputData[] = [];
     inputs[this.seat] = input;

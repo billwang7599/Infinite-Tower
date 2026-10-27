@@ -1,7 +1,4 @@
-/**
- * The database: Postgres at DATABASE_URL (.env), queried through Drizzle (tables in schema.ts). In dev that's the
- * Docker container from compose.yaml (`npm run db:up`, which `npm run dev` runs first).
- */
+/** Postgres at DATABASE_URL, through Drizzle. In dev, the Docker container from compose.yaml. */
 import { join } from "node:path";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -11,10 +8,7 @@ import { DATABASE_URL, DEV } from "../env.js";
 /** `$client` is the pool, for closing it (the seed script). */
 export type Db = NodePgDatabase & { $client: Pool };
 
-/**
- * Connects and applies the migrations in migrations/ that this database hasn't run yet (Drizzle records them in
- * `drizzle.__drizzle_migrations`). Throws a readable message if Postgres isn't reachable or a migration fails.
- */
+/** Connects and applies new migrations. Throws a readable message if Postgres isn't reachable or a migration fails. */
 export async function connectDb(): Promise<Db> {
   const url = DATABASE_URL;
   if (!url) {

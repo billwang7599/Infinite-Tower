@@ -1,10 +1,7 @@
-/**
- * What core needs from the outside world, as interfaces it owns. The outlets implement them: db/ the two stores,
- * ws/ the player link. main.ts picks the implementations, so swapping one is a change there and nowhere else.
- */
+/** What core needs from the outside world, as interfaces it owns; main.ts picks the implementations. */
 import type { Bag, Character, SavedSettings, ServerMsg, Vitals } from "@infinite-tower/shared";
 
-/** The account's id: every player logs in, there's no guest play. */
+/** The account's id. */
 export type PlayerId = string;
 
 export interface Account {
@@ -23,7 +20,6 @@ export interface PlayerSave {
   bag: Bag;
 }
 
-/** What's kept about a player between connections. */
 export interface PlayerStore {
   /** null for a player it has never saved. */
   load(id: PlayerId): Promise<PlayerSave | null>;

@@ -96,7 +96,7 @@ How many drawings each thing needs, for whoever draws it. Read from the code: th
 | --- | --- | --- | --- |
 | portrait | 64x64 | 1 | three-quarters to our left; flipped to face right, no extra drawing |
 | chibi | 32x32 | 3: front, back, side | side is drawn facing left; facing right is its mirror image |
-| battle | 64x64 | 34: stand, slash, down, and 31 sword-fight frames | from behind; slash is mirrored on every other swing, no extra drawing |
+| battle | 64x64 | 34: stand, slash, down, and 31 sword-fight frames | from behind; never mirrored |
 
 So something seen in every view and pose is 38 drawings. The axes that need drawings of their own:
 

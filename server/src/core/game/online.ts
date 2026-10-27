@@ -1,7 +1,6 @@
 /**
- * Who's playing right now: one session per connected account. Joining loads the player's save; leaving
- * (disconnecting) saves it. An account that joins again from another tab takes over: the older link is closed
- * and saved first, so the new session loads what the old one had.
+ * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
+ * the old session is saved first, so the new one loads what it had.
  */
 import { CLOSE_CODES } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
@@ -13,11 +12,7 @@ export class OnlinePlayers {
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean) {}
 
-  /**
-   * The player's session, once their save has loaded and `welcome` has gone out; null if the link closed while
-   * loading, or loading failed (then it's closed with 1011). Until then nothing can be asked of it, which is fine:
-   * the client sends nothing before `welcome`.
-   */
+  /** null if the link closed while loading, or loading failed (then it's closed with 1011). */
   join(link: PlayerLink, account: Account): Promise<GameSession | null> {
     this.replace(account.id);
     return this.start(link, account).catch((err: unknown) => {
@@ -27,10 +22,7 @@ export class OnlinePlayers {
     });
   }
 
-  /**
-   * Once, however many times it's called (a replaced session's link also reports closing): the session disconnects
-   * (a fight still on is left: see GameSession.disconnect) and saves.
-   */
+  /** Once, however many times it's called (a replaced session's link also reports closing). */
   leave(session: GameSession): void {
     const id = session.account.id;
     if (this.byAccount.get(id) !== session) return;
@@ -38,7 +30,6 @@ export class OnlinePlayers {
     session.disconnect();
   }
 
-  /** One fixed step for every session (game/clock.ts). */
   tick(dt: number): void {
     for (const session of this.byAccount.values()) session.tick(dt);
   }

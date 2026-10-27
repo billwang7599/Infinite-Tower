@@ -106,17 +106,8 @@ needed. Production never delays.
 
 ```
 shared/            code the server and the browser both run: ECS, math, the arena fight (Rapier), the Zod messages
-server/src/
-  core/            the game itself: accounts, the overworld, encounters, saving rules (no I/O)
-  api/  ws/  db/   what plugs into core: HTTP (Fastify), the game socket, Postgres (Drizzle)
-  main.ts          wires them together
-client/src/
-  overworld/       the 2D map mode, drawn with Babylon.js
-  battle/          the 2.5D arena fight mode, drawn with Babylon.js
-  net/             talking to the server
-  ui/              the React UI (title, HUD, panels, settings)
-  gfx/look/        character art in code: portrait, chibi, battle (style: ART.md; preview: localhost:5173/art.html)
-  gfx/items/       item pictures for the bag, drawn the same way
+server/            the authoritative game server: core/ is the game, api/ ws/ db/ plug into it
+client/            the browser game: Babylon.js modes, React UI, character art in code (ART.md)
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas
@@ -124,8 +115,10 @@ compose.yaml       the dev database (Postgres in Docker)
 .env.example       local settings; copied to .env
 ```
 
+The character art can be previewed at http://localhost:5173/art.html while `npm run dev` runs.
+
 | Doc | What's in it |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | how the code fits together, every folder and file, how to add things, where to tune |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | how the code fits together, every file, how to add things, where to tune |
 | [AGENTS.md](AGENTS.md) | how to work in this repo: ask before game mechanics, decisions so far, checks, git and PRs |
 | [plan/](plan/README.md) | where it's headed |

@@ -6,7 +6,7 @@ import type { OverworldContext } from "../../../src/core/overworld/context.js";
 import type { LevelDef } from "../../../src/core/levels/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 
-export interface Encounter { source: Entity | null; enemy: EnemyId }
+interface Encounter { source: Entity | null; enemy: EnemyId }
 
 export interface TestOverworld {
   world: World;

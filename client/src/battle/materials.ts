@@ -1,7 +1,4 @@
-/**
- * Arena materials, built from procedural textures so the prototype needs no asset files.
- * Swap these for real art later; nothing else depends on how they're made.
- */
+/** Arena materials, from procedural textures: no asset files. */
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { DEFAULT_LOOK } from "@infinite-tower/shared";
 import { playerFrames } from "../gfx/characters.js";
@@ -34,7 +31,7 @@ function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): 
   return m;
 }
 
-/** The player is drawn in the default look until `welcome` says who they are (game/look.ts repaints it). */
+/** The player is drawn in the default look until `welcome` says who they are (game.ts repaints it). */
 export function createMaterials(scene: Scene): Materials {
   const frames = playerFrames(DEFAULT_LOOK);
   const grass = tiled(scene, "grass", speckleTexture(scene, "grass", {

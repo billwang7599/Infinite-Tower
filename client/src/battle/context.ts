@@ -1,4 +1,4 @@
-/** What arena systems need besides the World. Created by createBattle (battle.ts). */
+/** What arena systems need besides the World. */
 import type { Scene, ShadowGenerator, UniversalCamera } from "@babylonjs/core";
 import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
@@ -25,19 +25,15 @@ export interface BattleContext {
   materials: Materials;
   /** The sun's shadow maps (casters are added to it); not the blob shadows under the sprites. */
   sunShadows: ShadowGenerator;
-  /** The current arena (from the server's encounter). */
   arena: ArenaDef;
-  /**
-   * Orbit angles of the camera (radians), from the mouse or the turn / tilt keys. Yaw is also the aim direction:
-   * forward = (sin yaw, cos yaw). Movement is camera-relative.
-   */
+  /** The camera's orbit (radians). Yaw is also the aim, and movement is camera-relative. */
   view: { yaw: number; pitch: number };
-  /** The fight being drawn (your own copy, run at once), from the encounter until the player leaves the arena. */
+  /** Your own copy, from the encounter until the player leaves the arena. */
   fight: Fight | null;
-  /** Keeps `fight` in line with the server's (sync.ts); its `stats` count the checks and corrections. */
+  /** Keeps `fight` in line with the server's. */
   sync: FightSync | null;
-  /** How the fight stands, as the server says (its clock runs here, for when to show the result). */
+  /** As the server says (its clock runs here, for when to show the result). */
   outcome: FightOutcome;
-  /** Camera shake amplitude, decays over time. Hard hits add to it (addImpactShake, systems/camera.ts). */
+  /** Camera shake amplitude, decaying. Hard hits add to it. */
   shake: number;
 }

@@ -1,7 +1,4 @@
-/**
- * Password hashing with scrypt (node:crypto, no dependency). The stored string carries its own parameters
- * and salt, `scrypt$N$r$p$salt$key` (base64), so the cost can be raised later without breaking old hashes.
- */
+/** scrypt. A hash carries its own parameters and salt, `scrypt$N$r$p$salt$key`, so the cost can be raised later. */
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 
 const COST = { N: 16384, r: 8, p: 1 };

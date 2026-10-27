@@ -1,12 +1,7 @@
 /**
- * A fight, as the server runs it: the shared Fight, stepped in real time with each player's inputs, each on the step
- * it was made for (inputs.ts). The room keeps a clock (`now`: steps since the fight started, one a tick) and runs
- * the fight up to it as soon as it knows every player's input for the next step. It holds a step back for a late
- * input for at most MAX_INPUT_DELAY_STEPS, then runs it without (the input counts on the next step when it comes),
- * and it never runs ahead of its clock, whatever a client says. Every HASH_EVERY_STEPS-th step it sends everyone the
- * fight's hash; a client whose copy differs asks for the whole fight (`resync`). It's authoritative: hits, damage,
- * stamina, deaths and the result are all the server's. Built for any number of players; every battle has one for
- * now, and that player's session ticks it (game/session.ts).
+ * A fight as the server runs it, authoritatively: stepped in real time, each player's input on the step it was made
+ * for. It runs up to its clock as soon as it knows every player's input for the next step, holding a step back for
+ * a late one at most MAX_INPUT_DELAY_STEPS, and never runs ahead of the clock. Built for any number of players.
  */
 import {
   HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Stamina, type Entity, type StepInput, type Vitals,
@@ -15,28 +10,21 @@ import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infini
 import type { PlayerLink } from "../ports.js";
 import { InputTimeline } from "./inputs.js";
 
-/**
- * The fight starts once every player has sent their first input (they've flashed into the arena and can see it), or
- * after this many seconds, whichever is first.
- */
+/** The fight starts once every player has sent their first input (they're in the arena), or after this long. */
 export const MAX_START_WAIT_TIME = 5;
 /** A player's `battleSync`s are at least this many steps apart: asking more often gets nothing more. */
 export const MIN_SYNC_GAP_STEPS = 5;
 
-/** A player in the room. */
 export interface Seat {
   link: PlayerLink;
-  /**
-   * Called once, when the fight is over for this player: won, lost, or "left" (gone, with nothing won or lost; only
-   * without LEAVING_LOSES). `vitals`: the HP and stamina it left them with.
-   */
+  /** Called once, when the fight is over for this player. `vitals`: the HP and stamina it left them with. */
   onEnd(result: PlayerResult, vitals: Vitals): void;
 }
 
 interface SeatState {
   seat: Seat;
   inputs: InputTimeline;
-  /** Disconnected: out of the fight. */
+  /** Disconnected. */
   gone: boolean;
   /** The step of the last `battleSync` sent them. */
   syncedAt: number | null;
@@ -45,7 +33,7 @@ interface SeatState {
 export class BattleRoom {
   readonly fight: Fight;
   private readonly seats: SeatState[];
-  /** Steps since the fight started, one a tick: the fight never runs past it. */
+  /** The clock: steps since the fight started, one a tick. */
   private now = 0;
   private waitedTime = 0;
   private started = false;
@@ -62,13 +50,13 @@ export class BattleRoom {
     return this.ended;
   }
 
-  /** Player `seat` has run their fight to step `upTo`, with these changes of input on the way. */
+  /** Player `seat` has run their copy to step `upTo`, with these changes of input on the way. */
   input(seat: number, upTo: number, inputs: readonly StepInput[]): void {
     const s = this.seats[seat];
     if (s && !s.gone && !this.ended) s.inputs.receive(upTo, inputs, this.now);
   }
 
-  /** Player `seat`'s copy differs from the hash: they get the whole fight, as it is now. */
+  /** Player `seat`'s copy differs from the hash: they get the whole fight. */
   resync(seat: number): void {
     const s = this.seats[seat];
     if (!s || s.gone || this.ended || !this.started) return;
@@ -76,7 +64,7 @@ export class BattleRoom {
     this.sendSync(s);
   }
 
-  /** Player `seat` disconnected: they're out of the fight, and it's over for them now (outcome.ts: LEAVING_LOSES). */
+  /** Player `seat` disconnected: it's over for them now (outcome.ts: LEAVING_LOSES). */
   leave(seat: number): void {
     const s = this.seats[seat];
     if (!s || s.gone || this.ended) return;
@@ -88,7 +76,7 @@ export class BattleRoom {
     if (this.seats.every((other) => other.gone)) this.close();
   }
 
-  /** One tick of the clock (FIXED_DT), once everyone is in: the fight runs as far as it can. */
+  /** One tick of the clock, once everyone is in: the fight runs as far as it can. */
   tick(): void {
     if (this.ended || !this.ready()) return;
     this.now++;

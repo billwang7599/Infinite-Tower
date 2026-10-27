@@ -159,6 +159,3 @@ export const STREAKS: readonly { at: Vec3; length: number }[] = (() => {
     return { at: [r * Math.cos(a), rand() * STREAK_SPAN, r * Math.sin(a)] as Vec3, length: 0.4 + rand() * 0.8 };
   });
 })();
-
-/** Where the light the tower climbs into is: straight up its middle, far away. */
-export const ZENITH_DIR = normalize([0, 1, 0]);

@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { inTallGrass } from "@infinite-tower/shared";
 import type { EnemyId } from "../../../src/core/content/enemies.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
-import { OVERWORLD_PREFABS } from "../../../src/core/overworld/prefabs/index.js";
+import { OVERWORLD_PREFABS } from "../../../src/core/overworld/prefabs.js";
 import { testOverworld } from "../overworld/helpers.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/levels/level.js";

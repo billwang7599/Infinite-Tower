@@ -27,7 +27,7 @@ export interface Style {
 }
 
 /** The shine band round the crown: between two ellipses, above row `belowY`, lit left of column `litBefore`. */
-export interface ShineBand {
+interface ShineBand {
   outer: Mask;
   inner: Mask;
   belowY: number;

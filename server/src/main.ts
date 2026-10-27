@@ -1,19 +1,6 @@
 /**
- * Infinite Tower server. Authoritative for everything a player shouldn't be able to change: levels, encounters,
- * overworld actors, enemy stats, fight results and progress.
- *
- * It's built as ports and adapters (hexagonal). core/ is the game and knows nothing about sockets, HTTP or SQL; what
- * it needs from outside, it asks for through the interfaces in core/ports.ts. Each outlet plugs into core from one
- * side, and never into another outlet:
- *
- *   core/      the game: who's online, sessions, the overworld, fights, levels, content, accounts' rules
- *   ws/        outlet: the game socket (/ws). Messages in become session calls; the socket is the PlayerLink out
- *   api/       outlet: HTTP (Fastify). The account API (/api), the built client, and the login check on /ws
- *   db/        outlet: Postgres through Drizzle. The PlayerStore and AccountStore, migrations, the dev seed
- *   env.ts     settings from environment variables (.env locally)
- *
- * This file is the only one that sees them all: it builds each, plugs them together and runs the tick timer.
- * `npm run typecheck` enforces the rule (server/scripts/check-layers.ts).
+ * The server, hexagonal: core/ is the game, and the outlets (ws/, api/, db/) plug into it, never into each other.
+ * This is the only file that sees them all: it builds each, plugs them together and runs the tick timer.
  */
 import { fileURLToPath } from "node:url";
 import { initPhysics } from "@infinite-tower/shared/fight";
@@ -31,13 +18,11 @@ const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url))
 /** How often the timer checks for due ticks. The ticks themselves are FIXED_DT apart (clock.ts). */
 const TIMER_MS = 5;
 
-/** Logs the error under `tag` and stops the server. */
 const exitOn = (tag: string) => (err: unknown): never => {
   console.error(`[${tag}] ${errorText(err)}`);
   process.exit(1);
 };
 
-// The arena's physics (Rapier) loads once, before any fight is made.
 await initPhysics();
 const db = await connectDb().catch(exitOn("db"));
 const accounts = new Accounts(new PgAccountStore(db));

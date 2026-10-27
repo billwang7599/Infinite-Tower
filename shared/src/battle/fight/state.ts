@@ -1,14 +1,9 @@
 /**
- * A fight's whole state, out and back in. The server sends it to a client whose copy has gone its own way (and once
- * more as the fight is decided); the client loads it into its copy and replays its own inputs since. Plain JSON and
- * exact: numbers survive JSON as they are. Only what changes during a fight is in it, because the setup (arena,
- * defs, stats, burden, maximums) is the same on both sides; an enemy's `sense` and `move` aren't either, as its
- * brain works them out afresh every step before anything reads them. The physics world is rebuilt from it: Rapier
- * simulates nothing here, so a collider is just where its body is. A fight's only random numbers are a sword
- * attack's, from the seed it keeps (`rng`), which is in here and so in the hash.
+ * A fight's whole state, out and back in, as exact plain JSON, and its hash. Only what changes during a fight is in
+ * it: the setup is the same on both sides, and an enemy's `sense` and `move` are worked out afresh every step.
  */
 import type { Entity } from "../../core/ecs.js";
-import type { Vec2, Vec3 } from "../../core/math.js";
+import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
   ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Stamina, SwordAttack, type ActiveHitData,
   type EnemyData, type HealthData, type PlayerData, type StaminaData, type SwordAttackData,
@@ -17,24 +12,24 @@ import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
 
-export interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max"> }
+interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max"> }
 
-export interface PlayerSnapshot extends FighterSnapshot {
+interface PlayerSnapshot extends FighterSnapshot {
   player: Omit<PlayerData, "burden">;
   /** The input the player's last step ran with (what they hold). */
   input: PlayerInputData;
   stamina: Omit<StaminaData, "max">;
 }
 
-export interface EnemySnapshot extends FighterSnapshot {
+interface EnemySnapshot extends FighterSnapshot {
   enemy: Omit<EnemyData, "def" | "sense" | "move">;
   lunge: { cooldown: number } | null;
   charge: { cooldown: number; dir: Vec2 } | null;
   sword: Omit<SwordAttackData, "def"> | null;
 }
 
-/** A live hitbox: whose it is and whom it has hit, as fighter indices (the players in seat order, then enemies). */
-export interface HitSnapshot extends Omit<ActiveHitData, "alreadyHit"> { by: number; alreadyHit: number[] }
+/** Whose hitbox it is and whom it has hit, as fighter indices (the players in seat order, then the enemies). */
+interface HitSnapshot extends Omit<ActiveHitData, "alreadyHit"> { by: number; alreadyHit: number[] }
 
 export interface FightSnapshot {
   /** Steps run: the fight is as it was after this one. */
@@ -122,4 +117,38 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   fight.steps = snap.steps;
   // Files the moved colliders where the next step's queries look for them.
   physics.step();
+}
+
+/**
+ * A fingerprint of the state. Every number is rounded to 2 decimals first, so a last-bit difference between machines
+ * (Math.sin in another browser) doesn't count until it grows into something that could be seen.
+ */
+export function hashFight(fight: Fight): number {
+  return hashText(canonical(saveFight(fight)));
+}
+
+const HASH_DECIMALS = 2;
+
+/** Keys sorted, so the order fields were made in doesn't matter. */
+function canonical(value: unknown): string {
+  if (typeof value === "number") return String(roundTo(value, HASH_DECIMALS) || 0);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${key}:${canonical(record[key])}`).join(",")}}`;
+  }
+  return String(value);
+}
+
+/** cyrb53: a quick 53-bit hash of a string (a fingerprint, not a lock). */
+function hashText(text: string): number {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }

@@ -1,14 +1,7 @@
 /**
- * Shapes of server-owned battle content. The values live in server/src/core/content and reach the client
- * with each encounter (the client builds the same fight and runs its own copy).
- *
- * An enemy is a body plus a set of optional attacks. The fight's enemy spawn (fight/setup.ts) adds one component
- * per attack (LungeAttack, ChargeAttack, ...), and each attack has its own system, so a new enemy is
- * mostly a new combination of existing attacks.
- *
- * Units: seconds, meters, m/s, rad/s.
+ * Shapes of the server's battle content (server/src/core/content), sent with each encounter. An enemy is a body
+ * plus optional attacks, each with its own component and system. Units: seconds, meters, m/s, rad/s.
  */
-
 import type { Stats } from "./stats.js";
 import type { AttackKind } from "./sword.js";
 
@@ -16,7 +9,7 @@ export interface ArenaDef {
   radius: number;
 }
 
-/** What every attack has: reach, timing, damage (at strength 10). */
+/** Damage is at strength 10. */
 export interface AttackDef {
   range: number;
   /** Minimum cos(angle) to the target: the width of the hit arc. */
@@ -26,17 +19,17 @@ export interface AttackDef {
   damage: number;
   knockback: number;
   lift: number;
-  /** Seconds before it can be used again (after recovering). */
+  /** After recovering. */
   cooldown: number;
-  /** Seconds after the fight starts before the first use. */
+  /** From the fight's start to the first use. */
   firstDelay: number;
 }
 
 /** A short-range lunge with a sweeping hit. */
 export interface LungeDef extends AttackDef {
-  /** Start the attack within this center distance. */
+  /** Starts within this center distance. */
   triggerDist: number;
-  /** Seconds the hit is live. */
+  /** How long the hit is live. */
   active: number;
   speed: number;
 }
@@ -48,9 +41,9 @@ export interface ChargeDef extends AttackDef {
   /** Stops tracking the target this long before the charge starts: the dodge cue. */
   lockAt: number;
   speed: number;
-  /** The charge gives up after this many seconds without hitting anything. */
+  /** Gives up after this long without hitting anything. */
   maxChargeTime: number;
-  /** Seconds stunned after slamming into the wall. */
+  /** Stunned this long after slamming into the wall. */
   stunTime: number;
 }
 
@@ -68,18 +61,18 @@ export interface SwordDef {
   lift: number;
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
-  /** Seconds of wind-up before a chain's first swing, and before each one it chains into. */
+  /** Wind-up before a chain's first swing, and before each one it chains into. */
   windup: number;
   chainWindup: number;
-  /** Seconds the blade is live, stepping forward this fast (m/s). */
+  /** The blade is live this long, stepping forward at `speed`. */
   active: number;
   speed: number;
-  /** Seconds after a chain's last swing before it's on guard again: its opening. */
+  /** After a chain's last swing, before it's on guard again: its opening. */
   recover: number;
   minChain: number;
   maxChain: number;
   moves: AttackKind[];
-  /** Seconds before it can start another chain (after recovering), and before its first. */
+  /** Before another chain (after recovering), and before its first. */
   cooldown: number;
   firstDelay: number;
   parryReaction: number;
@@ -103,9 +96,8 @@ export interface EnemyDef {
   radius: number;
   /** At agility 10. */
   walkSpeed: number;
-  /** rad/s */
   turnRate: number;
-  /** Poise breaks after enough hits in quick succession -> stagger. */
+  /** Breaks after enough hits in quick succession: a stagger. */
   poise: number;
   poiseRegen: number;
   staggerTime: number;

@@ -1,9 +1,7 @@
 /**
- * Sword attack (the Kobold Swordsman): close up and facing the target, a chain of `minChain` to `maxChain` swings
- * or stabs, each picked at random from its moves (never the one just before) by the fight's own seeded generator,
- * so both sides pick the same. Each winds up long enough to read (the first `windup`, the ones after it
- * `chainWindup`), then its blade is live for `active`. After the last, `recover`: its opening. On guard
- * ("approach") it parries and blocks: that's combat.ts, when a hit reaches it.
+ * Sword attack (the Kobold Swordsman): close up and facing the target, a chain of swings or stabs picked by the
+ * fight's seeded generator, so both sides pick the same (SwordDef says the rest). Parrying and blocking on guard
+ * are in combat.ts.
  *
  *   approach ─▶ swordWindup ─▶ sword ─┬─▶ swordWindup (the chain goes on)
  *                                     └─▶ swordRecover ─▶ approach
@@ -22,7 +20,7 @@ const WINDUP_TURN_RAD_PER_SEC = 2.5;
 /** Velocity change per second as it steps into a swing. */
 const STEP_ACCEL = 40;
 
-/** The next number from the attack's generator (0..1). */
+/** 0..1. */
 function roll(sword: SwordAttackData): number {
   const [value, next] = nextRandom(sword.rng);
   sword.rng = next;

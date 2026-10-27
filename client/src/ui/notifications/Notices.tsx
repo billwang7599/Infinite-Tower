@@ -1,7 +1,7 @@
 import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "../hud/layout.js";
 import type { Store } from "../store.js";
+import { NO_FOCUS } from "../components/noFocus.js";
 import { useStore } from "../useStore.js";
-import { DismissButton } from "./DismissButton.js";
 import type { Notice, NoticesState } from "./state.js";
 import { useFadeOut } from "./useFadeOut.js";
 
@@ -15,13 +15,13 @@ type Dismiss = (id: number) => void;
 interface NoticesProps {
   notices: Store<NoticesState>;
   dismiss: Dismiss;
-  /** The open side panel's width, or null: the stack moves to its left, so it never covers the bag. */
+  /** The open side panel's width, or null: the stack moves to its left. */
   besidePanelPx: number | null;
-  /** The Rest button is up (bottom centre): the stack rises above it, which narrow windows and the bag need. */
+  /** The Rest button is up (bottom centre): the stack rises above it. */
   aboveRestButton: boolean;
 }
 
-/** The small notices, stacked in the bottom-right corner, newest at the bottom. Only their × takes clicks. */
+/** Stacked in the bottom-right corner, newest at the bottom. Only their × takes clicks. */
 export function Notices({ notices, dismiss, besidePanelPx, aboveRestButton }: NoticesProps) {
   const items = useStore(notices, (s) => s.items);
   const rightPx = besidePanelPx === null ? MARGIN_PX : besidePanelPx + 2 * MARGIN_PX;
@@ -40,8 +40,8 @@ export function Notices({ notices, dismiss, besidePanelPx, aboveRestButton }: No
 }
 
 /**
- * Fades in, holds for SHOW_MS, then fades out while its row collapses (so the ones above settle down), then
- * dismisses itself. The ×, or being pushed out by newer ones (`leaving`), skips to the fade out.
+ * Fades in, holds, then fades out while its row collapses (so the ones above settle down) and dismisses itself. The
+ * ×, or being pushed out by newer ones (`leaving`), skips to the fade out.
  */
 function NoticeRow({ notice, dismiss }: { notice: Notice; dismiss: Dismiss }) {
   const { leaving, leave } = useFadeOut(notice.id, dismiss, SHOW_MS, FADE_MS, notice.leaving);
@@ -60,7 +60,15 @@ function NoticeRow({ notice, dismiss }: { notice: Notice; dismiss: Dismiss }) {
           <span className="min-w-0 font-title text-[17px]/snug tracking-wide wrap-break-word text-shadow-hud">
             {notice.text}
           </span>
-          <DismissButton onClick={leave} />
+          <button
+            type="button" aria-label="Dismiss" {...NO_FOCUS} onClick={leave}
+            className={
+              "pointer-events-auto flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full "
+              + "bg-black/40 font-ui text-sm/none text-white/70 transition-colors hover:bg-black/70 hover:text-white"
+            }
+          >
+            ×
+          </button>
         </div>
       </div>
     </div>

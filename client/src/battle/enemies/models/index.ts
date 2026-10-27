@@ -1,8 +1,4 @@
-/**
- * Enemy models by EnemyDef.model. A model builds its meshes under the enemy's node (BodyNode) and adds its
- * own component, animates it with its own render system, and disposes it when the enemy is removed.
- * New look: add a folder next to boar/ and kobold/ and list it here.
- */
+/** Enemy models by EnemyDef.model: each builds its meshes under the enemy's node and animates them from its state. */
 import type { TransformNode } from "@babylonjs/core";
 import type { EnemyDef, Entity, System, World } from "@infinite-tower/shared";
 import type { BattleContext } from "../../context.js";

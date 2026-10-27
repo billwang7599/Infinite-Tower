@@ -1,11 +1,8 @@
-/**
- * Spawns a level's actors when it loads (one per SpawnDef) and replaces defeated ones after
- * `respawnTime` seconds, away from the player if they're standing near the spawn point.
- */
+/** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from the player if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import type { SpawnDef } from "../levels/level.js";
 import { findPlayer } from "./player.js";
-import { OVERWORLD_PREFABS } from "./prefabs/index.js";
+import { OVERWORLD_PREFABS } from "./prefabs.js";
 
 interface Slot {
   def: SpawnDef;
@@ -36,7 +33,7 @@ export class Spawner {
     }
   };
 
-  /** Remove everything this spawner made (leaving the level). */
+  /** Leaving the level. */
   clear(): void {
     for (const slot of this.slots) if (slot.entity !== null) this.world.destroy(slot.entity);
     this.world.flush();

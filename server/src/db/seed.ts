@@ -1,16 +1,10 @@
-/**
- * Dev data, so there's something to log in as: `npm run db:seed` (`npm run dev` and `npm run db:reset` run it).
- * Safe to run again: it only adds what's missing. Brings the schema up to date first, like the server does.
- */
+/** Dev accounts to log in as (`npm run db:seed`). Only adds what's missing; migrates first, like the server. */
 import { Accounts } from "../core/accounts/accounts.js";
 import { DEV } from "../env.js";
 import { PgAccountStore } from "./account-store.js";
 import { connectDb, errorText } from "./db.js";
 
-/**
- * Three dev accounts, so two tabs or two players can be tried at once. Each one's password is its username.
- * Sign-up would refuse these passwords (it wants 8+ characters); they're created here, not through /api/register.
- */
+/** Each one's password is its username, which sign-up would refuse (too short). */
 const TEST_ACCOUNTS = ["test1", "test2", "test3"];
 
 if (!DEV) {

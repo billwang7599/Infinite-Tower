@@ -101,9 +101,9 @@ describe("the sword trail", () => {
     }
   });
 
-  test("every swing of a combo draws the same trail, around its own aim", () => {
+  test("a swing draws the same trail, around its own aim, whatever that aim is", () => {
     const [first, ...rest] = [0, 0.8, -1.5].map((yaw) => trail(frames("lr", yaw)));
-    rest.forEach((poses, i) => assert.deepEqual(poses, first, `swing ${i + 2} is like the first`));
+    rest.forEach((poses, i) => assert.deepEqual(poses, first, `aim ${i + 2} is like the first`));
   });
 
   test("the stab draws no trail but a thrust, out and back while its blade is live", () => {

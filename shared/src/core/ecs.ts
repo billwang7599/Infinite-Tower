@@ -1,13 +1,4 @@
-/**
- * Minimal ECS. Engine-agnostic: no Babylon imports, so the server can run it too.
- *
- * - Entity: a number.
- * - Component: plain data, identified by a ComponentType token.
- * - System: a function run by the game in a fixed order.
- *
- * Storage is Map-per-component for now. Everything goes through World's API,
- * so it can move to typed arrays later without touching game code.
- */
+/** Minimal ECS: an entity is a number, a component plain data, a system a function run in a fixed order. */
 
 export type Entity = number;
 
@@ -23,7 +14,6 @@ export function defineComponent<T>(name: string): ComponentType<T> {
   return { id: nextComponentId++, name };
 }
 
-/** Maps a tuple of ComponentTypes to a tuple of their data types. */
 export type DataOf<T extends readonly ComponentType<unknown>[]> = {
   [K in keyof T]: T[K] extends ComponentType<infer U> ? U : never;
 };
@@ -61,7 +51,7 @@ export class World {
     return this.store(type).get(e);
   }
 
-  /** Like get(), but throws if missing. Use when absence is a bug. */
+  /** Throws if missing. */
   require<T>(e: Entity, type: ComponentType<T>): T {
     const data = this.store(type).get(e);
     if (data === undefined) throw new Error(`Entity ${e} has no ${type.name}`);
@@ -80,7 +70,7 @@ export class World {
     this.runRemoveHooks(type.id, e, data);
   }
 
-  /** Called when a component is removed or its entity destroyed. Use it to dispose engine resources. */
+  /** Called when a component is removed or its entity destroyed: for disposing engine resources. */
   onRemove<T>(type: ComponentType<T>, hook: RemoveHook<T>): void {
     const hooks = this.removeHooks.get(type.id) ?? [];
     hooks.push(hook as RemoveHook<unknown>);
@@ -107,13 +97,12 @@ export class World {
     }
   }
 
-  /** First match of a query, e.g. the local player. */
   first<T extends readonly ComponentType<unknown>[]>(...types: T): [Entity, ...DataOf<T>] | undefined {
     for (const row of this.query(...types)) return row;
     return undefined;
   }
 
-  /** Apply deferred destroys. The game calls this once per tick, after all systems. */
+  /** Applies deferred destroys: once per tick, after all systems. */
   flush(): void {
     for (const e of this.pendingDestroy) {
       for (const [typeId, store] of this.stores) {
@@ -141,5 +130,4 @@ export class World {
   }
 }
 
-/** One step of game logic. `dt` is in seconds. */
 export type System = (world: World, dt: number) => void;

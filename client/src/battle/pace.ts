@@ -1,12 +1,8 @@
 /**
- * The client's fight clock: how many steps its fight should have run by now. It's real time since the fight's
- * first step, at FIXED_DT a step, so a slow frame runs more steps and a stalled one catches up after (a few a
- * frame, at most MAX_BACKLOG_STEPS of it). On top of that, an offset keeps the client in step with the server's
- * clock: each battleHash says how late the client's inputs reach the server (`lateSteps`, measured on its input up
- * to `heardStep`). What the client already knows about (it was behind its own clock when it sent that input, and is
- * catching up anyway) isn't counted again; the rest moves the clock ahead (late: its inputs would miss their steps)
- * or back (early: they'd be dropped, as a client may not run ahead). A correction takes a round trip to show in what
- * the server says, so news about inputs sent before it took effect is ignored.
+ * The client's fight clock: real time since the fight's first step, so a slow frame runs more steps and a stalled
+ * one catches up after. An offset keeps it in step with the server's: each battleHash says how late the client's
+ * inputs come, and what the client didn't cause itself (it was behind its own clock) moves the clock ahead (late) or
+ * back (early). A correction takes a round trip to show, so news about inputs sent before it is ignored.
  */
 import { FIXED_DT } from "@infinite-tower/shared";
 
@@ -33,7 +29,7 @@ export class Pace {
   /** For each input sent (by its last step), how far behind its own clock the client was. */
   private readonly lagAt = new Map<number, number>();
 
-  /** `now`: milliseconds, as performance.now(). */
+  /** `now`: as performance.now(). */
   constructor(private readonly now: () => number = () => performance.now()) {}
 
   /** Steps to run this frame, the fight having run `step`. */

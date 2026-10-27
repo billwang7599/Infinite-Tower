@@ -1,7 +1,4 @@
-/**
- * The overworld player on the server: replays the client's inputs with the shared walking rules
- * (authoritative) and rolls for encounters in tall grass.
- */
+/** The overworld player: replays the client's inputs with the shared walking rules, and rolls for encounters. */
 import { FIXED_DT, inTallGrass, stepWalker, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { rollEnemy } from "../levels/level.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData, type QueuedInput } from "./components.js";
@@ -16,7 +13,7 @@ export function queueInput(walk: OverworldPlayerData, input: QueuedInput): void 
   if (walk.queue.length < MAX_QUEUED_INPUTS) walk.queue.push(input);
 }
 
-/** Where the player is, and whether enemies can engage them right now (safeTime after a battle). */
+/** `safe`: enemies can't engage them right now (just after a battle). */
 export function findPlayer(world: World): { pos: Vec2; safe: boolean } | null {
   const p = world.first(OverworldPlayer, OverworldPos);
   return p ? { pos: p[2], safe: p[1].safeTime > 0 } : null;

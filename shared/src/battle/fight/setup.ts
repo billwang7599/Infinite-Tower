@@ -1,4 +1,4 @@
-/** Who's in a fight and where they start, and building them: components plus a collider each. */
+/** Who's in a fight, where they start, and building them: components plus a collider each. */
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
@@ -16,9 +16,8 @@ export const PLAYER_START: Vec3 = { x: 0, y: 0.05, z: -8 };
 export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 
-/** `vitals`, `stats` and `burden` (how weighed down the bag leaves them): what they come in with. */
 export interface PlayerSetup { at: Vec3; vitals: Vitals; stats: Stats; burden: Burden }
-/** `at`: the feet. `yaw`: which way it faces. `seed`: its random numbers' (the server picks it; 1 if left out). */
+/** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
 export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[] }
 
@@ -48,7 +47,6 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   return e;
 }
 
-/** How to add each kind of attack to an entity: one component per attack, each with its own system (enemies/). */
 type AddAttack<K extends keyof EnemyAttacks> =
   (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>, seed: number) => void;
 const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
@@ -61,7 +59,6 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   },
 };
 
-/** An arena enemy built from its def (sent by the server with the encounter): body, brain, one part per attack. */
 export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, seed = 1 }: EnemySetup): Entity {
   const e = world.spawn();
   const collider = physics.addBall(centerAbove(at, def.radius), def.radius, Layer.Enemy);

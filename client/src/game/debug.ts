@@ -1,9 +1,6 @@
 /**
- * Dev handles for the browser console (and the browser tests), set when a session starts (in dev, or with
- * `?debug` in the URL): `battle` and `overworld` hold each mode's world and scene (the fighters are in
- * `battle.fight.world`, while a fight is on), `components` every component type, `ui` the HUD stores, `settings`
- * the player's settings, `mode()` the current mode, and `encounter()` starts a fight (the server only allows it in
- * dev): against a wild boar, or the enemy named (`encounter("kobold-swordsman")`).
+ * Dev handles for the browser console and browser tests (in dev, or with `?debug`). The fighters are in
+ * `battle.fight.world` while a fight is on; `encounter()` fights a wild boar, or the enemy named (dev servers only).
  */
 import * as shared from "@infinite-tower/shared";
 import type { Battle } from "../battle/battle.js";

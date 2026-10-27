@@ -1,9 +1,8 @@
 /**
- * The physics step: gravity, then every body moves by its velocity, through Rapier so the floor and the wall stop it
- * (and take the speed out of whatever ran into them). Bodies bumping into each other follow the fight's own rule
- * rather than masses: an enemy shoves a player along and a player never pushes an enemy (though a player pinned
- * against the wall holds it back). Dodging, knocked back (hitstun) or dead, a player passes through enemies.
- * Enemies pass through each other, and players through players.
+ * The physics step: gravity, then every body moves by its velocity, stopped by the floor and the wall. Bodies follow
+ * the fight's rule rather than masses: an enemy shoves a player along, a player never pushes an enemy (though one
+ * pinned against the wall holds it back). Dodging, knocked back or dead, a player passes through enemies; enemies
+ * pass through each other, and players through players.
  */
 import type { System } from "../../../core/ecs.js";
 import type { Vec3 } from "../../../core/math.js";
@@ -18,7 +17,6 @@ const TOUCH_MARGIN = 0.02;
 /** Overlaps up to this deep (m) are left alone: what's left of a player pushed out exactly, give or take rounding. */
 const OVERLAP_SLOP = 0.001;
 
-/** Solid to enemies: alive, not dodging and not knocked back. */
 const solidToEnemies = (player: PlayerData, health: HealthData): boolean =>
   health.hp > 0 && player.action !== "dodge" && health.hitstun <= 0;
 

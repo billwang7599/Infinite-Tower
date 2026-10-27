@@ -9,8 +9,8 @@ user's call before anyone builds them.
 - **Stats that differ and grow.** Everyone has the same player stats today, so they aren't saved. Levelling up,
   gear or anything else that changes them would need them in `PlayerSave`.
 - **Saving where you are.** Position and level aren't saved; every connection starts at the level's start.
-- **The slash's reach.** It hits in a 140° arc in front of the camera (`PLAYER.slash.minDot` in
-  `shared/src/battle/player.ts`). Whether to keep it that wide was asked and not answered.
+- **How wide the swings hit.** Each swing's arc and reach depend on its line (`SHAPES` in
+  `shared/src/battle/sword.ts`). How wide the old slash should be was asked and not answered.
 - **Email or OAuth login**, next to username + password (the user: "maybe later").
 
 ## Code

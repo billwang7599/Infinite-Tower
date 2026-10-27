@@ -6,7 +6,7 @@
  * differ in how much: skinny is lean, wide is built. None of them is heavy.
  * Portrait: head and shoulders, turned three-quarters to our left like the head, so the near shoulder (right)
  * reaches further from the neck than the far one. The picture cuts off across the chest.
- * Chibi: 32x32. Facing front (toward us) it's symmetric around x = 16, and facing back it has the same outline;
+ * Chibi: 32x32. Facing front it's symmetric around x = 16, and facing back it has the same outline;
  * facing side (to the left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
  * Battle: the whole body from behind, in each pose (battle.ts).
  */
@@ -121,7 +121,6 @@ export const BODY_TYPES = {
 } as const satisfies Record<
   string, Omit<Frames, "battle"> & { battle: Record<Pose | SwordPose, readonly BattleFrame[]> }
 >;
-export type BodyType = keyof typeof BODY_TYPES;
 
 const skin = ink("skin", BASE);
 

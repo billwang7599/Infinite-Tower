@@ -1,20 +1,12 @@
-/**
- * Arena components that hold Babylon objects. The fight's own state is shared (Body, Health, ...) and lives in the
- * Fight's world; the client hangs its drawings off the same entities. Each registers a remove hook so destroying an
- * entity disposes its engine resources. The player's and each enemy model's own visuals sit with them:
- * player/components.ts, enemies/models/<model>/.
- */
+/** Arena components holding Babylon objects, hung off the fight's entities; their remove hooks dispose them. */
 import type { Mesh, TransformNode } from "@babylonjs/core";
 import { defineComponent, type Vec3, type World } from "@infinite-tower/shared";
 
-/** The node a fighter's drawing hangs from, put where its Body is every frame (systems/follow.ts). */
+/** The node a fighter's drawing hangs from, put where its Body is every frame. */
 export interface BodyNodeData { node: TransformNode }
 export const BodyNode = defineComponent<BodyNodeData>("BodyNode");
 
-/**
- * How far a fighter's drawing is from its body (m): when the server's fight corrects your copy, the body jumps to
- * the right place at once and the drawing eases after it (systems/follow.ts), so small corrections don't pop.
- */
+/** How far a fighter's drawing is from its body (m): on a correction the drawing eases after the body. */
 export const DrawOffset = defineComponent<Vec3>("DrawOffset");
 
 /** Corrections bigger than this (m), like a hit's knockback, are shown as they are rather than eased. */

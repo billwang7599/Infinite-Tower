@@ -1,8 +1,4 @@
-/**
- * The server's settings, from environment variables. Locally they come from the repo's .env (a copy of
- * .env.example); a variable already set in the environment wins over the file, and production can set them
- * any way it likes, with or without a .env.
- */
+/** The server's settings, from environment variables; locally from the repo's .env, which they win over. */
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -15,22 +11,20 @@ export const PORT = Number(process.env.PORT ?? 8787);
 /** Required: there's no built-in default, so .env is the one place the dev database's address is written. */
 export const DATABASE_URL = process.env.DATABASE_URL;
 
-/** A ping in milliseconds: a whole number, 0 or more, written plainly ("50", not "50ms" or "5e1"). */
+/** A whole number, written plainly ("50", not "50ms" or "5e1"). */
 const PingMs = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().nonnegative());
 
-/** The simulated ping when DEV_PING_MS is left out. */
 export const DEFAULT_DEV_PING_MS = 50;
 
-/** A page's `?ping=` as milliseconds, or null if it isn't one (missing, negative, not whole, not a number). */
+/** A page's `?ping=`, or null if it isn't a whole number of ms. */
 export function parsePingMs(raw: string | undefined): number | null {
   const parsed = PingMs.safeParse(raw);
   return parsed.success ? parsed.data : null;
 }
 
 /**
- * DEV_PING_MS: the round trip a dev server simulates on every game socket, half each way (ws/delay.ts), so client
- * prediction can be felt on localhost. Left out (or empty): DEFAULT_DEV_PING_MS. Anything but a whole number of
- * milliseconds stops the server. Production never delays (0), whatever is set.
+ * The round trip a dev server simulates on every game socket, half each way. Anything but a whole number of ms
+ * stops the server; production never delays.
  */
 export function parseDevPing(raw: string | undefined, dev: boolean): number {
   if (!dev) return 0;

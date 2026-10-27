@@ -1,7 +1,4 @@
-/**
- * Request bodies of the account API (accounts.ts), checked by the server. Kept apart from accounts.ts so the
- * client never imports Zod: import these from "@infinite-tower/shared/net/account-requests".
- */
+/** The account API's request bodies. Apart from accounts.ts so the client never imports Zod. */
 import { z } from "zod";
 import { PASSWORD_RULES, USERNAME_RULES, type Credentials } from "./accounts.js";
 import { ruledText } from "./text-schema.js";

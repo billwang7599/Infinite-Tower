@@ -1,15 +1,21 @@
-/**
- * The overworld's character panel: the player's portrait, name and stats. It doesn't pause or block walking; the
- * overworld HUD's button or the Character key (general.character) toggles it. The look is kept for good, so nothing
- * here edits it.
- */
+/** The player's portrait, name and stats. It doesn't pause or block walking. */
+import type { Stats } from "@infinite-tower/shared";
 import { LookPicture } from "../../components/LookPicture.js";
 import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { CHARACTER_PANEL_WIDTH_PX } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
-import { STAT_KEYS, STAT_TEXT } from "./statText.js";
+
+/** In the order the panel lists them (the rules: shared/src/battle/stats.ts). */
+const STAT_TEXT: Record<keyof Stats, { name: string; effect: (value: number) => string }> = {
+  strength: { name: "Strength", effect: (v) => `Physical damage ×${(v / 10).toFixed(1)}` },
+  agility: { name: "Agility", effect: (v) => `Movement in fights ×${(v / 10).toFixed(1)}` },
+  stamina: { name: "Stamina", effect: (v) => `Stamina bar: ${v}` },
+  mana: { name: "Mana", effect: (v) => `Mana pool: ${v} (no spells yet)` },
+  spellpower: { name: "Spellpower", effect: (v) => `Spell damage ×${(v / 10).toFixed(1)} (no spells yet)` },
+};
+const STAT_KEYS = Object.keys(STAT_TEXT) as (keyof Stats)[];
 
 interface PanelProps {
   hud: Store<OverworldHudState>;

@@ -8,16 +8,13 @@ import { spritePose, thrustPose, trailPose } from "./pose.js";
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
 
-/**
- * Per render frame: sprite frame, walk bob, squash & stretch, a stagger's shake, i-frame blink, the sword's trail,
- * thrust and guard, blob shadow.
- */
+/** Per render frame: the sprite's frame, bob, squash and stretch, shake, blink, the sword's effects, the shadow. */
 export function playerSpriteSystem(ctx: BattleContext): System {
   const frames = ctx.materials.player;
 
   return (world, dt) => {
     for (const [, sprite, body, player, health, drawn] of world.query(PlayerSprite, Body, Player, Health, BodyNode)) {
-      // Where it's drawn (systems/follow.ts), so the trail and the shadow stay with the sprite.
+      // Where it's drawn (the follow system's), so the trail and the shadow stay with the sprite.
       const p = drawn.node.position, vel = body.vel;
       const alive = health.hp > 0;
 

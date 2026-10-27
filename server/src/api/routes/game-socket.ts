@@ -1,7 +1,4 @@
-/**
- * The door to the game socket (/ws). Its login cookie arrives with the upgrade request, so it's checked here; the
- * socket is then handed on with the account it belongs to, and what happens to it after that is ws/'s business.
- */
+/** The door to the game socket (/ws): checks the upgrade's login cookie, then hands the socket on. */
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { WebSocket } from "ws";
 import type { Accounts } from "../../core/accounts/accounts.js";
@@ -12,10 +9,7 @@ import { sessionToken } from "../cookies.js";
 export interface GameSocket {
   /** Bigger messages are refused (by ws, close 1009) before anyone reads them. */
   maxMessageBytes: number;
-  /**
-   * A socket opened on /ws, who its cookie says it is (null: not logged in), and the `?ping=` its page asked for (a
-   * dev tool: the game decides what to make of it).
-   */
+  /** `account` null: not logged in. `askedPing`: the page's `?ping=`, as it came. */
   accept(socket: WebSocket, account: Account | null, askedPing: string | undefined): void;
 }
 

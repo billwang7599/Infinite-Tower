@@ -1,8 +1,4 @@
-/**
- * Pixel-art materials. Sprite frames are drawn in code (no asset files): a 24x24 "pixel" grid, 8 texels
- * per pixel, side views facing right (the drawings live in characters.ts). Used by the arena (billboards) and
- * the overworld (flat quads); pixelMaterial also dresses the overworld's ground textures.
- */
+/** Pixel-art materials. Sprite frames are drawn in code on a 24x24 "pixel" grid, side views facing right. */
 import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
 
 export type Px = (x: number, y: number, w: number, h: number, color: string) => void;

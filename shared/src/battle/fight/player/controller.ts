@@ -70,7 +70,7 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
   if (!input.jump && player.jumpHeld && v.y > 0) v.y *= PLAYER.jumpCutMultiplier;
 }
 
-/** Walk at `factor` of `speed` while busy (swinging, blocking). */
+/** Walk at `speed` while busy (swinging, blocking). */
 function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
   const accel = PLAYER.accel * dt;
   v.x = approach(v.x, input.moveX * speed, accel);
@@ -78,10 +78,8 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
 }
 
 /**
- * Player controller + combat actions. Runs before the physics step and only ever writes velocity (the physics
- * moves the body). Attacks go where the player aims (the camera's facing); dodge goes where they move, or backwards
- * if standing still; block is held, guarding where they aim. A heavy bag makes the dodge cost more; an overloaded
- * one rules it out and halves the walking speed (items/burden.ts).
+ * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks and the block go where the
+ * player aims (the camera's facing); a dodge goes where they move, or backwards standing still.
  */
 export function playerControllerSystem(): System {
   return (world, dt) => {
@@ -91,16 +89,15 @@ export function playerControllerSystem(): System {
   };
 }
 
-/** One step of player `e`'s controller. */
-export function controlPlayer(world: World, e: Entity, dt: number): void {
+function controlPlayer(world: World, e: Entity, dt: number): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
   const v = body.vel;
   const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
   const alive = health.hp > 0;
 
-  // Edge-detect presses and buffer them, so a press slightly early still counts. A dodge or the next attack waits out
-  // an attack however early in it it's pressed (the user's call): its buffer only runs down once the attack lets go.
+  // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
+  // attack lets go: a dodge or the next attack waits for it, however early it's pressed.
   const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
   const attackPressed = input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;

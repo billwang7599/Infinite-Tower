@@ -23,14 +23,14 @@ export const VIEWS = {
 export type View = keyof typeof VIEWS;
 
 /**
- * The ways the chibi faces: front (toward us, walking down the screen), back (walking up it) and side (to the
- * left; walking right is its mirror image).
+ * The ways the chibi faces: front (walking down the screen), back (walking up it) and side (to the left; walking
+ * right is its mirror image).
  */
 export const CHIBI_FACINGS = ["front", "back", "side"] as const;
 export type ChibiFacing = (typeof CHIBI_FACINGS)[number];
 
 /** Bottom to top. Wear goes between the body parts it covers. */
-export const LAYERS = [
+const LAYERS = [
   "hairBack", "body", "legwear", "footwear", "torsowear", "weapon", "arms", "armwear",
   "head", "face", "hair", "headwear",
 ] as const;

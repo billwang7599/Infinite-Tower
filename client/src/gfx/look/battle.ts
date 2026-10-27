@@ -10,9 +10,8 @@ import { swordPoses } from "./moves.js";
 import { ellipse, limb, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
 
 /**
- * The poses the arena shows, a picture each. stand: arms down, the sword held up and out. slash: the sword arm
- * swung out to our right, the blade beyond it (never mirrored: every swing's trail starts on this side,
- * battle/player/pose.ts). down: knelt and slumped, head hanging, the sword dropped beside them.
+ * A picture each. stand: arms down, the sword held up and out. slash: the sword arm swung out to our right, the
+ * blade beyond it (the arena shows SWORD_POSES' swings instead). down: knelt and slumped, the sword dropped.
  */
 export const POSES = ["stand", "slash", "down"] as const;
 export type Pose = (typeof POSES)[number];
