@@ -3,11 +3,11 @@
  * keeps running underneath (a fight doesn't pause) but gets no input meanwhile.
  */
 import { useState } from "react";
-import { actionOf } from "../../../core/actions.js";
+import type { Actions } from "../../../core/actions.js";
 import type { HudSettings } from "../../../settings/hud.js";
 import type { Settings } from "../../../settings/settings.js";
 import { BUTTON } from "../../components/styles.js";
-import { useKeydown } from "../../components/useKeydown.js";
+import { useAction } from "../../components/useAction.js";
 import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
@@ -20,15 +20,15 @@ interface SettingsProps {
   open: () => void;
   close: () => void;
   settings: Settings;
+  input: Actions;
   returnToTitle: () => void;
 }
 
-export function SettingsScreen({ screen, open, close, settings, returnToTitle }: SettingsProps) {
+export function SettingsScreen({ screen, open, close, settings, input, returnToTitle }: SettingsProps) {
   const isOpen = useStore(screen, (s) => s.open);
 
-  useKeydown((e) => {
-    if (actionOf(settings.bindings.get(), "general", e.code) !== "menu" || e.repeat) return;
-    e.preventDefault();
+  useAction(input, ["menu"], (_action, repeat) => {
+    if (repeat) return false;
     if (isOpen) close();
     else open();
   });
@@ -62,7 +62,7 @@ export function SettingsScreen({ screen, open, close, settings, returnToTitle }:
         <div className="min-h-0 flex-1 overflow-y-auto px-7">
           <CameraSection camera={settings.camera} mouse={settings.mouse} />
           <HudSection hud={settings.hud} />
-          <KeyBindingsList bindings={settings.bindings} />
+          <KeyBindingsList bindings={settings.bindings} input={input} />
         </div>
         <Footer close={close} returnToTitle={returnToTitle} />
       </section>

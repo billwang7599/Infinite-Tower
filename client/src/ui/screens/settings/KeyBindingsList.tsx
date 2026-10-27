@@ -4,13 +4,13 @@
  * shown.
  */
 import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { Actions } from "../../../core/actions.js";
 import {
   actionDef, actionsOf, GROUPS, isBindable, isFixed, keysOf, sameAction,
   type ActionRef, type BindResult, type Group, type KeyBindings, type KeyMap,
 } from "../../../settings/bindings.js";
 import { BUTTON } from "../../components/styles.js";
-import { useKeydown } from "../../components/useKeydown.js";
 import { keyName, mouseName } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
@@ -23,21 +23,22 @@ interface Waiting {
   replacing: string | null;
 }
 
-export function KeyBindingsList({ bindings }: { bindings: KeyBindings }) {
+export function KeyBindingsList({ bindings, input }: { bindings: KeyBindings; input: Actions }) {
   const keyMap = useStore(bindings, (s) => s);
   const [waiting, setWaiting] = useState<Waiting | null>(null);
   const [notice, setNotice] = useState("");
 
-  // Capture phase, stopped there: the key is for this slot only (Esc must not also close the settings).
-  useKeydown((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!waiting || e.repeat || (!isBindable(e.code) && e.code !== "Escape")) return;
-    setWaiting(null);
-    if (e.code === "Escape") return;
-    const result = bindings.bind(waiting.action, e.code, waiting.replacing);
-    setNotice(bindNotice(result, e.code, waiting.action));
-  }, { enabled: waiting !== null, capture: true });
+  // Esc cancels without also closing Settings.
+  useEffect(() => {
+    if (!waiting) return;
+    return input.captureKey((key) => {
+      if (!isBindable(key) && key !== "Escape") return false;
+      setWaiting(null);
+      if (key === "Escape") return true;
+      setNotice(bindNotice(bindings.bind(waiting.action, key, waiting.replacing), key, waiting.action));
+      return true;
+    });
+  }, [input, bindings, waiting]);
 
   const listenFor = (action: ActionRef, replacing: string | null) => {
     setNotice("");

@@ -6,11 +6,10 @@ import {
   bagBurden, bagWeight, carryLimit, itemDef, type Bag, type BagItem, type Burden, type Cell,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
-import { actionOf } from "../../../core/actions.js";
-import type { KeyBindings } from "../../../settings/bindings.js";
+import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
-import { useKeydown } from "../../components/useKeydown.js";
+import { useAction } from "../../components/useAction.js";
 import type { OverworldHudState, SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
@@ -26,7 +25,7 @@ import { formatWeight } from "./itemInfo.js";
 
 interface PanelProps {
   hud: Store<OverworldHudState>;
-  bindings: KeyBindings;
+  input: Actions;
   settingsScreen: Store<SettingsScreenState>;
   use: (at: Cell) => void;
   move: (from: Cell, to: Cell, turned: boolean) => void;
@@ -41,7 +40,7 @@ interface View {
 
 const START: View = { mouse: NO_MOUSE, grab: { x: CELL / 2, y: CELL / 2 } };
 
-export function InventoryPanel({ hud, bindings, settingsScreen, use, move, close }: PanelProps) {
+export function InventoryPanel({ hud, input, settingsScreen, use, move, close }: PanelProps) {
   const bag = useStore(hud, (s) => s.bag);
   const stats = useStore(hud, (s) => s.stats);
   // Healing items do nothing at full HP (the server refuses), so they can't be used then.
@@ -90,21 +89,12 @@ export function InventoryPanel({ hud, bindings, settingsScreen, use, move, close
     return () => clearTimeout(timer);
   }, [hover]);
 
-  useKeydown((e) => {
-    if (settingsOpen || e.repeat || e.target instanceof HTMLInputElement) return;
-    const action = actionOf(bindings.get(), "overworld", e.code);
+  useAction(input, ["turnItem", "useItem", "closeBag"], (action, repeat) => {
+    if (repeat) return false;
     if (action === "turnItem") turnWith(turnKey);
     else if (action === "useItem") applyUse(current());
-    else return;
-    e.preventDefault();
+    else close();
   });
-  // Esc closes the bag before it would open the settings (their listener is on the bubble phase).
-  useKeydown((e) => {
-    if (actionOf(bindings.get(), "overworld", e.code) !== "menu" || e.repeat || settingsScreen.get().open) return;
-    e.preventDefault();
-    e.stopPropagation();
-    close();
-  }, { capture: true });
 
   const on: GridEvents = {
     down: (p) => set(pointerDown(current(), bag, p)),

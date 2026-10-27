@@ -287,10 +287,10 @@ Keeping them out of each other's way (and the user's):
   (checked with Zod); no client message may claim a result, a hit or HP.
 - **ECS for game data** (`shared/src/core/ecs.ts`). Plain classes for services (connection, keyboard, mouse,
   prediction, the fight's sync).
-- **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key: ask about the action
-  (`client/src/core/actions.ts`), and when showing a key on screen, read it from the bindings (`keyName`). Three
-  groups: general (both places), the overworld's and the arena's; a general key is on nothing else, the other two
-  may share. Esc (the settings) and ⌘ can't be rebound.
+- **Keys come from `client/src/settings/bindings.ts`.** Never hardcode a key or add a key listener:
+  `client/src/core/keyboard.ts` is the only one. Keys become actions only in `client/src/core/actions.ts`: game code
+  reads them there, the UI listens with `useAction`, and on-screen keys come from `keyName`. Groups: general,
+  overworld, arena (rebindable), MENUS (fixed). Esc and ⌘ can't be rebound.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
   `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
   goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.
@@ -309,8 +309,11 @@ Keeping them out of each other's way (and the user's):
 - Keep files small and single-purpose (roughly under 200 lines). Make a folder per mode, enemy or screen
   (`client/src/ui/screens/<name>/`); UI used by more than one screen goes in `ui/components/`. Small math goes in
   `shared/src/core/math.ts`.
-- Comments only where they explain something non-obvious (why, units, gotchas). Don't write comments that restate
-  a name or a type.
+- **Comments are rare; the user keeps finding too many.** Default to none. Write one only for a why, a unit or a
+  gotcha the code can't show, in one line (two at most). No file headers, no doc comments that narrate what a
+  function does, restate a name or type, point at other files or tell the design story; that goes in
+  ARCHITECTURE.md if anywhere. Before committing, read your diff's added comments and cut them. Subagent briefs
+  repeat this rule.
 - Styling is Tailwind v4 classes, with theme tokens in `client/src/ui/styles.css`. Write class names out in full.
 - No on-screen control hints or fps counters; the HUD's ping (Show ping in Settings hides it) is the one exception.
 - Markdown is wrapped at 120 columns (tables and code blocks may run longer). When editing a paragraph, rewrap

@@ -4,13 +4,12 @@
  */
 import { CHARACTER_NAME_RULES, rulesHint } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
-import { useKeydown } from "../../components/useKeydown.js";
+import { useAction } from "../../components/useAction.js";
 import { optionName, ROWS, shuffled, stepped, valueOf, withValue, type Choices, type Row } from "./options.js";
 import { BUTTON, CAPS, SHEET } from "./styles.js";
 
-const UP = ["ArrowUp", "KeyW"], DOWN = ["ArrowDown", "KeyS"];
-const LEFT = ["ArrowLeft", "KeyA"], RIGHT = ["ArrowRight", "KeyD"];
 /** Rows: the name, then ROWS. */
 const NAME_ROW = 0;
 
@@ -26,33 +25,29 @@ interface MakerProps {
   enabled: boolean;
   /** Faded out once the character is sent. */
   shown: boolean;
+  input: Actions;
 }
 
-export function LookMaker({ name, setName, choices, setChoices, begin, error, enabled, shown }: MakerProps) {
+export function LookMaker({ name, setName, choices, setChoices, begin, error, enabled, shown, input }: MakerProps) {
   const [row, setRow] = useState(NAME_ROW);
-  const input = useRef<HTMLInputElement>(null);
+  const nameField = useRef<HTMLInputElement>(null);
 
   // Typing goes to the name only while its row is picked, so letters can't be lost to it from another row.
   useEffect(() => {
-    if (enabled && row === NAME_ROW) input.current?.focus();
-    else input.current?.blur();
+    if (enabled && row === NAME_ROW) nameField.current?.focus();
+    else nameField.current?.blur();
   }, [row, enabled]);
 
-  useKeydown((e) => {
-    const typing = e.target === input.current;
-    const is = (keys: string[]) => keys.includes(e.code) && (!typing || e.code.startsWith("Arrow"));
+  useAction(input, ["menuUp", "menuDown", "menuLeft", "menuRight", "confirm"], (action) => {
+    if (!enabled) return false;
     const picked = ROWS[row - 1];
-    if (is(UP) || is(DOWN)) {
-      e.preventDefault();
-      setRow((r) => (r + (is(UP) ? -1 : 1) + ROWS.length + 1) % (ROWS.length + 1));
-    } else if (picked && (is(LEFT) || is(RIGHT))) {
-      e.preventDefault();
-      setChoices(stepped(choices, picked, is(LEFT) ? -1 : 1));
-    } else if (e.code === "Enter" && !typing) {
-      e.preventDefault();
-      begin();
-    }
-  }, { enabled });
+    if (action === "menuUp" || action === "menuDown") {
+      setRow((r) => (r + (action === "menuUp" ? -1 : 1) + ROWS.length + 1) % (ROWS.length + 1));
+    } else if (picked && (action === "menuLeft" || action === "menuRight")) {
+      setChoices(stepped(choices, picked, action === "menuLeft" ? -1 : 1));
+    } else if (action === "confirm") begin();
+    else return false;
+  });
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -72,7 +67,7 @@ export function LookMaker({ name, setName, choices, setChoices, begin, error, en
       >
         <span className={CAPS}>Name</span>
         <input
-          ref={input} name="character-name" required autoComplete="off" spellCheck={false}
+          ref={nameField} name="character-name" required autoComplete="off" spellCheck={false}
           minLength={CHARACTER_NAME_RULES.min} maxLength={CHARACTER_NAME_RULES.max}
           pattern={CHARACTER_NAME_RULES.pattern} title={rulesHint(CHARACTER_NAME_RULES)}
           value={name} onChange={(e) => setName(e.target.value)} onFocus={() => setRow(NAME_ROW)}

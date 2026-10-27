@@ -8,7 +8,7 @@ import {
   type Bag, type Entity, type ServerMsgOf, type Stats, type System, type Vec2, type Vitals, type WalkInput,
   type World,
 } from "@infinite-tower/shared";
-import type { Actions } from "../core/actions.js";
+import type { Actions, Polled } from "../core/actions.js";
 import { frameSeconds } from "../core/time.js";
 import type { Connection, Joined } from "../net/connection.js";
 import type { OverworldHudState } from "../ui/state.js";
@@ -106,10 +106,9 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
     },
     update(dt, frozen) {
       if (frozen || inBattle || !view.level || !prediction) { accumulator = 0; return; }
-      if (actions.consumePressed("overworld", "rest")) rest();
       accumulator += dt;
       while (accumulator >= FIXED_DT) {
-        prediction.step(readWalkInput(actions));
+        prediction.step(readWalkInput(actions.poll()));
         accumulator -= FIXED_DT;
       }
     },
@@ -148,8 +147,8 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
 }
 
 /** Screen-aligned: forward is up the map, +z. */
-function readWalkInput(actions: Actions): WalkInput {
-  return { moveX: actions.axis("overworld", "left", "right"), moveZ: actions.axis("overworld", "back", "forward") };
+function readWalkInput(polled: Polled): WalkInput {
+  return { moveX: polled.move.x, moveZ: polled.move.z };
 }
 
 /** Smoothly follow the local player, without showing past the edge of the level. */

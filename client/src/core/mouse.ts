@@ -4,7 +4,7 @@
  */
 import { Buttons } from "./buttons.js";
 
-export interface LockChange {
+interface LockChange {
   /** Whether the current mode wanted the mouse before, and now. */
   wasLockable: boolean;
   lockable: boolean;
@@ -25,7 +25,7 @@ export class Mouse extends Buttons {
   private dy = 0;
   locked = false;
   /** Only capture the mouse when the current mode wants it (the arena). */
-  private lockable = true;
+  private lockable = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement, private readonly doc: Document = document, win: Window = window,

@@ -1,84 +1,143 @@
-/**
- * What the keys and mouse buttons do: each bindings group turned around into key -> action (a mouse button as
- * "Mouse0"…), rebuilt when the bindings change. Game code asks about actions, never keys. General's keys work
- * everywhere, alongside those of the group for where the player is (overworld or battle).
- */
-import type { AttackKind } from "@infinite-tower/shared";
 import {
-  actionDef, actionsOf, GROUPS, keysOf, type Action, type Group, type KeyBindings, type KeyMap,
+  actionDef, actionsOf, GROUPS, keysOf, MENUS, type Action, type Group, type KeyBindings, type KeyMap,
+  type MenuAction,
 } from "../settings/bindings.js";
 import type { Buttons } from "./buttons.js";
 import type { Keyboard } from "./keyboard.js";
 import type { Mouse } from "./mouse.js";
+import type { MouseSettings } from "../settings/mouse.js";
 
-const ATTACKS: Partial<Record<string, AttackKind>> = {
-  swingLR: "lr", swingRL: "rl", swingTB: "tb", swingBT: "bt",
-  swingTLBR: "tlbr", swingBRTL: "brtl", swingTRBL: "trbl", swingBLTR: "bltr", stab: "stab",
-} satisfies { [A in Action<"battle">]?: AttackKind };
+type OverworldAction = Action<"general" | "overworld">;
+const BAG_ACTIONS = ["inventory", "character", "turnItem", "useItem"] as const satisfies readonly OverworldAction[];
 
-let mapped: KeyMap | null = null;
-const maps = {} as Record<Group, Map<string, string>>;
+interface LayerActions {
+  title: MenuAction<"title">;
+  creation: MenuAction<"creation">;
+  settings: "menu";
+  bag: MenuAction<"bag"> | (typeof BAG_ACTIONS)[number];
+  overworld: OverworldAction;
+  battle: Action<"general" | "battle">;
+}
+export type Layer = keyof LayerActions;
+export type ActionName = LayerActions[Layer];
+type WorldAction = LayerActions["overworld" | "battle"];
 
-/** What `key` (a KeyboardEvent.code, or "Mouse0"…) does in `group`, general's keys included. */
-export function actionOf<G extends Group>(bindings: KeyMap, group: G, key: string): Action<"general" | G> | undefined {
-  if (bindings !== mapped) {
-    mapped = bindings;
-    for (const g of GROUPS) {
-      maps[g] = new Map();
-      for (const ref of actionsOf(g)) {
-        for (const k of keysOf(bindings, ref)) maps[g].set(k, ref.action);
-        for (const b of actionDef(ref).mouse ?? []) maps[g].set(`Mouse${b}`, ref.action);
-      }
-    }
-  }
-  return (maps.general.get(key) ?? maps[group].get(key)) as Action<"general" | G> | undefined;
+const AXES = {
+  x: ["left", "right"], z: ["back", "forward"], turn: ["turnLeft", "turnRight"], look: ["lookUp", "lookDown"],
+} as const satisfies Record<string, readonly [WorldAction, WorldAction]>;
+
+export interface Polled {
+  held: ReadonlySet<WorldAction>;
+  pressed: readonly WorldAction[];
+  move: { x: number; z: number };
+  turn: number;
+  look: number;
 }
 
-/** The keyboard and the mouse, asked about actions. */
+// Returning false leaves the key to the page.
+type Handler = (repeat: boolean) => boolean | void;
+
+const GROUP_OF: Partial<Record<Layer, Group>> = {
+  settings: "general", bag: "overworld", overworld: "overworld", battle: "battle",
+};
+const KEPT: Partial<Record<Layer, readonly ActionName[]>> = { settings: ["menu"], bag: BAG_ACTIONS };
+const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as Layer, new Map(
+  Object.entries<readonly string[]>(actions).flatMap(([action, keys]) => keys.map((k) => [k, action as ActionName])),
+)]));
+// Only these read held keys and taps: under a screen or the open bag you stand still.
+const WORLD: readonly Layer[] = ["overworld", "battle"];
+// Keys the browser would otherwise use in the world (scrolling, moving focus, Firefox's quick find).
+const SWALLOW = new Set([
+  "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
+]);
+
 export class Actions {
+  private layers: readonly Layer[] = ["title"];
+  private readonly handlers = new Set<{ action: ActionName; handle: Handler }>();
   private readonly devices: readonly Buttons[];
-  /** The attack key (or button) pressed last: its attack goes on while it's held. */
-  private attackKey: string | null = null;
+  private mapped: KeyMap | null = null;
+  private readonly maps = {} as Record<Group, Map<string, string>>;
 
-  constructor(keyboard: Keyboard, mouse: Mouse, private readonly bindings: KeyBindings) {
+  constructor(
+    private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, private readonly mouse: Mouse,
+    private readonly mouseSettings: MouseSettings,
+  ) {
     this.devices = [keyboard, mouse];
+    keyboard.listen((key, repeat) => this.keydown(key, repeat));
   }
 
-  isDown<G extends Group>(group: G, action: Action<"general" | G>): boolean {
-    return this.devices.some((d) => d.isDown((key) => this.of(group, key) === action));
+  // Bottom first; only the top one gets keys.
+  setLayers(layers: readonly Layer[]): void {
+    if (layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i])) return;
+    this.layers = layers;
+    for (const d of this.devices) d.clearPressed();
+    this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
   }
 
-  /** -1, 0 or 1 from two opposite actions. */
-  axis<G extends Group>(group: G, negative: Action<"general" | G>, positive: Action<"general" | G>): number {
-    return Number(this.isDown(group, positive)) - Number(this.isDown(group, negative));
+  on(action: ActionName, handle: Handler): () => void {
+    const handler = { action, handle };
+    this.handlers.add(handler);
+    return () => void this.handlers.delete(handler);
   }
 
-  /** Pressed since the last call, on the keyboard or the mouse (clears those presses). */
-  consumePressed<G extends Group>(group: G, action: Action<"general" | G>): boolean {
-    return this.devices.map((d) => d.consumePressed((key) => this.of(group, key) === action)).includes(true);
+  captureKey(take: (key: string) => boolean): () => void {
+    return this.keyboard.captureKey(take);
   }
 
-  /**
-   * The arena's attack for its next step: the attack key pressed last since the last call, or else the one still
-   * held from its press; null with none. Letting go of it ends the attack, even with an older attack key held.
-   */
-  attack(): AttackKind | null {
-    const isAttack = (key: string) => this.attackOf(key) !== undefined;
-    const last = this.devices.flatMap((d) => [...d.presses].filter(([key]) => isAttack(key)))
-      .sort((a, b) => a[1] - b[1]).at(-1);
-    for (const d of this.devices) d.consumePressed(isAttack);
-    const held = this.attackKey;
-    if (last) this.attackKey = last[0];
-    else if (held !== null && !this.devices.some((d) => d.isDown((key) => key === held))) this.attackKey = null;
-    return this.attackKey === null ? null : this.attackOf(this.attackKey) ?? null;
+  // Once per tick: it clears the presses.
+  poll(): Polled {
+    const presses = this.devices.flatMap((d) => [...d.presses]).sort((a, b) => a[1] - b[1]);
+    for (const d of this.devices) d.clearPressed();
+    const pressed = presses.flatMap(([key]) => this.worldAction(key) ?? []);
+    const held = new Set(this.devices.flatMap((d) => [...d.held].flatMap((key) => this.worldAction(key) ?? [])));
+    const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
+    return { held, pressed, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
   }
 
-  private of(group: Group, key: string): string | undefined {
-    return actionOf(this.bindings.get(), group, key);
+  // Every frame, not per tick: movement is an amount, so a snapshot would count it again.
+  lookDelta(): { dx: number; dy: number } {
+    const delta = this.mouse.consumeDelta();
+    return this.top === "battle" ? delta : { dx: 0, dy: 0 };
   }
 
-  private attackOf(key: string): AttackKind | undefined {
-    const action = this.of("battle", key);
-    return action === undefined ? undefined : ATTACKS[action];
+  private get top(): Layer {
+    return this.layers.at(-1)!;
+  }
+
+  private of(layer: Layer, key: string): ActionName | undefined {
+    const fixed = FIXED.get(layer)?.get(key);
+    const group = GROUP_OF[layer];
+    if (fixed || !group) return fixed;
+    const action = this.actionOf(group, key) as ActionName | undefined;
+    return action && (KEPT[layer]?.includes(action) ?? true) ? action : undefined;
+  }
+
+  private actionOf(group: Group, key: string): string | undefined {
+    const bindings = this.bindings.get();
+    if (bindings !== this.mapped) {
+      this.mapped = bindings;
+      for (const g of GROUPS) {
+        this.maps[g] = new Map();
+        for (const ref of actionsOf(g)) {
+          for (const k of keysOf(bindings, ref)) this.maps[g].set(k, ref.action);
+          for (const b of actionDef(ref).mouse ?? []) this.maps[g].set(`Mouse${b}`, ref.action);
+        }
+      }
+    }
+    return this.maps.general.get(key) ?? this.maps[group].get(key);
+  }
+
+  private worldAction(key: string): WorldAction | undefined {
+    return WORLD.includes(this.top) ? this.of(this.top, key) as WorldAction | undefined : undefined;
+  }
+
+  private keydown(key: string, repeat: boolean): boolean {
+    const layer = this.top;
+    const action = this.of(layer, key);
+    let used = WORLD.includes(layer) && SWALLOW.has(key);
+    for (const { action: wanted, handle } of [...this.handlers]) {
+      if (wanted === action && handle(repeat) !== false) used = true;
+    }
+    return used;
   }
 }
