@@ -524,11 +524,11 @@ client/          Browser game: Babylon rendering, input, React UI.
                        character panel, later dialogue), a 32x32 chibi facing front, back or side (the world) and a
                        64x64 battle sprite from behind in each pose (the arena), in code. art.ts (VIEWS,
                        CHIBI_FACINGS, layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts
-                       (body types), battle.ts (POSES), head.ts (face shapes), face.ts (eye and mouth types), hair/
-                       (styles), outfit.ts + jerkin.ts (wear), sword.ts, look.ts (Look -> picture: drawPortrait,
-                       drawChibi, drawBattle)
+                       (body types), battle.ts (POSES, SWORD_POSES), moves.ts (the sword fight's frames), head.ts
+                       (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear),
+                       sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
-                     the chibi facing each way and the battle sprite in each pose, to check art
+                     the chibi facing each way and the battle sprite in each pose and frame, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then notices, banner, fade, Settings,
                        character creation, title screen (the HUD and Settings only once `inWorld` and not

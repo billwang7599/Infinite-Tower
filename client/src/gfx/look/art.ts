@@ -73,6 +73,11 @@ export interface BattleFrame extends Frame {
   head: Point;
   /** The sword: the middle of its grip (in the fist, unless it's been dropped), and its tip. */
   sword: readonly [grip: Point, tip: Point];
+  /**
+   * The layer the sword is on, if not "weapon": "hairBack" (the bottom) when it's beyond the body, in front of the
+   * player, so the body hides it; "headwear" (the top) when it's nearer us than their head.
+   */
+  swordLayer?: Layer;
 }
 
 /** The frame each view's drawings are handed. */

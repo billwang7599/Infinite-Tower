@@ -6,15 +6,29 @@
  * sword. We see the player from behind, so their right hand is on our right. Light from the top left.
  */
 import type { BattleFrame } from "./art.js";
-import { ellipse, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
+import { swordPoses } from "./moves.js";
+import { ellipse, limb, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
 
 /**
- * stand: arms down, the sword held up and out. slash: the sword arm swung out to our right, the blade beyond it
- * (never mirrored: every swing's trail starts on this side, battle/player/pose.ts). down: knelt and slumped, head
- * hanging, the sword dropped beside them.
+ * The poses the arena shows, a picture each. stand: arms down, the sword held up and out. slash: the sword arm
+ * swung out to our right, the blade beyond it (never mirrored: every swing's trail starts on this side,
+ * battle/player/pose.ts). down: knelt and slumped, head hanging, the sword dropped beside them.
  */
 export const POSES = ["stand", "slash", "down"] as const;
 export type Pose = (typeof POSES)[number];
+
+/**
+ * The sword fight's poses (moves.ts), not shown in the arena yet, and how many frames each has, played in order.
+ * A swing is named for the way the sword moves on screen (swing-tlbr: from the top left to the bottom right), in
+ * three frames: wind-up, strike, follow-through. stab: drawn back, thrust into the screen, lunged. block: raising
+ * the sword, then braced behind it. stagger: knocked back, then stumbling, off balance.
+ */
+export const SWORD_POSES = {
+  "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-bt": 3,
+  "swing-tlbr": 3, "swing-brtl": 3, "swing-trbl": 3, "swing-bltr": 3,
+  stab: 3, block: 2, stagger: 2,
+} as const;
+export type SwordPose = keyof typeof SWORD_POSES;
 
 const W = 64, M = 32;
 const sym = (half: readonly Point[]) => symmetric(half, W);
@@ -29,17 +43,8 @@ export interface BattleBuild {
   neck: number;
 }
 
-/** A straight limb from `a` to `b`, `thickA` thick at `a` and `thickB` at `b`. */
-function limb(a: Point, b: Point, thickA: number, thickB: number): Mask {
-  const [ax, ay] = a, [bx, by] = b;
-  const len = Math.hypot(bx - ax, by - ay);
-  const nx = -(by - ay) / len, ny = (bx - ax) / len;
-  const side = (x: number, y: number, half: number, s: number): Point => [x + nx * half * s, y + ny * half * s];
-  return polygon([side(ax, ay, thickA / 2, 1), side(bx, by, thickB / 2, 1), side(bx, by, thickB / 2, -1),
-    side(ax, ay, thickA / 2, -1)]);
-}
-
-export function battleFrames(b: BattleBuild): Record<Pose, BattleFrame> {
+/** Every pose's frames: one each for the arena's, a few for the sword fight's. */
+export function battleFrames(b: BattleBuild): Record<Pose | SwordPose, readonly BattleFrame[]> {
   const s = b.shoulder, wrist = M - s - 2.3;
   /** The left hand's middle; the right hand's is its mirror image, W - handX. */
   const handX = wrist + (b.arm - 0.7) / 2;
@@ -96,5 +101,5 @@ export function battleFrames(b: BattleBuild): Record<Pose, BattleFrame> {
     head: [0, 14],
     sword: [[M + 13, 61.5], [M + 29, 57.5]],
   };
-  return { stand, slash, down };
+  return { stand: [stand], slash: [slash], down: [down], ...swordPoses(b, stand) };
 }

@@ -5,7 +5,7 @@
  */
 import type { Look } from "@infinite-tower/shared";
 import { render, type Art, type ChibiFacing, type Colors, type Picture } from "./art.js";
-import type { Pose } from "./battle.js";
+import type { Pose, SwordPose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
 import { FACE_SHAPES } from "./head.js";
@@ -33,10 +33,14 @@ export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
-/** The battle sprite in `pose`, sword in hand. */
-export function drawBattle(look: Look, pose: Pose, wear: readonly Art[] = STARTER_CLOTHES): Picture {
+/** The battle sprite in `pose` (its `frame`th frame), sword in hand. */
+export function drawBattle(
+  look: Look, pose: Pose | SwordPose, frame = 0, wear: readonly Art[] = STARTER_CLOTHES,
+): Picture {
+  const body = BODY_TYPES[look.body].battle[pose][frame];
+  if (!body) throw new RangeError(`${pose} has no frame ${frame}`);
   const pieces = lookArts(look, [...wear, SWORD]).map((art) => art.battle);
-  return render("battle", BODY_TYPES[look.body].battle[pose], pieces, colorsOf(look), FIXED);
+  return render("battle", body, pieces, colorsOf(look), FIXED);
 }
 
 const colorsOf = (look: Look): Colors => ({

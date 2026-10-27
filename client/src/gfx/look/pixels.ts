@@ -204,6 +204,16 @@ export const mirror = (mask: Mask, width: number): Mask => (x, y) => mask(x, y) 
 export const grow = (mask: Mask): Mask =>
   (x, y) => mask(x, y) || mask(x - 1, y) || mask(x + 1, y) || mask(x, y - 1) || mask(x, y + 1);
 
+/** A straight limb from `a` to `b`, `thickA` thick at `a` and `thickB` at `b`. */
+export function limb(a: Point, b: Point, thickA: number, thickB: number): Mask {
+  const [ax, ay] = a, [bx, by] = b;
+  const len = Math.hypot(bx - ax, by - ay);
+  const nx = -(by - ay) / len, ny = (bx - ax) / len;
+  const side = (x: number, y: number, half: number, s: number): Point => [x + nx * half * s, y + ny * half * s];
+  return polygon([side(ax, ay, thickA / 2, 1), side(bx, by, thickB / 2, 1), side(bx, by, thickB / 2, -1),
+    side(ax, ay, thickA / 2, -1)]);
+}
+
 /** A pointed stroke from `root` to `tip`, `width` wide at the root, bowed sideways by `bend`: a lock, a brow. */
 export function taper(root: Point, tip: Point, width: number, bend = 0): Mask {
   const [rx, ry] = root, [tx, ty] = tip;
