@@ -174,11 +174,12 @@ main.ts
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
   back), and dodging, knocked back or dead, a player passes through. Rapier simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
-- **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range
-  + width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player
-  may parry an enemy's swing (the reverse swing, live within `PARRY.window` before it lands: the enemy is stunned)
-  or block it (held, facing it: stopped for stamina); a swordsman on guard parries a player's swing (the player is
-  staggered) and blocks a stab; anything else lands. An enemy's swing is named as the player facing it sees it.
+- **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range +
+  width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player may
+  parry an enemy's swing (the reverse swing, live within `PARRY.window` before it lands: the enemy is stunned; hurt
+  invulnerability doesn't stop a parry) or block it (held, facing it: stopped for stamina); a swordsman on guard parries
+  a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
+  player facing it sees it.
   The player's attacks and their shapes
   come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
   to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
