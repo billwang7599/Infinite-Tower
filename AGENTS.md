@@ -56,6 +56,17 @@ Decided by the user:
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
 - The spell words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
   accounts test1-3 know every word.
+- Spells are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
+  the shared fight like the sword: the client sends the whole spell as an input, the server checks its words
+  against what the player knows. Seven elements, each its own damage type with a status (Burning, Wet, Rooted,
+  Pushed, Shocked, Marked, Cursed), and four reactions on enemies (Conduct, Doused, Fanned, Eclipse), each with a
+  cooldown per target. Spell damage scales with Intellect (was spellpower); Summon is out for now. The tables and
+  what's still to build: [plan/spells.md](plan/spells.md).
+- The sword and the spellbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
+  character starts with both equipped, swinging needs a sword and casting a spellbook. Dying still empties the bag,
+  and you respawn with a fresh equipped sword and spellbook. The bag screen shows the equipment on its left, a
+  cloth in the middle (a grid to sort things on for a while; what's left on it when the screen closes is lost),
+  then the bag. Not built yet: [plan/inventory.md](plan/inventory.md).
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -142,11 +153,14 @@ Decided by the agent while the user was away (the user asked for these to be dec
 them; treat them as changeable, and still ask before deciding new ones):
 
 - The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
-- Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity): stamina = the stamina
-  bar's size, mana = a mana pool's size (unused until spells), spellpower = spell damage (unused), agility = arena
-  movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply only in
-  fights. Player 100 / 50 / 10 / 10 / 10, boar 100 / 0 / 0 / 10 / 10 (so nothing plays differently yet). Everyone
-  has the same player stats, so they aren't saved.
+- Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
+  spellpower is Intellect): stamina = the stamina bar's size, intellect = spell damage × intellect / 10, agility =
+  arena movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply
+  only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10. Everyone has the same player stats, so they
+  aren't saved.
+- Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, and the
+  smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent";
+  the cloth's size, hands and the spellbook's 4 pages in [plan/inventory.md](plan/inventory.md).
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
   made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
@@ -225,8 +239,10 @@ tests say what was agreed. Where tests go and how they're written:
 - Try it in a browser. Playwright works: log in first with `page.request.post("<base>/api/login", { data: {
   username: "test3", password: "test3" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
-  `window.battle`, `window.overworld`, `window.ui`, `window.settings` and `window.encounter()` (dev server only;
-  `window.encounter("kobold-swordsman")` for the Kobold). Skip this when the user says it isn't needed.
+  `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
+  `window.encounter("kobold-swordsman")` for the Kobold) and, in a fight, `window.cast({ segments: [{ form: "bolt",
+  elements: ["fire"], augments: [] }] })`. A new account has no character: make one first. Skip this when the user
+  says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

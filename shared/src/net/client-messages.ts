@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../battle/sword.js";
+import { AUGMENTS, ELEMENTS, FORMS, type Spell } from "../spells/spell.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -24,6 +25,20 @@ const AIM_LENGTH_SLACK = 0.01;
 
 const FightStep = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
+// Far past any spell the stamina bar can pay for.
+const MAX_SPELL_SEGMENTS = 16;
+const MAX_WORDS_PER_BOX = 16;
+
+const SegmentSchema = z.object({
+  form: z.enum(FORMS),
+  elements: z.array(z.enum(ELEMENTS)).max(ELEMENTS.length).readonly(),
+  augments: z.array(z.enum(AUGMENTS)).max(MAX_WORDS_PER_BOX).readonly(),
+});
+const SpellSchema = z.object({
+  segments: z.tuple([SegmentSchema]).rest(SegmentSchema).readonly()
+    .refine((s) => s.length <= MAX_SPELL_SEGMENTS, "too long"),
+}) satisfies z.ZodType<Spell>;
+
 const StepInputSchema = z.object({
   step: FightStep,
   moveX: z.number(),
@@ -34,6 +49,7 @@ const StepInputSchema = z.object({
   attack: z.enum(ATTACK_KINDS).nullable(),
   dodge: z.boolean(),
   block: z.boolean(),
+  cast: SpellSchema.nullable(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies

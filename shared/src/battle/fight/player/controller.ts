@@ -3,8 +3,10 @@ import { approach, type Vec3 } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
 import {
-  ActiveHit, Body, Health, Player, Stamina, type PlayerAction, type PlayerData, type StaminaData,
+  ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
 } from "../../components.js";
+import { MAGIC } from "../../../spells/effects.js";
+import { spellCost } from "../../../spells/spell.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
@@ -13,10 +15,12 @@ import {
   type AttackKind,
 } from "../../sword.js";
 import { addHit, endCombo } from "../combat.js";
+import { statusMoveFactor } from "../spells/statuses.js";
 
 /** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   world.remove(e, ActiveHit);
+  player.casting = null;
   player.action = action;
   player.actionTime = 0;
   player.actionDir = { x, z };
@@ -92,8 +96,9 @@ export function playerControllerSystem(): System {
 function controlPlayer(world: World, e: Entity, dt: number): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
+  const statuses = world.get(e, Statuses);
   const v = body.vel;
-  const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden);
+  const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden) * statusMoveFactor(statuses);
   const alive = health.hp > 0;
 
   // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
@@ -101,14 +106,20 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
   const attackPressed = input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
+  const castPressed = input.cast !== null && !player.castHeld;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
   if (dodgePressed) player.dodgeBuffer = PLAYER.inputBuffer;
   else if (!locked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
+  if (castPressed) {
+    player.castQueued = input.cast;
+    player.castBuffer = PLAYER.inputBuffer;
+  } else if (!locked) player.castBuffer = Math.max(0, player.castBuffer - dt);
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
+  player.castHeld = input.cast !== null;
   if (player.action !== "attack" && player.comboTime > 0) {
     player.comboTime -= dt;
     if (player.comboTime <= 0) endCombo(player);
@@ -116,8 +127,12 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
 
   if (!alive || health.hitstun > 0) {
     // Knocked back, staggered or dead: no control, slide to a stop on the ground.
-    if (player.action !== "none" && player.action !== "stagger") { player.action = "none"; world.remove(e, ActiveHit); }
-    player.attackBuffer = player.dodgeBuffer = 0;
+    if (player.action !== "none" && player.action !== "stagger") {
+      player.action = "none";
+      player.casting = null;
+      world.remove(e, ActiveHit);
+    }
+    player.attackBuffer = player.dodgeBuffer = player.castBuffer = 0;
     if (player.grounded) {
       const slowdown = PLAYER.accel * 0.4 * dt;
       v.x = approach(v.x, 0, slowdown);
@@ -125,9 +140,14 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     }
   } else {
     if (player.action === "stagger") player.action = "none";
-    const dodge = PLAYER.dodge, dodgeStamina = dodgeCost(player.burden);
+    const dodge = PLAYER.dodge, burdenCost = dodgeCost(player.burden);
+    const dodgeStamina = burdenCost === null ? null
+      : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? MAGIC.self.air.dodgeCostFactor : 1);
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
-    if (free && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
+    const queuedCast = player.castQueued;
+    // A dodge cancels a cast's wind-up, which costs nothing until it's released.
+    if ((free || player.action === "cast") && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded
+      && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
       if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
@@ -135,6 +155,11 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       startAction(world, e, player, "dodge", dx, dz);
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
+      endCombo(player);
+    } else if (free && player.castBuffer > 0 && queuedCast !== null && stamina.value >= spellCost(queuedCast)) {
+      startAction(world, e, player, "cast", input.aimX, input.aimZ);
+      player.casting = queuedCast;
+      player.castBuffer = 0;
       endCombo(player);
     } else if (free && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
       startAttack(world, e, player, input, player.queued);
@@ -183,6 +208,9 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
         if (t >= dodge.duration) player.action = "none";
         break;
       }
+      case "cast":
+        shuffle(input, v, dt, walkSpeed * MAGIC.castMoveFactor);
+        break;
       case "none":
         locomotion(player, input, v, dt, walkSpeed);
         break;
@@ -194,5 +222,8 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   // Stamina: paused during actions (blocking too), regenerates after a short delay.
   if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
-  else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
+  else {
+    const charged = (statuses?.left.charged ?? 0) > 0 ? MAGIC.self.lightning.staminaRegenFactor : 1;
+    stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * charged * dt);
+  }
 }

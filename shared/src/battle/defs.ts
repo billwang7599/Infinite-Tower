@@ -2,6 +2,7 @@
  * Shapes of the server's battle content (server/src/core/content), sent with each encounter. An enemy is a body
  * plus optional attacks, each with its own component and system. Units: seconds, meters, m/s, rad/s.
  */
+import type { SpellElement } from "../spells/spell.js";
 import type { Stats } from "./stats.js";
 import type { AttackKind } from "./sword.js";
 
@@ -102,4 +103,5 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   attacks: EnemyAttacks;
+  resist?: Partial<Record<SpellElement, number>>;
 }

@@ -12,7 +12,10 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
+  cast: null,
 };
+const segment = (form: string, elements: string[] = [], augments: string[] = []) => ({ form, elements, augments });
+const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
 /** A battleInput up to the last input's step (or step 1). */
 const battleInput = (...inputs: unknown[]) => {
   const last = inputs.at(-1) as { step?: unknown } | undefined;
@@ -72,6 +75,16 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 3 }, { ...STEP, step: 3 }] }), null);
     assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 4 }, { ...STEP, step: 2 }] }), null);
     assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 6 }] }), null);
+  });
+
+  test("battleInput: a cast carries the whole spell, made of known kinds of word", () => {
+    const chain = casting(segment("bolt", ["water"], ["swift"]), segment("nova", ["lightning", "fire"]));
+    assert.deepEqual(battleInput(chain), { t: "battleInput", upTo: 1, inputs: [chain] });
+    assert.equal(battleInput(casting()), null, "no segment");
+    assert.equal(battleInput(casting(segment("summon", ["earth"]))), null, "not a Form");
+    assert.equal(battleInput(casting(segment("bolt", ["plasma"]))), null, "not an element");
+    assert.equal(battleInput(casting(segment("bolt", [], ["fire"]))), null, "an element in the augments");
+    assert.equal(battleInput(casting(...Array.from({ length: 100 }, () => segment("bolt")))), null, "far too long");
   });
 
   test("battleInput: every field is there, with the right type", () => {

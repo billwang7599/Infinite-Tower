@@ -5,7 +5,6 @@ user's call before anyone builds them.
 
 ## Game
 
-- **Spells.** Every fighter has mana and spellpower, but nothing uses them yet.
 - **Stats that differ and grow.** Everyone has the same player stats today, so they aren't saved. Levelling up,
   gear or anything else that changes them would need them in `PlayerSave`.
 - **Saving where you are.** Position and level aren't saved; every connection starts at the level's start.

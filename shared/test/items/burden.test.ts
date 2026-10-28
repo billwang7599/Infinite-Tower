@@ -4,7 +4,7 @@ import {
   bagBurden, BURDEN, burdenOf, carryLimit, dodgeCost, ITEMS, PLAYER, walkPace, type Bag, type Stats,
 } from "@infinite-tower/shared";
 
-const STATS: Stats = { stamina: 100, mana: 50, spellpower: 10, agility: 10, strength: 10 };
+const STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
 const LIMIT = carryLimit(STATS);
 const TUSK = ITEMS["boar-tusk"].weight;
 

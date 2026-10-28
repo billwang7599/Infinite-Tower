@@ -51,6 +51,16 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK, "and let go after");
   });
 
+  test("a late cast is kept, as a press is", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    const cast = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] } as const;
+    timeline.receive(7, [at(3, { ...WALK, cast }), at(4, WALK)], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, cast });
+    assert.deepEqual(timeline.take(7), WALK);
+  });
+
   test("a change for a step too far ahead of the server's clock is dropped, and upTo held back", () => {
     const timeline = new InputTimeline();
     const now = 10, limit = now + MAX_INPUT_LEAD_STEPS;

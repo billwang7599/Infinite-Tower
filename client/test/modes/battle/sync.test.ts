@@ -11,7 +11,7 @@ import { FakeNet } from "../../fixtures/fake-net.js";
 
 before(() => initPhysics());
 
-const STATS = { stamina: 100, mana: 50, spellpower: 10, agility: 10, strength: 10 };
+const STATS = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
 /** Walks up to whoever is there and stands; never attacks. */
 const WALKER: EnemyDef = {
   id: "walker", name: "Walker", model: "boar", maxHp: 100, stats: STATS, radius: 0.85, walkSpeed: 3, turnRate: 3,

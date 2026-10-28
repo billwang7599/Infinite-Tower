@@ -7,7 +7,7 @@
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import { Body, Enemy, Health, Player } from "../components.js";
+import { Body, Enemy, Health, Player, SpellShot, Statuses } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
 import { PLAYER } from "../player.js";
@@ -21,6 +21,8 @@ import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
+import { spellSystem } from "./spells/cast.js";
+import { statusMoveFactor, statusSystem } from "./spells/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 
@@ -47,11 +49,11 @@ function playerGroundSystem(physics: ArenaPhysics): System {
 /** Turns each enemy's wanted movement (Enemy.move) into velocity, after its behaviors and before the physics. */
 function enemyMotorSystem(): System {
   return (world, dt) => {
-    for (const [, enemy, body] of world.query(Enemy, Body)) {
-      const v = body.vel, m = enemy.move;
+    for (const [e, enemy, body] of world.query(Enemy, Body)) {
+      const v = body.vel, m = enemy.move, speed = m.speed * statusMoveFactor(world.get(e, Statuses));
       if (m.halt) v.x = v.z = 0;
-      v.x = approach(v.x, m.dirX * m.speed, m.accel * dt);
-      v.z = approach(v.z, m.dirZ * m.speed, m.accel * dt);
+      v.x = approach(v.x, m.dirX * speed, m.accel * dt);
+      v.z = approach(v.z, m.dirZ * speed, m.accel * dt);
     }
   };
 }
@@ -87,7 +89,8 @@ export class Fight {
       playerControllerSystem(),
       enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), swordAttackSystem(), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), outcomeSystem(this.outcome),
+      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), spellSystem(ctx),
+      outcomeSystem(this.outcome),
     ];
   }
 
@@ -125,6 +128,7 @@ export class Fight {
   /** Destroys the entities (their remove hooks run) and frees the physics world. */
   dispose(): void {
     for (const e of [...this.players, ...this.enemies]) this.world.destroy(e);
+    for (const [e] of this.world.query(SpellShot)) this.world.destroy(e);
     this.world.flush();
     this.physics.free();
   }

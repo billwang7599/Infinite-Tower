@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  STARTER_SWORD, type Bag, type PlayerInputData,
+  Player, STARTER_SWORD, type Bag, type PlayerInputData, type Spell, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -207,6 +207,27 @@ describe("the server runs the fight", () => {
     session.disconnect();
     assert.deepEqual(saves.at(-1)?.bag, bag);
     assert.equal(saves.at(-1)?.wins, 1);
+  });
+});
+
+describe("casting spells", () => {
+  const NOVA: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+  function startsCasting(knownWords: Word[]): boolean {
+    const { session } = startSession({ dev: true, saved: { knownWords } });
+    session.debugEncounter();
+    play(session, () => IDLE_INPUT, 2);
+    play(session, () => ({ ...IDLE_INPUT, cast: NOVA }), 1);
+    play(session, () => IDLE_INPUT, 1);
+    return fightOf(session).world.require(fightOf(session).players[0]!, Player).action === "cast";
+  }
+
+  test("a spell the player knows every word of is cast", () => {
+    assert.equal(startsCasting(["nova", "fire"]), true);
+  });
+
+  test("one with a word they don't know isn't", () => {
+    assert.equal(startsCasting(["nova"]), false);
+    assert.equal(startsCasting([]), false);
   });
 });
 

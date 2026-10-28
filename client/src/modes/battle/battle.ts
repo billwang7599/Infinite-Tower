@@ -30,6 +30,7 @@ import { FightSync } from "./sync.js";
 import { addImpactShake, cameraSystem } from "./systems/camera.js";
 import { hudSystem } from "./systems/hud.js";
 import { lockMarkerSystem } from "./lockMarker.js";
+import { createSpellEffects } from "./systems/spells.js";
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
@@ -74,7 +75,9 @@ export function createBattle(opts: BattleOptions): Battle {
     sync: null,
     outcome: { state: "fighting", stateTime: 0 },
     shake: 0,
+    casts: [],
   };
+  const spells = createSpellEffects(ctx);
   let arenaScenery: Entity | null = null;
   /** Build the arena on the first fight; rebuild only if the next one is a different size. */
   const useArena = (arena: ArenaDef) => {
@@ -98,9 +101,11 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.camera.position, yaw: ctx.view.yaw }, me);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, input);
+    input.cast = input.cast ? null : ctx.casts.shift() ?? null;
     for (let i = 0; i < steps; i++) {
       sync.advance(input);
       addImpactShake(ctx, fight.events);
+      spells.addEvents(fight.events);
     }
     sync.flush();
   };
@@ -108,7 +113,7 @@ export function createBattle(opts: BattleOptions): Battle {
   const render: System[] = [
     followSystem(), cameraSystem(ctx), lockMarkerSystem(ctx), playerSpriteSystem(ctx),
     ...Object.values(ENEMY_MODELS).map((model) => model.animation()),
-    hudSystem(ctx, opts.hud),
+    hudSystem(ctx, opts.hud), spells.system,
   ];
   scene.onBeforeRenderObservable.add(() => {
     const dt = frameSeconds(engine);
@@ -126,6 +131,8 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx,
     start({ setup, seat }, send) {
       ctx.fight?.dispose();
+      spells.clear();
+      ctx.casts = [];
       useArena(setup.arena);
       const fight = new Fight(setup);
       registerFighterDisposers(fight.world);
@@ -166,6 +173,7 @@ export function createBattle(opts: BattleOptions): Battle {
     },
     end() {
       ctx.fight?.dispose();
+      spells.clear();
       ctx.fight = null;
       ctx.sync = null;
       ctx.lock = null;

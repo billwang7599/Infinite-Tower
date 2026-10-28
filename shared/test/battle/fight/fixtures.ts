@@ -1,17 +1,17 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput, Stamina,
-  SwordAttack, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Stats, type SwordDef,
-  type Vec3,
+  ActiveHit, ATTACK_KINDS, Body, castTime, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput,
+  SpellShot, Stamina, Statuses, SwordAttack, type EnemyDef, type Entity, type LungeDef, type PlayerInputData,
+  type Segment, type Spell, type Stats, type SwordDef, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
 export const ARENA = { radius: 8 };
-export const STATS: Stats = { stamina: 100, mana: 50, spellpower: 10, agility: 10, strength: 10 };
+export const STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
 
 const ENEMY_BASE: EnemyDef = {
   id: "test", name: "Test", model: "boar", maxHp: 100,
-  stats: { stamina: 100, mana: 0, spellpower: 0, agility: 10, strength: 10 },
+  stats: { stamina: 100, intellect: 0, agility: 10, strength: 10 },
   radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
 
@@ -69,7 +69,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -77,6 +77,17 @@ export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...
 export function run(fight: Fight, seconds: number, next: (step: number) => PlayerInputData = () => IDLE): void {
   const steps = Math.round(seconds / Fight.STEP_SECONDS);
   for (let i = 0; i < steps; i++) fight.step([next(i)]);
+}
+
+export const segment = (
+  form: Segment["form"], elements: Segment["elements"] = [], augments: Segment["augments"] = [],
+): Segment => ({ form, elements, augments });
+export const spell = (...segments: [Segment, ...Segment[]]): Spell => ({ segments });
+
+// Ends on the step that releases the spell.
+export function castNow(fight: Fight, cast: Spell, over: Partial<PlayerInputData> = {}): void {
+  fight.step([input({ ...over, cast })]);
+  run(fight, castTime(cast) - Fight.STEP_SECONDS, () => input({ ...over, cast: null }));
 }
 
 export const bodyOf = (fight: Fight, e: Entity) => fight.world.require(e, Body);
@@ -101,9 +112,11 @@ export function dumpState(fight: Fight): string {
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
       sword: fight.world.get(e, SwordAttack) && { ...fight.world.get(e, SwordAttack), def: undefined },
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
+      statuses: fight.world.get(e, Statuses),
     };
   });
-  return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows });
+  const shots = [...fight.world.query(SpellShot)].map(([, shot]) => shot);
+  return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows, shots });
 }
 
 /**

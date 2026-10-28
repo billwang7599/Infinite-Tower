@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CARRY, carryLimit, moveSpeed, physicalDamage, type Stats } from "@infinite-tower/shared";
+import { CARRY, carryLimit, moveSpeed, physicalDamage, spellDamage, type Stats } from "@infinite-tower/shared";
 
 const stats = (strength: number, agility: number): Stats =>
-  ({ stamina: 100, mana: 0, spellpower: 10, strength, agility });
+  ({ stamina: 100, intellect: 10, strength, agility });
 
 test("10 is average: the base numbers, unchanged", () => {
   assert.equal(physicalDamage(9, stats(10, 10)), 9);
@@ -18,4 +18,9 @@ test("strength scales damage and agility scales speed, in proportion", () => {
 test("the carry limit grows with strength, from a base everyone has", () => {
   assert.equal(carryLimit(stats(0, 10)), CARRY.base);
   assert.equal(carryLimit(stats(20, 10)) - carryLimit(stats(10, 10)), 10 * CARRY.perStrength);
+});
+
+test("intellect scales spell damage the same way", () => {
+  assert.equal(spellDamage(10, { ...stats(10, 10), intellect: 20 }), 20);
+  assert.equal(spellDamage(10, stats(10, 10)), 10);
 });

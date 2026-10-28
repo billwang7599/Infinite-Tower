@@ -3,13 +3,14 @@ import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, SwordAttack,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, Statuses, SwordAttack,
 } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
+import { noStatuses } from "./spells/statuses.js";
 
 /** A one-on-one's starting spots (feet, a little above the floor; the arena's center is 0), the enemy facing you. */
 export const PLAYER_START: Vec3 = { x: 0, y: 0.05, z: -8 };
@@ -36,7 +37,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0, queued: null,
+    attackHeld: null, dodgeHeld: false, castHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
+    castQueued: null, casting: null,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
     attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
   });
@@ -44,6 +46,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
   world.add(e, Fighter, { team: "player", radius: PLAYER.radius });
+  world.add(e, Statuses, noStatuses());
   return e;
 }
 
@@ -75,5 +78,6 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });
+  world.add(e, Statuses, noStatuses());
   return e;
 }

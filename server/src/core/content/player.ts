@@ -2,7 +2,7 @@
 import { emptyBag, PLAYER, type Stats, type Vitals } from "@infinite-tower/shared";
 import type { PlayerSave } from "../ports.js";
 
-export const PLAYER_STATS: Stats = { stamina: 100, mana: 50, spellpower: 10, agility: 10, strength: 10 };
+export const PLAYER_STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
 
 export const fullVitals = (stats: Stats): Vitals => ({ hp: PLAYER.maxHp, stamina: stats.stamina });
 

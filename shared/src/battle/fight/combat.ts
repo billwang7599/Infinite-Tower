@@ -6,14 +6,16 @@ import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, SwordAttack, type ActiveHitData, type PlayerData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, SwordAttack, type ActiveHitData,
+  type PlayerData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
 import { isSwing, liveStep, PARRY, reverseOf, type AttackKind, type HitShape } from "../sword.js";
 import type { FightEvent } from "./context.js";
+import { damageDealtFactor, hurt, siphon } from "./spells/statuses.js";
 
-const HIT_FLASH_TIME = 0.12;
+export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
 const MIN_ANGLE_CHECK_DIST = 0.3;
 /** A hit player loses control for this long, plus a little more the harder they're knocked back. */
@@ -69,7 +71,7 @@ function faces(from: Vec3, dir: Vec2, to: Vec3, minDot: number): boolean {
 }
 
 /** Sets `vel` moving `body` away from `from` at `speed` (m/s), plus `lift`. */
-function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0, along?: Vec2): void {
+export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0, along?: Vec2): void {
   const dx = body.x - from.x, dz = body.z - from.z, dist = Math.hypot(dx, dz);
   let x = dist > 0.01 ? dx / dist : (along?.x ?? 0), z = dist > 0.01 ? dz / dist : (along?.z ?? 1);
   if (along) { x = x * 0.5 + along.x * 0.5; z = z * 0.5 + along.z * 0.5; }
@@ -127,13 +129,14 @@ function hitPlayer(
   }
 
   const dir = { x: hit.dirX, z: hit.dirZ };
+  const damage = hit.damage * damageDealtFactor(world, attacker);
   if (player.action === "block" && faces(body.pos, player.actionDir, from, PLAYER.block.minDot)) {
-    const block = PLAYER.block, cost = hit.damage * block.staminaPerDamage;
+    const block = PLAYER.block, cost = damage * block.staminaPerDamage;
     const guardBreak = stamina.value < cost;
     stamina.value = Math.max(0, stamina.value - cost);
     stamina.regenDelay = PLAYER.staminaRegenDelay;
-    const chip = hit.attack !== null && isSwing(hit.attack) ? hit.damage * block.chipFraction : 0;
-    health.hp = Math.max(0, health.hp - chip);
+    const chip = hit.attack !== null && isSwing(hit.attack) ? damage * block.chipFraction : 0;
+    hurt(world, target, chip);
     knock(body.pos, from, body.vel, hit.knockback * block.pushbackFactor, 0, dir);
     if (guardBreak) {
       player.action = "stagger";
@@ -144,15 +147,21 @@ function hitPlayer(
   }
 
   // It lands. A sword (swing or stab) only hurts, as the player's does; anything else also knocks back and stuns.
-  health.hp = Math.max(0, health.hp - hit.damage);
+  const dealt = hurt(world, target, damage);
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
   if (hit.attack === null) {
     health.hitstun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
-    knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
+    const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
+    if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
+  }
+  if (health.hitstun > 0 && player.action === "cast") {
+    player.action = "none";
+    player.casting = null;
   }
   endCombo(player);
-  events.push({ type: "hit", target, team: "player", damage: hit.damage });
+  siphon(world, attacker, dealt);
+  events.push({ type: "hit", target, team: "player", damage: dealt });
   return "landed";
 }
 
@@ -194,10 +203,11 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
 
   // Parried, it takes more damage, but its poise is spared: a parry's stun doesn't run on into a stagger.
   const parried = enemy.state === "parried";
-  const damage = hit.damage * (parried ? PARRY.bonusDamage : 1);
-  health.hp = Math.max(0, health.hp - damage);
+  const bonus = parried ? PARRY.bonusDamage : 1;
+  const damage = hurt(world, target, hit.damage * bonus * damageDealtFactor(world, attacker));
   health.flash = HIT_FLASH_TIME;
   if (!parried) enemy.poise -= hit.poiseDamage;
+  siphon(world, attacker, damage);
   events.push({ type: "hit", target, team: "enemy", damage });
   return "landed";
 }
