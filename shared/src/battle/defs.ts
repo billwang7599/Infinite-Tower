@@ -50,9 +50,8 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
-export interface SwordDef {
-  /** Its hits deal this, whatever the weapon's own damage. */
-  damage: number;
+/** Chains of swings and stabs with whatever weapon it holds: its hits deal the weapon's damage. */
+export interface WeaponAttackDef {
   knockback: number;
   lift: number;
   /** Starts a chain within this center distance, facing the target. */
@@ -90,7 +89,7 @@ export interface SidestepDef {
 export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
-  sword?: SwordDef;
+  weapon?: WeaponAttackDef;
 }
 
 export interface EnemyDef {
@@ -110,7 +109,7 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   attacks: EnemyAttacks;
-  hands?: Partial<Record<Hand, ItemId>>;
+  wielder?: { hands: Partial<Record<Hand, ItemId>>; armReachM: number };
   sidestep?: SidestepDef;
   resist?: Partial<Record<SkillElement, number>>;
 }

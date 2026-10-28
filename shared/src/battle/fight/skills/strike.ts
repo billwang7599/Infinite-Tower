@@ -33,7 +33,7 @@ function damage(world: World, events: FightEvent[], caster: Entity, target: Enti
   const dealt = hurt(world, target, amount);
   world.require(target, Health).flash = HIT_FLASH_TIME;
   const team = world.require(target, Fighter).team;
-  events.push({ type: "hit", by: caster, target, team, damage: dealt, sword: false });
+  events.push({ type: "hit", by: caster, target, team, damage: dealt, weapon: false });
   siphon(world, caster, dealt);
   return dealt;
 }

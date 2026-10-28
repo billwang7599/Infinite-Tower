@@ -148,7 +148,7 @@ main.ts
   by fight event type (the camera's shake, a Nova's burst); each fires once per step and event (`FiredEffects`), so
   a step replayed after a resync doesn't fire it again. The overworld's actors are drawn the same way, from
   `WALKERS` by their `kind`. The player's look is read from `ui.overworld`'s character and painted once
-  (`visuals/characters.ts`), and the sword in whichever hand its `Wielder` holds it.
+  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`;
   `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
@@ -196,13 +196,15 @@ main.ts
   a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
   player facing it sees it.
 - **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
-  `WEAPONS` (each weapon by item id: length, damage, speed), eight swings named by their way across the screen (`lr`:
-  left to right) and a stab, their hit shapes (`attackShape`, from the weapon's length), how swings chain (`CHAIN`,
-  `MOMENTUM`) and `PARRY`. Anyone with a `Wielder` (what each hand holds, the swing under way, its chain) swings the
-  weapon in hand: the player's controller and the Kobold's AI (`fight/enemies/sword.ts`) only decide when and what,
-  and call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done, lets go
-  and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while
-  it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
+  `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, and its length, damage and
+  speed), eight swings named by their way across the screen (`lr`: left to right) and a stab, their hit shapes
+  (`attackShape`: the wielder's own arm reach plus the weapon's length), how swings chain (`CHAIN`, `MOMENTUM`) and
+  `PARRY`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach,
+  the swing under way, its chain) swings the weapon in hand, and its hits deal that weapon's damage at the wielder's
+  strength: the player's controller and an enemy's weapon attack (`fight/enemies/weapon.ts`) only decide when and
+  what, and call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done,
+  lets go and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
+  while it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
   Ending an action or an enemy state (`enter`) ends its swing (`endSwing`). A parry reads the target's swing.
 - **Skills are inputs too.** A player's input carries a whole skill (`cast`) only on the step its key goes down,
   then just `castHeld` while the key stays down: the fight keeps the skill, so a long one isn't resent in every
@@ -490,7 +492,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
-                   SkillObject, Enemy, LungeAttack, ChargeAttack, SwordAttack),
+                   SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
@@ -520,7 +522,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
-                       sword.ts (a swordsman's seeded chains of swings, swung with the weapon system), sidestep.ts
+                       weapon.ts (seeded chains of swings with the weapon in hand, the Kobold's), sidestep.ts
                        (stepping aside from a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded
                        random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live; startSwing,
@@ -540,7 +542,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    blankSkillbook, SAVE_IN_FIGHT_TIME, sameSkill), effects.ts (SKILL_EFFECTS: what skills
                    do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
                    applied in order)
-  weapons/         weapons.ts (WEAPONS by item id, weaponIn; SWING_DIRS, ATTACK_KINDS, attackShape; CHAIN and
+  weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind; weaponIn, weaponItemIn;
+                   SWING_DIRS, ATTACK_KINDS, attackShape (arm reach + length); CHAIN and
                    MOMENTUM: how swings chain; lettingGoAt, liveStep, stepsUntil; PARRY)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
@@ -755,7 +758,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
-                       rest when a fight starts, again when the fight's sword hand changes (its `Wielder`);
+                       rest when a fight starts, again when the fight's weapon or its hand changes (its `Wielder`);
                        BATTLE_FRAMES; the overworld boar and kobold
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -770,9 +773,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
                          Imbue's colour), the chant's circle
         pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
-        weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through), the trail's
-                         line, the stab's thrust (as far as the weapon in hand stabs), a 3D blade's way through a
-                         wind-up and a swing (the Kobold's). No Babylon: tested
+        weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
+                         weapon kind: the trail's line, the stab's thrust, a 3D blade's way through a wind-up and a
+                         swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite and a 3D
+                         model's blade. No Babylon: tested
         enemies/         boar/, kobold/: model.ts (built from primitives), pose.ts (where its parts head, from its
                          state; no Babylon: tested), animation.ts (its visual: the pose eased into, the walk)
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
@@ -805,13 +809,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
   `shared/src/battle/fight/enemies/`, listed in `fight.ts`; a new look is a model name in `EnemyDef.model`, a folder in
   `client/src/visuals/battle/enemies/` (model, pose and its test, animation) and its row in `VISUALS`.
-- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, worn on a hand) and its row in `WEAPONS`
-  (`shared/src/weapons/weapons.ts`): length, damage, speed. Whoever holds it swings it with its reach and speed; its
-  look in the player's hand is drawn in `client/src/gfx/look/` (only the sword is drawn so far).
-- **An enemy that wields a weapon.** `hands` on its `EnemyDef` (`{ rightHand: "sword" }`) gives it a `Wielder`, and
-  its AI calls `startSwing` (`fight/weapons/swing.ts`) with the swing's steps and damage, as the Kobold's
-  `fight/enemies/sword.ts` does (or give it a `sword` attack to fight like the Kobold); the weapon system does the
-  rest. A 3D model draws its blade with `windupBlade` / `liveBlade` (`client/src/visuals/battle/weapons.ts`).
+- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, worn on a hand), its row in `WEAPONS`
+  (`shared/src/weapons/weapons.ts`: kind, length, damage, speed), its bag picture (`client/src/gfx/items/items.ts`)
+  and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
+  kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code. A new kind is a name in
+  `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its sprite poses).
+- **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },
+  armReachM }`) gives it a `Wielder`; a `weapon` attack makes it fight like the Kobold, or its own AI calls
+  `startSwing` (`fight/weapons/swing.ts`) with the swing's steps and damage. The weapon system does the rest. A 3D
+  model draws its blade from `WEAPON_LOOKS` and moves it with its weapon kind's `MOTIONS` row.
 - **A visual** (anything new drawn in a fight). One row in `VISUALS` (`client/src/visuals/visuals.ts`): a
   `Visual` with `spawn` (build its meshes), `frame` (pose them from the entity's components, each frame) and
   `dispose`, and its kind in `kindOf`, from a component the entity already has. Its pose is a function of that
@@ -857,7 +863,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | What | Where |
 |---|---|
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: reach, damage, speed; how swings chain, momentum, parrying | `shared/src/weapons/weapons.ts` |
+| Weapons: the arsenal (length, damage, speed); how swings chain, momentum, parrying | `shared/src/weapons/weapons.ts` |
+| Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks and sidesteps | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |

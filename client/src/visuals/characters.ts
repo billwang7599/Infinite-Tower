@@ -1,8 +1,9 @@
 /** Frames for the 24x24 pixel sprites (sprites.ts): the player's from their look (gfx/look/), the rest drawn here. */
 import type { Hand, Look } from "@infinite-tower/shared";
-import { VIEWS, type Picture } from "../gfx/look/art.js";
+import { VIEWS, type Art, type Picture } from "../gfx/look/art.js";
 import { SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
 import { CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "../gfx/look/look.js";
+import { SWORD } from "../gfx/look/sword.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 /** How many frames each of the arena's poses has. */
@@ -14,6 +15,8 @@ export interface PlayerSprites<Sprite> {
   battle: Record<Pose | SwordPose, Sprite[]>;
 }
 
+export interface Held { hand: Hand; art: Art }
+
 /** About a frame between slices, so the screen keeps moving while the arena's frames are painted. */
 export const PAINT_GAP_MS = 16;
 
@@ -21,7 +24,7 @@ export const PAINT_GAP_MS = 16;
 export class PlayerLook<Sprite> {
   private worn: string | null = null;
   private look: Look | null = null;
-  private swordHand: Hand | null = "rightHand";
+  private held: Held | null = { hand: "rightHand", art: SWORD };
   private unpainted: (() => void)[] = [];
   private nextSlice: ReturnType<typeof setTimeout> | undefined;
 
@@ -42,9 +45,9 @@ export class PlayerLook<Sprite> {
     this.paintBattle(look);
   }
 
-  hold(swordHand: Hand | null): void {
-    if (swordHand === this.swordHand) return;
-    this.swordHand = swordHand;
+  hold(held: Held | null): void {
+    if (held?.hand === this.held?.hand && held?.art === this.held?.art) return;
+    this.held = held;
     if (this.look) this.paintBattle(this.look);
   }
 
@@ -54,10 +57,10 @@ export class PlayerLook<Sprite> {
   }
 
   private paintBattle(look: Look): void {
-    const swordHand = this.swordHand;
+    const held = this.held;
     this.unpainted = (Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]).flatMap((pose) =>
       this.sprites.battle[pose].map((sprite, frame) => () => {
-        const pic = drawBattle(look, pose, frame, undefined, swordHand);
+        const pic = drawBattle(look, pose, frame, undefined, held?.hand ?? null, held?.art);
         this.redraw(sprite, (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width));
       }),
     );

@@ -9,6 +9,7 @@ import {
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
 import { colorMaterial } from "../../../materials.js";
 import type { ArenaScene } from "../../scene.js";
+import type { WeaponLook } from "../../weapons.js";
 
 export interface KoboldModel {
   /** Under the body's node; turned to the kobold's facing. */
@@ -37,7 +38,7 @@ export function disposeKobold(v: KoboldModel): void {
 }
 
 export function buildKobold(
-  ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number,
+  ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number, weapon: WeaponLook["blade"] | null,
 ): KoboldModel {
   const { scene, sunShadows } = ctx;
   const materials: StandardMaterial[] = [];
@@ -47,7 +48,7 @@ export function buildKobold(
     return m;
   };
   const fur = mat("kobold-fur", "#8a6a4a"), dark = mat("kobold-dark", "#4a3626");
-  const cloth = mat("kobold-cloth", "#6e2f2a"), steel = mat("kobold-steel", "#c9d1d8");
+  const cloth = mat("kobold-cloth", "#6e2f2a");
   const brass = mat("kobold-brass", "#b8913a"), eyes = mat("kobold-eyes", "#f2c84a");
   eyes.emissiveColor = new Color3(0.6, 0.45, 0.1);
 
@@ -114,13 +115,17 @@ export function buildKobold(
 
   // The sword hand, held in front of its right shoulder; the arm reaches from the shoulder to it.
   const hand = node("k-hand", model, 0.22, 1.08, 0.28);
-  const grip = part(MeshBuilder.CreateBox("k-grip", { width: 0.05, height: 0.2, depth: 0.05 }, scene), hand, dark);
-  grip.position.y = 0;
-  const guardBar = part(MeshBuilder.CreateBox("k-guard", { width: 0.24, height: 0.04, depth: 0.06 }, scene), hand,
-    brass);
-  guardBar.position.y = 0.12;
-  const blade = part(MeshBuilder.CreateBox("k-blade", { width: 0.07, height: 1.0, depth: 0.02 }, scene), hand, steel);
-  blade.position.y = 0.64;
+  if (weapon) {
+    const grip = part(MeshBuilder.CreateBox("k-grip", { width: 0.05, height: 0.2, depth: 0.05 }, scene), hand, dark);
+    grip.position.y = 0;
+    const guardBar = part(MeshBuilder.CreateBox("k-guard", { width: 0.24, height: 0.04, depth: 0.06 }, scene), hand,
+      brass);
+    guardBar.position.y = 0.12;
+    const steel = mat("kobold-steel", weapon.color);
+    const blade = part(MeshBuilder.CreateBox("k-blade", { width: weapon.widthM, height: weapon.lengthM, depth: 0.02 },
+      scene), hand, steel);
+    blade.position.y = 0.14 + weapon.lengthM / 2;
+  }
   const fist = part(MeshBuilder.CreateSphere("k-fist", { diameter: 0.13, segments: 6 }, scene), hand, fur);
   fist.position.y = -0.02;
 

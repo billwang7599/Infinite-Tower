@@ -70,8 +70,8 @@ export function weaponSystem(): System {
       if (!bladeLive(swing)) world.remove(e, ActiveHit);
       else if (!world.has(e, ActiveHit)) {
         addHit(world, e, swing.dir.x, swing.dir.z, {
-          ...attackShape(swing.attack, weapon), damage: swing.damage, knockback: swing.knockback, lift: swing.lift,
-          poiseDamage: swing.poiseDamage, attack: swing.attack,
+          ...attackShape(swing.attack, wielder.armReachM, weapon), damage: swing.damage, knockback: swing.knockback,
+          lift: swing.lift, poiseDamage: swing.poiseDamage, attack: swing.attack,
         });
       }
       swing.step++;

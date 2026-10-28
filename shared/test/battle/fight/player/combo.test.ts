@@ -16,7 +16,7 @@ const steps = (time: number) => Math.ceil(time / FIXED_DT - 1e-9);
 /** The longest a swing holds off the next one. */
 const SLOWEST_SWING = CHAIN.startupTime.perpendicular + CHAIN.activeTime;
 /** A statue right in front, in reach of every attack; or far away, out of reach of all. */
-const NEAR = attackShape("lr", WEAPONS.sword).range + STATUE.radius - 0.4;
+const NEAR = attackShape("lr", PLAYER.armReachM, WEAPONS.sword).range + STATUE.radius - 0.4;
 const FAR = 30;
 
 /** Stamina enough for any chain here. */

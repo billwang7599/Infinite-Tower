@@ -1,7 +1,7 @@
 /**
  * The sword, in the battle sprite: drawn along the pose's grip-to-tip line (battle.ts), so each pose places it.
  * A steel blade, a brass guard and pommel, a leather grip. It's under the arms, so a fist closes over the grip,
- * unless the pose puts it on another layer (`swordLayer`). Everyone's is the same until there are weapons to pick.
+ * unless the pose puts it on another layer (`swordLayer`).
  */
 import { ink, type Art, type BattleFrame, type Draw, type Layer } from "./art.js";
 import { BASE, LIGHT, SHADOW, polygon, type Point } from "./pixels.js";

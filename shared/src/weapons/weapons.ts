@@ -26,7 +26,12 @@ export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "s
 export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
 export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
 
+/** A weapon's moveset: its swings, chaining and look in motion. */
+export const WEAPON_KINDS = ["sword"] as const;
+export type WeaponKind = (typeof WEAPON_KINDS)[number];
+
 export interface Weapon {
+  kind: WeaponKind;
   /** The blade (m): every attack's reach grows with it. */
   length: number;
   /** At strength 10, before momentum. */
@@ -36,18 +41,21 @@ export interface Weapon {
 }
 
 export const WEAPONS = {
-  sword: { length: 1.1, damage: 9, speed: 1 },
+  sword: { kind: "sword", length: 1.1, damage: 9, speed: 1 },
+  "kobold-blade": { kind: "sword", length: 1.1, damage: 14, speed: 1 },
 } as const satisfies Partial<Record<ItemId, Weapon>>;
+export type WeaponId = keyof typeof WEAPONS;
 
-const isWeapon = (item: ItemId | null): item is keyof typeof WEAPONS => item !== null && Object.hasOwn(WEAPONS, item);
+export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
+
+/** The right hand's first. */
+export const weaponItemIn = (hands: Record<Hand, ItemId | null>): WeaponId | null =>
+  isWeapon(hands.rightHand) ? hands.rightHand : isWeapon(hands.leftHand) ? hands.leftHand : null;
 
 export function weaponIn(hands: Record<Hand, ItemId | null>): Weapon | null {
-  const item = isWeapon(hands.rightHand) ? hands.rightHand : isWeapon(hands.leftHand) ? hands.leftHand : null;
+  const item = weaponItemIn(hands);
   return item && WEAPONS[item];
 }
-
-/** From a fighter's center to the hilt (m): the blade's length goes on from there. */
-const ARM_REACH = 0.8;
 
 /**
  * Each line's hit shape: its reach as a share of arm plus blade, and its arc (degrees, all of it). Horizontal
@@ -68,8 +76,8 @@ const STAB_WIDTH = 0.15;
  */
 export interface HitShape { shape: "arc" | "ray"; range: number; minDot: number; width: number }
 
-export function attackShape(attack: AttackKind, weapon: Pick<Weapon, "length">): HitShape {
-  const reach = ARM_REACH + weapon.length;
+export function attackShape(attack: AttackKind, armReachM: number, weapon: Pick<Weapon, "length">): HitShape {
+  const reach = armReachM + weapon.length;
   if (!isSwing(attack)) return { shape: "ray", range: reach * STAB_REACH_FACTOR, minDot: 1, width: STAB_WIDTH };
   const { reachFactor, arcDeg } = SHAPES[LINE[attack]];
   return { shape: "arc", range: reach * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)), width: 0 };

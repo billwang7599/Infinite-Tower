@@ -1,10 +1,8 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
-import { footprint, itemDef, type BagItem, type ItemId } from "@infinite-tower/shared";
+import { footprint, isWeapon, itemDef, type BagItem, type ItemId } from "@infinite-tower/shared";
 
-const HELD: Partial<Record<ItemId, string>> = {
-  sword: "In a hand: swing, stab and block.",
-  skillbook: "In a hand: quick-cast skills.",
-};
+const WIELDED = "In a hand: swing, stab and block.";
+const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
 
 export interface ItemInfo {
   /** With the count, for a stack of more than one. */
@@ -28,6 +26,7 @@ export function itemInfo(stack: BagItem): ItemInfo {
     name: many ? `${def.name} ×${stack.count}` : def.name,
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
-    effect: def.healHp ? `Heals ${def.healHp} HP. Not mid-fight.` : HELD[stack.item] ?? null,
+    effect: def.healHp ? `Heals ${def.healHp} HP. Not mid-fight.`
+      : isWeapon(stack.item) ? WIELDED : HELD[stack.item] ?? null,
   };
 }

@@ -1,5 +1,5 @@
 import type { AttackKind, EnemyState, Vec3 } from "@infinite-tower/shared";
-import { GUARD_BLADE, liveBlade, tellArrowRad, windupBlade } from "../../weapons.js";
+import type { WeaponMotion } from "../../weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
   const l = Math.hypot(x, y, z);
@@ -24,24 +24,26 @@ export interface KoboldPose {
 }
 
 /** `k`: the share of the state's duration gone; `active`: the swing's live time (s). */
-export function koboldPose(state: EnemyState, t: number, k: number, attack: AttackKind, active: number): KoboldPose {
+export function koboldPose(
+  state: EnemyState, t: number, k: number, attack: AttackKind, active: number, motion: WeaponMotion,
+): KoboldPose {
   const p: KoboldPose = {
-    ...GUARD_BLADE, bladeExact: state === "sword", lean: 0, roll: 0,
+    ...motion.guard, bladeExact: state === "weapon", lean: 0, roll: 0,
     rollRate: state === "dead" ? 6 : 12, yOff: 0, stars: state === "parried" || state === "stunned", tell: 0,
     arrowRad: null,
   };
   switch (state) {
-    case "swordWindup":
-      Object.assign(p, windupBlade(attack, k));
+    case "weaponWindup":
+      Object.assign(p, motion.windup(attack, k));
       p.lean = -0.12 * k;
       p.tell = 0.25 + 0.75 * k;
-      p.arrowRad = tellArrowRad(attack);
+      p.arrowRad = motion.tellArrowRad(attack);
       break;
-    case "sword":
-      Object.assign(p, liveBlade(attack, Math.min(1, t / Math.max(0.01, active))));
+    case "weapon":
+      Object.assign(p, motion.live(attack, Math.min(1, t / Math.max(0.01, active))));
       p.lean = 0.15;
       break;
-    case "swordRecover":
+    case "weaponRecover":
       p.blade = norm({ x: 0.3, y: -0.6, z: 0.5 });
       p.lean = 0.08 * (1 - k);
       break;

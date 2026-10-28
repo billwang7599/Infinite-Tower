@@ -33,15 +33,15 @@ export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
-/** The battle sprite in `pose` (its `frame`th frame), the sword in `swordHand` (null: none). */
+/** The battle sprite in `pose` (its `frame`th frame), `weapon` in `swordHand` (null: none). */
 export function drawBattle(
   look: Look, pose: Pose | SwordPose, frame = 0, wear: readonly Art[] = STARTER_CLOTHES,
-  swordHand: Hand | null = "rightHand",
+  swordHand: Hand | null = "rightHand", weapon: Art = SWORD,
 ): Picture {
   const frames = BODY_TYPES[look.body].battle;
   const body = swordHand === "leftHand" ? leftHanded(frames, pose, frame) : frames[pose][frame];
   if (!body) throw new RangeError(`${pose} has no frame ${frame}`);
-  const pieces = lookArts(look, swordHand ? [...wear, SWORD] : wear).map((art) => art.battle);
+  const pieces = lookArts(look, swordHand ? [...wear, weapon] : wear).map((art) => art.battle);
   return render("battle", body, pieces, colorsOf(look), FIXED);
 }
 

@@ -35,6 +35,10 @@ export const ITEMS = {
     name: "Sword", description: "A plain straight blade. You swing it with the mouse and stab with a click.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wornOn: "hand",
   },
+  "kobold-blade": {
+    name: "Kobold blade", description: "A notched blade, heavier at the tip. Kobolds don't let go of theirs.", cols: 1,
+    rows: 3, stackSize: 1, weight: 3, wornOn: "hand",
+  },
   skillbook: {
     name: "Skillbook", description: "A worn book of four pages. You need it in hand to use skills, and to write in it.",
     cols: 2, rows: 2, stackSize: 1, weight: 1.5, wornOn: "hand", verb: "Open",

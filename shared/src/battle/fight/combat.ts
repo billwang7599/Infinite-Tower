@@ -7,7 +7,7 @@ import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import { isSwing, PARRY, reverseOf, type AttackKind, type HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, SwordAttack, Wielder, type ActiveHitData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, WeaponAttack, Wielder, type ActiveHitData,
   type PlayerData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
@@ -32,7 +32,7 @@ export interface HitSpec extends Partial<Pick<HitShape, "shape" | "width">> {
   knockback?: number;
   lift?: number;
   poiseDamage?: number;
-  /** A sword's swing or stab; a body blow (the default) can't be parried. */
+  /** A weapon's swing or stab; a body blow (the default) can't be parried. */
   attack?: AttackKind | null;
 }
 
@@ -145,7 +145,7 @@ function hitPlayer(
     return "blocked";
   }
 
-  // It lands. A sword (swing or stab) only hurts, as the player's does; anything else also knocks back and stuns.
+  // It lands. A weapon (swing or stab) only hurts, as the player's does; anything else also knocks back and stuns.
   const dealt = hurt(world, target, damage);
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
@@ -159,7 +159,7 @@ function hitPlayer(
   }
   endChain(world.require(target, Wielder));
   siphon(world, attacker, dealt);
-  events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, sword: hit.attack !== null });
+  events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
   return "landed";
 }
 
@@ -177,16 +177,16 @@ function parryEnemy(world: World, e: Entity, by: Vec3): void {
   endSwing(world, e);
   // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
   knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
-  const sword = world.get(e, SwordAttack);
-  if (sword) sword.cooldown = Math.max(sword.cooldown, PARRY.stunTime + sword.def.cooldown);
+  const attack = world.get(e, WeaponAttack);
+  if (attack) attack.cooldown = Math.max(attack.cooldown, PARRY.stunTime + attack.def.cooldown);
 }
 
-/** A hit reaching an enemy: a swordsman on guard parries a swing (blocks a stab); anything else lands. */
+/** A hit reaching an enemy: one on guard with a weapon parries a swing (blocks a stab); anything else lands. */
 function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): Resolved {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
   const at = world.require(target, Body).pos, from = world.require(attacker, Body);
-  const sword = world.get(target, SwordAttack);
-  const onGuard = sword !== undefined && enemy.state === "approach" && enemy.stateTime >= sword.def.parryReaction
+  const guard = world.get(target, WeaponAttack);
+  const onGuard = guard !== undefined && enemy.state === "approach" && enemy.stateTime >= guard.def.parryReaction
     && faces(at, { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, from.pos, PARRY.minDot);
   if (onGuard && hit.attack !== null) {
     if (!isSwing(hit.attack)) {
@@ -194,8 +194,8 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
       return "blocked";
     }
     const player = world.get(attacker, Player);
-    if (sword.parryCooldown <= 0 && player) {
-      sword.parryCooldown = sword.def.parryCooldown;
+    if (guard.parryCooldown <= 0 && player) {
+      guard.parryCooldown = guard.def.parryCooldown;
       player.action = "stagger";
       world.require(attacker, Health).hitstun = PARRY.playerStaggerTime;
       endSwing(world, attacker);
@@ -213,6 +213,6 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   health.flash = HIT_FLASH_TIME;
   if (!parried) enemy.poise -= hit.poiseDamage;
   siphon(world, attacker, damage);
-  events.push({ type: "hit", by: attacker, target, team: "enemy", damage, sword: hit.attack !== null });
+  events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
   return "landed";
 }

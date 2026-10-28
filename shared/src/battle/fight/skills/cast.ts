@@ -28,7 +28,7 @@ export function imbueOf(world: World, caster: Entity): [Entity, SkillObjectData]
 export function skillSystem(ctx: FightContext): System {
   return (world, dt) => {
     for (const event of ctx.events.slice()) {
-      if (event.type === "hit" && event.sword && event.team === "enemy") imbueHit(ctx, event.by, event.target);
+      if (event.type === "hit" && event.weapon && event.team === "enemy") imbueHit(ctx, event.by, event.target);
     }
     for (const [e, player, stamina, body] of world.query(Player, Stamina, Body)) {
       const { writing } = player;

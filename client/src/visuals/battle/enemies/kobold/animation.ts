@@ -1,16 +1,21 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
-import { Body, damp, dampFactor, Enemy, Health, SwordAttack, Wielder, wrapAngle } from "@infinite-tower/shared";
+import {
+  Body, damp, dampFactor, Enemy, Health, WeaponAttack, weaponItemIn, WEAPONS, Wielder, wrapAngle,
+} from "@infinite-tower/shared";
 import { fighter } from "../../battle.js";
+import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../weapons.js";
 import { buildKobold, disposeKobold, type KoboldModel } from "./model.js";
 import { koboldPose } from "./pose.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const bladeDir = new Vector3();
 
-export const koboldVisual = fighter<KoboldModel & { blade: Quaternion }>("enemy", {
+export const koboldVisual = fighter<KoboldModel & { blade: Quaternion; motion: WeaponMotion }>("enemy", {
   spawn(ctx, world, e, node) {
-    const enemy = world.require(e, Enemy);
-    return { ...buildKobold(ctx, e, node, enemy.def, enemy.yaw), blade: new Quaternion() };
+    const enemy = world.require(e, Enemy), held = weaponItemIn(world.require(e, Wielder).hands);
+    const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, held && WEAPON_LOOKS[held].blade);
+    // Empty-handed, its hand still moves like a sword's.
+    return { ...model, blade: new Quaternion(), motion: MOTIONS[held ? WEAPONS[held].kind : "sword"] };
   },
   dispose: disposeKobold,
   frame(nodes, world, e, dt) {
@@ -23,10 +28,10 @@ export const koboldVisual = fighter<KoboldModel & { blade: Quaternion }>("enemy"
     nodes.legs[0].rotation.x = Math.sin(nodes.gait) * amp;
     nodes.legs[1].rotation.x = -Math.sin(nodes.gait) * amp;
 
-    const sword = world.get(e, SwordAttack), swing = world.get(e, Wielder)?.swing;
+    const attack = world.get(e, WeaponAttack), swing = world.get(e, Wielder)?.swing;
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const pose = koboldPose(
-      health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", sword?.def.active ?? 0.1,
+      health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", attack?.def.active ?? 0.1, nodes.motion,
     );
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), nodes.blade);
     nodes.hand.rotationQuaternion ??= new Quaternion();

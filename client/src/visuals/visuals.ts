@@ -1,6 +1,6 @@
 import { Engine } from "@babylonjs/core";
 import {
-  Enemy, heldIn, LocalPlayer, Player, SkillObject, Wielder, type EnemyDef, type Entity, type Hand, type Look,
+  Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyDef, type Entity, type Look,
   type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
@@ -14,7 +14,8 @@ import { koboldVisual } from "./battle/enemies/kobold/animation.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
-import { PlayerLook } from "./characters.js";
+import { WEAPON_LOOKS } from "./battle/weapons.js";
+import { PlayerLook, type Held } from "./characters.js";
 import { overworldStage, WALKERS } from "./overworld/overworld.js";
 import { createOverworldScene } from "./overworld/scene.js";
 import { redrawSprite } from "./sprites.js";
@@ -126,7 +127,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   let shown: Mode | null = null;
   let fresh = false;
   let worn: Look | null = null;
-  let held: { fight: Fight; hand: Hand | null } | null = null;
+  let painted: { fight: Fight; held: Held | null } | null = null;
   let drawnFight: Fight | null = null;
 
   /** The chibi is painted at once, the arena's frames bit by bit, and all of them before a fight shows. */
@@ -136,10 +137,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
     const fight = from.battle.fight;
     const me = fight?.world.first(LocalPlayer, Wielder);
     if (!fight || !me) return;
-    const hand = heldIn(me[2].hands, "sword");
-    if (fight === held?.fight && hand === held.hand) return;
-    held = { fight, hand };
-    playerLook.hold(hand);
+    const item = weaponItemIn(me[2].hands), hand = item && heldIn(me[2].hands, item);
+    const held = item && hand && { hand, art: WEAPON_LOOKS[item].sprite };
+    if (fight === painted?.fight && held?.hand === painted.held?.hand && held?.art === painted.held?.art) return;
+    painted = { fight, held };
+    playerLook.hold(held);
     playerLook.finish();
   };
 

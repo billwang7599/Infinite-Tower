@@ -13,6 +13,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
 | [inventory.md](inventory.md): the rest of the grid inventory (loot screen, the bag in a fight, skillbook pages) | being built |
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
+| [weapons.md](weapons.md): the arsenal; weapons from parts and inertia-based swings | later |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
 
