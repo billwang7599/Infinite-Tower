@@ -27,10 +27,11 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena.
   A sword with eight swings (one per way across
   the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
-  short, vertical ones narrow and long, the stab a long thin line. Swings chain: the next starts quicker or slower
-  by how it follows the last (the reverse swing quickest) and builds momentum, more damage a hit (the HUD shows the
-  combo), until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops what hits it
-  from in front for stamina, and breaks, staggering you, when the stamina runs out. A fight starts locked onto the
+  short, vertical ones narrow and long, the stab a long thin line. Swings follow the blade's inertia: the next starts
+  as soon as the blade can get to its start (the reverse swing quickest), a swing on the way the blade already goes
+  hits harder (the HUD shows the combo), and stamina goes by the effort (reversing costs most); weapons have mass and
+  balance, and strength sets how fast you swing. A block stops what hits it from in front for stamina, and breaks,
+  staggering you, when the stamina runs out. A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
   Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing

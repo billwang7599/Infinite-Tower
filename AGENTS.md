@@ -59,9 +59,16 @@ Decided by the user:
   called spells). The skillbook only stores built skills.
 - Weapons are an arsenal: every weapon is an item with a row in `WEAPONS` (its kind of moveset and its stats), and a
   fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
-  weapon's reach is the wielder's own arm reach plus the weapon's length; its hits deal the weapon's damage at the
-  wielder's strength. Weapons built from parts (hilts, blades) and inertia-based swings are planned
-  ([plan/weapons.md](plan/weapons.md)).
+  weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
+  planned ([plan/weapons.md](plan/weapons.md)).
+- Swings are inertia-based (the user's idea; the equations are the agent's, approved as "lean whatever makes it feel
+  more smooth & realistic"): a weapon has mass (its item's weight) and balance, the wielder's strength drives the
+  blade, and the order swings come in is decided by inertia alone. A hit's damage is the weapon's power × its impact
+  momentum (mass × blade speed), so a combo that keeps the blade moving pays off; strength mostly sets swing speed
+  (against the weapon's mass) and adds a little damage; stamina goes by the energy a swing adds to the blade (braking
+  too), a block's cost and stagger by the impact's momentum, and a parry's stun by the blades' momentum. Enemies follow
+  the same rules. The equations and numbers: [plan/weapons.md](plan/weapons.md) "Built", `planSwing` and `SWING` in
+  `shared/src/weapons/weapons.ts`.
 - The skill words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
   accounts test1-3 know every word.
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -163,28 +170,32 @@ Decided by the user:
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
 - A dodge (or the next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting
   the attack short, and starts on the first step the attack lets another action start, as soon as its blade is done
-  (`lettingGoAt` in `shared/src/weapons/weapons.ts`). If the player can't dodge then (no stamina, overloaded, in the
-  air), the press runs out like any early press (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes
-  first.
+  (the swing's `letGoAt`: its wind-up and live time, which a heavier blade makes longer). If the player can't dodge
+  then (no stamina, overloaded, in the air), the press runs out like any early press (`PLAYER.inputBuffer`). With an
+  attack buffered too, the dodge goes first.
 - The sword (the swings hand-tested and approved; swinging by mouse not yet played): eight swings, named by their way
   across the screen, and a stab. A mouse or trackpad is required to play: a swing is plain mouse movement (no button
   held, locked or not), its way across the screen picking the swing (snapped to the nearest of the eight), and a left
   click stabs; there are no swing keys. Movement doesn't swing while blocking. How little movement swings is the swing
   sensitivity in Settings (saved with the other settings). Block is held (Left Shift), Space jumps, F dodges (the right
   mouse button doesn't). A swing's reach and arc come from the sword's length and its line (horizontal wide and short,
-  vertical narrow and long; the stab a long thin ray). Swings chain: the next one's start depends on how it follows the
-  last (the reverse quickest, a perpendicular one slowest), and a chain builds momentum (more damage, a quicker start)
-  until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops a hit from in front for
-  stamina and pushes you back; short of stamina, the guard breaks and you're staggered. Numbers:
-  `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
+  vertical narrow and long; the stab a long thin ray). Swings follow from the blade's inertia: the next one's wind-up is
+  the time the blade takes to get to its start, so with the starter sword the reverse is quickest (0.05 s), an opening
+  0.1 s, the same swing again slowest (0.125 s); a swing on the way the blade already goes hits up to 25% harder, a
+  reverse costs the most stamina; a gap, a block, a dodge or a hit taken brings the blade to rest. A block stops a hit
+  from in front for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're
+  staggered. Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
   three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
-  first swing winds up 1.1 s, the ones after it 0.45 s. A swing is parried by the reverse swing live within
+  first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, never
+  longer with its blade). A swing is parried by the reverse swing live within
   `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage), even while you're briefly
   invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
   damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
   while) and blocks your stabs. Its landed sword hits only hurt, with no stun or knockback (the boar's still stun). It
-  drops nothing yet. It holds its own Kobold blade (the sword's length and speed, its 14 damage), which never drops.
+  drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
+  chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
+  inertia.
   Numbers: `server/src/core/content/enemies.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
   keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
@@ -208,7 +219,8 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
 - Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
   spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
-  arena movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply
+  arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's goes by its swing:
+  see the inertia entry above) and the carry limit. HP stays separate. They apply
   only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10. Everyone has the same player stats, so they
   aren't saved.
 - A swing is a mouse move of 40 px within 150 ms (the swing sensitivity, 0.5 to 2, default 1, divides the 40);

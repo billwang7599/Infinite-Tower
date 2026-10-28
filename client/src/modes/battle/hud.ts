@@ -1,5 +1,5 @@
 import {
-  Enemy, Health, heldIn, LocalPlayer, momentumDamage, Player, roundTo, Stamina, Wielder, type World,
+  Enemy, Health, heldIn, LocalPlayer, Player, roundTo, Stamina, Wielder, type World,
 } from "@infinite-tower/shared";
 import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
@@ -17,7 +17,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (worl
     if (me) {
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
-      patch.comboMultiplier = me[5].combo === null ? 1 : roundTo(momentumDamage(me[5].momentum), 2);
+      patch.comboMultiplier = roundTo(me[5].swing?.flow ?? 1, 2);
       patch.stunned = me[2].hitstun > 0 || me[4].action === "stagger";
       patch.skillbookInHand = heldIn(me[5].hands, "skillbook") !== null;
       patch.brokenOff = me[4].brokenOff;

@@ -1,6 +1,7 @@
+import { clamp } from "../core/math.js";
 import { FIXED_DT } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
-import type { ItemId } from "../items/items.js";
+import { ITEMS, type ItemId } from "../items/items.js";
 
 // Named by their way across the screen as the player sees it ("tlbr": top-left to bottom-right), an enemy's too, so
 // a swing is parried by its reverse ("lr" by "rl"): the blades meet.
@@ -18,15 +19,18 @@ const LINE: Record<SwingDir, SwingLine> = {
 const REVERSE: Record<SwingDir, SwingDir> = {
   lr: "rl", rl: "lr", tb: "bt", bt: "tb", tlbr: "brtl", brtl: "tlbr", trbl: "bltr", bltr: "trbl",
 };
-const PERPENDICULAR: Record<SwingLine, SwingLine> = {
-  horizontal: "vertical", vertical: "horizontal", falling: "rising", rising: "falling",
+
+/** As the player sees it: x right, y up. */
+export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
+  lr: { x: 1, y: 0 }, rl: { x: -1, y: 0 }, tb: { x: 0, y: -1 }, bt: { x: 0, y: 1 },
+  tlbr: { x: Math.SQRT1_2, y: -Math.SQRT1_2 }, brtl: { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
+  trbl: { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }, bltr: { x: Math.SQRT1_2, y: Math.SQRT1_2 },
 };
 
 export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "stab";
 export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
 export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
 
-/** A weapon's moveset: its swings, chaining and look in motion. */
 export const WEAPON_KINDS = ["sword"] as const;
 export type WeaponKind = (typeof WEAPON_KINDS)[number];
 
@@ -34,15 +38,16 @@ export interface Weapon {
   kind: WeaponKind;
   /** The blade (m): every attack's reach grows with it. */
   length: number;
-  /** At strength 10, before momentum. */
+  mass: number;
+  /** From the hand to its centre of mass (m). */
+  balanceM: number;
+  /** At the starter sword's momentum. */
   damage: number;
-  /** Swings start this many times faster (1: as CHAIN says). */
-  speed: number;
 }
 
 export const WEAPONS = {
-  sword: { kind: "sword", length: 1.1, damage: 9, speed: 1 },
-  "kobold-blade": { kind: "sword", length: 1.1, damage: 14, speed: 1 },
+  sword: { kind: "sword", length: 1.1, mass: ITEMS.sword.weight, balanceM: 0.25, damage: 9 },
+  "kobold-blade": { kind: "sword", length: 1.1, mass: ITEMS["kobold-blade"].weight, balanceM: 0.25, damage: 14 },
 } as const satisfies Partial<Record<ItemId, Weapon>>;
 export type WeaponId = keyof typeof WEAPONS;
 
@@ -83,47 +88,72 @@ export function attackShape(attack: AttackKind, armReachM: number, weapon: Pick<
   return { shape: "arc", range: reach * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)), width: 0 };
 }
 
-/** How a swing follows the last one: not at all (an opening), back along its line, across it, or anything else. */
-export type ChainKind = "opening" | "reverse" | "perpendicular" | "other";
-
-export function chainKind(last: AttackKind | null, next: SwingDir): ChainKind {
-  if (last === null || !isSwing(last)) return "opening";
-  if (REVERSE[last] === next) return "reverse";
-  return PERPENDICULAR[LINE[last]] === LINE[next] ? "perpendicular" : "other";
-}
-
-export const CHAIN = {
-  /** From a swing's start to its blade going live, by how it follows the last one (at momentum 0). */
-  startupTime: { opening: 0.1, reverse: 0.05, other: 0.1, perpendicular: 0.16 } satisfies Record<ChainKind, number>,
-  stabStartupTime: 0.14,
+/** The starter sword's at strength 10. */
+export const SWING = {
+  openingTime: 0.1,
+  reverseTime: 0.05,
+  stabTime: 0.14,
   /** The blade is live this long, then the attack recovers for `recoverTime`. */
   activeTime: 0.1,
   recoverTime: 0.08,
-  /** A chain lives on this long after an attack ends; the next swing then still chains. */
   gapTime: 0.25,
+  maxFlow: 1.25,
+  minTimeFactor: 0.5,
+  maxTimeFactor: 2,
 } as const;
 
-/** How far into its attack the player may start the next one, or a dodge (pressed earlier, it waits). */
-export const lettingGoAt = (startup: number): number => startup + CHAIN.activeTime;
+/** In the screen plane: ±1 a swing's ends, 0 the guard; velocity per second. */
+export interface Blade { x: number; y: number; vx: number; vy: number }
+export const restingBlade = (): Blade => ({ x: 0, y: 0, vx: 0, vy: 0 });
 
-export const MOMENTUM = {
-  /** Gained by each chained swing, by how it follows the last. */
-  gain: { opening: 0, reverse: 1, other: 0.5, perpendicular: 0.25 } satisfies Record<ChainKind, number>,
-  max: 4,
-  /** Each point: this much more damage (×2 at the most) and this much sooner a start (×0.6 at the most). */
-  damagePerPoint: 0.25,
-  maxDamage: 2,
-  speedPerPoint: 0.1,
-  /** A stab chained as a finisher spends the momentum: this much more damage per point. */
-  stabBonusPerPoint: 0.5,
-} as const;
+// Solved so the starter sword at strength 10 takes `openingTime` from rest and `reverseTime` to reverse.
+const ROOT_ACCEL = 2 / (SWING.openingTime - SWING.reverseTime / SWING.maxFlow);
+const ACCEL = ROOT_ACCEL * ROOT_ACCEL;
+const START_SPEED = (ACCEL * SWING.reverseTime) / SWING.maxFlow;
+const FOLLOW_SPEED = START_SPEED * (SWING.maxFlow - 1);
+const STARTER: Weapon = WEAPONS.sword;
+const AVERAGE_STRENGTH = 10;
 
-export const momentumDamage = (momentum: number): number =>
-  Math.min(MOMENTUM.maxDamage, 1 + momentum * MOMENTUM.damagePerPoint);
+export interface SwingPlan {
+  windupTime: number;
+  timeFactor: number;
+  flow: number;
+  /** Against the starter sword's opening swing at strength 10, as is `effort` (energy added, braking too). */
+  momentum: number;
+  effort: number;
+  blade: Blade;
+}
 
-export function startupTime(kind: ChainKind, momentum: number, speed: number): number {
-  const scale = 1 - Math.min(momentum, MOMENTUM.max) * MOMENTUM.speedPerPoint;
-  return (CHAIN.startupTime[kind] * scale) / speed;
+/** Wind-up: 2√(d / a) + |Δv| / a to the swing's start; times × √((I / I0) / (strength / 10)), clamped. */
+export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack: AttackKind): SwingPlan {
+  const inertiaOf = (w: Weapon): number => w.mass * w.balanceM * w.balanceM;
+  const inertia = inertiaOf(weapon) / inertiaOf(STARTER);
+  const rawTimeFactor = Math.sqrt(inertia / (strength / AVERAGE_STRENGTH));
+  const timeFactor = clamp(rawTimeFactor, SWING.minTimeFactor, SWING.maxTimeFactor);
+  const massRatio = weapon.mass / STARTER.mass;
+  const speedFactor = Math.sqrt(Math.sqrt(strength / AVERAGE_STRENGTH)) / Math.sqrt(massRatio);
+  // Too heavy to swing in the clamped time: the wielder pays for the speed it lacks.
+  const lacking = Math.max(1, rawTimeFactor / timeFactor);
+  const heft = inertia * speedFactor * speedFactor * lacking * lacking;
+  const speed = Math.hypot(blade.vx, blade.vy);
+
+  if (!isSwing(attack)) {
+    const toRest = 2 * Math.sqrt(Math.hypot(blade.x, blade.y) / ACCEL) + speed / ACCEL;
+    return {
+      windupTime: Math.max(SWING.stabTime, toRest) * timeFactor, timeFactor, flow: 1, momentum: massRatio * speedFactor,
+      effort: heft * (1 + (speed * speed) / (START_SPEED * START_SPEED)), blade: restingBlade(),
+    };
+  }
+  const way = SCREEN_DIR[attack];
+  const startSpeed = START_SPEED + Math.max(0, blade.vx * way.x + blade.vy * way.y);
+  const dvx = way.x * startSpeed - blade.vx, dvy = way.y * startSpeed - blade.vy;
+  const distance = Math.hypot(-way.x - blade.x, -way.y - blade.y), dv = Math.hypot(dvx, dvy);
+  const flow = startSpeed / START_SPEED;
+  return {
+    windupTime: (2 * Math.sqrt(distance / ACCEL) + dv / ACCEL) * timeFactor, timeFactor, flow,
+    momentum: massRatio * speedFactor * flow, effort: (heft * dv * dv) / (START_SPEED * START_SPEED),
+    blade: { x: way.x, y: way.y, vx: way.x * FOLLOW_SPEED, vy: way.y * FOLLOW_SPEED },
+  };
 }
 
 /** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */
@@ -139,8 +169,10 @@ export function stepsUntil(seconds: number): number {
 export const PARRY = {
   /** A swing is parried when the reverse swing's blade went live no more than this long before it lands. */
   window: 0.15,
-  /** The parried attacker is stunned this long, knocked back this far (m), and takes this much more damage. */
+  /** × the blades' momentum ratio, clamped. Knocked back this far (m), taking this much more damage. */
   stunTime: 1,
+  minStunScale: 0.5,
+  maxStunScale: 2,
   knockbackDist: 1.5,
   bonusDamage: 1.5,
   /** How fast (m/s²) the knocked-back attacker slides to a stop. */

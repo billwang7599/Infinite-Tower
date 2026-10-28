@@ -5,8 +5,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ActiveHit, Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, liveStep, PARRY, physicalDamage, Player, PLAYER,
-  reverseOf, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerInputData,
+  ActiveHit, Body, Enemy, FIXED_DT, Health, isSwing, liveStep, PARRY, planSwing, Player, PLAYER, restingBlade,
+  reverseOf, SWING, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerInputData,
+  type Blade, type Stats,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, GUARD, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
@@ -14,9 +15,10 @@ import { ARENA, dumpState, enemy, GUARD, input, player, STATS, swings, SWORDSMAN
 await initPhysics();
 
 const ENEMY_Z = 2;
-const newFight = (def: EnemyDef = SWORDSMAN, enemyZ = ENEMY_Z, vitals = { hp: PLAYER.maxHp, stamina: STATS.stamina }) =>
+const newFight = (def: EnemyDef = SWORDSMAN, enemyZ = ENEMY_Z, vitals = { hp: PLAYER.maxHp, stamina: STATS.stamina },
+  stats: Stats = STATS) =>
   new Fight({
-    arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals })],
+    arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals, stats })],
     enemies: [enemy(def, { x: 0, y: 0.05, z: enemyZ })],
   });
 const withMoves = (moves: AttackKind[]): EnemyDef => ({ ...SWORDSMAN, attacks: { weapon: swings({ moves }) } });
@@ -38,6 +40,7 @@ function play(script: Script, to: number, fight = newFight()): Played {
 const hpOf = (fight: Fight, e = fight.players[0]!) => fight.world.require(e, Health).hp;
 const kobold = (fight: Fight) => fight.world.require(fight.enemies[0]!, Enemy);
 const wielderOf = (fight: Fight, e = fight.players[0]!) => fight.world.require(e, Wielder);
+const isMoving = (blade: Blade) => blade.vx !== 0 || blade.vy !== 0;
 
 /** The step the swordsman's "lr" lands on, the player standing still. */
 const LANDS_AT = (() => {
@@ -46,7 +49,7 @@ const LANDS_AT = (() => {
   return f.steps;
 })();
 /** Steps from pressing an opening swing to its blade going live. */
-const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
+const LIVE_AFTER = liveStep(SWING.openingTime);
 const WINDOW_STEPS = Math.round(PARRY.window / FIXED_DT);
 
 /** A swing `kind` pressed so that its blade goes live `k` steps before the swordsman's lands (negative: after). */
@@ -138,7 +141,7 @@ describe("parrying the swordsman's swing", () => {
     assert.ok((hit.step - LANDS_AT) * FIXED_DT < PARRY.stunTime, "while still stunned");
     assert.deepEqual(hit.event, {
       type: "hit", by: after.fight.players[0], target: after.fight.enemies[0], team: "enemy",
-      damage: physicalDamage(WEAPONS.sword.damage, STATS) * PARRY.bonusDamage, weapon: true,
+      damage: WEAPONS.sword.damage * PARRY.bonusDamage, weapon: true,
     });
 
     const done = play(swingBefore("rl", 2), LANDS_AT + Math.round(PARRY.stunTime / FIXED_DT) + 2);
@@ -158,10 +161,9 @@ describe("the swordsman parrying the player", () => {
     assert.equal(again.fight.world.require(again.fight.players[0]!, Player).action, "stagger");
   });
 
-  test("being parried knocks a chain's momentum back to nothing", () => {
-    // Two horizontal swings fall short of it (building momentum), the vertical one reaches it and is parried.
+  test("being parried brings the player's blade to rest", () => {
     const far = 3.5;
-    let built = 0;
+    let moving = false;
     const presses: Record<number, AttackKind> = {};
     const fight = newFight(GUARD, far);
     const kinds: AttackKind[] = ["lr", "rl", "tb"];
@@ -173,11 +175,11 @@ describe("the swordsman parrying the player", () => {
       const due = (step === settled && next === 0) || (next > 0 && next < kinds.length && started);
       if (due) presses[step] = kinds[next++]!;
       fight.step([input({ attack: presses[step] ?? null })]);
-      built = Math.max(built, wielderOf(fight).momentum);
+      moving ||= isMoving(wielderOf(fight).blade);
     }
-    assert.ok(built > 0, "the chain built momentum");
+    assert.ok(moving, "the blade was moving");
     assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp, "the last swing was parried");
-    assert.equal(wielderOf(fight).momentum, 0);
+    assert.deepEqual(wielderOf(fight).blade, restingBlade());
   });
 
   test("not right away: back on guard, it needs its reaction time before it can parry", () => {
@@ -191,7 +193,7 @@ describe("the swordsman parrying the player", () => {
     const twice: Script = (step) => step === settled ? { attack: "lr" } : step === settled + 50 ? { attack: "tb" } : {};
     const { fight } = play(twice, settled + 80, newFight(GUARD));
     assert.ok((50 - LIVE_AFTER) * FIXED_DT < GUARD.attacks.weapon!.parryCooldown);
-    assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - physicalDamage(WEAPONS.sword.damage, STATS));
+    assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - WEAPONS.sword.damage);
   });
 
   test("swinging while it recovers from its own attack lands", () => {
@@ -218,7 +220,38 @@ describe("the swordsman parrying the player", () => {
   });
 });
 
-describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
+describe("a parry's stun goes by the blades' momentum", () => {
+  const settled = 60;
+  const momentumAt = (strength: number) => planSwing(WEAPONS.sword, strength, restingBlade(), "lr").momentum;
+  const clampScale = (ratio: number) => Math.min(PARRY.maxStunScale, Math.max(PARRY.minStunScale, ratio));
+
+  test("a stronger player's parry stuns the swordsman longer, by their momentum against its own", () => {
+    for (const strength of [STATS.strength, 20, 1000]) {
+      const strong = { ...STATS, strength };
+      const lead = liveStep(planSwing(WEAPONS.sword, strength, restingBlade(), "rl").windupTime) + 2;
+      const fight = newFight(SWORDSMAN, ENEMY_Z, undefined, strong);
+      play((step) => (step === LANDS_AT - lead ? { attack: "rl" } : {}), LANDS_AT, fight);
+      assert.equal(kobold(fight).state, "parried", `strength ${strength}`);
+      assert.equal(kobold(fight).duration, PARRY.stunTime * clampScale(momentumAt(strength)), `strength ${strength}`);
+    }
+  });
+
+  test("parried by the swordsman, a stronger player's swing staggers them for less", () => {
+    for (const strength of [STATS.strength, 20, 1000]) {
+      const fight = newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength });
+      const { events } = play((step) => (step === settled ? { attack: "lr" } : {}), settled + 30, fight);
+      const parry = events.find((e) => e.event.type === "parry");
+      assert.ok(parry, `strength ${strength}`);
+      const again = newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength });
+      play((step) => (step === settled ? { attack: "lr" } : {}), parry.step, again);
+      const hitstun = again.world.require(again.players[0]!, Health).hitstun;
+      const expected = PARRY.playerStaggerTime * clampScale(1 / momentumAt(strength));
+      assert.ok(Math.abs(hitstun - expected) < 1e-9, `strength ${strength}: ${hitstun} vs ${expected}`);
+    }
+  });
+});
+
+describe("a parry's stun, a block and the blade's motion, mid-flight", () => {
   /** Attacks in chains of two, again and again. */
   const DUELLIST: EnemyDef = {
     ...SWORDSMAN, maxHp: 100000,
@@ -256,17 +289,17 @@ describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
 
   test("are in the state: loaded into a new fight, or one that went its own way, it plays on the same", () => {
     const right = duel(), inputs: PlayerInputData[] = [], watch = watcher();
-    const seen = { parried: 0, momentum: 0, block: 0 };
+    const seen = { parried: 0, moving: 0, block: 0 };
     while (right.steps < 900) {
       const i = watch(right);
       inputs.push(i);
       right.step([i]);
       const k = right.world.require(right.enemies[0]!, Enemy), me = right.world.require(right.players[0]!, Player);
       if (!seen.parried && k.state === "parried") seen.parried = right.steps;
-      if (!seen.momentum && wielderOf(right).momentum > 0 && k.state === "parried") seen.momentum = right.steps;
+      if (!seen.moving && isMoving(wielderOf(right).blade) && k.state === "parried") seen.moving = right.steps;
       if (!seen.block && me.action === "block") seen.block = right.steps + 3;
     }
-    assert.ok(seen.parried && seen.momentum && seen.block, JSON.stringify(seen));
+    assert.ok(seen.parried && seen.moving && seen.block, JSON.stringify(seen));
 
     const wire = (snap: FightSnapshot): FightSnapshot => JSON.parse(JSON.stringify(snap));
     const replay = (fight: Fight) => { while (fight.steps < 900) fight.step([inputs[fight.steps]!]); };

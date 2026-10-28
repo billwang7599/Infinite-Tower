@@ -27,8 +27,8 @@ export const PLAYER = {
   /** From the center to the hilt: a weapon's length goes on from there. */
   armReachM: 0.8,
 
-  /** Swings and the stab: how fast and how far they go is the weapon's and the chain's (weapons.ts). */
   swing: {
+    /** For the starter sword's opening swing at strength 10; others × their effort. */
     cost: 16,
     poiseDamage: 12,
     /** The swing carries you forward at this speed while its blade is live. */
@@ -38,7 +38,6 @@ export const PLAYER = {
   },
   stab: {
     cost: 20,
-    /** Its damage is the weapon's times this (and, chained as a finisher, the momentum's bonus: weapons.ts). */
     damageFactor: 1.25,
     poiseDamage: 18,
     lungeSpeed: 4,
@@ -49,7 +48,8 @@ export const PLAYER = {
     minDot: 0.34,
     /** A swing blocked still does this share of its damage; a stab or a body blow does none. */
     chipFraction: 0.2,
-    /** Stamina a blocked hit costs, per point of its damage. Short of it, the guard breaks. */
+    /** Per the starter sword's impact momentum: a Kobold blow's block cost before inertia. */
+    staminaPerMomentum: 14,
     staminaPerDamage: 1,
     /** A blocked hit's knockback pushes the player back at this share of it. */
     pushbackFactor: 0.6,

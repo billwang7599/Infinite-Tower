@@ -15,7 +15,7 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "lr", dir: { x: 0, z: 1 }, step: 3, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
-  knockback: 1, lift: 1, poiseDamage: 12,
+  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, flow: 1,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -59,12 +59,9 @@ describe("a fight's hash", () => {
         const p = f.world.require(f.players[0]!, Player);
         p.queued = p.queued === "stab" ? "bt" : "stab";
       }],
-      ["the chain", (f) => {
-        const w = f.world.require(f.players[0]!, Wielder);
-        w.combo = w.combo === "rl" ? "lr" : "rl";
-      }],
-      ["the chain's clock", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
-      ["the momentum", (f) => { f.world.require(f.players[0]!, Wielder).momentum += 0.25; }],
+      ["where the blade is", (f) => { f.world.require(f.players[0]!, Wielder).blade.x += 0.25; }],
+      ["how the blade moves", (f) => { f.world.require(f.players[0]!, Wielder).blade.vy += 0.25; }],
+      ["the blade's clock to rest", (f) => { f.world.require(f.players[0]!, Wielder).restTime += 0.05; }],
       ["having a swing going", (f) => {
         const w = f.world.require(f.players[0]!, Wielder);
         w.swing = w.swing ? null : { ...SWING };
@@ -90,7 +87,7 @@ describe("a fight's hash", () => {
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
         shape: "arc", dirX: 0, dirZ: 1, range: 1, minDot: 0, width: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0,
-        attack: null, alreadyHit: new Set<number>(),
+        momentum: 0, attack: null, alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [

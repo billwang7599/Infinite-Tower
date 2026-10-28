@@ -1,14 +1,14 @@
-import { CHAIN, liveStep, stepsUntil, type AttackKind, type SwingData } from "@infinite-tower/shared";
+import { liveStep, stepsUntil, SWING, type AttackKind, type SwingData } from "@infinite-tower/shared";
 
-export const STARTUP = CHAIN.startupTime.opening;
+export const STARTUP = SWING.openingTime;
 
 export function swingAt(attack: AttackKind, step: number, aimYaw = 0): SwingData {
   const liveAt = liveStep(STARTUP);
   return {
     attack, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step, liveAt,
-    liveUntil: liveAt + liveStep(CHAIN.activeTime), letGoAt: stepsUntil(STARTUP + CHAIN.activeTime),
-    endAt: stepsUntil(STARTUP + CHAIN.activeTime + CHAIN.recoverTime),
-    damage: 9, knockback: 0, lift: 0, poiseDamage: 12,
+    liveUntil: liveAt + liveStep(SWING.activeTime), letGoAt: stepsUntil(STARTUP + SWING.activeTime),
+    endAt: stepsUntil(STARTUP + SWING.activeTime + SWING.recoverTime),
+    damage: 9, knockback: 0, lift: 0, poiseDamage: 12, momentum: 1, flow: 1,
   };
 }
 

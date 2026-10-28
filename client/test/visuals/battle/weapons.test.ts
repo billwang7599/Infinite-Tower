@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  attackShape, FIXED_DT, PLAYER, reverseOf, SWING_DIRS, WEAPONS, type SwingDir,
+  attackShape, FIXED_DT, PLAYER, reverseOf, SCREEN_DIR, SWING_DIRS, WEAPONS, type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
-import { MOTIONS, SCREEN_DIR, swingFrame, type TrailPose } from "../../../src/visuals/battle/weapons.js";
+import { MOTIONS, swingFrame, type TrailPose } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps } from "../../fixtures/swings.js";
 
 const { trail: trailPose, thrust: thrustPose, windup: windupBlade, live: liveBlade } = MOTIONS.sword;
@@ -35,6 +35,19 @@ describe("the sword trail", () => {
       const want = SCREEN_DIR[dir];
       assert.ok(len > 1.5, `${dir} goes from one end of its line to the other`);
       assert.ok((move.x * want.x + move.y * want.y) / len > 0.99, `${dir} goes ${JSON.stringify(move)}`);
+    }
+  });
+
+  test("a slower swing (a heavier blade, a weaker arm) draws its trail and thrust as much slower", () => {
+    const slowed = (swing: SwingData): SwingData => {
+      const liveSteps = swing.liveUntil - swing.liveAt;
+      const step = swing.liveAt + (swing.step - swing.liveAt) * 2;
+      return { ...swing, step, liveUntil: swing.liveAt + liveSteps * 2 };
+    };
+    for (const kind of ["lr", "stab"] as const) {
+      const steps = swingSteps(kind);
+      const show = (swing: SwingData) => kind === "stab" ? thrustPose(swing, STAB_RANGE) : trailPose(swing);
+      assert.deepEqual(steps.map((swing) => show(slowed(swing))), steps.map(show), kind);
     }
   });
 

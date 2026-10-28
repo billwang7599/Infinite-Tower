@@ -57,7 +57,6 @@ export type BattleCue = "none" | "parried" | "staggered";
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
-  /** What the chain's momentum multiplies the next swing's damage by: 1 with no chain going. */
   comboMultiplier: number;
   cue: BattleCue;
   enemyName: string;

@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, SWING_DIRS, Wielder, type AttackKind, type EnemyDef,
+  Body, Enemy, FIXED_DT, Health, planSwing, restingBlade, SWING_DIRS, WEAPONS, Wielder, type AttackKind,
+  type EnemyDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, IDLE, player, swings, SWORDSMAN } from "./fixtures.js";
@@ -62,6 +63,47 @@ describe("the swordsman's chains", () => {
       assert.ok(near(c[0]!.windupSteps, DEF.windup), `${c[0]!.windupSteps} steps`);
       for (const s of c.slice(1)) assert.ok(near(s.windupSteps, DEF.chainWindup), `${s.windupSteps} steps`);
     }
+  });
+
+  test("a wind-up is never quicker than the blade can get to the swing's start", () => {
+    const hasty: EnemyDef = {
+      ...CHAINER,
+      attacks: { weapon: swings({ moves: ["lr", "rl"], minChain: 2, maxChain: 2, windup: 0, chainWindup: 0 }) },
+    };
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100000, stamina: 100 } })],
+      enemies: [enemy(hasty, { x: 0, y: 0.05, z: 2 })],
+    });
+    const windups: number[] = [];
+    for (let i = 0; i < 120; i++) {
+      const was = fight.world.require(fight.enemies[0]!, Enemy).state;
+      fight.step([IDLE]);
+      const now = fight.world.require(fight.enemies[0]!, Enemy);
+      if (now.state === "weaponWindup" && was !== "weaponWindup") windups.push(now.duration);
+    }
+    const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, restingBlade(), "lr");
+    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, first.blade, "rl");
+    assert.deepEqual(windups.slice(0, 2), [first.windupTime, second.windupTime]);
+  });
+
+  test("its chained swings carry the blade on as the player's do: one on the same way hits harder", () => {
+    const flowing: EnemyDef = {
+      ...CHAINER, attacks: { weapon: swings({ moves: ["lr", "tlbr"], minChain: 2, maxChain: 2, chainWindup: 0.8 }) },
+    };
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100000, stamina: 100 } })],
+      enemies: [enemy(flowing, { x: 0, y: 0.05, z: 2 })],
+    });
+    const hits: number[] = [];
+    for (let i = 0; i < 300 && hits.length < 2; i++) {
+      fight.step([IDLE]);
+      for (const ev of fight.events) if (ev.type === "hit" && ev.team === "player") hits.push(ev.damage);
+    }
+    const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, restingBlade(), "lr");
+    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, first.blade, "tlbr");
+    assert.equal(hits[0], WEAPONS.sword.damage);
+    assert.equal(hits[1], WEAPONS.sword.damage * second.momentum);
+    assert.ok(hits[1]! > hits[0]!);
   });
 
   test("the same seed gives the same swings; another seed, others", () => {

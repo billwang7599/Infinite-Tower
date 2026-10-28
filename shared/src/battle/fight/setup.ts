@@ -4,6 +4,7 @@ import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
+import { restingBlade } from "../../weapons/weapons.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
   WeaponAttack, Wielder, type WielderData,
@@ -36,7 +37,7 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
-  ({ hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0 });
+  ({ hands, armReachM, swing: null, blade: restingBlade(), restTime: 0 });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup): Entity {
   const e = world.spawn();

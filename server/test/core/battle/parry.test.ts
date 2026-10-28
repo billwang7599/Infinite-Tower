@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, Enemy, FIXED_DT, Health, IDLE_INPUT, liveStep, MAX_INPUT_DELAY_STEPS, PARRY, PLAYER, reverseOf,
+  Enemy, FIXED_DT, Health, IDLE_INPUT, liveStep, SWING, MAX_INPUT_DELAY_STEPS, PARRY, PLAYER, reverseOf,
   type EnemyDef, type PlayerInputData, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
@@ -18,12 +18,12 @@ import { openRoom, setupWith } from "../../fixtures/fight.js";
 await initPhysics();
 
 const KOBOLD = ENEMIES["kobold-swordsman"];
-const SWING: SwingDir = "tlbr";
-/** The Kobold, rooted to the spot, swinging `SWING` once as soon as it can. */
+const ITS_SWING: SwingDir = "tlbr";
+/** The Kobold, rooted to the spot, swinging `ITS_SWING` once as soon as it can. */
 const ONE_SWING: EnemyDef = {
   ...KOBOLD, walkSpeed: 0,
   attacks: {
-    weapon: { ...KOBOLD.attacks.weapon!, moves: [SWING], minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 },
+    weapon: { ...KOBOLD.attacks.weapon!, moves: [ITS_SWING], minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 },
   },
 };
 const SETUP: FightSetup = setupWith(ONE_SWING, { x: 0, y: 0.05, z: 2 }, { x: 0, y: 0.05, z: 0 });
@@ -34,8 +34,8 @@ const LANDS_AT = (() => {
   while (fight.world.require(fight.players[0]!, Health).hp === PLAYER.maxHp) fight.step([IDLE_INPUT]);
   return fight.steps;
 })();
-const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
-const PARRY_PRESS: PlayerInputData = { ...IDLE_INPUT, attack: reverseOf(SWING) };
+const LIVE_AFTER = liveStep(SWING.openingTime);
+const PARRY_PRESS: PlayerInputData = { ...IDLE_INPUT, attack: reverseOf(ITS_SWING) };
 
 /** Presses the reverse swing so its blade goes live `k` steps before the Kobold's lands, sent `late` ticks late. */
 function playParry(k: number, late = 0) {
