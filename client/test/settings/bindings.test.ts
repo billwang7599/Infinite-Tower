@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
+import { MAX_KEYS_PER_ACTION, SWING_DIRS } from "@infinite-tower/shared";
 import {
   ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, isFixed, keysOf, type ActionRef,
 } from "../../src/settings/bindings.js";
@@ -61,26 +61,23 @@ describe("ACTIONS and helpers", () => {
     const { forward, left, back, right } = general;
     assert.deepEqual([forward, left, back, right], [["KeyW"], ["KeyA"], ["KeyS"], ["KeyD"]]);
     assert.deepEqual(general.character, ["KeyC"]);
-    assert.deepEqual(general.inventory, ["KeyB"], "I is a swing");
+    assert.deepEqual(general.inventory, ["KeyB"]);
   });
 
-  test("the arena: u i o / j l / m , . swing k stabs, left Shift blocks, F dodges, Space jumps", () => {
+  test("the arena: no swing keys (the mouse swings), a left click stabs, left Shift blocks, F dodges, Space jumps", () => {
     const battle = new KeyBindings().get().battle;
-    assert.deepEqual(battle.tlbr, ["KeyU"]);
-    assert.deepEqual(battle.tb, ["KeyI"]);
-    assert.deepEqual(battle.trbl, ["KeyO"]);
-    assert.deepEqual(battle.lr, ["KeyJ"]);
-    assert.deepEqual(battle.rl, ["KeyL"]);
-    assert.deepEqual(battle.bltr, ["KeyM"]);
-    assert.deepEqual(battle.bt, ["Comma"]);
-    assert.deepEqual(battle.brtl, ["Period"]);
-    assert.deepEqual(battle.stab, ["KeyK"]);
+    for (const dir of SWING_DIRS) assert.equal(dir in battle, false, dir);
+    assert.deepEqual(battle.stab, []);
+    assert.deepEqual(ACTIONS.battle.stab.mouse, [0]);
+    assert.equal(isFixed({ group: "battle", action: "stab" }), true, "the stab stays on the left button");
+    const used = Object.values(battle).flat();
+    for (const key of ["KeyU", "KeyI", "KeyO", "KeyJ", "KeyK", "KeyL", "KeyM", "Comma", "Period"]) {
+      assert.equal(used.includes(key), false, `${key} is free`);
+    }
     assert.deepEqual(battle.block, ["ShiftLeft"]);
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
-    assert.equal("reverse" in battle, false);
     assert.deepEqual(battle.leave, ["Enter"]);
-    assert.deepEqual(ACTIONS.battle.lr.mouse, [0], "the left button: the default swing");
   });
 
   test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
@@ -120,8 +117,8 @@ describe("ACTIONS and helpers", () => {
     for (const key of ["KeyW", "Space", "Enter", "ShiftLeft"]) assert.equal(isBindable(key), true);
   });
 
-  test("only the settings (on Esc) and the camera drag (a mouse button) are fixed", () => {
-    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [menu, dragCamera]);
+  test("only the settings (on Esc) and the mouse's stab and camera drag are fixed", () => {
+    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [menu, { group: "battle", action: "stab" }, dragCamera]);
   });
 });
 

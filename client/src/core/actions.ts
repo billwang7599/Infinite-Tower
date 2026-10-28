@@ -1,8 +1,9 @@
+import type { SwingDir } from "@infinite-tower/shared";
 import {
   actionDef, actionsOf, GROUPS, keysOf, MENUS, type Action, type Group, type KeyBindings, type KeyMap,
   type MenuAction,
 } from "../settings/bindings.js";
-import type { Buttons } from "./buttons.js";
+import { nextPressOrder, type Buttons } from "./buttons.js";
 import type { Keyboard } from "./keyboard.js";
 import type { Mouse } from "./mouse.js";
 import type { MouseSettings } from "../settings/mouse.js";
@@ -26,9 +27,14 @@ const AXES = {
   x: ["left", "right"], z: ["back", "forward"], turn: ["turnLeft", "turnRight"], look: ["lookUp", "lookDown"],
 } as const satisfies Record<string, readonly [WorldAction, WorldAction]>;
 
+// After a swing, movement the same way is the same sweep until the mouse rests restMs; turning away swings at once.
+export const SWIPE = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
+// By screen angle in 45° steps from moving right, clockwise since screen y grows downwards.
+const SWIPE_SWINGS: readonly SwingDir[] = ["lr", "tlbr", "tb", "trbl", "rl", "brtl", "bt", "bltr"];
+
 export interface Polled {
   held: ReadonlySet<WorldAction>;
-  pressed: readonly WorldAction[];
+  pressed: readonly (WorldAction | SwingDir)[];
   move: { x: number; z: number };
   turn: number;
   look: number;
@@ -57,6 +63,10 @@ export class Actions {
   private readonly devices: readonly Buttons[];
   private mapped: KeyMap | null = null;
   private readonly maps = {} as Record<Group, Map<string, string>>;
+  private swings: [SwingDir, number][] = [];
+  private sweep: { dx: number; dy: number; atMs: number }[] = [];
+  private swungWay: { x: number; y: number } | null = null;
+  private lastMoveMs = -Infinity;
 
   constructor(
     private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, private readonly mouse: Mouse,
@@ -64,6 +74,7 @@ export class Actions {
   ) {
     this.devices = [keyboard, mouse];
     keyboard.listen((key, repeat) => this.keydown(key, repeat));
+    mouse.onMove((dx, dy, atMs) => this.moved(dx, dy, atMs));
   }
 
   // Bottom first; only the top one gets keys.
@@ -71,6 +82,7 @@ export class Actions {
     if (layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i])) return;
     this.layers = layers;
     for (const d of this.devices) d.clearPressed();
+    this.swings = [];
     this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
   }
 
@@ -86,10 +98,17 @@ export class Actions {
 
   // Once per tick: it clears the presses.
   poll(): Polled {
-    const presses = this.devices.flatMap((d) => [...d.presses]).sort((a, b) => a[1] - b[1]);
+    const presses: [WorldAction | SwingDir, number][] = [
+      ...this.devices.flatMap((d) => [...d.presses].flatMap(([key, order]) => {
+        const action = this.worldAction(key);
+        return action ? [[action, order] as [WorldAction, number]] : [];
+      })),
+      ...this.swings,
+    ];
     for (const d of this.devices) d.clearPressed();
-    const pressed = presses.flatMap(([key]) => this.worldAction(key) ?? []);
-    const held = new Set(this.devices.flatMap((d) => [...d.held].flatMap((key) => this.worldAction(key) ?? [])));
+    this.swings = [];
+    const pressed = presses.sort((a, b) => a[1] - b[1]).map(([action]) => action);
+    const held = this.heldActions();
     const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
     return { held, pressed, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
   }
@@ -98,6 +117,31 @@ export class Actions {
   lookDelta(): { dx: number; dy: number } {
     const delta = this.mouse.consumeDelta();
     return this.top === "battle" ? delta : { dx: 0, dy: 0 };
+  }
+
+  private heldActions(): Set<WorldAction> {
+    return new Set(this.devices.flatMap((d) => [...d.held].flatMap((key) => this.worldAction(key) ?? [])));
+  }
+
+  private moved(dx: number, dy: number, atMs: number): void {
+    const held = this.top === "battle" ? this.heldActions() : null;
+    if (!held || held.has("block") || held.has("dragCamera")) {
+      this.sweep = [];
+      return;
+    }
+    if (atMs - this.lastMoveMs > SWIPE.restMs) this.swungWay = null;
+    this.lastMoveMs = atMs;
+    const way = this.swungWay;
+    if (way && dx * way.x + dy * way.y > 0) return;
+    this.sweep = this.sweep.filter((m) => atMs - m.atMs < SWIPE.windowMs);
+    this.sweep.push({ dx, dy, atMs });
+    const x = this.sweep.reduce((sum, m) => sum + m.dx, 0), y = this.sweep.reduce((sum, m) => sum + m.dy, 0);
+    const length = Math.hypot(x, y);
+    if (length < SWIPE.distancePx / this.mouseSettings.get().swingSensitivity) return;
+    const eighth = Math.round(Math.atan2(y, x) / (Math.PI / 4));
+    this.swings.push([SWIPE_SWINGS[(eighth + 8) % 8]!, nextPressOrder()]);
+    this.swungWay = { x: x / length, y: y / length };
+    this.sweep = [];
   }
 
   private get top(): Layer {

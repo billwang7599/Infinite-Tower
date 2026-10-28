@@ -1,5 +1,6 @@
-// Shared by every Buttons, so the keyboard's and the mouse's presses can be put in order.
+// Shared by every Buttons and the swipes, so presses from the keyboard and the mouse can be put in order.
 let pressCount = 0;
+export const nextPressOrder = (): number => ++pressCount;
 
 export class Buttons {
   private readonly down = new Set<string>();
@@ -19,7 +20,7 @@ export class Buttons {
   }
 
   protected press(b: string, repeat = false): void {
-    if (!repeat) this.pressed.set(b, ++pressCount);
+    if (!repeat) this.pressed.set(b, nextPressOrder());
     this.down.add(b);
   }
 

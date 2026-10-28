@@ -3,9 +3,9 @@
  * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed;
  * they're listed so the settings screen can show them. Three groups: general works in the overworld and in the
  * arena, the other two only there; so a general key is on nothing else, but the overworld and the arena may share
- * keys. The arena is keyboard-first: the left hand on WASD, the right on the sword's U I O / J K L / M , . grid.
+ * keys. In the arena the left hand is on WASD and the right on the mouse, which swings the sword (core/actions.ts).
  */
-import { MAX_KEYS_PER_ACTION, SWING_DIRS, type AttackKind, type SavedSettings } from "@infinite-tower/shared";
+import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
 interface ActionDef {
@@ -14,18 +14,6 @@ interface ActionDef {
   /** MouseEvent.button: 0 left (trackpad tap), 1 middle (wheel click), 2 right (two-finger tap). */
   mouse?: readonly number[];
 }
-
-const ATTACK_ACTIONS = {
-  tlbr: { label: "Swing top-left to bottom-right", keys: ["KeyU"] },
-  tb: { label: "Swing top to bottom", keys: ["KeyI"] },
-  trbl: { label: "Swing top-right to bottom-left", keys: ["KeyO"] },
-  lr: { label: "Swing left to right", keys: ["KeyJ"], mouse: [0] },
-  stab: { label: "Stab", keys: ["KeyK"] },
-  rl: { label: "Swing right to left", keys: ["KeyL"] },
-  bltr: { label: "Swing bottom-left to top-right", keys: ["KeyM"] },
-  bt: { label: "Swing bottom to top", keys: ["Comma"] },
-  brtl: { label: "Swing bottom-right to top-left", keys: ["Period"] },
-} as const satisfies Record<AttackKind, ActionDef>;
 
 export const ACTIONS = {
   general: {
@@ -44,7 +32,7 @@ export const ACTIONS = {
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
   },
   battle: {
-    ...ATTACK_ACTIONS,
+    stab: { label: "Stab", keys: [], mouse: [0] },
     block: { label: "Block (hold)", keys: ["ShiftLeft"] },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
@@ -229,8 +217,7 @@ const prop = (o: unknown, key: string): unknown =>
 
 /**
  * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
- * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, and the
- * swings were swingLR and so on.
+ * the overworld was the field, movement and the panels were per mode, and the bag had a group of its own.
  */
 const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.forward": ["battle.forward", "overworld.up", "field.up"],
@@ -242,7 +229,6 @@ const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "overworld.rest": ["field.rest"],
   "overworld.turnItem": ["bag.turn"],
   "overworld.useItem": ["bag.use"],
-  ...Object.fromEntries(SWING_DIRS.map((dir) => [`battle.${dir}`, [`battle.swing${dir.toUpperCase()}`]])),
 };
 
 function savedKeys(saved: unknown, ref: ActionRef): unknown {

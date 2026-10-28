@@ -125,14 +125,17 @@ Decided by the user:
   (`lettingGoAt` in `shared/src/battle/sword.ts`). If the player can't dodge then (no stamina, overloaded, in the
   air), the press runs out like any early press (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes
   first.
-- The sword (hand-tested and approved): eight swings, named by their way across the screen, and a stab, each on its
-  own key in a U I O / J K L / M , . grid (K stabs; each other key swings from its side to the opposite one); block
-  is held (Left Shift), Space jumps, F dodges (the right mouse button doesn't). A swing's reach and arc come from the
-  sword's length and its line (horizontal wide and short, vertical narrow and long; the stab a long thin ray). Swings
-  chain: the next one's start depends on how it follows the last (the reverse quickest, a perpendicular one slowest),
-  and a chain builds momentum (more damage, a quicker start) until a gap, a block, a dodge or a hit taken; a stab after
-  a chain spends it. A block stops a hit from in front for stamina and pushes you back; short of stamina, the guard
-  breaks and you're staggered. Numbers: `shared/src/battle/sword.ts` and `PLAYER` in `player.ts`.
+- The sword (the swings hand-tested and approved; swinging by mouse not yet played): eight swings, named by their way
+  across the screen, and a stab. A mouse or trackpad is required to play: a swing is plain mouse movement (no button
+  held, locked or not), its way across the screen picking the swing (snapped to the nearest of the eight), and a left
+  click stabs; there are no swing keys. Movement doesn't swing while blocking. How little movement swings is the swing
+  sensitivity in Settings (saved with the other settings). Block is held (Left Shift), Space jumps, F dodges (the right
+  mouse button doesn't). A swing's reach and arc come from the sword's length and its line (horizontal wide and short,
+  vertical narrow and long; the stab a long thin ray). Swings chain: the next one's start depends on how it follows the
+  last (the reverse quickest, a perpendicular one slowest), and a chain builds momentum (more damage, a quicker start)
+  until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops a hit from in front for
+  stamina and pushes you back; short of stamina, the guard breaks and you're staggered. Numbers:
+  `shared/src/battle/sword.ts` and `PLAYER` in `player.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two
   or three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed);
   the first swing winds up 1.1 s, the ones after it 0.45 s. A swing is parried by the reverse swing live within
@@ -158,6 +161,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   arena movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply
   only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10. Everyone has the same player stats, so they
   aren't saved.
+- A swing is a mouse move of 40 px within 150 ms (the swing sensitivity, 0.5 to 2, default 1, divides the 40);
+  slower or smaller movement is dropped. Once a move swings, more movement the same way is the same sweep (one
+  swing) until the mouse rests 100 ms; turning away swings again at once, so the reverse for a parry is quick. The
+  numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
 - Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, and the
   smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent";
   the cloth's size, hands and the spellbook's 4 pages in [plan/inventory.md](plan/inventory.md).

@@ -15,8 +15,7 @@ Status: **direction** (the user's). Details are undecided unless listed under "D
 
 ## Decided so far
 
-- Fights lock on to an enemy (see [AGENTS.md](../AGENTS.md)); the sword's swings are to come from mouse movement
-  ([lock-on.md](lock-on.md)).
+- Fights lock on to an enemy, and the sword's swings come from mouse movement (see [AGENTS.md](../AGENTS.md)).
 - The rest (HP / stamina carrying over, resting, items, stats, character looks) is listed in
   [AGENTS.md](../AGENTS.md) under "Decided by the user" and "Decided by the agent".
 

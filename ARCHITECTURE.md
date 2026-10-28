@@ -116,7 +116,10 @@ main.ts
   only while their layer is on top; the arena camera reads the fight's last poll. Actions also owns the mouse: the
   pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
   movement each frame with `actions.lookDelta()` (it turns only while the right button, `dragCamera`, is held);
-  no mode sees `Mouse`. In a text field only the arrows and Esc count; rebinding takes raw keys with `captureKey`.
+  no mode sees `Mouse`. Mouse movement in the arena is also read as swipes there: a quick move (`SWIPE`, scaled by
+  the swing sensitivity) is pressed as the swing named by its way across the screen, in order with the keys and
+  clicks, so the fight sees it like any attack; not while blocking or dragging the camera. In a text field only the
+  arrows and Esc count; rebinding takes raw keys with `captureKey`.
   Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
@@ -359,7 +362,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a save that clashes with new defaults
   falls back to them), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
   layer on top, each with its own keys; held keys read only there) and who has them, what the keys and buttons ask
-  for (actions; the attack pressed last), the player's pose,
+  for (actions; the attack pressed last; swipes into swings), the player's pose,
   sword trail and thrust, camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld
   prediction, the fight's sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
@@ -559,8 +562,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
-                     layer's held and pressed actions and its axes, `lookDelta` for the arena's mouse movement,
-                     and when the mouse may lock),
+                     layer's held and pressed actions and its axes, the swings read from the mouse's movement
+                     (`SWIPE`), `lookDelta` for the arena's mouse movement, and when the mouse may lock),
                      time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
@@ -568,7 +571,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                      keys, fixed mouse buttons; MENUS: the title's, creation's and the bag's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
-                     (MouseSettings: auto lock, on by default, so a save without it reads as on), hud.ts
+                     (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
+                     sensitivity, SWING_SENSITIVITY), hud.ts
                      (HudSettings: show ping, the same way)
     gfx/             textures.ts (procedural textures), materials.ts (colorMaterial), sprites.ts (pixelMaterial,
                      spriteMaterial, redrawSprite),
@@ -630,7 +634,7 @@ client/          Browser game: Babylon rendering, input, React UI.
                          glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
                          space.ts
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
-                         (sensitivity, Auto mouse lock), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
+                         (camera and swing sensitivity, Auto mouse lock), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
                          greeting, the panel beside the portrait and chibi, "Is this you?", saving, the farewell,
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what
@@ -749,6 +753,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/systems/camera.ts` |
+| How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |
 | Where a fight starts | `shared/src/battle/fight/setup.ts` |
 | The arena's wall and floor | `shared/src/battle/fight/physics/arena-physics.ts` |

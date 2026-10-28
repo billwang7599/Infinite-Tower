@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { MouseSettings } from "../../src/settings/mouse.js";
+import { MouseSettings, SWING_SENSITIVITY } from "../../src/settings/mouse.js";
 
 const autoLock = (m: MouseSettings) => m.get().autoLock;
 
@@ -54,5 +54,43 @@ describe("MouseSettings", () => {
     assert.equal(calls, 0);
     m.setAutoLock(false);
     assert.equal(calls, 1);
+  });
+});
+
+describe("MouseSettings: swing sensitivity", () => {
+  const sensitivity = (m: MouseSettings) => m.get().swingSensitivity;
+
+  test("starts at its default, saved only once changed", () => {
+    const m = new MouseSettings();
+    assert.equal(sensitivity(m), SWING_SENSITIVITY.default);
+    m.setSwingSensitivity(SWING_SENSITIVITY.max);
+    assert.deepEqual(m.toSaved(), { swingSensitivity: SWING_SENSITIVITY.max });
+    assert.equal(m.isDefault(), false);
+    const copy = new MouseSettings();
+    copy.restore(m.toSaved());
+    assert.equal(sensitivity(copy), SWING_SENSITIVITY.max);
+  });
+
+  test("set: kept in range and on the slider's step", () => {
+    const m = new MouseSettings();
+    m.setSwingSensitivity(SWING_SENSITIVITY.max + 5);
+    assert.equal(sensitivity(m), SWING_SENSITIVITY.max);
+    m.setSwingSensitivity(SWING_SENSITIVITY.min - 5);
+    assert.equal(sensitivity(m), SWING_SENSITIVITY.min);
+    m.setSwingSensitivity(1 + SWING_SENSITIVITY.step + 0.001);
+    assert.equal(sensitivity(m), 1 + SWING_SENSITIVITY.step);
+  });
+
+  test("a save without it, out of range or unreadable reads as the default; auto lock is kept apart", () => {
+    const junk: unknown[] = [{}, { swingSensitivity: SWING_SENSITIVITY.max + 1 }, { swingSensitivity: "2" }];
+    for (const saved of junk) {
+      const m = new MouseSettings();
+      m.setSwingSensitivity(SWING_SENSITIVITY.max);
+      m.restore(saved as Parameters<MouseSettings["restore"]>[0]);
+      assert.equal(sensitivity(m), SWING_SENSITIVITY.default, JSON.stringify(saved));
+    }
+    const m = new MouseSettings();
+    m.restore({ autoLock: false, swingSensitivity: SWING_SENSITIVITY.min });
+    assert.deepEqual(m.get(), { autoLock: false, swingSensitivity: SWING_SENSITIVITY.min });
   });
 });
