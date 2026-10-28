@@ -33,9 +33,9 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
     arena: overworld.level.arena,
     players: [{
       at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
-      book: session.spellbook,
+      book: session.spellbook, seed: randomSeed(overworld.rng),
     }],
-    // Its random numbers' seed (a swordsman's swings, sidesteps) is the server's pick, so a client can't choose it.
+    // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
   const room = new BattleRoom(setup, [{

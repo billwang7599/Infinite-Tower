@@ -19,7 +19,7 @@ function attackAt(attack: AttackKind, t: number, aimYaw = 0, action: PlayerActio
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, casting: null,
     writeHeld: false, gearHeld: false, brokenOff: false, writing: null, book: [],
     burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
-    wields: { sword: "rightHand", spellbook: "leftHand" },
+    wields: { sword: "rightHand", spellbook: "leftHand" }, rng: 1,
     action, actionTime: t, actionDir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) },
     attack, startup: STARTUP, power: 1, combo: null, comboTime: 0, momentum: 0,
   };

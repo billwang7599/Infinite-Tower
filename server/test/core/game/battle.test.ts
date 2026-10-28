@@ -95,10 +95,12 @@ describe("starting a battle", () => {
     const seed = msg.setup.enemies[0]?.seed;
     assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
+    const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
-      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook(),
+      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook(), seed: playerSeed,
     }]);
+    assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
 
   test("gives the fight the player's bag and what they have in hand (no sword there, no swinging)", () => {

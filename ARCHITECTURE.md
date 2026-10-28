@@ -140,8 +140,8 @@ main.ts
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
   one `PlayerInputData` per player (any number of players and enemies), counted in `steps`. Its only random numbers
-  come from seeds in its own state (a swordsman's swings; the server picks the seed), and Rapier's deterministic
-  build gives the same numbers on every machine, so the same setup and inputs always give
+  come from seeds in its own state (a swordsman's swings, where split Bolts start; the server picks the seeds), and
+  Rapier's deterministic build gives the same numbers on every machine, so the same setup and inputs always give
   the same fight. Its whole state goes out and back in as plain JSON (`save()` / `load()`, `fight/state.ts`: what
   changes in a fight, exactly; the colliders are put where their bodies are), and `hash()` (`hashFight`, there too)
   is a fingerprint of it with every number rounded to 2 decimals. Rapier loads once (`initPhysics()`: as the server
@@ -191,10 +191,11 @@ main.ts
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
   Follow Bolt homes, at a limited turn rate, onto the input's `locked` enemy (an index into the fight's enemies) or the
-  nearest; split ones aim side by side beside it (`fanM`) until close. A hit runs `strike` (`fight/spells/strike.ts`):
-  every element's status on the target's `Statuses`, then the reactions, then the damage. `statusSystem` runs statuses
-  down and burns. Statuses also change sword hits (Empowered, Cursed, Warded, the Light shield, Siphoning:
-  `fight/spells/statuses.ts`). Every number is in `MAGIC`
+  nearest; split ones aim side by side beside it (`fanM`) until close. Split Bolts start in an upright circle round
+  the caster and fly in to meet a point ahead (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs
+  `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
+  the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
+  Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
   (`shared/src/spells/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
   player still; a spell on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
   (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a

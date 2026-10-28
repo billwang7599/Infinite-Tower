@@ -70,7 +70,10 @@ Decided by the user:
   builder or the wire. The only limits are stamina, the socket's message size and a server guard, the most spell
   objects one fight holds (`MAX_LIVE_SHOTS`, 256, the agent's pick; past it new ones don't spawn).
 - Split splits a Bolt, and each further Split splits the split ones again: n Splits make 2^n Bolts, each smaller and
-  dealing 10% less per Split (×0.9^n). The size and fan are the agent's picks.
+  dealing 10% less per Split (×0.9^n). They start at random spots (the fight's seed) in an upright circle round the
+  player, facing the aim, its bottom clear of the ground, spaced apart unless there are too many to fit, and fly in to
+  meet a point ahead, each off it by a little randomness. The size, the circle's and the point's numbers are the
+  agent's picks.
 - Spells are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
   time (a Form, then an element, then elements, augments or a Form; after an augment only augments or a Form; a
   Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are

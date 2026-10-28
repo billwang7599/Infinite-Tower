@@ -127,16 +127,19 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
 - **Augments,** in one ordered pass (`shotOf` in `effects.ts`). A "+%" one multiplies the shot so far, so repeats
   compound (Amplify twice ×2.25); a "+units" one adds. Amplify ×1.5 damage (Self: its heal and shield). Widen ×1.5
   radius (a Nova's, a Beam's width). Pierce: a Bolt goes through 2 more enemies before it stops (it still hands off
-  once, at its end); a Beam strikes up to 3 on its line. Split: twice the Bolts, each ×0.8 radius and ×0.9 damage,
-  fanned 0.35 rad apart but within 2.4 rad in all and starting side by side, 2 radii apart but within a 6 m row (past
-  either, they share it evenly), so each is seen on its own; each hands off. Extend ×2 time (a Beam's, an Imbue's hits
-  and time, Self's statuses); on a Nova, the first leaves a cloud as wide as the Nova for 8 s, pulsing it every second
-  at 40%, its hand-off still at the burst, and each after it doubles the cloud's time. Swift ×1.5 speed (a Bolt's
-  flight, a Beam's ticks; an Imbue's swings start quicker). Delay holds the hand-off back 1 s each (on a spell's last
-  segment it does nothing). Follow turns a Bolt up to 3 rad/s each toward its target, picked as it fires (the
-  locked enemy, else the nearest; if it dies, the nearest); a dodge's i-frames don't make it lose the target. Split
-  Bolts that home aim side by side beside it, 4 Bolt radii apart (all within 3 m), closing in only over the last
-  2.5 m, so they come in apart rather than as one clump.
+  once, at its end); a Beam strikes up to 3 on its line. Split: twice the Bolts, each ×0.8 radius and ×0.9 damage; each
+  hands off. Split Bolts start at random spots in an upright circle round the caster, across the aim like a halo, its
+  lowest point 0.3 m off the ground and its radius 0.75 m × √Bolts within 1.5-3 m; each spot is the best of 8 random
+  tries (the farthest from the others), so they're well apart and bunch only when there are too many. The caster's seed
+  in the fight's state places them (the server picks it). They fly in to meet 10 m ahead, each aimed at that point plus
+  up to 0.5 m of random jitter, then fly on straight at that height. Extend ×2 time (a Beam's, an Imbue's hits and time,
+  Self's statuses); on a Nova, the first leaves a cloud as wide as the Nova for 8 s, pulsing it every second at 40%, its
+  hand-off still at the burst, and each after it doubles the cloud's time. Swift ×1.5 speed (a Bolt's flight, a Beam's
+  ticks; an Imbue's swings start quicker). Delay holds the hand-off back 1 s each (on a spell's last segment it does
+  nothing). Follow turns a Bolt up to 3 rad/s each toward its target, picked as it fires (the locked enemy, else the
+  nearest; if it dies, the nearest); a dodge's i-frames don't make it lose the target. Split Bolts that home aim side by
+  side beside it, 4 Bolt radii apart (all within 3 m), closing in only over the last 2.5 m, so they come in apart rather
+  than as one clump.
 - **Caps:** a player's 13th cloud ends their oldest, and so does the fight's 61st. A guard on the server's work, not
   a game rule: a fight holds at most 256 spell objects (`MAX_LIVE_SHOTS`); past it, new ones (Bolts from a Split,
   hand-offs) don't spawn. A chain too long to count costs Infinity, so it's never cast.
