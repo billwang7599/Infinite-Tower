@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, type Bag, type Carried, type GearMove, type Spell,
-  type Vec3,
+  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, Wielder, type Bag, type Carried,
+  type GearMove, type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, spell, STATUE } from "../fixtures.js";
@@ -22,6 +22,7 @@ function alone(gear?: Carried): Fight {
   });
 }
 const playerOf = (fight: Fight) => fight.world.require(fight.players[0]!, Player);
+const handsOf = (fight: Fight) => fight.world.require(fight.players[0]!, Wielder).hands;
 const flatPos = (fight: Fight) => {
   const { x, z } = bodyOf(fight, fight.players[0]!).pos;
   return { x, z };
@@ -68,7 +69,7 @@ describe("the bag in a fight", () => {
     const { gear } = playerOf(fight);
     assert.equal(gear.equipment.rightHand, null);
     assert.deepEqual(gear.bag.items, [{ item: "sword", count: 1, x: 0, y: 0, turned: false }]);
-    assert.equal(playerOf(fight).wields.sword, null);
+    assert.equal(handsOf(fight).rightHand, null);
     assert.equal(swings(fight), false);
     run(fight, 0.5);
     moveInBag(fight, EQUIP_SWORD);
@@ -80,7 +81,7 @@ describe("the bag in a fight", () => {
     const fight = alone();
     run(fight, 0.3);
     moveInBag(fight, { from: { in: "slot", slot: "leftHand" }, to: { in: "bag", x: 0, y: 0 }, turned: false });
-    assert.equal(playerOf(fight).wields.spellbook, null);
+    assert.equal(handsOf(fight).leftHand, null);
     fight.step([IDLE]);
     fight.step([input({ chant: true })]);
     assert.equal(playerOf(fight).action, "none");
@@ -117,8 +118,8 @@ describe("the bag in a fight", () => {
     const gear = { bag, equipment: { ...starterEquipment(), rightHand: null } };
     const fight = alone(gear);
     assert.deepEqual(playerOf(fight).gear, gear);
-    assert.equal(playerOf(fight).wields.sword, null);
-    assert.equal(playerOf(fight).wields.spellbook, "leftHand");
+    assert.equal(handsOf(fight).rightHand, null);
+    assert.equal(handsOf(fight).leftHand, "spellbook");
   });
 
   test("a hit that stuns closes it, and it stays shut until the bag is asked for again", () => {
@@ -178,7 +179,7 @@ describe("the bag in a fight", () => {
     const copy = alone();
     copy.load(JSON.parse(JSON.stringify(fight.save())));
     assert.deepEqual(playerOf(copy).gear, playerOf(fight).gear);
-    assert.equal(playerOf(copy).wields.sword, null);
+    assert.equal(handsOf(copy).rightHand, null);
     assert.equal(copy.hash(), fight.hash());
     assert.notEqual(untouched.hash(), fight.hash());
   });

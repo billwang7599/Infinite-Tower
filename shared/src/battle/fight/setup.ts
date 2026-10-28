@@ -2,11 +2,11 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
-import { heldIn, type Carried, type Equipment } from "../../items/gear.js";
+import type { Carried } from "../../items/gear.js";
 import type { Spellbook } from "../../spells/spell.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Stamina, Statuses, SwordAttack,
-  type PlayerData,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Stamina, Statuses, SwordAttack, Wielder,
+  type WielderData,
 } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
@@ -14,6 +14,7 @@ import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { noStatuses } from "./spells/statuses.js";
+import { handsOf } from "./weapons/swing.js";
 
 /** A one-on-one's starting spots (feet, a little above the floor; the arena's center is 0), the enemy facing you. */
 export const PLAYER_START: Vec3 = { x: 0, y: 0.05, z: -8 };
@@ -31,10 +32,10 @@ export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: 
 const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
 const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
-export const wieldsOf = (equipment: Equipment): PlayerData["wields"] =>
-  ({ sword: heldIn(equipment, "sword"), spellbook: heldIn(equipment, "spellbook") });
-
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
+
+const wielder = (hands: WielderData["hands"]): WielderData =>
+  ({ hands, swing: null, combo: null, comboTime: 0, momentum: 0 });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup): Entity {
   const e = world.spawn();
@@ -48,10 +49,10 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     attackHeld: null, dodgeHeld: false, castHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
     castQueued: null, casting: null, writeHeld: false, gearHeld: false, brokenOff: false, writing: null,
     book: setup.book,
-    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
-    attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
-    gear: setup.gear, wields: wieldsOf(setup.gear.equipment), rng: (setup.seed ?? 1) >>> 0,
+    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
+    rng: (setup.seed ?? 1) >>> 0,
   });
+  world.add(e, Wielder, wielder(handsOf(setup.gear.equipment)));
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
@@ -65,9 +66,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
   sword: (world, e, def) => {
-    world.add(e, SwordAttack, {
-      def, cooldown: def.firstDelay, attack: def.moves[0] ?? "lr", swingsLeft: 0, parryCooldown: 0,
-    });
+    world.add(e, SwordAttack, { def, cooldown: def.firstDelay, swingsLeft: 0, parryCooldown: 0 });
   },
 };
 
@@ -85,6 +84,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
     if (attack) ATTACKS[kind](world, e, attack);
   }
   if (def.sidestep) world.add(e, Sidestep, { def: def.sidestep, dir: { x: 0, z: 0 } });
+  if (def.hands) world.add(e, Wielder, wielder({ rightHand: null, leftHand: null, ...def.hands }));
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });

@@ -45,12 +45,13 @@ const KOBOLD_SWORDSMAN: EnemyDef = {
   staggerTime: 0.8,
   attacks: {
     sword: {
-      length: 1.1, damage: 14, knockback: 5, lift: 1.5,
+      damage: 14, knockback: 5, lift: 1.5,
       triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, active: 0.12, speed: 3, recover: 0.9,
       minChain: 2, maxChain: 3, moves: [...SWING_DIRS, "stab"],
       cooldown: 1.2, firstDelay: 1.5, parryReaction: 0.3, parryCooldown: 1.5,
     },
   },
+  hands: { rightHand: "sword" },
   sidestep: { chance: 0.6, reactTime: 0.25, leadTime: 0.1, speed: 8, stepTime: 0.3 },
 };
 

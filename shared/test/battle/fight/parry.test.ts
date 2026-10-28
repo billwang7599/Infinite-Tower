@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ActiveHit, Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, lettingGoAt, liveStep, PARRY, physicalDamage, Player, PLAYER,
-  reverseOf, STARTER_SWORD, SWING_DIRS, SwordAttack, type AttackKind, type EnemyDef, type PlayerInputData,
+  ActiveHit, Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, liveStep, PARRY, physicalDamage, Player, PLAYER,
+  reverseOf, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, GUARD, input, player, STATS, sword, SWORDSMAN } from "./fixtures.js";
@@ -37,6 +37,7 @@ function play(script: Script, to: number, fight = newFight()): Played {
 
 const hpOf = (fight: Fight, e = fight.players[0]!) => fight.world.require(e, Health).hp;
 const kobold = (fight: Fight) => fight.world.require(fight.enemies[0]!, Enemy);
+const wielderOf = (fight: Fight, e = fight.players[0]!) => fight.world.require(e, Wielder);
 
 /** The step the swordsman's "lr" lands on, the player standing still. */
 const LANDS_AT = (() => {
@@ -137,7 +138,7 @@ describe("parrying the swordsman's swing", () => {
     assert.ok((hit.step - LANDS_AT) * FIXED_DT < PARRY.stunTime, "while still stunned");
     assert.deepEqual(hit.event, {
       type: "hit", by: after.fight.players[0], target: after.fight.enemies[0], team: "enemy",
-      damage: physicalDamage(STARTER_SWORD.damage, STATS) * PARRY.bonusDamage, sword: true,
+      damage: physicalDamage(WEAPONS.sword.damage, STATS) * PARRY.bonusDamage, sword: true,
     });
 
     const done = play(swingBefore("rl", 2), LANDS_AT + Math.round(PARRY.stunTime / FIXED_DT) + 2);
@@ -163,21 +164,20 @@ describe("the swordsman parrying the player", () => {
     let built = 0;
     const presses: Record<number, AttackKind> = {};
     const fight = newFight(GUARD, far);
-    const me = fight.players[0]!;
     const kinds: AttackKind[] = ["lr", "rl", "tb"];
     let next = 0;
     while (fight.steps < settled + 80) {
       const step = fight.steps + 1;
-      const p = fight.world.require(me, Player);
-      const started = p.action === "attack" && p.actionTime < FIXED_DT * 1.5 && p.attack === kinds[next - 1];
+      const swing = wielderOf(fight).swing;
+      const started = swing !== null && swing.step <= 1 && swing.attack === kinds[next - 1];
       const due = (step === settled && next === 0) || (next > 0 && next < kinds.length && started);
       if (due) presses[step] = kinds[next++]!;
       fight.step([input({ attack: presses[step] ?? null })]);
-      built = Math.max(built, fight.world.require(me, Player).momentum);
+      built = Math.max(built, wielderOf(fight).momentum);
     }
     assert.ok(built > 0, "the chain built momentum");
     assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp, "the last swing was parried");
-    assert.equal(fight.world.require(me, Player).momentum, 0);
+    assert.equal(wielderOf(fight).momentum, 0);
   });
 
   test("not right away: back on guard, it needs its reaction time before it can parry", () => {
@@ -191,7 +191,7 @@ describe("the swordsman parrying the player", () => {
     const twice: Script = (step) => step === settled ? { attack: "lr" } : step === settled + 50 ? { attack: "tb" } : {};
     const { fight } = play(twice, settled + 80, newFight(GUARD));
     assert.ok((50 - LIVE_AFTER) * FIXED_DT < GUARD.attacks.sword!.parryCooldown);
-    assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - physicalDamage(STARTER_SWORD.damage, STATS));
+    assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - physicalDamage(WEAPONS.sword.damage, STATS));
   });
 
   test("swinging while it recovers from its own attack lands", () => {
@@ -234,21 +234,21 @@ describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
    * live 2 steps before it lands), hold block through the other chains, and chain swings into it while it's stunned.
    */
   function watcher(): (fight: Fight) => PlayerInputData {
-    let chainNo = 0, last = "approach";
+    let chainNo = 0, last = "approach", lastAttack: AttackKind = "lr";
     return (fight) => {
-      const k = fight.world.require(fight.enemies[0]!, Enemy);
-      const sw = fight.world.require(fight.enemies[0]!, SwordAttack);
-      const me = fight.world.require(fight.players[0]!, Player);
+      const k = fight.world.require(fight.enemies[0]!, Enemy), its = wielderOf(fight, fight.enemies[0]!).swing;
+      const me = fight.world.require(fight.players[0]!, Player), mine = wielderOf(fight).swing;
+      if (mine) lastAttack = mine.attack;
       if (k.state === "swordWindup" && last === "approach") chainNo++;
       last = k.state;
       if (k.state === "parried") {
-        const free = me.action === "none" || (me.action === "attack" && me.actionTime >= lettingGoAt(me));
-        return input({ attack: free && fight.steps % 2 === 0 ? (me.attack === "lr" ? "rl" : "lr") : null });
+        const free = me.action === "none" || (mine !== null && mine.step >= mine.letGoAt);
+        return input({ attack: free && fight.steps % 2 === 0 ? (lastAttack === "lr" ? "rl" : "lr") : null });
       }
       if (chainNo % 2 === 0 && (k.state === "swordWindup" || k.state === "sword")) return input({ block: true });
-      if (k.state === "swordWindup" && isSwing(sw.attack)) {
+      if (k.state === "swordWindup" && its && isSwing(its.attack)) {
         const landsIn = Math.ceil((k.duration - k.stateTime) / FIXED_DT - 1e-6);
-        if (landsIn === LIVE_AFTER + 2) return input({ attack: reverseOf(sw.attack) });
+        if (landsIn === LIVE_AFTER + 2) return input({ attack: reverseOf(its.attack) });
       }
       return input({});
     };
@@ -263,7 +263,7 @@ describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
       right.step([i]);
       const k = right.world.require(right.enemies[0]!, Enemy), me = right.world.require(right.players[0]!, Player);
       if (!seen.parried && k.state === "parried") seen.parried = right.steps;
-      if (!seen.momentum && me.momentum > 0 && k.state === "parried") seen.momentum = right.steps;
+      if (!seen.momentum && wielderOf(right).momentum > 0 && k.state === "parried") seen.momentum = right.steps;
       if (!seen.block && me.action === "block") seen.block = right.steps + 3;
     }
     assert.ok(seen.parried && seen.momentum && seen.block, JSON.stringify(seen));

@@ -30,7 +30,7 @@ export const emptyCloth = (): Bag => ({ cols: CLOTH.cols, rows: CLOTH.rows, item
 
 export const fitsSlot = (item: ItemId, slot: Slot): boolean => itemDef(item).wornOn === SLOT_TAKES[slot];
 export type Hand = "rightHand" | "leftHand";
-export const heldIn = (equipment: Equipment, item: ItemId): Hand | null =>
+export const heldIn = (equipment: Pick<Equipment, Hand>, item: ItemId): Hand | null =>
   equipment.rightHand === item ? "rightHand" : equipment.leftHand === item ? "leftHand" : null;
 
 /** The cloth lies on the ground, so it doesn't count. */

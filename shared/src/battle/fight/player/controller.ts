@@ -1,28 +1,24 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
-import { FIXED_DT } from "../../../core/time.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
-import { emptyCloth, moveGear } from "../../../items/gear.js";
+import { emptyCloth, heldIn, moveGear } from "../../../items/gear.js";
 import {
-  ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
+  Body, Health, Player, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData, type StaminaData,
+  type WielderData,
 } from "../../components.js";
 import { MAGIC, shotOf } from "../../../spells/effects.js";
 import { sameSpell, spellCost, type Spell, type Spellbook } from "../../../spells/spell.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
-import {
-  attackShape, CHAIN, chainKind, isSwing, lettingGoAt, liveStep, MOMENTUM, momentumDamage, STARTER_SWORD, startupTime,
-  type AttackKind,
-} from "../../sword.js";
-import { addHit, breakOff, endCombo } from "../combat.js";
+import { CHAIN, isSwing, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
+import { breakOff } from "../combat.js";
 import { imbueOf } from "../spells/cast.js";
-import { wieldsOf } from "../setup.js";
 import { statusMoveFactor } from "../spells/statuses.js";
+import { bladeLive, chainedSwing, chainOn, endChain, endSwing, handsOf, startSwing } from "../weapons/swing.js";
 
-/** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
-  world.remove(e, ActiveHit);
+  endSwing(world, e);
   if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
   player.casting = null;
   player.writing = null;
@@ -36,28 +32,19 @@ function spend(stamina: StaminaData, cost: number): void {
   stamina.regenDelay = PLAYER.staminaRegenDelay;
 }
 
-/**
- * Start `attack`: a swing chains when the last attack is still going or only just over, its start quicker or
- * slower by how it follows the last swing, and builds momentum; a stab chained after swings spends the momentum.
- */
-function startAttack(world: World, e: Entity, player: PlayerData, input: PlayerInputData, attack: AttackKind): void {
-  const chained = player.combo !== null && (player.action === "attack" || player.comboTime > 0);
-  if (!chained) endCombo(player);
-  if (isSwing(attack)) {
-    const kind = chainKind(player.combo, attack);
-    player.momentum = Math.min(MOMENTUM.max, player.momentum + MOMENTUM.gain[kind]);
-    player.startup = startupTime(kind, player.momentum, STARTER_SWORD.speed);
-    player.power = momentumDamage(player.momentum);
-    player.combo = attack;
-  } else {
-    player.startup = CHAIN.stabStartupTime / STARTER_SWORD.speed;
-    player.power = PLAYER.stab.damageFactor * (1 + player.momentum * MOMENTUM.stabBonusPerPoint);
-    endCombo(player);
-  }
+function startAttack(
+  world: World, e: Entity, player: PlayerData, wielder: WielderData, weapon: Weapon, input: PlayerInputData,
+  attack: AttackKind,
+): void {
+  const chained = wielder.combo !== null && (player.action === "attack" || wielder.comboTime > 0);
+  let { startup, power } = chainOn(wielder, weapon, attack, chained, PLAYER.stab.damageFactor);
   const imbue = imbueOf(world, e)?.[1];
-  if (imbue) player.startup /= shotOf(imbue.spell.segments[imbue.segment]!).swiftFactor;
+  if (imbue) startup /= shotOf(imbue.spell.segments[imbue.segment]!).swiftFactor;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
-  player.attack = attack;
+  const move = isSwing(attack) ? PLAYER.swing : PLAYER.stab;
+  startSwing(world, e, chainedSwing(attack, { x: input.aimX, z: input.aimZ }, startup, {
+    damage: weapon.damage * power, knockback: 0, lift: 0, poiseDamage: move.poiseDamage,
+  }));
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
@@ -96,7 +83,7 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
  */
 export function playerControllerSystem(): System {
   return (world, dt) => {
-    for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats)) {
+    for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats, Wielder)) {
       controlPlayer(world, e, dt);
     }
   };
@@ -105,16 +92,16 @@ export function playerControllerSystem(): System {
 function controlPlayer(world: World, e: Entity, dt: number): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
-  const statuses = world.get(e, Statuses);
+  const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder);
   const v = body.vel;
   const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden) * statusMoveFactor(statuses);
   const alive = health.hp > 0;
 
   // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
   // attack lets go: a dodge or the next attack waits for it, however early it's pressed.
-  const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
-  const sword = player.wields.sword !== null, spellbook = player.wields.spellbook !== null;
-  const attackPressed = sword && input.attack !== null && input.attack !== player.attackHeld;
+  const locked = wielder.swing !== null && wielder.swing.step < wielder.swing.letGoAt;
+  const weapon = weaponIn(wielder.hands), spellbook = heldIn(wielder.hands, "spellbook") !== null;
+  const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
   const castPressed = spellbook && input.cast !== null && !player.castHeld;
   if (attackPressed) {
@@ -135,16 +122,16 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   player.writeHeld = input.write !== null;
   player.gearHeld = input.gear !== null;
   if (!input.chant && !input.bag) player.brokenOff = false;
-  if (player.action !== "attack" && player.comboTime > 0) {
-    player.comboTime -= dt;
-    if (player.comboTime <= 0) endCombo(player);
+  if (player.action !== "attack" && wielder.comboTime > 0) {
+    wielder.comboTime -= dt;
+    if (wielder.comboTime <= 0) endChain(wielder);
   }
 
   if (!alive || health.hitstun > 0) {
     // Knocked back, staggered or dead: no control, slide to a stop on the ground.
     if (player.action !== "none" && player.action !== "stagger") {
       breakOff(player);
-      world.remove(e, ActiveHit);
+      endSwing(world, e);
     }
     player.attackBuffer = player.dodgeBuffer = player.castBuffer = 0;
     if (player.grounded) {
@@ -176,13 +163,13 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       startAction(world, e, player, "dodge", dx, dz);
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
-      endCombo(player);
+      endChain(wielder);
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
       && stamina.value >= spellCost(queuedCast)) {
       startAction(world, e, player, "cast", input.aimX, input.aimZ);
       player.casting = queuedCast;
       player.castBuffer = 0;
-      endCombo(player);
+      endChain(wielder);
     } else if ((player.action === "chant" || (inBag && spellbook)) && writePressed && write
       && write.page < player.book.length) {
       player.action = "write";
@@ -194,41 +181,32 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       player.writing = null;
     } else if (free && spellbook && input.chant && !player.brokenOff) {
       startAction(world, e, player, "chant", input.aimX, input.aimZ);
-      endCombo(player);
+      endChain(wielder);
     } else if (free && input.bag && !player.brokenOff) {
       startAction(world, e, player, "bag", input.aimX, input.aimZ);
-      endCombo(player);
-    } else if (free && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
-      startAttack(world, e, player, input, player.queued);
+      endChain(wielder);
+    } else if (free && weapon && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
+      startAttack(world, e, player, wielder, weapon, input, player.queued);
       spend(stamina, isSwing(player.queued) ? PLAYER.swing.cost : PLAYER.stab.cost);
       player.attackBuffer = 0;
-    } else if (player.action === "none" && sword && input.block && player.grounded) {
+    } else if (player.action === "none" && weapon && input.block && player.grounded) {
       startAction(world, e, player, "block", input.aimX, input.aimZ);
-      endCombo(player);
+      endChain(wielder);
     }
 
     const t = player.actionTime, dir = player.actionDir;
     switch (player.action) {
       case "attack": {
-        const stab = !isSwing(player.attack), move = stab ? PLAYER.stab : PLAYER.swing;
-        // The step into the attack: its blade is live from `liveStep` for the active time.
-        const step = Math.round(t / FIXED_DT), live = liveStep(player.startup);
-        if (step >= live && step < live + liveStep(CHAIN.activeTime)) {
-          if (!world.has(e, ActiveHit)) {
-            addHit(world, e, dir.x, dir.z, {
-              ...attackShape(player.attack, STARTER_SWORD), damage: STARTER_SWORD.damage * player.power,
-              poiseDamage: move.poiseDamage, attack: player.attack,
-            });
-          }
+        const swing = wielder.swing;
+        if (!swing) break;
+        const move = isSwing(swing.attack) ? PLAYER.swing : PLAYER.stab;
+        if (bladeLive(swing)) {
           v.x = dir.x * move.lungeSpeed;
           v.z = dir.z * move.lungeSpeed;
-        } else {
-          world.remove(e, ActiveHit);
-          shuffle(input, v, dt, walkSpeed * PLAYER.swing.moveFactor);
-        }
-        if (t >= player.startup + CHAIN.activeTime + CHAIN.recoverTime) {
+        } else shuffle(input, v, dt, walkSpeed * PLAYER.swing.moveFactor);
+        if (swing.step >= swing.endAt) {
           player.action = "none";
-          if (player.combo !== null) player.comboTime = CHAIN.gapTime;
+          if (wielder.combo !== null) wielder.comboTime = CHAIN.gapTime;
         }
         break;
       }
@@ -266,7 +244,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       const moved = moveGear({ ...player.gear, cloth: emptyCloth() }, move.from, move.to, move.turned);
       if (moved) {
         player.gear = { bag: moved.bag, equipment: moved.equipment };
-        player.wields = wieldsOf(moved.equipment);
+        wielder.hands = handsOf(moved.equipment);
       }
     }
   }

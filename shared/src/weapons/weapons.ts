@@ -1,10 +1,9 @@
-/**
- * The sword's attacks, their hit shapes, chaining, momentum and parrying. Directions are as the player sees them on
- * screen ("tlbr": top-left to bottom-right). An enemy's swing is named as the player facing it sees it, so a swing
- * is parried by its reverse ("lr" by "rl"): the blades meet. Units: seconds and meters.
- */
 import { FIXED_DT } from "../core/time.js";
+import type { Hand } from "../items/gear.js";
+import type { ItemId } from "../items/items.js";
 
+// Named by their way across the screen as the player sees it ("tlbr": top-left to bottom-right), an enemy's too, so
+// a swing is parried by its reverse ("lr" by "rl"): the blades meet.
 export const SWING_DIRS = ["lr", "rl", "tb", "bt", "tlbr", "brtl", "trbl", "bltr"] as const;
 export type SwingDir = (typeof SWING_DIRS)[number];
 export const ATTACK_KINDS = [...SWING_DIRS, "stab"] as const;
@@ -27,7 +26,7 @@ export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "s
 export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
 export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
 
-export interface Sword {
+export interface Weapon {
   /** The blade (m): every attack's reach grows with it. */
   length: number;
   /** At strength 10, before momentum. */
@@ -36,8 +35,16 @@ export interface Sword {
   speed: number;
 }
 
-/** Everyone's sword, until there are others to pick. */
-export const STARTER_SWORD: Sword = { length: 1.1, damage: 9, speed: 1 };
+export const WEAPONS = {
+  sword: { length: 1.1, damage: 9, speed: 1 },
+} as const satisfies Partial<Record<ItemId, Weapon>>;
+
+const isWeapon = (item: ItemId | null): item is keyof typeof WEAPONS => item !== null && Object.hasOwn(WEAPONS, item);
+
+export function weaponIn(hands: Record<Hand, ItemId | null>): Weapon | null {
+  const item = isWeapon(hands.rightHand) ? hands.rightHand : isWeapon(hands.leftHand) ? hands.leftHand : null;
+  return item && WEAPONS[item];
+}
 
 /** From a fighter's center to the hilt (m): the blade's length goes on from there. */
 const ARM_REACH = 0.8;
@@ -61,8 +68,8 @@ const STAB_WIDTH = 0.15;
  */
 export interface HitShape { shape: "arc" | "ray"; range: number; minDot: number; width: number }
 
-export function attackShape(attack: AttackKind, sword: Pick<Sword, "length">): HitShape {
-  const reach = ARM_REACH + sword.length;
+export function attackShape(attack: AttackKind, weapon: Pick<Weapon, "length">): HitShape {
+  const reach = ARM_REACH + weapon.length;
   if (!isSwing(attack)) return { shape: "ray", range: reach * STAB_REACH_FACTOR, minDot: 1, width: STAB_WIDTH };
   const { reachFactor, arcDeg } = SHAPES[LINE[attack]];
   return { shape: "arc", range: reach * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)), width: 0 };
@@ -89,7 +96,7 @@ export const CHAIN = {
 } as const;
 
 /** How far into its attack the player may start the next one, or a dodge (pressed earlier, it waits). */
-export const lettingGoAt = (attack: { startup: number }): number => attack.startup + CHAIN.activeTime;
+export const lettingGoAt = (startup: number): number => startup + CHAIN.activeTime;
 
 export const MOMENTUM = {
   /** Gained by each chained swing, by how it follows the last. */
@@ -106,7 +113,6 @@ export const MOMENTUM = {
 export const momentumDamage = (momentum: number): number =>
   Math.min(MOMENTUM.maxDamage, 1 + momentum * MOMENTUM.damagePerPoint);
 
-/** A swing's start (seconds), from how it follows the last, the chain's momentum and the sword's speed. */
 export function startupTime(kind: ChainKind, momentum: number, speed: number): number {
   const scale = 1 - Math.min(momentum, MOMENTUM.max) * MOMENTUM.speedPerPoint;
   return (CHAIN.startupTime[kind] * scale) / speed;
@@ -114,6 +120,13 @@ export function startupTime(kind: ChainKind, momentum: number, speed: number): n
 
 /** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */
 export const liveStep = (startup: number): number => Math.round(startup / FIXED_DT);
+
+/** The first step on which a clock counted up by FIXED_DT from 0 reaches `seconds` (as a state's clock does). */
+export function stepsUntil(seconds: number): number {
+  let t = 0, steps = 0;
+  for (; t < seconds; steps++) t += FIXED_DT;
+  return steps;
+}
 
 export const PARRY = {
   /** A swing is parried when the reverse swing's blade went live no more than this long before it lands. */

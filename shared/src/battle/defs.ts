@@ -2,9 +2,11 @@
  * Shapes of the server's battle content (server/src/core/content), sent with each encounter. An enemy is a body
  * plus optional attacks, each with its own component and system. Units: seconds, meters, m/s, rad/s.
  */
+import type { Hand } from "../items/gear.js";
+import type { ItemId } from "../items/items.js";
 import type { SpellElement } from "../spells/spell.js";
+import type { AttackKind } from "../weapons/weapons.js";
 import type { Stats } from "./stats.js";
-import type { AttackKind } from "./sword.js";
 
 export interface ArenaDef {
   radius: number;
@@ -48,15 +50,8 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
-/**
- * A swordsman's attacks: chains of `minChain` to `maxChain` swings (or stabs), each picked at random from `moves`
- * and never the one just before; each winds up so the player can read it, and lands like the player's do (its hit
- * shape from `length`, sword.ts). On guard (walking up, not attacking, recovering or stunned) and back on guard at
- * least `parryReaction`, it parries a player's swing aimed at it, then can't again for `parryCooldown`; it blocks a
- * stab on guard.
- */
 export interface SwordDef {
-  length: number;
+  /** Its hits deal this, whatever the weapon's own damage. */
   damage: number;
   knockback: number;
   lift: number;
@@ -115,6 +110,7 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   attacks: EnemyAttacks;
+  hands?: Partial<Record<Hand, ItemId>>;
   sidestep?: SidestepDef;
   resist?: Partial<Record<SpellElement, number>>;
 }

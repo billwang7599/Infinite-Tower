@@ -10,7 +10,7 @@ import type { System, World } from "../../../core/ecs.js";
 import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
 import { Body, Enemy, Health, Player } from "../../components.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
-import { PARRY } from "../../sword.js";
+import { PARRY } from "../../../weapons/weapons.js";
 import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */

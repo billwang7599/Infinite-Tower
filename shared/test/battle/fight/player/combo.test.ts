@@ -2,21 +2,21 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, attackShape, CHAIN, FIXED_DT, MOMENTUM, physicalDamage, Player, PLAYER, STARTER_SWORD, startupTime,
-  type AttackKind, type EnemyDef, type PlayerData, type PlayerInputData,
+  ActiveHit, attackShape, CHAIN, FIXED_DT, MOMENTUM, physicalDamage, Player, PLAYER, startupTime,
+  WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerData, type PlayerInputData, type WielderData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, enemy, input, player, STATS, STATUE } from "../fixtures.js";
 
 before(() => initPhysics());
 
-const BASE_DAMAGE = physicalDamage(STARTER_SWORD.damage, STATS);
+const BASE_DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
 /** Steps from a time in seconds, the way the fight counts them. */
 const steps = (time: number) => Math.ceil(time / FIXED_DT - 1e-9);
 /** The longest a swing holds off the next one. */
 const SLOWEST_SWING = CHAIN.startupTime.perpendicular + CHAIN.activeTime;
 /** A statue right in front, in reach of every attack; or far away, out of reach of all. */
-const NEAR = attackShape("lr", STARTER_SWORD).range + STATUE.radius - 0.4;
+const NEAR = attackShape("lr", WEAPONS.sword).range + STATUE.radius - 0.4;
 const FAR = 30;
 
 /** Stamina enough for any chain here. */
@@ -29,7 +29,7 @@ const newFight = (at = NEAR, def: EnemyDef = STATUE) => new Fight({
 });
 
 /** What the player does on a step, seeing how they stood after the last one. */
-type Script = (step: number, me: PlayerData) => Partial<PlayerInputData>;
+type Script = (step: number, me: PlayerData, wielder: WielderData) => Partial<PlayerInputData>;
 
 interface Played {
   fight: Fight;
@@ -48,9 +48,9 @@ function play(script: Script, to = 200, fight = newFight()): Played {
   let hadHit = false;
   while (fight.steps < to) {
     const step = fight.steps + 1;
-    fight.step([input(script(step, fight.world.require(me, Player)))]);
-    const p = fight.world.require(me, Player);
-    if (p.action === "attack" && p.actionTime < FIXED_DT * 1.5) out.starts.push(step);
+    const wielder = fight.world.require(me, Wielder);
+    fight.step([input(script(step, fight.world.require(me, Player), wielder))]);
+    if (wielder.swing && wielder.swing.step <= 1) out.starts.push(step);
     const hit = fight.world.has(me, ActiveHit);
     if (hit && !hadHit) out.live.push(step);
     hadHit = hit;
@@ -58,7 +58,7 @@ function play(script: Script, to = 200, fight = newFight()): Played {
       if (ev.type === "hit" && ev.team === "enemy") out.damage.push(ev.damage);
       if (ev.type === "hit" && ev.team === "player") out.hurt.push(step);
     }
-    out.momentum.push(p.momentum);
+    out.momentum.push(wielder.momentum);
   }
   return out;
 }
@@ -69,11 +69,11 @@ function play(script: Script, to = 200, fight = newFight()): Played {
  */
 function chainOf(kinds: AttackKind[], then: Script = () => ({})): Script {
   let next = 0;
-  return (step, me) => {
-    const lastStarted = me.action === "attack" && me.actionTime < FIXED_DT * 1.5 && me.attack === kinds[next - 1];
+  return (step, me, wielder) => {
+    const swing = wielder.swing, lastStarted = swing !== null && swing.step <= 1 && swing.attack === kinds[next - 1];
     const due = (next === 0 && step === 5) || (next > 0 && next < kinds.length && lastStarted);
     if (due) return { attack: kinds[next++]! };
-    return next >= kinds.length && step > 5 ? then(step, me) : {};
+    return next >= kinds.length && step > 5 ? then(step, me, wielder) : {};
   };
 }
 
@@ -84,14 +84,14 @@ function secondStartup(first: AttackKind, second: AttackKind): number {
   return live[1]! - starts[1]!;
 }
 
-const momentumOf = (fight: Fight) => fight.world.require(fight.players[0]!, Player).momentum;
+const momentumOf = (fight: Fight) => fight.world.require(fight.players[0]!, Wielder).momentum;
 
 describe("the next swing's start depends on the last one", () => {
   test("pressed early, the next swing starts on the step the last one lets go (the chain point)", () => {
     const { starts } = play(chainOf(["lr", "tb"]), 120, newFight(FAR));
     // The fight sums its clock one step at a time, so it counts steps the same way.
     let t = 0, n = 0;
-    for (; t < startupTime("opening", 0, STARTER_SWORD.speed) + CHAIN.activeTime; n++) t += FIXED_DT;
+    for (; t < startupTime("opening", 0, WEAPONS.sword.speed) + CHAIN.activeTime; n++) t += FIXED_DT;
     assert.equal(starts[1]! - starts[0]!, n);
   });
 
@@ -164,7 +164,7 @@ describe("momentum", () => {
 
   test("a stab after a chain is its finisher: it spends the momentum on its damage", () => {
     const opening = play(chainOf(["stab"]), 80).damage[0]!;
-    assert.equal(opening, physicalDamage(STARTER_SWORD.damage * PLAYER.stab.damageFactor, STATS));
+    assert.equal(opening, physicalDamage(WEAPONS.sword.damage * PLAYER.stab.damageFactor, STATS));
     const finisher = play(chainOf(["lr", "rl", "lr", "stab"]), 200);
     const momentumBefore = finisher.momentum[finisher.starts.at(-1)! - 2]!;
     assert.ok(momentumBefore > 0);

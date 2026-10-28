@@ -143,11 +143,12 @@ main.ts
   `SpellObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
   has drawn: it spawns the new, frames the rest and disposes the gone. A row's own state holds only its meshes and
   smoothing (squash, eased angles); its pose comes from the components each frame, from Babylon-free pose functions
-  that are tested (`visuals/battle/pose.ts`, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
+  that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, each enemy's
+  `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst); each fires once per step and event (`FiredEffects`), so
   a step replayed after a resync doesn't fire it again. The overworld's actors are drawn the same way, from
   `WALKERS` by their `kind`. The player's look is read from `ui.overworld`'s character and painted once
-  (`visuals/characters.ts`), and the sword in the hand `wields.sword` names.
+  (`visuals/characters.ts`), and the sword in whichever hand its `Wielder` holds it.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`;
   `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
@@ -194,10 +195,15 @@ main.ts
   invulnerability doesn't stop a parry) or block it (held, facing it: stopped for stamina); a swordsman on guard parries
   a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
   player facing it sees it.
-  The player's attacks and their shapes
-  come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
-  to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
-  `MOMENTUM`).
+- **Weapons are a system of their own, like magic.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
+  `WEAPONS` (each weapon by item id: length, damage, speed), eight swings named by their way across the screen (`lr`:
+  left to right) and a stab, their hit shapes (`attackShape`, from the weapon's length), how swings chain (`CHAIN`,
+  `MOMENTUM`) and `PARRY`. Anyone with a `Wielder` (what each hand holds, the swing under way, its chain) swings the
+  weapon in hand: the player's controller and the Kobold's AI (`fight/enemies/sword.ts`) only decide when and what,
+  and call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done, lets go
+  and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while
+  it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
+  Ending an action or an enemy state (`enter`) ends its swing (`endSwing`). A parry reads the target's swing.
 - **Spells are inputs too.** A player's input carries a whole spell (`cast`) only on the step its key goes down,
   then just `castHeld` while the key stays down: the fight keeps the spell, so a long one isn't resent in every
   input. The controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
@@ -219,7 +225,8 @@ main.ts
   The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
   still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
-  equipment; no cloth). `wields` follows the equipment, and the server settles the battle with the fight's gear.
+  equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the battle with the
+  fight's gear.
 - **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's visual (client) reads the state and
   poses the model.
@@ -482,30 +489,28 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
-  battle/          components.ts (Player, Health, Stamina, Statuses, Body, Fighter, ActiveHit, SpellObject, Enemy,
-                   LungeAttack, ChargeAttack, SwordAttack),
+  battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
+                   SpellObject, Enemy, LungeAttack, ChargeAttack, SwordAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
-                   FighterStats, physicalDamage / spellDamage / moveSpeed / carryLimit), sword.ts (the sword's attacks:
-                   SWING_DIRS, ATTACK_KINDS, STARTER_SWORD, attackShape; CHAIN and MOMENTUM: how swings chain;
-                   PARRY)
+                   FighterStats, physicalDamage / spellDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, leave(player), outcome, events, dispose; the enemy motor and player ground
                      systems), setup.ts (FightSetup, the one-on-one
                      starting spots, spawning players and enemies: components + a collider, one component per
-                     attack in the def; wieldsOf), context.ts (FightContext, FightOutcome, FightEvent),
-                     combat.ts (addHit,
-                     hits in an arc or a ray, blocking, knockback, the hit timers, endCombo), outcome.ts (won /
+                     attack in the def, a Wielder for whoever holds things), context.ts (FightContext,
+                     FightOutcome, FightEvent), combat.ts (addHit,
+                     hits in an arc or a ray, parrying, blocking, knockback, the hit timers), outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
                      to 2 decimals)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
-      player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, the chant
+      player/          controller.ts (move, jump, when to attack, block, dodge, a cast's wind-up, the chant
                        (held still; a spell on no page cast only from it), the bag (held still; gear moved) and
                        writing a page, stamina; controlPlayer; no sword in hand, no attacks or block; no
                        spellbook, no casts or chant)
@@ -515,8 +520,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
-                       sword.ts (a swordsman's seeded chains of swings), sidestep.ts (stepping aside from a
-                       Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
+                       sword.ts (a swordsman's seeded chains of swings, swung with the weapon system), sidestep.ts
+                       (stepping aside from a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded
+                       random numbers)
+      weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live; startSwing,
+                       endSwing; chainOn / chainedSwing: a chain's next attack and its steps; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -532,6 +540,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    blankSpellbook, SAVE_IN_FIGHT_TIME, sameSpell), effects.ts (MAGIC: what spells
                    do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's augments
                    applied in order)
+  weapons/         weapons.ts (WEAPONS by item id, weaponIn; SWING_DIRS, ATTACK_KINDS, attackShape; CHAIN and
+                   MOMENTUM: how swings chain; lettingGoAt, liveStep, stepsUntil; PARRY)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SpellSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -745,7 +755,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
-                       rest when a fight starts, again when the fight's sword hand changes (`wields.sword`);
+                       rest when a fight starts, again when the fight's sword hand changes (its `Wielder`);
                        BATTLE_FRAMES; the overworld boar and kobold
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -759,8 +769,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         materials.ts     The arena's materials (the player's frames among them)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
                          Imbue's colour), the chant's circle
-        pose.ts          The player's pose and frame, the trail's line and the stab's thrust, from the action. No
-                         Babylon: tested
+        pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
+        weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through), the trail's
+                         line, the stab's thrust (as far as the weapon in hand stabs), a 3D blade's way through a
+                         wind-up and a swing (the Kobold's). No Babylon: tested
         enemies/         boar/, kobold/: model.ts (built from primitives), pose.ts (where its parts head, from its
                          state; no Babylon: tested), animation.ts (its visual: the pose eased into, the walk)
         spells.ts        The spells' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
@@ -793,6 +805,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
   `shared/src/battle/fight/enemies/`, listed in `fight.ts`; a new look is a model name in `EnemyDef.model`, a folder in
   `client/src/visuals/battle/enemies/` (model, pose and its test, animation) and its row in `VISUALS`.
+- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, worn on a hand) and its row in `WEAPONS`
+  (`shared/src/weapons/weapons.ts`): length, damage, speed. Whoever holds it swings it with its reach and speed; its
+  look in the player's hand is drawn in `client/src/gfx/look/` (only the sword is drawn so far).
+- **An enemy that wields a weapon.** `hands` on its `EnemyDef` (`{ rightHand: "sword" }`) gives it a `Wielder`, and
+  its AI calls `startSwing` (`fight/weapons/swing.ts`) with the swing's steps and damage, as the Kobold's
+  `fight/enemies/sword.ts` does (or give it a `sword` attack to fight like the Kobold); the weapon system does the
+  rest. A 3D model draws its blade with `windupBlade` / `liveBlade` (`client/src/visuals/battle/weapons.ts`).
 - **A visual** (anything new drawn in a fight). One row in `VISUALS` (`client/src/visuals/visuals.ts`): a
   `Visual` with `spawn` (build its meshes), `frame` (pose them from the entity's components, each frame) and
   `dispose`, and its kind in `kindOf`, from a component the entity already has. Its pose is a function of that
@@ -838,7 +857,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | What | Where |
 |---|---|
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| The sword: reach, damage, how swings chain, momentum, parrying | `shared/src/battle/sword.ts` |
+| Weapons: reach, damage, speed; how swings chain, momentum, parrying | `shared/src/weapons/weapons.ts` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks and sidesteps | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |

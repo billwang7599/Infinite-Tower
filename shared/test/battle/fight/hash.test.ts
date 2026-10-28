@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina, SwordAttack,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina, SwordAttack, Wielder,
+  type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BOAR, busy, enemy, player, SWORDSMAN } from "./fixtures.js";
@@ -11,6 +12,11 @@ before(() => initPhysics());
 const newFight = () => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: -5 })], enemies: [enemy(BOAR, { x: 0, y: 0.05, z: 3 })],
 });
+
+const SWING: SwingData = {
+  attack: "lr", dir: { x: 0, z: 1 }, step: 3, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
+  knockback: 1, lift: 1, poiseDamage: 12,
+};
 
 function busyFight(steps = 240, fight = newFight()): Fight {
   while (fight.steps < steps) fight.step([busy(fight.steps + 1)]);
@@ -49,22 +55,20 @@ describe("a fight's hash", () => {
         const p = f.world.require(f.players[0]!, Player);
         p.action = p.action === "dodge" ? "block" : "dodge";
       }],
-      ["the attack", (f) => {
-        const p = f.world.require(f.players[0]!, Player);
-        p.attack = p.attack === "lr" ? "tb" : "lr";
-      }],
-      ["the attack's startup", (f) => { f.world.require(f.players[0]!, Player).startup += 0.05; }],
-      ["the attack's power", (f) => { f.world.require(f.players[0]!, Player).power += 0.25; }],
       ["the queued attack", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.queued = p.queued === "stab" ? "bt" : "stab";
       }],
       ["the chain", (f) => {
-        const p = f.world.require(f.players[0]!, Player);
-        p.combo = p.combo === "rl" ? "lr" : "rl";
+        const w = f.world.require(f.players[0]!, Wielder);
+        w.combo = w.combo === "rl" ? "lr" : "rl";
       }],
-      ["the chain's clock", (f) => { f.world.require(f.players[0]!, Player).comboTime += 0.05; }],
-      ["the momentum", (f) => { f.world.require(f.players[0]!, Player).momentum += 0.25; }],
+      ["the chain's clock", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
+      ["the momentum", (f) => { f.world.require(f.players[0]!, Wielder).momentum += 0.25; }],
+      ["having a swing going", (f) => {
+        const w = f.world.require(f.players[0]!, Wielder);
+        w.swing = w.swing ? null : { ...SWING };
+      }],
       ["the action's clock", (f) => { f.world.require(f.players[0]!, Player).actionTime += 0.05; }],
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
       ["a held button", (f) => {
@@ -93,10 +97,6 @@ describe("a fight's hash", () => {
       ["the random numbers", (f) => { f.world.require(f.enemies[0]!, Enemy).rng += 1; }],
       ["the sword's cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).cooldown += 0.05; }],
       ["the sword's parry cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).parryCooldown += 0.05; }],
-      ["the swing it's on", (f) => {
-        const s = f.world.require(f.enemies[0]!, SwordAttack);
-        s.attack = s.attack === "lr" ? "stab" : "lr";
-      }],
       ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, SwordAttack).swingsLeft += 1; }],
       ["being parried", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "parried"; }],
     ];
@@ -108,6 +108,31 @@ describe("a fight's hash", () => {
       const before = fight.hash();
       change(fight);
       assert.notEqual(fight.hash(), before, what);
+    }
+
+    const swingChanges: [string, (s: SwingData) => void][] = [
+      ["its attack", (s) => { s.attack = "stab"; }],
+      ["its aim", (s) => { s.dir.x += 0.05; }],
+      ["its clock", (s) => { s.step += 1; }],
+      ["when its blade goes live", (s) => { s.liveAt += 1; }],
+      ["when its blade is done", (s) => { s.liveUntil += 1; }],
+      ["when it lets go", (s) => { s.letGoAt += 1; }],
+      ["when it's over", (s) => { s.endAt += 1; }],
+      ["its damage", (s) => { s.damage += 1; }],
+      ["its knockback", (s) => { s.knockback += 1; }],
+      ["its lift", (s) => { s.lift += 1; }],
+      ["its poise damage", (s) => { s.poiseDamage += 1; }],
+    ];
+    for (const [who, newFight] of [["the player's", busyFight], ["the swordsman's", swordFight]] as const) {
+      for (const [what, change] of swingChanges) {
+        const fight = newFight();
+        const swinging = who === "the player's" ? fight.players[0]! : fight.enemies[0]!;
+        const wielder = fight.world.require(swinging, Wielder);
+        wielder.swing = { ...SWING, dir: { ...SWING.dir } };
+        const before = fight.hash();
+        change(wielder.swing);
+        assert.notEqual(fight.hash(), before, `${who} swing: ${what}`);
+      }
     }
   });
 

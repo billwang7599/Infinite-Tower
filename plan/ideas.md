@@ -9,7 +9,7 @@ user's call before anyone builds them.
   gear or anything else that changes them would need them in `PlayerSave`.
 - **Saving where you are.** Position and level aren't saved; every connection starts at the level's start.
 - **How wide the swings hit.** Each swing's arc and reach depend on its line (`SHAPES` in
-  `shared/src/battle/sword.ts`). How wide the old slash should be was asked and not answered.
+  `shared/src/weapons/weapons.ts`). How wide the old slash should be was asked and not answered.
 - **Email or OAuth login**, next to username + password (the user: "maybe later").
 
 ## Code

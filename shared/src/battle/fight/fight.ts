@@ -26,6 +26,7 @@ import { spellSystem } from "./spells/cast.js";
 import { statusMoveFactor, statusSystem } from "./spells/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
+import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
 const GROUND_PROBE = 0.08;
@@ -88,7 +89,7 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), swordAttackSystem(),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), swordAttackSystem(), weaponSystem(),
       sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), spellSystem(ctx),

@@ -6,19 +6,25 @@ import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
   ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SpellObject, Stamina, Statuses,
-  SwordAttack,
+  SwordAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SpellObjectData, type StaminaData,
-  type StatusData, type SwordAttackData,
+  type StatusData, type SwingData, type SwordAttackData, type WielderData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
-import { wieldsOf } from "./setup.js";
+import { handsOf } from "./weapons/swing.js";
 
-interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max">; statuses: StatusData }
+interface FighterSnapshot {
+  pos: Vec3;
+  vel: Vec3;
+  health: Omit<HealthData, "max">;
+  statuses: StatusData;
+  wielder: Omit<WielderData, "hands"> | null;
+}
 
 interface PlayerSnapshot extends FighterSnapshot {
-  player: Omit<PlayerData, "burden" | "wields">;
+  player: Omit<PlayerData, "burden">;
   /** The input the player's last step ran with (what they hold). */
   input: PlayerInputData;
   stamina: Omit<StaminaData, "max">;
@@ -54,6 +60,13 @@ export interface FightSnapshot {
 }
 
 const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }, cooldown: { ...s.cooldown } });
+const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: { ...s.dir } };
+
+function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
+  if (!wielder) return null;
+  const { hands: _, swing, ...chain } = wielder;
+  return { ...chain, swing: copySwing(swing) };
+}
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
 
@@ -67,13 +80,16 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
     const { max: _, ...health } = world.require(e, Health);
-    return { pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)) };
+    return {
+      pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)),
+      wielder: saveWielder(world.get(e, Wielder)),
+    };
   };
   return {
     steps: fight.steps,
     outcome: { ...fight.outcome },
     players: fight.players.map((e) => {
-      const { burden: _, wields: _wields, actionDir, ...player } = world.require(e, Player);
+      const { burden: _, actionDir, ...player } = world.require(e, Player);
       const { max: _max, ...stamina } = world.require(e, Stamina);
       const input = copyInput(world.require(e, PlayerInput));
       return { ...fighter(e), player: { ...player, actionDir: { ...actionDir } }, input, stamina };
@@ -111,15 +127,16 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     physics.place(body.collider, body.pos);
     Object.assign(world.require(e, Health), s.health);
     world.add(e, Statuses, copyStatuses(s.statuses));
+    const wielder = world.get(e, Wielder);
+    if (wielder && s.wielder) Object.assign(wielder, s.wielder, { swing: copySwing(s.wielder.swing) });
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.
   for (const e of fighters) world.remove(e, ActiveHit);
   fight.players.forEach((e, i) => {
     const s = snap.players[i]!;
     place(e, s);
-    Object.assign(world.require(e, Player), s.player, {
-      actionDir: { ...s.player.actionDir }, wields: wieldsOf(s.player.gear.equipment),
-    });
+    Object.assign(world.require(e, Player), s.player, { actionDir: { ...s.player.actionDir } });
+    world.require(e, Wielder).hands = handsOf(s.player.gear.equipment);
     Object.assign(world.require(e, PlayerInput), copyInput(s.input));
     Object.assign(world.require(e, Stamina), s.stamina);
   });
