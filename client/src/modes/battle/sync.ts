@@ -7,7 +7,7 @@ import {
   copyInput, FIXED_DT, HASH_EVERY_STEPS, Health, MAX_INPUT_DELAY_STEPS, MAX_INPUTS_PER_MESSAGE, Player, PlayerInput,
   quantizeInput, sameInput, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf, type StepInput,
 } from "@infinite-tower/shared";
-import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
+import type { Fight, FightEvent, FightOutcome } from "@infinite-tower/shared/fight";
 import { Pace } from "./pace.js";
 
 /** With nothing new to send, the client still says how far it has got this often (steps). */
@@ -31,9 +31,13 @@ export interface SyncStats {
   hiddenDodgeHits: number;
 }
 
+export interface StepEvent { step: number; event: FightEvent }
+
 export class FightSync {
   /** As the server says. */
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
+  /** Every step's events as it runs, replays included, until taken. */
+  readonly events: StepEvent[] = [];
   readonly stats: SyncStats = {
     checks: 0, mismatches: 0, restores: 0, corrections: 0, hiddenHits: 0, hiddenDodgeHits: 0,
   };
@@ -168,6 +172,7 @@ export class FightSync {
     inputs[this.seat] = input;
     this.fight.step(inputs);
     const step = this.fight.steps;
+    for (const event of this.fight.events) this.events.push({ step, event });
     if (step % HASH_EVERY_STEPS !== 0) return;
     const hash = this.fight.hash();
     this.hashes.set(step, hash);

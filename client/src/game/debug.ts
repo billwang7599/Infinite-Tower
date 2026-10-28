@@ -4,8 +4,6 @@
  */
 import * as shared from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
-import * as battleComponents from "../modes/battle/components.js";
-import * as playerComponents from "../modes/battle/player/components.js";
 import * as overworldComponents from "../modes/overworld/components.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Settings } from "../settings/settings.js";
@@ -24,9 +22,9 @@ interface DebugHandles {
 export function exposeDebugHandles(h: DebugHandles): void {
   if (!import.meta.env.DEV && !new URLSearchParams(location.search).has("debug")) return;
   Object.assign(window, {
-    battle: h.battle.ctx, overworld: h.overworld.view, mode: h.mode, ui: h.ui, settings: h.settings,
+    battle: h.battle.ctx, overworld: h.overworld.state, mode: h.mode, ui: h.ui, settings: h.settings,
     encounter: h.encounter,
     cast: (spell: shared.Spell) => h.battle.ctx.casts.push(spell),
-    components: { ...shared, ...battleComponents, ...playerComponents, ...overworldComponents },
+    components: { ...shared, ...overworldComponents },
   });
 }

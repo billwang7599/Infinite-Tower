@@ -98,7 +98,7 @@ Decided by the user:
   off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
   Unlocked, the arrows or a right-button drag turn the camera, and attacks go where it faces; the mouse alone
   doesn't turn it. Spells may home (the Follow augment). The locked camera's numbers (top of
-  `client/src/modes/battle/systems/camera.ts`) are the agent's pick, to tune.
+  `client/src/modes/battle/camera.ts`) are the agent's pick, to tune.
 - Lock-on stays, and spells are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The boar and the Kobold read a Bolt winding up at them and sometimes step out of its line just before it
@@ -350,6 +350,9 @@ The global rules apply; here is how to set one up in this repo.
   `client/src/core/keyboard.ts` is the only one. Keys become actions only in `client/src/core/actions.ts`: game code
   reads them there, the UI listens with `useAction`, and on-screen keys come from `keyName`. Groups: general,
   overworld, arena (rebindable), MENUS (fixed). Esc and ⌘ can't be rebound.
+- **Drawing has one owner, `client/src/visuals/`**: the only code that imports Babylon. It reads the modes' state
+  each frame (`VISUALS` by entity kind, `EFFECTS` by fight event); game code never draws or pushes state to drawing
+  code. `npm run typecheck` checks the imports.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
   `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
   goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.

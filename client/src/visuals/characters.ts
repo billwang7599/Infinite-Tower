@@ -1,0 +1,134 @@
+/** Frames for the 24x24 pixel sprites (sprites.ts): the player's from their look (gfx/look/), the rest drawn here. */
+import type { Hand, Look } from "@infinite-tower/shared";
+import { VIEWS, type Picture } from "../gfx/look/art.js";
+import { SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
+import { CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "../gfx/look/look.js";
+import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
+
+/** How many frames each of the arena's poses has. */
+export const BATTLE_FRAMES: Record<Pose | SwordPose, number> = { stand: 1, slash: 1, down: 1, ...SWORD_POSES };
+
+/** The side chibi faces right, like every side view. */
+export interface PlayerSprites<Sprite> {
+  chibi: Record<ChibiFacing, Sprite>;
+  battle: Record<Pose | SwordPose, Sprite[]>;
+}
+
+/** About a frame between slices, so the screen keeps moving while the arena's frames are painted. */
+export const PAINT_GAP_MS = 16;
+
+/** The chibi is painted at once; the arena's frames (~3 ms each) one per slice after, or the rest on `finish`. */
+export class PlayerLook<Sprite> {
+  private worn: string | null = null;
+  private look: Look | null = null;
+  private swordHand: Hand | null = "rightHand";
+  private unpainted: (() => void)[] = [];
+  private nextSlice: ReturnType<typeof setTimeout> | undefined;
+
+  constructor(
+    private readonly sprites: PlayerSprites<Sprite>,
+    private readonly redraw: (sprite: Sprite, draw: SpriteDraw) => void,
+  ) {}
+
+  wear(look: Look): void {
+    const key = JSON.stringify(look);
+    if (key === this.worn) return;
+    this.worn = key;
+    this.look = look;
+    for (const facing of CHIBI_FACINGS) {
+      const pic = drawChibi(look, facing);
+      this.redraw(this.sprites.chibi[facing], (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side"));
+    }
+    this.paintBattle(look);
+  }
+
+  hold(swordHand: Hand | null): void {
+    if (swordHand === this.swordHand) return;
+    this.swordHand = swordHand;
+    if (this.look) this.paintBattle(this.look);
+  }
+
+  finish(): void {
+    clearTimeout(this.nextSlice);
+    for (const paintFrame of this.unpainted.splice(0)) paintFrame();
+  }
+
+  private paintBattle(look: Look): void {
+    const swordHand = this.swordHand;
+    this.unpainted = (Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]).flatMap((pose) =>
+      this.sprites.battle[pose].map((sprite, frame) => () => {
+        const pic = drawBattle(look, pose, frame, undefined, swordHand);
+        this.redraw(sprite, (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width));
+      }),
+    );
+    this.paintLater();
+  }
+
+  private paintLater(): void {
+    clearTimeout(this.nextSlice);
+    if (this.unpainted.length === 0) return;
+    this.nextSlice = setTimeout(() => {
+      this.unpainted.shift()?.();
+      this.paintLater();
+    }, PAINT_GAP_MS);
+  }
+}
+
+/** `pic`, each of its pixels `scale` sprite pixels square; `mirrored` flips it left to right. */
+function paint(px: Px, pic: Picture, scale: number, mirrored = false): void {
+  for (let y = 0; y < pic.height; y++) {
+    for (let x = 0; x < pic.width; x++) {
+      const i = (y * pic.width + x) * 4;
+      if (!pic.rgba[i + 3]) continue;
+      const color = `#${[0, 1, 2].map((c) => pic.rgba[i + c]!.toString(16).padStart(2, "0")).join("")}`;
+      px((mirrored ? pic.width - 1 - x : x) * scale, y * scale, scale, scale, color);
+    }
+  }
+}
+
+/** Wild boar, side view (overworld). */
+export const drawBoar: SpriteDraw = (px) => {
+  const hide = "#6b4632", hideHi = "#835a40", dark = "#3a281d", snout = "#b77a6a", tusk = "#efe6cf";
+  px(3, 10, 1, 3, dark);               // tail
+  px(4, 9, 13, 9, hide);               // body
+  px(5, 10, 11, 3, hideHi);
+  px(5, 8, 11, 2, dark);               // bristly mane
+  px(7, 7, 2, 1, dark); px(11, 7, 2, 1, dark);
+  px(16, 10, 5, 7, hide);              // head
+  px(16, 8, 2, 3, dark);               // ear
+  px(19, 11, 1, 1, "#140c08");         // eye
+  px(21, 13, 2, 3, snout);             // snout
+  px(22, 14, 1, 1, "#5a2e26");         // nostril
+  px(20, 16, 1, 1, tusk); px(21, 15, 1, 1, tusk);
+  px(5, 18, 2, 3, dark); px(8, 18, 2, 3, dark);     // legs
+  px(13, 18, 2, 3, dark); px(16, 17, 2, 4, dark);
+};
+
+/** Kobold swordsman, side view (overworld): a dog-headed little fighter, its sword held up in front. */
+export const drawKobold: SpriteDraw = (px) => {
+  const fur = "#8a6a4a", furHi = "#a5825e", dark = "#4a3626", cloth = "#6e2f2a", steel = "#d6dde3";
+  px(19, 2, 1, 12, steel);             // blade, held up
+  px(17, 13, 5, 1, "#b8913a");         // guard
+  px(18, 14, 2, 2, dark);              // grip + fist
+  px(9, 4, 2, 3, dark);                // ear
+  px(8, 6, 7, 6, fur);                 // head
+  px(9, 7, 4, 2, furHi);
+  px(14, 8, 4, 3, fur);                // snout
+  px(17, 8, 1, 1, "#140c08");          // nose
+  px(12, 7, 1, 1, "#f2c84a");          // eye
+  px(8, 12, 8, 7, cloth);              // tunic
+  px(8, 17, 8, 1, dark);               // belt
+  px(14, 13, 4, 2, fur);               // sword arm
+  px(5, 15, 3, 1, fur); px(4, 14, 1, 1, fur);  // tail
+  px(9, 19, 2, 4, dark); px(13, 19, 2, 4, dark); // legs
+};
+
+/** "!" speech bubble shown when a boar notices you. */
+export const drawAlert: SpriteDraw = (px) => {
+  px(6, 2, 12, 16, "#1b1b2a");
+  px(7, 3, 10, 14, "#ffffff");
+  px(10, 5, 4, 7, "#d23a2c");
+  px(10, 13, 4, 2, "#d23a2c");
+  px(10, 18, 4, 2, "#1b1b2a");         // bubble tail
+  px(11, 17, 2, 2, "#ffffff");
+};

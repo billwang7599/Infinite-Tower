@@ -4,7 +4,7 @@ Status: **being built**. The user's design, condensed (their own doc isn't in th
 Built so far: the grammar (`shared/src/spells/spell.ts`), the words each player knows (saved), casting in the
 shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), PR D's chanting in fights, the
 spellbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/spells/`), and PR E's Beam, Imbue, Forms with no
-element and every augment, and PR F's effects (`client/src/modes/battle/spells/`). Numbers marked *placeholder* are
+element and every augment, and PR F's effects (`client/src/visuals/battle/spells.ts`). Numbers marked *placeholder* are
 the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`).
 
 ## Decided by the user

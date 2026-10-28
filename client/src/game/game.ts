@@ -3,15 +3,11 @@
  * connection; this routes its messages, keeps the settings in sync, and runs the transitions: an encounter flashes
  * into battle, leaving a decided fight fades back to the overworld, where the server's result is applied and told.
  */
-import type { AbstractEngine } from "@babylonjs/core";
 import {
-  bagCounts, heldIn, moveGear, type Character, type GridSpot, type Hand, type ServerMsgOf, type Spell, type Spot,
+  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Spell, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
-import { frameSeconds } from "../core/time.js";
-import { PlayerLook } from "../gfx/characters.js";
-import { redrawSprite } from "../gfx/sprites.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { startPinging, type Pinging } from "../net/ping.js";
@@ -19,8 +15,12 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/spells/chant.js";
 import { whoHasTheKeys, type UiState } from "../ui/state.js";
+import type { Drawing } from "../visuals/visuals.js";
 import { exposeDebugHandles } from "./debug.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
+
+/** A stalled tab's first frame back counts as this long at most, so it doesn't make a huge step. */
+const MAX_FRAME_TIME = 0.1;
 
 export interface Game {
   /** null outside a session. */
@@ -30,8 +30,6 @@ export interface Game {
   /** Sends any unsent settings, hangs up, stops drawing, forgets the level and any fight. */
   leave(): void;
   /** Once the server's result is in: fade back to the overworld. */
-  /** A fight's gear changed: the arena sprite is repainted at once. */
-  holdSword(hand: Hand | null): void;
   leaveBattle(): void;
   rest(): void;
   useItem(at: GridSpot): void;
@@ -42,7 +40,7 @@ export interface Game {
 }
 
 interface GameParts {
-  engine: AbstractEngine;
+  drawing: Drawing;
   actions: Actions;
   ui: UiState;
   settings: Settings;
@@ -50,7 +48,7 @@ interface GameParts {
   overworld: Overworld;
 }
 
-export function createGame({ engine, actions, ui, settings, battle, overworld }: GameParts): Game {
+export function createGame({ drawing, actions, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let stopSync = () => {};
@@ -60,9 +58,6 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   let encounter: ServerMsgOf<"encounter"> | null = null;
   /** Held while the player is still in the arena: applied when they leave it. */
   let result: ServerMsgOf<"battleResult"> | null = null;
-  const playerLook = new PlayerLook(
-    { chibi: overworld.view.materials.player, battle: battle.ctx.materials.player }, redrawSprite,
-  );
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
@@ -106,6 +101,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     ui.closeBattleBag();
     ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
+    drawing.show(next);
     updateInput();
   };
 
@@ -113,8 +109,6 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     const to = net;
     if (!to) return;
     result = null;
-    playerLook.hold(heldIn(msg.setup.players[msg.seat]!.gear.equipment, "sword"));
-    playerLook.finish();
     battle.start(msg, (m) => to.send(m));
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
     say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
@@ -136,8 +130,14 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   /** No character yet: the creation screen opens (it closes itself), and the server holds the level back. */
   const applyCharacter = (character: Character | null) => {
     ui.overworld.set({ character });
-    if (character) playerLook.wear(character.look);
-    else ui.creation.set({ open: true });
+    if (!character) ui.creation.set({ open: true });
+  };
+
+  let frameRequest = 0, lastFrameMs = 0;
+  const loop = (atMs: number) => {
+    frame(Math.min(Math.max(0, atMs - lastFrameMs) / 1000, MAX_FRAME_TIME));
+    lastFrameMs = atMs;
+    frameRequest = requestAnimationFrame(loop);
   };
 
   const frame = (dt: number) => {
@@ -150,20 +150,13 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
       }
       if (fade.done) transition = null;
     }
-    if (mode === "overworld") {
-      overworld.update(dt, transition !== null);
-      overworld.render();
-    } else if (mode === "battle") {
-      battle.render();
-    }
+    if (mode === "overworld") overworld.update(dt, transition !== null);
+    else if (mode === "battle") battle.update(dt);
+    drawing.frame(dt);
   };
 
   return {
     mode: () => mode,
-    holdSword(hand) {
-      playerLook.hold(hand);
-      playerLook.finish();
-    },
     leaveBattle() {
       if (mode !== "battle" || transition || !result) return;
       transition = startTransition("overworld");
@@ -231,7 +224,8 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
         pong: (msg) => pinging?.pong(msg.id),
       });
       setMode("overworld");
-      engine.runRenderLoop(() => frame(frameSeconds(engine)));
+      lastFrameMs = performance.now();
+      frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
         battle, overworld, ui, settings, mode: () => mode,
         encounter: (enemy?: string) => net?.send({ t: "debug", cmd: "encounter", enemy }),
@@ -244,7 +238,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
       pinging?.stop();
       pinging = null;
       ui.ping.set({ ms: null });
-      engine.stopRenderLoop();
+      cancelAnimationFrame(frameRequest);
       net.close();
       net = null;
       if (mode === "battle") battle.end();
