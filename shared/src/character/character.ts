@@ -36,7 +36,7 @@ export interface Character {
   look: Look;
 }
 
-/** The look the creation screen starts from, and the player's sprite before the server says who they are. */
+/** The look the creation screen starts from. */
 export const DEFAULT_LOOK: Look = {
   body: "medium", face: "soft", skin: "light", hair: "short", hairColor: "black", eyes: "round", eyeColor: "blue",
   mouth: "smile", outfit: "slate", accent: "crimson",

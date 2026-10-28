@@ -175,9 +175,9 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
   for things the player dyes. `jerkin.ts` is the example.
 - **A body type**: a new entry in `BODY_TYPES` with every frame field, for every view and chibi facing
   (`battleFrames` builds the battle poses from a few widths). Then check every piece of gear on it.
-- **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then its sprite frame in
-  `playerFrames` (`gfx/characters.ts`) and its material (`modes/battle/materials.ts`): both are keyed by pose, so
-  they don't compile until it's there. `modes/battle/player/pose.ts` picks the pose and its frame. A sword-fight pose:
+- **A battle pose**: a name in `POSES` and its frame in `battleFrames` (`battle.ts`), then its frame count in
+  `BATTLE_FRAMES` (`gfx/characters.ts`): it's keyed by pose, so it doesn't compile until it's there, and the
+  arena's materials and their painting follow it. `modes/battle/player/pose.ts` picks the pose and its frame. A sword-fight pose:
   its name and frame count in `SWORD_POSES` and its frames' keys in `moves.ts` (hands and sword tip from the
   shoulders).
 - **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, the

@@ -523,7 +523,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
                      messages, keeps the settings in sync, overworld <-> battle switching, who has the keys, the
                      character from `welcome` / `character`, opening creation without one; tells the player
-                     what happened with `say`; repaints the player's sprites in their look), transition.ts (Mode,
+                     what happened with `say`; has PlayerLook paint the player's look, finishing it before a
+                     fight), transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`)
     net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
@@ -548,8 +549,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                      (HudSettings: show ping, the same way)
     gfx/             textures.ts (procedural textures), materials.ts (colorMaterial), sprites.ts (pixelMaterial,
                      spriteMaterial, redrawSprite),
-                     characters.ts (playerFrames(look): the look's chibi facing each way on the overworld, its battle
-                     sprite's frames in each pose in the arena, BATTLE_FRAMES; the boar, the kobold)
+                     characters.ts (PlayerLook: paints a look's chibi at once and its battle frames one per slice
+                     after, or the rest when a fight starts; BATTLE_FRAMES; the boar, the kobold)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the

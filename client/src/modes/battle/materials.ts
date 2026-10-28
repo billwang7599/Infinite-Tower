@@ -1,10 +1,9 @@
 /** Arena materials, from procedural textures: no asset files. */
 import { Color3, StandardMaterial, type DynamicTexture, type Scene } from "@babylonjs/core";
-import { DEFAULT_LOOK } from "@infinite-tower/shared";
-import { playerFrames } from "../../gfx/characters.js";
+import { BATTLE_FRAMES } from "../../gfx/characters.js";
 import type { Pose, SwordPose } from "../../gfx/look/battle.js";
 import { colorMaterial } from "../../gfx/materials.js";
-import { spriteMaterial, type SpriteDraw } from "../../gfx/sprites.js";
+import { spriteMaterial } from "../../gfx/sprites.js";
 import { blobTexture, speckleTexture, telegraphTexture } from "../../gfx/textures.js";
 
 export interface Materials {
@@ -15,7 +14,7 @@ export interface Materials {
   leaves: StandardMaterial;
   /** The soft round shadow under the player's sprite. */
   blobShadow: StandardMaterial;
-  /** The player's sprite: every pose's frames. */
+  /** The player's sprite: every pose's frames, blank until their look is painted. */
   player: Record<Pose | SwordPose, StandardMaterial[]>;
   slashFx: StandardMaterial;
   /** The block's guard in front of the player. */
@@ -31,9 +30,7 @@ function tiled(scene: Scene, name: string, tex: DynamicTexture, scale: number): 
   return m;
 }
 
-/** The player is drawn in the default look until `welcome` says who they are (game.ts repaints it). */
 export function createMaterials(scene: Scene): Materials {
-  const frames = playerFrames(DEFAULT_LOOK);
   const grass = tiled(scene, "grass", speckleTexture(scene, "grass", {
     base: "#3f6b35", specks: ["#4d7f3e", "#355a2c", "#5b8a45", "#2d4d27"], count: 900, maxRadiusPx: 5, seed: 1,
   }), 18);
@@ -74,8 +71,8 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.zOffset = -3;
 
   const player = {} as Materials["player"];
-  for (const [pose, draws] of Object.entries(frames.battle) as [Pose | SwordPose, SpriteDraw[]][]) {
-    player[pose] = draws.map((draw, i) => spriteMaterial(scene, `player-${pose}-${i}`, draw));
+  for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
+    player[pose] = Array.from({ length: count }, (_, i) => spriteMaterial(scene, `player-${pose}-${i}`, () => {}));
   }
 
   return { grass, dirt, stone, bark, leaves, blobShadow, player, slashFx, guardFx, telegraph };
