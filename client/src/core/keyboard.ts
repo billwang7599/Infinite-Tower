@@ -1,34 +1,44 @@
-/** The keyboard, by KeyboardEvent.code (physical position, any layout). The whole game is playable with it alone. */
 import { Buttons } from "./buttons.js";
 
-/** Keys the browser would otherwise use (scrolling, moving focus, Firefox's quick find). */
-const SWALLOW = new Set([
-  "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
-]);
+// Returning true keeps the key from the page.
+type KeyListener = (key: string, repeat: boolean) => boolean;
+
+const inTextField = (target: EventTarget | null): boolean =>
+  ["INPUT", "TEXTAREA"].includes((target as Partial<Element> | null)?.tagName ?? "");
 
 export class Keyboard extends Buttons {
-  private on = false;
+  private listener: KeyListener = () => false;
+  private capture: ((key: string) => boolean) | null = null;
 
   constructor(target: Window = window) {
     super();
-    target.addEventListener("keydown", (e) => {
-      if (!this.on) return;
-      if (SWALLOW.has(e.code)) e.preventDefault();
-      this.press(e.code, e.repeat);
-    });
+    target.addEventListener("keydown", (e) => this.keydown(e));
     target.addEventListener("keyup", (e) => this.release(e.code));
     // Avoid stuck keys when the tab loses focus.
     target.addEventListener("blur", () => this.releaseAll());
   }
 
-  /** Off (the default) while a screen has the keyboard: keys are left to the page, and held ones forgotten. */
-  get enabled(): boolean {
-    return this.on;
+  listen(listener: KeyListener): void {
+    this.listener = listener;
   }
 
-  set enabled(on: boolean) {
-    if (on === this.on) return;
-    this.on = on;
-    if (!on) this.releaseAll(true);
+  captureKey(take: (key: string) => boolean): () => void {
+    this.capture = take;
+    return () => {
+      if (this.capture === take) this.capture = null;
+    };
+  }
+
+  private keydown(e: KeyboardEvent): void {
+    const take = this.capture;
+    if (take) {
+      e.preventDefault();
+      if (!e.repeat && take(e.code) && this.capture === take) this.capture = null;
+      return;
+    }
+    // In a text field only the arrows and Esc count.
+    if (inTextField(e.target) && !e.code.startsWith("Arrow") && e.code !== "Escape") return;
+    this.press(e.code, e.repeat);
+    if (this.listener(e.code, e.repeat)) e.preventDefault();
   }
 }

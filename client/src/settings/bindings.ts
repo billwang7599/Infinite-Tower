@@ -5,7 +5,7 @@
  * arena, the other two only there; so a general key is on nothing else, but the overworld and the arena may share
  * keys. The arena is keyboard-first: the left hand on WASD, the right on the sword's U I O / J K L / M , . grid.
  */
-import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
+import { MAX_KEYS_PER_ACTION, SWING_DIRS, type AttackKind, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
 interface ActionDef {
@@ -14,6 +14,18 @@ interface ActionDef {
   /** MouseEvent.button: 0 left (trackpad tap), 1 middle (wheel click), 2 right (two-finger tap). */
   mouse?: readonly number[];
 }
+
+const ATTACK_ACTIONS = {
+  tlbr: { label: "Swing top-left to bottom-right", keys: ["KeyU"] },
+  tb: { label: "Swing top to bottom", keys: ["KeyI"] },
+  trbl: { label: "Swing top-right to bottom-left", keys: ["KeyO"] },
+  lr: { label: "Swing left to right", keys: ["KeyJ"], mouse: [0] },
+  stab: { label: "Stab", keys: ["KeyK"] },
+  rl: { label: "Swing right to left", keys: ["KeyL"] },
+  bltr: { label: "Swing bottom-left to top-right", keys: ["KeyM"] },
+  bt: { label: "Swing bottom to top", keys: ["Comma"] },
+  brtl: { label: "Swing bottom-right to top-left", keys: ["Period"] },
+} as const satisfies Record<AttackKind, ActionDef>;
 
 export const ACTIONS = {
   general: {
@@ -31,17 +43,8 @@ export const ACTIONS = {
     turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
   },
-  /** Swings are named by how they cross the screen, listed in the order of their keys' grid. */
   battle: {
-    swingTLBR: { label: "Swing top-left to bottom-right", keys: ["KeyU"] },
-    swingTB: { label: "Swing top to bottom", keys: ["KeyI"] },
-    swingTRBL: { label: "Swing top-right to bottom-left", keys: ["KeyO"] },
-    swingLR: { label: "Swing left to right", keys: ["KeyJ"], mouse: [0] },
-    stab: { label: "Stab", keys: ["KeyK"] },
-    swingRL: { label: "Swing right to left", keys: ["KeyL"] },
-    swingBLTR: { label: "Swing bottom-left to top-right", keys: ["KeyM"] },
-    swingBT: { label: "Swing bottom to top", keys: ["Comma"] },
-    swingBRTL: { label: "Swing bottom-right to top-left", keys: ["Period"] },
+    ...ATTACK_ACTIONS,
     block: { label: "Block (hold)", keys: ["ShiftLeft", "ShiftRight"] },
     dodge: { label: "Dodge", keys: ["KeyF"], mouse: [2] },
     jump: { label: "Jump", keys: ["Space"] },
@@ -53,6 +56,22 @@ export const ACTIONS = {
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
 
+// Fixed: the title runs before the server sends the player's bindings, and Esc can't be rebound.
+export const MENUS = {
+  title: { play: ["Enter", "Space", "KeyJ"] },
+  creation: {
+    confirm: ["Enter"],
+    goOn: ["Space", "KeyJ"],
+    goBack: ["Escape"],
+    menuUp: ["ArrowUp", "KeyW"],
+    menuDown: ["ArrowDown", "KeyS"],
+    menuLeft: ["ArrowLeft", "KeyA"],
+    menuRight: ["ArrowRight", "KeyD"],
+  },
+  bag: { closeBag: ["Escape"] },
+} as const satisfies Record<string, Record<string, readonly string[]>>;
+
+export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;
 export type Group = keyof typeof ACTIONS;
 export type Action<G extends Group> = G extends Group ? keyof (typeof ACTIONS)[G] & string : never;
 export type ActionRef = { [G in Group]: { group: G; action: Action<G> } }[Group];
@@ -207,7 +226,8 @@ const prop = (o: unknown, key: string): unknown =>
 
 /**
  * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
- * the overworld was the field, movement and the panels were per mode, and the bag had a group of its own.
+ * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, and the
+ * swings were swingLR and so on.
  */
 const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.forward": ["battle.forward", "overworld.up", "field.up"],
@@ -219,6 +239,7 @@ const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "overworld.rest": ["field.rest"],
   "overworld.turnItem": ["bag.turn"],
   "overworld.useItem": ["bag.use"],
+  ...Object.fromEntries(SWING_DIRS.map((dir) => [`battle.${dir}`, [`battle.swing${dir.toUpperCase()}`]])),
 };
 
 function savedKeys(saved: unknown, ref: ActionRef): unknown {

@@ -106,6 +106,17 @@ main.ts
 
 - **Game data is ECS** (`shared/src/core/ecs.ts`: world, components, queries). Systems are functions run in a fixed
   order. Services (the connection, keyboard, mouse, prediction, the fight's sync) are plain classes.
+- **Every key goes through one input system, in two parts.** The devices (`core/keyboard.ts`, the only key listener,
+  and `core/mouse.ts`) only know buttons: held, latched presses, in order. `core/actions.ts` alone turns keys into
+  actions, for a stack of layers (`whoHasTheKeys` in `ui/state.ts`, e.g. battle with Settings on top); only the top
+  one gets keys, and it makes only its own actions (the bag's Esc is `closeBag`, not Settings' `menu`). One-off
+  things listen by action name alone (`actions.on`, `useAction` in the UI), so an action name means one thing
+  everywhere; the overworld's tick and the fight's steps call `actions.poll()` once each, for what's held and what was
+  pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
+  only while their layer is on top; the arena camera reads the fight's last poll. Actions also owns the mouse: the
+  pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
+  movement each frame with `actions.lookDelta()`; no mode sees `Mouse`. In a text field only the arrows and Esc
+  count; rebinding takes raw keys with `captureKey`. Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`overworld/`, mode `"overworld"`) and the fight (`battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
@@ -331,7 +342,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
   `DEV_PING_MS`; a `ping` answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a save that clashes with new defaults
-  falls back to them), what the keys and buttons ask for (actions; the attack pressed last), the player's pose,
+  falls back to them), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
+  layer on top, each with its own keys; held keys read only there) and who has them, what the keys and buttons ask
+  for (actions; the attack pressed last), the player's pose,
   sword trail and thrust, camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld
   prediction, the fight's sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
@@ -361,8 +374,10 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
   damage, stamina, deaths and the result. The client runs its own copy to show it at once, sends only its inputs
   (tagged with their steps) and takes the server's fight whenever the hashes differ. There's no message a client
   could claim a result with, and the result shows only when the server's comes; keep it that way.
-- **Keys come from `client/src/settings/bindings.ts`.** Game code asks about actions (`core/actions.ts`). When
-  showing a key on screen, read it from the bindings (`keyName`). Esc (the settings) and ⌘ can't be rebound.
+- **Keys come from `client/src/settings/bindings.ts`, through `core/keyboard.ts`**, the page's only key listener.
+  Game code asks about actions (`core/actions.ts`), the UI listens with `useAction`; neither sees key codes, and
+  nothing else listens for keys. When showing a key on screen, read it from the bindings (`keyName`). Esc (the
+  settings) and ⌘ can't be rebound.
 - **Text is escaped by JSX**, so server or player strings can be rendered safely. No `innerHTML` or
   `dangerouslySetInnerHTML`.
 - **Small, single-purpose files** (roughly under 200 lines). Add a folder per new mode, enemy or screen rather than
@@ -499,13 +514,14 @@ client/          Browser game: Babylon rendering, input, React UI.
   vite.config.ts   Dev server :5173, proxies /ws and /api to the game server
   test/            Unit tests of the logic that runs without Babylon or the DOM, mirroring src/
   src/
-    main.ts          Bootstrap: mount the UI (title screen), ask who's logged in, start preparing the game;
+    main.ts          Bootstrap: make the keyboard, mouse and Actions, mount the UI (title screen), ask who's logged
+                     in, start preparing the game;
                      logging in (or Play) connects, then joins; Return to title (or a lost connection) leaves
     game/            start.ts (its own lazily loaded chunk with Babylon and Rapier: prepareGame() loads the
-                     physics and builds the engine, both scenes and modes and input (off) once, behind the title,
+                     physics and builds the engine, both scenes and modes once, behind the title,
                      and returns the Game),
                      game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
-                     messages, keeps the settings in sync, overworld <-> battle switching, who gets input, the
+                     messages, keeps the settings in sync, overworld <-> battle switching, who has the keys, the
                      character from `welcome` / `character`, opening creation without one; tells the player
                      what happened with `say`; repaints the player's sprites in their look), transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`)
@@ -513,16 +529,20 @@ client/          Browser game: Babylon rendering, input, React UI.
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
                      account.ts (the /api calls: who's
                      logged in, log in, register, log out), ping.ts (startPinging: the HUD's ping, every 2 s)
-    core/            keyboard.ts (off outside a session, with Settings open, or the bag), mouse.ts (optional,
+    core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
+                     text fields keep their keys; captureKey for rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
-                     latched presses, counted in order), actions.ts (actionOf: the bindings turned around, key ->
-                     action, general's plus the place's; Actions: the keyboard and mouse asked about actions, and
-                     the attack: the last pressed, held), time.ts
+                     latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
+                     action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
+                     layer's held and pressed actions and its axes, `lookDelta` for the arena's mouse movement,
+                     and when the mouse may lock),
+                     time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
-                     keys, fixed mouse buttons; KeyBindings: the player's keys; keys saved where they used to be,
+                     keys, fixed mouse buttons; MENUS: the title's, creation's and the bag's fixed keys; KeyBindings:
+                     the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on), hud.ts
                      (HudSettings: show ping, the same way)
@@ -549,17 +569,18 @@ client/          Browser game: Babylon rendering, input, React UI.
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping; bars are
                        `...Fraction`, 0..1), `notifications` (notifications/), `settingsScreen`, `creation` and
                        `overworldPanel` (which side panel is open: the UI writes them too, the game watches them;
-                       the open bag has the keys, `bagHasTheKeys`), and UiActions (what the UI asks of the game:
-                       signIn, logOut, play, rest, useItem, moveItem, saveCharacter, returnToTitle). No React.
+                       `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
+                       of the game: signIn, logOut, play, rest, useItem, moveItem, saveCharacter,
+                       returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), styles.ts (BUTTON,
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
-                       useKeydown.ts (a window key listener), LookPicture.tsx (a look on a canvas: the portrait, or
-                       the chibi facing front)
-      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel keys),
+                       useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
+                       canvas: the portrait, or the chibi facing front)
+      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and rest keys),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx wires the mouse and the
                        bag keys and shows the selected item, BagGrid.tsx draws the grid, the items, the hovered /
@@ -620,7 +641,7 @@ client/          Browser game: Babylon rendering, input, React UI.
                        Meshes (+ disposers)
       materials.ts, arena.ts (scenery: grass, stones, forest)
       player/          spawn (the sprite, shadow, and the sword's trail, thrust and guard on the fight's player),
-                       components (PlayerSprite), input (actions -> PlayerInputData),
+                       components (PlayerSprite), input (a poll -> PlayerInputData; the attack is the last pressed),
                        sprite (puts pose on the meshes, shadow), pose (pose and its frame, the trail's line
                        and the stab's thrust from the action, no Babylon: tested)
       enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
@@ -661,8 +682,9 @@ client/          Browser game: Babylon rendering, input, React UI.
   implementation in an outlet (or a new outlet folder, added to `OUTLETS` in `server/scripts/check-layers.ts`),
   and one line in `main.ts` passing it in. Core never imports the implementation.
 - **A key binding.** The action in `ACTIONS` (`client/src/settings/bindings.ts`, label + default keys) in general,
-  overworld or battle, asked about with `actions.isDown(<place>, <action>)` / `consumePressed`, or `actionOf` in a
-  keydown listener; the settings screen lists it on its own.
+  overworld or battle, read from `actions.poll()` (`held`, `pressed`; a pair of opposites goes in `AXES`), or
+  listened for with `useAction(input, [<action>], ...)`, and added to its layer in `LayerActions` (`core/actions.ts`)
+  if it isn't the whole group's; the settings screen lists it on its own.
 - **A new kind of setting.** A store in `client/src/settings/` with `restore` / `toSaved` (see camera.ts), added to
   `Settings`, `createSettings()`, `restoreSettings()` and `toSaved()` in settings.ts, a field in
   `SavedSettingsSchema` (`shared/src/net/client-messages.ts`), and a section in `ui/screens/settings/` shown by
