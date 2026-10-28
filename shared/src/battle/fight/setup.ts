@@ -5,7 +5,8 @@ import type { Burden } from "../../items/burden.js";
 import { heldIn, type Carried, type Equipment } from "../../items/gear.js";
 import type { Spellbook } from "../../spells/spell.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, Statuses, SwordAttack, type PlayerData,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Stamina, Statuses, SwordAttack,
+  type PlayerData,
 } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
@@ -59,14 +60,13 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   return e;
 }
 
-type AddAttack<K extends keyof EnemyAttacks> =
-  (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>, seed: number) => void;
+type AddAttack<K extends keyof EnemyAttacks> = (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>) => void;
 const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
-  sword: (world, e, def, seed) => {
+  sword: (world, e, def) => {
     world.add(e, SwordAttack, {
-      def, cooldown: def.firstDelay, attack: def.moves[0] ?? "lr", swingsLeft: 0, rng: seed >>> 0, parryCooldown: 0,
+      def, cooldown: def.firstDelay, attack: def.moves[0] ?? "lr", swingsLeft: 0, parryCooldown: 0,
     });
   },
 };
@@ -79,11 +79,12 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Enemy, {
     def, state: "approach", stateTime: 0, duration: 0, yaw, poise: def.poise, armored: false,
     sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false },
-    move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false },
+    move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false }, rng: seed >>> 0,
   });
   for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {
-    if (attack) ATTACKS[kind](world, e, attack, seed);
+    if (attack) ATTACKS[kind](world, e, attack);
   }
+  if (def.sidestep) world.add(e, Sidestep, { def: def.sidestep, dir: { x: 0, z: 0 } });
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });

@@ -1,7 +1,7 @@
 /** A Fight's state, as plain data. The physics world holds the colliders, by handle. */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
@@ -98,6 +98,8 @@ export interface SpellObjectData {
   /** A Beam's time doesn't run while its caster holds the cast. */
   held: boolean;
   target: Entity | null;
+  /** A homing split Bolt's aim beside its target (m), from its place in the fan. */
+  fanM: Vec2;
   ignore: Entity | null;
 }
 export const SpellObject = defineComponent<SpellObjectData>("SpellObject");
@@ -167,7 +169,8 @@ export type EnemyState =
   | "approach" | "stunned" | "parried" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "swordWindup" | "sword" | "swordRecover";
+  | "swordWindup" | "sword" | "swordRecover"
+  | "sidestep";
 
 /** Any arena enemy. Each attack component (below) has its own system; models animate from `state`. */
 export interface EnemyData {
@@ -184,6 +187,8 @@ export interface EnemyData {
   armored: boolean;
   sense: EnemySense;
   move: EnemyMove;
+  /** Its random numbers' seed, kept in the fight (and its hash) so both sides roll the same. */
+  rng: number;
 }
 export const Enemy = defineComponent<EnemyData>("Enemy");
 
@@ -194,13 +199,12 @@ export interface AttackState<D> {
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
-/** A swordsman's chains of swings. Its random numbers come from `rng`, a seed kept in the fight (and its hash). */
+/** A swordsman's chains of swings. */
 export interface SwordAttackData extends AttackState<SwordDef> {
   /** The attack winding up, swinging or last swung. */
   attack: AttackKind;
   /** Swings still to come in this chain after the current one. */
   swingsLeft: number;
-  rng: number;
   /** Seconds until it can parry again. */
   parryCooldown: number;
 }
@@ -208,3 +212,5 @@ export interface SwordAttackData extends AttackState<SwordDef> {
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
 export const SwordAttack = defineComponent<SwordAttackData>("SwordAttack");
+export interface SidestepData { def: SidestepDef; dir: Vec2 }
+export const Sidestep = defineComponent<SidestepData>("Sidestep");

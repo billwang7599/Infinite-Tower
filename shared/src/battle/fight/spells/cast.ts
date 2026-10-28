@@ -69,8 +69,8 @@ const liveShots = (world: World): number => [...world.query(SpellObject)].length
 function spawn(ctx: FightContext, o: NewObject): SpellObjectData | null {
   if (liveShots(ctx.world) >= MAX_LIVE_SHOTS) return null;
   return ctx.world.add(ctx.world.spawn(), SpellObject, {
-    flownM: 0, reachM: 0, left: 0, tickLeft: 0, hitsLeft: 0, held: false, target: null, ignore: null, ...o,
-    pos: { ...o.pos }, dir: { ...o.dir },
+    flownM: 0, reachM: 0, left: 0, tickLeft: 0, hitsLeft: 0, held: false, target: null, fanM: { x: 0, z: 0 },
+    ignore: null, ...o, pos: { ...o.pos }, dir: { ...o.dir },
   });
 }
 
@@ -111,6 +111,9 @@ function fire(
       const gapM = Math.min(
         MAGIC.bolt.splitGapRadii * shot.boltRadiusM, MAGIC.bolt.splitRowMaxM / Math.max(1, count - 1),
       );
+      const aimGapM = Math.min(
+        MAGIC.bolt.followGapRadii * shot.boltRadiusM, MAGIC.bolt.followRowMaxM / Math.max(1, count - 1),
+      );
       for (let i = 0; i < count; i++) {
         const side = i - (count - 1) / 2;
         const turned = yaw + side * spreadRad;
@@ -118,6 +121,7 @@ function fire(
         const pos = { ...from, x: from.x + aim.z * side * gapM, z: from.z - aim.x * side * gapM };
         spawn(ctx, {
           ...base, kind: "bolt", pos, dir: boltDir, target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM,
+          fanM: { x: aim.z * side * aimGapM, z: -aim.x * side * aimGapM },
         });
       }
       return;
@@ -272,8 +276,10 @@ function fly(ctx: FightContext, e: Entity, o: SpellObjectData): void {
   }
   if (follow > 0 && o.target !== null) {
     const to = world.require(o.target, Body).pos, maxTurnRad = follow * FIXED_DT;
+    const fan = Math.min(1, Math.hypot(to.x - pos.x, to.z - pos.z) / MAGIC.bolt.followMergeM);
+    const toX = to.x + o.fanM.x * fan - pos.x, toZ = to.z + o.fanM.z * fan - pos.z;
     const have = Math.atan2(o.dir.x, o.dir.z);
-    const turned = have + clamp(wrapAngle(Math.atan2(to.x - pos.x, to.z - pos.z) - have), -maxTurnRad, maxTurnRad);
+    const turned = have + clamp(wrapAngle(Math.atan2(toX, toZ) - have), -maxTurnRad, maxTurnRad);
     o.dir = { x: Math.sin(turned), z: Math.cos(turned) };
   }
   const { dir } = o;

@@ -36,8 +36,11 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
   You move slower while winding up; a dodge cancels the wind-up at no cost, and so does a hit that stuns or
   staggers you (a sword hit only hurts, so the cast still goes off). A cast pressed mid-swing waits for the swing to let
   go, like a dodge. Your own spells never hurt you. A Beam is held and paid per second.
-- **Aim:** Bolt and Beam aim at the locked enemy, or where the camera faces when unlocked; Follow homes onto the
-  locked enemy, or the nearest when unlocked.
+- **Aim:** Bolt and Beam aim at the locked enemy, or where the camera faces when unlocked; Follow homes onto the locked
+  enemy, or the nearest when unlocked. Lock-on is close to auto-aim, so the defender's side is the skill: a Bolt aims at
+  where the target is, never leads, so a step aside makes it miss; Follow turns slowly, so a late dodge shakes it; the
+  boar and the Kobold sometimes step aside from a Bolt winding up at them (`sidestep` in
+  `server/src/core/content/enemies.ts`: a chance per cast, a reaction time, stepping `leadTime` before it leaves).
 - **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
   Splits give four next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
   segment's travel direction; after a directionless one (Nova, Self, Imbue) it takes the caster's facing when it
@@ -130,8 +133,10 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
   and time, Self's statuses); on a Nova, the first leaves a cloud as wide as the Nova for 8 s, pulsing it every second
   at 40%, its hand-off still at the burst, and each after it doubles the cloud's time. Swift ×1.5 speed (a Bolt's
   flight, a Beam's ticks; an Imbue's swings start quicker). Delay holds the hand-off back 1 s each (on a spell's last
-  segment it does nothing). Follow turns a Bolt up to 8 rad/s each toward its target, picked as it fires (the
-  locked enemy, else the nearest; if it dies, the nearest).
+  segment it does nothing). Follow turns a Bolt up to 3 rad/s each toward its target, picked as it fires (the
+  locked enemy, else the nearest; if it dies, the nearest); a dodge's i-frames don't make it lose the target. Split
+  Bolts that home aim side by side beside it, 4 Bolt radii apart (all within 3 m), closing in only over the last
+  2.5 m, so they come in apart rather than as one clump.
 - **Caps:** a player's 13th cloud ends their oldest, and so does the fight's 61st. A guard on the server's work, not
   a game rule: a fight holds at most 256 spell objects (`MAX_LIVE_SHOTS`); past it, new ones (Bolts from a Split,
   hand-offs) don't spawn. A chain too long to count costs Infinity, so it's never cast.

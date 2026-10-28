@@ -90,7 +90,7 @@ describe("a fight's hash", () => {
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
-      ["the sword's random numbers", (f) => { f.world.require(f.enemies[0]!, SwordAttack).rng += 1; }],
+      ["the random numbers", (f) => { f.world.require(f.enemies[0]!, Enemy).rng += 1; }],
       ["the sword's cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).cooldown += 0.05; }],
       ["the sword's parry cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).parryCooldown += 0.05; }],
       ["the swing it's on", (f) => {

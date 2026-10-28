@@ -190,10 +190,11 @@ main.ts
   by plain-math sweeps, not a physics body; a Beam ticking along its line, held while `castHeld` is; a lingering
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
-  Follow Bolt homes onto the input's `locked` enemy (an index into the fight's enemies) or the nearest. A hit runs
-  `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
-  the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
-  Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
+  Follow Bolt homes, at a limited turn rate, onto the input's `locked` enemy (an index into the fight's enemies) or the
+  nearest; split ones aim side by side beside it (`fanM`) until close. A hit runs `strike` (`fight/spells/strike.ts`):
+  every element's status on the target's `Statuses`, then the reactions, then the damage. `statusSystem` runs statuses
+  down and burns. Statuses also change sword hits (Empowered, Cursed, Warded, the Light shield, Siphoning:
+  `fight/spells/statuses.ts`). Every number is in `MAGIC`
   (`shared/src/spells/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
   player still; a spell on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
   (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
@@ -493,7 +494,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
-                       sword.ts (a swordsman's seeded chains of swings), common.ts
+                       sword.ts (a swordsman's seeded chains of swings), sidestep.ts (stepping aside from a
+                       Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -808,7 +810,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | The sword: reach, damage, how swings chain, momentum, parrying | `shared/src/battle/sword.ts` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
-| Enemy stats and attacks | `server/src/core/content/enemies.ts` |
+| Enemy stats, attacks and sidesteps | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |

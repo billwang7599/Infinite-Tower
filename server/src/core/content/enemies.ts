@@ -28,6 +28,7 @@ const WILD_BOAR: EnemyDef = {
       cooldown: 4.5, firstDelay: 2.0,
     },
   },
+  sidestep: { chance: 0.4, reactTime: 0.35, leadTime: 0.1, speed: 6, stepTime: 0.45 },
 };
 
 /** Floor 1's swordsman: hit it while it recovers from a chain, or while it's stunned from a parry. */
@@ -51,6 +52,7 @@ const KOBOLD_SWORDSMAN: EnemyDef = {
       cooldown: 1.2, firstDelay: 1.5, parryReaction: 0.3, parryCooldown: 1.5,
     },
   },
+  sidestep: { chance: 0.6, reactTime: 0.25, leadTime: 0.1, speed: 8, stepTime: 0.3 },
 };
 
 export const ENEMIES = {
