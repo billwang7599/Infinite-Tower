@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "spellbook" jsonb DEFAULT '[null,null,null,null]'::jsonb NOT NULL;

@@ -23,7 +23,8 @@ export type FightEvent =
   | { type: "parry"; by: Entity; target: Entity }
   /** `target` blocked a hit; short of stamina, its guard broke (a player staggered). */
   | { type: "block"; target: Entity; guardBreak: boolean }
-  | { type: "spell"; form: Form; elements: readonly SpellElement[]; at: Vec3 };
+  | { type: "spell"; form: Form; elements: readonly SpellElement[]; at: Vec3 }
+  | { type: "pageWritten"; player: Entity; page: number };
 
 export interface FightContext {
   world: World;

@@ -52,7 +52,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, gear). With no character yet, the white the
+   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the spellbook's pages). With no
+   character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
 4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
@@ -60,13 +61,14 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
-   setup (arena, enemy, your HP / stamina, stats, burden, and whether a sword and a spellbook are in hand). The client
+   setup (arena, enemy, your HP / stamina, stats, burden, whether a sword and a spellbook are in hand, and its
+   pages). The client
    flashes into battle mode, builds the same
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
    moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and hands you a
-   fresh sword and spellbook), saves and sends
+   fresh sword and a blank spellbook), saves and sends
    `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death.
@@ -115,13 +117,15 @@ main.ts
   things listen by action name alone (`actions.on`, `useAction` in the UI), so an action name means one thing
   everywhere; the overworld's tick and the fight's steps call `actions.poll()` once each, for what's held and what was
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
-  only while their layer is on top; the arena camera reads the fight's last poll. Actions also owns the mouse: the
+  only while their layer is on top (the chant's lets through only the dodge and the walk keys, for the dodge's way);
+  the arena camera reads the fight's last poll. Actions also owns the mouse: the
   pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
   movement each frame with `actions.lookDelta()` (it turns only while the right button, `dragCamera`, is held);
   no mode sees `Mouse`. Mouse movement in the arena is also read as swipes there: a quick move (`SWIPE`, scaled by
   the swing sensitivity) is pressed as the swing named by its way across the screen, in order with the keys and
   clicks, so the fight sees it like any attack; not while blocking or dragging the camera. In a text field only the
-  arrows and Esc count; rebinding takes raw keys with `captureKey`.
+  arrows, Esc, the digits and Backspace count (the spell word search picks and undoes with them; a key nobody uses
+  stays the field's); rebinding takes raw keys with `captureKey`.
   Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
@@ -185,7 +189,11 @@ main.ts
   `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
   the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
   Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
-  (`shared/src/spells/effects.ts`).
+  (`shared/src/spells/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
+  player still; a spell on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
+  (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
+  `pageWritten` event), and the server saves that book with the result. A stun breaks either off, and so does a
+  dodge; it reopens only once the input is let go (`chantBroken`), and the client closes its popup when it sees that.
 - **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's animation system (client) reads the
   state and poses the model.
@@ -258,6 +266,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`) |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost |
+| `saveSpell {page, spell}` | write a spell on a page of the spellbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
@@ -267,16 +276,17 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, spellbook, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
-| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield) and your `seat` in it |
+| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, spellbook |
 | `rested`, `itemUsed` | what resting or eating did |
 | `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
+| `spellbook` | the spellbook's pages after a `saveSpell` (written or not) |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
@@ -315,10 +325,11 @@ delayed like everything else, so `?ping=200` reads about 200.
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
-equipment (items gone from the game or in the wrong slot are dropped on load) and the spell words they know
-(`knownWords`, not sent to the client yet), keyed by account; words not in the shared `WORDS` are dropped on load. The
-`GameSession` saves after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a
-character, on disconnect, and within a second of a settings change or a move in the bag. The cloth is never saved.
+equipment (items gone from the game or in the wrong slot are dropped on load), the spell words they know
+(`knownWords`) and the spellbook's 4 pages (`spellbook`, each a spell or null), keyed by account; words not in the
+shared `WORDS` are dropped on load, and so is a page that's no longer a spell of known words. The `GameSession` saves
+after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a character, on
+disconnect, and within a second of a settings change, a move in the bag or a page written. The cloth is never saved.
 Position and level aren't saved (you start at the level's start), and stats aren't either (everyone has the same).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
@@ -340,7 +351,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
   costs), and a dodge pressed during a swing waiting for it to let go (on any step of it, once, ahead of a buffered
   swing, through a save and a rollback). Spells (`shared/test/battle/fight/spells/`): the wind-up, its cost at release,
-  waiting behind a swing, cancelled by a dodge or a hit; Bolt, Nova and Self; chains (from a hit, at full range, at
+  waiting behind a swing, cancelled by a dodge or a hit; the chant (held still, broken off by a stun or a dodge but
+  not a sword hit, the only way to cast a spell on no page) and writing a page in it (its time, standing still,
+  cancelled by a stun or closing, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included). Each fight test file awaits
   `initPhysics()` first. Also the battle inputs' rounding and what counts as a change.
@@ -355,9 +368,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; parrying the Kobold's swing the same way; the Kobold as
-  tuned, beaten by a player who reads its wind-ups whatever its seed; a cast with a word the player doesn't know
-  dropped; and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a silent player
-  stopping, lateness).
+  tuned, beaten by a player who reads its wind-ups whatever its seed; a cast or a page written with a word the player
+  doesn't know dropped, a spell on none of the pages cast only from a chant; the spellbook (pages written, refused for
+  an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, blanked
+  by a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
+  silent player stopping, lateness).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
@@ -373,10 +388,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   nor dropped; the result and its banner waiting for the server) and pace (real time's steps, catching up after a stall,
   a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news
   ignored), the title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
-  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag between the bag, the cloth and the slots, turn,
-  use) and tooltip (itemInfo.ts), the item pictures' sizes, and the look's pictures (each view's size: the portrait, the
-  chibi facing each way, the battle sprite in each pose; the chibi's legs standing together in two boots, the right one
-  in shadow). Rendering, how the fight feels and the React screens are tried in a browser.
+  and rows, the chant's carousel (what the next square takes, known words only, why one doesn't fit, the search,
+  number picks, Backspace, words into a spell and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
+  between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
+  look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose; the
+  chibi's legs standing together in two boots, the right one in shadow). Rendering, how the fight feels and the React
+  screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
 tuning numbers from the code, so retuning the game doesn't break them.
@@ -456,9 +473,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
-      player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, stamina;
-                       controlPlayer; no sword in hand, no attacks or block; no spellbook, no casts)
-      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn, Bolts flying),
+      player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, the chant
+                       (held still; a spell on no page cast only from it) and writing a page, stamina;
+                       controlPlayer; no sword in hand, no attacks or block; no spellbook, no casts or chant)
+      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn, Bolts flying, a page
+                       written once SAVE_IN_FIGHT_TIME is up),
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
@@ -474,9 +493,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    each does to walking and dodging)
   spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
-                   and the server's check; spellCost, castTime; SPELL: their numbers), effects.ts (MAGIC: what spells
+                   and the server's check; spellCost, castTime; SPELL: their numbers; SPELLBOOK_PAGES, Spellbook,
+                   blankSpellbook, SAVE_IN_FIGHT_TIME, sameSpell), effects.ts (MAGIC: what spells
                    do in a fight, every number; STATUSES, REACTIONS)
-  net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
+  net/             client-messages.ts (Zod schemas + inferred ClientMsg, SpellSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
@@ -556,14 +576,17 @@ client/          Browser game: Babylon rendering, input, React UI.
                      messages, keeps the settings in sync, overworld <-> battle switching, who has the keys, the
                      character from `welcome` / `character`, opening creation without one; tells the player
                      what happened with `say`; has PlayerLook paint the player's look, finishing it before a
-                     fight), transition.ts (Mode,
+                     fight; the known words and pages from the server; the fight breaking off the chant;
+                     `saveSpell` as the fight's `write` in a battle),
+                     transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`, `cast(spell)` among them)
     net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
                      account.ts (the /api calls: who's
                      logged in, log in, register, log out), ping.ts (startPinging: the HUD's ping, every 2 s)
     core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
-                     text fields keep their keys; captureKey for rebinding), mouse.ts (optional,
+                     text fields keep their keys but the arrows, Esc, the digits and Backspace; captureKey for
+                     rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
@@ -574,7 +597,8 @@ client/          Browser game: Babylon rendering, input, React UI.
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
-                     keys, fixed mouse buttons; MENUS: the title's, creation's and the bag's fixed keys; KeyBindings:
+                     keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's and the
+                     spellbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
@@ -600,11 +624,12 @@ client/          Browser game: Babylon rendering, input, React UI.
                        modes (game/transition.ts sets it), Settings, character creation, title screen (the HUD and
                        Settings only once `inWorld` and not creating; creation as soon as a game runs without a
                        character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping; bars are
-                       `...Fraction`, 0..1), `notifications` (notifications/), `settingsScreen`, `creation` and
-                       `overworldPanel` (which side panel is open: the UI writes them too, the game watches them;
-                       `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
-                       of the game: signIn, logOut, play, rest, useItem, moveItem, saveCharacter,
+      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, spells:
+                       the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
+                       (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
+                       `chant` and `spellbookScreen` (the UI writes them too, the game watches them; `whoHasTheKeys`:
+                       the layer stack, the top one gets the keys), and UiActions (what the UI asks of the game:
+                       signIn, logOut, play, rest, useItem, moveItem, castSpell, saveSpell, saveCharacter,
                        returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -624,6 +649,13 @@ client/          Browser game: Babylon rendering, input, React UI.
                        PanelFrame.tsx (the side panels'
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
+      spells/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
+                       a known word doesn't fit, `quickPick`, addWord / undoWord, words <-> spell),
+                       SpellBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
+                       keys), ChantPopup.tsx (the fight's chant: open / close, cast, a page written, shown
+                       while the fight writes it; the fight breaks it off, through game.ts), SpellbookScreen.tsx
+                       (the book in hand, over the bag: its 4 pages, written at once), Hotbar.tsx (the pages on
+                       the battle HUD with their keys)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
                        `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
                        lines), battleResult.ts (what a `battleResult` says: found, left behind, died / lost,
@@ -665,8 +697,9 @@ client/          Browser game: Babylon rendering, input, React UI.
       battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
         battle.ts        The mode: start / end a fight (arena built / resized on demand; the fight's copy from the
                          encounter's setup, each enemy's model on it), per frame the fight's steps (as many as
-                         pace.ts says) and the inputs out, hashes, syncs and the result in, the render systems (follow:
-                         drawings to their bodies, easing corrections)
+                         pace.ts says) and the inputs out (1-4 cast the fight's pages, the chant held open, a page
+                         to write), the fight's pages into the HUD, hashes, syncs and the
+                         result in, the render systems (follow: drawings to their bodies, easing corrections)
         sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
                          server's hashes, loads its fight and replays on a mismatch; the server's outcome; stats
                          (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
@@ -689,8 +722,8 @@ client/          Browser game: Babylon rendering, input, React UI.
         enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
                          (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
         systems/         camera (the orbit, locked or not, and its shake for each step's hard hits: addImpactShake),
-                         hud (fills the battle HUD's store), spells (placeholder visuals: a ball per Bolt, a fading
-                         sphere per Nova / Self, by element)
+                         hud (fills the battle HUD's store, stunned and the spellbook in hand included), spells
+                         (placeholder visuals: a ball per Bolt, a fading sphere per Nova / Self, by element)
 ```
 
 ## Adding things
@@ -758,6 +791,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
+| How long writing a page takes in a fight | `shared/src/spells/spell.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Spells in a fight: D, the Forms, each element, the reactions, Self | `shared/src/spells/effects.ts` (`MAGIC`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |

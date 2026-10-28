@@ -6,7 +6,7 @@ import {
   ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
 } from "../../components.js";
 import { MAGIC } from "../../../spells/effects.js";
-import { spellCost } from "../../../spells/spell.js";
+import { sameSpell, spellCost, type Spell, type Spellbook } from "../../../spells/spell.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
@@ -14,13 +14,15 @@ import {
   attackShape, CHAIN, chainKind, isSwing, lettingGoAt, liveStep, MOMENTUM, momentumDamage, STARTER_SWORD, startupTime,
   type AttackKind,
 } from "../../sword.js";
-import { addHit, endCombo } from "../combat.js";
+import { addHit, breakOff, endCombo } from "../combat.js";
 import { statusMoveFactor } from "../spells/statuses.js";
 
 /** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   world.remove(e, ActiveHit);
+  if (player.action === "chant" || player.action === "write") player.chantBroken = true;
   player.casting = null;
+  player.writing = null;
   player.action = action;
   player.actionTime = 0;
   player.actionDir = { x, z };
@@ -74,6 +76,8 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
   if (!input.jump && player.jumpHeld && v.y > 0) v.y *= PLAYER.jumpCutMultiplier;
 }
 
+const onPage = (book: Spellbook, spell: Spell): boolean => book.some((page) => page !== null && sameSpell(page, spell));
+
 /** Walk at `speed` while busy (swinging, blocking). */
 function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
   const accel = PLAYER.accel * dt;
@@ -118,9 +122,12 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     player.castQueued = input.cast;
     player.castBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.castBuffer = Math.max(0, player.castBuffer - dt);
+  const writePressed = input.write !== null && !player.writeHeld;
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
   player.castHeld = input.cast !== null;
+  player.writeHeld = input.write !== null;
+  if (!input.chant) player.chantBroken = false;
   if (player.action !== "attack" && player.comboTime > 0) {
     player.comboTime -= dt;
     if (player.comboTime <= 0) endCombo(player);
@@ -129,8 +136,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   if (!alive || health.hitstun > 0) {
     // Knocked back, staggered or dead: no control, slide to a stop on the ground.
     if (player.action !== "none" && player.action !== "stagger") {
-      player.action = "none";
-      player.casting = null;
+      breakOff(player);
       world.remove(e, ActiveHit);
     }
     player.attackBuffer = player.dodgeBuffer = player.castBuffer = 0;
@@ -145,9 +151,16 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     const dodgeStamina = burdenCost === null ? null
       : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? MAGIC.self.air.dodgeCostFactor : 1);
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
-    const queuedCast = player.castQueued;
+    const chanting = player.action === "chant" || player.action === "write";
+    let queuedCast = player.castQueued;
+    if (queuedCast !== null && player.action !== "chant" && !onPage(player.book, queuedCast)) {
+      player.castQueued = queuedCast = null;
+      player.castBuffer = 0;
+    }
+    const write = input.write;
     // A dodge cancels a cast's wind-up, which costs nothing until it's released.
-    if ((free || player.action === "cast") && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded
+    if ((free || chanting || player.action === "cast") && player.dodgeBuffer > 0 && dodgeStamina !== null
+      && player.grounded
       && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
@@ -157,10 +170,21 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
       endCombo(player);
-    } else if (free && player.castBuffer > 0 && queuedCast !== null && stamina.value >= spellCost(queuedCast)) {
+    } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
+      && stamina.value >= spellCost(queuedCast)) {
       startAction(world, e, player, "cast", input.aimX, input.aimZ);
       player.casting = queuedCast;
       player.castBuffer = 0;
+      endCombo(player);
+    } else if (player.action === "chant" && writePressed && write && write.page < player.book.length) {
+      player.action = "write";
+      player.actionTime = 0;
+      player.writing = write;
+    } else if (chanting && !input.chant) {
+      player.action = "none";
+      player.writing = null;
+    } else if (free && spellbook && input.chant && !player.chantBroken) {
+      startAction(world, e, player, "chant", input.aimX, input.aimZ);
       endCombo(player);
     } else if (free && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
       startAttack(world, e, player, input, player.queued);
@@ -212,6 +236,11 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       case "cast":
         shuffle(input, v, dt, walkSpeed * MAGIC.castMoveFactor);
         break;
+      case "chant":
+      case "write":
+        v.x = approach(v.x, 0, PLAYER.accel * dt);
+        v.z = approach(v.z, 0, PLAYER.accel * dt);
+        break;
       case "none":
         locomotion(player, input, v, dt, walkSpeed);
         break;
@@ -220,8 +249,10 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   }
   player.jumpHeld = input.jump;
 
-  // Stamina: paused during actions (blocking too), regenerates after a short delay.
-  if (player.action !== "none") stamina.regenDelay = PLAYER.staminaRegenDelay;
+  // Stamina: paused during actions (blocking too, not chanting), regenerates after a short delay.
+  if (player.action !== "none" && player.action !== "chant" && player.action !== "write") {
+    stamina.regenDelay = PLAYER.staminaRegenDelay;
+  }
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else {
     const charged = (statuses?.left.charged ?? 0) > 0 ? MAGIC.self.lightning.staminaRegenFactor : 1;

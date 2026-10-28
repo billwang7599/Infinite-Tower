@@ -32,6 +32,7 @@ interface PanelProps {
   settingsScreen: Store<SettingsScreenState>;
   use: (at: GridSpot) => void;
   move: (from: Spot, to: Spot, turned: boolean) => void;
+  openSpellbook: () => void;
   close: () => void;
 }
 
@@ -47,7 +48,7 @@ const START: View = { mouse: NO_MOUSE, grab: MIDDLE };
 const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
-export function InventoryPanel({ hud, input, settingsScreen, use, move, close }: PanelProps) {
+export function InventoryPanel({ hud, input, settingsScreen, use, move, openSpellbook, close }: PanelProps) {
   const gear = useStore(hud, (s) => s.gear);
   const stats = useStore(hud, (s) => s.stats);
   // Healing items do nothing at full HP (the server refuses), so they can't be used then.
@@ -80,9 +81,12 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
     setView(latest.current);
   };
   const send = (m: Move | null) => { if (m) move(m.from, m.to, m.turned); };
+  const bookInHand = (m: BagMouse) => !m.drag && m.selected?.in === "slot"
+    && gear.equipment[m.selected.slot] === "spellbook";
   const applyUse = (m: BagMouse) => {
     const at = itemToUse(m, gear, fullHp);
     if (at) use(at);
+    else if (bookInHand(m)) openSpellbook();
   };
   const turnWith = (turn: typeof turnKey) => {
     const { mouse: next, move: turned } = turn(current(), gear);
@@ -142,6 +146,7 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
         ref={panel} className="pointer-events-auto relative touch-none select-none"
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
+          if (e.target instanceof Element && e.target.closest("button")) return;
           if (e.button === SECONDARY.button) turnWith(rightPress);
           if (e.button !== MAIN.button) return;
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -180,7 +185,8 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
           </Column>
         </div>
         <BagDetails
-          gear={gear} stack={selectedStack(mouse, gear)} usable={itemToUse(mouse, gear, fullHp) !== null}
+          gear={gear} stack={selectedStack(mouse, gear)}
+          usable={itemToUse(mouse, gear, fullHp) !== null || bookInHand(mouse)}
           use={() => applyUse(current())}
         />
         {drag && dragged && pointer && (

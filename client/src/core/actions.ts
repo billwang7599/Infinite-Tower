@@ -10,12 +10,17 @@ import type { MouseSettings } from "../settings/mouse.js";
 
 type OverworldAction = Action<"general" | "overworld">;
 const BAG_ACTIONS = ["inventory", "character", "turnItem", "useItem"] as const satisfies readonly OverworldAction[];
+const CHANT_ACTIONS = [
+  "chant", "dodge", "forward", "back", "left", "right",
+] as const satisfies readonly Action<"general" | "battle">[];
 
 interface LayerActions {
   title: MenuAction<"title">;
   creation: MenuAction<"creation">;
   settings: "menu";
   bag: MenuAction<"bag"> | (typeof BAG_ACTIONS)[number];
+  chant: MenuAction<"chant"> | (typeof CHANT_ACTIONS)[number];
+  spellbook: MenuAction<"spellbook">;
   overworld: OverworldAction;
   battle: Action<"general" | "battle">;
 }
@@ -44,14 +49,16 @@ export interface Polled {
 type Handler = (repeat: boolean) => boolean | void;
 
 const GROUP_OF: Partial<Record<Layer, Group>> = {
-  settings: "general", bag: "overworld", overworld: "overworld", battle: "battle",
+  settings: "general", bag: "overworld", overworld: "overworld", battle: "battle", chant: "battle",
 };
-const KEPT: Partial<Record<Layer, readonly ActionName[]>> = { settings: ["menu"], bag: BAG_ACTIONS };
+const KEPT: Partial<Record<Layer, readonly ActionName[]>> = {
+  settings: ["menu"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS,
+};
 const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as Layer, new Map(
   Object.entries<readonly string[]>(actions).flatMap(([action, keys]) => keys.map((k) => [k, action as ActionName])),
 )]));
-// Only these read held keys and taps: under a screen or the open bag you stand still.
-const WORLD: readonly Layer[] = ["overworld", "battle"];
+// Only these read held keys and taps: under a screen or the open bag you stand still. The fight holds a chanter still.
+const WORLD: readonly Layer[] = ["overworld", "battle", "chant"];
 // Keys the browser would otherwise use in the world (scrolling, moving focus, Firefox's quick find).
 const SWALLOW = new Set([
   "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
@@ -172,7 +179,8 @@ export class Actions {
   }
 
   private worldAction(key: string): WorldAction | undefined {
-    return WORLD.includes(this.top) ? this.of(this.top, key) as WorldAction | undefined : undefined;
+    if (!WORLD.includes(this.top) || FIXED.get(this.top)?.has(key)) return undefined;
+    return this.of(this.top, key) as WorldAction | undefined;
   }
 
   private keydown(key: string, repeat: boolean): boolean {

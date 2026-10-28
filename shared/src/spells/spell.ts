@@ -41,6 +41,20 @@ export interface Spell {
   segments: readonly [Segment, ...Segment[]];
 }
 
+export const SPELLBOOK_PAGES = 4;
+export type Spellbook = readonly (Spell | null)[];
+export const blankSpellbook = (): Spellbook => Array.from({ length: SPELLBOOK_PAGES }, () => null);
+export const SAVE_IN_FIGHT_TIME = 2;
+
+const sameWords = <T>(a: readonly T[], b: readonly T[]): boolean =>
+  a.length === b.length && a.every((word, i) => word === b[i]);
+
+export const sameSpell = (a: Spell, b: Spell): boolean =>
+  a.segments.length === b.segments.length && a.segments.every((s, i) => {
+    const t = b.segments[i]!;
+    return s.form === t.form && sameWords(s.elements, t.elements) && sameWords(s.augments, t.augments);
+  });
+
 export type Rejection = "not-learned" | "no-chaining" | "repeated" | "opposite" | "doesnt-fit";
 
 export interface SpellProblem {

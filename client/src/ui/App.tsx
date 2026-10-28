@@ -43,10 +43,14 @@ export function App({ ui, settings, input, actions }: AppProps) {
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
+              spells={ui.spells} spellbookScreen={ui.spellbookScreen} saveSpell={actions.saveSpell}
             />
           )}
           {mode === "battle" && (
-            <BattleHud hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} />
+            <BattleHud
+              hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} spells={ui.spells}
+              chant={ui.chant} input={input} castSpell={actions.castSpell} saveSpell={actions.saveSpell}
+            />
           )}
         </>
       )}

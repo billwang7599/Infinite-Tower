@@ -71,6 +71,13 @@
       "when": 1793171460503,
       "tag": "0009_equipment",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793173226536,
+      "tag": "0010_spellbook",
+      "breakpoints": true
     }
   ]
 }

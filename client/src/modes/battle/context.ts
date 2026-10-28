@@ -1,6 +1,6 @@
 /** What arena systems need besides the World. */
 import type { Scene, ShadowGenerator, UniversalCamera } from "@babylonjs/core";
-import type { ArenaDef, Entity, Spell, World } from "@infinite-tower/shared";
+import type { ArenaDef, Entity, PageWrite, Spell, World } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -37,4 +37,5 @@ export interface BattleContext {
   /** Camera shake amplitude, decaying. Hard hits add to it. */
   shake: number;
   casts: Spell[];
+  writes: PageWrite[];
 }

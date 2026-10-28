@@ -1,10 +1,10 @@
 # Spells
 
 Status: **being built**. The user's design, condensed (their own doc isn't in the repo). A spell is a chain of words.
-Built so far: the grammar (`shared/src/spells/spell.ts`), the words each player knows (saved), and casting in the
-shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions; tried only through the dev handle
-`window.cast(spell)`). Numbers marked *placeholder* are the agent's picks, to tune; they all live in `MAGIC`
-(`shared/src/spells/effects.ts`).
+Built so far: the grammar (`shared/src/spells/spell.ts`), the words each player knows (saved), casting in the
+shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), and PR D's chanting in fights, the
+spellbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/spells/`). Numbers marked *placeholder* are the
+agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`).
 
 ## Decided by the user
 
@@ -70,7 +70,8 @@ shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions; 
 - **The spellbook** is an item, equipped in a hand (see [inventory.md](inventory.md)); without one you can't cast or
   chant. Saved spells are written in it: 4 for now, cast with one key each (quick casting). Building and saving a
   spell happens at a campfire, by typing words into boxes that autofill from learned words (a rejected word greyed
-  out with its reason), or in a fight (below).
+  out with its reason), or in a fight (below). Built: outside fights the book opens from the bag screen anywhere
+  (the agent's pick: no campfire needed, as the later ruling says outside fights) and a page is written at once.
 - **Chanting in a fight:** the grammar view can be brought up in battle "to chant/create spells on the fly. the
   spellbook is just for quick casting". It's "a big popup at the center of the screen showing 3 squares, each one is
   what word goes in there. ie one square for bolt, one for fire, and one for augment." It's a carousel, one square at
@@ -109,12 +110,17 @@ shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions; 
   spreads the doubled Burning, with the time it has left, to the nearest enemy within 4 m. A new Fire hit resets a
   Fanned burn to the normal rate.
 - The wire refuses a spell of more than 16 segments or 16 augments in a box: far past what any stamina bar pays for.
+- The chant and writing a page run in the shared fight, so the server decides them: the fight holds a chanter still,
+  casts a spell that's on none of the pages only from an open chant (pages matched by their words), writes a page
+  after `SAVE_IN_FIGHT_TIME` (2 s), and the server saves the fight's pages with its result. Stamina still recovers
+  while chanting or writing (as standing does). A dodge out of the chant goes where the walk keys point (backwards
+  with none); closing the chant mid-write stops it, and nothing is written.
 
 ## PRs
 
 1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
-2. **D** the spellbook's 4 saved spells (the item itself is built), quick-cast keys, the campfire builder, chanting in
-   fights, and learning words. The words a player knows are already saved (`PlayerSave.knownWords`).
+2. **D** the spellbook's 4 saved spells, quick-cast keys 1-4, the builder and chanting in fights (built); learning
+   words (not built: new players know none).
 3. **E** the remaining Forms (Beam, Imbue) and augments, objects and their caps.
 4. **F** real art and effects (now a coloured ball per Bolt and a fading sphere per Nova / Self).
 

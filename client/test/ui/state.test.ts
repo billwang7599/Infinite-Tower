@@ -86,6 +86,24 @@ describe("whoHasTheKeys", () => {
     assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "settings"]);
   });
 
+  test("the chant popup is over the arena: you stand still while it's open; Settings goes over it", () => {
+    const { ui } = playing("battle");
+    ui.chant.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "chant"]);
+    ui.openSettings();
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "chant", "settings"]);
+  });
+
+  test("the spellbook opens over the bag, and goes when the bag does", () => {
+    const { ui, mode } = playing();
+    ui.toggleOverworldPanel("inventory");
+    ui.spellbookScreen.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag", "spellbook"]);
+    ui.toggleOverworldPanel("inventory");
+    assert.equal(ui.spellbookScreen.get().open, false);
+    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
+  });
+
   test("character creation is over everything once the title has cleared onto it", () => {
     const { ui, mode } = playing();
     ui.creation.set({ open: true });

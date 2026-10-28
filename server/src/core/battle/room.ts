@@ -4,7 +4,8 @@
  * a late one at most MAX_INPUT_DELAY_STEPS, and never runs ahead of the clock. Built for any number of players.
  */
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Stamina, type Entity, type StepInput, type Vitals,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Entity, type Spellbook,
+  type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import type { PlayerLink } from "../ports.js";
@@ -17,8 +18,8 @@ export const MIN_SYNC_GAP_STEPS = 5;
 
 export interface Seat {
   link: PlayerLink;
-  /** Called once, when the fight is over for this player. `vitals`: the HP and stamina it left them with. */
-  onEnd(result: PlayerResult, vitals: Vitals): void;
+  /** Called once, when the fight is over for this player, with the HP, stamina and pages it left them with. */
+  onEnd(result: PlayerResult, vitals: Vitals, book: Spellbook): void;
 }
 
 interface SeatState {
@@ -72,7 +73,7 @@ export class BattleRoom {
     const e = this.fight.players[seat]!;
     const vitals = this.vitalsOf(e);
     this.fight.leave(e);
-    s.seat.onEnd(playerResult(this.fight.outcome, true), vitals);
+    s.seat.onEnd(playerResult(this.fight.outcome, true), vitals, this.bookOf(e));
     if (this.seats.every((other) => other.gone)) this.close();
   }
 
@@ -120,13 +121,18 @@ export class BattleRoom {
     this.seats.forEach((s, i) => {
       if (s.gone) return;
       this.sendSync(s);
-      s.seat.onEnd(playerResult(this.fight.outcome, false), this.vitalsOf(this.fight.players[i]!));
+      const e = this.fight.players[i]!;
+      s.seat.onEnd(playerResult(this.fight.outcome, false), this.vitalsOf(e), this.bookOf(e));
     });
     this.close();
   }
 
   private vitalsOf(e: Entity): Vitals {
     return { hp: this.fight.world.require(e, Health).hp, stamina: this.fight.world.require(e, Stamina).value };
+  }
+
+  private bookOf(e: Entity): Spellbook {
+    return this.fight.world.require(e, Player).book;
   }
 
   private close(): void {

@@ -4,14 +4,15 @@
  */
 import { TransformNode, type AbstractEngine } from "@babylonjs/core";
 import {
-  Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, type ArenaDef, type ClientMsg, type Entity,
+  Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, Player, type ArenaDef, type ClientMsg, type Entity,
   type ServerMsgOf, type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
 import { frameSeconds } from "../../core/time.js";
 import type { Settings } from "../../settings/settings.js";
-import type { BattleHudState } from "../../ui/state.js";
+import type { ChantState } from "../../ui/spells/chant.js";
+import type { BattleHudState, SpellsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { buildArena } from "./arena.js";
 import {
@@ -31,6 +32,8 @@ import { addImpactShake, cameraSystem } from "./systems/camera.js";
 import { hudSystem } from "./systems/hud.js";
 import { lockMarkerSystem } from "./lockMarker.js";
 import { createSpellEffects } from "./systems/spells.js";
+
+const HOTBAR = ["spell1", "spell2", "spell3", "spell4"] as const;
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
@@ -57,6 +60,8 @@ export interface BattleOptions {
   actions: Actions;
   settings: Settings;
   hud: Store<BattleHudState>;
+  spells: Store<SpellsState>;
+  chant: Store<ChantState>;
   onLeave: () => void;
 }
 
@@ -76,6 +81,7 @@ export function createBattle(opts: BattleOptions): Battle {
     outcome: { state: "fighting", stateTime: 0 },
     shake: 0,
     casts: [],
+    writes: [],
   };
   const spells = createSpellEffects(ctx);
   let arenaScenery: Entity | null = null;
@@ -96,18 +102,25 @@ export function createBattle(opts: BattleOptions): Battle {
     if (steps === 0) return;
     ctx.polled = actions.poll();
     if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
-    const me = fight.world.first(LocalPlayer, Body)![2].pos;
+    const [, , { pos: me }, { book }] = fight.world.first(LocalPlayer, Body, Player)!;
+    for (const action of ctx.polled.pressed) {
+      const written = book[HOTBAR.indexOf(action as (typeof HOTBAR)[number])];
+      if (written) ctx.casts.push(written);
+    }
     const foes = livingFoes(fight);
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.camera.position, yaw: ctx.view.yaw }, me);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, input);
     input.cast = input.cast ? null : ctx.casts.shift() ?? null;
+    input.write = input.write ? null : ctx.writes.shift() ?? null;
+    input.chant = opts.chant.get().open;
     for (let i = 0; i < steps; i++) {
       sync.advance(input);
       addImpactShake(ctx, fight.events);
       spells.addEvents(fight.events);
     }
     sync.flush();
+    opts.spells.set({ book: fight.world.first(LocalPlayer, Player)![2].book });
   };
 
   const render: System[] = [
@@ -133,6 +146,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.fight?.dispose();
       spells.clear();
       ctx.casts = [];
+      ctx.writes = [];
       useArena(setup.arena);
       const fight = new Fight(setup);
       registerFighterDisposers(fight.world);

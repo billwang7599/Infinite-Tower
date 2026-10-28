@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  Player, STARTER_SWORD, starterEquipment, type Bag, type Equipment, type PlayerInputData, type Spell, type Word,
+  blankSpellbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
+  Player, SAVE_IN_FIGHT_TIME, STARTER_SWORD, starterEquipment, type Bag, type Equipment, type PlayerInputData,
+  type Spell, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
+import type { PlayerSave } from "../../../src/core/ports.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { findBoar, startSession } from "./helpers.js";
 
@@ -93,6 +95,7 @@ describe("starting a battle", () => {
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light", wields: { sword: true, spellbook: true },
+      book: blankSpellbook(),
     }]);
   });
 
@@ -141,6 +144,15 @@ describe("the server runs the fight", () => {
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
+  });
+
+  test("a win keeps the book as it was", () => {
+    const written: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+    const book = [written, null, null, null];
+    const { session, link } = startSession({ dev: true, saved: { spellbook: book } });
+    session.debugEncounter();
+    win(session);
+    assert.deepEqual(link.last("battleResult").spellbook, book);
   });
 
   test("a win keeps the HP and stamina the fight left, and the player where they were", () => {
@@ -202,6 +214,22 @@ describe("the server runs the fight", () => {
     assert.deepEqual(saves.at(-1)?.equipment, starterEquipment());
   });
 
+  test("after a death the book's pages are blank, and the words the player knows are kept", () => {
+    const written: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+    const book = [written, null, written, null];
+    const started = startSession({
+      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, spellbook: book, knownWords: ["nova", "fire"] },
+    });
+    const { session, link, saves } = started;
+    session.debugEncounter();
+    session.overworld.place({ x: 3, z: 3 });
+    play(session, () => IDLE_INPUT);
+    assert.equal(link.last("battleResult").won, false);
+    assert.deepEqual(link.last("battleResult").spellbook, blankSpellbook());
+    assert.deepEqual(saves.at(-1)?.spellbook, blankSpellbook());
+    assert.deepEqual(saves.at(-1)?.knownWords, ["nova", "fire"]);
+  });
+
   test("a fight still going after MAX_FIGHT_TIME is lost: the bag empties", () => {
     const { session, link } = inBattle(CARRIED);
     play(session, () => IDLE_INPUT, 1);
@@ -234,22 +262,64 @@ describe("the server runs the fight", () => {
 
 describe("casting spells", () => {
   const NOVA: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
-  function startsCasting(knownWords: Word[]): boolean {
-    const { session } = startSession({ dev: true, saved: { knownWords } });
+  const CHANT = { ...IDLE_INPUT, chant: true };
+  const action = (session: GameSession) => fightOf(session).world.require(fightOf(session).players[0]!, Player);
+
+  function casts(saved: Partial<PlayerSave>, chanted: boolean): boolean {
+    const { session } = startSession({ dev: true, saved });
     session.debugEncounter();
     play(session, () => IDLE_INPUT, 2);
-    play(session, () => ({ ...IDLE_INPUT, cast: NOVA }), 1);
+    if (chanted) play(session, () => CHANT, 1);
+    play(session, () => ({ ...IDLE_INPUT, chant: chanted, cast: NOVA }), 1);
     play(session, () => IDLE_INPUT, 1);
-    return fightOf(session).world.require(fightOf(session).players[0]!, Player).action === "cast";
+    return action(session).action === "cast";
   }
 
-  test("a spell the player knows every word of is cast", () => {
-    assert.equal(startsCasting(["nova", "fire"]), true);
+  test("a chanted spell the player knows every word of is cast", () => {
+    assert.equal(casts({ knownWords: ["nova", "fire"] }, true), true);
   });
 
   test("one with a word they don't know isn't", () => {
-    assert.equal(startsCasting(["nova"]), false);
-    assert.equal(startsCasting([]), false);
+    assert.equal(casts({ knownWords: ["nova"] }, true), false);
+    assert.equal(casts({ knownWords: [] }, true), false);
+  });
+
+  test("a spell on none of the pages, sent without a chant, isn't cast", () => {
+    assert.equal(casts({ knownWords: ["nova", "fire"] }, false), false);
+  });
+
+  test("a page's spell is cast without a chant", () => {
+    assert.equal(casts({ knownWords: ["nova", "fire"], spellbook: [null, NOVA, null, null] }, false), true);
+  });
+
+  test("the encounter gives the fight the player's pages", () => {
+    const book = [null, NOVA, null, null];
+    const { session, link } = startSession({ dev: true, saved: { spellbook: book } });
+    session.debugEncounter();
+    assert.deepEqual(link.last("encounter").setup.players[0]!.book, book);
+  });
+
+  function writing(knownWords: Word[]): GameSession {
+    const { session } = startSession({ dev: true, saved: { knownWords } });
+    session.debugEncounter();
+    play(session, () => IDLE_INPUT, 2);
+    play(session, () => CHANT, 1);
+    play(session, () => ({ ...CHANT, write: { page: 2, spell: NOVA } }), 1);
+    play(session, () => CHANT, Math.round(SAVE_IN_FIGHT_TIME / FIXED_DT) + 1);
+    return session;
+  }
+
+  test("a page written in the fight is the fight's at once, and saved with the result", () => {
+    const session = writing(["nova", "fire"]);
+    assert.deepEqual(action(session).book, [null, null, NOVA, null]);
+    assert.deepEqual(session.spellbook, blankSpellbook(), "not before the result");
+    win(session);
+    assert.deepEqual(session.spellbook, [null, null, NOVA, null]);
+  });
+
+  test("a page with a word they don't know isn't written", () => {
+    const session = writing(["nova"]);
+    assert.deepEqual(action(session).book, blankSpellbook());
   });
 });
 

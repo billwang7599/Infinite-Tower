@@ -2,6 +2,7 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
+import type { Spellbook } from "../../spells/spell.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, Statuses, SwordAttack, type PlayerData,
 } from "../components.js";
@@ -18,7 +19,7 @@ export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 
 export interface PlayerSetup {
-  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; wields: PlayerData["wields"];
+  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; wields: PlayerData["wields"]; book: Spellbook;
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -40,7 +41,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: null, dodgeHeld: false, castHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
-    castQueued: null, casting: null,
+    castQueued: null, casting: null, writeHeld: false, chantBroken: false, writing: null, book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
     attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
     wields: { ...setup.wields },

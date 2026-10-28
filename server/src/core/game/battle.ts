@@ -1,6 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, holds, starterEquipment, type Bag, type Entity, type ItemCounts, type ItemId, type Vitals,
+  addItem, bagCounts, blankSpellbook, holds, starterEquipment, type Bag, type Entity, type ItemCounts, type ItemId,
+  type Spellbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
@@ -31,13 +32,15 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
   const wields = { sword: holds(equipment, "sword"), spellbook: holds(equipment, "spellbook") };
   const setup: FightSetup = {
     arena: overworld.level.arena,
-    players: [{ at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, wields }],
+    players: [{
+      at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, wields, book: session.spellbook,
+    }],
     // Its random numbers' seed (a swordsman's swings) is the server's pick, so a client can't choose it.
     enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
   const room = new BattleRoom(setup, [{
     link: session.link,
-    onEnd: (result, after) => settleBattle(session, result, after),
+    onEnd: (result, after, book) => settleBattle(session, result, after, book),
   }]);
   session.battle = { source, enemyId, room, seat: 0, over: false };
   overworld.resetWalk(0);
@@ -56,11 +59,12 @@ export function packLoot(bag: Bag, loot: ItemCounts): { bag: Bag; left: ItemCoun
   return { bag: packed, left };
 }
 
-/** `after`: the HP and stamina the fight left them. */
-function settleBattle(session: GameSession, result: PlayerResult, after: Vitals): void {
+/** `after` and `book`: the HP, stamina and pages the fight left them. */
+function settleBattle(session: GameSession, result: PlayerResult, after: Vitals, book: Spellbook): void {
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
+  session.spellbook = book;
   // Gone with nothing won or lost: the save keeps what they came in with.
   if (result === "left" || result === "fighting") return;
   const won = result === "won";
@@ -78,9 +82,10 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals)
     // A winner is standing (a teammate's win, later, could leave them down).
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    // Dying is hardcore: everything carried is gone. You wake up at the start, rested, with a fresh sword and book.
+    // Dying is hardcore: everything carried is gone. You wake at the start, rested, with a fresh sword and blank book.
     lost = bagCounts(session.bag);
     session.gear = { ...session.gear, bag: { ...session.bag, items: [] }, equipment: starterEquipment() };
+    session.spellbook = blankSpellbook();
     overworld.place(overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
@@ -88,6 +93,6 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals)
   session.save();
   session.link.send({
     t: "battleResult", won, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
-    loot, leftBehind: packed.left, lost, gear: session.gear,
+    loot, leftBehind: packed.left, lost, gear: session.gear, spellbook: session.spellbook,
   });
 }

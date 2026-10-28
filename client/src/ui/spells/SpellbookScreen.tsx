@@ -1,0 +1,88 @@
+import type { Spell, Word } from "@infinite-tower/shared";
+import { useMemo, useState } from "react";
+import type { Actions } from "../../core/actions.js";
+import { NO_FOCUS } from "../components/noFocus.js";
+import { BUTTON } from "../components/styles.js";
+import { useAction } from "../components/useAction.js";
+import type { SpellsState } from "../state.js";
+import type { Store } from "../store.js";
+import { useStore } from "../useStore.js";
+import { addWord, NO_CHANT, spellOf, spellText, undoWord, wordsOf, type ChantState } from "./chant.js";
+import { SpellBuilder } from "./SpellBuilder.js";
+
+interface BookProps {
+  spells: Store<SpellsState>;
+  input: Actions;
+  save: (page: number, spell: Spell) => void;
+  close: () => void;
+}
+
+export function SpellbookScreen({ spells, input, save, close }: BookProps) {
+  const book = useStore(spells, (s) => s.book);
+  const knownWords = useStore(spells, (s) => s.known);
+  const known = useMemo(() => new Set<Word>(knownWords), [knownWords]);
+  const [page, setPage] = useState(0);
+  const [chant, setChant] = useState<ChantState>({ ...NO_CHANT, words: book[0] ? wordsOf(book[0]) : [] });
+  const spell = spellOf(chant.words);
+  const write = () => { if (spell) save(page, spell); };
+  const turnTo = (to: number) => {
+    setPage(to);
+    setChant({ ...chant, words: book[to] ? wordsOf(book[to]) : [] });
+  };
+
+  useAction(input, ["writePage", "closeSpellbook"], (action) => {
+    if (action === "writePage") write();
+    else close();
+  });
+
+  return (
+    <section
+      id="spellbook" aria-label="Spellbook"
+      className={
+        "pointer-events-auto absolute top-1/2 left-1/2 w-[min(720px,90%)] -translate-x-1/2 -translate-y-1/2 "
+        + "rounded-sm border border-white/15 bg-night/95 px-6 py-5 font-normal shadow-[0_12px_40px_#000a]"
+      }
+    >
+      <header className="mb-3 flex items-center justify-between">
+        <h2 className="font-title text-2xl tracking-[0.12em] text-victory">Spellbook</h2>
+        <button
+          type="button" aria-label="Close" {...NO_FOCUS} onClick={close}
+          className="flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 hover:bg-white/10"
+        >
+          ✕
+        </button>
+      </header>
+      <ol className="mb-4 grid grid-cols-4 gap-2">
+        {book.map((written, i) => (
+          <li key={i}>
+            <button
+              type="button" {...NO_FOCUS} data-page={i} onClick={() => turnTo(i)}
+              className={`flex h-16 w-full cursor-pointer flex-col rounded-sm border px-2 py-1 text-left ${
+                i === page ? "border-victory bg-victory/10" : "border-white/15 hover:bg-white/5"
+              }`}
+            >
+              <span className="text-xs text-victory">Page {i + 1}</span>
+              <span className="line-clamp-2 text-xs">{written ? spellText(written) : "Blank"}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      {known.size === 0
+        ? <p className="text-center text-sm text-white/60">You don't know any words yet.</p>
+        : (
+          <SpellBuilder
+            words={chant.words} known={known} input={input}
+            pick={(word) => setChant(addWord(chant, word, known))} undo={() => setChant(undoWord(chant))}
+          />
+        )}
+      <div className="mt-4 flex justify-center">
+        <button
+          type="button" id="spellbook-write" {...NO_FOCUS} disabled={!spell} onClick={write}
+          className={`pointer-events-auto ${BUTTON.primary}`}
+        >
+          Write on page {page + 1}
+        </button>
+      </div>
+    </section>
+  );
+}

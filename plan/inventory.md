@@ -11,9 +11,7 @@ fight) emptying the bag, the bag screen, and the equipment and the cloth (see `s
    rest. The server keeps the drops until you leave the screen.
 2. **The bag screen in a fight** (the agent's pick, not built): it opens without the cloth, nothing can be moved,
    you can't move while it's open, and a stagger closes it. For now it doesn't open in the arena at all.
-3. **Saving spells in the spellbook** ([spells.md](spells.md), PR D): its 4 pages hold saved spells, so the fresh
-   book after a death is blank (the agent's pick); the words you know are kept.
-4. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
+3. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
    spellbook.
 
 ## Open questions

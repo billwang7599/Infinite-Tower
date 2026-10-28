@@ -5,10 +5,14 @@ import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
 import type { Reaction, Status } from "../spells/effects.js";
-import type { Spell } from "../spells/spell.js";
+import type { Spell, Spellbook } from "../spells/spell.js";
+import type { PageWrite } from "./input.js";
 
-/** "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun). */
-export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast";
+/**
+ * "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun).
+ * "write": writing a page, in a chant.
+ */
+export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write";
 
 export interface PlayerData {
   grounded: boolean;
@@ -19,6 +23,9 @@ export interface PlayerData {
   attackHeld: AttackKind | null;
   dodgeHeld: boolean;
   castHeld: boolean;
+  writeHeld: boolean;
+  /** Broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
+  chantBroken: boolean;
   /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or spell pressed. */
   jumpBuffer: number;
   attackBuffer: number;
@@ -27,6 +34,8 @@ export interface PlayerData {
   queued: AttackKind | null;
   castQueued: Spell | null;
   casting: Spell | null;
+  writing: PageWrite | null;
+  book: Spellbook;
   action: PlayerAction;
   /** Seconds since the current action started. */
   actionTime: number;

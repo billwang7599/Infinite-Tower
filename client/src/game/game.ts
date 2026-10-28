@@ -5,7 +5,7 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Spot,
+  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Spell, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -17,6 +17,7 @@ import type { Connection, Joined } from "../net/connection.js";
 import { startPinging, type Pinging } from "../net/ping.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
+import { NO_CHANT } from "../ui/spells/chant.js";
 import { whoHasTheKeys, type UiState } from "../ui/state.js";
 import { exposeDebugHandles } from "./debug.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -33,6 +34,8 @@ export interface Game {
   rest(): void;
   useItem(at: GridSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
+  castSpell(spell: Spell): void;
+  saveSpell(page: number, spell: Spell): void;
   saveCharacter(character: Character): void;
 }
 
@@ -67,6 +70,13 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
   ui.overworldPanel.subscribe(updateInput);
+  ui.chant.subscribe(updateInput);
+  ui.spellbookScreen.subscribe(updateInput);
+  // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't.
+  ui.battle.subscribe(() => {
+    const { chantBroken, stunned } = ui.battle.get();
+    if (chantBroken && ui.chant.get().open) ui.chant.set(stunned ? NO_CHANT : { open: false });
+  });
   let bagOpen = false;
   ui.overworldPanel.subscribe(() => {
     const wasOpen = bagOpen;
@@ -88,6 +98,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     mode = next;
     // Panels are the overworld's: a fight, or leaving, closes them.
     if (next !== "overworld") ui.closeOverworldPanel();
+    ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
     updateInput();
   };
@@ -108,6 +119,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     net?.send({ t: "leaveBattle" });
     if (result) {
       overworld.onBattleResult(result);
+      ui.spells.set({ book: result.spellbook });
       say(ui.notifications, { kind: "battleResult", outcome: result });
       result = null;
     }
@@ -158,6 +170,14 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
       overworld.setGear(moved);
       net.send({ t: "moveItem", from, to, turned });
     },
+    castSpell(spell) {
+      if (mode === "battle" && !transition) battle.ctx.casts.push(spell);
+    },
+    saveSpell(page, spell) {
+      if (mode === "battle") {
+        if (!transition) battle.ctx.writes.push({ page, spell });
+      } else net?.send({ t: "saveSpell", page, spell });
+    },
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
@@ -169,6 +189,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
       // Before `listen`: the level may already be waiting in the connection's backlog.
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
+      ui.spells.set({ known: joined.welcome.knownWords, book: joined.welcome.spellbook });
       net.listen({
         level: (msg) => overworld.onLevel(msg),
         state: (msg) => overworld.onState(msg),
@@ -188,6 +209,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
           say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
         gear: (msg) => overworld.setGear(msg.gear),
+        spellbook: (msg) => ui.spells.set({ book: msg.spellbook }),
         battleHash: (msg) => battle.onHash(msg),
         battleSync: (msg) => battle.onSync(msg),
         battleResult(msg) {

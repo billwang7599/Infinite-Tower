@@ -2,7 +2,7 @@ import type { Entity, System, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import type { Vec2, Vec3 } from "../../../core/math.js";
 import { HARMFUL_STATUSES, MAGIC } from "../../../spells/effects.js";
-import { castTime, spellCost, type Spell, type SpellElement } from "../../../spells/spell.js";
+import { castTime, SAVE_IN_FIGHT_TIME, spellCost, type Spell, type SpellElement } from "../../../spells/spell.js";
 import { Body, Fighter, Health, Player, SpellShot, Stamina, Statuses, type SpellShotData } from "../../components.js";
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -16,6 +16,12 @@ const stepsOf = (seconds: number): number => Math.round(seconds / FIXED_DT);
 export function spellSystem(ctx: FightContext): System {
   return (world) => {
     for (const [e, player, stamina, body] of world.query(Player, Stamina, Body)) {
+      const { writing } = player;
+      if (player.action === "write" && writing && stepsOf(player.actionTime) >= stepsOf(SAVE_IN_FIGHT_TIME)) {
+        player.book = player.book.map((page, i) => (i === writing.page ? writing.spell : page));
+        Object.assign(player, { action: "chant", actionTime: 0, writing: null });
+        ctx.events.push({ type: "pageWritten", player: e, page: writing.page });
+      }
       const spell = player.casting;
       if (player.action !== "cast" || !spell || stepsOf(player.actionTime) < stepsOf(castTime(spell))) continue;
       player.action = "none";

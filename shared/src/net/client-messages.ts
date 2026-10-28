@@ -6,7 +6,7 @@ import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../battle/sword.js";
 import { SLOTS, type Spot } from "../items/gear.js";
-import { AUGMENTS, ELEMENTS, FORMS, type Spell } from "../spells/spell.js";
+import { AUGMENTS, ELEMENTS, FORMS, SPELLBOOK_PAGES, type Spell } from "../spells/spell.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -35,10 +35,12 @@ const SegmentSchema = z.object({
   elements: z.array(z.enum(ELEMENTS)).max(ELEMENTS.length).readonly(),
   augments: z.array(z.enum(AUGMENTS)).max(MAX_WORDS_PER_BOX).readonly(),
 });
-const SpellSchema = z.object({
+export const SpellSchema = z.object({
   segments: z.tuple([SegmentSchema]).rest(SegmentSchema).readonly()
     .refine((s) => s.length <= MAX_SPELL_SEGMENTS, "too long"),
 }) satisfies z.ZodType<Spell>;
+
+const PageSchema = z.number().int().nonnegative().max(SPELLBOOK_PAGES - 1);
 
 const StepInputSchema = z.object({
   step: FightStep,
@@ -51,6 +53,8 @@ const StepInputSchema = z.object({
   dodge: z.boolean(),
   block: z.boolean(),
   cast: SpellSchema.nullable(),
+  chant: z.boolean(),
+  write: z.object({ page: PageSchema, spell: SpellSchema }).nullable(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies
@@ -120,6 +124,10 @@ const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: SpotSchema, to: S
 
 const CloseBagMsg = z.object({ t: z.literal("closeBag") });
 
+const SaveSpellMsg = z.object({
+  t: z.literal("saveSpell"), page: PageSchema, spell: SpellSchema,
+});
+
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
@@ -128,7 +136,7 @@ const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]), e
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, PingMsg, DebugMsg,
+  MoveItemMsg, CloseBagMsg, SaveSpellMsg, PingMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
