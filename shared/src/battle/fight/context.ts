@@ -16,20 +16,21 @@ export interface FightOutcome {
 
 /** Something that happened this step that the client shows (the screen shakes) but the fight doesn't need again. */
 export type FightEvent =
-  | { type: "hit"; target: Entity; team: TeamId; damage: number }
+  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; sword: boolean }
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
   /** `by` parried `target`'s swing: `target` is stunned (an enemy) or staggered (a player). */
   | { type: "parry"; by: Entity; target: Entity }
   /** `target` blocked a hit; short of stamina, its guard broke (a player staggered). */
   | { type: "block"; target: Entity; guardBreak: boolean }
-  | { type: "spell"; form: Form; elements: readonly SpellElement[]; at: Vec3 }
+  | { type: "spell"; form: Form; elements: readonly SpellElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number };
 
 export interface FightContext {
   world: World;
   physics: ArenaPhysics;
   arena: ArenaDef;
+  enemies: readonly Entity[];
   /** This step's; emptied as each step starts. */
   events: FightEvent[];
   outcome: FightOutcome;

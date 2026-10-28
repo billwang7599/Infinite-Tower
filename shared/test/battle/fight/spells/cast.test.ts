@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  castTime, dodgeCost, FIXED_DT, Health, MAGIC, Player, SpellShot, Stamina, spellCost, Statuses, type EnemyDef,
+  castTime, dodgeCost, FIXED_DT, Health, MAGIC, Player, SpellObject, Stamina, spellCost, Statuses, type EnemyDef,
   type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -25,7 +25,7 @@ function fightWith(enemies: Vec3[], def: EnemyDef = STATUE): Fight {
 const hpOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).hp;
 const lostHp = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).max - hpOf(fight, i);
 const me = (fight: Fight) => fight.players[0]!;
-const shots = (fight: Fight) => [...fight.world.query(SpellShot)];
+const shots = (fight: Fight) => [...fight.world.query(SpellObject)];
 
 function untilLanded(fight: Fight): void {
   for (let i = 0; i < 120 && shots(fight).length > 0; i++) fight.step([IDLE]);
@@ -211,7 +211,7 @@ describe("a Bolt in the fight's state", () => {
     const a = fightWith([at(0, 6)]);
     castNow(a, BOLT_FIRE);
     const b = fightWith([at(0, 6)]);
-    b.load({ ...a.save(), shots: [] });
+    b.load({ ...a.save(), spells: [] });
     assert.notEqual(b.hash(), a.hash());
   });
 });

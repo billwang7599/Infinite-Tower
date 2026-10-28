@@ -184,8 +184,11 @@ main.ts
   `MOMENTUM`).
 - **Spells are inputs too.** A player's input may carry a whole spell (`cast`, pressed on the first step it's
   there); the controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
-  stamina and fires it once the wind-up is over. A Bolt is a `SpellShot` entity flying by plain-math sweeps, not a
-  physics body; a Nova and Self go off at once; each segment fires when the one before it completes. A hit runs
+  stamina and fires it once the wind-up is over. Whatever lasts is a `SpellObject` entity (its `kind`: a Bolt flying
+  by plain-math sweeps, not a physics body; a Beam ticking along its line, held while the cast input is; a lingering
+  Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
+  Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
+  Follow Bolt homes onto the input's `locked` enemy (an index into the fight's enemies) or the nearest. A hit runs
   `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
   the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
   Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
@@ -451,7 +454,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
-  battle/          components.ts (Player, Health, Stamina, Statuses, Body, Fighter, ActiveHit, SpellShot, Enemy,
+  battle/          components.ts (Player, Health, Stamina, Statuses, Body, Fighter, ActiveHit, SpellObject, Enemy,
                    LungeAttack, ChargeAttack, SwordAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
@@ -476,8 +479,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, the chant
                        (held still; a spell on no page cast only from it) and writing a page, stamina;
                        controlPlayer; no sword in hand, no attacks or block; no spellbook, no casts or chant)
-      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn, Bolts flying, a page
-                       written once SAVE_IN_FIGHT_TIME is up),
+      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn and their augments,
+                       the spell objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
+                       SAVE_IN_FIGHT_TIME is up; imbueOf),
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
@@ -495,7 +499,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
                    and the server's check; spellCost, castTime; SPELL: their numbers; SPELLBOOK_PAGES, Spellbook,
                    blankSpellbook, SAVE_IN_FIGHT_TIME, sameSpell), effects.ts (MAGIC: what spells
-                   do in a fight, every number; STATUSES, REACTIONS)
+                   do in a fight, every number; STATUSES, REACTIONS; augmentStrength: repeats at 100 / 50 / 25%)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SpellSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -723,7 +727,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                          (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
         systems/         camera (the orbit, locked or not, and its shake for each step's hard hits: addImpactShake),
                          hud (fills the battle HUD's store, stunned and the spellbook in hand included), spells
-                         (placeholder visuals: a ball per Bolt, a fading sphere per Nova / Self, by element)
+                         (placeholder visuals by element: a ball per Bolt, a rod per Beam, a disc per cloud, a small
+                         ball over an Imbued player or a Delay, a fading sphere per Nova / Self / Imbue)
 ```
 
 ## Adding things
@@ -792,7 +797,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
 | How long writing a page takes in a fight | `shared/src/spells/spell.ts` (`SAVE_IN_FIGHT_TIME`) |
-| Spells in a fight: D, the Forms, each element, the reactions, Self | `shared/src/spells/effects.ts` (`MAGIC`) |
+| Spells in a fight: D, the Forms, each element, the reactions, Self, the augments, the object caps | `shared/src/spells/effects.ts` (`MAGIC`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/systems/camera.ts` |

@@ -60,7 +60,9 @@ describe("a swing", () => {
       seen.push(...fight.events);
       return input({ attack: step === 0 ? "lr" : null });
     });
-    assert.deepEqual(seen, [{ type: "hit", target: fight.enemies[0], team: "enemy", damage: SWING_DAMAGE }]);
+    assert.deepEqual(seen, [{
+      type: "hit", by: fight.players[0], target: fight.enemies[0], team: "enemy", damage: SWING_DAMAGE, sword: true,
+    }]);
   });
 });
 

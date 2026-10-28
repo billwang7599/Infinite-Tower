@@ -7,7 +7,7 @@
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import { Body, Enemy, Health, Player, SpellShot, Statuses } from "../components.js";
+import { Body, Enemy, Health, Player, SpellObject, Statuses } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
 import { PLAYER } from "../player.js";
@@ -83,7 +83,8 @@ export class Fight {
     this.players = setup.players.map((p) => spawnPlayer(this.world, this.physics, p));
     this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
     const ctx: FightContext = {
-      world: this.world, physics: this.physics, arena: this.arena, events: this.events, outcome: this.outcome,
+      world: this.world, physics: this.physics, arena: this.arena, enemies: this.enemies, events: this.events,
+      outcome: this.outcome,
     };
     this.systems = [
       playerControllerSystem(),
@@ -128,7 +129,7 @@ export class Fight {
   /** Destroys the entities (their remove hooks run) and frees the physics world. */
   dispose(): void {
     for (const e of [...this.players, ...this.enemies]) this.world.destroy(e);
-    for (const [e] of this.world.query(SpellShot)) this.world.destroy(e);
+    for (const [e] of this.world.query(SpellObject)) this.world.destroy(e);
     this.world.flush();
     this.physics.free();
   }

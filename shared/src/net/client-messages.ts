@@ -29,6 +29,8 @@ const FightStep = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 // Far past any spell the stamina bar can pay for.
 const MAX_SPELL_SEGMENTS = 16;
 const MAX_WORDS_PER_BOX = 16;
+// Far past any fight's enemies; one out of range just locks nothing.
+const MAX_ENEMY_INDEX = 255;
 
 const SegmentSchema = z.object({
   form: z.enum(FORMS),
@@ -55,6 +57,7 @@ const StepInputSchema = z.object({
   cast: SpellSchema.nullable(),
   chant: z.boolean(),
   write: z.object({ page: PageSchema, spell: SpellSchema }).nullable(),
+  locked: z.number().int().nonnegative().max(MAX_ENEMY_INDEX).nullable(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies

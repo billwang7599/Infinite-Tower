@@ -155,12 +155,12 @@ function hitPlayer(
     const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
   }
-  if (health.hitstun > 0 && (player.action === "cast" || player.action === "chant" || player.action === "write")) {
+  if (health.hitstun > 0 && ["cast", "chant", "write", "beam"].includes(player.action)) {
     breakOff(player);
   }
   endCombo(player);
   siphon(world, attacker, dealt);
-  events.push({ type: "hit", target, team: "player", damage: dealt });
+  events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, sword: hit.attack !== null });
   return "landed";
 }
 
@@ -214,6 +214,6 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   health.flash = HIT_FLASH_TIME;
   if (!parried) enemy.poise -= hit.poiseDamage;
   siphon(world, attacker, damage);
-  events.push({ type: "hit", target, team: "enemy", damage });
+  events.push({ type: "hit", by: attacker, target, team: "enemy", damage, sword: hit.attack !== null });
   return "landed";
 }

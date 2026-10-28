@@ -1,7 +1,7 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, blankSpellbook, Body, castTime, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER,
-  PlayerInput, SpellShot, Stamina, Statuses, SwordAttack, type EnemyDef, type Entity, type LungeDef,
+  PlayerInput, SpellObject, Stamina, Statuses, SwordAttack, type EnemyDef, type Entity, type LungeDef,
   type PlayerInputData, type Segment, type Spell, type Stats, type SwordDef, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
@@ -71,7 +71,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
-  chant: false, write: null,
+  chant: false, write: null, locked: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -117,7 +117,7 @@ export function dumpState(fight: Fight): string {
       statuses: fight.world.get(e, Statuses),
     };
   });
-  const shots = [...fight.world.query(SpellShot)].map(([, shot]) => shot);
+  const shots = [...fight.world.query(SpellObject)].map(([, shot]) => shot);
   return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows, shots });
 }
 

@@ -176,7 +176,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   slower or smaller movement is dropped. Once a move swings, more movement the same way is the same sweep (one
   swing) until the mouse rests 100 ms; turning away swings again at once, so the reverse for a parry is quick. The
   numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
-- Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, and the
+- Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
+  Beam is held and paid, what Imbue does to sword hits, how strong each augment is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent".
 - Chanting and the spellbook: R opens and closes the chant (E stays free, as saved camera turns may still use it).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/spells/spell.ts`); a Write button per

@@ -1,3 +1,5 @@
+import type { Augment } from "./spell.js";
+
 // Damages and heals are shares of D, a spell's base damage after intellect (spellDamage). All placeholders.
 export const REACTIONS = ["conduct", "doused", "fanned", "eclipse"] as const;
 export type Reaction = (typeof REACTIONS)[number];
@@ -11,8 +13,19 @@ export type Status = (typeof STATUSES)[number];
 export const MAGIC = {
   damage: 10,
   castMoveFactor: 0.4,
-  bolt: { speedMps: 20, rangeM: 16, radiusM: 0.3 },
+  plain: { damage: 0.6 },
+  bolt: { speedMps: 20, rangeM: 16, radiusM: 0.3, splitShare: 0.5, splitSpreadRad: 0.25 },
+  // Held, a Beam pays its own words' cost times heldCostFactor a second.
+  beam: { rangeM: 10, radiusM: 0.35, time: 1, tickTime: 0.5, tickShare: 0.5, heldCostFactor: 2 },
   nova: { radius: 3 },
+  cloud: { time: 8, tickTime: 1, tickShare: 0.4 },
+  imbue: { hits: 3, time: 8, share: 0.5 },
+  // Each is per unit of augmentStrength: Amplify +50% damage, Extend +100% time, Split +2 Bolts, ...
+  augments: {
+    amplify: 0.5, widen: 0.5, extend: 1, swift: 0.5, delayTime: 1, splitBolts: 2, pierceTargets: 2,
+    followTurnRadPerSec: 8,
+  },
+  objects: { perPlayer: 12, perFight: 60 },
   elements: {
     fire: { damage: 0.8, burnDamagePerSec: 0.25, burnTime: 4 },
     water: { damage: 0.5, wetTime: 6 },
@@ -39,3 +52,7 @@ export const MAGIC = {
     darkness: { status: "siphoning", time: 8, healShare: 0.1 },
   },
 } as const;
+
+// Repeats give 100%, then 50%, then 25%, ...
+export const augmentStrength = (augments: readonly Augment[], augment: Augment): number =>
+  augments.filter((a) => a === augment).reduce((sum, _a, i) => sum + 0.5 ** i, 0);

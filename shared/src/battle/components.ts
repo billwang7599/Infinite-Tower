@@ -12,7 +12,7 @@ import type { PageWrite } from "./input.js";
  * "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun).
  * "write": writing a page, in a chant.
  */
-export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write";
+export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam";
 
 export interface PlayerData {
   grounded: boolean;
@@ -74,16 +74,29 @@ export interface StatusData {
 }
 export const Statuses = defineComponent<StatusData>("Statuses");
 
-export interface SpellShotData {
+// "cloud": a lingering Nova; "wait": a Delay holding back the next segment.
+export type SpellObjectKind = "bolt" | "beam" | "cloud" | "imbue" | "wait";
+
+export interface SpellObjectData {
+  kind: SpellObjectKind;
   caster: Entity;
   spell: Spell;
   segment: number;
   pos: Vec3;
   dir: Vec2;
   flownM: number;
+  /** A Beam's length (to what it stops in), a cloud's radius. */
+  reachM: number;
+  left: number;
+  tickLeft: number;
+  /** A Bolt's enemies still to pierce, an Imbue's hits. */
+  hitsLeft: number;
+  /** A Beam's time doesn't run while its caster holds the cast. */
+  held: boolean;
+  target: Entity | null;
   ignore: Entity | null;
 }
-export const SpellShot = defineComponent<SpellShotData>("SpellShot");
+export const SpellObject = defineComponent<SpellObjectData>("SpellObject");
 
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");
