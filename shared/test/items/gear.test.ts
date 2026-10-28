@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, holds, ITEMS, moveGear, SLOTS,
+  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear, SLOTS,
   starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Stats,
 } from "@infinite-tower/shared";
 
@@ -42,11 +42,11 @@ describe("the starting gear", () => {
   });
 });
 
-describe("holds", () => {
-  test("either hand counts", () => {
-    assert.equal(holds(starterEquipment(), "sword"), true);
-    assert.equal(holds({ ...NOTHING, leftHand: "sword" }, "sword"), true);
-    assert.equal(holds({ ...NOTHING, rightHand: "spellbook" }, "sword"), false);
+describe("heldIn", () => {
+  test("the hand that holds it, or null", () => {
+    assert.equal(heldIn(starterEquipment(), "sword"), "rightHand");
+    assert.equal(heldIn({ ...NOTHING, leftHand: "sword" }, "sword"), "leftHand");
+    assert.equal(heldIn({ ...NOTHING, rightHand: "spellbook" }, "sword"), null);
   });
 });
 

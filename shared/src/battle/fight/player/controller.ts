@@ -112,7 +112,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
   // attack lets go: a dodge or the next attack waits for it, however early it's pressed.
   const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
-  const { sword, spellbook } = player.wields;
+  const sword = player.wields.sword !== null, spellbook = player.wields.spellbook !== null;
   const attackPressed = sword && input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
   const castPressed = spellbook && input.cast !== null && !player.castHeld;

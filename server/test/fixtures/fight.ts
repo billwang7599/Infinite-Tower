@@ -21,7 +21,7 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   return {
     arena: { radius: 16 },
     players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
-      burden: "light", wields: { sword: true, spellbook: true }, book: blankSpellbook() }],
+      burden: "light", wields: { sword: "rightHand", spellbook: "leftHand" }, book: blankSpellbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }

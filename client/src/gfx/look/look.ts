@@ -3,9 +3,9 @@
  * portrait, the chibi facing each way, and the battle sprite in each pose. Each option id indexes its art or
  * colors here, so an option shared/ lists without art doesn't compile.
  */
-import type { Look } from "@infinite-tower/shared";
+import type { Hand, Look } from "@infinite-tower/shared";
 import { render, type Art, type ChibiFacing, type Colors, type Picture } from "./art.js";
-import type { Pose, SwordPose } from "./battle.js";
+import { leftHanded, type Pose, type SwordPose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
 import { FACE_SHAPES } from "./head.js";
@@ -33,13 +33,15 @@ export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
-/** The battle sprite in `pose` (its `frame`th frame), sword in hand. */
+/** The battle sprite in `pose` (its `frame`th frame), the sword in `swordHand` (null: none). */
 export function drawBattle(
   look: Look, pose: Pose | SwordPose, frame = 0, wear: readonly Art[] = STARTER_CLOTHES,
+  swordHand: Hand | null = "rightHand",
 ): Picture {
-  const body = BODY_TYPES[look.body].battle[pose][frame];
+  const frames = BODY_TYPES[look.body].battle;
+  const body = swordHand === "leftHand" ? leftHanded(frames, pose, frame) : frames[pose][frame];
   if (!body) throw new RangeError(`${pose} has no frame ${frame}`);
-  const pieces = lookArts(look, [...wear, SWORD]).map((art) => art.battle);
+  const pieces = lookArts(look, swordHand ? [...wear, SWORD] : wear).map((art) => art.battle);
   return render("battle", body, pieces, colorsOf(look), FIXED);
 }
 

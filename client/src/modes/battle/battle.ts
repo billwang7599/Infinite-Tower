@@ -5,7 +5,7 @@
 import { TransformNode, type AbstractEngine } from "@babylonjs/core";
 import {
   Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, Player, sameSpell, type ArenaDef, type ClientMsg,
-  type Entity, type ServerMsgOf, type System, type Vec3, type World,
+  type Entity, type Hand, type ServerMsgOf, type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
@@ -63,6 +63,7 @@ export interface BattleOptions {
   spells: Store<SpellsState>;
   chant: Store<ChantState>;
   onLeave: () => void;
+  onSwordHand: (hand: Hand | null) => void;
 }
 
 export function createBattle(opts: BattleOptions): Battle {
@@ -95,6 +96,7 @@ export function createBattle(opts: BattleOptions): Battle {
   };
 
   const input = copyInput(IDLE_INPUT);
+  let swordHand: Hand | null = null;
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
@@ -139,6 +141,8 @@ export function createBattle(opts: BattleOptions): Battle {
     const { fight, sync } = ctx;
     if (!fight || !sync) return;
     runFight(fight, sync);
+    const { sword } = fight.world.first(LocalPlayer, Player)![2].wields;
+    if (sword !== swordHand) opts.onSwordHand(swordHand = sword);
     for (const s of render) s(fight.world, dt);
   });
 
@@ -163,6 +167,7 @@ export function createBattle(opts: BattleOptions): Battle {
       for (const e of fight.enemies) addEnemyModel(ctx, fight.world, e);
       for (const e of [...fight.players, ...fight.enemies]) fight.world.add(e, DrawOffset, { x: 0, y: 0, z: 0 });
       ctx.fight = fight;
+      swordHand = setup.players[seat]!.wields.sword;
       ctx.sync = new FightSync(fight, seat, send);
       ctx.outcome = ctx.sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);

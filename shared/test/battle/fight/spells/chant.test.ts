@@ -56,7 +56,7 @@ describe("chanting", () => {
 
   test("no chant without the spellbook in hand", () => {
     const fight = new Fight({
-      arena: ARENA, players: [player(at(0, -4), { wields: { sword: true, spellbook: false } })],
+      arena: ARENA, players: [player(at(0, -4), { wields: { sword: "rightHand", spellbook: null } })],
       enemies: [enemy(STATUE, at(0, 6))],
     });
     run(fight, 0.3);

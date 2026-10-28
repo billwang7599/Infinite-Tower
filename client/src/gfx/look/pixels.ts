@@ -227,6 +227,10 @@ export const both = (a: Mask, b: Mask): Mask => {
 };
 export const shift = (mask: Mask, dx: number, dy: number): Mask =>
   bounded(moved(mask.box, dx, dy, dx, dy), (x, y) => mask(x - dx, y - dy));
+export const flip = (mask: Mask, width: number): Mask => {
+  const b = mask.box;
+  return bounded(b && [width - 1 - b[2], b[1], width - 1 - b[0], b[3]], (x, y) => mask(width - 1 - x, y));
+};
 /** The mask plus its mirror image across the middle of a `width`-wide picture. */
 export const mirror = (mask: Mask, width: number): Mask => {
   const b = mask.box;

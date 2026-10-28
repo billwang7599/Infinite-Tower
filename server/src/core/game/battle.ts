@@ -1,6 +1,6 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, blankSpellbook, holds, starterEquipment, type Bag, type Entity, type ItemCounts, type ItemId,
+  addItem, bagCounts, blankSpellbook, heldIn, starterEquipment, type Bag, type Entity, type ItemCounts, type ItemId,
   type Spellbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -29,7 +29,7 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
   session.closeBag();
   const { overworld, vitals } = session;
   const { equipment } = session.gear;
-  const wields = { sword: holds(equipment, "sword"), spellbook: holds(equipment, "spellbook") };
+  const wields = { sword: heldIn(equipment, "sword"), spellbook: heldIn(equipment, "spellbook") };
   const setup: FightSetup = {
     arena: overworld.level.arena,
     players: [{
