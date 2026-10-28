@@ -26,7 +26,6 @@ These were asked early on and never answered:
 - What dying costs (a currency, items, progress?).
 - Party size for co-op, and whether there's PvP.
 - Art direction beyond the current pixel sprites and simple 3D models.
-- Weapons: sword only, or more?
 - How floors work: how many, how big, what's on each, how you go up (a boss per floor?).
 
 ## Notes

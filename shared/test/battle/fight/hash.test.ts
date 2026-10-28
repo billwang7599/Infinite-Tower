@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina, SwordAttack, Wielder,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PlayerInput, Stamina, WeaponAttack, Wielder,
   type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -95,9 +95,9 @@ describe("a fight's hash", () => {
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
       ["the random numbers", (f) => { f.world.require(f.enemies[0]!, Enemy).rng += 1; }],
-      ["the sword's cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).cooldown += 0.05; }],
-      ["the sword's parry cooldown", (f) => { f.world.require(f.enemies[0]!, SwordAttack).parryCooldown += 0.05; }],
-      ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, SwordAttack).swingsLeft += 1; }],
+      ["its weapon attack's cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).cooldown += 0.05; }],
+      ["its parry cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).parryCooldown += 0.05; }],
+      ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).swingsLeft += 1; }],
       ["being parried", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "parried"; }],
     ];
     const swordFight = () => busyFight(240, new Fight({

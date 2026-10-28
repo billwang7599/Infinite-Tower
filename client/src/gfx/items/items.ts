@@ -184,7 +184,7 @@ function skillbook(px: Pixels): void {
 }
 
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
-  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, skillbook,
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, skillbook,
 };
 
 const drawn = new Map<ItemId, Picture>();

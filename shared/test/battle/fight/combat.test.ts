@@ -9,7 +9,7 @@ import { duel, input, run, STATS, STATUE } from "./fixtures.js";
 before(() => initPhysics());
 
 const SWING_DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
-const shape = (kind: AttackKind) => attackShape(kind, WEAPONS.sword);
+const shape = (kind: AttackKind) => attackShape(kind, PLAYER.armReachM, WEAPONS.sword);
 /** Half an attack's arc, either side of the aim. */
 const halfArcRad = (kind: AttackKind) => Math.acos(shape(kind).minDot);
 /** Center to center, `margin` inside (or, negative, outside) the attack's reach. */
@@ -61,7 +61,7 @@ describe("a swing", () => {
       return input({ attack: step === 0 ? "lr" : null });
     });
     assert.deepEqual(seen, [{
-      type: "hit", by: fight.players[0], target: fight.enemies[0], team: "enemy", damage: SWING_DAMAGE, sword: true,
+      type: "hit", by: fight.players[0], target: fight.enemies[0], team: "enemy", damage: SWING_DAMAGE, weapon: true,
     }]);
   });
 });

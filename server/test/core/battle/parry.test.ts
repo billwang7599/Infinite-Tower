@@ -23,7 +23,7 @@ const SWING: SwingDir = "tlbr";
 const ONE_SWING: EnemyDef = {
   ...KOBOLD, walkSpeed: 0,
   attacks: {
-    sword: { ...KOBOLD.attacks.sword!, moves: [SWING], minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 },
+    weapon: { ...KOBOLD.attacks.weapon!, moves: [SWING], minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 },
   },
 };
 const SETUP: FightSetup = setupWith(ONE_SWING, { x: 0, y: 0.05, z: 2 }, { x: 0, y: 0.05, z: 0 });

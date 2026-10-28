@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, attackShape, chainKind, isSwing, lineOf, MOMENTUM, momentumDamage, reverseOf,
-  startupTime, SWING_DIRS, WEAPONS, type SwingDir,
+  ATTACK_KINDS, attackShape, chainKind, isSwing, ITEMS, lineOf, MOMENTUM, momentumDamage, PLAYER, reverseOf,
+  startupTime, SWING_DIRS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS, type SwingDir,
 } from "@infinite-tower/shared";
 
 describe("the ten things a sword does", () => {
@@ -68,9 +68,9 @@ describe("chaining one swing into the next", () => {
   });
 });
 
-describe("what each attack hits, from the sword's length", () => {
-  const sword = WEAPONS.sword;
-  const arc = (dir: SwingDir) => attackShape(dir, sword);
+describe("what each attack hits, from the wielder's arm and the sword's length", () => {
+  const sword = WEAPONS.sword, arm = PLAYER.armReachM;
+  const arc = (dir: SwingDir) => attackShape(dir, arm, sword);
 
   test("horizontal swings are the widest and the shortest, vertical ones the narrowest and the longest", () => {
     for (const [h, d, v] of [["lr", "tlbr", "tb"], ["rl", "trbl", "bt"]] as const) {
@@ -84,7 +84,7 @@ describe("what each attack hits, from the sword's length", () => {
   });
 
   test("the stab is a thin ray, longer than any swing", () => {
-    const stab = attackShape("stab", sword);
+    const stab = attackShape("stab", arm, sword);
     assert.equal(stab.shape, "ray");
     assert.ok(stab.width > 0 && stab.width < 0.5);
     for (const dir of SWING_DIRS) {
@@ -96,7 +96,30 @@ describe("what each attack hits, from the sword's length", () => {
   test("a longer sword reaches further with every attack", () => {
     const longer = { ...sword, length: sword.length + 0.5 };
     for (const kind of ATTACK_KINDS) {
-      assert.ok(attackShape(kind, longer).range > attackShape(kind, sword).range, kind);
+      assert.ok(attackShape(kind, arm, longer).range > attackShape(kind, arm, sword).range, kind);
+    }
+  });
+
+  test("a longer arm reaches as much further as the same length more of blade", () => {
+    const longer = { ...sword, length: sword.length + 0.5 };
+    for (const kind of ATTACK_KINDS) {
+      assert.deepEqual(attackShape(kind, arm + 0.5, sword), attackShape(kind, arm, longer), kind);
+    }
+  });
+});
+
+describe("the arsenal", () => {
+  test("a weapon in either hand is found, the right hand's first; other things in hand are no weapon", () => {
+    assert.equal(weaponItemIn({ rightHand: "skillbook", leftHand: "sword" }), "sword");
+    assert.equal(weaponItemIn({ rightHand: "kobold-blade", leftHand: "sword" }), "kobold-blade");
+    assert.equal(weaponItemIn({ rightHand: "skillbook", leftHand: null }), null);
+    assert.equal(weaponIn({ rightHand: null, leftHand: "kobold-blade" }), WEAPONS["kobold-blade"]);
+  });
+
+  test("every weapon is a worn-in-hand item of a known kind", () => {
+    for (const [id, weapon] of Object.entries(WEAPONS)) {
+      assert.equal(ITEMS[id as keyof typeof WEAPONS].wornOn, "hand", id);
+      assert.ok(WEAPON_KINDS.includes(weapon.kind), id);
     }
   });
 });

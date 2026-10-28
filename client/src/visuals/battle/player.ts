@@ -1,13 +1,13 @@
 import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
+  attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
 import { fighter } from "./battle.js";
 import { spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
-import { thrustPose, trailPose } from "./weapons.js";
+import { MOTIONS } from "./weapons.js";
 
 const SPRITE_SIZE = 1.8;
 /** The sword trail's length (m), end to end. */
@@ -111,7 +111,8 @@ function dispose(sprite: PlayerSprite): void {
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
   const { ctx } = sprite;
   const body = world.require(e, Body), player = world.require(e, Player), health = world.require(e, Health);
-  const { swing, hands } = world.require(e, Wielder), weapon = weaponIn(hands);
+  const { swing, hands, armReachM } = world.require(e, Wielder), weapon = weaponIn(hands);
+  const motion = weapon && MOTIONS[weapon.kind];
   const p = sprite.node.position, vel = body.vel;
   const alive = health.hp > 0;
 
@@ -136,7 +137,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);
 
   const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
-  const trail = trailPose(swing);
+  const trail = motion?.trail(swing) ?? null;
   sprite.trail.setEnabled(trail !== null);
   if (trail) {
     // A metre ahead at the sprite's chest, across the view; the cut grows from its start end.
@@ -146,7 +147,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     sprite.slash.scaling.x = -trail.from * trail.reach;
     sprite.slash.visibility = trail.visibility;
   }
-  const thrust = weapon && thrustPose(swing, weapon);
+  const thrust = weapon && motion && motion.thrust(swing, attackShape("stab", armReachM, weapon).range);
   sprite.thrust.setEnabled(thrust !== null);
   if (thrust) {
     sprite.thrust.position.set(p.x, p.y + 0.25, p.z);

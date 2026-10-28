@@ -57,6 +57,11 @@ Decided by the user:
 - Combat is two parts: gear (weapons, physical combat) and skills. Skills are the grammar (a Form, elements,
   modifiers), for making magic, enhancing yourself or anything else; nothing about them is magic-specific (they were
   called spells). The skillbook only stores built skills.
+- Weapons are an arsenal: every weapon is an item with a row in `WEAPONS` (its kind of moveset and its stats), and a
+  fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
+  weapon's reach is the wielder's own arm reach plus the weapon's length; its hits deal the weapon's damage at the
+  wielder's strength. Weapons built from parts (hilts, blades) and inertia-based swings are planned
+  ([plan/weapons.md](plan/weapons.md)).
 - The skill words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
   accounts test1-3 know every word.
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -176,7 +181,8 @@ Decided by the user:
   invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
   damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
   while) and blocks your stabs. Its landed sword hits only hurt, with no stun or knockback (the boar's still stun). It
-  drops nothing yet. Numbers: `server/src/core/content/enemies.ts`, `PARRY` in `shared/src/weapons/weapons.ts`.
+  drops nothing yet. It holds its own Kobold blade (the sword's length and speed, its 14 damage), which never drops.
+  Numbers: `server/src/core/content/enemies.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a

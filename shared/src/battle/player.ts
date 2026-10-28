@@ -24,8 +24,10 @@ export const PLAYER = {
   /** Presses this early still count (queue the next attack / dodge). */
   inputBuffer: 0.2,
   hurtInvuln: 0.6,
+  /** From the center to the hilt: a weapon's length goes on from there. */
+  armReachM: 0.8,
 
-  /** Swings and the stab: how fast and how far they go is the sword's and the chain's (sword.ts). */
+  /** Swings and the stab: how fast and how far they go is the weapon's and the chain's (weapons.ts). */
   swing: {
     cost: 16,
     poiseDamage: 12,
@@ -36,7 +38,7 @@ export const PLAYER = {
   },
   stab: {
     cost: 20,
-    /** Its damage is the sword's times this (and, chained as a finisher, the momentum's bonus: sword.ts). */
+    /** Its damage is the weapon's times this (and, chained as a finisher, the momentum's bonus: weapons.ts). */
     damageFactor: 1.25,
     poiseDamage: 18,
     lungeSpeed: 4,

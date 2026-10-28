@@ -2,15 +2,15 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Health, physicalDamage, Player, PLAYER, Stamina, type EnemyDef, type PlayerInputData,
+  Body, Health, physicalDamage, Player, PLAYER, Stamina, WEAPONS, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, BOAR, enemy, input, player, STATS, sword, SWORDSMAN } from "./fixtures.js";
+import { ARENA, BITER, BOAR, enemy, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
 
 before(() => initPhysics());
 
-const SWORD_DAMAGE = physicalDamage(SWORDSMAN.attacks.sword!.damage, STATS);
-const STAB: EnemyDef = { ...SWORDSMAN, attacks: { sword: sword({ moves: ["stab"] }) } };
+const SWORD_DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
+const STAB: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ moves: ["stab"] }) } };
 /** The boar's charge alone, from across the arena. */
 const CHARGER: EnemyDef = { ...BOAR, walkSpeed: 0, attacks: { charge: { ...BOAR.attacks.charge!, firstDelay: 0 } } };
 

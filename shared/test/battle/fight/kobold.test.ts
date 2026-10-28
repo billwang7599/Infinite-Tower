@@ -5,16 +5,16 @@ import {
   Body, Enemy, FIXED_DT, Health, SWING_DIRS, Wielder, type AttackKind, type EnemyDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
-import { ARENA, dumpState, enemy, IDLE, player, sword, SWORDSMAN } from "./fixtures.js";
+import { ARENA, dumpState, enemy, IDLE, player, swings, SWORDSMAN } from "./fixtures.js";
 
 before(() => initPhysics());
 
 /** Like the Kobold: chains of 2 or 3 of any attack, attacking again soon after. */
 const CHAINER: EnemyDef = {
   ...SWORDSMAN, maxHp: 10000,
-  attacks: { sword: sword({ moves: [...SWING_DIRS, "stab"], minChain: 2, maxChain: 3, cooldown: 0.4 }) },
+  attacks: { weapon: swings({ moves: [...SWING_DIRS, "stab"], minChain: 2, maxChain: 3, cooldown: 0.4 }) },
 };
-const DEF = CHAINER.attacks.sword!;
+const DEF = CHAINER.attacks.weapon!;
 
 const newFight = (seed: number) => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100000, stamina: 100 } })],
@@ -33,12 +33,12 @@ function chains(seed: number, seconds = 30): Swing[][] {
     const before = state();
     fight.step([IDLE]);
     const now = state();
-    if (now === "swordWindup" && before !== "swordWindup") {
+    if (now === "weaponWindup" && before !== "weaponWindup") {
       windupSteps = 0;
       if (before === "approach") out.push([]);
     }
-    if (now === "swordWindup") windupSteps++;
-    if (now === "sword" && before !== "sword") {
+    if (now === "weaponWindup") windupSteps++;
+    if (now === "weapon" && before !== "weapon") {
       out.at(-1)!.push({ attack: fight.world.require(fight.enemies[0]!, Wielder).swing!.attack, windupSteps });
     }
   }

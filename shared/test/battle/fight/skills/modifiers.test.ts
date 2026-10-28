@@ -116,7 +116,7 @@ describe("Split", () => {
     const hits: number[] = [];
     for (let i = 0; i < 240 && objects(fight, "bolt").length > 0; i++) {
       fight.step([IDLE]);
-      for (const e of fight.events) if (e.type === "hit" && !e.sword && e.team === "enemy") hits.push(e.damage);
+      for (const e of fight.events) if (e.type === "hit" && !e.weapon && e.team === "enemy") hits.push(e.damage);
     }
     return hits;
   };

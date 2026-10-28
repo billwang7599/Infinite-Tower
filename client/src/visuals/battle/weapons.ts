@@ -1,6 +1,8 @@
 import {
-  attackShape, FIXED_DT, isSwing, type AttackKind, type SwingData, type SwingDir, type Vec3, type Weapon,
+  FIXED_DT, isSwing, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId, type WeaponKind,
 } from "@infinite-tower/shared";
+import type { Art } from "../../gfx/look/art.js";
+import { SWORD } from "../../gfx/look/sword.js";
 
 /** The trail starts this long before the swing's blade goes live, and shows this long in all (seconds). */
 const TRAIL_LEAD_TIME = 0.03;
@@ -42,7 +44,7 @@ function trailLine(dir: SwingDir): { rollRad: number; from: 1 | -1 } {
   return { rollRad: angle, from: -1 };
 }
 
-export function trailPose(swing: SwingData | null): TrailPose | null {
+function trailPose(swing: SwingData | null): TrailPose | null {
   if (!swing || !isSwing(swing.attack)) return null;
   const progress = (sinceLive(swing) + TRAIL_LEAD_TIME) / TRAIL_DURATION;
   if (progress < 0 || progress >= 1) return null;
@@ -55,11 +57,11 @@ export interface ThrustPose {
   visibility: number;
 }
 
-export function thrustPose(swing: SwingData | null, weapon: Weapon): ThrustPose | null {
+function thrustPose(swing: SwingData | null, stabRangeM: number): ThrustPose | null {
   if (!swing || isSwing(swing.attack)) return null;
   const progress = (sinceLive(swing) + TRAIL_LEAD_TIME) / THRUST_DURATION;
   if (progress < 0 || progress >= 1) return null;
-  return { reachM: Math.min(1, progress * 3) * attackShape("stab", weapon).range, visibility: 1 - progress * progress };
+  return { reachM: Math.min(1, progress * 3) * stabRangeM, visibility: 1 - progress * progress };
 }
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -70,7 +72,7 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 /** Unit vector in the wielder's frame, +z ahead. */
 export interface BladePose { blade: Vec3; handZ: number }
 
-export const GUARD_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
+const GUARD_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
 /** The blade as it ends a stab, and drawn back before one. */
 const STAB_DIR = norm({ x: 0, y: 0.08, z: 1 });
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
@@ -83,7 +85,7 @@ function swingStart(attack: AttackKind): Vec3 {
   return { x, y: -y, z: 0 };
 }
 
-export function windupBlade(attack: AttackKind, k: number): BladePose {
+function windupBlade(attack: AttackKind, k: number): BladePose {
   const start = swingStart(attack), guard = GUARD_BLADE.blade;
   const to = isSwing(attack) ? { x: start.x, y: start.y, z: WINDUP_LEAN } : STAB_DIR;
   return {
@@ -94,7 +96,7 @@ export function windupBlade(attack: AttackKind, k: number): BladePose {
   };
 }
 
-export function liveBlade(attack: AttackKind, s: number): BladePose {
+function liveBlade(attack: AttackKind, s: number): BladePose {
   if (!isSwing(attack)) return { blade: STAB_DIR, handZ: GUARD_BLADE.handZ + 0.45 * Math.sin(Math.PI * s) };
   const start = swingStart(attack), a = Math.PI * s;
   const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + 0.15 });
@@ -102,8 +104,34 @@ export function liveBlade(attack: AttackKind, s: number): BladePose {
 }
 
 /** Radians, in the wielder's frame; a stab has none. */
-export function tellArrowRad(attack: AttackKind): number | null {
+function tellArrowRad(attack: AttackKind): number | null {
   if (!isSwing(attack)) return null;
   const { x, y } = SCREEN_DIR[attack];
   return Math.atan2(x, y);
 }
+
+export interface WeaponMotion {
+  trail(swing: SwingData | null): TrailPose | null;
+  thrust(swing: SwingData | null, stabRangeM: number): ThrustPose | null;
+  guard: BladePose;
+  windup(attack: AttackKind, k: number): BladePose;
+  live(attack: AttackKind, s: number): BladePose;
+  tellArrowRad(attack: AttackKind): number | null;
+}
+
+export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
+  sword: {
+    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, live: liveBlade, tellArrowRad,
+  },
+};
+
+/** `blade`: a 3D model's, from the guard up. */
+export interface WeaponLook {
+  sprite: Art;
+  blade: { lengthM: number; widthM: number; color: string };
+}
+
+export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
+  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
+  "kobold-blade": { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
+};

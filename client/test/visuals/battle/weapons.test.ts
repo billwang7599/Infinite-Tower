@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { attackShape, FIXED_DT, reverseOf, SWING_DIRS, WEAPONS, type SwingDir } from "@infinite-tower/shared";
 import {
-  liveBlade, SCREEN_DIR, swingFrame, thrustPose, trailPose, windupBlade, type TrailPose,
-} from "../../../src/visuals/battle/weapons.js";
+  attackShape, FIXED_DT, PLAYER, reverseOf, SWING_DIRS, WEAPONS, type SwingDir,
+} from "@infinite-tower/shared";
+import { MOTIONS, SCREEN_DIR, swingFrame, type TrailPose } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps } from "../../fixtures/swings.js";
+
+const { trail: trailPose, thrust: thrustPose, windup: windupBlade, live: liveBlade } = MOTIONS.sword;
+const STAB_RANGE = attackShape("stab", PLAYER.armReachM, WEAPONS.sword).range;
 
 const trail = (aimYaw: number, dir: SwingDir): TrailPose[] =>
   swingSteps(dir, aimYaw).map(trailPose).filter((pose) => pose !== null);
@@ -49,16 +52,16 @@ describe("the sword trail", () => {
   });
 
   test("the stab draws no trail but a thrust, out as far as the weapon stabs and back, while its blade is live", () => {
-    const stab = swingSteps("stab"), reach = attackShape("stab", WEAPONS.sword).range;
+    const stab = swingSteps("stab"), reach = STAB_RANGE;
     assert.equal(stab.map(trailPose).filter((pose) => pose !== null).length, 0);
-    const thrusts = stab.map((swing) => thrustPose(swing, WEAPONS.sword));
+    const thrusts = stab.map((swing) => thrustPose(swing, STAB_RANGE));
     thrusts.forEach((pose, step) => {
       const t = (step - stab[0]!.liveAt) * FIXED_DT;
       if (t < -0.03) assert.equal(pose, null, `not before its blade goes live (${t.toFixed(3)} s)`);
     });
     assert.ok(thrusts.some((pose) => pose !== null && pose.reachM > 0.8 * reach), "it reaches out");
     assert.ok(thrusts.every((pose) => pose === null || pose.reachM <= reach));
-    for (const dir of SWING_DIRS) assert.ok(swingSteps(dir).every((s) => thrustPose(s, WEAPONS.sword) === null), dir);
+    for (const dir of SWING_DIRS) assert.ok(swingSteps(dir).every((s) => thrustPose(s, STAB_RANGE) === null), dir);
   });
 });
 

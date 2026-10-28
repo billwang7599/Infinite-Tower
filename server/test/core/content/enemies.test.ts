@@ -38,14 +38,14 @@ function watchful(fight: Fight): PlayerInputData {
   const input: PlayerInputData = {
     ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ,
   };
-  const winding = kobold.state === "swordWindup" || kobold.state === "sword";
+  const winding = kobold.state === "weaponWindup" || kobold.state === "weapon";
   if (winding && its && !isSwing(its.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };
-  if (kobold.state === "swordWindup" && its && isSwing(its.attack)) {
+  if (kobold.state === "weaponWindup" && its && isSwing(its.attack)) {
     const landsIn = Math.ceil((kobold.duration - kobold.stateTime) / FIXED_DT - 1e-6);
     if (landsIn === LIVE_AFTER + 2) input.attack = reverseOf(its.attack);
     return input;
   }
-  const open = kobold.state === "swordRecover" || kobold.state === "parried" || kobold.state === "staggered";
+  const open = kobold.state === "weaponRecover" || kobold.state === "parried" || kobold.state === "staggered";
   const free = me.action === "none" || (mine !== null && mine.step >= mine.letGoAt);
   if (open && free && fight.steps % 2 === 0) input.attack = (lastAttacks.get(fight) ?? "lr") === "lr" ? "rl" : "lr";
   return input;

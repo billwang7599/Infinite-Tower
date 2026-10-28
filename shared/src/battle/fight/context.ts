@@ -16,7 +16,7 @@ export interface FightOutcome {
 
 /** Something that happened this step that the client shows (the screen shakes) but the fight doesn't need again. */
 export type FightEvent =
-  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; sword: boolean }
+  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean }
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
   /** `by` parried `target`'s swing: `target` is stunned (an enemy) or staggered (a player). */

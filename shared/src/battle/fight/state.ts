@@ -6,9 +6,9 @@ import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
   ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillObject, Stamina, Statuses,
-  SwordAttack, Wielder,
+  WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type StaminaData,
-  type StatusData, type SwingData, type SwordAttackData, type WielderData,
+  type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
@@ -20,7 +20,7 @@ interface FighterSnapshot {
   vel: Vec3;
   health: Omit<HealthData, "max">;
   statuses: StatusData;
-  wielder: Omit<WielderData, "hands"> | null;
+  wielder: Omit<WielderData, "hands" | "armReachM"> | null;
 }
 
 interface PlayerSnapshot extends FighterSnapshot {
@@ -34,7 +34,7 @@ interface EnemySnapshot extends FighterSnapshot {
   enemy: Omit<EnemyData, "def" | "sense" | "move">;
   lunge: { cooldown: number } | null;
   charge: { cooldown: number; dir: Vec2 } | null;
-  sword: Omit<SwordAttackData, "def"> | null;
+  weapon: Omit<WeaponAttackData, "def"> | null;
   sidestep: { dir: Vec2 } | null;
 }
 
@@ -64,13 +64,13 @@ const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: {
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const { hands: _, swing, ...chain } = wielder;
+  const { hands: _, armReachM: _arm, swing, ...chain } = wielder;
   return { ...chain, swing: copySwing(swing) };
 }
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
 
-function withoutDef({ def: _, ...state }: SwordAttackData): Omit<SwordAttackData, "def"> {
+function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
   return state;
 }
 
@@ -96,13 +96,13 @@ export function saveFight(fight: Fight): FightSnapshot {
     }),
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
-      const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), sword = world.get(e, SwordAttack);
+      const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), weapon = world.get(e, WeaponAttack);
       const sidestep = world.get(e, Sidestep);
       return {
         ...fighter(e), enemy,
         lunge: lunge ? { cooldown: lunge.cooldown } : null,
         charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
-        sword: sword ? withoutDef(sword) : null,
+        weapon: weapon ? withoutDef(weapon) : null,
         sidestep: sidestep ? { dir: { ...sidestep.dir } } : null,
       };
     }),
@@ -147,8 +147,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack);
     if (lunge && s.lunge) lunge.cooldown = s.lunge.cooldown;
     if (charge && s.charge) Object.assign(charge, { cooldown: s.charge.cooldown, dir: { ...s.charge.dir } });
-    const sword = world.get(e, SwordAttack);
-    if (sword && s.sword) Object.assign(sword, s.sword);
+    const weapon = world.get(e, WeaponAttack);
+    if (weapon && s.weapon) Object.assign(weapon, s.weapon);
     const sidestep = world.get(e, Sidestep);
     if (sidestep && s.sidestep) sidestep.dir = { ...s.sidestep.dir };
   });

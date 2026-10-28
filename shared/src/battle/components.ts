@@ -1,7 +1,7 @@
 /** A Fight's state, as plain data. The physics world holds the colliders, by handle. */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SwordDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, WeaponAttackDef } from "./defs.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
@@ -71,6 +71,7 @@ export interface SwingData {
 
 export interface WielderData {
   hands: Record<Hand, ItemId | null>;
+  armReachM: number;
   swing: SwingData | null;
   /** The last swing of the chain going on (null: none), the seconds it lives on after an attack, its momentum. */
   combo: AttackKind | null;
@@ -157,7 +158,7 @@ export interface ActiveHitData {
   minDot: number;
   /** A ray's reach either side of its line, to the target's surface. */
   width: number;
-  /** A sword's swing or stab, or null: a body blow (a boar's), never parried. */
+  /** A weapon's swing or stab, or null: a body blow (a boar's), never parried. */
   attack: AttackKind | null;
   damage: number;
   knockback: number;
@@ -192,7 +193,7 @@ export type EnemyState =
   | "approach" | "stunned" | "parried" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "swordWindup" | "sword" | "swordRecover"
+  | "weaponWindup" | "weapon" | "weaponRecover"
   | "sidestep";
 
 /** Any arena enemy. Each attack component (below) has its own system; models animate from `state`. */
@@ -201,7 +202,7 @@ export interface EnemyData {
   state: EnemyState;
   /** Seconds in the current state. */
   stateTime: number;
-  /** Seconds the current state lasts ("stunned", "parried", "staggered", a sword's wind-up). */
+  /** Seconds the current state lasts ("stunned", "parried", "staggered", a weapon's wind-up). */
   duration: number;
   /** Facing (the yaw convention is in core/math.ts). */
   yaw: number;
@@ -222,8 +223,8 @@ export interface AttackState<D> {
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
-/** A swordsman's chains of swings. */
-export interface SwordAttackData extends AttackState<SwordDef> {
+/** Chains of swings with the weapon in hand. */
+export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   /** Swings still to come in this chain after the current one. */
   swingsLeft: number;
   /** Seconds until it can parry again. */
@@ -232,6 +233,6 @@ export interface SwordAttackData extends AttackState<SwordDef> {
 
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
-export const SwordAttack = defineComponent<SwordAttackData>("SwordAttack");
+export const WeaponAttack = defineComponent<WeaponAttackData>("WeaponAttack");
 export interface SidestepData { def: SidestepDef; dir: Vec2 }
 export const Sidestep = defineComponent<SidestepData>("Sidestep");

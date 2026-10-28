@@ -9,7 +9,7 @@ import {
   reverseOf, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
-import { ARENA, dumpState, enemy, GUARD, input, player, STATS, sword, SWORDSMAN } from "./fixtures.js";
+import { ARENA, dumpState, enemy, GUARD, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
 
 await initPhysics();
 
@@ -19,7 +19,7 @@ const newFight = (def: EnemyDef = SWORDSMAN, enemyZ = ENEMY_Z, vitals = { hp: PL
     arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals })],
     enemies: [enemy(def, { x: 0, y: 0.05, z: enemyZ })],
   });
-const withMoves = (moves: AttackKind[]): EnemyDef => ({ ...SWORDSMAN, attacks: { sword: sword({ moves }) } });
+const withMoves = (moves: AttackKind[]): EnemyDef => ({ ...SWORDSMAN, attacks: { weapon: swings({ moves }) } });
 
 /** What the player does on each step (1 is the fight's first). */
 type Script = (step: number) => Partial<PlayerInputData>;
@@ -71,7 +71,7 @@ describe("parrying the swordsman's swing", () => {
 
   test("hit by a chain's first swing, the next can still be parried while you're briefly invulnerable", () => {
     const chainWindup = PLAYER.hurtInvuln / 2;
-    const chain = { ...SWORDSMAN, attacks: { sword: sword({ minChain: 2, maxChain: 2, chainWindup }) } };
+    const chain = { ...SWORDSMAN, attacks: { weapon: swings({ minChain: 2, maxChain: 2, chainWindup }) } };
     const liveSteps: number[] = [];
     const f = newFight(chain);
     while (f.steps < LANDS_AT + 60) {
@@ -138,7 +138,7 @@ describe("parrying the swordsman's swing", () => {
     assert.ok((hit.step - LANDS_AT) * FIXED_DT < PARRY.stunTime, "while still stunned");
     assert.deepEqual(hit.event, {
       type: "hit", by: after.fight.players[0], target: after.fight.enemies[0], team: "enemy",
-      damage: physicalDamage(WEAPONS.sword.damage, STATS) * PARRY.bonusDamage, sword: true,
+      damage: physicalDamage(WEAPONS.sword.damage, STATS) * PARRY.bonusDamage, weapon: true,
     });
 
     const done = play(swingBefore("rl", 2), LANDS_AT + Math.round(PARRY.stunTime / FIXED_DT) + 2);
@@ -181,7 +181,7 @@ describe("the swordsman parrying the player", () => {
   });
 
   test("not right away: back on guard, it needs its reaction time before it can parry", () => {
-    const quick = GUARD.attacks.sword!.parryReaction / 2;
+    const quick = GUARD.attacks.weapon!.parryReaction / 2;
     const { fight } = play((step) => step === Math.round(quick / FIXED_DT) - LIVE_AFTER ? { attack: "lr" } : {}, 60,
       newFight(GUARD));
     assert.ok(hpOf(fight, fight.enemies[0]) < GUARD.maxHp, "hit before it was ready");
@@ -190,14 +190,14 @@ describe("the swordsman parrying the player", () => {
   test("after a parry it can't parry again for a while: a second swing then lands", () => {
     const twice: Script = (step) => step === settled ? { attack: "lr" } : step === settled + 50 ? { attack: "tb" } : {};
     const { fight } = play(twice, settled + 80, newFight(GUARD));
-    assert.ok((50 - LIVE_AFTER) * FIXED_DT < GUARD.attacks.sword!.parryCooldown);
+    assert.ok((50 - LIVE_AFTER) * FIXED_DT < GUARD.attacks.weapon!.parryCooldown);
     assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - physicalDamage(WEAPONS.sword.damage, STATS));
   });
 
   test("swinging while it recovers from its own attack lands", () => {
     // Just out of its reach: its swing misses, and the player's lands as it recovers.
     const harmless = newFight(SWORDSMAN, 2.35);
-    const def = SWORDSMAN.attacks.sword!;
+    const def = SWORDSMAN.attacks.weapon!;
     const recovering = Math.round((def.windup + def.active + 0.1) / FIXED_DT);
     const { fight } = play((step) => step === recovering ? { attack: "lr" } : {}, recovering + 30, harmless);
     assert.equal(hpOf(fight), PLAYER.maxHp, "its swing missed");
@@ -210,7 +210,7 @@ describe("the swordsman parrying the player", () => {
     assert.notEqual(guarded.fight.world.require(guarded.fight.players[0]!, Player).action, "stagger");
     assert.ok(guarded.events.some((e) => e.event.type === "block"));
 
-    const def = SWORDSMAN.attacks.sword!;
+    const def = SWORDSMAN.attacks.weapon!;
     const recovering = Math.round((def.windup + def.active + 0.1) / FIXED_DT);
     const stabAt: Script = (step) => step === recovering ? { attack: "stab" } : {};
     const open = play(stabAt, recovering + 30, newFight(SWORDSMAN, 2.35));
@@ -222,7 +222,7 @@ describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
   /** Attacks in chains of two, again and again. */
   const DUELLIST: EnemyDef = {
     ...SWORDSMAN, maxHp: 100000,
-    attacks: { sword: sword({ moves: ["lr", "tb", "trbl"], minChain: 2, maxChain: 2, cooldown: 0.5 }) },
+    attacks: { weapon: swings({ moves: ["lr", "tb", "trbl"], minChain: 2, maxChain: 2, cooldown: 0.5 }) },
   };
   const duel = () => new Fight({
     arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100000, stamina: 1000 } })],
@@ -239,14 +239,14 @@ describe("a parry's stun, a block and a chain's momentum, mid-flight", () => {
       const k = fight.world.require(fight.enemies[0]!, Enemy), its = wielderOf(fight, fight.enemies[0]!).swing;
       const me = fight.world.require(fight.players[0]!, Player), mine = wielderOf(fight).swing;
       if (mine) lastAttack = mine.attack;
-      if (k.state === "swordWindup" && last === "approach") chainNo++;
+      if (k.state === "weaponWindup" && last === "approach") chainNo++;
       last = k.state;
       if (k.state === "parried") {
         const free = me.action === "none" || (mine !== null && mine.step >= mine.letGoAt);
         return input({ attack: free && fight.steps % 2 === 0 ? (lastAttack === "lr" ? "rl" : "lr") : null });
       }
-      if (chainNo % 2 === 0 && (k.state === "swordWindup" || k.state === "sword")) return input({ block: true });
-      if (k.state === "swordWindup" && its && isSwing(its.attack)) {
+      if (chainNo % 2 === 0 && (k.state === "weaponWindup" || k.state === "weapon")) return input({ block: true });
+      if (k.state === "weaponWindup" && its && isSwing(its.attack)) {
         const landsIn = Math.ceil((k.duration - k.stateTime) / FIXED_DT - 1e-6);
         if (landsIn === LIVE_AFTER + 2) return input({ attack: reverseOf(its.attack) });
       }
