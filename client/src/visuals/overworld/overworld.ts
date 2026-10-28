@@ -6,6 +6,7 @@ import {
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "../../modes/overworld/components.js";
 import { mirrorFor, type Facing } from "../../modes/overworld/facing.js";
+import { byEnemy } from "../enemies/index.js";
 import type { Visual } from "../visuals.js";
 import { buildLevel, type LevelDrawing } from "./levels/index.js";
 import { CAMERA_HEIGHT, flatSprite, layerY, type OverworldScene } from "./scene.js";
@@ -78,9 +79,9 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
     material: (v) => v.materials.player.front, facings: (v) => v.materials.player, sizeTiles: 1.6, glide: false,
     tuft: true,
   }),
-  boar: walker({ material: (v) => v.materials.boar, sizeTiles: 2, glide: true, alert: true }),
-  kobold: walker({ material: (v) => v.materials.kobold, sizeTiles: 1.6, glide: true, alert: true }),
-  goblin: walker({ material: (v) => v.materials.goblin, sizeTiles: 1.4, glide: true, alert: true }),
+  ...byEnemy(({ sprite }, id) => walker({
+    material: (v) => v.materials.enemies[id], sizeTiles: sprite.sizeTiles, glide: true, alert: true,
+  })),
 };
 
 function hidden(mesh: Mesh): Mesh {

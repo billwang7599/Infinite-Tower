@@ -139,7 +139,7 @@ main.ts
   mode's update, `game.ts` calls `drawing.frame(dt)` (and `drawing.show(mode)` when the mode changes), and the drawing
   reads the shown mode's state itself: `battle.ctx` (the fight, the lock, the camera's view, this frame's events) or
   `overworld.state` (the level, the actors). Every kind of thing in a fight has one row in `VISUALS`
-  (`visuals/visuals.ts`), picked by `kindOf` from the components it already has (`Player`, an `Enemy`'s model, a
+  (`visuals/visuals.ts`), picked by `kindOf` from the components it already has (`Player`, an `Enemy`'s id, a
   `SkillObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
   has drawn: it spawns the new, frames the rest and disposes the gone. A row's own state holds only its meshes and
   smoothing (squash, eased angles); its pose comes from the components each frame, from Babylon-free pose functions
@@ -208,7 +208,7 @@ main.ts
   strength: its wind-up (the time the blade takes to get to the swing's start at its speed), the factor its live and
   recover times scale by, its flow, its impact momentum (damage, poise damage, a block's cost, a parry's stun), its
   effort (stamina) and where the blade ends up. The player's controller and an enemy's weapon attack
-  (`fight/enemies/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
+  (`fight/behaviors/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
   call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done, lets go and
   is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while it's live,
   and brings the blade to rest `SWING.gapTime` after a swing ends. Ending an action or an enemy state (`enter`) ends its
@@ -218,7 +218,7 @@ main.ts
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
   `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
   release; one at a time), `chant(words)` and `releaseChant`; the player's controller does it from the input, a
-  casting enemy's `skillAttackSystem` (`fight/enemies/skill.ts`) from its own choices. A player's input carries a
+  casting enemy's `skillAttackSystem` (`fight/behaviors/skill.ts`) from its own choices. A player's input carries a
   whole skill (`cast`) only on the step its key goes down, then just `castHeld` while the key stays down: the fight
   keeps the skill, so a long one isn't resent in every input; the chant's words come the same way, whole, on the step
   they change (`chantWords`). The controller
@@ -247,7 +247,7 @@ main.ts
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
   equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the battle with the
   fight's gear.
-- **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
+- **AI and animation are separate.** Enemy behavior systems (`fight/behaviors/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's visual (client) reads the state and
   poses the model.
 - **Input enters only as `PlayerInputData`** (world-space move + aim): from the keys in the browser, from
@@ -545,12 +545,12 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        cantCast, windUpSystem), strike.ts (a stage hitting a target: statuses, reactions, damage;
                        foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
-      enemies/         brain.ts (target, approach (or keeping away) / poise / stagger / stun / parried / death),
-                       lunge.ts, charge.ts, weapon.ts (seeded chains of swings with the weapon in hand, the
-                       Kobold's), skill.ts (casting: a quick-cast up close, a chant a word at a time from farther,
-                       seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts
-                       (stepping aside from a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded
-                       random numbers)
+      behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
+                       poise / stagger / stun / parried / death), lunge.ts, charge.ts, weapon.ts (seeded chains of
+                       swings with the weapon in hand, the Kobold's), skill.ts (casting: a quick-cast up close, a
+                       chant a word at a time from farther, seeded extra modifiers, stamina like a player's; the
+                       warlock's), sidestep.ts (stepping aside from a Bolt winding up at it), common.ts (enter, roll:
+                       the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live, its blade
                        resting after a gap; startSwing, endSwing, restBlade; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
@@ -610,15 +610,14 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       overworld/       The overworld simulation. overworld.ts (Overworld: one player's world, level, systems and
                        spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer), parts.ts (spawnActor
                        from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
-                       + replay, grass encounters, findPlayer), spawner.ts, prefabs.ts (OVERWORLD_PREFABS by id,
-                       each a list of behavior parts: the boar, the Kobold Swordsman and the Goblin Warlock = wander +
-                       chaseOnSight
-                       + encounterOnTouch)
+                       + replay, grass encounters, findPlayer), spawner.ts (each spawn an enemy's overworld actor)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
       levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (every
                        level by id: the Grass Field)
-      content/         enemies.ts (ENEMIES by id, isEnemyId), player.ts (PLAYER_STATS, fullVitals, newPlayer),
-                       drops.ts (what each enemy drops and how often; rollDrops)
+      enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, goblin-warlock.ts
+                       (its EnemyDef, its drops, its overworld actor's behavior parts). index.ts (ENEMIES, one line
+                       each; isEnemyId, rollDrops)
+      content/         player.ts (PLAYER_STATS, fullVitals, newPlayer)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -788,7 +787,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
                        rest when a fight starts, again when the fight's weapon or its hand changes (its `Wielder`);
-                       BATTLE_FRAMES; the overworld boar, kobold and goblin
+                       BATTLE_FRAMES; the "!" alert
+      enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
+                       with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
+                       Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
+                       (its overworld picture and size). index.ts (ENEMY_LOOKS, one line each; byEnemy)
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
@@ -808,8 +811,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          blade's way through a wind-up and a
                          swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite and a 3D
                          model's blade. No Babylon: tested
-        enemies/         boar/, kobold/, goblin/: model.ts (built from primitives), pose.ts (where its parts head,
-                         from its state; no Babylon: tested), animation.ts (its visual: the pose eased into, the walk)
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards), the chant's and wind-up's circle, and a visual
                          per SkillObject kind (a Bolt's core and trail or an Earth rock, a Beam's tubes and flares, a
@@ -818,8 +819,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/
         scene.ts         OverworldScene: the scene, ortho camera, materials; layerY, flatSprite
-        overworld.ts     WALKERS (each actor kind's sprite: glide, hop, facing, tuft, "!"), overworldStage (the
-                         level, the camera following the player within the view's edge rule)
+        overworld.ts     WALKERS (the player's and each enemy's sprite: glide, hop, facing, tuft, "!"), overworldStage
+                         (the level, the camera following the player within the view's edge rule)
         levels/          Level renderers by LevelLayout.theme: index.ts (registry, buildLevel, any theme's campfires,
                          flickering), grass-field.ts (terrain and its textures)
 ```
@@ -832,15 +833,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   handler in `client/src/game/game.ts`'s `net.listen({...})`.
 - **A level.** A `LevelDef` in `server/src/core/levels/index.ts`; reuse a theme or add a renderer in
   `client/src/visuals/overworld/levels/`.
-- **An overworld actor.** A prefab in `server/src/core/overworld/prefabs.ts` (a list of behavior parts) plus a row in
-  `WALKERS` (`client/src/visuals/overworld/overworld.ts`) under the same `kind` (TypeScript errors until you add it).
-  New behavior: component + factory + system in `behaviors/`.
-- **An arena enemy.** An `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks. A new attack type is
-  a def shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
+- **An enemy.** Its id in `EnemyId` (`shared/src/battle/defs.ts`); a file named by it in `server/src/core/enemies/`
+  (its `EnemyDef` combining behaviors, its drops, its overworld actor's behavior parts) and its line in `ENEMIES`;
+  a folder named by it in `client/src/visuals/enemies/` (model, pose and its test, animation, sprite) and its line
+  in `ENEMY_LOOKS` (TypeScript errors until both are there); and a spawn in a level. A new enemy behavior is a def
+  shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
-  `shared/src/battle/fight/enemies/`, listed in `fight.ts`, its state in `fight/state.ts`; a new look is a model
-  name in `EnemyDef.model`, a folder in `client/src/visuals/battle/enemies/` (model, pose and its test, animation) and
-  its row in `VISUALS`.
+  `shared/src/battle/fight/behaviors/`, listed in `fight.ts`, its state in `fight/state.ts`. A new overworld
+  behavior: component + factory + system in `server/src/core/overworld/behaviors/`.
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, worn on a hand), its row in `WEAPONS`
   (`shared/src/weapons/weapons.ts`: kind, length, damage, speed), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
@@ -898,8 +898,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Weapons: the arsenal (length, mass, balance, power); swing times, flow, the clamp; parrying | `shared/src/weapons/weapons.ts` (`WEAPONS`, `SWING`, `PARRY`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
-| Enemy stats, attacks, sidesteps, keeping away, what and how it casts | `server/src/core/content/enemies.ts` |
-| Drops | `server/src/core/content/drops.ts` |
+| Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
@@ -910,7 +909,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
-| Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |

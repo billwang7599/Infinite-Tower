@@ -2,8 +2,8 @@ import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
   Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle,
 } from "@infinite-tower/shared";
-import { fighter } from "../../battle.js";
-import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../weapons.js";
+import { fighter } from "../../battle/battle.js";
+import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../battle/weapons.js";
 import { buildKobold, disposeKobold, type KoboldModel } from "./model.js";
 import { koboldPose } from "./pose.js";
 

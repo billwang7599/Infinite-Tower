@@ -1,8 +1,9 @@
 /** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from the player if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
+import { ENEMIES } from "../enemies/index.js";
 import type { SpawnDef } from "../levels/level.js";
+import { spawnActor } from "./parts.js";
 import { findPlayer } from "./player.js";
-import { OVERWORLD_PREFABS } from "./prefabs.js";
 
 interface Slot {
   def: SpawnDef;
@@ -40,7 +41,7 @@ export class Spawner {
   }
 
   private spawn(def: SpawnDef): Entity {
-    return OVERWORLD_PREFABS[def.prefab](this.world, this.placeAway(def.at));
+    return spawnActor(this.world, def.enemy, this.placeAway(def.at), ENEMIES[def.enemy].overworld());
   }
 
   private placeAway(at: Vec2): Vec2 {

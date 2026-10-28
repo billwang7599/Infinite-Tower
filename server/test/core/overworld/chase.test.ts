@@ -11,7 +11,7 @@ const DT = 0.125;
 
 function chaser(playerAt: { x: number; z: number }, actorAt = { x: 0, z: 0 }) {
   const f = testOverworld({ playerAt });
-  const e = spawnActor(f.world, "boar", actorAt, [chaseOnSight(CHASE)]);
+  const e = spawnActor(f.world, "wild-boar", actorAt, [chaseOnSight(CHASE)]);
   const run = chaseSystem();
   return {
     ...f,
@@ -105,7 +105,7 @@ describe("chase on sight", () => {
 
   test("giveUpDist defaults to more than the notice range", () => {
     const f = testOverworld();
-    const e = spawnActor(f.world, "boar", { x: 0, z: 0 }, [chaseOnSight({ range: 4, noticeTime: 1, speed: 2 })]);
+    const e = spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, [chaseOnSight({ range: 4, noticeTime: 1, speed: 2 })]);
     assert.ok(f.world.require(e, ChaseOnSight).giveUpDist > 4);
   });
 

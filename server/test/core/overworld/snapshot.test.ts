@@ -30,26 +30,26 @@ function ids(overworld: Overworld): number[] {
 describe("state snapshot", () => {
   test("an actor next to the player is sent with what the client draws", () => {
     const overworld = overworldAtOrigin();
-    const e = spawnActor(overworld.world, "boar", { x: 2, z: 1 }, []);
+    const e = spawnActor(overworld.world, "wild-boar", { x: 2, z: 1 }, []);
     Object.assign(overworld.world.require(e, OverworldActor), { vx: 1, vz: -1, facing: 1, alert: true });
     const msg = stateMsg(overworld);
     assert.equal(msg.t, "state");
-    assert.deepEqual(msg.actors, [{ id: e, kind: "boar", x: 2, z: 1, vx: 1, vz: -1, facing: 1, alert: true }]);
+    assert.deepEqual(msg.actors, [{ id: e, kind: "wild-boar", x: 2, z: 1, vx: 1, vz: -1, facing: 1, alert: true }]);
   });
 
   test("actors just past the screen's edge are still sent, far ones are not", () => {
     const overworld = overworldAtOrigin();
-    const edgeX = spawnActor(overworld.world, "boar", { x: HALF_WIDTH + 0.5, z: 0 }, []);
-    const edgeZ = spawnActor(overworld.world, "boar", { x: 0, z: -(VIEW.halfHeight + 0.5) }, []);
-    spawnActor(overworld.world, "boar", { x: HALF_WIDTH + 50, z: 0 }, []);
-    spawnActor(overworld.world, "boar", { x: 0, z: VIEW.halfHeight + 50 }, []);
-    spawnActor(overworld.world, "boar", { x: -(HALF_WIDTH + 50), z: -(VIEW.halfHeight + 50) }, []);
+    const edgeX = spawnActor(overworld.world, "wild-boar", { x: HALF_WIDTH + 0.5, z: 0 }, []);
+    const edgeZ = spawnActor(overworld.world, "wild-boar", { x: 0, z: -(VIEW.halfHeight + 0.5) }, []);
+    spawnActor(overworld.world, "wild-boar", { x: HALF_WIDTH + 50, z: 0 }, []);
+    spawnActor(overworld.world, "wild-boar", { x: 0, z: VIEW.halfHeight + 50 }, []);
+    spawnActor(overworld.world, "wild-boar", { x: -(HALF_WIDTH + 50), z: -(VIEW.halfHeight + 50) }, []);
     assert.deepEqual(ids(overworld), [edgeX, edgeZ]);
   });
 
   test("the margin past the screen is the same on both axes and a few tiles at most", () => {
     const overworld = overworldAtOrigin();
-    const boarAt = (x: number, z: number) => spawnActor(overworld.world, "boar", { x, z }, []);
+    const boarAt = (x: number, z: number) => spawnActor(overworld.world, "wild-boar", { x, z }, []);
     const xs = [1, 2, 3, 4, 5, 6, 8].map((m) => boarAt(HALF_WIDTH + m, 0));
     const zs = [1, 2, 3, 4, 5, 6, 8].map((m) => boarAt(0, VIEW.halfHeight + m));
     const sent = new Set(ids(overworld));
@@ -60,7 +60,7 @@ describe("state snapshot", () => {
 
   test("the window follows the player", () => {
     const overworld = overworldAtOrigin();
-    const far = spawnActor(overworld.world, "boar", { x: 60, z: 40 }, []);
+    const far = spawnActor(overworld.world, "wild-boar", { x: 60, z: 40 }, []);
     assert.deepEqual(ids(overworld), []);
     overworld.place({ x: 58, z: 41 });
     assert.deepEqual(ids(overworld), [far]);
@@ -73,14 +73,14 @@ describe("state snapshot", () => {
     const cameraStopX = halfWidth + VIEW.overscan - HALF_WIDTH;
     // The player hugs the left edge; the camera stops at -cameraStopX, so the screen reaches further right.
     overworld.place({ x: -(halfWidth - TEST_LEVEL.layout.border), z: 0 });
-    const inside = spawnActor(overworld.world, "boar", { x: -cameraStopX + HALF_WIDTH + 0.5, z: 0 }, []);
+    const inside = spawnActor(overworld.world, "wild-boar", { x: -cameraStopX + HALF_WIDTH + 0.5, z: 0 }, []);
     assert.deepEqual(ids(overworld), [inside]);
   });
 
   test("positions and velocities are rounded to 2 decimals", () => {
     const overworld = overworldAtOrigin();
     overworld.place({ x: 1.23456, z: -0.98765 });
-    const e = spawnActor(overworld.world, "boar", { x: 3.14159, z: -2.71828 }, []);
+    const e = spawnActor(overworld.world, "wild-boar", { x: 3.14159, z: -2.71828 }, []);
     Object.assign(overworld.world.require(e, OverworldActor), { vx: 0.333333, vz: -1.666666 });
     const msg = stateMsg(overworld);
     assert.deepEqual(msg.me, { x: 1.23, z: -0.99 });

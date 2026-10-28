@@ -28,7 +28,7 @@ describe("Spawner", () => {
     const spawned = actors(s.world);
     assert.equal(spawned.length, 2);
     assert.deepEqual(spawned.map((e) => ({ ...pos(s.world, e) })), [DEF.at, second.at]);
-    assert.equal(s.world.require(spawned[0]!, OverworldActor).kind, DEF.prefab);
+    assert.equal(s.world.require(spawned[0]!, OverworldActor).kind, DEF.enemy);
   });
 
   test("a defeated actor comes back after respawnTime, not before", () => {

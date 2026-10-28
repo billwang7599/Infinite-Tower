@@ -57,7 +57,8 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   enemy, or the nearest when unlocked. Lock-on is close to auto-aim, so it's balanced by the defender: a Bolt aims at
   where the target is, never leads, so a step aside makes it miss; Follow turns slowly, so a late dodge shakes it; the
   Kobold (not the boar) sometimes steps aside from a Bolt winding up at it (`sidestep` in
-  `server/src/core/content/enemies.ts`: a chance per cast, a reaction time, stepping `leadTime` before it leaves).
+  `server/src/core/enemies/kobold-swordsman.ts`: a chance per cast, a reaction time, stepping `leadTime` before it
+  leaves).
 - **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
   Splits give four next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
   segment's travel direction; after a directionless one (Nova, Self, Imbue) it takes the caster's facing when it

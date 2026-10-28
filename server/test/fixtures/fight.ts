@@ -11,12 +11,12 @@ import {
   ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START, type FightSetup, type PlayerResult,
 } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../../src/core/battle/room.js";
-import { ENEMIES } from "../../src/core/content/enemies.js";
 import { PLAYER_STATS } from "../../src/core/content/player.js";
+import { ENEMIES } from "../../src/core/enemies/index.js";
 import { FakeLink } from "./fakes.js";
 
 /** The wild boar, rooted to the spot and harmless. */
-const STATUE: EnemyDef = { ...ENEMIES["wild-boar"], walkSpeed: 0, turnRate: 0, attacks: {} };
+const STATUE: EnemyDef = { ...ENEMIES["wild-boar"].def, walkSpeed: 0, turnRate: 0, attacks: {} };
 
 export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerAt = PLAYER_START): FightSetup {
   return {
@@ -26,6 +26,9 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }
+
+export const fightWith = (def: EnemyDef, seed: number): Fight =>
+  new Fight({ ...setupWith(def), enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }] });
 
 /** One battleInput: the changes since the last one, and the last step the client has run. */
 export interface Sent { upTo: number; inputs: StepInput[] }

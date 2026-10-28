@@ -12,7 +12,7 @@ const DT = 0.125;
 /** rng 0 picks angle 0 (toward +x) and the shortest walk, minDist. */
 function wanderer(rng = () => 0) {
   const f = testOverworld({ playerAt: { x: -15, z: 0 }, rng });
-  const e = spawnActor(f.world, "boar", { x: 0, z: 0 }, [wander({ speed: SPEED, minDist: 2, maxDist: 4 })]);
+  const e = spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, [wander({ speed: SPEED, minDist: 2, maxDist: 4 })]);
   const runWander = wanderSystem(f.ctx), runMove = moveSystem(f.ctx);
   return {
     ...f,

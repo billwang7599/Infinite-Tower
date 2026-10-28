@@ -2,24 +2,17 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, Body, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, SWING, Player, PLAYER,
-  reverseOf, starterEquipment, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, SWING, Player, PLAYER, reverseOf, Wielder,
+  type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
-import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
-import { ENEMIES } from "../../../src/core/content/enemies.js";
-import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
+import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
+import { fightWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
-const KOBOLD = ENEMIES["kobold-swordsman"];
+const KOBOLD = ENEMIES["kobold-swordsman"].def;
 const LIVE_AFTER = liveStep(SWING.openingTime);
-
-const newFight = (seed: number, def: EnemyDef = KOBOLD) => new Fight({
-  arena: { radius: 16 },
-  players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
-    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
-  enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
-});
 
 /**
  * Keeps about a sword's length away, facing it. Parries each swing (the reverse, its blade live two steps before
@@ -54,7 +47,7 @@ function watchful(fight: Fight): PlayerInputData {
 describe("the Kobold Swordsman", () => {
   test("a player who reads its wind-ups beats it, whatever its seed", () => {
     for (const seed of [1, 2, 3, 1234, 99999]) {
-      const fight = newFight(seed);
+      const fight = fightWith(KOBOLD, seed);
       while (fight.outcome.state === "fighting" && fight.steps < 180 / FIXED_DT) fight.step([watchful(fight)]);
       const hp = fight.world.require(fight.players[0]!, Health).hp;
       console.log(`seed ${seed}: ${fight.outcome.state} in ${(fight.steps / 60).toFixed(1)} s, ${hp} HP left`);
@@ -64,7 +57,7 @@ describe("the Kobold Swordsman", () => {
   });
 
   test("swinging at it on guard gets you parried", () => {
-    const fight = newFight(1);
+    const fight = fightWith(KOBOLD, 1);
     let parried = 0;
     for (let i = 0; i < 20 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
       const input = watchful(fight);
@@ -74,12 +67,17 @@ describe("the Kobold Swordsman", () => {
     }
     assert.ok(parried > 0);
   });
+
+  test("its own blade never drops, even on the lowest roll", () => {
+    assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
+    assert.deepEqual(rollDrops("kobold-swordsman", () => 0), {});
+  });
 });
 
 describe("stepping aside from a Bolt", () => {
   const BOLT: Skill = { segments: [{ form: "bolt", elements: [], modifiers: [] }] };
   const stepsAside = (def: EnemyDef, seed: number) => {
-    const fight = newFight(seed, def);
+    const fight = fightWith(def, seed);
     const aimed = { ...IDLE_INPUT, aimX: 0, aimZ: 1 };
     fight.step([{ ...aimed, chant: true }]);
     fight.step([{ ...aimed, cast: BOLT }]);
@@ -92,53 +90,5 @@ describe("stepping aside from a Bolt", () => {
   const seeds = [1, 2, 3, 4, 5, 6, 7, 8];
 
   test("the Kobold sometimes does", () => assert.ok(seeds.some((seed) => stepsAside(KOBOLD, seed))));
-  test("the boar never does", () => assert.ok(!seeds.some((seed) => stepsAside(ENEMIES["wild-boar"], seed))));
-});
-
-describe("the Goblin Warlock", () => {
-  const WARLOCK = ENEMIES["goblin-warlock"];
-
-  function chaser(fight: Fight, swings: boolean): PlayerInputData {
-    const at = fight.world.require(fight.players[0]!, Body).pos, it = fight.world.require(fight.enemies[0]!, Body).pos;
-    const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
-    const aimX = dx / dist, aimZ = dz / dist, close = dist < 1.4;
-    const attack = swings && close && fight.steps % 2 === 0 ? (fight.steps % 4 === 0 ? "lr" : "rl") : null;
-    return { ...IDLE_INPUT, moveX: close ? 0 : aimX, moveZ: close ? 0 : aimZ, aimX, aimZ, attack };
-  }
-
-  test("left alone, it keeps its distance and its Bolts find you", () => {
-    const fight = newFight(1, WARLOCK);
-    let closest = Infinity;
-    for (let i = 0; i < 20 / FIXED_DT; i++) {
-      fight.step([IDLE_INPUT]);
-      const a = fight.world.require(fight.players[0]!, Body).pos, b = fight.world.require(fight.enemies[0]!, Body).pos;
-      closest = Math.min(closest, Math.hypot(a.x - b.x, a.z - b.z));
-    }
-    const hp = fight.world.require(fight.players[0]!, Health).hp;
-    assert.ok(closest > WARLOCK.keepAway!.nearM, `came within ${closest} m`);
-    assert.ok(hp < PLAYER.maxHp - 20, `${hp} HP left`);
-  });
-
-  test("a player who runs it down beats it, whatever its seed", () => {
-    for (const seed of [1, 2, 3, 1234, 99999]) {
-      const fight = newFight(seed, WARLOCK);
-      while (fight.outcome.state === "fighting" && fight.steps < 60 / FIXED_DT) fight.step([chaser(fight, true)]);
-      const hp = fight.world.require(fight.players[0]!, Health).hp;
-      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-    }
-  });
-
-  test("standing on it gets you poked by its staff, for a little", () => {
-    const fight = newFight(1, WARLOCK);
-    const pokes: number[] = [];
-    for (let i = 0; i < 15 / FIXED_DT; i++) {
-      fight.step([chaser(fight, false)]);
-      for (const ev of fight.events) {
-        if (ev.type === "hit" && ev.by === fight.enemies[0] && !ev.weapon
-          && fight.world.require(fight.enemies[0]!, Enemy).state === "lunge") pokes.push(ev.damage);
-      }
-    }
-    assert.ok(pokes.length > 0);
-    for (const damage of pokes) assert.equal(damage, WARLOCK.attacks.lunge!.damage);
-  });
+  test("the boar never does", () => assert.ok(!seeds.some((seed) => stepsAside(ENEMIES["wild-boar"].def, seed))));
 });

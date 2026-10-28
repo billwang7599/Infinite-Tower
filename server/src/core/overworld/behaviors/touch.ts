@@ -1,6 +1,5 @@
 /** Encounter on touch: bumping into the player starts a fight against `enemy`. */
-import { defineComponent, distXZ, type System } from "@infinite-tower/shared";
-import type { EnemyId } from "../../content/enemies.js";
+import { defineComponent, distXZ, type EnemyId, type System } from "@infinite-tower/shared";
 import { OverworldPos } from "../components.js";
 import type { OverworldContext } from "../context.js";
 import { part } from "../parts.js";

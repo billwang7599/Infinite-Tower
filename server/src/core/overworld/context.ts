@@ -1,6 +1,5 @@
 /** What overworld systems get from their overworld: the current level, randomness, and how to start a battle. */
-import type { Entity } from "@infinite-tower/shared";
-import type { EnemyId } from "../content/enemies.js";
+import type { EnemyId, Entity } from "@infinite-tower/shared";
 import type { LevelDef } from "../levels/level.js";
 
 export interface OverworldContext {

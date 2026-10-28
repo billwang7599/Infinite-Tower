@@ -1,6 +1,5 @@
 /** A bare overworld ECS world for behavior tests: a player entity and an OverworldContext that records encounters. */
-import { World, type Entity, type Vec2 } from "@infinite-tower/shared";
-import type { EnemyId } from "../../../src/core/content/enemies.js";
+import { World, type EnemyId, type Entity, type Vec2 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
 import type { OverworldContext } from "../../../src/core/overworld/context.js";
 import type { LevelDef } from "../../../src/core/levels/level.js";

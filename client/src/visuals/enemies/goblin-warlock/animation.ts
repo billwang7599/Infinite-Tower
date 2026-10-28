@@ -1,6 +1,6 @@
 import { Color3 } from "@babylonjs/core";
 import { Body, damp, dampFactor, Enemy, Health, Skilled, wrapAngle } from "@infinite-tower/shared";
-import { fighter } from "../../battle.js";
+import { fighter } from "../../battle/battle.js";
 import { buildGoblin, disposeGoblin, type GoblinModel } from "./model.js";
 import { goblinPose } from "./pose.js";
 

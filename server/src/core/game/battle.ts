@@ -1,15 +1,14 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, blankSkillbook, starterEquipment, type Bag, type Carried, type Entity, type ItemCounts,
-  type ItemId, type Skillbook, type Vitals,
+  addItem, bagCounts, blankSkillbook, starterEquipment, type Bag, type Carried, type EnemyId, type Entity,
+  type ItemCounts, type ItemId, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
 } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../battle/room.js";
-import { rollDrops } from "../content/drops.js";
-import { ENEMIES, type EnemyId } from "../content/enemies.js";
 import { fullVitals } from "../content/player.js";
+import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { GameSession } from "./session.js";
 
 export interface Battle {
@@ -36,7 +35,7 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
       book: session.skillbook, seed: randomSeed(overworld.rng),
     }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
-    enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
+    enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
   const room = new BattleRoom(setup, [{
     link: session.link,

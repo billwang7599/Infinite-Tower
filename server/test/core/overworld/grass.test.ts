@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import { FIXED_DT, inTallGrass, type Entity } from "@infinite-tower/shared";
-import type { EnemyId } from "../../../src/core/content/enemies.js";
+import { FIXED_DT, inTallGrass, type EnemyId, type Entity } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { LevelDef } from "../../../src/core/levels/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";

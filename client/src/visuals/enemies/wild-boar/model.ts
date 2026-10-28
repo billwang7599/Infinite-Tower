@@ -4,8 +4,8 @@
  */
 import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import { colorMaterial } from "../../../materials.js";
-import type { ArenaScene } from "../../scene.js";
+import { colorMaterial } from "../../materials.js";
+import type { ArenaScene } from "../../battle/scene.js";
 
 /** The charge telegraph: a stripe this long on the ground, starting just in front of the snout. */
 const TELEGRAPH_LENGTH = 14;

@@ -6,7 +6,7 @@ import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
 import { FighterStats, skillDamage } from "../../stats.js";
 import { HIT_FLASH_TIME, knock } from "../combat.js";
 import type { FightEvent } from "../context.js";
-import { enter } from "../enemies/common.js";
+import { enter } from "../behaviors/common.js";
 import { damageDealtFactor, heal, hurt, siphon } from "./statuses.js";
 
 const E = SKILL_EFFECTS.elements, R = SKILL_EFFECTS.reactions;

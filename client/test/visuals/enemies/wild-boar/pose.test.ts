@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { ChargeDef, LungeDef } from "@infinite-tower/shared";
-import { boarPose } from "../../../../src/visuals/battle/enemies/boar/pose.js";
+import { boarPose } from "../../../../src/visuals/enemies/wild-boar/pose.js";
 
 const LUNGE = { windup: 0.6, recover: 0.5 } as LungeDef;
 const CHARGE = { windup: 1, recover: 0.8, lockAt: 0.3 } as ChargeDef;
