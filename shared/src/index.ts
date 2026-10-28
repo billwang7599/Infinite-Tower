@@ -15,6 +15,7 @@ export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";
 export * from "./items/burden.js";
+export * from "./spells/spell.js";
 export * from "./overworld/layout.js";
 export * from "./overworld/view.js";
 export * from "./net/accounts.js";

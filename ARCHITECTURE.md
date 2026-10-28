@@ -445,6 +445,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
                    moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), burden.ts
                    (BURDEN, bagBurden: light / heavy / overloaded, and what each does to walking and dodging)
+  spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
+                   AUGMENT_FITS; rejectWord / spellProblems: why a word is refused, for the builder
+                   and the server's check; spellCost, castTime; SPELL: their numbers). Nothing casts them yet
+                   (plan/spells.md)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -715,6 +719,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
+| Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel | top of `client/src/modes/battle/systems/camera.ts` |
