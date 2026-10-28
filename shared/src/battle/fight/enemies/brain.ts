@@ -63,13 +63,15 @@ export function enemyBrainSystem(): System {
       move.speed = 0; move.accel = ACCEL.normal; move.halt = false;
 
       switch (enemy.state) {
-        case "approach":
+        case "approach": {
           if (!sense.targetAlive) break;
           enemy.yaw = turnToward(enemy.yaw, sense.toYaw, def.turnRate * dt);
-          // Slow down near the target, and while still turning to face it.
-          move.speed = moveSpeed(def.walkSpeed, stats)
-            * clamp(sense.dist - STOP_DIST, 0, 1) * Math.max(0, sense.facingDot);
+          const speed = moveSpeed(def.walkSpeed, stats) * Math.max(0, sense.facingDot), keep = def.keepAway;
+          // Slow down near where it stops, and while still turning to face the target; backing away is negative.
+          move.speed = keep && sense.dist < keep.nearM ? -speed * clamp(keep.nearM - sense.dist, 0, 1)
+            : speed * clamp(sense.dist - (keep?.farM ?? STOP_DIST), 0, 1);
           break;
+        }
         case "stunned":
         case "parried":
         case "staggered":

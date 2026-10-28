@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { ActiveHit, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
-import { ARENA, BOAR, busy, dumpState, enemy, IDLE, input, player } from "./fixtures.js";
+import { ARENA, BOAR, busy, CASTER, dumpState, enemy, IDLE, input, player } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -87,5 +87,23 @@ describe("a fight's whole state", () => {
     const copy = newFight();
     copy.load(snap);
     assert.deepEqual(copy.outcome, { state: "won", stateTime: 0.5 });
+  });
+
+  test("a caster comes back mid-chant, its stamina and what it's still to say with it", () => {
+    const caster = () => new Fight({
+      arena: { radius: 16 }, players: [player({ x: 0, y: 0.05, z: -6 })], enemies: [enemy(CASTER, BOAR_AT)],
+    });
+    for (const at of [40, 75, 160, 333]) {
+      const original = caster();
+      runTo(original, at, () => IDLE);
+      const copy = caster();
+      copy.load(wire(original.save()));
+      assert.equal(dumpState(copy), dumpState(original), `right after loading at step ${at}`);
+      for (let i = 0; i < 300; i++) {
+        original.step([IDLE]);
+        copy.step([IDLE]);
+      }
+      assert.equal(dumpState(copy), dumpState(original), `loaded at ${at}`);
+    }
   });
 });

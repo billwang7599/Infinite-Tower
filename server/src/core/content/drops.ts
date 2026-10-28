@@ -16,6 +16,7 @@ const DROPS: Record<EnemyId, DropDef[]> = {
   ],
   // Nothing yet; its own blade never drops.
   "kobold-swordsman": [],
+  "goblin-warlock": [],
 };
 
 export function rollDrops(enemy: EnemyId, rng: () => number): ItemCounts {

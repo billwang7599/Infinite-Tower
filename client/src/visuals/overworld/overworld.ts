@@ -80,6 +80,7 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
   }),
   boar: walker({ material: (v) => v.materials.boar, sizeTiles: 2, glide: true, alert: true }),
   kobold: walker({ material: (v) => v.materials.kobold, sizeTiles: 1.6, glide: true, alert: true }),
+  goblin: walker({ material: (v) => v.materials.goblin, sizeTiles: 1.4, glide: true, alert: true }),
 };
 
 function hidden(mesh: Mesh): Mesh {

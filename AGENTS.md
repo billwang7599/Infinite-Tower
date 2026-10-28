@@ -186,6 +186,14 @@ Decided by the user:
   while) and blocks your stabs. Its landed sword hits only hurt, with no stun or knockback (the boar's still stun). It
   drops nothing yet. It holds its own Kobold blade (the sword's length and speed, its 14 damage), which never drops.
   Numbers: `server/src/core/content/enemies.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
+- The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
+  keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
+  right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
+  fight's seed picks, as for the Kobold's swings): quick-cast within about 6 m, chanted from farther through the same
+  `startCast` / `chant` / `releaseChant` as yours, its words always shown in front of it. Its interrupts are yours (a
+  stun, a parry or a stagger breaks the chant off), one cast at a time until it resolves. Its skillpower is 10 like
+  yours, and it pays the same stamina from the same size of bar, refilled the same way. The other numbers (the chant's
+  pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/content/enemies.ts`.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
@@ -313,9 +321,10 @@ tests say what was agreed. Where tests go and how they're written:
   username: "test3", password: "test3" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
-  `window.encounter("kobold-swordsman")` for the Kobold) and, in a fight, `window.cast({ segments: [{ form: "bolt",
-  elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages goes off only with the chant open: R). A new
-  account has no character: make one first. Skip this when the user says it isn't needed.
+  `window.encounter("kobold-swordsman")` for the Kobold, `"goblin-warlock"` for the warlock) and, in a fight,
+  `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
+  goes off only with the chant open: R). A new account has no character: make one first. Skip this when the user says
+  it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

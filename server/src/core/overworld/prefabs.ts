@@ -18,6 +18,11 @@ export const OVERWORLD_PREFABS = {
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),
     encounterOnTouch({ range: 0.9, enemy: "kobold-swordsman" }),
   ]),
+  goblin: (world, at) => spawnActor(world, "goblin", at, [
+    wander({ speed: 1.2 }),
+    chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),
+    encounterOnTouch({ range: 0.9, enemy: "goblin-warlock" }),
+  ]),
 } satisfies Record<string, OverworldPrefab>;
 
 export type OverworldPrefabId = keyof typeof OVERWORLD_PREFABS;

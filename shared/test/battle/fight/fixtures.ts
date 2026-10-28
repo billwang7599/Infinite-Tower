@@ -1,9 +1,10 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
-  PLAYER, PlayerInput, Sidestep, SkillObject, Stamina, starterEquipment, Statuses, WeaponAttack, Wielder,
+  PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject, Stamina, starterEquipment, Statuses, WeaponAttack,
+  Wielder,
   type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
-  type Vec3, type WeaponAttackDef,
+  type SkillAttackDef, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -67,6 +68,16 @@ export const SWORDSMAN: EnemyDef = {
 /** A swordsman that only guards (it never attacks): it parries badly timed swings and blocks stabs. */
 export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ firstDelay: 999 }) } };
 
+export const casts = (over: Partial<SkillAttackDef>): SkillAttackDef => ({
+  skill: { form: "bolt", elements: ["fire"], modifiers: [] }, extras: [], quickCastM: 5, rangeM: 14, wordTime: 0.4,
+  cooldown: 1, firstDelay: 0, ...over,
+});
+
+export const CASTER: EnemyDef = {
+  ...ENEMY_BASE, model: "goblin", radius: 0.45, walkSpeed: 2.4, turnRate: 4, stats: { ...STATS },
+  keepAway: { nearM: 4, farM: 7 }, attacks: { skill: casts({}) },
+};
+
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), ...over });
@@ -123,6 +134,8 @@ export function dumpState(fight: Fight): string {
       weapon: fight.world.get(e, WeaponAttack) && { ...fight.world.get(e, WeaponAttack), def: undefined },
       wielder: fight.world.get(e, Wielder),
       sidestep: fight.world.get(e, Sidestep) && { ...fight.world.get(e, Sidestep), def: undefined },
+      skill: fight.world.get(e, SkillAttack) && { ...fight.world.get(e, SkillAttack), def: undefined },
+      skilled: fight.world.get(e, Skilled),
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
       statuses: fight.world.get(e, Statuses),
     };

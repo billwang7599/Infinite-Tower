@@ -17,6 +17,7 @@ import { enemyBrainSystem } from "./enemies/brain.js";
 import { chargeAttackSystem } from "./enemies/charge.js";
 import { lungeAttackSystem } from "./enemies/lunge.js";
 import { sidestepSystem } from "./enemies/sidestep.js";
+import { skillAttackSystem } from "./enemies/skill.js";
 import { weaponAttackSystem } from "./enemies/weapon.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
@@ -90,7 +91,8 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(this.enemies),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(), weaponSystem(),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(), skillAttackSystem(),
+      weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),

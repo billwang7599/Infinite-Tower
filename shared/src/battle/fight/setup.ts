@@ -5,7 +5,7 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Skilled, Stamina, Statuses,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
   WeaponAttack, Wielder, type WielderData,
 } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
@@ -69,6 +69,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, { def, cooldown: def.firstDelay, swingsLeft: 0, parryCooldown: 0 });
   },
+  skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },
 };
 
 export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, seed = 1 }: EnemySetup): Entity {
@@ -91,6 +92,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });
+  if (def.attacks.skill) world.add(e, Stamina, { value: def.stats.stamina, max: def.stats.stamina, regenDelay: 0 });
   world.add(e, Statuses, noStatuses());
   world.add(e, Skilled, newSkilled({ x: Math.sin(yaw), z: Math.cos(yaw) }, seed));
   return e;

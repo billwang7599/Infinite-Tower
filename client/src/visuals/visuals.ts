@@ -10,6 +10,7 @@ import type { StepEvent } from "../modes/battle/sync.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
 import { boarVisual } from "./battle/enemies/boar/animation.js";
+import { goblinVisual } from "./battle/enemies/goblin/animation.js";
 import { koboldVisual } from "./battle/enemies/kobold/animation.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
@@ -35,6 +36,7 @@ export const VISUALS: Record<VisualKind, AnyVisual> = {
   player: playerVisual,
   boar: boarVisual,
   kobold: koboldVisual,
+  goblin: goblinVisual,
   bolt: boltVisual,
   beam: beamVisual,
   cloud: cloudVisual,

@@ -15,7 +15,7 @@ import type { MsgOf } from "./handlers.js";
 /** An overworld actor to draw. `kind` picks the client prefab. */
 export interface ActorSnap {
   id: number;
-  kind: "boar" | "kobold";
+  kind: "boar" | "kobold" | "goblin";
   x: number;
   z: number;
   vx: number;

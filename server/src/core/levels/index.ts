@@ -19,6 +19,7 @@ const GRASS_FIELD: LevelDef = {
     { prefab: "boar", at: { x: 8, z: -6 }, respawnTime: 8 },
     // The Kobold Swordsman's own corner, away from the boar and the start.
     { prefab: "kobold", at: { x: 16, z: -9 }, respawnTime: 12 },
+    { prefab: "goblin", at: { x: -16, z: 9 }, respawnTime: 12 },
   ],
   grass: { stepDist: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   safeTime: 2,

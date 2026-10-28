@@ -14,6 +14,10 @@ describe("rollDrops", () => {
     assert.deepEqual(rollDrops("kobold-swordsman", () => 0), {});
   });
 
+  test("the Goblin Warlock drops nothing, even on the lowest roll", () => {
+    assert.deepEqual(rollDrops("goblin-warlock", () => 0), {});
+  });
+
   test("a highest roll drops nothing", () => {
     assert.deepEqual(rollDrops("wild-boar", () => 0.999), {});
   });
