@@ -11,13 +11,13 @@ import {
   type EnemyDef, type PlayerInputData, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
-import { ENEMIES } from "../../../src/core/content/enemies.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { openRoom, setupWith } from "../../fixtures/fight.js";
 
 // Before the module's constants: they run a fight.
 await initPhysics();
 
-const KOBOLD = ENEMIES["kobold-swordsman"];
+const KOBOLD = ENEMIES["kobold-swordsman"].def;
 const ITS_SWING: SwingDir = "tlbr";
 /** The Kobold, rooted to the spot, swinging `ITS_SWING` once as soon as it can. */
 const ONE_SWING: EnemyDef = {

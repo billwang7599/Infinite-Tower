@@ -123,7 +123,7 @@ Decided by the user:
   chance per cast from the fight's seed; not while attacking or stunned, and not from a cast quicker than its
   reaction); the boar doesn't. The wind-up, slower walking while winding up and the stamina cost keep skills from being
   spammed. The numbers (`followTurnRadPerSec` in `SKILL_EFFECTS`, the Kobold's `sidestep` in
-  `server/src/core/content/enemies.ts`) are the agent's picks, to tune.
+  `server/src/core/enemies/kobold-swordsman.ts`) are the agent's picks, to tune.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
@@ -196,7 +196,7 @@ Decided by the user:
   drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.
-  Numbers: `server/src/core/content/enemies.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
+  Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
   keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
@@ -204,7 +204,7 @@ Decided by the user:
   `startCast` / `chant` / `releaseChant` as yours, its words always shown in front of it. Its interrupts are yours (a
   stun, a parry or a stagger breaks the chant off), one cast at a time until it resolves. Its skillpower is 10 like
   yours, and it pays the same stamina from the same size of bar, refilled the same way. The other numbers (the chant's
-  pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/content/enemies.ts`.
+  pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/enemies/goblin-warlock.ts`.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a

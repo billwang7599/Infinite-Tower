@@ -15,7 +15,7 @@ before(() => initPhysics());
 const STATS = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 /** Walks up to whoever is there and stands; never attacks. */
 const WALKER: EnemyDef = {
-  id: "walker", name: "Walker", model: "boar", maxHp: 100, stats: STATS, radius: 0.85, walkSpeed: 3, turnRate: 3,
+  id: "wild-boar", name: "Walker", maxHp: 100, stats: STATS, radius: 0.85, walkSpeed: 3, turnRate: 3,
   poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
 const SETUP: FightSetup = {

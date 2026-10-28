@@ -1,5 +1,5 @@
 /**
- * Shapes of the server's battle content (server/src/core/content), sent with each encounter. An enemy is a body
+ * Shapes of the server's battle content (server/src/core/enemies), sent with each encounter. An enemy is a body
  * plus optional attacks, each with its own component and system. Units: seconds, meters, m/s, rad/s.
  */
 import type { Hand } from "../items/gear.js";
@@ -104,11 +104,11 @@ export interface EnemyAttacks {
   skill?: SkillAttackDef;
 }
 
+export type EnemyId = "wild-boar" | "kobold-swordsman" | "goblin-warlock";
+
 export interface EnemyDef {
-  id: string;
+  id: EnemyId;
   name: string;
-  /** Which 3D model the client builds. */
-  model: "boar" | "kobold" | "goblin";
   maxHp: number;
   stats: Stats;
   /** Its body is a ball this big. It shoves players aside however heavy it is; players never push it. */

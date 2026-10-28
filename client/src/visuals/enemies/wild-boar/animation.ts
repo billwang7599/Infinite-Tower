@@ -1,6 +1,6 @@
 import { Color3 } from "@babylonjs/core";
 import { Body, ChargeAttack, damp, dampFactor, Enemy, Health, LungeAttack, wrapAngle } from "@infinite-tower/shared";
-import { fighter } from "../../battle.js";
+import { fighter } from "../../battle/battle.js";
 import { buildBoar, disposeBoar, type BoarModel } from "./model.js";
 import { boarPose } from "./pose.js";
 

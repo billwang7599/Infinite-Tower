@@ -10,13 +10,13 @@ import {
   FIXED_DT, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, PLAYER, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
-import { ENEMIES } from "../../../src/core/content/enemies.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { openRoom, setupWith } from "../../fixtures/fight.js";
 
 // Before the module's constants: they run a fight.
 await initPhysics();
 
-const BOAR = ENEMIES["wild-boar"];
+const BOAR = ENEMIES["wild-boar"].def;
 const BITE_DAMAGE = 10;
 /** The wild boar, lunging as soon as it can at whoever is within 8 m (all around), its hit live for one step. */
 const SNAPPER: EnemyDef = {

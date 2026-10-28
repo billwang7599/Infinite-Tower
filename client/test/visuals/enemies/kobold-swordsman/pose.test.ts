@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { AttackKind, EnemyState } from "@infinite-tower/shared";
-import { koboldPose } from "../../../../src/visuals/battle/enemies/kobold/pose.js";
+import { koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
 
 const poseOf = (state: EnemyState, t: number, k: number, attack: AttackKind) =>

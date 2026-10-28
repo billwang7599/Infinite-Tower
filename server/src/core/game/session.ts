@@ -7,7 +7,7 @@ import {
   walkPace, type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Skill,
   type Skillbook, type Spot, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
-import { isEnemyId } from "../content/enemies.js";
+import { isEnemyId } from "../enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel, START_LEVEL } from "../levels/index.js";

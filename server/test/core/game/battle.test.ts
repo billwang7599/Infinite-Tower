@@ -6,7 +6,7 @@ import {
   type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
-import { ENEMIES } from "../../../src/core/content/enemies.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
@@ -93,7 +93,7 @@ describe("starting a battle", () => {
     assert.equal(msg.seat, 0);
     assert.deepEqual(msg.setup.arena, LEVEL.arena);
     const seed = msg.setup.enemies[0]?.seed;
-    assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
+    assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{

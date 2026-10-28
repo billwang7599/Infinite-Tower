@@ -1,4 +1,4 @@
-/** What each item is and does. Who drops what is server content (server/src/core/content/drops.ts). */
+/** What each item is and does. Who drops what is in each enemy's server file (server/src/core/enemies/). */
 
 export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
 

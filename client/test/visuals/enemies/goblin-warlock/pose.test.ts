@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { goblinPose } from "../../../../src/visuals/battle/enemies/goblin/pose.js";
+import { goblinPose } from "../../../../src/visuals/enemies/goblin-warlock/pose.js";
 
 describe("the goblin's pose", () => {
   test("chanting it holds the staff up before it, the orb glowing brighter word by word", () => {

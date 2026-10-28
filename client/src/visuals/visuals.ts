@@ -1,6 +1,6 @@
 import { Engine } from "@babylonjs/core";
 import {
-  Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyDef, type Entity, type Look,
+  Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity, type Look,
   type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
@@ -9,14 +9,12 @@ import type { BattleContext } from "../modes/battle/context.js";
 import type { StepEvent } from "../modes/battle/sync.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
-import { boarVisual } from "./battle/enemies/boar/animation.js";
-import { goblinVisual } from "./battle/enemies/goblin/animation.js";
-import { koboldVisual } from "./battle/enemies/kobold/animation.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
 import { WEAPON_LOOKS } from "./battle/weapons.js";
 import { PlayerLook, type Held } from "./characters.js";
+import { byEnemy } from "./enemies/index.js";
 import { overworldStage, WALKERS } from "./overworld/overworld.js";
 import { createOverworldScene } from "./overworld/scene.js";
 import { redrawSprite } from "./sprites.js";
@@ -28,15 +26,13 @@ export interface Visual<S, Scene = ArenaScene> {
   dispose(s: S): void;
 }
 
-export type VisualKind = "player" | EnemyDef["model"] | SkillObjectKind;
+export type VisualKind = "player" | EnemyId | SkillObjectKind;
 
 type AnyVisual<Scene = ArenaScene> = Visual<any, Scene>;
 
 export const VISUALS: Record<VisualKind, AnyVisual> = {
   player: playerVisual,
-  boar: boarVisual,
-  kobold: koboldVisual,
-  goblin: goblinVisual,
+  ...byEnemy((look) => look.battle),
   bolt: boltVisual,
   beam: beamVisual,
   cloud: cloudVisual,
@@ -46,7 +42,7 @@ export const VISUALS: Record<VisualKind, AnyVisual> = {
 
 export function kindOf(world: World, e: Entity): VisualKind | null {
   if (world.get(e, Player)) return "player";
-  return world.get(e, Enemy)?.def.model ?? world.get(e, SkillObject)?.kind ?? null;
+  return world.get(e, Enemy)?.def.id ?? world.get(e, SkillObject)?.kind ?? null;
 }
 
 const shake = (scene: ArenaScene, amount: number) => {

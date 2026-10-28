@@ -1,6 +1,5 @@
 /** One player's overworld: their own ECS world, with the level's actors and the player walking it. */
-import { World, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
-import type { EnemyId } from "../content/enemies.js";
+import { World, type EnemyId, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
 import type { LevelDef } from "../levels/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";

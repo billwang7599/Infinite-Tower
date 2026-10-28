@@ -2,9 +2,11 @@
 import {
   Camera, Color4, FreeCamera, MeshBuilder, Scene, Vector3, type AbstractEngine, type Mesh, type StandardMaterial,
 } from "@babylonjs/core";
+import type { EnemyId } from "@infinite-tower/shared";
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import type { OverworldState } from "../../modes/overworld/components.js";
-import { drawAlert, drawBoar, drawGoblin, drawKobold } from "../characters.js";
+import { drawAlert } from "../characters.js";
+import { byEnemy } from "../enemies/index.js";
 import { pixelMaterial, spriteMaterial } from "../sprites.js";
 import { tuftTexture } from "../textures.js";
 
@@ -13,9 +15,7 @@ export interface OverworldScene {
   camera: FreeCamera;
   materials: {
     player: Record<ChibiFacing, StandardMaterial>;
-    boar: StandardMaterial;
-    kobold: StandardMaterial;
-    goblin: StandardMaterial;
+    enemies: Record<EnemyId, StandardMaterial>;
     alert: StandardMaterial;
     tuft: StandardMaterial;
   };
@@ -54,9 +54,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
     materials: {
       tuft: pixelMaterial(scene, "overworld-tuft", tuftTexture(scene), { unlit: true }),
       player: chibiMaterials(scene),
-      boar: spriteMaterial(scene, "overworld-boar", drawBoar),
-      kobold: spriteMaterial(scene, "overworld-kobold", drawKobold),
-      goblin: spriteMaterial(scene, "overworld-goblin", drawGoblin),
+      enemies: byEnemy(({ sprite }, id) => spriteMaterial(scene, `overworld-${id}`, sprite.draw)),
       alert: spriteMaterial(scene, "overworld-alert", drawAlert),
     },
   };

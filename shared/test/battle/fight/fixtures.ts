@@ -12,7 +12,7 @@ export const ARENA = { radius: 8 };
 export const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 
 const ENEMY_BASE: EnemyDef = {
-  id: "test", name: "Test", model: "boar", maxHp: 100,
+  id: "wild-boar", name: "Test", maxHp: 100,
   stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
   radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
@@ -60,7 +60,7 @@ export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
 
 /** A swordsman like the Kobold, rooted to the spot: one "lr" swing (as the player sees it) as soon as it can. */
 export const SWORDSMAN: EnemyDef = {
-  ...ENEMY_BASE, model: "kobold", radius: 0.5, turnRate: 3,
+  ...ENEMY_BASE, id: "kobold-swordsman", radius: 0.5, turnRate: 3,
   wielder: { hands: { rightHand: "sword" }, armReachM: PLAYER.armReachM },
   attacks: { weapon: swings({}) },
 };
@@ -74,7 +74,7 @@ export const casts = (over: Partial<SkillAttackDef>): SkillAttackDef => ({
 });
 
 export const CASTER: EnemyDef = {
-  ...ENEMY_BASE, model: "goblin", radius: 0.45, walkSpeed: 2.4, turnRate: 4, stats: { ...STATS },
+  ...ENEMY_BASE, id: "goblin-warlock", radius: 0.45, walkSpeed: 2.4, turnRate: 4, stats: { ...STATS },
   keepAway: { nearM: 4, farM: 7 }, attacks: { skill: casts({}) },
 };
 

@@ -1,5 +1,5 @@
 import type { AttackKind, EnemyState, Vec3 } from "@infinite-tower/shared";
-import type { WeaponMotion } from "../../weapons.js";
+import type { WeaponMotion } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
   const l = Math.hypot(x, y, z);

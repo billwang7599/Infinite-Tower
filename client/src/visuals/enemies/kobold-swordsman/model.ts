@@ -7,9 +7,9 @@ import {
   Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial,
 } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import { colorMaterial } from "../../../materials.js";
-import type { ArenaScene } from "../../scene.js";
-import type { WeaponLook } from "../../weapons.js";
+import { colorMaterial } from "../../materials.js";
+import type { ArenaScene } from "../../battle/scene.js";
+import type { WeaponLook } from "../../battle/weapons.js";
 
 export interface KoboldModel {
   /** Under the body's node; turned to the kobold's facing. */

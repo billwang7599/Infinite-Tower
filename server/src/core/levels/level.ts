@@ -1,10 +1,8 @@
 /** A level. Only `layout` is sent to the client; the rest stays here so a player can't read or change it. */
-import type { ArenaDef, LevelLayout, Vec2 } from "@infinite-tower/shared";
-import type { EnemyId } from "../content/enemies.js";
-import type { OverworldPrefabId } from "../overworld/prefabs.js";
+import type { ArenaDef, EnemyId, LevelLayout, Vec2 } from "@infinite-tower/shared";
 
 export interface SpawnDef {
-  prefab: OverworldPrefabId;
+  enemy: EnemyId;
   at: Vec2;
   /** Seconds before a defeated one comes back. */
   respawnTime: number;

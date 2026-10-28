@@ -1,6 +1,7 @@
 /** Server -> client messages: plain types, as the server is trusted. ARCHITECTURE.md's "Networking" has the flow. */
 import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/player.js";
+import type { EnemyId } from "../battle/defs.js";
 import type { FightSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Stats } from "../battle/stats.js";
@@ -12,10 +13,10 @@ import type { Skillbook, Word } from "../skills/skill.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";
 
-/** An overworld actor to draw. `kind` picks the client prefab. */
+/** An overworld actor to draw. */
 export interface ActorSnap {
   id: number;
-  kind: "boar" | "kobold" | "goblin";
+  kind: EnemyId;
   x: number;
   z: number;
   vx: number;

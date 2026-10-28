@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inTallGrass } from "@infinite-tower/shared";
-import type { EnemyId } from "../../../src/core/content/enemies.js";
-import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
-import { OVERWORLD_PREFABS } from "../../../src/core/overworld/prefabs.js";
-import { testOverworld } from "../overworld/helpers.js";
+import { inTallGrass, type EnemyId } from "@infinite-tower/shared";
+import { isEnemyId } from "../../../src/core/enemies/index.js";
 import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/levels/level.js";
 
@@ -54,43 +51,32 @@ describe("getLevel", () => {
     assert.throws(() => getLevel("no-such-level"), /no-such-level/);
   });
 
-  test("the start level is playable: spawn inside, out of the grass, known prefabs, a weighted table", () => {
+  test("the start level is playable: spawn inside, out of the grass, known enemies, a weighted table", () => {
     const level = getLevel(START_LEVEL);
     const { halfWidth, halfDepth, border } = level.layout;
     assert.ok(Math.abs(level.spawn.x) <= halfWidth - border && Math.abs(level.spawn.z) <= halfDepth - border);
     assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
-    for (const s of level.spawns) assert.ok(s.prefab in OVERWORLD_PREFABS);
+    for (const s of level.spawns) assert.ok(isEnemyId(s.enemy));
     assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
     assert.ok(level.grass.stepDist > 0);
   });
 
   test("the Kobold Swordsman has a patch of its own: one spawns on the start level, away from the boar", () => {
     const level = getLevel(START_LEVEL);
-    const kobold = level.spawns.find((s) => s.prefab === "kobold");
-    const boar = level.spawns.find((s) => s.prefab === "boar");
+    const kobold = level.spawns.find((s) => s.enemy === "kobold-swordsman");
+    const boar = level.spawns.find((s) => s.enemy === "wild-boar");
     assert.ok(kobold && boar);
     assert.ok(Math.hypot(kobold.at.x - boar.at.x, kobold.at.z - boar.at.z) > 8);
     assert.equal(inTallGrass(level.layout, kobold.at.x, kobold.at.z), false);
   });
 
-  test("the overworld kobold starts a Kobold Swordsman fight when it touches you", () => {
-    const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
-    const e = OVERWORLD_PREFABS.kobold(f.world, { x: 0, z: 0 });
-    touchSystem(f.ctx)(f.world, 0.1);
-    assert.deepEqual(f.encounters, [{ source: e, enemy: "kobold-swordsman" }]);
-  });
-
-  test("the Goblin Warlock has a corner of its own, away from the others, and starts its fight on touch", () => {
+  test("the Goblin Warlock has a corner of its own, away from the others", () => {
     const level = getLevel(START_LEVEL);
-    const goblin = level.spawns.find((s) => s.prefab === "goblin");
+    const goblin = level.spawns.find((s) => s.enemy === "goblin-warlock");
     assert.ok(goblin);
     for (const other of level.spawns.filter((s) => s !== goblin)) {
       assert.ok(Math.hypot(goblin.at.x - other.at.x, goblin.at.z - other.at.z) > 8);
     }
     assert.equal(inTallGrass(level.layout, goblin.at.x, goblin.at.z), false);
-    const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
-    const e = OVERWORLD_PREFABS.goblin(f.world, { x: 0, z: 0 });
-    touchSystem(f.ctx)(f.world, 0.1);
-    assert.deepEqual(f.encounters, [{ source: e, enemy: "goblin-warlock" }]);
   });
 });
