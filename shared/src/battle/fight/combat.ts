@@ -92,12 +92,13 @@ export function combatSystem(events: FightEvent[]): System {
 
     for (const [attacker, hit, attackerBody, attackerFighter] of world.query(ActiveHit, Body, Fighter)) {
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
-        if (targetFighter.team === attackerFighter.team || targetHealth.hp <= 0 || targetHealth.invuln > 0) continue;
+        if (targetFighter.team === attackerFighter.team || targetHealth.hp <= 0) continue;
         if (hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
+        if (targetHealth.invuln > 0 && !(player && parries(world, attacker, hit, target, player))) continue;
 
         hit.alreadyHit.add(target);
         const resolved = player
@@ -109,6 +110,16 @@ export function combatSystem(events: FightEvent[]): System {
   };
 }
 
+function parries(world: World, attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData): boolean {
+  const swing = hit.attack !== null && isSwing(hit.attack) ? hit.attack : null;
+  if (!swing || player.action !== "attack" || player.attack !== reverseOf(swing)) return false;
+  const at = world.require(target, Body).pos, from = world.require(attacker, Body).pos;
+  if (!faces(at, player.actionDir, from, PARRY.minDot)) return false;
+  // Steps since the player's blade went live (the controller ran this step: its clock is one step on).
+  const sinceLive = Math.round(player.actionTime / FIXED_DT) - 1 - liveStep(player.startup);
+  return sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT);
+}
+
 /** A hit reaching a player: parried by the reverse swing in time, blocked, or landing. */
 function hitPlayer(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData,
@@ -116,16 +127,10 @@ function hitPlayer(
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health), stamina = world.require(target, Stamina);
 
-  const swing = hit.attack !== null && isSwing(hit.attack) ? hit.attack : null;
-  if (swing && player.action === "attack" && player.attack === reverseOf(swing)
-    && faces(body.pos, player.actionDir, from, PARRY.minDot)) {
-    // Steps since the player's blade went live (the controller ran this step: its clock is one step on).
-    const sinceLive = Math.round(player.actionTime / FIXED_DT) - 1 - liveStep(player.startup);
-    if (sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT)) {
-      parryEnemy(world, attacker, body.pos);
-      events.push({ type: "parry", by: target, target: attacker });
-      return "parried";
-    }
+  if (parries(world, attacker, hit, target, player)) {
+    parryEnemy(world, attacker, body.pos);
+    events.push({ type: "parry", by: target, target: attacker });
+    return "parried";
   }
 
   const dir = { x: hit.dirX, z: hit.dirZ };

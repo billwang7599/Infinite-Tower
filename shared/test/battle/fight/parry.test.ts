@@ -5,8 +5,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, lettingGoAt, liveStep, PARRY, physicalDamage, Player, PLAYER, reverseOf,
-  STARTER_SWORD, SWING_DIRS, SwordAttack, type AttackKind, type EnemyDef, type PlayerInputData,
+  ActiveHit, Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, lettingGoAt, liveStep, PARRY, physicalDamage, Player, PLAYER,
+  reverseOf, STARTER_SWORD, SWING_DIRS, SwordAttack, type AttackKind, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, GUARD, input, player, STATS, sword, SWORDSMAN } from "./fixtures.js";
@@ -49,8 +49,8 @@ const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 const WINDOW_STEPS = Math.round(PARRY.window / FIXED_DT);
 
 /** A swing `kind` pressed so that its blade goes live `k` steps before the swordsman's lands (negative: after). */
-const swingBefore = (kind: AttackKind, k: number): Script => (step) =>
-  step === LANDS_AT - LIVE_AFTER - k ? { attack: kind } : {};
+const swingBefore = (kind: AttackKind, k: number, landsAt = LANDS_AT): Script => (step) =>
+  step === landsAt - LIVE_AFTER - k ? { attack: kind } : {};
 
 describe("parrying the swordsman's swing", () => {
   test("the setup: its swing lands on a step of its own, and hurts", () => {
@@ -66,6 +66,24 @@ describe("parrying the swordsman's swing", () => {
       assert.deepEqual(events.filter((e) => e.event.type === "parry"),
         [{ step: LANDS_AT, event: { type: "parry", by: fight.players[0], target: fight.enemies[0] } }], `k = ${k}`);
     }
+  });
+
+  test("hit by a chain's first swing, the next can still be parried while you're briefly invulnerable", () => {
+    const chainWindup = PLAYER.hurtInvuln / 2;
+    const chain = { ...SWORDSMAN, attacks: { sword: sword({ minChain: 2, maxChain: 2, chainWindup }) } };
+    const liveSteps: number[] = [];
+    const f = newFight(chain);
+    while (f.steps < LANDS_AT + 60) {
+      f.step([input({})]);
+      if (f.world.get(f.enemies[0]!, ActiveHit)) liveSteps.push(f.steps);
+    }
+    const secondLands = liveSteps.find((s, i) => i > 0 && s !== liveSteps[i - 1]! + 1)!;
+    assert.ok(secondLands, "it swings twice");
+
+    const { fight, events } = play(swingBefore("rl", 2, secondLands), secondLands, newFight(chain));
+    const hurts = events.filter((e) => e.event.type === "hit" && e.event.team === "player");
+    assert.equal(hurts.length, 1, "only the first swing hurts");
+    assert.equal(kobold(fight).state, "parried");
   });
 
   test("every swing direction is parried by its own reverse", () => {

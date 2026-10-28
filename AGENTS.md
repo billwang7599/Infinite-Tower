@@ -147,14 +147,14 @@ Decided by the user:
   until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops a hit from in front for
   stamina and pushes you back; short of stamina, the guard breaks and you're staggered. Numbers:
   `shared/src/battle/sword.ts` and `PLAYER` in `player.ts`.
-- The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two
-  or three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed);
-  the first swing winds up 1.1 s, the ones after it 0.45 s. A swing is parried by the reverse swing live within
-  `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage); a stab can only be
-  blocked or dodged; a blocked swing still chips 20% of its damage. On guard it parries your swings (you're
-  staggered; not right after coming back on guard, nor again for a while) and blocks your stabs. Its landed sword
-  hits only hurt, with no stun or knockback (the boar's still stun). It drops nothing yet. Numbers:
-  `server/src/core/content/enemies.ts`, `PARRY` in `shared/src/battle/sword.ts`.
+- The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
+  three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
+  first swing winds up 1.1 s, the ones after it 0.45 s. A swing is parried by the reverse swing live within
+  `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage), even while you're briefly
+  invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
+  damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
+  while) and blocks your stabs. Its landed sword hits only hurt, with no stun or knockback (the boar's still stun). It
+  drops nothing yet. Numbers: `server/src/core/content/enemies.ts`, `PARRY` in `shared/src/battle/sword.ts`.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
