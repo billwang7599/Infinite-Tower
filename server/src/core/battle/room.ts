@@ -4,8 +4,8 @@
  * a late one at most MAX_INPUT_DELAY_STEPS, and never runs ahead of the clock. Built for any number of players.
  */
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Entity, type Spellbook,
-  type StepInput, type Vitals,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Carried, type Entity,
+  type Spellbook, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import type { PlayerLink } from "../ports.js";
@@ -18,8 +18,8 @@ export const MIN_SYNC_GAP_STEPS = 5;
 
 export interface Seat {
   link: PlayerLink;
-  /** Called once, when the fight is over for this player, with the HP, stamina and pages it left them with. */
-  onEnd(result: PlayerResult, vitals: Vitals, book: Spellbook): void;
+  /** Called once, when the fight is over for this player, with the HP, stamina, pages and gear it left them with. */
+  onEnd(result: PlayerResult, vitals: Vitals, book: Spellbook, gear: Carried): void;
 }
 
 interface SeatState {
@@ -73,7 +73,8 @@ export class BattleRoom {
     const e = this.fight.players[seat]!;
     const vitals = this.vitalsOf(e);
     this.fight.leave(e);
-    s.seat.onEnd(playerResult(this.fight.outcome, true), vitals, this.bookOf(e));
+    const { book, gear } = this.fight.world.require(e, Player);
+    s.seat.onEnd(playerResult(this.fight.outcome, true), vitals, book, gear);
     if (this.seats.every((other) => other.gone)) this.close();
   }
 
@@ -122,17 +123,14 @@ export class BattleRoom {
       if (s.gone) return;
       this.sendSync(s);
       const e = this.fight.players[i]!;
-      s.seat.onEnd(playerResult(this.fight.outcome, false), this.vitalsOf(e), this.bookOf(e));
+      const { book, gear } = this.fight.world.require(e, Player);
+      s.seat.onEnd(playerResult(this.fight.outcome, false), this.vitalsOf(e), book, gear);
     });
     this.close();
   }
 
   private vitalsOf(e: Entity): Vitals {
     return { hp: this.fight.world.require(e, Health).hp, stamina: this.fight.world.require(e, Stamina).value };
-  }
-
-  private bookOf(e: Entity): Spellbook {
-    return this.fight.world.require(e, Player).book;
   }
 
   private close(): void {

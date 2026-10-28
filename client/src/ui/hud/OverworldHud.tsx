@@ -42,6 +42,9 @@ export function OverworldHud(props: OverworldHudProps) {
   const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
   const panel = useStore(panels, (s) => s.open);
   const bookOpen = useStore(props.spellbookScreen, (s) => s.open);
+  const gear = useStore(hud, (s) => s.gear);
+  const stats = useStore(hud, (s) => s.stats);
+  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const showBook = (open: boolean) => props.spellbookScreen.set({ open });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
@@ -70,8 +73,8 @@ export function OverworldHud(props: OverworldHudProps) {
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
         <InventoryPanel
-          hud={hud} input={input} settingsScreen={settingsScreen} use={props.useItem} move={props.moveItem}
-          openSpellbook={() => showBook(true)} close={close}
+          gear={gear} stats={stats} canHeal={!fullHp} input={input} settingsScreen={settingsScreen}
+          use={props.useItem} move={props.moveItem} openSpellbook={() => showBook(true)} close={close}
         />
       )}
       {panel === "inventory" && bookOpen && (

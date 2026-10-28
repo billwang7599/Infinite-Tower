@@ -62,6 +62,7 @@ export interface BattleOptions {
   hud: Store<BattleHudState>;
   spells: Store<SpellsState>;
   chant: Store<ChantState>;
+  bag: Store<{ open: boolean }>;
   onLeave: () => void;
   onSwordHand: (hand: Hand | null) => void;
 }
@@ -83,6 +84,7 @@ export function createBattle(opts: BattleOptions): Battle {
     shake: 0,
     casts: [],
     writes: [],
+    gearMoves: [],
   };
   const spells = createSpellEffects(ctx);
   let arenaScenery: Entity | null = null;
@@ -122,6 +124,8 @@ export function createBattle(opts: BattleOptions): Battle {
     input.locked = ctx.lock === null ? null : fight.enemies.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     input.chant = opts.chant.get().open;
+    input.bag = opts.bag.get().open;
+    input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
     for (let i = 0; i < steps; i++) {
       sync.advance(input);
       addImpactShake(ctx, fight.events);
@@ -157,6 +161,7 @@ export function createBattle(opts: BattleOptions): Battle {
       spells.clear();
       ctx.casts = [];
       ctx.writes = [];
+      ctx.gearMoves = [];
       useArena(setup.arena);
       const fight = new Fight(setup);
       registerFighterDisposers(fight.world);
@@ -167,7 +172,7 @@ export function createBattle(opts: BattleOptions): Battle {
       for (const e of fight.enemies) addEnemyModel(ctx, fight.world, e);
       for (const e of [...fight.players, ...fight.enemies]) fight.world.add(e, DrawOffset, { x: 0, y: 0, z: 0 });
       ctx.fight = fight;
-      swordHand = setup.players[seat]!.wields.sword;
+      swordHand = fight.world.require(fight.players[seat]!, Player).wields.sword;
       ctx.sync = new FightSync(fight, seat, send);
       ctx.outcome = ctx.sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);

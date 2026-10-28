@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, dodgeCost, FIXED_DT, Player, PLAYER, Stamina, STARTER_SWORD, startupTime, type PlayerAction, type PlayerData,
-  type PlayerInputData, type Vitals,
+  CHAIN, dodgeCost, emptyBag, FIXED_DT, Player, PLAYER, Stamina, STARTER_SWORD, starterEquipment, startupTime,
+  type PlayerAction, type PlayerData, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -133,8 +133,12 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
 });
 
 describe("what the player holds", () => {
-  const unarmed = (wields: PlayerData["wields"]) => new Fight({
-    arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { wields })],
+  const unarmed = ({ sword, spellbook }: PlayerData["wields"]) => new Fight({
+    arena: ARENA,
+    players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), equipment: {
+      ...starterEquipment(), rightHand: null, leftHand: null,
+      ...(sword && { [sword]: "sword" }), ...(spellbook && { [spellbook]: "spellbook" }),
+    } } })],
     enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
   });
   const actionsOf = (fight: Fight, press: Partial<PlayerInputData>) => {

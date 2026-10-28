@@ -453,6 +453,30 @@ describe("Actions: spells", () => {
     assert.deepEqual(polled.move, { x: 0, z: 1 });
   });
 
+  test("the arena's bag: B and Esc close it, R turns, Enter uses; only a dodge and its way reach the fight", () => {
+    const cases: [string, ActionName][] = [
+      ["KeyB", "inventory"], ["Escape", "closeBag"], ["KeyR", "turnItem"], ["Enter", "useItem"],
+    ];
+    for (const [code, action] of cases) {
+      const { press, listen } = setup("battle", "battleBag");
+      const { got } = listen(action);
+      const menu = listen("menu");
+      press(code);
+      assert.equal(got.length, 1, `${code} in the arena's bag`);
+      assert.equal(menu.got.length, 0);
+    }
+    const { actions, press, move, click } = setup("battle", "battleBag");
+    press("KeyW");
+    press("ShiftLeft");
+    press("Digit1");
+    press("KeyF");
+    click(0);
+    move(200, 0);
+    const polled = actions.poll();
+    assert.deepEqual([...polled.held].sort(), ["dodge", "forward"]);
+    assert.deepEqual(polled.pressed, ["forward", "dodge"]);
+  });
+
   test("the spellbook over the bag picks words with the same keys; Enter writes, Esc closes it alone", () => {
     const cases: [string, ActionName][] = [
       ["Digit2", "pick2"], ["Backspace", "undoWord"], ["Tab", "findWord"], ["Enter", "writePage"],

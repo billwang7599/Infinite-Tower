@@ -1,7 +1,7 @@
 # Inventory
 
 Status: **being built**. Built: the bag (a grid with weights), what carrying too much does, dying (or leaving a
-fight) emptying the bag, the bag screen, and the equipment and the cloth (see `shared/src/items/` and
+fight) emptying the bag, the bag screen (in fights too), and the equipment and the cloth (see `shared/src/items/` and
 `ui/hud/inventory/` in [ARCHITECTURE.md](../ARCHITECTURE.md)); what's left is below. The user's decisions are in
 [AGENTS.md](../AGENTS.md), and so are the agent's picks for what's built.
 
@@ -9,9 +9,7 @@ fight) emptying the bag, the bag screen, and the equipment and the cloth (see `s
 
 1. **Loot screen:** after a win, the drops on one side and the bag on the other; drag in what you want, leave the
    rest. The server keeps the drops until you leave the screen.
-2. **The bag screen in a fight** (the agent's pick, not built): it opens without the cloth, nothing can be moved,
-   you can't move while it's open, and a stagger closes it. For now it doesn't open in the arena at all.
-3. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
+2. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
    spellbook.
 
 ## Open questions

@@ -15,16 +15,17 @@ interface BookProps {
   input: Actions;
   save: (page: number, spell: Spell) => void;
   close: () => void;
+  writingPage?: number | null;
 }
 
-export function SpellbookScreen({ spells, input, save, close }: BookProps) {
+export function SpellbookScreen({ spells, input, save, close, writingPage = null }: BookProps) {
   const book = useStore(spells, (s) => s.book);
   const knownWords = useStore(spells, (s) => s.known);
   const known = useMemo(() => new Set<Word>(knownWords), [knownWords]);
   const [page, setPage] = useState(0);
   const [chant, setChant] = useState<ChantState>({ ...NO_CHANT, words: book[0] ? wordsOf(book[0]) : [] });
   const spell = spellOf(chant.words);
-  const write = () => { if (spell) save(page, spell); };
+  const write = () => { if (spell && writingPage === null) save(page, spell); };
   const turnTo = (to: number) => {
     setPage(to);
     setChant({ ...chant, words: book[to] ? wordsOf(book[to]) : [] });
@@ -77,12 +78,17 @@ export function SpellbookScreen({ spells, input, save, close }: BookProps) {
         )}
       <div className="mt-4 flex justify-center">
         <button
-          type="button" id="spellbook-write" {...NO_FOCUS} disabled={!spell} onClick={write}
+          type="button" id="spellbook-write" {...NO_FOCUS} disabled={!spell || writingPage !== null} onClick={write}
           className={`pointer-events-auto ${BUTTON.primary}`}
         >
           Write on page {page + 1}
         </button>
       </div>
+      {writingPage !== null && (
+        <p id="spellbook-writing" className="mt-3 text-center text-xs text-white/70">
+          Writing on page {writingPage + 1}…
+        </p>
+      )}
     </section>
   );
 }

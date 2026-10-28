@@ -70,6 +70,7 @@ export const MENUS = {
     menuRight: ["ArrowRight", "KeyD"],
   },
   bag: { closeBag: ["Escape"] },
+  battleBag: { closeBag: ["Escape"] },
   chant: { ...WORD_KEYS, castChant: ["Enter"], closeChant: ["Escape"] },
   spellbook: { ...WORD_KEYS, writePage: ["Enter"], closeSpellbook: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;

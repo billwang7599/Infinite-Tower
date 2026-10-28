@@ -21,8 +21,9 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
       patch.comboMultiplier = me[4].combo === null ? 1 : roundTo(momentumDamage(me[4].momentum), 2);
       patch.stunned = me[2].hitstun > 0 || me[4].action === "stagger";
       patch.spellbookInHand = me[4].wields.spellbook !== null;
-      patch.chantBroken = me[4].chantBroken;
+      patch.brokenOff = me[4].brokenOff;
       patch.writingPage = me[4].writing?.page ?? null;
+      patch.carried = me[4].gear;
     }
 
     const enemy = world.first(Enemy, Health);

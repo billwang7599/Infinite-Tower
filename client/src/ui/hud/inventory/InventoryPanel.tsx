@@ -1,18 +1,18 @@
 /**
- * The bag screen: what's worn, the cloth and the bag side by side, the weight against what you can carry, and the
- * selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go to the server, which has the last
- * word on all of it.
+ * The bag screen: what's worn, the cloth (none in a fight) and the bag side by side, the weight against what you
+ * can carry, and the selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go to the server (in
+ * a fight, as the fight's inputs), which has the last word on all of it.
  */
 import {
-  carryLimit, gearBurden, gearWeight, itemDef, type BagItem, type Burden, type Cell, type Gear, type GridSpot,
-  type Slot, type Spot,
+  carryLimit, gearBurden, gearWeight, itemDef, type BagItem, type Burden, type Cell, type Gear, type GearMove,
+  type GridSpot, type Slot, type Spot, type Stats,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
-import type { OverworldHudState, SettingsScreenState } from "../../state.js";
+import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { inventoryPanelWidthPx } from "../layout.js";
@@ -20,14 +20,17 @@ import { PanelFrame } from "../PanelFrame.js";
 import { BagGrid, ItemTooltip, Placed } from "./BagGrid.js";
 import {
   cancel, canDrop, doubleClick, hoveredStack, itemToUse, keepUp, NO_MOUSE, pointerDown, pointerMove, pointerUp,
-  rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Move, type Pointer,
+  rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Pointer,
 } from "./bagMouse.js";
 import { EquipmentSlots } from "./EquipmentSlots.js";
 import { CELL, INVENTORY_GAP_PX } from "./grid.js";
 import { formatWeight } from "./itemInfo.js";
 
 interface PanelProps {
-  hud: Store<OverworldHudState>;
+  gear: Gear;
+  stats: Stats | null;
+  /** Healing items can't be used: at full HP (the server refuses) or in a fight. */
+  canHeal: boolean;
   input: Actions;
   settingsScreen: Store<SettingsScreenState>;
   use: (at: GridSpot) => void;
@@ -48,11 +51,8 @@ const START: View = { mouse: NO_MOUSE, grab: MIDDLE };
 const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
-export function InventoryPanel({ hud, input, settingsScreen, use, move, openSpellbook, close }: PanelProps) {
-  const gear = useStore(hud, (s) => s.gear);
-  const stats = useStore(hud, (s) => s.stats);
-  // Healing items do nothing at full HP (the server refuses), so they can't be used then.
-  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
+export function InventoryPanel(props: PanelProps) {
+  const { gear, stats, canHeal, input, settingsScreen, use, move, openSpellbook, close } = props;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
@@ -80,11 +80,11 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, openSpel
     latest.current = { mouse: next, grab };
     setView(latest.current);
   };
-  const send = (m: Move | null) => { if (m) move(m.from, m.to, m.turned); };
+  const send = (m: GearMove | null) => { if (m) move(m.from, m.to, m.turned); };
   const bookInHand = (m: BagMouse) => !m.drag && m.selected?.in === "slot"
     && gear.equipment[m.selected.slot] === "spellbook";
   const applyUse = (m: BagMouse) => {
-    const at = itemToUse(m, gear, fullHp);
+    const at = itemToUse(m, gear, !canHeal);
     if (at) use(at);
     else if (bookInHand(m)) openSpellbook();
   };
@@ -177,16 +177,18 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, openSpel
           <Column title="Equipment">
             <EquipmentSlots gear={gear} mouse={mouse} area={area} />
           </Column>
-          <Column title="Cloth" note="Left behind when you close the bag. Weighs nothing.">
-            <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
-          </Column>
+          {gear.cloth.cols > 0 && (
+            <Column title="Cloth" note="Left behind when you close the bag. Weighs nothing.">
+              <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
+            </Column>
+          )}
           <Column title="Bag">
             <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
           </Column>
         </div>
         <BagDetails
           gear={gear} stack={selectedStack(mouse, gear)}
-          usable={itemToUse(mouse, gear, fullHp) !== null || bookInHand(mouse)}
+          usable={itemToUse(mouse, gear, !canHeal) !== null || bookInHand(mouse)}
           use={() => applyUse(current())}
         />
         {drag && dragged && pointer && (

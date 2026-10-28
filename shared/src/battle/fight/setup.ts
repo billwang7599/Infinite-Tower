@@ -2,6 +2,7 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
+import { heldIn, type Carried, type Equipment } from "../../items/gear.js";
 import type { Spellbook } from "../../spells/spell.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Stamina, Statuses, SwordAttack, type PlayerData,
@@ -19,7 +20,7 @@ export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 
 export interface PlayerSetup {
-  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; wields: PlayerData["wields"]; book: Spellbook;
+  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Spellbook;
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -28,6 +29,9 @@ export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: 
 /** From the feet to the capsule's center, and from there to each cap's middle. */
 const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
 const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
+
+export const wieldsOf = (equipment: Equipment): PlayerData["wields"] =>
+  ({ sword: heldIn(equipment, "sword"), spellbook: heldIn(equipment, "spellbook") });
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
@@ -41,10 +45,11 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: null, dodgeHeld: false, castHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
-    castQueued: null, casting: null, writeHeld: false, chantBroken: false, writing: null, book: setup.book,
+    castQueued: null, casting: null, writeHeld: false, gearHeld: false, brokenOff: false, writing: null,
+    book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
     attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
-    wields: { ...setup.wields },
+    gear: setup.gear, wields: wieldsOf(setup.gear.equipment),
   });
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });

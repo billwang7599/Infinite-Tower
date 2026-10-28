@@ -94,6 +94,17 @@ describe("whoHasTheKeys", () => {
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "chant", "settings"]);
   });
 
+  test("in the arena the bag opens over the fight, the spellbook over it, and both go when the bag does", () => {
+    const { ui } = playing("battle");
+    ui.toggleBattleBag();
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag"]);
+    ui.spellbookScreen.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag", "spellbook"]);
+    ui.toggleBattleBag();
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle"]);
+    assert.equal(ui.spellbookScreen.get().open, false);
+  });
+
   test("the spellbook opens over the bag, and goes when the bag does", () => {
     const { ui, mode } = playing();
     ui.toggleOverworldPanel("inventory");

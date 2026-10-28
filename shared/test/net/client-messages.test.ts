@@ -12,7 +12,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
-  cast: null, chant: false, write: null, locked: null,
+  cast: null, chant: false, write: null, locked: null, bag: false, gear: null,
 };
 const segment = (form: string, elements: string[] = [], augments: string[] = []) => ({ form, elements, augments });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -110,6 +110,16 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "block" }), null);
     assert.equal(battleInput({ ...STEP, attack: "LR" }), null);
+  });
+
+  test("battleInput: the bag is open or not, and a gear move goes between two spots", () => {
+    const gear = { from: { in: "slot", slot: "rightHand" }, to: { in: "bag", x: 2, y: 1 }, turned: true };
+    const moving = { ...STEP, bag: true, gear };
+    assert.deepEqual(battleInput(moving), { t: "battleInput", upTo: 1, inputs: [moving] });
+    assert.equal(battleInput({ ...STEP, bag: "open" }), null);
+    assert.equal(battleInput({ ...STEP, gear: { ...gear, turned: undefined } }), null, "no turned");
+    assert.equal(battleInput({ ...STEP, gear: { ...gear, to: { in: "bag", x: -1, y: 0 } } }), null);
+    assert.equal(battleInput({ ...STEP, gear: { ...gear, from: { in: "slot", slot: "tail" } } }), null);
   });
 
   test("battleInput: the locked enemy is a whole index, or none", () => {
