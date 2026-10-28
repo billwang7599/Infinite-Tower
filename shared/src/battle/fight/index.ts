@@ -7,4 +7,5 @@ export { initPhysics } from "./physics/init.js";
 export {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type FightSetup, type PlayerSetup,
 } from "./setup.js";
+export { chant, releaseChant, startCast } from "./skills/skilled.js";
 export type { FightSnapshot } from "./state.js";

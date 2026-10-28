@@ -5,10 +5,10 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillObject, Stamina, Statuses,
-  WeaponAttack, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type StaminaData,
-  type StatusData, type SwingData, type WeaponAttackData, type WielderData,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillObject, Skilled, Stamina,
+  Statuses, WeaponAttack, Wielder,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
+  type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
@@ -21,6 +21,7 @@ interface FighterSnapshot {
   health: Omit<HealthData, "max">;
   statuses: StatusData;
   wielder: Omit<WielderData, "hands" | "armReachM"> | null;
+  skilled: Omit<SkilledData, "target"> & { target: number };
 }
 
 interface PlayerSnapshot extends FighterSnapshot {
@@ -69,6 +70,7 @@ function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder
 }
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
+const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e === null ? -1 : fighters.indexOf(e));
 
 function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
   return state;
@@ -80,9 +82,11 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
     const { max: _, ...health } = world.require(e, Health);
+    const { words, aim, target, ...skilled } = world.require(e, Skilled);
     return {
       pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)),
       wielder: saveWielder(world.get(e, Wielder)),
+      skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
     };
   };
   return {
@@ -111,7 +115,7 @@ export function saveFight(fight: Fight): FightSnapshot {
     })),
     skills: [...world.query(SkillObject)].map(([, { caster, target, ignore, pos, dir, ...o }]) => ({
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters.indexOf(caster),
-      target: target === null ? -1 : fighters.indexOf(target), ignore: ignore === null ? -1 : fighters.indexOf(ignore),
+      target: indexIn(fighters, target), ignore: indexIn(fighters, ignore),
     })),
   };
 }
@@ -120,6 +124,7 @@ export function saveFight(fight: Fight): FightSnapshot {
 export function loadFight(fight: Fight, snap: FightSnapshot): void {
   const { world, physics } = fight;
   const fighters = fightersOf(fight);
+  const fighterAt = (i: number) => (i === -1 ? null : fighters[i]!);
   const place = (e: Entity, s: FighterSnapshot) => {
     const body = world.require(e, Body);
     Object.assign(body.pos, s.pos);
@@ -129,6 +134,9 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
     if (wielder && s.wielder) Object.assign(wielder, s.wielder, { swing: copySwing(s.wielder.swing) });
+    const { words, aim, target, ...skilled } = s.skilled;
+    const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };
+    Object.assign(world.require(e, Skilled), skilled, copied);
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.
   for (const e of fighters) world.remove(e, ActiveHit);
@@ -157,7 +165,6 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   }
   for (const [e] of world.query(SkillObject)) world.destroy(e);
   world.flush();
-  const fighterAt = (i: number) => (i === -1 ? null : fighters[i]!);
   for (const { caster, target, ignore, pos, dir, ...o } of snap.skills) {
     world.add(world.spawn(), SkillObject, {
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters[caster]!, target: fighterAt(target),

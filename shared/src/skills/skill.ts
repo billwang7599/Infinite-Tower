@@ -68,6 +68,31 @@ export interface SkillProblem {
 const isForm = (word: Word): word is Form => (FORMS as readonly Word[]).includes(word);
 const isElement = (word: Word): word is SkillElement => (ELEMENTS as readonly Word[]).includes(word);
 
+export type WordKind = "form" | "element" | "modifier";
+export const wordKind = (word: Word): WordKind => (isForm(word) ? "form" : isElement(word) ? "element" : "modifier");
+
+export const NEXT_WORDS: Record<WordKind | "start", readonly WordKind[]> = {
+  start: ["form"], form: ["element"], element: ["element", "modifier", "form"], modifier: ["modifier", "form"],
+};
+
+/** null for no words, or words out of NEXT_WORDS' order. */
+export function skillOf(words: readonly Word[]): Skill | null {
+  const segments: { form: Form; elements: SkillElement[]; modifiers: Modifier[] }[] = [];
+  let last: WordKind | "start" = "start";
+  for (const word of words) {
+    const kind = wordKind(word);
+    if (!NEXT_WORDS[last].includes(kind)) return null;
+    last = kind;
+    if (isForm(word)) segments.push({ form: word, elements: [], modifiers: [] });
+    else if (isElement(word)) segments.at(-1)!.elements.push(word);
+    else segments.at(-1)!.modifiers.push(word);
+  }
+  const [first, ...rest] = segments;
+  return first ? { segments: [first, ...rest] } : null;
+}
+
+export const wordsOf = (skill: Skill): Word[] => skill.segments.flatMap((s) => [s.form, ...s.elements, ...s.modifiers]);
+
 // `segment` holds only words already accepted; a Form word fills the segment's form box.
 export function validateWord(
   word: Word, segment: Segment, segmentIndex: number, known: ReadonlySet<Word>,

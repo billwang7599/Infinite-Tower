@@ -79,7 +79,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
-  castHeld: false, chant: false, write: null, locked: null, bag: false, gear: null,
+  castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 

@@ -1,8 +1,7 @@
 import type { System } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { releaseTime } from "../../../skills/skill.js";
-import { Body, Enemy, Player, Sidestep } from "../../components.js";
-import { PlayerInput } from "../../input.js";
+import { Body, Enemy, Fighter, Sidestep, Skilled } from "../../components.js";
 import type { FightContext } from "../context.js";
 import { enter, roll } from "./common.js";
 
@@ -17,12 +16,13 @@ export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
     for (const [e, sidestep, enemy, body] of world.query(Sidestep, Enemy, Body)) {
       const def = sidestep.def, move = enemy.move;
       if (enemy.state === "sidestep" && enemy.stateTime >= def.stepTime) enter(world, e, enemy, "approach");
-      for (const [, player, input, from] of world.query(Player, PlayerInput, Body)) {
-        const skill = player.casting;
-        if (enemy.state !== "approach" || player.action !== "cast" || skill?.segments[0].form !== "bolt") continue;
-        if (stepsOf(player.actionTime) !== stepsOf(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
+      const team = world.require(e, Fighter).team;
+      for (const [, caster, from, { team: casterTeam }] of world.query(Skilled, Body, Fighter)) {
+        const skill = caster.casting;
+        if (enemy.state !== "approach" || casterTeam === team || skill?.segments[0].form !== "bolt") continue;
+        if (stepsOf(caster.castTime) !== stepsOf(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
         const dx = body.pos.x - from.pos.x, dz = body.pos.z - from.pos.z, dist = Math.hypot(dx, dz);
-        if (dist === 0 || (dx * input.aimX + dz * input.aimZ) / dist < AIM_MIN_DOT) continue;
+        if (dist === 0 || (dx * caster.aim.x + dz * caster.aim.z) / dist < AIM_MIN_DOT) continue;
         if (roll(enemy) >= def.chance) continue;
         const side = roll(enemy) < 0.5 ? 1 : -1, reachM = def.speed * def.stepTime;
         sidestep.dir = { x: (side * dz) / dist, z: (-side * dx) / dist };

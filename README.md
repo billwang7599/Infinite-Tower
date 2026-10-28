@@ -53,12 +53,12 @@ What's built so far:
   Enter or a double click to eat.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
-  word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter.
-  The skillbook has four pages, written from the bag screen (Open on the book in hand) or in a fight (2 s, standing
-  still), and quick-cast with 1-4 (hold the key to keep a Beam going).
-  Dying blanks the pages; the words you know stay.
+  word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it
+  needs no book, and anyone chanting shows their words in front of them. The skillbook has four pages, written from the
+  bag screen (Open on the book in hand) or in a fight (2 s, standing still), and quick-cast with 1-4 (hold the key to
+  keep a Beam going). Dying blanks the pages; the words you know stay.
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left (and get a fresh pair after
-  dying). Without a sword in hand you can't swing, stab or block; without the skillbook you can't cast. Worn
+  dying). Without a sword in hand you can't swing, stab or block; without the skillbook you can't quick-cast. Worn
   things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner

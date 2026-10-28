@@ -1,4 +1,4 @@
-import { SAVE_IN_FIGHT_TIME, type Skill, type Word } from "@infinite-tower/shared";
+import { SAVE_IN_FIGHT_TIME, skillOf, type Skill, type Word } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
@@ -7,7 +7,7 @@ import { useAction } from "../components/useAction.js";
 import type { BattleHudState, SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
-import { addWord, NO_CHANT, skillOf, skillText, undoWord, type ChantState } from "./chant.js";
+import { addWord, NO_CHANT, skillText, undoWord, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
 interface ChantProps {
@@ -40,7 +40,7 @@ export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps
   useAction(input, ["chant", "closeChant", "releaseChant"], (action, repeat) => {
     if (!open) {
       if (action !== "chant") return false;
-      if (!repeat && inHand && fighting) chant.set({ open: true });
+      if (!repeat && fighting) chant.set({ open: true });
       return;
     }
     if (action === "releaseChant") releaseNow();
@@ -68,7 +68,7 @@ export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps
         >
           Release
         </button>
-        {book.map((written, page) => (
+        {inHand && book.map((written, page) => (
           <button
             type="button" key={page} {...NO_FOCUS} data-page={page} disabled={!skill || busy}
             title={written ? skillText(written) : "Blank"} onClick={() => skill && save(page, skill)}

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSkillbook, releaseTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, starterEquipment,
-  type PlayerInputData, type Skill, type Vec3,
+  blankSkillbook, releaseTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, Skilled,
+  starterEquipment, type PlayerInputData, type Skill, type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -15,6 +15,7 @@ const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const BOLT_FIRE = skill(segment("bolt", ["fire"]));
 const NOVA_WATER = skill(segment("nova", ["water"]));
 const CHANT = input({ chant: true });
+const NO_BOOK = { ...starterEquipment(), leftHand: null };
 
 function alone(book = blankSkillbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });
@@ -54,16 +55,18 @@ describe("chanting", () => {
     assert.ok(flatPos(fight).x - before.x > 0.3);
   });
 
-  test("no chant without the skillbook in hand", () => {
+  test("it needs no skillbook: chanted and released without one", () => {
     const fight = new Fight({
-      arena: ARENA, players: [player(at(0, -4), {
-        gear: { bag: emptyBag(), equipment: { ...starterEquipment(), leftHand: null } },
-      })],
+      arena: ARENA, players: [player(at(0, -4), { gear: { bag: emptyBag(), equipment: NO_BOOK } })],
       enemies: [enemy(STATUE, at(0, 6))],
     });
     run(fight, 0.3);
     fight.step([CHANT]);
-    assert.equal(playerOf(fight).action, "none");
+    assert.equal(playerOf(fight).action, "chant");
+    fight.step([input({ chant: true, cast: BOLT_FIRE })]);
+    assert.equal(playerOf(fight).action, "cast");
+    run(fight, releaseTime(BOLT_FIRE));
+    assert.equal(shots(fight), 1);
   });
 
   test("a hit that stuns breaks it off, and it stays shut until the chant is asked for again", () => {
@@ -135,6 +138,87 @@ describe("what may be cast", () => {
     run(fight, 0.3);
     fight.step([input({ cast: copy })]);
     assert.equal(playerOf(fight).action, "cast");
+  });
+});
+
+describe("without the skillbook in hand", () => {
+  const bookless = (book = blankSkillbook()) => new Fight({
+    arena: ARENA, players: [player(at(0, -4), { book, gear: { bag: emptyBag(), equipment: NO_BOOK } })],
+    enemies: [enemy(STATUE, at(0, 6))],
+  });
+
+  test("a skill on a page doesn't quick-cast", () => {
+    const fight = bookless([BOLT_FIRE, null, null, null]);
+    run(fight, 0.3);
+    fight.step([input({ cast: BOLT_FIRE })]);
+    run(fight, releaseTime(BOLT_FIRE) + 0.1);
+    assert.equal(shots(fight), 0);
+  });
+
+  test("nothing is written from the chant", () => {
+    const fight = bookless();
+    run(fight, 0.3);
+    fight.step([CHANT]);
+    fight.step([input({ chant: true, write: { page: 0, skill: NOVA_WATER } })]);
+    run(fight, SAVE_IN_FIGHT_TIME + 0.1, () => CHANT);
+    assert.equal(playerOf(fight).action, "chant");
+    assert.deepEqual(playerOf(fight).book, blankSkillbook());
+  });
+});
+
+describe("the chant's words, in the fight", () => {
+  const words = (fight: Fight, i = 0) => fight.world.require([...fight.players, ...fight.enemies][i]!, Skilled);
+  const chanting = (...chantWords: Word[]) => input({ chant: true, chantWords });
+
+  test("are what the input last said, and everyone's copy of the fight has them", () => {
+    const fight = alone();
+    run(fight, 0.3);
+    fight.step([CHANT]);
+    fight.step([chanting("bolt")]);
+    fight.step([CHANT]);
+    fight.step([chanting("bolt", "fire")]);
+    assert.deepEqual(words(fight).words, ["bolt", "fire"]);
+    assert.equal(words(fight).chanting, true);
+    assert.deepEqual(fight.save().players[0]!.skilled.words, ["bolt", "fire"]);
+  });
+
+  test("are taken once, as the input brings them: the fight's own changes aren't undone by the same input", () => {
+    const fight = alone();
+    run(fight, 0.3);
+    fight.step([CHANT]);
+    fight.step([chanting("bolt", "fire")]);
+    words(fight).words = [];
+    fight.step([chanting("bolt", "fire")]);
+    assert.deepEqual(words(fight).words, []);
+  });
+
+  test("a dodge closes the chant and keeps them", () => {
+    const fight = alone();
+    run(fight, 0.3);
+    fight.step([CHANT]);
+    fight.step([chanting("bolt", "fire")]);
+    fight.step([input({ chant: true, dodge: true, moveX: 1 })]);
+    assert.equal(words(fight).chanting, false);
+    assert.deepEqual(words(fight).words, ["bolt", "fire"]);
+  });
+
+  test("a hit that stuns loses them", () => {
+    const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
+    fight.step([CHANT]);
+    fight.step([chanting("bolt", "fire")]);
+    stepWhile(fight, "chant", CHANT);
+    assert.equal(words(fight).chanting, false);
+    assert.deepEqual(words(fight).words, []);
+  });
+
+  test("released, they're gone", () => {
+    const fight = alone();
+    run(fight, 0.3);
+    fight.step([CHANT]);
+    fight.step([chanting("bolt", "fire")]);
+    fight.step([input({ chant: true, cast: BOLT_FIRE })]);
+    assert.equal(words(fight).chanting, false);
+    assert.deepEqual(words(fight).words, []);
   });
 });
 

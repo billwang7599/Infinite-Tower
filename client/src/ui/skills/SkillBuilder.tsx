@@ -1,10 +1,12 @@
-import { releaseTime, skillCost, type Rejection, type Word } from "@infinite-tower/shared";
+import {
+  releaseTime, skillCost, skillOf, wordKind, type Rejection, type Word, type WordKind,
+} from "@infinite-tower/shared";
 import { useRef, useState } from "react";
 import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { TEXT_INPUT } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
-import { choices, kindOf, quickPick, skillOf, wordTitle, type WordKind } from "./chant.js";
+import { choices, quickPick, wordTitle } from "./chant.js";
 
 const SQUARE_PX = 76;
 const STEP_PX = SQUARE_PX + 12;
@@ -33,7 +35,7 @@ export function SkillBuilder({ words, known, input, pick, undo, busy = false }: 
   const search = useRef<HTMLInputElement>(null);
   const listed = choices(words, known, query);
   const skill = skillOf(words);
-  const next = [...new Set(listed.map((c) => KIND_NAME[kindOf(c.word)]))];
+  const next = [...new Set(listed.map((c) => KIND_NAME[wordKind(c.word)]))];
 
   const choose = (word: Word | null) => {
     if (!word || busy) return;
@@ -62,17 +64,17 @@ export function SkillBuilder({ words, known, input, pick, undo, busy = false }: 
             <li
               key={i} data-word={word}
               className={`relative flex shrink-0 flex-col items-center justify-center rounded-sm border-2 bg-black/50 ${
-                KIND_BORDER[kindOf(word)]
+                KIND_BORDER[wordKind(word)]
               } ${i < words.length - 3 ? "opacity-40" : ""}`}
               style={{ width: SQUARE_PX, height: SQUARE_PX }}
             >
-              {i > 0 && kindOf(word) === "form" && (
+              {i > 0 && wordKind(word) === "form" && (
                 <span aria-label="next segment" className="absolute top-1/2 -left-3 -translate-y-1/2 text-victory">
                   ⛓
                 </span>
               )}
               <span className="text-sm">{wordTitle(word)}</span>
-              <span className="text-[10px] font-normal text-white/50">{KIND_NAME[kindOf(word)]}</span>
+              <span className="text-[10px] font-normal text-white/50">{KIND_NAME[wordKind(word)]}</span>
             </li>
           ))}
           <li

@@ -5,14 +5,15 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Stamina, Statuses, WeaponAttack, Wielder,
-  type WielderData,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Skilled, Stamina, Statuses,
+  WeaponAttack, Wielder, type WielderData,
 } from "../components.js";
 import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
+import { newSkilled } from "./skills/skilled.js";
 import { noStatuses } from "./skills/statuses.js";
 import { handsOf } from "./weapons/swing.js";
 
@@ -46,12 +47,12 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, castHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
-    castQueued: null, casting: null, writeHeld: false, gearHeld: false, brokenOff: false, writing: null,
+    attackHeld: null, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
+    castQueued: null, writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
-    rng: (setup.seed ?? 1) >>> 0,
   });
+  world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
   world.add(e, Wielder, wielder(handsOf(setup.gear.equipment), PLAYER.armReachM));
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });
@@ -91,5 +92,6 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Fighter, { team: "enemy", radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });
   world.add(e, Statuses, noStatuses());
+  world.add(e, Skilled, newSkilled({ x: Math.sin(yaw), z: Math.cos(yaw) }, seed));
   return e;
 }

@@ -61,6 +61,18 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK);
   });
 
+  test("late chant words are kept, the latest of them: each is the chant's words whole", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    timeline.receive(7, [
+      at(2, { ...WALK, chantWords: ["bolt"] }), at(3, WALK), at(4, { ...WALK, chantWords: ["bolt", "fire"] }),
+      at(5, WALK),
+    ], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, chantWords: ["bolt", "fire"] });
+    assert.deepEqual(timeline.take(7), WALK);
+  });
+
   test("a change for a step too far ahead of the server's clock is dropped, and upTo held back", () => {
     const timeline = new InputTimeline();
     const now = 10, limit = now + MAX_INPUT_LEAD_STEPS;

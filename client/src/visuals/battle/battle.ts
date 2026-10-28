@@ -1,11 +1,13 @@
 import { Color3, MeshBuilder, StandardMaterial, TransformNode, Vector3, type Mesh } from "@babylonjs/core";
 import {
-  Body, dampFactor, REACTIONS, Statuses, type Entity, type Reaction, type Vec3, type World,
+  Body, dampFactor, LocalPlayer, REACTIONS, Skilled, Statuses, type Entity, type Reaction, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { Visual } from "../visuals.js";
 import { buildArena } from "./arena.js";
+import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
 import type { ArenaScene } from "./scene.js";
+import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 
 /** Corrections bigger than this (m), like a hit's knockback, are shown as they are rather than eased. */
 const MAX_EASED_CORRECTION = 1;
@@ -25,6 +27,9 @@ interface Fighter<S> {
   offset: Vec3;
   /** The reaction cooldowns last frame: one jumping is a reaction going off. */
   cooldowns: Record<Reaction, number> | null;
+  chant: ChantCircle | null;
+  /** Only over other chanters: your own chant is the big popup. */
+  words: ChantWords | null;
   drawing: S;
 }
 
@@ -39,10 +44,13 @@ export function fighter<S>(name: string, own: {
       const at = world.require(e, Body).pos;
       node.position.set(at.x, at.y, at.z);
       ctx.nodes.set(e, node);
-      return { ctx, e, node, offset: { x: 0, y: 0, z: 0 }, cooldowns: null, drawing: own.spawn(ctx, world, e, node) };
+      return {
+        ctx, e, node, offset: { x: 0, y: 0, z: 0 }, cooldowns: null, chant: null, words: null,
+        drawing: own.spawn(ctx, world, e, node),
+      };
     },
     frame(f, world, e, dt) {
-      const { pos } = world.require(e, Body), { offset } = f;
+      const body = world.require(e, Body), { pos } = body, { offset } = f;
       for (const c of f.ctx.battle.corrections) if (c.e === e) easeCorrection(offset, c.moved);
       const k = 1 - dampFactor(CORRECTION_EASE_RATE, dt);
       offset.x *= k;
@@ -50,6 +58,9 @@ export function fighter<S>(name: string, own: {
       offset.z *= k;
       f.node.position.set(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
       own.frame(f.drawing, world, e, dt);
+      const skilled = world.require(e, Skilled);
+      f.chant = drawChantCircle(f.ctx.skills, f.chant, skilled, body, f.node);
+      if (!world.has(e, LocalPlayer)) f.words = drawChantWords(f.ctx.scene, f.words, skilled, f.node);
       const statuses = world.get(e, Statuses);
       if (!statuses) return;
       if (f.cooldowns) {
@@ -61,6 +72,8 @@ export function fighter<S>(name: string, own: {
     },
     dispose(f) {
       own.dispose(f.drawing);
+      dropChantCircle(f.ctx.skills, f.chant);
+      dropChantWords(f.words);
       f.node.dispose();
       f.ctx.nodes.delete(f.e);
     },

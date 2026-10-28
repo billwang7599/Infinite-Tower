@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  MODIFIER_FITS, MODIFIERS, releaseTime, ELEMENTS, FORMS, OPPOSITE, validateWord, SKILL, skillCost, validateSkill,
-  type Segment, type Skill, type Word, WORDS,
+  MODIFIER_FITS, MODIFIERS, releaseTime, ELEMENTS, FORMS, OPPOSITE, validateWord, SKILL, skillCost, skillOf,
+  validateSkill, wordsOf, type Segment, type Skill, type Word, WORDS,
 } from "@infinite-tower/shared";
 
 const ALL: ReadonlySet<Word> = new Set(WORDS);
@@ -150,5 +150,26 @@ describe("releaseTime", () => {
     assert.equal(releaseTime(skill(segment("bolt"))), SKILL.releaseTime.base + SKILL.releaseTime.perWord);
     const chain = skill(segment("bolt", ["water"], ["swift"]), segment("nova", ["lightning"]));
     assert.ok(Math.abs(releaseTime(chain) - (SKILL.releaseTime.base + 5 * SKILL.releaseTime.perWord)) < 1e-9);
+  });
+});
+
+describe("skillOf: the words as they're chanted", () => {
+  test("a new segment at each Form", () => {
+    assert.equal(skillOf([]), null);
+    assert.deepEqual(skillOf(["bolt", "water", "swift", "nova", "lightning", "fire", "widen"]), skill(
+      segment("bolt", ["water"], ["swift"]), segment("nova", ["lightning", "fire"], ["widen"]),
+    ));
+    assert.deepEqual(skillOf(["self", "light"]), skill(segment("self", ["light"])));
+  });
+
+  test("words out of the grammar's order aren't a skill", () => {
+    assert.equal(skillOf(["fire"]), null);
+    assert.equal(skillOf(["bolt", "split", "fire"]), null);
+    assert.equal(skillOf(["bolt", "nova"]), null);
+  });
+
+  test("wordsOf gives the words back, in order", () => {
+    const words: Word[] = ["bolt", "water", "swift", "nova", "lightning"];
+    assert.deepEqual(wordsOf(skillOf(words)!), words);
   });
 });

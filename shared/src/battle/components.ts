@@ -7,7 +7,7 @@ import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 import type { Reaction, Status } from "../skills/effects.js";
-import type { Skill, Skillbook } from "../skills/skill.js";
+import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { PageWrite } from "./input.js";
 
 /**
@@ -25,9 +25,9 @@ export interface PlayerData {
   /** The attack held on the last step: a different one is a new press. */
   attackHeld: AttackKind | null;
   dodgeHeld: boolean;
-  castHeld: boolean;
   writeHeld: boolean;
   gearHeld: boolean;
+  wordsHeld: boolean;
   /** The chant or the bag broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
   brokenOff: boolean;
   /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or skill pressed. */
@@ -37,7 +37,6 @@ export interface PlayerData {
   castBuffer: number;
   queued: AttackKind | null;
   castQueued: Skill | null;
-  casting: Skill | null;
   writing: PageWrite | null;
   book: Skillbook;
   action: PlayerAction;
@@ -48,10 +47,25 @@ export interface PlayerData {
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
+}
+export const Player = defineComponent<PlayerData>("Player");
+
+export interface SkilledData {
+  chanting: boolean;
+  /** A dodge keeps them; a stun while chanting, or the release, clears them. */
+  words: Word[];
+  casting: Skill | null;
+  castTime: number;
+  /** A first-segment Beam streams while `beaming`, and is held (and paid for) while `held`. */
+  beaming: boolean;
+  held: boolean;
+  aim: Vec2;
+  /** Whom a Follow homes onto; null: the nearest. */
+  target: Entity | null;
   /** Its random numbers' seed (where its split Bolts start), kept in the fight so both sides roll the same. */
   rng: number;
 }
-export const Player = defineComponent<PlayerData>("Player");
+export const Skilled = defineComponent<SkilledData>("Skilled");
 
 export interface SwingData {
   attack: AttackKind;

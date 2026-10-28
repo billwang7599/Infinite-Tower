@@ -53,8 +53,8 @@ export class InputTimeline {
    */
   take(step: number): PlayerInputData {
     let late: PlayerInputData | null = null;
-    const pressed: Pick<PlayerInputData, "jump" | "attack" | "dodge" | "block" | "cast"> =
-      { jump: false, attack: null, dodge: false, block: false, cast: null };
+    const pressed: Pick<PlayerInputData, "jump" | "attack" | "dodge" | "block" | "cast" | "chantWords"> =
+      { jump: false, attack: null, dodge: false, block: false, cast: null, chantWords: null };
     while (this.waiting[0] && this.waiting[0].step <= step) {
       const { step: madeFor, ...change } = this.waiting.shift()!;
       if (madeFor < step) {
@@ -65,6 +65,7 @@ export class InputTimeline {
         pressed.dodge ||= change.dodge;
         pressed.block ||= change.block;
         pressed.cast ??= change.cast;
+        pressed.chantWords = change.chantWords ?? pressed.chantWords;
       }
       this.held = change;
     }
@@ -73,6 +74,7 @@ export class InputTimeline {
       ...base, jump: this.held.jump || pressed.jump, attack: this.held.attack ?? pressed.attack,
       dodge: this.held.dodge || pressed.dodge, block: this.held.block || pressed.block,
       cast: this.held.cast ?? pressed.cast, castHeld: this.held.castHeld,
+      chantWords: this.held.chantWords ?? pressed.chantWords,
     };
     if (this.known(step)) {
       this.guessed = 0;

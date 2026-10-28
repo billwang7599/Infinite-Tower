@@ -3,9 +3,9 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  emptyCloth, gearBurden, heldIn, itemAt, itemDef, moveGear, nearCampfire, PLAYER, validateSkill, takeOne, walkPace,
-  type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Skill, type Skillbook,
-  type Spot, type StepInput, type Stats, type Vitals, type Word,
+  emptyCloth, gearBurden, heldIn, itemAt, itemDef, moveGear, nearCampfire, PLAYER, skillOf, validateSkill, takeOne,
+  walkPace, type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Skill,
+  type Skillbook, type Spot, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
@@ -86,9 +86,14 @@ export class GameSession {
     if (!battle || battle.over) return;
     const known = new Set(this.knownWords);
     const unknown = (skill: Skill | undefined) => skill !== undefined && validateSkill(skill, known).length > 0;
+    const unchantable = (words: readonly Word[]) => {
+      const chanted = skillOf(words);
+      return words.length > 0 && (chanted === null || unknown(chanted));
+    };
     const allowed = inputs.map((input) => ({
       ...input,
       cast: unknown(input.cast ?? undefined) ? null : input.cast,
+      chantWords: input.chantWords && unchantable(input.chantWords) ? null : input.chantWords,
       write: unknown(input.write?.skill) ? null : input.write,
     }));
     battle.room.input(battle.seat, upTo, allowed);

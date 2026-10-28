@@ -9,10 +9,10 @@ import { swingAt, swingSteps } from "../../fixtures/swings.js";
 
 function playerDoing(action: PlayerAction, t: number): PlayerData {
   return {
-    grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, castHeld: false,
-    jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, casting: null,
-    writeHeld: false, gearHeld: false, brokenOff: false, writing: null, book: [],
-    burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, rng: 1,
+    grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false,
+    jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
+    writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null, book: [],
+    burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
     action, actionTime: t, actionDir: { x: 0, z: 1 },
   };
 }

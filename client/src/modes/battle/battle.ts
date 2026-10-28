@@ -1,6 +1,6 @@
 import {
   Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSkill, type ClientMsg, type ServerMsgOf, type Skill,
-  type Vec3,
+  type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
@@ -65,6 +65,8 @@ export function createBattle(opts: BattleOptions): Battle {
 
   const input = copyInput(IDLE_INPUT);
   let casting: Skill | null = null;
+  let sentWords: readonly Word[] = [];
+  let wordsDue: readonly Word[] | null = null;
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
@@ -90,7 +92,11 @@ export function createBattle(opts: BattleOptions): Battle {
     casting = input.castHeld ? last : input.cast;
     input.locked = ctx.lock === null ? null : fight.enemies.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
-    input.chant = opts.chant.get().open;
+    const { open, words } = opts.chant.get();
+    input.chant = open;
+    if (words !== sentWords) wordsDue = sentWords = words;
+    input.chantWords = input.chantWords ? null : wordsDue;
+    if (input.chantWords) wordsDue = null;
     input.bag = opts.bag.get().open;
     input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
     for (let i = 0; i < steps; i++) sync.advance(input);
@@ -110,6 +116,8 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.writes = [];
       ctx.gearMoves = [];
       corrected = [];
+      sentWords = opts.chant.get().words;
+      wordsDue = null;
       const fight = new Fight(setup);
       fight.world.add(fight.players[seat]!, LocalPlayer, true);
       ctx.fight = fight;

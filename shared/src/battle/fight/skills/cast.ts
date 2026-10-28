@@ -6,12 +6,13 @@ import {
   releaseTime, SAVE_IN_FIGHT_TIME, SKILL, skillCost, type Segment, type Skill,
 } from "../../../skills/skill.js";
 import {
-  Body, Fighter, Health, Player, SkillObject, Stamina, Statuses, type PlayerData, type SkillObjectData,
+  Body, Fighter, Health, Player, SkillObject, Skilled, Stamina, Statuses, type SkillObjectData, type SkilledData,
 } from "../../components.js";
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, skillDamage } from "../../stats.js";
 import type { FightContext } from "../context.js";
+import { cantCast, interrupt } from "./skilled.js";
 import { heal } from "./statuses.js";
 import { foesNear, strike } from "./strike.js";
 
@@ -30,20 +31,25 @@ export function skillSystem(ctx: FightContext): System {
     for (const event of ctx.events.slice()) {
       if (event.type === "hit" && event.weapon && event.team === "enemy") imbueHit(ctx, event.by, event.target);
     }
-    for (const [e, player, stamina, body] of world.query(Player, Stamina, Body)) {
+    for (const [e, player] of world.query(Player)) {
       const { writing } = player;
-      if (player.action === "write" && writing && stepsOf(player.actionTime) >= stepsOf(SAVE_IN_FIGHT_TIME)) {
-        player.book = player.book.map((page, i) => (i === writing.page ? writing.skill : page));
-        const back = world.require(e, PlayerInput).chant ? "chant" : "bag";
-        Object.assign(player, { action: back, actionTime: 0, writing: null });
-        ctx.events.push({ type: "pageWritten", player: e, page: writing.page });
+      if (player.action !== "write" || !writing || stepsOf(player.actionTime) < stepsOf(SAVE_IN_FIGHT_TIME)) continue;
+      player.book = player.book.map((page, i) => (i === writing.page ? writing.skill : page));
+      const back = world.require(e, PlayerInput).chant ? "chant" : "bag";
+      Object.assign(player, { action: back, actionTime: 0, writing: null });
+      ctx.events.push({ type: "pageWritten", player: e, page: writing.page });
+    }
+    for (const [e, skilled, body] of world.query(Skilled, Body)) {
+      if (cantCast(world, e)) interrupt(skilled);
+      const skill = skilled.casting;
+      if (!skill || stepsOf(skilled.castTime) < stepsOf(releaseTime(skill))) continue;
+      skilled.casting = null;
+      const player = world.get(e, Player), stamina = world.get(e, Stamina);
+      if (player) player.action = "none";
+      if (stamina) {
+        stamina.value = Math.max(0, stamina.value - skillCost(skill));
+        stamina.regenDelay = PLAYER.staminaRegenDelay;
       }
-      const skill = player.casting;
-      if (player.action !== "cast" || !skill || stepsOf(player.actionTime) < stepsOf(releaseTime(skill))) continue;
-      player.action = "none";
-      player.casting = null;
-      stamina.value = Math.max(0, stamina.value - skillCost(skill));
-      stamina.regenDelay = PLAYER.staminaRegenDelay;
       release(ctx, e, skill, 0, { ...body.pos }, null, null);
     }
     for (const [e, o] of world.query(SkillObject)) {
@@ -95,17 +101,17 @@ function release(
   const segment = skill.segments[index];
   const { world, events } = ctx;
   if (!segment || world.require(caster, Health).hp <= 0) return;
-  const input = world.require(caster, PlayerInput);
+  const skilled = world.require(caster, Skilled);
   // A zero direction is a directionless segment's, kept through a Delay: the caster's aim as it fires.
-  const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : { x: input.aimX, z: input.aimZ };
+  const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : { ...skilled.aim };
   const shot = shotOf(segment);
   const base = { caster, skill, segment: index, pos: from, dir: aim, ignore };
   switch (segment.form) {
     case "bolt": {
       const count = Math.min(shot.bolts, MAX_LIVE_SHOTS - liveShots(world));
-      const lock = input.locked === null ? undefined : ctx.enemies[input.locked];
+      const lock = skilled.target;
       const target = shot.followTurnRadPerSec === 0 ? null
-        : lock !== undefined && lock !== ignore && world.require(lock, Health).hp > 0 ? lock
+        : lock !== null && lock !== ignore && world.require(lock, Health).hp > 0 ? lock
         : foesNear(world, caster, from, Infinity, ignore ?? undefined)[0] ?? null;
       if (count === 1) {
         spawn(ctx, { ...base, kind: "bolt", target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM });
@@ -115,7 +121,7 @@ function release(
         SKILL_EFFECTS.bolt.followGapRadii * shot.boltRadiusM, SKILL_EFFECTS.bolt.followRowMaxM / Math.max(1, count - 1),
       );
       const wallM = ctx.arena.radius - shot.boltRadiusM;
-      for (const bolt of splitBolts(world.require(caster, Player), from, aim, count, wallM)) {
+      for (const bolt of splitBolts(skilled, from, aim, count, wallM)) {
         const side = bolt.slot - (count - 1) / 2;
         spawn(ctx, {
           ...base, kind: "bolt", pos: bolt.pos, dir: bolt.dir, climbPerM: bolt.climbPerM, climbUntilM: bolt.climbUntilM,
@@ -126,13 +132,17 @@ function release(
       return;
     }
     case "beam": {
-      const player = index === 0 ? world.get(caster, Player) : undefined;
+      const streams = index === 0;
       const beam = spawn(ctx, {
-        ...base, kind: "beam", held: player?.castHeld ?? false,
-        left: SKILL_EFFECTS.beam.time * shot.longerFactor, tickLeft: 0,
+        ...base, kind: "beam", held: streams && skilled.held, left: SKILL_EFFECTS.beam.time * shot.longerFactor,
+        tickLeft: 0,
       });
       if (!beam) return;
-      if (player) Object.assign(player, { action: "beam", actionTime: 0 });
+      if (streams) {
+        skilled.beaming = true;
+        const player = world.get(caster, Player);
+        if (player) Object.assign(player, { action: "beam", actionTime: 0 });
+      }
       tickBeam(ctx, beam);
       return;
     }
@@ -174,11 +184,11 @@ function release(
 interface SplitBolt { pos: Vec3; dir: Vec2; climbPerM: number; climbUntilM: number; slot: number }
 interface Spot { side: number; up: number }
 
-function splitBolts(player: PlayerData, from: Vec3, aim: Vec2, count: number, wallM: number): SplitBolt[] {
+function splitBolts(skilled: SkilledData, from: Vec3, aim: Vec2, count: number, wallM: number): SplitBolt[] {
   const B = SKILL_EFFECTS.bolt;
   const roll = (): number => {
-    const [value, next] = nextRandom(player.rng);
-    player.rng = next;
+    const [value, next] = nextRandom(skilled.rng);
+    skilled.rng = next;
     return value;
   };
   const inDisc = (radiusM: number): Spot => {
@@ -257,17 +267,17 @@ function toWall(ctx: FightContext, pos: Vec3, dir: Vec2): number {
 function stream(ctx: FightContext, e: Entity, o: SkillObjectData, dt: number): void {
   const { world } = ctx;
   const segment = o.skill.segments[o.segment]!;
-  const player = o.segment === 0 ? world.get(o.caster, Player) : undefined;
-  if (player) {
-    if (player.action !== "beam") {
+  const skilled = o.segment === 0 ? world.require(o.caster, Skilled) : undefined;
+  if (skilled) {
+    if (!skilled.beaming) {
       world.destroy(e);
       return;
     }
-    const input = world.require(o.caster, PlayerInput), stamina = world.require(o.caster, Stamina);
+    const stamina = world.get(o.caster, Stamina);
     Object.assign(o.pos, world.require(o.caster, Body).pos);
-    o.dir = { x: input.aimX, z: input.aimZ };
-    if (o.held && (!player.castHeld || stamina.value <= 0)) o.held = false;
-    if (o.held) {
+    o.dir = { ...skilled.aim };
+    if (o.held && (!skilled.held || (stamina && stamina.value <= 0))) o.held = false;
+    if (o.held && stamina) {
       const words = SKILL.cost.form + segment.elements.length * SKILL.cost.element
         + segment.modifiers.length * SKILL.cost.modifier;
       stamina.value = Math.max(0, stamina.value - words * SKILL_EFFECTS.beam.heldCostFactor * dt);
@@ -279,7 +289,11 @@ function stream(ctx: FightContext, e: Entity, o: SkillObjectData, dt: number): v
   const hits = tickBeam(ctx, o);
   if (o.left > EPS) return;
   world.destroy(e);
-  if (player) player.action = "none";
+  if (skilled) {
+    skilled.beaming = false;
+    const player = world.get(o.caster, Player);
+    if (player) player.action = "none";
+  }
   const end = { x: o.pos.x + o.dir.x * o.reachM, y: o.pos.y, z: o.pos.z + o.dir.z * o.reachM };
   handOff(ctx, o.caster, o.skill, o.segment, end, o.dir, hits.at(-1) ?? null);
 }
