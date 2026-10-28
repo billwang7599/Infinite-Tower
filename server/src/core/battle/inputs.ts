@@ -72,7 +72,7 @@ export class InputTimeline {
     const input = {
       ...base, jump: this.held.jump || pressed.jump, attack: this.held.attack ?? pressed.attack,
       dodge: this.held.dodge || pressed.dodge, block: this.held.block || pressed.block,
-      cast: this.held.cast ?? pressed.cast,
+      cast: this.held.cast ?? pressed.cast, castHeld: this.held.castHeld,
     };
     if (this.known(step)) {
       this.guessed = 0;

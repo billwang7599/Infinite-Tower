@@ -66,7 +66,8 @@ describe("a Beam", () => {
     const stamina = fight.world.require(me(fight), Stamina);
     const before = stamina.value;
     const holdSeconds = 1.5;
-    run(fight, castTime(BEAM_WATER) + holdSeconds, () => input({ cast: BEAM_WATER }));
+    const holding = (step: number) => input(step === 0 ? { cast: BEAM_WATER } : { castHeld: true });
+    run(fight, castTime(BEAM_WATER) + holdSeconds, holding);
     assert.equal(fight.world.require(me(fight), Player).action, "beam");
     const perSecond = (SPELL.cost.form + SPELL.cost.element) * MAGIC.beam.heldCostFactor;
     assert.ok(Math.abs(before - stamina.value - spellCost(BEAM_WATER) - perSecond * holdSeconds) < perSecond * 0.1);

@@ -55,6 +55,13 @@ describe("spellProblems", () => {
     assert.deepEqual(spellProblems(spell(segment("bolt", [], ["amplify", "amplify", "amplify"])), ALL), []);
   });
 
+  test("no caps: any number of augments or segments is a spell", () => {
+    const splits = Array.from({ length: 40 }, () => "split" as const);
+    assert.deepEqual(spellProblems(spell(segment("bolt", [], splits)), ALL), []);
+    const chain = Array.from({ length: 100 }, () => segment("nova")) as [Segment, ...Segment[]];
+    assert.deepEqual(spellProblems(spell(...chain), ALL), []);
+  });
+
   test("an augment that doesn't fit its Form is rejected", () => {
     assert.deepEqual(spellProblems(spell(segment("nova", [], ["split", "widen"])), ALL), [
       { segment: 0, word: "split", at: 0, why: "doesnt-fit" },
@@ -124,6 +131,12 @@ describe("spellCost", () => {
     const words = cost.form + cost.element;
     assert.equal(spellCost(spell(one, one)), 2 * words * SPELL.chainGrowth);
     assert.equal(spellCost(spell(one, one, one)), 3 * words * SPELL.chainGrowth ** 2);
+  });
+
+  test("a chain too long to count costs Infinity, never NaN", () => {
+    const chain = Array.from({ length: 2000 }, () => segment("nova")) as [Segment, ...Segment[]];
+    assert.equal(spellCost(spell(...chain)), Infinity);
+    assert.equal(spellCost(spell(...chain), 0.01), Infinity);
   });
 
   test("a scale makes every spell cheaper (for dev servers)", () => {

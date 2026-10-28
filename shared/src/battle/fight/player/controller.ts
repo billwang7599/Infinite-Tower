@@ -6,7 +6,7 @@ import { emptyCloth, moveGear } from "../../../items/gear.js";
 import {
   ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
 } from "../../components.js";
-import { augmentStrength, MAGIC } from "../../../spells/effects.js";
+import { MAGIC, shotOf } from "../../../spells/effects.js";
 import { sameSpell, spellCost, type Spell, type Spellbook } from "../../../spells/spell.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -55,8 +55,7 @@ function startAttack(world: World, e: Entity, player: PlayerData, input: PlayerI
     endCombo(player);
   }
   const imbue = imbueOf(world, e)?.[1];
-  const swift = imbue ? augmentStrength(imbue.spell.segments[imbue.segment]!.augments, "swift") : 0;
-  player.startup /= 1 + MAGIC.augments.swift * swift;
+  if (imbue) player.startup /= shotOf(imbue.spell.segments[imbue.segment]!).swiftFactor;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
   player.attack = attack;
 }
@@ -132,7 +131,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   const gearPressed = input.gear !== null && !player.gearHeld;
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
-  player.castHeld = input.cast !== null;
+  player.castHeld = input.cast !== null || input.castHeld;
   player.writeHeld = input.write !== null;
   player.gearHeld = input.gear !== null;
   if (!input.chant && !input.bag) player.brokenOff = false;

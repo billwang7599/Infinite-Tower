@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { blankSpellbook, CLOSE_CODES, emptyBag, starterEquipment } from "@infinite-tower/shared";
+import {
+  blankSpellbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, spellCost, starterEquipment, type Augment,
+  type Spell, type StepInput,
+} from "@infinite-tower/shared";
+import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
+import { PLAYER_STATS } from "../../src/core/content/player.js";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
 import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
@@ -156,6 +161,21 @@ describe("game sockets", () => {
   test("set a positive message size limit", () => {
     const { sockets } = setup();
     assert.ok(Number.isInteger(sockets.maxMessageBytes) && sockets.maxMessageBytes > 0);
+  });
+
+  test("take a frame of inputs holding the longest Beam a full stamina bar pays for, in one message", () => {
+    const { sockets } = setup();
+    const beam = (augments: Augment[]): Spell => ({ segments: [{ form: "beam", elements: ["fire"], augments }] });
+    const augments: Augment[] = [];
+    while (spellCost(beam([...augments, "amplify"])) <= PLAYER_STATS.stamina) augments.push("amplify");
+    const inputs: StepInput[] = Array.from({ length: MAX_INPUTS_PER_MESSAGE }, (_, i) => ({
+      ...IDLE_INPUT, step: i + 1, aimX: Math.sin(i / 10), aimZ: Math.cos(i / 10),
+      cast: i === 0 ? beam(augments) : null, castHeld: i > 0,
+    }));
+    const raw = JSON.stringify({ t: "battleInput", upTo: MAX_INPUTS_PER_MESSAGE, inputs });
+    assert.ok(raw.length < sockets.maxMessageBytes, `${raw.length} bytes`);
+    const msg = parseClientMsg(raw);
+    assert.ok(msg?.t === "battleInput" && msg.inputs.every((input, i) => input.castHeld === i > 0));
   });
 });
 

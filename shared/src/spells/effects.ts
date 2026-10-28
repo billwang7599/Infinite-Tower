@@ -1,4 +1,4 @@
-import type { Augment } from "./spell.js";
+import type { Segment } from "./spell.js";
 
 // Damages and heals are shares of D, a spell's base damage after intellect (spellDamage). All placeholders.
 export const REACTIONS = ["conduct", "doused", "fanned", "eclipse"] as const;
@@ -14,15 +14,19 @@ export const MAGIC = {
   damage: 10,
   castMoveFactor: 0.4,
   plain: { damage: 0.6 },
-  bolt: { speedMps: 20, rangeM: 16, radiusM: 0.3, splitShare: 0.5, splitSpreadRad: 0.25 },
+  bolt: {
+    speedMps: 20, rangeM: 16, radiusM: 0.3,
+    splitDamageFactor: 0.9, splitRadiusFactor: 0.8, splitSpreadRad: 0.35, splitFanMaxRad: 2.4,
+    splitGapRadii: 2, splitRowMaxM: 6,
+  },
   // Held, a Beam pays its own words' cost times heldCostFactor a second.
   beam: { rangeM: 10, radiusM: 0.35, time: 1, tickTime: 0.5, tickShare: 0.5, heldCostFactor: 2 },
   nova: { radius: 3 },
   cloud: { time: 8, tickTime: 1, tickShare: 0.4 },
   imbue: { hits: 3, time: 8, share: 0.5 },
-  // Each is per unit of augmentStrength: Amplify +50% damage, Extend +100% time, Split +2 Bolts, ...
+  // Per augment word: Amplify +50% damage, Extend +100% time, Delay +1 s, Pierce +2 enemies, ...
   augments: {
-    amplify: 0.5, widen: 0.5, extend: 1, swift: 0.5, delayTime: 1, splitBolts: 2, pierceTargets: 2,
+    amplify: 0.5, widen: 0.5, extend: 1, swift: 0.5, delayTime: 1, pierceTargets: 2,
     followTurnRadPerSec: 8,
   },
   objects: { perPlayer: 12, perFight: 60 },
@@ -53,6 +57,47 @@ export const MAGIC = {
   },
 } as const;
 
-// Repeats give 100%, then 50%, then 25%, ...
-export const augmentStrength = (augments: readonly Augment[], augment: Augment): number =>
-  augments.filter((a) => a === augment).reduce((sum, _a, i) => sum + 0.5 ** i, 0);
+// A guard on the server's work, not a game rule: past it, new spell objects don't spawn.
+export const MAX_LIVE_SHOTS = 256;
+
+export interface Shot {
+  bolts: number;
+  boltRadiusM: number;
+  damageFactor: number;
+  widenFactor: number;
+  longerFactor: number;
+  /** 0: no cloud. */
+  cloudTime: number;
+  swiftFactor: number;
+  delayTime: number;
+  pierceTargets: number;
+  followTurnRadPerSec: number;
+}
+
+export function shotOf(segment: Segment): Shot {
+  const A = MAGIC.augments, B = MAGIC.bolt;
+  const shot: Shot = {
+    bolts: 1, boltRadiusM: B.radiusM, damageFactor: 1, widenFactor: 1, longerFactor: 1, cloudTime: 0,
+    swiftFactor: 1, delayTime: 0, pierceTargets: 0, followTurnRadPerSec: 0,
+  };
+  for (const augment of segment.augments) {
+    switch (augment) {
+      case "amplify": shot.damageFactor *= 1 + A.amplify; break;
+      case "widen": shot.widenFactor *= 1 + A.widen; break;
+      case "extend":
+        shot.longerFactor *= 1 + A.extend;
+        shot.cloudTime = shot.cloudTime === 0 ? MAGIC.cloud.time : shot.cloudTime * (1 + A.extend);
+        break;
+      case "swift": shot.swiftFactor *= 1 + A.swift; break;
+      case "delay": shot.delayTime += A.delayTime; break;
+      case "pierce": shot.pierceTargets += A.pierceTargets; break;
+      case "follow": shot.followTurnRadPerSec += A.followTurnRadPerSec; break;
+      case "split":
+        shot.bolts *= 2;
+        shot.boltRadiusM *= B.splitRadiusFactor;
+        shot.damageFactor *= B.splitDamageFactor;
+        break;
+    }
+  }
+  return shot;
+}

@@ -65,7 +65,7 @@ export function createObjectDrawings(
       case "bolt":
         if (elements.includes("earth")) d.meshes.push(shaders.rock());
         else d.meshes.push(shaders.take("sphere", "flow", look), shaders.take("sphere", "flow", look));
-        stream(120, 0.15);
+        stream(120 * o.reachM / MAGIC.bolt.radiusM, o.reachM / 2);
         break;
       case "beam":
         d.meshes.push(
@@ -107,7 +107,7 @@ export function createObjectDrawings(
         const [a, b] = d.meshes;
         let at: Vec3 = o.pos;
         if (o.kind === "bolt") {
-          const rM = MAGIC.bolt.radiusM;
+          const rM = o.reachM;
           if (b) {
             a!.scaling.set(rM, rM, rM * 2.4);
             a!.rotation.y = Math.atan2(o.dir.x, o.dir.z);
