@@ -1,4 +1,4 @@
-/** Procedural textures, drawn in code. Those of one level theme live with its renderer (overworld/levels/). */
+/** Procedural textures, drawn in code. Those of one level theme live with its renderer (modes/overworld/levels/). */
 import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 
