@@ -548,9 +548,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / parried / death), lunge.ts, charge.ts, weapon.ts (seeded chains of
                        swings with the weapon in hand, the Kobold's), skill.ts (casting: a quick-cast up close, a
-                       chant a word at a time from farther, seeded extra modifiers, stamina like a player's; the
-                       warlock's), sidestep.ts (stepping aside from a Bolt winding up at it), common.ts (enter, roll:
-                       the enemy's seeded random numbers)
+                       chant a word at a time from farther, backing away while it chants if kept away, seeded
+                       extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
+                       a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live, its blade
                        resting after a gap; startSwing, endSwing, restBlade; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,

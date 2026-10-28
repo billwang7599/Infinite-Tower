@@ -8,8 +8,8 @@
  */
 import type { System, World } from "../../../core/ecs.js";
 import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
-import { Body, Enemy, Health, Player } from "../../components.js";
-import { FighterStats, moveSpeed } from "../../stats.js";
+import { Body, Enemy, Health, Player, type EnemyData } from "../../components.js";
+import { FighterStats, moveSpeed, type Stats } from "../../stats.js";
 import { PARRY } from "../../../weapons/weapons.js";
 import { enter } from "./common.js";
 
@@ -30,6 +30,14 @@ function targetFor(world: World, from: Vec3): { pos: Vec3; alive: boolean } | nu
     }
   }
   return best;
+}
+
+/** Slower near where it stops, and while still turning to face the target; backing away is negative. */
+export function approachSpeed(enemy: EnemyData, stats: Stats): number {
+  const def = enemy.def, sense = enemy.sense, keep = def.keepAway;
+  const speed = moveSpeed(def.walkSpeed, stats) * Math.max(0, sense.facingDot);
+  return keep && sense.dist < keep.nearM ? -speed * clamp(keep.nearM - sense.dist, 0, 1)
+    : speed * clamp(sense.dist - (keep?.farM ?? STOP_DIST), 0, 1);
 }
 
 export function enemyBrainSystem(): System {
@@ -66,10 +74,7 @@ export function enemyBrainSystem(): System {
         case "approach": {
           if (!sense.targetAlive) break;
           enemy.yaw = turnToward(enemy.yaw, sense.toYaw, def.turnRate * dt);
-          const speed = moveSpeed(def.walkSpeed, stats) * Math.max(0, sense.facingDot), keep = def.keepAway;
-          // Slow down near where it stops, and while still turning to face the target; backing away is negative.
-          move.speed = keep && sense.dist < keep.nearM ? -speed * clamp(keep.nearM - sense.dist, 0, 1)
-            : speed * clamp(sense.dist - (keep?.farM ?? STOP_DIST), 0, 1);
+          move.speed = approachSpeed(enemy, stats);
           break;
         }
         case "stunned":
