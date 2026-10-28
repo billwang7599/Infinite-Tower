@@ -2,7 +2,7 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
-import type { AttackKind } from "../weapons/weapons.js";
+import type { AttackKind, Blade } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
@@ -76,21 +76,20 @@ export interface SwingData {
   liveUntil: number;
   letGoAt: number;
   endAt: number;
-  /** At strength 10. */
   damage: number;
   knockback: number;
   lift: number;
   poiseDamage: number;
+  momentum: number;
+  flow: number;
 }
 
 export interface WielderData {
   hands: Record<Hand, ItemId | null>;
   armReachM: number;
   swing: SwingData | null;
-  /** The last swing of the chain going on (null: none), the seconds it lives on after an attack, its momentum. */
-  combo: AttackKind | null;
-  comboTime: number;
-  momentum: number;
+  blade: Blade;
+  restTime: number;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
 
@@ -178,6 +177,8 @@ export interface ActiveHitData {
   knockback: number;
   lift: number;
   poiseDamage: number;
+  /** Against the starter sword's; 0 for a body blow. */
+  momentum: number;
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");

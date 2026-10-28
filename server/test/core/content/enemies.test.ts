@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, Player, PLAYER,
+  blankSkillbook, Body, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, SWING, Player, PLAYER,
   reverseOf, starterEquipment, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -12,7 +12,7 @@ import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"];
-const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
+const LIVE_AFTER = liveStep(SWING.openingTime);
 
 const newFight = (seed: number, def: EnemyDef = KOBOLD) => new Fight({
   arena: { radius: 16 },

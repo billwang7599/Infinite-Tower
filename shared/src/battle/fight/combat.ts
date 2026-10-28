@@ -5,17 +5,19 @@
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import { isSwing, PARRY, reverseOf, type AttackKind, type HitShape } from "../../weapons/weapons.js";
+import {
+  isSwing, PARRY, planSwing, restingBlade, reverseOf, weaponIn, type AttackKind, type HitShape,
+} from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Stamina, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type PlayerData, type SkilledData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
-import { FighterStats, physicalDamage } from "../stats.js";
+import { FighterStats } from "../stats.js";
 import type { FightEvent } from "./context.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
-import { endChain, endSwing } from "./weapons/swing.js";
+import { endSwing, restBlade } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
@@ -24,28 +26,30 @@ const MIN_ANGLE_CHECK_DIST = 0.3;
 const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
 
-/** An arc unless it says otherwise; knockback, lift and poise damage default to 0. */
+/** An arc unless it says otherwise; knockback, lift, poise damage and momentum default to 0. */
 export interface HitSpec extends Partial<Pick<HitShape, "shape" | "width">> {
   range: number;
   minDot: number;
-  /** At strength 10. */
   damage: number;
   knockback?: number;
   lift?: number;
   poiseDamage?: number;
+  momentum?: number;
   /** A weapon's swing or stab; a body blow (the default) can't be parried. */
   attack?: AttackKind | null;
 }
 
-/** Make an attack's hitbox live on `e`, aimed along (dirX, dirZ), scaled by `e`'s strength. */
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
   world.add(e, ActiveHit, {
     shape: attack.shape ?? "arc", dirX, dirZ, range: attack.range, minDot: attack.minDot, width: attack.width ?? 0,
-    damage: physicalDamage(attack.damage, world.require(e, FighterStats)),
-    knockback: attack.knockback ?? 0, lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0,
-    attack: attack.attack ?? null, alreadyHit: new Set(),
+    damage: attack.damage, knockback: attack.knockback ?? 0, lift: attack.lift ?? 0,
+    poiseDamage: attack.poiseDamage ?? 0, momentum: attack.momentum ?? 0, attack: attack.attack ?? null,
+    alreadyHit: new Set(),
   });
 }
+
+const stunFor = (time: number, parrierMomentum: number, hit: ActiveHitData): number =>
+  time * clamp(parrierMomentum / hit.momentum, PARRY.minStunScale, PARRY.maxStunScale);
 
 /** Whether a target at `to`, `radius` round, is in `hit`'s shape from `from`. */
 function inShape(hit: ActiveHitData, from: Vec3, to: Vec3, radius: number): boolean {
@@ -123,7 +127,7 @@ function hitPlayer(
   const health = world.require(target, Health), stamina = world.require(target, Stamina);
 
   if (parries(world, attacker, hit, target)) {
-    parryEnemy(world, attacker, body.pos);
+    parryEnemy(world, attacker, body.pos, stunFor(PARRY.stunTime, world.require(target, Wielder).swing!.momentum, hit));
     events.push({ type: "parry", by: target, target: attacker });
     return "parried";
   }
@@ -131,7 +135,8 @@ function hitPlayer(
   const dir = { x: hit.dirX, z: hit.dirZ };
   const damage = hit.damage * damageDealtFactor(world, attacker);
   if (player.action === "block" && faces(body.pos, player.actionDir, from, PLAYER.block.minDot)) {
-    const block = PLAYER.block, cost = damage * block.staminaPerDamage;
+    const block = PLAYER.block;
+    const cost = hit.attack === null ? damage * block.staminaPerDamage : hit.momentum * block.staminaPerMomentum;
     const guardBreak = stamina.value < cost;
     stamina.value = Math.max(0, stamina.value - cost);
     stamina.regenDelay = PLAYER.staminaRegenDelay;
@@ -158,7 +163,7 @@ function hitPlayer(
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag"].includes(player.action)) {
     breakOff(player, world.require(target, Skilled));
   }
-  endChain(world.require(target, Wielder));
+  restBlade(world.require(target, Wielder));
   siphon(world, attacker, dealt);
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
   return "landed";
@@ -171,15 +176,14 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
   player.writing = null;
 }
 
-/** The enemy `e`'s swing was parried by a player at `by`: stunned, knocked back, its chain cut short. */
-function parryEnemy(world: World, e: Entity, by: Vec3): void {
+function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number): void {
   const enemy = world.require(e, Enemy), body = world.require(e, Body);
-  Object.assign(enemy, { state: "parried", stateTime: 0, duration: PARRY.stunTime });
+  Object.assign(enemy, { state: "parried", stateTime: 0, duration: stunTime });
   endSwing(world, e);
   // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
   knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
   const attack = world.get(e, WeaponAttack);
-  if (attack) attack.cooldown = Math.max(attack.cooldown, PARRY.stunTime + attack.def.cooldown);
+  if (attack) attack.cooldown = Math.max(attack.cooldown, stunTime + attack.def.cooldown);
 }
 
 /** A hit reaching an enemy: one on guard with a weapon parries a swing (blocks a stab); anything else lands. */
@@ -198,10 +202,15 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
     if (guard.parryCooldown <= 0 && player) {
       guard.parryCooldown = guard.def.parryCooldown;
       player.action = "stagger";
-      world.require(attacker, Health).hitstun = PARRY.playerStaggerTime;
+      // On guard, its blade isn't swinging: it meets the hit with what an opening swing of its own would carry.
+      const weapon = weaponIn(world.require(target, Wielder).hands);
+      const strength = world.require(target, FighterStats).strength;
+      const guardMomentum = weapon ? planSwing(weapon, strength, restingBlade(), reverseOf(hit.attack)).momentum
+        : hit.momentum;
+      world.require(attacker, Health).hitstun = stunFor(PARRY.playerStaggerTime, guardMomentum, hit);
       endSwing(world, attacker);
       knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed);
-      endChain(world.require(attacker, Wielder));
+      restBlade(world.require(attacker, Wielder));
       events.push({ type: "parry", by: target, target: attacker });
       return "parried";
     }

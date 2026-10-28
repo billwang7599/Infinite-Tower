@@ -23,9 +23,9 @@ export interface KoboldPose {
   arrowRad: number | null;
 }
 
-/** `k`: the share of the state's duration gone; `active`: the swing's live time (s). */
+/** `k`: the share of the state's duration gone (in "weapon", of the swing's live time). */
 export function koboldPose(
-  state: EnemyState, t: number, k: number, attack: AttackKind, active: number, motion: WeaponMotion,
+  state: EnemyState, t: number, k: number, attack: AttackKind, motion: WeaponMotion,
 ): KoboldPose {
   const p: KoboldPose = {
     ...motion.guard, bladeExact: state === "weapon", lean: 0, roll: 0,
@@ -40,7 +40,7 @@ export function koboldPose(
       p.arrowRad = motion.tellArrowRad(attack);
       break;
     case "weapon":
-      Object.assign(p, motion.live(attack, Math.min(1, t / Math.max(0.01, active))));
+      Object.assign(p, motion.live(attack, k));
       p.lean = 0.15;
       break;
     case "weaponRecover":

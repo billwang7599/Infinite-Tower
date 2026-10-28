@@ -11,12 +11,14 @@ import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skill
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
-import { CHAIN, isSwing, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
+import {
+  isSwing, liveStep, planSwing, stepsUntil, SWING, weaponIn, type AttackKind, type Weapon,
+} from "../../../weapons/weapons.js";
 import { breakOff } from "../combat.js";
 import { imbueOf } from "../skills/cast.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { statusMoveFactor } from "../skills/statuses.js";
-import { bladeLive, chainedSwing, chainOn, endChain, endSwing, handsOf, startSwing } from "../weapons/swing.js";
+import { bladeLive, endSwing, handsOf, restBlade, startSwing } from "../weapons/swing.js";
 
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   endSwing(world, e);
@@ -36,16 +38,23 @@ function spend(stamina: StaminaData, cost: number): void {
 function startAttack(
   world: World, e: Entity, player: PlayerData, wielder: WielderData, weapon: Weapon, input: PlayerInputData,
   attack: AttackKind,
-): void {
-  const chained = wielder.combo !== null && (player.action === "attack" || wielder.comboTime > 0);
-  let { startup, power } = chainOn(wielder, weapon, attack, chained, PLAYER.stab.damageFactor);
-  const imbue = imbueOf(world, e)?.[1];
-  if (imbue) startup /= shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor;
+): number {
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
+  const plan = planSwing(weapon, world.require(e, FighterStats).strength, wielder.blade, attack);
+  wielder.blade = plan.blade;
+  const imbue = imbueOf(world, e)?.[1];
+  const windup = plan.windupTime / (imbue ? shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor : 1);
+  const activeTime = SWING.activeTime * plan.timeFactor, liveAt = liveStep(windup);
   const move = isSwing(attack) ? PLAYER.swing : PLAYER.stab;
-  startSwing(world, e, chainedSwing(attack, { x: input.aimX, z: input.aimZ }, startup, {
-    damage: weapon.damage * power, knockback: 0, lift: 0, poiseDamage: move.poiseDamage,
-  }));
+  const power = isSwing(attack) ? 1 : PLAYER.stab.damageFactor;
+  startSwing(world, e, {
+    attack, dir: { x: input.aimX, z: input.aimZ }, liveAt, liveUntil: liveAt + liveStep(activeTime),
+    letGoAt: stepsUntil(windup + activeTime),
+    endAt: stepsUntil(windup + activeTime + SWING.recoverTime * plan.timeFactor),
+    damage: weapon.damage * power * plan.momentum, knockback: 0, lift: 0,
+    poiseDamage: move.poiseDamage * plan.momentum, momentum: plan.momentum, flow: plan.flow,
+  });
+  return move.cost * plan.effort;
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
@@ -127,10 +136,6 @@ function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly En
   skilled.aim = { x: input.aimX, z: input.aimZ };
   skilled.target = input.locked === null ? null : enemies[input.locked] ?? null;
   if (!input.chant && !input.bag) player.brokenOff = false;
-  if (player.action !== "attack" && wielder.comboTime > 0) {
-    wielder.comboTime -= dt;
-    if (wielder.comboTime <= 0) endChain(wielder);
-  }
 
   if (!alive || health.hitstun > 0) {
     // Knocked back, staggered or dead: no control, slide to a stop on the ground.
@@ -168,13 +173,13 @@ function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly En
       startAction(world, e, player, "dodge", dx, dz);
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
-      endChain(wielder);
+      restBlade(wielder);
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
       && stamina.value >= skillCost(queuedCast)) {
       startCast(world, e, queuedCast);
       startAction(world, e, player, "cast", input.aimX, input.aimZ);
       player.castBuffer = 0;
-      endChain(wielder);
+      restBlade(wielder);
     } else if (skillbook && (player.action === "chant" || inBag) && writePressed && write
       && write.page < player.book.length) {
       player.action = "write";
@@ -186,17 +191,16 @@ function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly En
       player.writing = null;
     } else if (free && input.chant && !player.brokenOff) {
       startAction(world, e, player, "chant", input.aimX, input.aimZ);
-      endChain(wielder);
+      restBlade(wielder);
     } else if (free && input.bag && !player.brokenOff) {
       startAction(world, e, player, "bag", input.aimX, input.aimZ);
-      endChain(wielder);
+      restBlade(wielder);
     } else if (free && weapon && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
-      startAttack(world, e, player, wielder, weapon, input, player.queued);
-      spend(stamina, isSwing(player.queued) ? PLAYER.swing.cost : PLAYER.stab.cost);
+      spend(stamina, startAttack(world, e, player, wielder, weapon, input, player.queued));
       player.attackBuffer = 0;
     } else if (player.action === "none" && weapon && input.block && player.grounded) {
       startAction(world, e, player, "block", input.aimX, input.aimZ);
-      endChain(wielder);
+      restBlade(wielder);
     }
 
     const t = player.actionTime, dir = player.actionDir;
@@ -209,10 +213,7 @@ function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly En
           v.x = dir.x * move.lungeSpeed;
           v.z = dir.z * move.lungeSpeed;
         } else shuffle(input, v, dt, walkSpeed * PLAYER.swing.moveFactor);
-        if (swing.step >= swing.endAt) {
-          player.action = "none";
-          if (wielder.combo !== null) wielder.comboTime = CHAIN.gapTime;
-        }
+        if (swing.step >= swing.endAt) player.action = "none";
         break;
       }
       case "block":

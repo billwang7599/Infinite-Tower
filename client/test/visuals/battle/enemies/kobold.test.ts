@@ -4,9 +4,8 @@ import type { AttackKind, EnemyState } from "@infinite-tower/shared";
 import { koboldPose } from "../../../../src/visuals/battle/enemies/kobold/pose.js";
 import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
 
-const ACTIVE = 0.12;
 const poseOf = (state: EnemyState, t: number, k: number, attack: AttackKind) =>
-  koboldPose(state, t, k, attack, ACTIVE, MOTIONS.sword);
+  koboldPose(state, t, k, attack, MOTIONS.sword);
 
 describe("the kobold's pose", () => {
   test("a swing's wind-up turns the blade to where the swing starts, and its arrow shows the way", () => {
@@ -23,7 +22,7 @@ describe("the kobold's pose", () => {
   });
 
   test("mid-swing the blade sweeps exactly through straight ahead; guard and recovery are eased into", () => {
-    const mid = poseOf("weapon", ACTIVE / 2, 0, "lr");
+    const mid = poseOf("weapon", 0.06, 0.5, "lr");
     assert.equal(mid.bladeExact, true);
     assert.ok(mid.blade.z > 0.9);
     assert.equal(poseOf("weaponRecover", 0, 0, "lr").bladeExact, false);

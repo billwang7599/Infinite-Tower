@@ -199,16 +199,21 @@ main.ts
   a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
   player facing it sees it.
 - **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
-  `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, and its length, damage and
-  speed), eight swings named by their way across the screen (`lr`: left to right) and a stab, their hit shapes
-  (`attackShape`: the wielder's own arm reach plus the weapon's length), how swings chain (`CHAIN`, `MOMENTUM`) and
-  `PARRY`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach,
-  the swing under way, its chain) swings the weapon in hand, and its hits deal that weapon's damage at the wielder's
-  strength: the player's controller and an enemy's weapon attack (`fight/enemies/weapon.ts`) only decide when and
-  what, and call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done,
-  lets go and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
-  while it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
-  Ending an action or an enemy state (`enter`) ends its swing (`endSwing`). A parry reads the target's swing.
+  `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, and its length, mass,
+  balance and power), eight swings named by their way across the screen (`lr`: left to right, `SCREEN_DIR`) and a
+  stab, their hit shapes (`attackShape`: the wielder's own arm reach plus the weapon's length), the swings' inertia
+  (`SWING`, `planSwing`) and `PARRY`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
+  hand holds, its arm reach, the swing under way, and its `Blade`: a point in the screen plane, where it is and how it
+  moves) swings the weapon in hand. `planSwing` works out an attack from the blade, the weapon and the wielder's
+  strength: its wind-up (the time the blade takes to get to the swing's start at its speed), the factor its live and
+  recover times scale by, its flow, its impact momentum (damage, poise damage, a block's cost, a parry's stun), its
+  effort (stamina) and where the blade ends up. The player's controller and an enemy's weapon attack
+  (`fight/enemies/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
+  call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done, lets go and
+  is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while it's live,
+  and brings the blade to rest `SWING.gapTime` after a swing ends. Ending an action or an enemy state (`enter`) ends its
+  swing (`endSwing`, which rests the blade if the swing hadn't let go yet); a block, a dodge or a hit taken rests it
+  too (`restBlade`). A parry reads the target's swing.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
   `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
@@ -393,7 +398,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **shared**: the ECS, math, walking, the view rules, every Zod schema, and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, each attack's reach and
-  shape, chaining (each kind's start) and momentum (built, capped, lost, spent by a stab), blocking (stamina, push back,
+  shape, the blade's inertia (each order's wind-up, flow, damage, poise and cost as `planSwing` says, coming to rest),
+  blocking (stamina by momentum, push back,
   only in front, the guard breaking), whole fights won and lost, the time limit and leaving, a fight's whole state
   (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
@@ -545,8 +551,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts
                        (stepping aside from a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded
                        random numbers)
-      weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live; startSwing,
-                       endSwing; chainOn / chainedSwing: a chain's next attack and its steps; handsOf)
+      weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live, its blade
+                       resting after a gap; startSwing, endSwing, restBlade; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -564,8 +570,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind; weaponIn, weaponItemIn;
-                   SWING_DIRS, ATTACK_KINDS, attackShape (arm reach + length); CHAIN and
-                   MOMENTUM: how swings chain; lettingGoAt, liveStep, stepsUntil; PARRY)
+                   SWING_DIRS, ATTACK_KINDS, SCREEN_DIR, attackShape (arm reach + length); SWING, Blade,
+                   planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -798,7 +804,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
         weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
-                         weapon kind: the trail's line, the stab's thrust, a 3D blade's way through a wind-up and a
+                         weapon kind: the trail's line and the stab's thrust (timed by the swing's live time), a 3D
+                         blade's way through a wind-up and a
                          swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite and a 3D
                          model's blade. No Babylon: tested
         enemies/         boar/, kobold/, goblin/: model.ts (built from primitives), pose.ts (where its parts head,
@@ -888,7 +895,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | What | Where |
 |---|---|
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, damage, speed); how swings chain, momentum, parrying | `shared/src/weapons/weapons.ts` |
+| Weapons: the arsenal (length, mass, balance, power); swing times, flow, the clamp; parrying | `shared/src/weapons/weapons.ts` (`WEAPONS`, `SWING`, `PARRY`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts | `server/src/core/content/enemies.ts` |

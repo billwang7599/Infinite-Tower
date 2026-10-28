@@ -2,14 +2,15 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Health, physicalDamage, Player, PLAYER, Stamina, WEAPONS, type EnemyDef, type PlayerInputData,
+  Body, Health, planSwing, Player, PLAYER, restingBlade, Stamina, WEAPONS, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, BOAR, enemy, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
 
 before(() => initPhysics());
 
-const SWORD_DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
+const SWORD_DAMAGE = WEAPONS.sword.damage;
+const BLOCK_COST = PLAYER.block.staminaPerMomentum;
 const STAB: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ moves: ["stab"] }) } };
 /** The boar's charge alone, from across the arena. */
 const CHARGER: EnemyDef = { ...BOAR, walkSpeed: 0, attacks: { charge: { ...BOAR.attacks.charge!, firstDelay: 0 } } };
@@ -46,10 +47,19 @@ describe("blocking", () => {
     const p = play(SWORDSMAN, 2, 0.9, holding);
     const { hp, stamina, player: state, health } = me(p);
     assert.equal(hp, PLAYER.maxHp - SWORD_DAMAGE * PLAYER.block.chipFraction);
-    assert.equal(stamina, STATS.stamina - SWORD_DAMAGE * PLAYER.block.staminaPerDamage);
+    assert.equal(stamina, STATS.stamina - BLOCK_COST);
     assert.equal(state.action, "block");
     assert.equal(health.hitstun, 0);
     assert.ok(p.events.some((e) => e.type === "block"));
+  });
+
+  test("a block costs by the blow's momentum: a stronger swordsman's costs more, whatever its blade's power", () => {
+    const strength = 20, momentum = planSwing(WEAPONS.sword, strength, restingBlade(), "lr").momentum;
+    const strong = me(play({ ...SWORDSMAN, stats: { ...SWORDSMAN.stats, strength } }, 2, 0.9, holding));
+    assert.ok(Math.abs(strong.stamina - (STATS.stamina - BLOCK_COST * momentum)) < 1e-9, `${strong.stamina}`);
+    const keen = me(play({ ...SWORDSMAN, wielder: { ...SWORDSMAN.wielder!, hands: { rightHand: "kobold-blade" } } },
+      2, 0.9, holding));
+    assert.equal(keen.stamina, STATS.stamina - BLOCK_COST);
   });
 
   test("a stab in front is stopped whole", () => {
@@ -75,14 +85,14 @@ describe("blocking", () => {
   });
 
   test("without the stamina to stop it, the guard breaks: the player is staggered, with none left", () => {
-    const p = play(SWORDSMAN, 2, 0.9, holding, SWORD_DAMAGE * PLAYER.block.staminaPerDamage / 2);
+    const p = play(SWORDSMAN, 2, 0.9, holding, BLOCK_COST / 2);
     const { stamina, player: state, health } = me(p);
     assert.equal(stamina, 0);
     assert.equal(state.action, "stagger");
     assert.ok(health.hitstun > 0);
     assert.ok(p.events.some((e) => e.type === "block" && e.guardBreak));
     const later = play(SWORDSMAN, 2, 0.9 + PLAYER.block.guardBreakTime + 0.1, (step) => (step < 50 ? holding() : {}),
-      SWORD_DAMAGE * PLAYER.block.staminaPerDamage / 2);
+      BLOCK_COST / 2);
     assert.equal(me(later).player.action, "none", "and gets over it");
   });
 

@@ -1,28 +1,19 @@
 import {
-  FIXED_DT, isSwing, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId, type WeaponKind,
+  isSwing, SCREEN_DIR, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId, type WeaponKind,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
 import { SWORD } from "../../gfx/look/sword.js";
 
-/** The trail starts this long before the swing's blade goes live, and shows this long in all (seconds). */
-const TRAIL_LEAD_TIME = 0.03;
-const TRAIL_DURATION = 0.2;
-/** The stab's thrust shows from a little before its blade goes live, out and back over this long (seconds). */
-const THRUST_DURATION = 0.16;
-
-/** Each swing's way across the screen as the player sees it (x right, y up), from behind them or facing a foe. */
-export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
-  lr: { x: 1, y: 0 }, rl: { x: -1, y: 0 }, tb: { x: 0, y: -1 }, bt: { x: 0, y: 1 },
-  tlbr: { x: Math.SQRT1_2, y: -Math.SQRT1_2 }, brtl: { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
-  trbl: { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }, bltr: { x: Math.SQRT1_2, y: Math.SQRT1_2 },
-};
+/** In shares of the swing's live time. */
+const TRAIL_LEAD = 0.3;
+const TRAIL_DURATION = 2;
+const THRUST_DURATION = 1.6;
 
 /** 0 winding up, 1 live, 2 following through. */
 export const swingFrame = (swing: SwingData): 0 | 1 | 2 =>
   swing.step < swing.liveAt ? 0 : swing.step < swing.liveUntil ? 1 : 2;
 
-/** Seconds since the blade went live (negative before). */
-const sinceLive = (swing: SwingData): number => (swing.step - swing.liveAt) * FIXED_DT;
+const throughLive = (swing: SwingData): number => (swing.step - swing.liveAt) / (swing.liveUntil - swing.liveAt);
 
 export interface TrailPose {
   /** The cut's line on screen, turned from flat (across): positive tips its right end up. */
@@ -46,7 +37,7 @@ function trailLine(dir: SwingDir): { rollRad: number; from: 1 | -1 } {
 
 function trailPose(swing: SwingData | null): TrailPose | null {
   if (!swing || !isSwing(swing.attack)) return null;
-  const progress = (sinceLive(swing) + TRAIL_LEAD_TIME) / TRAIL_DURATION;
+  const progress = (throughLive(swing) + TRAIL_LEAD) / TRAIL_DURATION;
   if (progress < 0 || progress >= 1) return null;
   return { ...trailLine(swing.attack), reach: Math.min(1, progress * 2.2), visibility: 1 - progress * progress };
 }
@@ -59,7 +50,7 @@ export interface ThrustPose {
 
 function thrustPose(swing: SwingData | null, stabRangeM: number): ThrustPose | null {
   if (!swing || isSwing(swing.attack)) return null;
-  const progress = (sinceLive(swing) + TRAIL_LEAD_TIME) / THRUST_DURATION;
+  const progress = (throughLive(swing) + TRAIL_LEAD) / THRUST_DURATION;
   if (progress < 0 || progress >= 1) return null;
   return { reachM: Math.min(1, progress * 3) * stabRangeM, visibility: 1 - progress * progress };
 }

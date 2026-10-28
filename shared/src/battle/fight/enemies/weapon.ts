@@ -1,8 +1,10 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
-import { stepsUntil, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
+import { FIXED_DT } from "../../../core/time.js";
+import { planSwing, stepsUntil, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData } from "../../components.js";
 import type { WeaponAttackDef } from "../../defs.js";
+import { FighterStats } from "../../stats.js";
 import { startSwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
 
@@ -21,13 +23,20 @@ function pick(enemy: EnemyData, attack: WeaponAttackData, last: AttackKind | nul
 }
 
 function windUp(
-  world: World, e: Entity, enemy: EnemyData, def: WeaponAttackDef, weapon: Weapon, attack: AttackKind, windup: number,
+  world: World, e: Entity, enemy: EnemyData, def: WeaponAttackDef, weapon: Weapon, attack: AttackKind,
+  telegraph: number,
 ): void {
-  enter(world, e, enemy, "weaponWindup", windup);
-  const liveAt = stepsUntil(windup), liveUntil = liveAt + stepsUntil(def.active);
+  enter(world, e, enemy, "weaponWindup");
+  const wielder = world.require(e, Wielder);
+  const plan = planSwing(weapon, world.require(e, FighterStats).strength, wielder.blade, attack);
+  wielder.blade = plan.blade;
+  const windup = Math.max(telegraph, plan.windupTime), active = def.active * plan.timeFactor;
+  enemy.duration = windup;
+  const liveAt = stepsUntil(windup), liveUntil = liveAt + stepsUntil(active);
   startSwing(world, e, {
     attack, dir: { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, liveAt, liveUntil, letGoAt: liveUntil,
-    endAt: liveUntil, damage: weapon.damage, knockback: def.knockback, lift: def.lift, poiseDamage: 0,
+    endAt: liveUntil, damage: weapon.damage * plan.momentum, knockback: def.knockback, lift: def.lift, poiseDamage: 0,
+    momentum: plan.momentum, flow: plan.flow,
   });
 }
 
@@ -52,7 +61,10 @@ export function weaponAttackSystem(): System {
           enemy.yaw = turnToward(enemy.yaw, sense.toYaw, WINDUP_TURN_RAD_PER_SEC * dt);
           swing.dir = { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) };
           // Not `enter`: that would end the swing going live.
-          if (swing.step >= swing.liveAt) Object.assign(enemy, { state: "weapon", stateTime: 0, duration: def.active });
+          if (swing.step >= swing.liveAt) {
+            const duration = (swing.liveUntil - swing.liveAt) * FIXED_DT;
+            Object.assign(enemy, { state: "weapon", stateTime: 0, duration });
+          }
           break;
         case "weapon":
           move.speed = def.speed; move.accel = STEP_ACCEL;
