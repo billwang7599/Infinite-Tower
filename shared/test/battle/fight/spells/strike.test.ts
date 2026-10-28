@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, dodgeCost, ELEMENTS, Enemy, Health, MAGIC, PLAYER, Stamina, STARTER_SWORD, Statuses, type EnemyDef,
+  Body, dodgeCost, ELEMENTS, Enemy, Health, MAGIC, PLAYER, Stamina, Statuses, WEAPONS, type EnemyDef,
   type SpellElement, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -291,7 +291,7 @@ describe("Self", () => {
       };
     };
     const plain = swing(null);
-    assert.ok(plain.dealt >= STARTER_SWORD.damage);
+    assert.ok(plain.dealt >= WEAPONS.sword.damage);
     close(swing("empowered").dealt, plain.dealt * SELF.fire.damageDealtFactor);
     close(swing("siphoning").healed, plain.dealt * SELF.darkness.healShare);
   });

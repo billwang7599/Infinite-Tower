@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSpellbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, lettingGoAt, liveStep, Player,
-  PLAYER, reverseOf, starterEquipment, SwordAttack, type EnemyDef, type PlayerInputData, type Spell,
+  blankSpellbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, Player, PLAYER,
+  reverseOf, starterEquipment, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Spell,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -26,25 +26,28 @@ const newFight = (seed: number, def: EnemyDef = KOBOLD) => new Fight({
  * the Kobold's lands), blocks its stabs, and swings back, left and right, only while it's open: recovering,
  * stunned or staggered.
  */
+const lastAttacks = new WeakMap<Fight, AttackKind>();
 function watchful(fight: Fight): PlayerInputData {
   const me = fight.world.require(fight.players[0]!, Player), at = fight.world.require(fight.players[0]!, Body).pos;
   const kobold = fight.world.require(fight.enemies[0]!, Enemy), it = fight.world.require(fight.enemies[0]!, Body).pos;
-  const sword = fight.world.require(fight.enemies[0]!, SwordAttack);
+  const mine = fight.world.require(fight.players[0]!, Wielder).swing;
+  const its = fight.world.require(fight.enemies[0]!, Wielder).swing;
+  if (mine) lastAttacks.set(fight, mine.attack);
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
   const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.3 ? 1 : dist < 1.5 ? -1 : 0;
   const input: PlayerInputData = {
     ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ,
   };
   const winding = kobold.state === "swordWindup" || kobold.state === "sword";
-  if (winding && !isSwing(sword.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };
-  if (kobold.state === "swordWindup" && isSwing(sword.attack)) {
+  if (winding && its && !isSwing(its.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };
+  if (kobold.state === "swordWindup" && its && isSwing(its.attack)) {
     const landsIn = Math.ceil((kobold.duration - kobold.stateTime) / FIXED_DT - 1e-6);
-    if (landsIn === LIVE_AFTER + 2) input.attack = reverseOf(sword.attack);
+    if (landsIn === LIVE_AFTER + 2) input.attack = reverseOf(its.attack);
     return input;
   }
   const open = kobold.state === "swordRecover" || kobold.state === "parried" || kobold.state === "staggered";
-  const free = me.action === "none" || (me.action === "attack" && me.actionTime >= lettingGoAt(me));
-  if (open && free && fight.steps % 2 === 0) input.attack = me.attack === "lr" ? "rl" : "lr";
+  const free = me.action === "none" || (mine !== null && mine.step >= mine.letGoAt);
+  if (open && free && fight.steps % 2 === 0) input.attack = (lastAttacks.get(fight) ?? "lr") === "lr" ? "rl" : "lr";
   return input;
 }
 

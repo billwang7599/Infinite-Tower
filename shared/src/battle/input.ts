@@ -2,7 +2,7 @@ import { defineComponent } from "../core/ecs.js";
 import { roundTo } from "../core/math.js";
 import type { Spot } from "../items/gear.js";
 import type { Spell } from "../spells/spell.js";
-import type { AttackKind } from "./sword.js";
+import type { AttackKind } from "../weapons/weapons.js";
 
 /** What an arena fighter does this step: from the keys in the browser, from `battleInput` on the server. */
 export interface PlayerInputData {

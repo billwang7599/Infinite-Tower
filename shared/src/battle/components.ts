@@ -2,9 +2,10 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SwordDef } from "./defs.js";
-import type { AttackKind } from "./sword.js";
+import type { AttackKind } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
+import type { ItemId } from "../items/items.js";
 import type { Reaction, Status } from "../spells/effects.js";
 import type { Spell, Spellbook } from "../spells/spell.js";
 import type { PageWrite } from "./input.js";
@@ -44,22 +45,39 @@ export interface PlayerData {
   actionTime: number;
   /** Direction of the current attack / dodge / block. */
   actionDir: Vec2;
-  /** The current (or last) attack, its start (seconds until its blade is live) and its damage multiplier. */
-  attack: AttackKind;
-  startup: number;
-  power: number;
-  /** The last swing of the chain going on (null: none), the seconds it lives on after an attack, its momentum. */
-  combo: AttackKind | null;
-  comboTime: number;
-  momentum: number;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
-  wields: { sword: Hand | null; spellbook: Hand | null };
   /** Its random numbers' seed (where its split Bolts start), kept in the fight so both sides roll the same. */
   rng: number;
 }
 export const Player = defineComponent<PlayerData>("Player");
+
+export interface SwingData {
+  attack: AttackKind;
+  dir: Vec2;
+  step: number;
+  /** Its blade is live from `liveAt` until `liveUntil`; from `letGoAt` another action may start; over at `endAt`. */
+  liveAt: number;
+  liveUntil: number;
+  letGoAt: number;
+  endAt: number;
+  /** At strength 10. */
+  damage: number;
+  knockback: number;
+  lift: number;
+  poiseDamage: number;
+}
+
+export interface WielderData {
+  hands: Record<Hand, ItemId | null>;
+  swing: SwingData | null;
+  /** The last swing of the chain going on (null: none), the seconds it lives on after an attack, its momentum. */
+  combo: AttackKind | null;
+  comboTime: number;
+  momentum: number;
+}
+export const Wielder = defineComponent<WielderData>("Wielder");
 
 export interface HealthData {
   hp: number;
@@ -206,8 +224,6 @@ export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
 /** A swordsman's chains of swings. */
 export interface SwordAttackData extends AttackState<SwordDef> {
-  /** The attack winding up, swinging or last swung. */
-  attack: AttackKind;
   /** Swings still to come in this chain after the current one. */
   swingsLeft: number;
   /** Seconds until it can parry again. */

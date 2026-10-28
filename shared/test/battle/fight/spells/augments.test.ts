@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, Health, MAGIC, MAX_LIVE_SHOTS, Player, shotOf, SpellObject, Statuses,
+  Body, CHAIN, Health, liveStep, MAGIC, MAX_LIVE_SHOTS, shotOf, SpellObject, Statuses, Wielder,
   type Augment, type Form, type SpellElement, type SpellObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -270,8 +270,9 @@ describe("Swift", () => {
     castNow(plain, one("imbue", ["fire"], []));
     castNow(swift, one("imbue", ["fire"], ["swift"]));
     for (const f of [plain, swift]) f.step([input({ attack: "lr" })]);
-    const startup = (f: Fight) => f.world.require(f.players[0]!, Player).startup;
-    close(startup(swift), startup(plain) / (1 + A.swift));
+    const liveAt = (f: Fight) => f.world.require(f.players[0]!, Wielder).swing?.liveAt;
+    assert.equal(liveAt(plain), liveStep(CHAIN.startupTime.opening));
+    assert.equal(liveAt(swift), liveStep(CHAIN.startupTime.opening / (1 + A.swift)));
   });
 });
 

@@ -1,7 +1,9 @@
 /** The swordsman's attacks: chains of two or three swings, picked by a random number generator kept in the fight. */
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Body, Enemy, FIXED_DT, Health, SWING_DIRS, SwordAttack, type AttackKind, type EnemyDef } from "@infinite-tower/shared";
+import {
+  Body, Enemy, FIXED_DT, Health, SWING_DIRS, Wielder, type AttackKind, type EnemyDef,
+} from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, IDLE, player, sword, SWORDSMAN } from "./fixtures.js";
 
@@ -37,7 +39,7 @@ function chains(seed: number, seconds = 30): Swing[][] {
     }
     if (now === "swordWindup") windupSteps++;
     if (now === "sword" && before !== "sword") {
-      out.at(-1)!.push({ attack: fight.world.require(fight.enemies[0]!, SwordAttack).attack, windupSteps });
+      out.at(-1)!.push({ attack: fight.world.require(fight.enemies[0]!, Wielder).swing!.attack, windupSteps });
     }
   }
   return out;

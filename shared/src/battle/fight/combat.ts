@@ -5,15 +5,16 @@
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
+import { isSwing, PARRY, reverseOf, type AttackKind, type HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, SwordAttack, type ActiveHitData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, SwordAttack, Wielder, type ActiveHitData,
   type PlayerData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
-import { isSwing, liveStep, PARRY, reverseOf, type AttackKind, type HitShape } from "../sword.js";
 import type { FightEvent } from "./context.js";
 import { damageDealtFactor, hurt, siphon } from "./spells/statuses.js";
+import { endChain, endSwing } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
@@ -43,13 +44,6 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
     knockback: attack.knockback ?? 0, lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0,
     attack: attack.attack ?? null, alreadyHit: new Set(),
   });
-}
-
-/** The chain is broken (a gap, a block, a dodge, a hit taken, being parried): its momentum is gone. */
-export function endCombo(player: PlayerData): void {
-  player.combo = null;
-  player.comboTime = 0;
-  player.momentum = 0;
 }
 
 /** Whether a target at `to`, `radius` round, is in `hit`'s shape from `from`. */
@@ -98,7 +92,7 @@ export function combatSystem(events: FightEvent[]): System {
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
-        if (targetHealth.invuln > 0 && !(player && parries(world, attacker, hit, target, player))) continue;
+        if (targetHealth.invuln > 0 && !(player && parries(world, attacker, hit, target))) continue;
 
         hit.alreadyHit.add(target);
         const resolved = player
@@ -110,13 +104,13 @@ export function combatSystem(events: FightEvent[]): System {
   };
 }
 
-function parries(world: World, attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData): boolean {
-  const swing = hit.attack !== null && isSwing(hit.attack) ? hit.attack : null;
-  if (!swing || player.action !== "attack" || player.attack !== reverseOf(swing)) return false;
+function parries(world: World, attacker: Entity, hit: ActiveHitData, target: Entity): boolean {
+  const own = world.get(target, Wielder)?.swing;
+  if (!own || hit.attack === null || !isSwing(hit.attack) || own.attack !== reverseOf(hit.attack)) return false;
   const at = world.require(target, Body).pos, from = world.require(attacker, Body).pos;
-  if (!faces(at, player.actionDir, from, PARRY.minDot)) return false;
-  // Steps since the player's blade went live (the controller ran this step: its clock is one step on).
-  const sinceLive = Math.round(player.actionTime / FIXED_DT) - 1 - liveStep(player.startup);
+  if (!faces(at, own.dir, from, PARRY.minDot)) return false;
+  // The weapon system ran this step: the swing's clock is one step on.
+  const sinceLive = own.step - 1 - own.liveAt;
   return sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT);
 }
 
@@ -127,7 +121,7 @@ function hitPlayer(
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health), stamina = world.require(target, Stamina);
 
-  if (parries(world, attacker, hit, target, player)) {
+  if (parries(world, attacker, hit, target)) {
     parryEnemy(world, attacker, body.pos);
     events.push({ type: "parry", by: target, target: attacker });
     return "parried";
@@ -163,7 +157,7 @@ function hitPlayer(
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag"].includes(player.action)) {
     breakOff(player);
   }
-  endCombo(player);
+  endChain(world.require(target, Wielder));
   siphon(world, attacker, dealt);
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, sword: hit.attack !== null });
   return "landed";
@@ -180,7 +174,7 @@ export function breakOff(player: PlayerData): void {
 function parryEnemy(world: World, e: Entity, by: Vec3): void {
   const enemy = world.require(e, Enemy), body = world.require(e, Body);
   Object.assign(enemy, { state: "parried", stateTime: 0, duration: PARRY.stunTime });
-  world.remove(e, ActiveHit);
+  endSwing(world, e);
   // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
   knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
   const sword = world.get(e, SwordAttack);
@@ -204,9 +198,9 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
       sword.parryCooldown = sword.def.parryCooldown;
       player.action = "stagger";
       world.require(attacker, Health).hitstun = PARRY.playerStaggerTime;
-      world.remove(attacker, ActiveHit);
+      endSwing(world, attacker);
       knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed);
-      endCombo(player);
+      endChain(world.require(attacker, Wielder));
       events.push({ type: "parry", by: target, target: attacker });
       return "parried";
     }

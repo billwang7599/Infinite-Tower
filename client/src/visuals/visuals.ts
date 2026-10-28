@@ -1,7 +1,7 @@
 import { Engine } from "@babylonjs/core";
 import {
-  Enemy, LocalPlayer, Player, SpellObject, type EnemyDef, type Entity, type Hand, type Look, type SpellObjectKind,
-  type World,
+  Enemy, heldIn, LocalPlayer, Player, SpellObject, Wielder, type EnemyDef, type Entity, type Hand, type Look,
+  type SpellObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
@@ -134,9 +134,9 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
     const look = from.look();
     if (look && look !== worn) playerLook.wear(worn = look);
     const fight = from.battle.fight;
-    const me = fight?.world.first(LocalPlayer, Player);
+    const me = fight?.world.first(LocalPlayer, Wielder);
     if (!fight || !me) return;
-    const hand = me[2].wields.sword;
+    const hand = heldIn(me[2].hands, "sword");
     if (fight === held?.fight && hand === held.hand) return;
     held = { fight, hand };
     playerLook.hold(hand);

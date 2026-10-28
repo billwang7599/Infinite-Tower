@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, dodgeCost, emptyBag, FIXED_DT, Player, PLAYER, Stamina, STARTER_SWORD, starterEquipment, startupTime,
-  type PlayerAction, type PlayerData, type PlayerInputData, type Vitals,
+  CHAIN, dodgeCost, emptyBag, Player, PLAYER, Stamina, starterEquipment, startupTime, stepsUntil,
+  WEAPONS, type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -16,12 +16,7 @@ type Script = (step: number) => PlayerInputData;
 const SWING_AT = 5;
 
 /** Steps from a swing's first step to the first one on which it lets another action start (once its blade is done). */
-const stepsUntil = (time: number): number => {
-  let t = 0, n = 0;
-  for (; t < time; n++) t += FIXED_DT;
-  return n;
-};
-const LOCKED_STEPS = stepsUntil(startupTime("opening", 0, STARTER_SWORD.speed) + CHAIN.activeTime);
+const LOCKED_STEPS = stepsUntil(startupTime("opening", 0, WEAPONS.sword.speed) + CHAIN.activeTime);
 /** The first step a dodge can start on after the swing at SWING_AT. */
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
@@ -133,7 +128,7 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
 });
 
 describe("what the player holds", () => {
-  const unarmed = ({ sword, spellbook }: PlayerData["wields"]) => new Fight({
+  const unarmed = ({ sword, spellbook }: Record<"sword" | "spellbook", Hand | null>) => new Fight({
     arena: ARENA,
     players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), equipment: {
       ...starterEquipment(), rightHand: null, leftHand: null,

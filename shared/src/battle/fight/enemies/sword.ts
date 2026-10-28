@@ -1,16 +1,9 @@
-/**
- * Sword attack (the Kobold Swordsman): close up and facing the target, a chain of swings or stabs picked by the
- * fight's seeded generator, so both sides pick the same (SwordDef says the rest). Parrying and blocking on guard
- * are in combat.ts.
- *
- *   approach ─▶ swordWindup ─▶ sword ─┬─▶ swordWindup (the chain goes on)
- *                                     └─▶ swordRecover ─▶ approach
- */
-import type { System } from "../../../core/ecs.js";
+import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
-import { Enemy, SwordAttack, type EnemyData, type SwordAttackData } from "../../components.js";
-import { attackShape, type AttackKind } from "../../sword.js";
-import { addHit } from "../combat.js";
+import { stepsUntil, type AttackKind } from "../../../weapons/weapons.js";
+import { Enemy, SwordAttack, Wielder, type EnemyData, type SwordAttackData } from "../../components.js";
+import type { SwordDef } from "../../defs.js";
+import { startSwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
@@ -27,10 +20,19 @@ function pick(enemy: EnemyData, sword: SwordAttackData, last: AttackKind | null)
   return options[Math.floor(roll(enemy) * options.length)]!;
 }
 
+function windUp(world: World, e: Entity, enemy: EnemyData, def: SwordDef, attack: AttackKind, windup: number): void {
+  enter(world, e, enemy, "swordWindup", windup);
+  const liveAt = stepsUntil(windup), liveUntil = liveAt + stepsUntil(def.active);
+  startSwing(world, e, {
+    attack, dir: { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, liveAt, liveUntil, letGoAt: liveUntil,
+    endAt: liveUntil, damage: def.damage, knockback: def.knockback, lift: def.lift, poiseDamage: 0,
+  });
+}
+
 export function swordAttackSystem(): System {
   return (world, dt) => {
-    for (const [e, sword, enemy] of world.query(SwordAttack, Enemy)) {
-      const def = sword.def, sense = enemy.sense, move = enemy.move;
+    for (const [e, sword, enemy, wielder] of world.query(SwordAttack, Enemy, Wielder)) {
+      const def = sword.def, sense = enemy.sense, move = enemy.move, swing = wielder.swing;
       sword.cooldown -= dt;
       sword.parryCooldown = Math.max(0, sword.parryCooldown - dt);
       switch (enemy.state) {
@@ -38,28 +40,23 @@ export function swordAttackSystem(): System {
           const inReach = sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT;
           if (sense.targetAlive && sword.cooldown <= 0 && inReach) {
             sword.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));
-            sword.attack = pick(enemy, sword, null);
-            enter(world, e, enemy, "swordWindup", def.windup);
+            windUp(world, e, enemy, def, pick(enemy, sword, null), def.windup);
           }
           break;
         }
         case "swordWindup":
+          if (!swing) break;
           enemy.yaw = turnToward(enemy.yaw, sense.toYaw, WINDUP_TURN_RAD_PER_SEC * dt);
-          if (enemy.stateTime >= enemy.duration) {
-            enter(world, e, enemy, "sword", def.active);
-            addHit(world, e, Math.sin(enemy.yaw), Math.cos(enemy.yaw), {
-              ...attackShape(sword.attack, def), damage: def.damage, knockback: def.knockback, lift: def.lift,
-              attack: sword.attack,
-            });
-          }
+          swing.dir = { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) };
+          // Not `enter`: that would end the swing going live.
+          if (swing.step >= swing.liveAt) Object.assign(enemy, { state: "sword", stateTime: 0, duration: def.active });
           break;
         case "sword":
           move.speed = def.speed; move.accel = STEP_ACCEL;
-          if (enemy.stateTime < def.active) break;
-          if (sword.swingsLeft > 0) {
+          if (swing && swing.step < swing.endAt) break;
+          if (swing && sword.swingsLeft > 0) {
             sword.swingsLeft--;
-            sword.attack = pick(enemy, sword, sword.attack);
-            enter(world, e, enemy, "swordWindup", def.chainWindup);
+            windUp(world, e, enemy, def, pick(enemy, sword, swing.attack), def.chainWindup);
           } else {
             enter(world, e, enemy, "swordRecover", def.recover);
             sword.cooldown = def.recover + def.cooldown;

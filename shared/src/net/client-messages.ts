@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
-import { ATTACK_KINDS } from "../battle/sword.js";
+import { ATTACK_KINDS } from "../weapons/weapons.js";
 import { SLOTS, type Spot } from "../items/gear.js";
 import { AUGMENTS, ELEMENTS, FORMS, SPELLBOOK_PAGES, type Spell } from "../spells/spell.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";

@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  attackShape, Health, physicalDamage, PLAYER, STARTER_SWORD, SWING_DIRS, type AttackKind,
+  attackShape, Health, physicalDamage, PLAYER, SWING_DIRS, WEAPONS, type AttackKind,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { duel, input, run, STATS, STATUE } from "./fixtures.js";
 
 before(() => initPhysics());
 
-const SWING_DAMAGE = physicalDamage(STARTER_SWORD.damage, STATS);
-const shape = (kind: AttackKind) => attackShape(kind, STARTER_SWORD);
+const SWING_DAMAGE = physicalDamage(WEAPONS.sword.damage, STATS);
+const shape = (kind: AttackKind) => attackShape(kind, WEAPONS.sword);
 /** Half an attack's arc, either side of the aim. */
 const halfArcRad = (kind: AttackKind) => Math.acos(shape(kind).minDot);
 /** Center to center, `margin` inside (or, negative, outside) the attack's reach. */
@@ -67,7 +67,7 @@ describe("a swing", () => {
 });
 
 describe("the stab", () => {
-  const stabDamage = physicalDamage(STARTER_SWORD.damage * PLAYER.stab.damageFactor, STATS);
+  const stabDamage = physicalDamage(WEAPONS.sword.damage * PLAYER.stab.damageFactor, STATS);
 
   test("reaches further than any swing, straight ahead", () => {
     const far = Math.max(...SWING_DIRS.map((dir) => reach(dir, -0.2)));

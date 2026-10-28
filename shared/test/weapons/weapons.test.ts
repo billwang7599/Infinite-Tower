@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ATTACK_KINDS, attackShape, chainKind, isSwing, lineOf, MOMENTUM, momentumDamage, reverseOf,
-  STARTER_SWORD, startupTime, SWING_DIRS, type SwingDir,
+  startupTime, SWING_DIRS, WEAPONS, type SwingDir,
 } from "@infinite-tower/shared";
 
 describe("the ten things a sword does", () => {
@@ -48,7 +48,7 @@ describe("chaining one swing into the next", () => {
   });
 
   test("a reverse starts fastest, a perpendicular slowest, anything else in between", () => {
-    const speed = STARTER_SWORD.speed;
+    const speed = WEAPONS.sword.speed;
     assert.ok(startupTime("reverse", 0, speed) < startupTime("other", 0, speed));
     assert.ok(startupTime("other", 0, speed) < startupTime("perpendicular", 0, speed));
   });
@@ -69,7 +69,7 @@ describe("chaining one swing into the next", () => {
 });
 
 describe("what each attack hits, from the sword's length", () => {
-  const sword = STARTER_SWORD;
+  const sword = WEAPONS.sword;
   const arc = (dir: SwingDir) => attackShape(dir, sword);
 
   test("horizontal swings are the widest and the shortest, vertical ones the narrowest and the longest", () => {
