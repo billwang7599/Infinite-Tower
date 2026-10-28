@@ -49,7 +49,7 @@ const LANDS_AT = (() => {
   return f.steps;
 })();
 /** Steps from pressing an opening swing to its blade going live. */
-const LIVE_AFTER = liveStep(SWING.openingTime);
+const LIVE_AFTER = liveStep(SWING.setTime + SWING.driveTime);
 const WINDOW_STEPS = Math.round(PARRY.window / FIXED_DT);
 
 /** A swing `kind` pressed so that its blade goes live `k` steps before the swordsman's lands (negative: after). */
@@ -127,16 +127,17 @@ describe("parrying the swordsman's swing", () => {
   test("parried, it's knocked back, stunned for the stun time, and takes extra damage meanwhile", () => {
     // Parry, then walk up to it and swing again (a fresh swing: the chain has lapsed by then).
     const step0 = LANDS_AT - LIVE_AFTER - 2;
-    const walkFrom = LANDS_AT + 30, swingAt = LANDS_AT + 44;
+    const walkFrom = LANDS_AT + 20, swingAt = LANDS_AT + 34;
     const script: Script = (step) => step === step0 ? { attack: "rl" }
-      : step >= walkFrom && step < swingAt ? { moveZ: 1 } : step === swingAt ? { attack: "tb" } : {};
+      : step === swingAt ? { attack: "tb", moveZ: 1 }
+      : step >= walkFrom && step < swingAt + LIVE_AFTER ? { moveZ: 1 } : {};
     const parried = play(script, LANDS_AT, newFight());
     const at = parried.fight.world.require(parried.fight.enemies[0]!, Body).pos.z;
     const after = play(script, walkFrom - 1, parried.fight);
     const knockedTo = after.fight.world.require(after.fight.enemies[0]!, Body).pos.z;
     assert.ok(knockedTo - at >= PARRY.knockbackDist * 0.8, `knocked back ${(knockedTo - at).toFixed(2)} m`);
 
-    const hit = play(script, swingAt + 20, after.fight).events.find((e) => e.event.type === "hit");
+    const hit = play(script, swingAt + LIVE_AFTER + 5, after.fight).events.find((e) => e.event.type === "hit");
     assert.ok(hit, "the second swing lands");
     assert.ok((hit.step - LANDS_AT) * FIXED_DT < PARRY.stunTime, "while still stunned");
     assert.deepEqual(hit.event, {
@@ -153,7 +154,8 @@ describe("the swordsman parrying the player", () => {
   const settled = 60;
 
   test("a swing at it while it's on guard is parried: no damage, and the player is staggered", () => {
-    const { fight, events } = play((step) => step === settled ? { attack: "lr" } : {}, settled + 20, newFight(GUARD));
+    const { fight, events } = play((step) => step === settled ? { attack: "lr" } : {}, settled + LIVE_AFTER + 5,
+      newFight(GUARD));
     assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp);
     const parry = events.find((e) => e.event.type === "parry");
     assert.deepEqual(parry?.event, { type: "parry", by: fight.enemies[0], target: fight.players[0] });
@@ -168,7 +170,7 @@ describe("the swordsman parrying the player", () => {
     const fight = newFight(GUARD, far);
     const kinds: AttackKind[] = ["lr", "rl", "tb"];
     let next = 0;
-    while (fight.steps < settled + 80) {
+    while (fight.steps < settled + 160) {
       const step = fight.steps + 1;
       const swing = wielderOf(fight).swing;
       const started = swing !== null && swing.step <= 1 && swing.attack === kinds[next - 1];
@@ -183,16 +185,18 @@ describe("the swordsman parrying the player", () => {
   });
 
   test("not right away: back on guard, it needs its reaction time before it can parry", () => {
-    const quick = GUARD.attacks.weapon!.parryReaction / 2;
-    const { fight } = play((step) => step === Math.round(quick / FIXED_DT) - LIVE_AFTER ? { attack: "lr" } : {}, 60,
-      newFight(GUARD));
+    const parryReaction = (LIVE_AFTER + 5) * FIXED_DT;
+    const slow = { ...GUARD, attacks: { weapon: swings({ firstDelay: 999, parryReaction }) } };
+    const { fight } = play((step) => step === 1 ? { attack: "lr" } : {}, 60, newFight(slow));
     assert.ok(hpOf(fight, fight.enemies[0]) < GUARD.maxHp, "hit before it was ready");
   });
 
   test("after a parry it can't parry again for a while: a second swing then lands", () => {
-    const twice: Script = (step) => step === settled ? { attack: "lr" } : step === settled + 50 ? { attack: "tb" } : {};
-    const { fight } = play(twice, settled + 80, newFight(GUARD));
-    assert.ok((50 - LIVE_AFTER) * FIXED_DT < GUARD.attacks.weapon!.parryCooldown);
+    const again = LIVE_AFTER + 40;
+    const twice: Script = (step) =>
+      step === settled ? { attack: "lr" } : step === settled + again ? { attack: "tb" } : {};
+    const { fight } = play(twice, settled + again + LIVE_AFTER + 10, newFight(GUARD));
+    assert.ok(again * FIXED_DT < GUARD.attacks.weapon!.parryCooldown);
     assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp - WEAPONS.sword.damage);
   });
 

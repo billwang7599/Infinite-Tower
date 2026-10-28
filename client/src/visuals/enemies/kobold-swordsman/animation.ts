@@ -1,6 +1,6 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle,
+  Body, damp, dampFactor, Enemy, Health, strokeOf, weaponItemIn, WEAPONS, Wielder, wrapAngle,
 } from "@infinite-tower/shared";
 import { fighter } from "../../battle/battle.js";
 import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../battle/weapons.js";
@@ -30,7 +30,8 @@ export const koboldVisual = fighter<KoboldModel & { blade: Quaternion; motion: W
 
     const swing = world.get(e, Wielder)?.swing;
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
-    const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", nodes.motion);
+    const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", nodes.motion,
+      swing ? strokeOf(swing) : null);
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), nodes.blade);
     nodes.hand.rotationQuaternion ??= new Quaternion();
     Quaternion.SlerpToRef(nodes.hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, dt),

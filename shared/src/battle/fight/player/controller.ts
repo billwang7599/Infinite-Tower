@@ -41,18 +41,18 @@ function startAttack(
 ): number {
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
   const plan = planSwing(weapon, world.require(e, FighterStats).strength, wielder.blade, attack);
-  wielder.blade = plan.blade;
   const imbue = imbueOf(world, e)?.[1];
-  const windup = plan.windupTime / (imbue ? shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor : 1);
-  const activeTime = SWING.activeTime * plan.timeFactor, liveAt = liveStep(windup);
+  const swift = imbue ? shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor : 1;
+  const windup = plan.windupTime / swift, activeTime = SWING.activeTime * plan.timeFactor, liveAt = liveStep(windup);
   const move = isSwing(attack) ? PLAYER.swing : PLAYER.stab;
   const power = isSwing(attack) ? 1 : PLAYER.stab.damageFactor;
   startSwing(world, e, {
-    attack, dir: { x: input.aimX, z: input.aimZ }, liveAt, liveUntil: liveAt + liveStep(activeTime),
-    letGoAt: stepsUntil(windup + activeTime),
-    endAt: stepsUntil(windup + activeTime + SWING.recoverTime * plan.timeFactor),
+    attack, dir: { x: input.aimX, z: input.aimZ }, driveAt: Math.max(0, liveAt - liveStep(plan.driveTime / swift)),
+    liveAt, liveUntil: liveAt + liveStep(activeTime), letGoAt: stepsUntil(windup + activeTime),
+    endAt: stepsUntil(windup + activeTime + plan.followTime),
     damage: weapon.damage * power * plan.momentum, knockback: 0, lift: 0,
-    poiseDamage: move.poiseDamage * plan.momentum, momentum: plan.momentum, flow: plan.flow,
+    poiseDamage: move.poiseDamage * plan.momentum, momentum: plan.momentum, startSpeed: plan.startSpeed,
+    flow: plan.flow,
   });
   return move.cost * plan.effort;
 }

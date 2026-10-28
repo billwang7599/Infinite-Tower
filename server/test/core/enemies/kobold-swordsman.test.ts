@@ -12,7 +12,7 @@ import { fightWith } from "../../fixtures/fight.js";
 before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
-const LIVE_AFTER = liveStep(SWING.openingTime);
+const LIVE_AFTER = liveStep(SWING.setTime + SWING.driveTime);
 
 /**
  * Keeps about a sword's length away, facing it. Parries each swing (the reverse, its blade live two steps before

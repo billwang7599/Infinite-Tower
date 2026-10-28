@@ -29,14 +29,14 @@ function windUp(
   enter(world, e, enemy, "weaponWindup");
   const wielder = world.require(e, Wielder);
   const plan = planSwing(weapon, world.require(e, FighterStats).strength, wielder.blade, attack);
-  wielder.blade = plan.blade;
   const windup = Math.max(telegraph, plan.windupTime), active = def.active * plan.timeFactor;
   enemy.duration = windup;
   const liveAt = stepsUntil(windup), liveUntil = liveAt + stepsUntil(active);
   startSwing(world, e, {
-    attack, dir: { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, liveAt, liveUntil, letGoAt: liveUntil,
-    endAt: liveUntil, damage: weapon.damage * plan.momentum, knockback: def.knockback, lift: def.lift, poiseDamage: 0,
-    momentum: plan.momentum, flow: plan.flow,
+    attack, dir: { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, driveAt: liveAt - stepsUntil(plan.driveTime),
+    liveAt, liveUntil, letGoAt: liveUntil, endAt: liveUntil + stepsUntil(plan.followTime),
+    damage: weapon.damage * plan.momentum, knockback: def.knockback, lift: def.lift, poiseDamage: 0,
+    momentum: plan.momentum, startSpeed: plan.startSpeed, flow: plan.flow,
   });
 }
 
@@ -68,12 +68,13 @@ export function weaponAttackSystem(): System {
           break;
         case "weapon":
           move.speed = def.speed; move.accel = STEP_ACCEL;
-          if (swing && swing.step < swing.endAt) break;
+          if (swing && swing.step < swing.letGoAt) break;
           if (swing && weapon && attack.swingsLeft > 0) {
             attack.swingsLeft--;
             windUp(world, e, enemy, def, weapon, pick(enemy, attack, swing.attack), def.chainWindup);
           } else {
-            enter(world, e, enemy, "weaponRecover", def.recover);
+            // Not `enter`: the blade follows through.
+            Object.assign(enemy, { state: "weaponRecover", stateTime: 0, duration: def.recover });
             attack.cooldown = def.recover + def.cooldown;
           }
           break;

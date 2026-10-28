@@ -271,8 +271,8 @@ describe("Swift", () => {
     castNow(swift, one("imbue", ["fire"], ["swift"]));
     for (const f of [plain, swift]) f.step([input({ attack: "lr" })]);
     const liveAt = (f: Fight) => f.world.require(f.players[0]!, Wielder).swing?.liveAt;
-    assert.equal(liveAt(plain), liveStep(SWING.openingTime));
-    assert.equal(liveAt(swift), liveStep(SWING.openingTime / (1 + A.swift)));
+    assert.equal(liveAt(plain), liveStep(SWING.setTime + SWING.driveTime));
+    assert.equal(liveAt(swift), liveStep((SWING.setTime + SWING.driveTime) / (1 + A.swift)));
   });
 });
 

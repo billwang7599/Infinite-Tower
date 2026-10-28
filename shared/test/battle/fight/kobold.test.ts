@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, planSwing, restingBlade, SWING_DIRS, WEAPONS, Wielder, type AttackKind,
+  Body, Enemy, FIXED_DT, Health, followingBlade, planSwing, restingBlade, SWING_DIRS, WEAPONS, Wielder, type AttackKind,
   type EnemyDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -48,7 +48,7 @@ function chains(seed: number, seconds = 30): Swing[][] {
 
 describe("the swordsman's chains", () => {
   test("two or three swings each, every one different from the one before", () => {
-    const all = chains(7);
+    const all = chains(7).slice(0, -1); // the last may still be going
     assert.ok(all.length >= 5, `${all.length} chains`);
     for (const c of all) {
       assert.ok(c.length >= DEF.minChain && c.length <= DEF.maxChain, `a chain of ${c.length}`);
@@ -57,11 +57,18 @@ describe("the swordsman's chains", () => {
     assert.ok(all.some((c) => c.length === 2) && all.some((c) => c.length === 3), "both lengths happen");
   });
 
-  test("the first swing winds up for its wind-up, the ones it chains into for the shorter chain wind-up", () => {
+  test("the first swing winds up for its wind-up, the chained ones for the chain wind-up or the blade's own", () => {
     const near = (steps: number, time: number) => Math.abs(steps - time / FIXED_DT) <= 1;
-    for (const c of chains(3)) {
+    const strength = CHAINER.stats.strength;
+    for (const c of chains(3).slice(0, -1)) {
       assert.ok(near(c[0]!.windupSteps, DEF.windup), `${c[0]!.windupSteps} steps`);
-      for (const s of c.slice(1)) assert.ok(near(s.windupSteps, DEF.chainWindup), `${s.windupSteps} steps`);
+      let last = planSwing(WEAPONS.sword, strength, restingBlade(), c[0]!.attack);
+      for (let i = 1; i < c.length; i++) {
+        const plan = planSwing(WEAPONS.sword, strength, followingBlade(c[i - 1]!.attack, last.flow), c[i]!.attack);
+        const want = Math.max(DEF.chainWindup, plan.windupTime);
+        assert.ok(near(c[i]!.windupSteps, want), `${c[i]!.windupSteps} steps, not ${want / FIXED_DT}`);
+        last = plan;
+      }
     }
   });
 
@@ -82,7 +89,7 @@ describe("the swordsman's chains", () => {
       if (now.state === "weaponWindup" && was !== "weaponWindup") windups.push(now.duration);
     }
     const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, restingBlade(), "lr");
-    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, first.blade, "rl");
+    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, followingBlade("lr", first.flow), "rl");
     assert.deepEqual(windups.slice(0, 2), [first.windupTime, second.windupTime]);
   });
 
@@ -100,7 +107,7 @@ describe("the swordsman's chains", () => {
       for (const ev of fight.events) if (ev.type === "hit" && ev.team === "player") hits.push(ev.damage);
     }
     const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, restingBlade(), "lr");
-    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, first.blade, "tlbr");
+    const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, followingBlade("lr", first.flow), "tlbr");
     assert.equal(hits[0], WEAPONS.sword.damage);
     assert.equal(hits[1], WEAPONS.sword.damage * second.momentum);
     assert.ok(hits[1]! > hits[0]!);

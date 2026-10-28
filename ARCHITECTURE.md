@@ -205,15 +205,16 @@ main.ts
   (`SWING`, `planSwing`) and `PARRY`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
   hand holds, its arm reach, the swing under way, and its `Blade`: a point in the screen plane, where it is and how it
   moves) swings the weapon in hand. `planSwing` works out an attack from the blade, the weapon and the wielder's
-  strength: its wind-up (the time the blade takes to get to the swing's start at its speed), the factor its live and
-  recover times scale by, its flow, its impact momentum (damage, poise damage, a block's cost, a parry's stun), its
-  effort (stamina) and where the blade ends up. The player's controller and an enemy's weapon attack
+  strength: its wind-up (setting or looping the blade to the swing's start, then the drive to impact), its drive and
+  follow-through times, the factor its live time scales by, its flow, its impact momentum (damage, poise damage, a
+  block's cost, a parry's stun) and its effort (stamina). `strokeOf` gives where a swing's blade is on any step, so
+  every visual draws the blade where the fight has it. The player's controller and an enemy's weapon attack
   (`fight/behaviors/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
-  call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its blade goes live, is done, lets go and
-  is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while it's live,
-  and brings the blade to rest `SWING.gapTime` after a swing ends. Ending an action or an enemy state (`enter`) ends its
-  swing (`endSwing`, which rests the blade if the swing hadn't let go yet); a block, a dodge or a hit taken rests it
-  too (`restBlade`). A parry reads the target's swing.
+  call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its drive starts, its blade goes live, is
+  done, lets go and is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
+  while it's live, and brings the blade to rest `SWING.gapTime` after a swing ends. Ending an action or an enemy state
+  (`enter`) ends its swing (`endSwing`, which rests the blade if the swing hadn't let go yet, else leaves it following
+  through); a block, a dodge or a hit taken rests it too (`restBlade`). A parry reads the target's swing.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
   `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
@@ -614,10 +615,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
       levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (every
                        level by id: the Grass Field)
-      enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, goblin-warlock.ts
-                       (its EnemyDef, its drops, its overworld actor's behavior parts). index.ts (ENEMIES, one line
-                       each; isEnemyId, rollDrops)
-      content/         player.ts (PLAYER_STATS, fullVitals, newPlayer)
+      enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
+                       (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
+                       actor's behavior parts). index.ts (ENEMIES, one line each; isEnemyId, rollDrops)
+      content/         player.ts (PLAYER_STATS, fullVitals, newPlayer, giveIfMissing)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -635,7 +636,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the
                      two stores core asks for; one query at a time per player), migrations/ (SQL written by
                      `npm run db:generate`, plus drizzle-kit's meta/), seed.ts (dev data: accounts test1-3,
-                     password = username, knowing every skill word; refuses to run in production)
+                     password = username, knowing every skill word, a longsword and a greatsword; refuses to run
+                     in production)
 
 client/          Browser game: the two modes, their drawing (Babylon), input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui
@@ -791,7 +793,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
                        with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
                        Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
-                       (its overworld picture and size). index.ts (ENEMY_LOOKS, one line each; byEnemy)
+                       (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and fights with the
+                       swordsman's visual (its blade comes from WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
+                       byEnemy)
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
@@ -807,7 +811,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
         weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
-                         weapon kind: the trail's line and the stab's thrust (timed by the swing's live time), a 3D
+                         weapon kind: the trail's line and the stab's thrust (by the blade's place on its stroke), a 3D
                          blade's way through a wind-up and a
                          swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite and a 3D
                          model's blade. No Babylon: tested

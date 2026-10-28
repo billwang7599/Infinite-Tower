@@ -16,7 +16,7 @@ type Script = (step: number) => PlayerInputData;
 const SWING_AT = 5;
 
 /** Steps from a swing's first step to the first one on which it lets another action start (once its blade is done). */
-const LOCKED_STEPS = stepsUntil(SWING.openingTime + SWING.activeTime);
+const LOCKED_STEPS = stepsUntil((SWING.setTime + SWING.driveTime) + SWING.activeTime);
 /** The first step a dodge can start on after the swing at SWING_AT. */
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 

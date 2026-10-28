@@ -1,6 +1,7 @@
 import type { EnemyDef, EnemyId, ItemCounts, ItemId } from "@infinite-tower/shared";
 import type { Part } from "../overworld/parts.js";
 import { GOBLIN_WARLOCK } from "./goblin-warlock.js";
+import { KOBOLD_GREATSWORD } from "./kobold-greatsword.js";
 import { KOBOLD_SWORDSMAN } from "./kobold-swordsman.js";
 import { WILD_BOAR } from "./wild-boar.js";
 
@@ -15,6 +16,7 @@ export interface Enemy {
 export const ENEMIES: Record<EnemyId, Enemy> = {
   "wild-boar": WILD_BOAR,
   "kobold-swordsman": KOBOLD_SWORDSMAN,
+  "kobold-greatsword": KOBOLD_GREATSWORD,
   "goblin-warlock": GOBLIN_WARLOCK,
 };
 
