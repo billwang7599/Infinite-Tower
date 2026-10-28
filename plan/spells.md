@@ -56,6 +56,7 @@ built at a campfire and cast from the hotbar in fights. Numbers marked *placehol
 - The agent's placeholders for fits nobody decided: Delay fits every Form, Follow only Bolt, and Summon takes only
   Amplify and Delay.
 - The chain's growth: each extra segment doubles the whole spell's cost (`SPELL.chainGrowth`, placeholder).
+- The agent's reading of the grammar: a repeated element is refused (elements are a set); Lightning has no opposite.
 - Each element's role and status (the user's table isn't in the repo), and the four reactions' effects.
 - Renaming spellpower to Intellect.
 - How strong each augment is (how much wider, longer, faster), the dev cost scale, what Self does per element.
