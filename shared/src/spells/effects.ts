@@ -18,6 +18,8 @@ export const MAGIC = {
     speedMps: 20, rangeM: 16, radiusM: 0.3,
     splitDamageFactor: 0.9, splitRadiusFactor: 0.8, splitSpreadRad: 0.35, splitFanMaxRad: 2.4,
     splitGapRadii: 2, splitRowMaxM: 6,
+    // Homing split Bolts aim side by side, this many radii apart, at their target, closing in over its last metres.
+    followGapRadii: 4, followRowMaxM: 3, followMergeM: 2.5,
   },
   // Held, a Beam pays its own words' cost times heldCostFactor a second.
   beam: { rangeM: 10, radiusM: 0.35, time: 1, tickTime: 0.5, tickShare: 0.5, heldCostFactor: 2 },
@@ -27,7 +29,7 @@ export const MAGIC = {
   // Per augment word: Amplify +50% damage, Extend +100% time, Delay +1 s, Pierce +2 enemies, ...
   augments: {
     amplify: 0.5, widen: 0.5, extend: 1, swift: 0.5, delayTime: 1, pierceTargets: 2,
-    followTurnRadPerSec: 8,
+    followTurnRadPerSec: 3,
   },
   objects: { perPlayer: 12, perFight: 60 },
   elements: {

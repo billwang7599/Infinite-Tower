@@ -1,8 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, blankSpellbook, Body, castTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
-  PLAYER, PlayerInput, SpellObject, Stamina, starterEquipment, Statuses, SwordAttack, type EnemyDef, type Entity,
-  type LungeDef, type PlayerInputData, type Segment, type Spell, type Stats, type SwordDef, type Vec3,
+  PLAYER, PlayerInput, Sidestep, SpellObject, Stamina, starterEquipment, Statuses, SwordAttack, type EnemyDef,
+  type Entity, type LungeDef, type PlayerInputData, type Segment, type Spell, type Stats, type SwordDef, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -17,6 +17,11 @@ const ENEMY_BASE: EnemyDef = {
 
 /** Stands where it's put and never attacks. */
 export const STATUE: EnemyDef = ENEMY_BASE;
+
+/** Stands where it's put, and steps aside from every Bolt aimed at it. */
+export const STEPPER: EnemyDef = {
+  ...ENEMY_BASE, sidestep: { chance: 1, reactTime: 0.2, leadTime: 0.1, speed: 6, stepTime: 0.45 },
+};
 
 const lunge = (over: Partial<LungeDef>): LungeDef => ({
   triggerDist: 2.8, range: 2.6, minDot: 0.35, windup: 0.3, active: 0.18, recover: 0.5, speed: 6,
@@ -113,6 +118,7 @@ export function dumpState(fight: Fight): string {
       lunge: fight.world.get(e, LungeAttack)?.cooldown,
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
       sword: fight.world.get(e, SwordAttack) && { ...fight.world.get(e, SwordAttack), def: undefined },
+      sidestep: fight.world.get(e, Sidestep) && { ...fight.world.get(e, Sidestep), def: undefined },
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
       statuses: fight.world.get(e, Statuses),
     };

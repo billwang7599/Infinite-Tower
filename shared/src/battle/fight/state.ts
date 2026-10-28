@@ -5,7 +5,8 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, SpellObject, Stamina, Statuses, SwordAttack,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SpellObject, Stamina, Statuses,
+  SwordAttack,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SpellObjectData, type StaminaData,
   type StatusData, type SwordAttackData,
 } from "../components.js";
@@ -28,6 +29,7 @@ interface EnemySnapshot extends FighterSnapshot {
   lunge: { cooldown: number } | null;
   charge: { cooldown: number; dir: Vec2 } | null;
   sword: Omit<SwordAttackData, "def"> | null;
+  sidestep: { dir: Vec2 } | null;
 }
 
 /** Whose hitbox it is and whom it has hit, as fighter indices (the players in seat order, then the enemies). */
@@ -79,11 +81,13 @@ export function saveFight(fight: Fight): FightSnapshot {
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
       const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), sword = world.get(e, SwordAttack);
+      const sidestep = world.get(e, Sidestep);
       return {
         ...fighter(e), enemy,
         lunge: lunge ? { cooldown: lunge.cooldown } : null,
         charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
         sword: sword ? withoutDef(sword) : null,
+        sidestep: sidestep ? { dir: { ...sidestep.dir } } : null,
       };
     }),
     hits: [...world.query(ActiveHit)].map(([e, { alreadyHit, ...hit }]) => ({
@@ -128,6 +132,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     if (charge && s.charge) Object.assign(charge, { cooldown: s.charge.cooldown, dir: { ...s.charge.dir } });
     const sword = world.get(e, SwordAttack);
     if (sword && s.sword) Object.assign(sword, s.sword);
+    const sidestep = world.get(e, Sidestep);
+    if (sidestep && s.sidestep) sidestep.dir = { ...s.sidestep.dir };
   });
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });

@@ -80,6 +80,18 @@ export interface SwordDef {
   parryCooldown: number;
 }
 
+/**
+ * Reading a player's Bolt wind-up aimed at it and stepping out of its line: `leadTime` before the Bolt leaves, but
+ * never sooner than `reactTime` into the wind-up, and only when not busy. `chance` per cast, from the fight's seed.
+ */
+export interface SidestepDef {
+  chance: number;
+  reactTime: number;
+  leadTime: number;
+  speed: number;
+  stepTime: number;
+}
+
 export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
@@ -103,5 +115,6 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   attacks: EnemyAttacks;
+  sidestep?: SidestepDef;
   resist?: Partial<Record<SpellElement, number>>;
 }

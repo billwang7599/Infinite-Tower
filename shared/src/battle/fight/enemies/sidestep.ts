@@ -1,0 +1,40 @@
+import type { System } from "../../../core/ecs.js";
+import { FIXED_DT } from "../../../core/time.js";
+import { castTime } from "../../../spells/spell.js";
+import { Body, Enemy, Player, Sidestep } from "../../components.js";
+import { PlayerInput } from "../../input.js";
+import type { FightContext } from "../context.js";
+import { enter, roll } from "./common.js";
+
+/** The caster's aim counts as at the enemy within this cos of the angle. */
+const AIM_MIN_DOT = 0.9;
+const STEP_ACCEL = 60;
+
+const stepsOf = (seconds: number): number => Math.round(seconds / FIXED_DT);
+
+export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
+  return (world) => {
+    for (const [e, sidestep, enemy, body] of world.query(Sidestep, Enemy, Body)) {
+      const def = sidestep.def, move = enemy.move;
+      if (enemy.state === "sidestep" && enemy.stateTime >= def.stepTime) enter(world, e, enemy, "approach");
+      for (const [, player, input, from] of world.query(Player, PlayerInput, Body)) {
+        const spell = player.casting;
+        if (enemy.state !== "approach" || player.action !== "cast" || spell?.segments[0].form !== "bolt") continue;
+        if (stepsOf(player.actionTime) !== stepsOf(Math.max(def.reactTime, castTime(spell) - def.leadTime))) continue;
+        const dx = body.pos.x - from.pos.x, dz = body.pos.z - from.pos.z, dist = Math.hypot(dx, dz);
+        if (dist === 0 || (dx * input.aimX + dz * input.aimZ) / dist < AIM_MIN_DOT) continue;
+        if (roll(enemy) >= def.chance) continue;
+        const side = roll(enemy) < 0.5 ? 1 : -1, reachM = def.speed * def.stepTime;
+        sidestep.dir = { x: (side * dz) / dist, z: (-side * dx) / dist };
+        const end = { x: body.pos.x + sidestep.dir.x * reachM, z: body.pos.z + sidestep.dir.z * reachM };
+        if (Math.hypot(end.x, end.z) > ctx.arena.radius - enemy.def.radius) {
+          sidestep.dir = { x: -sidestep.dir.x, z: -sidestep.dir.z };
+        }
+        enter(world, e, enemy, "sidestep");
+      }
+      if (enemy.state === "sidestep") {
+        move.dirX = sidestep.dir.x; move.dirZ = sidestep.dir.z; move.speed = def.speed; move.accel = STEP_ACCEL;
+      }
+    }
+  };
+}

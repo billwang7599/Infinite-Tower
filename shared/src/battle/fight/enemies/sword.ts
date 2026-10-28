@@ -7,11 +7,11 @@
  *                                     └─▶ swordRecover ─▶ approach
  */
 import type { System } from "../../../core/ecs.js";
-import { nextRandom, turnToward } from "../../../core/math.js";
-import { Enemy, SwordAttack, type SwordAttackData } from "../../components.js";
+import { turnToward } from "../../../core/math.js";
+import { Enemy, SwordAttack, type EnemyData, type SwordAttackData } from "../../components.js";
 import { attackShape, type AttackKind } from "../../sword.js";
 import { addHit } from "../combat.js";
-import { enter } from "./common.js";
+import { enter, roll } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
 const MIN_FACING_DOT = 0.8;
@@ -20,18 +20,11 @@ const WINDUP_TURN_RAD_PER_SEC = 2.5;
 /** Velocity change per second as it steps into a swing. */
 const STEP_ACCEL = 40;
 
-/** 0..1. */
-function roll(sword: SwordAttackData): number {
-  const [value, next] = nextRandom(sword.rng);
-  sword.rng = next;
-  return value;
-}
-
 /** One of its moves at random, not `last` (unless it has no other). */
-function pick(sword: SwordAttackData, last: AttackKind | null): AttackKind {
+function pick(enemy: EnemyData, sword: SwordAttackData, last: AttackKind | null): AttackKind {
   const others = sword.def.moves.filter((m) => m !== last);
   const options = others.length > 0 ? others : sword.def.moves;
-  return options[Math.floor(roll(sword) * options.length)]!;
+  return options[Math.floor(roll(enemy) * options.length)]!;
 }
 
 export function swordAttackSystem(): System {
@@ -44,8 +37,8 @@ export function swordAttackSystem(): System {
         case "approach": {
           const inReach = sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT;
           if (sense.targetAlive && sword.cooldown <= 0 && inReach) {
-            sword.swingsLeft = def.minChain - 1 + Math.floor(roll(sword) * (def.maxChain - def.minChain + 1));
-            sword.attack = pick(sword, null);
+            sword.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));
+            sword.attack = pick(enemy, sword, null);
             enter(world, e, enemy, "swordWindup", def.windup);
           }
           break;
@@ -65,7 +58,7 @@ export function swordAttackSystem(): System {
           if (enemy.stateTime < def.active) break;
           if (sword.swingsLeft > 0) {
             sword.swingsLeft--;
-            sword.attack = pick(sword, sword.attack);
+            sword.attack = pick(enemy, sword, sword.attack);
             enter(world, e, enemy, "swordWindup", def.chainWindup);
           } else {
             enter(world, e, enemy, "swordRecover", def.recover);

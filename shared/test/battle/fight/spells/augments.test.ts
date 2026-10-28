@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Health, MAGIC, MAX_LIVE_SHOTS, Player, shotOf, SpellObject, Statuses,
+  Body, Health, MAGIC, MAX_LIVE_SHOTS, Player, shotOf, SpellObject, Statuses,
   type Augment, type Form, type SpellElement, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -163,8 +163,8 @@ describe("Split", () => {
 
   test("Follow homes every Bolt, wherever it's written", () => {
     for (const augments of [["follow", "split", "split"], ["split", "split", "follow"]]) {
-      const fight = fightWith([at(0, 2)]);
-      castNow(fight, one("bolt", ["water"], augments as Augment[]), { aimX: 0.6, aimZ: 0.8 });
+      const fight = fightWith([at(0, 4)]);
+      castNow(fight, one("bolt", ["water"], augments as Augment[]));
       assert.equal(spellHits(fight).length, 4);
     }
   });
@@ -265,10 +265,12 @@ describe("Delay", () => {
 });
 
 describe("Follow", () => {
-  const AWAY = { aimX: 0.6, aimZ: 0.8 };
+  const AWAY = { aimX: Math.sin(0.3), aimZ: Math.cos(0.3) };
+  const FAR = at(0, 4);
+  const bolts = (fight: Fight) => objects(fight, "bolt").map(([, o]) => o);
 
-  test("aimed away, a Bolt homes onto the nearest enemy when nothing is locked", () => {
-    const plain = fightWith([at(0, 2)]), homing = fightWith([at(0, 2)]);
+  test("aimed a little away, a Bolt homes onto the nearest enemy when nothing is locked", () => {
+    const plain = fightWith([FAR]), homing = fightWith([FAR]);
     castNow(plain, one("bolt", ["water"], []), AWAY);
     castNow(homing, one("bolt", ["water"], ["follow"]), AWAY);
     untilDone(plain);
@@ -278,7 +280,7 @@ describe("Follow", () => {
   });
 
   test("it homes onto the locked enemy, not the nearest", () => {
-    const enemies = [at(-3, -2), at(3, 2)];
+    const enemies = [at(-1.5, 3), at(1.5, 4)];
     const unlocked = fightWith(enemies), locked = fightWith(enemies);
     castNow(unlocked, one("bolt", ["water"], ["follow"]));
     castNow(locked, one("bolt", ["water"], ["follow"]), { locked: 1 });
@@ -287,4 +289,56 @@ describe("Follow", () => {
     assert.ok(lostHp(unlocked, 0) > 0 && lostHp(unlocked, 1) === 0, "the nearest");
     assert.ok(lostHp(locked, 1) > 0 && lostHp(locked, 0) === 0, "the locked one");
   });
+
+  test("it turns no faster than its turn rate", () => {
+    const fight = fightWith([at(4, -2)]);
+    castNow(fight, one("bolt", ["water"], ["follow"]));
+    let yaw = Math.atan2(bolts(fight)[0]!.dir.x, bolts(fight)[0]!.dir.z);
+    for (let i = 0; i < 10; i++) {
+      fight.step([IDLE]);
+      const now = Math.atan2(bolts(fight)[0]!.dir.x, bolts(fight)[0]!.dir.z);
+      assert.ok(Math.abs(now - yaw) <= A.followTurnRadPerSec * Fight.STEP_SECONDS + 1e-9, `${now - yaw}`);
+      yaw = now;
+    }
+  });
+
+  test("an enemy that moves aside early is still found; one that moves aside as the Bolt arrives isn't", () => {
+    const sideM = 1.5;
+    const moveAsideWhen = (closeM: number) => {
+      const fight = fightWith([FAR]);
+      castNow(fight, one("bolt", ["water"], ["follow"]));
+      const body = fight.world.require(fight.enemies[0]!, Body);
+      for (let i = 0; i < 240 && bolts(fight).length > 0; i++) {
+        const bolt = bolts(fight)[0]!;
+        if (body.pos.x === FAR.x && Math.hypot(bolt.pos.x - body.pos.x, bolt.pos.z - body.pos.z) <= closeM) {
+          body.pos.x += sideM;
+          fight.physics.place(body.collider, body.pos);
+        }
+        fight.step([IDLE]);
+      }
+      return lostHp(fight, 0);
+    };
+    assert.ok(moveAsideWhen(7) > 0, "moved early");
+    assert.equal(moveAsideWhen(1.5), 0, "moved late");
+  });
+
+  test("split Bolts come in apart: Split twice and Follow, still two radii apart halfway there, however strong", () => {
+    for (const follows of [1, 3]) {
+      const words = segment("bolt", ["water"], ["split", "split", ...Array<Augment>(follows).fill("follow")]);
+      const fight = fightWith([FAR]);
+      castNow(fight, spell(words));
+      const halfwayM = (FAR.z - ME.z) / 2;
+      for (let i = 0; i < 240 && bolts(fight)[0]!.flownM < halfwayM; i++) fight.step([IDLE]);
+      const flying = bolts(fight);
+      assert.equal(flying.length, shotOf(words).bolts);
+      let nearestM = Infinity;
+      for (const a of flying) for (const b of flying) {
+        if (a !== b) nearestM = Math.min(nearestM, Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z));
+      }
+      assert.ok(nearestM >= 2 * shotOf(words).boltRadiusM, `${follows} Follow: ${nearestM}`);
+    }
+  });
+
+
+
 });
