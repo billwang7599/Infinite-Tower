@@ -11,8 +11,9 @@ export type Tone = 0 | 1 | 2 | 3 | 4 | 5;
 /** What a pixel is painted with: a material and a tone of it. */
 export type Ink = readonly [material: string, tone: Tone];
 
-/** Which pixels a shape covers, tested at each pixel's center. */
-export type Mask = (x: number, y: number) => boolean;
+/** Which pixels a shape covers, tested at each pixel's center. Drawing tests only the pixels in its `box`, if any. */
+export type Mask = ((x: number, y: number) => boolean) & { box?: Box };
+type Box = readonly [x0: number, y0: number, x1: number, y1: number];
 export type Point = readonly [number, number];
 
 export class Pixels {
@@ -64,12 +65,12 @@ export class Pen {
 
   /** Paint every pixel inside `mask`. */
   fill(mask: Mask, ink: Ink): void {
-    this.each((x, y) => { if (mask(x, y)) this.px.set(x, y, ink, this.layer); });
+    this.each(mask, (x, y) => { if (mask(x, y)) this.px.set(x, y, ink, this.layer); });
   }
 
   /** Change the tone of pixels this layer already painted inside `mask` (shading a shape after filling it). */
   shade(mask: Mask, tone: Tone, material?: string): void {
-    this.each((x, y) => {
+    this.each(mask, (x, y) => {
       if (this.px.layerAt(x, y) !== this.layer || !mask(x, y)) return;
       if (material === undefined || this.px.materialAt(x, y) === material) this.px.retone(x, y, tone);
     });
@@ -80,14 +81,14 @@ export class Pen {
    * a sleeve flowing into the shoulder of the coat it's sewn to, say. Edges against anything else still get one.
    */
   blend(mask: Mask): void {
-    this.each((x, y) => {
+    this.each(mask, (x, y) => {
       if (this.px.layerAt(x, y) === this.layer && mask(x, y)) this.px.blended[y * this.width + x] = 1;
     });
   }
 
   /** Darken pixels of a lower layer inside `mask`: a shadow this layer casts (bangs on the forehead, say). */
   castShadow(mask: Mask, onMaterial: string, tone: Tone = SHADOW): void {
-    this.each((x, y) => {
+    this.each(mask, (x, y) => {
       const layer = this.px.layerAt(x, y);
       if (layer < 0 || layer >= this.layer || this.px.materialAt(x, y) !== onMaterial || !mask(x, y)) return;
       this.px.retone(x, y, Math.min(tone, this.px.tones[y * this.width + x]!) as Tone);
@@ -127,8 +128,12 @@ export class Pen {
     this.px.set(x, y, ink, this.layer);
   }
 
-  private each(visit: (x: number, y: number) => void): void {
-    for (let y = 0; y < this.px.height; y++) for (let x = 0; x < this.px.width; x++) visit(x, y);
+  private each({ box }: Mask, visit: (x: number, y: number) => void): void {
+    const { width, height } = this.px;
+    const [x0, y0, x1, y1] = box ?? [0, 0, width - 1, height - 1];
+    const left = Math.max(0, Math.ceil(x0)), right = Math.min(width - 1, Math.floor(x1));
+    const bottom = Math.min(height - 1, Math.floor(y1));
+    for (let y = Math.max(0, Math.ceil(y0)); y <= bottom; y++) for (let x = left; x <= right; x++) visit(x, y);
   }
 }
 
@@ -159,24 +164,39 @@ export function outline(px: Pixels, outlined: ReadonlySet<number>): void {
 
 // ---- Shapes ----
 
-export const ellipse = (cx: number, cy: number, rx: number, ry: number): Mask =>
-  (x, y) => ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1;
+const bounded = (box: Box | undefined, test: (x: number, y: number) => boolean): Mask => Object.assign(test, { box });
+
+const moved = (box: Box | undefined, dx0: number, dy0: number, dx1: number, dy1: number): Box | undefined =>
+  box && [box[0] + dx0, box[1] + dy0, box[2] + dx1, box[3] + dy1];
+
+const merged = (boxes: readonly (Box | undefined)[]): Box | undefined =>
+  boxes.every((b) => b) ? [Math.min(...boxes.map((b) => b![0])), Math.min(...boxes.map((b) => b![1])),
+    Math.max(...boxes.map((b) => b![2])), Math.max(...boxes.map((b) => b![3]))] : undefined;
+
+export const ellipse = (cx: number, cy: number, rx: number, ry: number): Mask => {
+  const ax = Math.abs(rx), ay = Math.abs(ry);
+  return bounded([cx - ax - 1, cy - ay - 1, cx + ax, cy + ay],
+    (x, y) => ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1);
+};
 
 /** Pixels x0..x1, y0..y1, inclusive. */
 export const rect = (x0: number, y0: number, x1: number, y1: number): Mask =>
-  (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  bounded([x0, y0, x1, y1], (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
 
 /** A polygon in pixel-edge coordinates (pixel (x, y) spans x..x+1); even-odd rule. */
 export function polygon(points: readonly Point[]): Mask {
-  return (x, y) => {
+  const xs = points.map(([x]) => x), ys = points.map(([, y]) => y);
+  const top = Math.min(...ys), bottom = Math.max(...ys);
+  return bounded([Math.min(...xs) - 1, top - 1, Math.max(...xs), bottom], (x, y) => {
     const px = x + 0.5, py = y + 0.5;
+    if (py < top || py > bottom) return false;
     let inside = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const [xi, yi] = points[i]!, [xj, yj] = points[j]!;
+    for (let i = 0, j = xs.length - 1; i < xs.length; j = i++) {
+      const xi = xs[i]!, yi = ys[i]!, xj = xs[j]!, yj = ys[j]!;
       if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
     }
     return inside;
-  };
+  });
 }
 
 /** A polygon drawn as its left half: `half` runs down the left side; the right side is its mirror image. */
@@ -187,22 +207,36 @@ export function symmetric(half: readonly Point[], width: number): Mask {
 
 /** The pixels a hand-drawn grid covers, top-left at (x0, y0): every character but ".". */
 export const gridMask = (x0: number, y0: number, rows: readonly string[]): Mask =>
-  (x, y) => (rows[y - y0]?.[x - x0] ?? ".") !== ".";
+  bounded([x0, y0, x0 + Math.max(...rows.map((row) => row.length)) - 1, y0 + rows.length - 1],
+    (x, y) => (rows[y - y0]?.[x - x0] ?? ".") !== ".");
 
 /** A shape given row by row from `top`: each row's leftmost and rightmost pixel. */
 export const spans = (top: number, rows: readonly (readonly [number, number])[]): Mask =>
-  (x, y) => { const row = rows[y - top]; return !!row && x >= row[0] && x <= row[1]; };
+  bounded([Math.min(...rows.map(([l]) => l)), top, Math.max(...rows.map(([, r]) => r)), top + rows.length - 1],
+    (x, y) => { const row = rows[y - top]; return !!row && x >= row[0] && x <= row[1]; });
 
-export const union = (...masks: Mask[]): Mask => (x, y) => masks.some((m) => m(x, y));
-export const minus = (mask: Mask, cut: Mask): Mask => (x, y) => mask(x, y) && !cut(x, y);
-export const both = (a: Mask, b: Mask): Mask => (x, y) => a(x, y) && b(x, y);
-export const shift = (mask: Mask, dx: number, dy: number): Mask => (x, y) => mask(x - dx, y - dy);
+export const union = (...masks: Mask[]): Mask =>
+  bounded(merged(masks.map((m) => m.box)), (x, y) => masks.some((m) => m(x, y)));
+export const minus = (mask: Mask, cut: Mask): Mask => bounded(mask.box, (x, y) => mask(x, y) && !cut(x, y));
+export const both = (a: Mask, b: Mask): Mask => {
+  const box = a.box && b.box
+    ? [Math.max(a.box[0], b.box[0]), Math.max(a.box[1], b.box[1]), Math.min(a.box[2], b.box[2]),
+      Math.min(a.box[3], b.box[3])] as const
+    : a.box ?? b.box;
+  return bounded(box, (x, y) => a(x, y) && b(x, y));
+};
+export const shift = (mask: Mask, dx: number, dy: number): Mask =>
+  bounded(moved(mask.box, dx, dy, dx, dy), (x, y) => mask(x - dx, y - dy));
 /** The mask plus its mirror image across the middle of a `width`-wide picture. */
-export const mirror = (mask: Mask, width: number): Mask => (x, y) => mask(x, y) || mask(width - 1 - x, y);
+export const mirror = (mask: Mask, width: number): Mask => {
+  const b = mask.box;
+  return bounded(b && merged([b, [width - 1 - b[2], b[1], width - 1 - b[0], b[3]]]),
+    (x, y) => mask(x, y) || mask(width - 1 - x, y));
+};
 
 /** The mask and every pixel next to it: a shape one pixel bigger all round (cloth over skin, say). */
-export const grow = (mask: Mask): Mask =>
-  (x, y) => mask(x, y) || mask(x - 1, y) || mask(x + 1, y) || mask(x, y - 1) || mask(x, y + 1);
+export const grow = (mask: Mask): Mask => bounded(moved(mask.box, -1, -1, 1, 1),
+  (x, y) => mask(x, y) || mask(x - 1, y) || mask(x + 1, y) || mask(x, y - 1) || mask(x, y + 1));
 
 /** A straight limb from `a` to `b`, `thickA` thick at `a` and `thickB` at `b`. */
 export function limb(a: Point, b: Point, thickA: number, thickB: number): Mask {
@@ -234,8 +268,9 @@ export function taper(root: Point, tip: Point, width: number, bend = 0): Mask {
 }
 
 /** Pixels of `mask` within `depth` pixels of its right edge: the far side, with the light at the top left. */
-export const farSide = (mask: Mask, depth: number): Mask => (x, y) => mask(x, y) && !mask(x + depth, y);
+export const farSide = (mask: Mask, depth: number): Mask =>
+  bounded(mask.box, (x, y) => mask(x, y) && !mask(x + depth, y));
 
 /** Pixels of `mask` within `depth` pixels of its bottom edge: the shaded underside of a shape. */
 export const underside = (mask: Mask, depth: number): Mask =>
-  (x, y) => mask(x, y) && !mask(x, y + depth);
+  bounded(mask.box, (x, y) => mask(x, y) && !mask(x, y + depth));
