@@ -8,17 +8,12 @@ const poseOf = (state: EnemyState, t: number, k: number, attack: AttackKind, str
   koboldPose(state, t, k, attack, MOTIONS.sword, stroke);
 
 describe("the kobold's pose", () => {
-  test("a swing's wind-up turns the blade to where the swing starts, and its arrow shows the way", () => {
-    const start = poseOf("weaponWindup", 0, 0, "lr"), wound = poseOf("weaponWindup", 1, 1, "lr");
-    assert.ok(wound.tell > start.tell && start.tell > 0);
-    assert.ok(wound.blade.x > 0.5);
-    assert.ok(wound.arrowRad !== null && Math.abs(wound.arrowRad - Math.PI / 2) < 1e-9);
+  test("a swing's wind-up turns the blade to where the swing starts: its only tell", () => {
+    assert.ok(poseOf("weaponWindup", 1, 1, "lr").blade.x > 0.5);
   });
 
-  test("a stab's wind-up draws the hand back and shows a ring, not an arrow", () => {
-    const pose = poseOf("weaponWindup", 1, 1, "stab");
-    assert.equal(pose.arrowRad, null);
-    assert.ok(pose.tell > 0 && pose.handZ < poseOf("approach", 0, 0, "stab").handZ);
+  test("a stab's wind-up draws the hand back", () => {
+    assert.ok(poseOf("weaponWindup", 1, 1, "stab").handZ < poseOf("approach", 0, 0, "stab").handZ);
   });
 
   test("from the drive on the blade is exactly where its stroke is: straight ahead halfway", () => {

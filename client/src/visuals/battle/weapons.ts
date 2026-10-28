@@ -103,25 +103,17 @@ function strokeBlade(attack: AttackKind, turn: number): BladePose {
   return { blade, handZ: GUARD_BLADE.handZ };
 }
 
-/** Radians, in the wielder's frame; a stab has none. */
-function tellArrowRad(attack: AttackKind): number | null {
-  if (!isSwing(attack)) return null;
-  const { x, y } = SCREEN_DIR[attack];
-  return Math.atan2(x, y);
-}
-
 export interface WeaponMotion {
   trail(swing: SwingData | null): TrailPose | null;
   thrust(swing: SwingData | null, stabRangeM: number): ThrustPose | null;
   guard: BladePose;
   windup(attack: AttackKind, k: number): BladePose;
   stroke(attack: AttackKind, turn: number): BladePose;
-  tellArrowRad(attack: AttackKind): number | null;
 }
 
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
   sword: {
-    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, stroke: strokeBlade, tellArrowRad,
+    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, stroke: strokeBlade,
   },
 };
 
