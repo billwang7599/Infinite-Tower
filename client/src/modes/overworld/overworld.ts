@@ -4,8 +4,8 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  bagBurden, dampFactor, FIXED_DT, nearCampfire, PLAYER, VIEW, viewCenter, viewHalfWidth, walkPace,
-  type Bag, type Entity, type ServerMsgOf, type Stats, type System, type Vec2, type Vitals, type WalkInput,
+  dampFactor, FIXED_DT, gearBurden, nearCampfire, PLAYER, VIEW, viewCenter, viewHalfWidth, walkPace,
+  type Entity, type Gear, type ServerMsgOf, type Stats, type System, type Vec2, type Vitals, type WalkInput,
   type World,
 } from "@infinite-tower/shared";
 import type { Actions, Polled } from "../../core/actions.js";
@@ -38,7 +38,7 @@ export interface Overworld {
   onBattleResult(msg: ServerMsgOf<"battleResult">): void;
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
-  setBag(bag: Bag): void;
+  setGear(gear: Gear): void;
   /** The Rest key, or the HUD's button. */
   rest(): void;
   render(): void;
@@ -79,10 +79,9 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
   };
   const setVitals = (v: Vitals) =>
     hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / (stats?.stamina ?? 1) });
-  /** The bag's weight also sets the walking pace, which the server walks at too. */
-  const setBag = (bag: Bag) => {
-    hud.set({ bag });
-    if (prediction && stats) prediction.pace = walkPace(bagBurden(bag, stats));
+  const setGear = (gear: Gear) => {
+    hud.set({ gear });
+    if (prediction && stats) prediction.pace = walkPace(gearBurden(gear, stats));
   };
 
   let accumulator = 0;
@@ -94,7 +93,7 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
       inBattle = false;
       stats = welcome.stats;
       hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats });
-      setBag(welcome.bag);
+      setGear(welcome.gear);
       setVitals(welcome.vitals);
     },
     leave() {
@@ -133,11 +132,11 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
       prediction?.reset(msg.me);
       snapOverworldCamera(view, playerPos());
       hud.set({ wins: msg.wins });
-      setBag(msg.bag);
+      setGear(msg.gear);
       setVitals(msg.vitals);
     },
     setVitals,
-    setBag,
+    setGear,
     rest,
     render() {
       hud.set({ nearCampfire: byCampfire() });

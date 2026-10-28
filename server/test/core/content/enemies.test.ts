@@ -16,7 +16,8 @@ const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 
 const newFight = (seed: number) => new Fight({
   arena: { radius: 16 },
-  players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light" }],
+  players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
+    wields: { sword: true, spellbook: true } }],
   enemies: [{ def: KOBOLD, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
 });
 

@@ -64,6 +64,13 @@
       "when": 1793167483405,
       "tag": "0008_known-words",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793171460503,
+      "tag": "0009_equipment",
+      "breakpoints": true
     }
   ]
 }

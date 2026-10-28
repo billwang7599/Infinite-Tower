@@ -5,7 +5,7 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  moveItem as moveInBag, type Cell, type Character, type ServerMsgOf,
+  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -31,9 +31,8 @@ export interface Game {
   /** Once the server's result is in: fade back to the overworld. */
   leaveBattle(): void;
   rest(): void;
-  useItem(at: Cell): void;
-  /** Shown at once, then the server answers with the bag as it has it. */
-  moveItem(from: Cell, to: Cell, turned: boolean): void;
+  useItem(at: GridSpot): void;
+  moveItem(from: Spot, to: Spot, turned: boolean): void;
   saveCharacter(character: Character): void;
 }
 
@@ -68,8 +67,22 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
   ui.overworldPanel.subscribe(updateInput);
+  let bagOpen = false;
+  ui.overworldPanel.subscribe(() => {
+    const wasOpen = bagOpen;
+    bagOpen = ui.overworldPanel.get().open === "inventory";
+    if (wasOpen && !bagOpen) closeBag();
+  });
   ui.title.subscribe(updateInput);
   updateInput();
+
+  const closeBag = () => {
+    const gear = ui.overworld.get().gear;
+    if (gear.cloth.items.length === 0) return;
+    say(ui.notifications, { kind: "leftOnCloth", items: bagCounts(gear.cloth) });
+    overworld.setGear({ ...gear, cloth: { ...gear.cloth, items: [] } });
+    net?.send({ t: "closeBag" });
+  };
 
   const setMode = (next: Mode | null) => {
     mode = next;
@@ -140,9 +153,9 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     },
     moveItem(from, to, turned) {
       if (mode !== "overworld" || transition || !net) return;
-      const moved = moveInBag(ui.overworld.get().bag, from, to, turned);
+      const moved = moveGear(ui.overworld.get().gear, from, to, turned);
       if (!moved) return;
-      overworld.setBag(moved);
+      overworld.setGear(moved);
       net.send({ t: "moveItem", from, to, turned });
     },
     saveCharacter(character) {
@@ -171,10 +184,10 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
         },
         itemUsed(msg) {
           overworld.setVitals(msg.vitals);
-          overworld.setBag(msg.bag);
+          overworld.setGear(msg.gear);
           say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
-        bag: (msg) => overworld.setBag(msg.bag),
+        gear: (msg) => overworld.setGear(msg.gear),
         battleHash: (msg) => battle.onHash(msg),
         battleSync: (msg) => battle.onSync(msg),
         battleResult(msg) {

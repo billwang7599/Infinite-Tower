@@ -16,7 +16,7 @@ import type { Fight } from "./fight.js";
 interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max">; statuses: StatusData }
 
 interface PlayerSnapshot extends FighterSnapshot {
-  player: Omit<PlayerData, "burden">;
+  player: Omit<PlayerData, "burden" | "wields">;
   /** The input the player's last step ran with (what they hold). */
   input: PlayerInputData;
   stamina: Omit<StaminaData, "max">;
@@ -66,7 +66,7 @@ export function saveFight(fight: Fight): FightSnapshot {
     steps: fight.steps,
     outcome: { ...fight.outcome },
     players: fight.players.map((e) => {
-      const { burden: _, actionDir, ...player } = world.require(e, Player);
+      const { burden: _, wields: _wields, actionDir, ...player } = world.require(e, Player);
       const { max: _max, ...stamina } = world.require(e, Stamina);
       const input = copyInput(world.require(e, PlayerInput));
       return { ...fighter(e), player: { ...player, actionDir: { ...actionDir } }, input, stamina };

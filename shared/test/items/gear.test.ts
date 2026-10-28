@@ -1,0 +1,149 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import {
+  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, holds, ITEMS, moveGear, SLOTS,
+  starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Stats,
+} from "@infinite-tower/shared";
+
+const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
+  ({ item, count, x, y, turned });
+const grid = (cols: number, rows: number, ...items: BagItem[]): Bag => ({ cols, rows, items });
+const NOTHING: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
+
+/** Deep-frozen, so a function that changes its input throws. */
+function frozen(g: Gear): Gear {
+  for (const b of [g.bag, g.cloth]) {
+    b.items.forEach((s) => Object.freeze(s));
+    Object.freeze(b.items);
+    Object.freeze(b);
+  }
+  Object.freeze(g.equipment);
+  return Object.freeze(g);
+}
+
+const gear = (over: Partial<Gear> = {}): Gear =>
+  frozen({ bag: emptyBag(), cloth: grid(CLOTH.cols, CLOTH.rows), equipment: starterEquipment(), ...over });
+
+describe("the starting gear", () => {
+  test("the sword in the right hand, the spellbook in the left, nothing else worn", () => {
+    assert.deepEqual(starterEquipment(), { ...NOTHING, rightHand: "sword", leftHand: "spellbook" });
+  });
+
+  test("an empty cloth is the cloth's size, and each piece of starting gear is its own object", () => {
+    assert.deepEqual(emptyCloth(), { cols: CLOTH.cols, rows: CLOTH.rows, items: [] });
+    assert.notEqual(starterEquipment(), starterEquipment());
+  });
+
+  test("the sword and the spellbook are held in a hand, and don't stack", () => {
+    for (const id of ["sword", "spellbook"] as const) {
+      assert.equal(ITEMS[id].wornOn, "hand");
+      assert.equal(ITEMS[id].stackSize, 1);
+    }
+  });
+});
+
+describe("holds", () => {
+  test("either hand counts", () => {
+    assert.equal(holds(starterEquipment(), "sword"), true);
+    assert.equal(holds({ ...NOTHING, leftHand: "sword" }, "sword"), true);
+    assert.equal(holds({ ...NOTHING, rightHand: "spellbook" }, "sword"), false);
+  });
+});
+
+describe("weight", () => {
+  test("what's worn counts, what's on the cloth doesn't", () => {
+    const bag = grid(6, 4, stack("boar-tusk", 0, 0));
+    const cloth = grid(4, 4, stack("boar-hide", 0, 0));
+    const worn = ITEMS.sword.weight + ITEMS.spellbook.weight;
+    assert.equal(gearWeight(gear({ bag, cloth })), bagWeight(bag) + worn);
+  });
+
+  test("the burden weighs the bag and the equipment together", () => {
+    const stats: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
+    const worn = ITEMS.sword.weight + ITEMS.spellbook.weight;
+    const tusks = Math.ceil((carryLimit(stats) - worn) / ITEMS["boar-tusk"].weight);
+    const bag = grid(tusks, 2, ...Array.from({ length: tusks }, (_, x) => stack("boar-tusk", x, 0)));
+    assert.equal(gearBurden(gear({ bag, equipment: NOTHING }), stats), "light");
+    assert.equal(gearBurden(gear({ bag }), stats), "heavy");
+  });
+});
+
+describe("moveGear", () => {
+  const bag = (...items: BagItem[]) => grid(6, 4, ...items);
+  const cloth = (...items: BagItem[]) => grid(CLOTH.cols, CLOTH.rows, ...items);
+
+  test("within the bag, it's the bag's move", () => {
+    const g = gear({ bag: bag(stack("boar-tusk", 0, 0)) });
+    const moved = moveGear(g, { in: "bag", x: 0, y: 1 }, { in: "bag", x: 3, y: 1 }, true);
+    assert.deepEqual(moved?.bag.items, [stack("boar-tusk", 3, 1, 1, true)]);
+    assert.equal(moveGear(g, { in: "bag", x: 2, y: 2 }, { in: "bag", x: 3, y: 1 }, false), null);
+  });
+
+  test("from the bag onto the cloth and back, turned as asked", () => {
+    const g = gear({ bag: bag(stack("boar-hide", 1, 1)) });
+    const out = moveGear(g, { in: "bag", x: 2, y: 2 }, { in: "cloth", x: 2, y: 2 }, false)!;
+    assert.deepEqual(out.bag.items, []);
+    assert.deepEqual(out.cloth.items, [stack("boar-hide", 2, 2)]);
+    const back = moveGear(out, { in: "cloth", x: 2, y: 2 }, { in: "bag", x: 4, y: 0 }, false)!;
+    assert.deepEqual(back.bag.items, [stack("boar-hide", 4, 0)]);
+    assert.deepEqual(back.cloth.items, []);
+  });
+
+  test("not where it doesn't fit, nor from an empty cell", () => {
+    const g = gear({ bag: bag(stack("boar-tusk", 0, 0)), cloth: cloth(stack("boar-hide", 0, 0)) });
+    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: 1, y: 1 }, false), null);
+    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: 3, y: 3 }, false), null);
+    assert.equal(moveGear(g, { in: "bag", x: 3, y: 3 }, { in: "cloth", x: 3, y: 0 }, false), null);
+  });
+
+  test("onto a stack of the same thing, it tops that up and the rest stays", () => {
+    const max = ITEMS["boar-meat"].stackSize;
+    const g = gear({ bag: bag(stack("boar-meat", 0, 0, max)), cloth: cloth(stack("boar-meat", 1, 1, max - 2)) });
+    const moved = moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: 1, y: 1 }, false)!;
+    assert.deepEqual(moved.cloth.items, [stack("boar-meat", 1, 1, max)]);
+    assert.deepEqual(moved.bag.items, [stack("boar-meat", 0, 0, max - 2)]);
+  });
+
+  test("taking the sword off into the bag, then putting it in the other hand", () => {
+    const g = gear({ equipment: { ...NOTHING, rightHand: "sword" } });
+    const off = moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 0, y: 1 }, true)!;
+    assert.equal(off.equipment.rightHand, null);
+    assert.deepEqual(off.bag.items, [stack("sword", 0, 1, 1, true)]);
+    const on = moveGear(off, { in: "bag", x: 2, y: 1 }, { in: "slot", slot: "leftHand" }, false)!;
+    assert.equal(on.equipment.leftHand, "sword");
+    assert.deepEqual(on.bag.items, []);
+  });
+
+  test("a hand-to-hand move swaps what the hands hold", () => {
+    const moved = moveGear(gear(), { in: "slot", slot: "rightHand" }, { in: "slot", slot: "leftHand" }, false)!;
+    assert.deepEqual(moved.equipment, { ...NOTHING, rightHand: "spellbook", leftHand: "sword" });
+    const one = gear({ equipment: { ...NOTHING, rightHand: "sword" } });
+    const across = moveGear(one, { in: "slot", slot: "rightHand" }, { in: "slot", slot: "leftHand" }, false)!;
+    assert.deepEqual(across.equipment, { ...NOTHING, leftHand: "sword" });
+  });
+
+  test("only into a slot that takes it, and only an empty one from a grid", () => {
+    const g = gear({ bag: bag(stack("boar-tusk", 0, 0), stack("sword", 1, 0)), equipment: NOTHING });
+    for (const slot of SLOTS) {
+      assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "slot", slot }, false), null, slot);
+    }
+    for (const slot of ["head", "body", "legs", "boots"] as const) {
+      assert.equal(moveGear(g, { in: "bag", x: 1, y: 0 }, { in: "slot", slot }, false), null, slot);
+    }
+    const full = gear({ bag: bag(stack("sword", 1, 0)) });
+    assert.equal(moveGear(full, { in: "bag", x: 1, y: 0 }, { in: "slot", slot: "rightHand" }, false), null);
+    assert.equal(moveGear(full, { in: "slot", slot: "rightHand" }, { in: "slot", slot: "head" }, false), null);
+  });
+
+  test("nothing from an empty slot, nor onto where it is", () => {
+    const g = gear({ equipment: NOTHING });
+    assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 0, y: 0 }, false), null);
+    assert.equal(moveGear(gear(), { in: "slot", slot: "rightHand" }, { in: "slot", slot: "rightHand" }, false), null);
+  });
+
+  test("off a hand only where it fits in the grid", () => {
+    const g = gear({ bag: bag(stack("boar-hide", 0, 0)) });
+    assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 1, y: 1 }, false), null);
+    assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 5, y: 2 }, false), null);
+  });
+});

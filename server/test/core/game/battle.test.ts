@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  Player, STARTER_SWORD, type Bag, type PlayerInputData, type Spell, type Word,
+  Player, STARTER_SWORD, starterEquipment, type Bag, type Equipment, type PlayerInputData, type Spell, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -91,7 +91,16 @@ describe("starting a battle", () => {
     const seed = msg.setup.enemies[0]?.seed;
     assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
-    assert.deepEqual(msg.setup.players, [{ at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light" }]);
+    assert.deepEqual(msg.setup.players, [{
+      at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light", wields: { sword: true, spellbook: true },
+    }]);
+  });
+
+  test("says what the player has in hand: no sword or spellbook there, no swinging or casting", () => {
+    const bookOnly: Equipment = { ...starterEquipment(), rightHand: null };
+    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly } });
+    session.debugEncounter();
+    assert.deepEqual(link.last("encounter").setup.players[0]!.wields, { sword: false, spellbook: true });
   });
 
   test("says how weighed down the player comes in (the fight applies it)", () => {
@@ -127,11 +136,11 @@ describe("the server runs the fight", () => {
     assert.ok((result.loot["boar-meat"] ?? 0) >= 1);
     assert.deepEqual(result.leftBehind, {});
     assert.deepEqual(result.lost, {});
-    assert.deepEqual(result.bag, packLoot(emptyBag(), result.loot).bag);
-    assert.deepEqual(session.bag, result.bag);
+    assert.deepEqual(result.gear.bag, packLoot(emptyBag(), result.loot).bag);
+    assert.deepEqual(session.bag, result.gear.bag);
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
-    assert.deepEqual(saves[0]?.bag, result.bag);
+    assert.deepEqual(saves[0]?.bag, result.gear.bag);
   });
 
   test("a win keeps the HP and stamina the fight left, and the player where they were", () => {
@@ -171,13 +180,26 @@ describe("the server runs the fight", () => {
     assert.equal(result.won, false);
     assert.equal(link.last("battleSync").fight.players[0]!.health.hp, 0, "the boar hit them");
     assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
-    assert.deepEqual(result.bag, { ...CARRIED, items: [] });
-    assert.deepEqual(session.bag, result.bag);
+    assert.deepEqual(result.gear.bag, { ...CARRIED, items: [] });
+    assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
     assert.deepEqual(result.me, LEVEL.spawn);
     assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
-    assert.deepEqual(saves[0]?.bag, result.bag);
+    assert.deepEqual(saves[0]?.bag, result.gear.bag);
+  });
+
+  test("after a death the player wakes with a fresh sword and spellbook in hand, whatever they had", () => {
+    const swapped: Equipment = { ...starterEquipment(), rightHand: null, leftHand: "sword" };
+    const started = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: swapped } });
+    const { session, link, saves } = started;
+    session.debugEncounter();
+    session.overworld.place({ x: 3, z: 3 });
+    play(session, () => IDLE_INPUT);
+    assert.equal(link.last("battleResult").won, false);
+    assert.deepEqual(link.last("battleResult").gear.equipment, starterEquipment());
+    assert.deepEqual(session.gear.equipment, starterEquipment());
+    assert.deepEqual(saves.at(-1)?.equipment, starterEquipment());
   });
 
   test("a fight still going after MAX_FIGHT_TIME is lost: the bag empties", () => {

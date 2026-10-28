@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { CLOSE_CODES, emptyBag } from "@infinite-tower/shared";
+import { CLOSE_CODES, emptyBag, starterEquipment } from "@infinite-tower/shared";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
 import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
@@ -13,6 +13,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
+  equipment: starterEquipment(),
 };
 
 /** Lets a pending store load (and what follows it) finish. */
@@ -59,7 +60,8 @@ describe("game sockets", () => {
     assert.deepEqual(welcome.vitals, SAVED.vitals);
     assert.equal(welcome.wins, 3);
     assert.deepEqual(welcome.character, TEST_CHARACTER);
-    assert.deepEqual(welcome.bag, SAVED.bag);
+    assert.deepEqual(welcome.gear.bag, SAVED.bag);
+    assert.deepEqual(welcome.gear.equipment, SAVED.equipment);
   });
 
   test("a character message gets the character and the level back, and is saved", async () => {

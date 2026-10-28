@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../battle/sword.js";
+import { SLOTS, type Spot } from "../items/gear.js";
 import { AUGMENTS, ELEMENTS, FORMS, type Spell } from "../spells/spell.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
@@ -106,14 +107,18 @@ const CharacterMsg = z.object({
 
 const RestMsg = z.object({ t: z.literal("rest") });
 
-/** Whether it's in the bag is the bag's rules' call. */
-const CellSchema = z.object({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative() });
+const GridSpot = z.object({
+  in: z.enum(["bag", "cloth"]), x: z.number().int().nonnegative(), y: z.number().int().nonnegative(),
+});
+const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
+  z.ZodType<Spot>;
 
 /** Overworld only. */
-const UseItemMsg = z.object({ t: z.literal("useItem"), at: CellSchema });
+const UseItemMsg = z.object({ t: z.literal("useItem"), at: GridSpot });
 
-/** `moveItem` in items/bag.ts. Overworld only. */
-const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: CellSchema, to: CellSchema, turned: z.boolean() });
+const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: SpotSchema, to: SpotSchema, turned: z.boolean() });
+
+const CloseBagMsg = z.object({ t: z.literal("closeBag") });
 
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
@@ -123,7 +128,7 @@ const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]), e
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, PingMsg, DebugMsg,
+  MoveItemMsg, CloseBagMsg, PingMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

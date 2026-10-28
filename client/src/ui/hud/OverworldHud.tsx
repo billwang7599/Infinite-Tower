@@ -1,4 +1,4 @@
-import type { Cell } from "@infinite-tower/shared";
+import type { GridSpot, Spot } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
@@ -29,8 +29,8 @@ interface OverworldHudProps extends HudProps {
   closePanel: () => void;
   openSettings: () => void;
   rest: () => void;
-  useItem: (at: Cell) => void;
-  moveItem: (from: Cell, to: Cell, turned: boolean) => void;
+  useItem: (at: GridSpot) => void;
+  moveItem: (from: Spot, to: Spot, turned: boolean) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */

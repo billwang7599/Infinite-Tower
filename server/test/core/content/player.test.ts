@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { emptyBag, PLAYER } from "@infinite-tower/shared";
+import { emptyBag, PLAYER, starterEquipment } from "@infinite-tower/shared";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 
 describe("player content", () => {
@@ -9,9 +9,10 @@ describe("player content", () => {
     assert.equal(fullVitals({ ...PLAYER_STATS, stamina: 7 }).stamina, 7);
   });
 
-  test("a new player is rested, with no wins, settings, character or spell words, and an empty bag", () => {
+  test("a new player is rested, with no wins, settings, character or spell words, an empty bag, armed", () => {
     assert.deepEqual(newPlayer(), {
       vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
+      equipment: starterEquipment(),
     });
   });
 

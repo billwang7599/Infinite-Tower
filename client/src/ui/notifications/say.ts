@@ -2,8 +2,8 @@
  * Everything the game tells the player goes through `say`: game code says what happened, and EVENT_MESSAGES where it
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
-import { itemDef, type EnemyDef, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
-import { battleResultLines, type BattleOutcome } from "./battleResult.js";
+import { itemDef, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
+import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
 
 export type GameEvent =
@@ -11,6 +11,7 @@ export type GameEvent =
   | { kind: "encounter"; source: ServerMsgOf<"encounter">["source"]; enemy: Pick<EnemyDef, "name"> }
   | { kind: "rested" }
   | { kind: "itemUsed"; item: ItemId }
+  | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "battleResult"; outcome: BattleOutcome };
 
 type EventKind = GameEvent["kind"];
@@ -28,6 +29,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   encounter:    { where: "centre", lines: (event) => [encounterLine(event)] },
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
+  leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
 };
 

@@ -104,9 +104,10 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
   // attack lets go: a dodge or the next attack waits for it, however early it's pressed.
   const locked = player.action === "attack" && player.actionTime < lettingGoAt(player);
-  const attackPressed = input.attack !== null && input.attack !== player.attackHeld;
+  const { sword, spellbook } = player.wields;
+  const attackPressed = sword && input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
-  const castPressed = input.cast !== null && !player.castHeld;
+  const castPressed = spellbook && input.cast !== null && !player.castHeld;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
@@ -165,7 +166,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       startAttack(world, e, player, input, player.queued);
       spend(stamina, isSwing(player.queued) ? PLAYER.swing.cost : PLAYER.stab.cost);
       player.attackBuffer = 0;
-    } else if (player.action === "none" && input.block && player.grounded) {
+    } else if (player.action === "none" && sword && input.block && player.grounded) {
       startAction(world, e, player, "block", input.aimX, input.aimZ);
       endCombo(player);
     }

@@ -3,8 +3,9 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, spellProblems, takeOne, walkPace, type Bag, type Burden,
-  type Cell, type Character, type SavedSettings, type StepInput, type Stats, type Vitals, type Word,
+  emptyCloth, gearBurden, itemAt, itemDef, moveGear, nearCampfire, PLAYER, spellProblems, takeOne, walkPace, type Bag,
+  type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Spot, type StepInput, type Stats,
+  type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
@@ -30,7 +31,7 @@ export class GameSession {
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
-  private carried: Bag;
+  private held: Gear;
   private readonly knownWords: Word[];
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -46,31 +47,36 @@ export class GameSession {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
-    this.carried = saved.bag;
-    this.bag = saved.bag;
+    this.held = { bag: saved.bag, cloth: emptyCloth(), equipment: saved.equipment };
+    this.gear = this.held;
     this.knownWords = saved.knownWords;
   }
 
   /** Its weight sets how fast they walk the overworld. */
-  get bag(): Bag { return this.carried; }
-  set bag(bag: Bag) {
-    this.carried = bag;
+  get gear(): Gear { return this.held; }
+  set gear(gear: Gear) {
+    this.held = gear;
     this.overworld.playerData().pace = walkPace(this.burden);
   }
 
-  get burden(): Burden { return bagBurden(this.carried, this.stats); }
+  get bag(): Bag { return this.held.bag; }
+  set bag(bag: Bag) { this.gear = { ...this.held, bag }; }
+
+  get burden(): Burden { return gearBurden(this.held, this.stats); }
 
   /** Sends `welcome`, then puts the player in the world, unless they have no character yet. */
   start(): void {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, bag: this.bag, dev: this.dev,
+      character: this.character, gear: this.gear, dev: this.dev,
     });
     if (this.character) this.enterLevel(START_LEVEL);
   }
 
   input(seq: number, moveX: number, moveZ: number): void {
-    if (this.inOverworld) this.overworld.input(seq, moveX, moveZ);
+    if (!this.inOverworld) return;
+    if (moveX !== 0 || moveZ !== 0) this.closeBag();
+    this.overworld.input(seq, moveX, moveZ);
   }
 
   battleInput(upTo: number, inputs: readonly StepInput[]): void {
@@ -125,27 +131,32 @@ export class GameSession {
     this.link.send({ t: "rested", vitals: this.vitals });
   }
 
-  /** Uses one of the item in bag cell `at`, if it does something now (meat at full HP doesn't). */
-  useItem(at: Cell): void {
-    const item = this.bag.items[itemAt(this.bag, at)]?.item;
+  useItem(at: GridSpot): void {
+    const grid = this.gear[at.in];
+    const item = grid.items[itemAt(grid, at)]?.item;
     const healHp = item ? itemDef(item).healHp ?? 0 : 0;
-    const left = takeOne(this.bag, at);
+    const left = takeOne(grid, at);
     if (!this.inOverworld || !item || !left || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
-    this.bag = left;
+    this.gear = { ...this.gear, [at.in]: left };
     this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + healHp) };
     this.save();
-    this.link.send({ t: "itemUsed", item, vitals: this.vitals, bag: this.bag });
+    this.link.send({ t: "itemUsed", item, vitals: this.vitals, gear: this.gear });
   }
 
-  /** On the overworld only. The bag goes back either way. */
-  moveItem(from: Cell, to: Cell, turned: boolean): void {
+  moveItem(from: Spot, to: Spot, turned: boolean): void {
     if (!this.inOverworld) return;
-    const moved = moveItem(this.bag, from, to, turned);
+    const moved = moveGear(this.gear, from, to, turned);
     if (moved) {
-      this.bag = moved;
+      this.gear = moved;
       this.saveSoon();
     }
-    this.link.send({ t: "bag", bag: this.bag });
+    this.link.send({ t: "gear", gear: this.gear });
+  }
+
+  closeBag(): void {
+    if (this.gear.cloth.items.length === 0) return;
+    this.gear = { ...this.gear, cloth: emptyCloth() };
+    this.link.send({ t: "gear", gear: this.gear });
   }
 
   /** Now, cancelling a pending `saveSoon`. */
@@ -154,7 +165,7 @@ export class GameSession {
     this.saveTimer = null;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
-      bag: this.bag, knownWords: this.knownWords,
+      bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords,
     });
   }
 

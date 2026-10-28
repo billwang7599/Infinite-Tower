@@ -47,15 +47,19 @@ What's built so far:
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (B) is the
-  grid, worked with the mouse (you stand still while it's open): hover for an item's tooltip, click to select,
-  drag to move, R or a right click to turn, Enter or a double click to eat.
+  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (B) shows what
+  you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
+  still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
+  Enter or a double click to eat.
+- **Equipment:** you start with a sword in your right hand and a spellbook in your left (and get a fresh pair after
+  dying). Without a sword in hand you can't swing, stab or block; without the spellbook you can't cast. Worn
+  things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
   and fade; only a fight starting gets the big banner in the middle.
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), key
   bindings (general: Esc, WASD, the panels; the overworld's; the arena's), return to title.
-- **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
+- **Saving:** your character, vitals, wins, bag, equipment and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
   inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's

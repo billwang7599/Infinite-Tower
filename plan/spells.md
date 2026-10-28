@@ -113,8 +113,8 @@ shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions; 
 ## PRs
 
 1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
-2. **D** the spellbook item and its 4 saved spells, quick-cast keys, the campfire builder, chanting in fights, and
-   learning words. The words a player knows are already saved (`PlayerSave.knownWords`).
+2. **D** the spellbook's 4 saved spells (the item itself is built), quick-cast keys, the campfire builder, chanting in
+   fights, and learning words. The words a player knows are already saved (`PlayerSave.knownWords`).
 3. **E** the remaining Forms (Beam, Imbue) and augments, objects and their caps.
 4. **F** real art and effects (now a coloured ball per Bolt and a fading sphere per Nova / Self).
 

@@ -11,7 +11,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [multiplayer.md](multiplayer.md): other players on the overworld and in fights | direction |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
-| [inventory.md](inventory.md): the rest of the grid inventory (loot screen, equipment, the cloth) | being built |
+| [inventory.md](inventory.md): the rest of the grid inventory (loot screen, the bag in a fight, spellbook pages) | being built |
 | [spells.md](spells.md): spells built from words (Forms, elements, augments) and cast in fights | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
