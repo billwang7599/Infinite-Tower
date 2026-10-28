@@ -19,17 +19,17 @@ function playerDoing(action: PlayerAction, t: number): PlayerData {
 const ATTACKING = playerDoing("attack", 0);
 
 describe("the player's sprite", () => {
-  test("every attack plays its pose's frames: wind-up, strike while the blade is live, follow-through", () => {
+  test("every attack plays its pose's frames in turn: wind-up, strike as its blade goes live, follow-through", () => {
     for (const attack of ATTACK_KINDS) {
       const steps = swingSteps(attack);
       const poses = steps.map((swing) => spritePose(ATTACKING, swing, true, 1));
       const name = attack === "stab" ? "stab" : `swing-${attack}`;
       for (const pose of poses) assert.ok(pose.scaleX > 0, `${attack} isn't mirrored`);
-      poses.forEach((pose, step) => {
-        const { liveAt, liveUntil } = steps[step]!;
-        assert.equal(pose.pose, name, `${attack} at step ${step}`);
-        assert.equal(pose.frame, step < liveAt ? 0 : step < liveUntil ? 1 : 2, `${attack} at step ${step}`);
-      });
+      const { driveAt, liveAt } = steps[0]!;
+      for (const pose of poses) assert.equal(pose.pose, name, attack);
+      assert.deepEqual(poses.map((p) => p.frame), poses.map((p) => p.frame).sort(), `${attack}: in order`);
+      assert.equal(poses[driveAt]!.frame, 0, `${attack}: wound up as the drive starts`);
+      assert.equal(poses[liveAt]!.frame, 1, `${attack}: striking as it goes live`);
       assert.ok(poses.some((pose) => pose.frame === 2), `${attack} follows through`);
     }
   });

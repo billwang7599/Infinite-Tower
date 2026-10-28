@@ -14,8 +14,8 @@ const newFight = () => new Fight({
 });
 
 const SWING: SwingData = {
-  attack: "lr", dir: { x: 0, z: 1 }, step: 3, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
-  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, flow: 1,
+  attack: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
+  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, startSpeed: 0, flow: 1,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {

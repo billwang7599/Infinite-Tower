@@ -179,16 +179,17 @@ Decided by the user:
   click stabs; there are no swing keys. Movement doesn't swing while blocking. How little movement swings is the swing
   sensitivity in Settings (saved with the other settings). Block is held (Left Shift), Space jumps, F dodges (the right
   mouse button doesn't). A swing's reach and arc come from the sword's length and its line (horizontal wide and short,
-  vertical narrow and long; the stab a long thin ray). Swings follow from the blade's inertia: the next one's wind-up is
-  the time the blade takes to get to its start, so with the starter sword the reverse is quickest (0.05 s), an opening
-  0.1 s, the same swing again slowest (0.125 s); a swing on the way the blade already goes hits up to 25% harder, a
-  reverse costs the most stamina; a gap, a block, a dodge or a hit taken brings the blade to rest. A block stops a hit
-  from in front for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're
-  staggered. Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
+  vertical narrow and long; the stab a long thin ray). Swings follow from the blade's inertia, and are drawn as the
+  fight runs them: from rest the blade starts slow and speeds up to impact, then follows through, slowing, longer the
+  heavier it is. With the starter sword an opening goes live in 0.35 s; the same swing again as the last lets go loops
+  round on its momentum (0.19 s) and hits up to 25% harder; a reverse brakes first (0.4 s) and costs the most stamina; a
+  gap, a block, a dodge or a hit taken brings the blade to rest. A block stops a hit from in front for stamina (by the
+  hit's momentum) and pushes you back; short of stamina, the guard breaks and you're staggered. Numbers:
+  `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
   three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
-  first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, never
-  longer with its blade). A swing is parried by the reverse swing live within
+  first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, which since
+  the slower swings makes most of its chained turns 0.5-0.6 s). A swing is parried by the reverse swing live within
   `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage), even while you're briefly
   invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
   damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
@@ -197,6 +198,10 @@ Decided by the user:
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
+- Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
+  too"; not hand-played yet): a Longsword and a Greatsword, which the dev seed puts in test1-3's bags. The Kobold
+  Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
+  Field), dropping nothing.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
   keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
@@ -269,6 +274,13 @@ them; treat them as changeable, and still ask before deciding new ones):
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
   bag is empty. The server checks every move with the shared bag rules (mid-fight, the fight does).
+- Heavier swords: the user asked for slower, more exaggerated swings that start slow and carry on by momentum, to be
+  read from the blade alone. From rest at strength 10 a swing goes live in 0.35 s with the sword, 0.53 s with the
+  longsword and 1.0 s with the greatsword (inertia counts the blade's length too: m × (balance² + length² / 12)), and
+  swing times scale up to 3×. The Longsword is 1 x 3, 1.4 m,
+  weight 4.5, balance 0.3 m, power 11; the Greatsword 1 x 4, 1.9 m, weight 8, balance 0.45 m, power 16 (powers set so
+  every sword deals the same damage per second at strength 10); the Kobold Greatsword's blade is the greatsword with
+  the Kobold blade's power 14. Numbers: `WEAPONS` and `SWING` in `shared/src/weapons/weapons.ts`.
 - The view is 16:9 at most (23 x 13 overworld tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).
@@ -335,7 +347,8 @@ tests say what was agreed. Where tests go and how they're written:
   username: "test3", password: "test3" } })` (it shares the page's cookies), open `/?debug` and click Play
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
-  `window.encounter("kobold-swordsman")` for the Kobold, `"goblin-warlock"` for the warlock) and, in a fight,
+  `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
+  `"goblin-warlock"` for the warlock) and, in a fight,
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R). A new account has no character: make one first. Skip this when the user says
   it isn't needed.

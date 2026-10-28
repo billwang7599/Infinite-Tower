@@ -39,6 +39,18 @@ export const ITEMS = {
     name: "Kobold blade", description: "A notched blade, heavier at the tip. Kobolds don't let go of theirs.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wornOn: "hand",
   },
+  longsword: {
+    name: "Longsword", description: "A longer, heavier blade. Slower to get going, and it hits harder.", cols: 1,
+    rows: 3, stackSize: 1, weight: 4.5, wornOn: "hand",
+  },
+  greatsword: {
+    name: "Greatsword", description: "Taller than a kobold. Slow to start and slow to turn, but it lands like a door.",
+    cols: 1, rows: 4, stackSize: 1, weight: 8, wornOn: "hand",
+  },
+  "kobold-greatsword": {
+    name: "Kobold greatsword", description: "A slab of iron with a handle. Kobolds don't let go of theirs either.",
+    cols: 1, rows: 4, stackSize: 1, weight: 8, wornOn: "hand",
+  },
   skillbook: {
     name: "Skillbook", description: "A worn book of four pages. You need it in hand to use skills, and to write in it.",
     cols: 2, rows: 2, stackSize: 1, weight: 1.5, wornOn: "hand", verb: "Open",

@@ -70,6 +70,15 @@ describe("getLevel", () => {
     assert.equal(inTallGrass(level.layout, kobold.at.x, kobold.at.z), false);
   });
 
+  test("the Kobold Greatsword spawns near the Kobold Swordsman, out of the grass", () => {
+    const level = getLevel(START_LEVEL);
+    const big = level.spawns.find((s) => s.enemy === "kobold-greatsword");
+    const kobold = level.spawns.find((s) => s.enemy === "kobold-swordsman");
+    assert.ok(big && kobold);
+    assert.ok(Math.hypot(big.at.x - kobold.at.x, big.at.z - kobold.at.z) < 12);
+    assert.equal(inTallGrass(level.layout, big.at.x, big.at.z), false);
+  });
+
   test("the Goblin Warlock has a corner of its own, away from the others", () => {
     const level = getLevel(START_LEVEL);
     const goblin = level.spawns.find((s) => s.enemy === "goblin-warlock");

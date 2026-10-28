@@ -20,23 +20,25 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** a 2D top-down grass field with a boar and, each in a corner of its own, a Kobold Swordsman and a Goblin
-  Warlock, which wander
+- **Overworld:** a 2D top-down grass field with a boar and, each in a corner of its own, a Kobold Swordsman (a Kobold
+  Greatsword beside it) and a Goblin Warlock, which wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
   than 16:9 get side bars.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena.
   A sword with eight swings (one per way across
   the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
-  short, vertical ones narrow and long, the stab a long thin line. Swings follow the blade's inertia: the next starts
-  as soon as the blade can get to its start (the reverse swing quickest), a swing on the way the blade already goes
-  hits harder (the HUD shows the combo), and stamina goes by the effort (reversing costs most); weapons have mass and
-  balance, and strength sets how fast you swing. A block stops what hits it from in front for stamina, and breaks,
+  short, vertical ones narrow and long, the stab a long thin line. Swings follow the blade's inertia: they start slow
+  and carry on by momentum, so a swing on the way the blade already goes comes round quicker and hits harder (the HUD
+  shows the combo), and stamina goes by the effort (reversing costs most); weapons have mass and
+  balance (a longsword and a greatsword swing slower and hit harder), and strength sets how fast you swing. A block
+  stops what hits it from in front for stamina, and breaks,
   staggering you, when the stamina runs out. A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
   Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing
   just before one lands parries it (the Kobold is stunned and takes more damage); a stab can only be blocked or dodged.
   On guard it parries your swings and blocks your stabs, so hit it while it recovers from a chain or is stunned. The
+  Kobold Greatsword fights the same with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
   sprite winds up, strikes and follows through on every swing and the stab, raises its guard to block, and reels when

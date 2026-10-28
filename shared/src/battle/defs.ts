@@ -104,7 +104,7 @@ export interface EnemyAttacks {
   skill?: SkillAttackDef;
 }
 
-export type EnemyId = "wild-boar" | "kobold-swordsman" | "goblin-warlock";
+export type EnemyId = "wild-boar" | "kobold-swordsman" | "kobold-greatsword" | "goblin-warlock";
 
 export interface EnemyDef {
   id: EnemyId;

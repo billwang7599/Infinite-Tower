@@ -34,7 +34,7 @@ const LANDS_AT = (() => {
   while (fight.world.require(fight.players[0]!, Health).hp === PLAYER.maxHp) fight.step([IDLE_INPUT]);
   return fight.steps;
 })();
-const LIVE_AFTER = liveStep(SWING.openingTime);
+const LIVE_AFTER = liveStep(SWING.setTime + SWING.driveTime);
 const PARRY_PRESS: PlayerInputData = { ...IDLE_INPUT, attack: reverseOf(ITS_SWING) };
 
 /** Presses the reverse swing so its blade goes live `k` steps before the Kobold's lands, sent `late` ticks late. */

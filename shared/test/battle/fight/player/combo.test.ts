@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  attackShape, Enemy, liveStep, planSwing, Player, PLAYER, restingBlade, Stamina, stepsUntil, SWING, WEAPONS,
-  Wielder, type AttackKind, type Blade, type EnemyDef, type PlayerData, type PlayerInputData, type WielderData,
+  attackShape, Enemy, followingBlade, liveStep, planSwing, Player, PLAYER, restingBlade, Stamina, stepsUntil, SWING,
+  WEAPONS, Wielder, type AttackKind, type Blade, type EnemyDef, type PlayerData, type PlayerInputData, type WielderData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -83,7 +83,7 @@ function planOf(kinds: AttackKind[]) {
   let blade = restingBlade(), plan = planSwing(SWORD, STRENGTH, blade, kinds[0]!);
   for (const kind of kinds) {
     plan = planSwing(SWORD, STRENGTH, blade, kind);
-    blade = plan.blade;
+    blade = followingBlade(kind, plan.flow);
   }
   return plan;
 }
@@ -91,13 +91,18 @@ function planOf(kinds: AttackKind[]) {
 describe("when the next swing starts", () => {
   test("pressed early, it starts on the step the last one lets go, never cutting it short", () => {
     const { starts } = play(chainOf(["lr", "tb"]), 120, newFight(FAR));
-    assert.equal(starts[1]! - starts[0]!, stepsUntil(SWING.openingTime + SWING.activeTime));
+    assert.equal(starts[1]! - starts[0]!, stepsUntil((SWING.setTime + SWING.driveTime) + SWING.activeTime));
   });
 
-  test("from rest it goes live after the opening time; reversing the blade, after the reverse time", () => {
+  test("from rest it goes live after it's set and driven; reversing the blade, after braking it and a drive", () => {
     const { starts, live } = play(chainOf(["lr", "rl"]), 120, newFight(FAR));
-    assert.equal(live[0]! - starts[0]!, liveStep(SWING.openingTime));
-    assert.equal(live[1]! - starts[1]!, liveStep(SWING.reverseTime));
+    assert.equal(live[0]! - starts[0]!, liveStep(SWING.setTime + SWING.driveTime));
+    assert.equal(live[1]! - starts[1]!, liveStep(2 * SWING.driveTime));
+  });
+
+  test("the same swing again, the blade looping round on its way, goes live far sooner than from rest", () => {
+    const { starts, live } = play(chainOf(["lr", "lr"]), 120, newFight(FAR));
+    assert.ok(live[1]! - starts[1]! < 0.6 * (live[0]! - starts[0]!));
   });
 
   test("every order takes the time the blade needs to get to its start: in the fight as in the plan", () => {
@@ -124,11 +129,10 @@ describe("how hard it hits and what it costs", () => {
   });
 
   test("each swing costs stamina by what it adds to the blade's motion: reversing it costs most", () => {
-    const { costs } = play(chainOf(["lr", "rl", "tb", "tb"]), 200, newFight(FAR));
-    assert.equal(costs[0], PLAYER.swing.cost);
-    assert.equal(costs[1], PLAYER.swing.cost * planOf(["lr", "rl"]).effort);
-    assert.equal(costs[2], PLAYER.swing.cost * planOf(["lr", "rl", "tb"]).effort);
-    assert.equal(costs[3], PLAYER.swing.cost * planOf(["lr", "rl", "tb", "tb"]).effort);
+    const kinds: AttackKind[] = ["lr", "rl", "brtl", "brtl"];
+    const { costs } = play(chainOf(kinds), 200, newFight(FAR));
+    const close = (a: number | undefined, b: number) => assert.ok(Math.abs(a! - b) < 1e-9, `${a} vs ${b}`);
+    for (let i = 0; i < kinds.length; i++) close(costs[i], PLAYER.swing.cost * planOf(kinds.slice(0, i + 1)).effort);
     assert.ok(costs[1]! > costs[2]! && costs[2]! > costs[3]!, costs.join(", "));
   });
 
@@ -146,7 +150,8 @@ describe("the blade comes to rest", () => {
 
   test("it keeps moving a while after a swing, then rests: a gap", () => {
     const kinds: AttackKind[] = ["lr", "lr"];
-    const going = play(chainOf(kinds), 5 + 2 * stepsUntil(SWING.openingTime + SWING.activeTime) + 3, newFight(FAR));
+    const going = play(chainOf(kinds), 5 + stepsUntil(SWING.setTime + SWING.driveTime + SWING.activeTime) + 5,
+      newFight(FAR));
     assert.notDeepEqual(going.blades.at(-1), restingBlade(), "moving");
     atRest(play(chainOf(kinds), 120, newFight(FAR)));
   });
@@ -154,8 +159,7 @@ describe("the blade comes to rest", () => {
   test("on a block or a dodge", () => {
     for (const breaker of [{ block: true }, { dodge: true, moveX: 1 }]) {
       const script = chainOf(["lr", "lr"], (_step, me) => (me.action === "none" ? breaker : {}));
-      const broken = play(script, 5 + stepsUntil(2 * (SWING.openingTime + SWING.activeTime) + SWING.recoverTime) + 4,
-        newFight(FAR));
+      const broken = play(script, 120, newFight(FAR));
       atRest(broken);
     }
   });
@@ -174,7 +178,7 @@ describe("the blade comes to rest", () => {
 
   test("from rest, the next swing is an opening again", () => {
     const after = play(chainOf(["lr"], (step) => (step === 100 ? { attack: "lr" } : {})), 160);
-    assert.equal(after.live[1]! - after.starts[1]!, liveStep(SWING.openingTime));
+    assert.equal(after.live[1]! - after.starts[1]!, liveStep(SWING.setTime + SWING.driveTime));
     assert.equal(after.damage[1], BASE_DAMAGE);
   });
 });

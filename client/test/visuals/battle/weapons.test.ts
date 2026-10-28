@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  attackShape, FIXED_DT, PLAYER, reverseOf, SCREEN_DIR, SWING_DIRS, WEAPONS, type SwingData, type SwingDir,
+  attackShape, PLAYER, reverseOf, SCREEN_DIR, SWING_DIRS, WEAPONS, type SwingData, type SwingDir,
+  type WeaponId,
 } from "@infinite-tower/shared";
-import { MOTIONS, swingFrame, type TrailPose } from "../../../src/visuals/battle/weapons.js";
+import { MOTIONS, swingFrame, WEAPON_LOOKS, type TrailPose } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps } from "../../fixtures/swings.js";
 
-const { trail: trailPose, thrust: thrustPose, windup: windupBlade, live: liveBlade } = MOTIONS.sword;
+const { trail: trailPose, thrust: thrustPose, windup: windupBlade, stroke: strokeBlade } = MOTIONS.sword;
 const STAB_RANGE = attackShape("stab", PLAYER.armReachM, WEAPONS.sword).range;
 
 const trail = (aimYaw: number, dir: SwingDir): TrailPose[] =>
@@ -18,10 +19,13 @@ const onScreen = (pose: TrailPose) => {
 };
 
 describe("a swing's frames", () => {
-  test("winding up, then live, then following through", () => {
-    const frames = swingSteps("lr").map(swingFrame);
-    const { liveAt, liveUntil } = swingSteps("lr")[0]!;
-    assert.deepEqual(frames, frames.map((_, step) => (step < liveAt ? 0 : step < liveUntil ? 1 : 2)));
+  test("wound up while it's set and slow to start, mid-swing around impact, then following through", () => {
+    const frames = swingSteps("lr").map(swingFrame), { driveAt, liveAt, liveUntil } = swingSteps("lr")[0]!;
+    assert.deepEqual(frames, [...frames].sort(), "in order");
+    assert.equal(frames[(driveAt + liveAt) >> 1], 0, "halfway through the drive it has barely moved");
+    assert.equal(frames[liveAt], 1);
+    assert.equal(frames.at(-1), 2);
+    assert.ok(frames.indexOf(2) >= liveUntil);
   });
 });
 
@@ -39,11 +43,10 @@ describe("the sword trail", () => {
   });
 
   test("a slower swing (a heavier blade, a weaker arm) draws its trail and thrust as much slower", () => {
-    const slowed = (swing: SwingData): SwingData => {
-      const liveSteps = swing.liveUntil - swing.liveAt;
-      const step = swing.liveAt + (swing.step - swing.liveAt) * 2;
-      return { ...swing, step, liveUntil: swing.liveAt + liveSteps * 2 };
-    };
+    const slowed = (swing: SwingData): SwingData => ({
+      ...swing, step: swing.step * 2, driveAt: swing.driveAt * 2, liveAt: swing.liveAt * 2,
+      liveUntil: swing.liveUntil * 2, letGoAt: swing.letGoAt * 2, endAt: swing.endAt * 2,
+    });
     for (const kind of ["lr", "stab"] as const) {
       const steps = swingSteps(kind);
       const show = (swing: SwingData) => kind === "stab" ? thrustPose(swing, STAB_RANGE) : trailPose(swing);
@@ -69,8 +72,7 @@ describe("the sword trail", () => {
     assert.equal(stab.map(trailPose).filter((pose) => pose !== null).length, 0);
     const thrusts = stab.map((swing) => thrustPose(swing, STAB_RANGE));
     thrusts.forEach((pose, step) => {
-      const t = (step - stab[0]!.liveAt) * FIXED_DT;
-      if (t < -0.03) assert.equal(pose, null, `not before its blade goes live (${t.toFixed(3)} s)`);
+      if (step < stab[0]!.driveAt) assert.equal(pose, null, "not while it draws back");
     });
     assert.ok(thrusts.some((pose) => pose !== null && pose.reachM > 0.8 * reach), "it reaches out");
     assert.ok(thrusts.every((pose) => pose === null || pose.reachM <= reach));
@@ -80,13 +82,29 @@ describe("the sword trail", () => {
 
 describe("a held blade", () => {
   test("winds up from guard to where its swing starts, then sweeps through straight ahead to the other end", () => {
-    const start = windupBlade("lr", 1).blade, mid = liveBlade("lr", 0.5).blade, end = liveBlade("lr", 1).blade;
+    const start = windupBlade("lr", 1).blade, mid = strokeBlade("lr", 0.5).blade, end = strokeBlade("lr", 1).blade;
     assert.ok(start.x > 0.5 && end.x < -0.5, "across, the way it goes");
     assert.ok(mid.z > 0.9, "straight ahead halfway");
   });
 
   test("a stab draws the hand back, then thrusts it out", () => {
     assert.ok(windupBlade("stab", 1).handZ < windupBlade("stab", 0).handZ);
-    assert.ok(liveBlade("stab", 0.5).handZ > windupBlade("stab", 0).handZ);
+    assert.ok(strokeBlade("stab", 0.5).handZ > windupBlade("stab", 0).handZ);
+    const drawn = windupBlade("stab", 1).handZ;
+    assert.ok(Math.abs(strokeBlade("stab", 0).handZ - drawn) < 1e-9, "on from where it drew back");
+  });
+});
+
+describe("weapon looks", () => {
+  test("a longer weapon's blade is drawn as much longer, and a heavier one's no thinner", () => {
+    const ids = Object.keys(WEAPONS) as WeaponId[];
+    for (const a of ids) {
+      for (const b of ids) {
+        const la = WEAPON_LOOKS[a].blade, lb = WEAPON_LOOKS[b].blade;
+        const ratio = WEAPONS[a].length / WEAPONS[b].length;
+        assert.ok(Math.abs(la.lengthM / lb.lengthM - ratio) < 1e-9, `${a} vs ${b}: length`);
+        if (WEAPONS[a].mass > WEAPONS[b].mass) assert.ok(la.widthM >= lb.widthM, `${a} vs ${b}: width`);
+      }
+    }
   });
 });

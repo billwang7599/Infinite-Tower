@@ -1,10 +1,10 @@
 import type { EnemySprite } from "../index.js";
 
-export const koboldSprite: EnemySprite = {
+export const drawnKobold = (cloth: string, blade: { width: number; top: number; steel: string }): EnemySprite => ({
   sizeTiles: 1.6,
   draw(px) {
-    const fur = "#8a6a4a", furHi = "#a5825e", dark = "#4a3626", cloth = "#6e2f2a", steel = "#d6dde3";
-    px(19, 2, 1, 12, steel);             // blade, held up
+    const fur = "#8a6a4a", furHi = "#a5825e", dark = "#4a3626";
+    px(19, blade.top, blade.width, 14 - blade.top, blade.steel); // blade, held up
     px(17, 13, 5, 1, "#b8913a");         // guard
     px(18, 14, 2, 2, dark);              // grip + fist
     px(9, 4, 2, 3, dark);                // ear
@@ -19,4 +19,6 @@ export const koboldSprite: EnemySprite = {
     px(5, 15, 3, 1, fur); px(4, 14, 1, 1, fur);  // tail
     px(9, 19, 2, 4, dark); px(13, 19, 2, 4, dark); // legs
   },
-};
+});
+
+export const koboldSprite = drawnKobold("#6e2f2a", { width: 1, top: 2, steel: "#d6dde3" });

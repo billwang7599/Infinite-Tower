@@ -1,6 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Equipment } from "../../../items/gear.js";
-import { attackShape, restingBlade, SWING, weaponIn } from "../../../weapons/weapons.js";
+import { attackShape, followingBlade, restingBlade, SWING, weaponIn, type Blade } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import { addHit } from "../combat.js";
 
@@ -18,8 +18,15 @@ export function endSwing(world: World, e: Entity): void {
   world.remove(e, ActiveHit);
   const wielder = world.get(e, Wielder);
   if (!wielder?.swing) return;
-  if (wielder.swing.step < wielder.swing.letGoAt) restBlade(wielder);
+  const letGo = wielder.swing.step >= wielder.swing.letGoAt;
+  wielder.blade = letGo ? bladeOf(wielder.swing) : restingBlade();
+  wielder.restTime = letGo ? SWING.gapTime : 0;
   wielder.swing = null;
+}
+
+function bladeOf(swing: SwingData): Blade {
+  const left = Math.max(0, 1 - (swing.step - swing.letGoAt) / Math.max(1, swing.endAt - swing.letGoAt));
+  return followingBlade(swing.attack, swing.flow * left);
 }
 
 export function restBlade(wielder: WielderData): void {
@@ -41,7 +48,6 @@ export function weaponSystem(): System {
       }
       if (!weapon || swing.step >= swing.endAt) {
         endSwing(world, e);
-        wielder.restTime = SWING.gapTime;
         continue;
       }
       if (!bladeLive(swing)) world.remove(e, ActiveHit);

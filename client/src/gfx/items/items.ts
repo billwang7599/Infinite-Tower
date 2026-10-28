@@ -129,28 +129,30 @@ function tusk(px: Pixels): void {
   pen.shade(both(shape, rect(0, 29, 15, 31)), SHADOW, "root");
 }
 
-function sword(px: Pixels): void {
+const blade = (half: number, gripRows: number) => (px: Pixels): void => {
+  const pommelY = px.height - 2.5, gripTo = px.height - 5, gripFrom = gripTo - gripRows + 1, edge = gripFrom - 4;
   const metal = new Pen(px, 0);
-  const blade: Mask = (x, y) => y >= 1 && y <= 33 && Math.abs(x + 0.5 - 8) <= Math.min(3, y / 2);
-  metal.fill(blade, ink("steel", BASE));
-  metal.shade(rect(6, 1, 7, 33), LIGHT);
-  metal.shade(both(blade, rect(9, 1, 10, 33)), SHADOW);
-  metal.shade(both(blade, rect(8, 8, 8, 31)), DEEP);
-  metal.shade(both(blade, rect(7, 4, 7, 12)), SHINE);
+  const steel: Mask = (x, y) => y >= 1 && y <= edge && Math.abs(x + 0.5 - 8) <= Math.min(half, y / 2);
+  metal.fill(steel, ink("steel", BASE));
+  metal.shade(rect(9 - half, 1, 7, edge), LIGHT);
+  metal.shade(both(steel, rect(9, 1, 7 + half, edge)), SHADOW);
+  metal.shade(both(steel, rect(8, 8, 8, edge - 2)), DEEP);
+  metal.shade(both(steel, rect(7, 4, 7, 12)), SHINE);
 
   const hilt = new Pen(px, 1);
-  const guard = union(rect(1, 33, 14, 36), rect(0, 34, 15, 35));
+  const guard = union(rect(1, edge, 14, edge + 3), rect(0, edge + 1, 15, edge + 2));
   hilt.fill(guard, ink("brass", BASE));
-  hilt.shade(rect(1, 34, 14, 34), LIGHT);
-  hilt.shade(rect(1, 35, 14, 35), SHADOW);
-  const grip = rect(6, 37, 9, 43);
-  hilt.fill(grip, ink("leather", BASE));
-  hilt.shade(both(rect(7, 38, 8, 42), (_x, y) => y % 2 === 0), LIGHT);
-  const pommel = ellipse(8, 45.5, 3, 2.6);
+  hilt.shade(rect(1, edge + 1, 14, edge + 1), LIGHT);
+  hilt.shade(rect(1, edge + 2, 14, edge + 2), SHADOW);
+  hilt.fill(rect(6, gripFrom, 9, gripTo), ink("leather", BASE));
+  hilt.shade(both(rect(7, gripFrom + 1, 8, gripTo - 1), (_x, y) => y % 2 === 0), LIGHT);
+  const pommel = ellipse(8, pommelY, 3, 2.6);
   hilt.fill(pommel, ink("brass", BASE));
   hilt.shade(litEdge(pommel, 2), LIGHT);
   hilt.shade(darkEdge(pommel, 2), SHADOW);
-}
+};
+
+const sword = blade(3, 7), longsword = blade(3, 10), greatsword = blade(4, 12);
 
 function skillbook(px: Pixels): void {
   const pages = new Pen(px, 0);
@@ -184,7 +186,8 @@ function skillbook(px: Pixels): void {
 }
 
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
-  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, skillbook,
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, longsword, greatsword,
+  "kobold-greatsword": greatsword, skillbook,
 };
 
 const drawn = new Map<ItemId, Picture>();

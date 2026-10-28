@@ -1,19 +1,20 @@
 import {
-  isSwing, SCREEN_DIR, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId, type WeaponKind,
+  isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId,
+  type WeaponKind,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
-import { SWORD } from "../../gfx/look/sword.js";
+import { SWORD, swordArt } from "../../gfx/look/sword.js";
 
-/** In shares of the swing's live time. */
-const TRAIL_LEAD = 0.3;
-const TRAIL_DURATION = 2;
-const THRUST_DURATION = 1.6;
+/** In shares of a stroke's half-turn: frames switch, and the trail and thrust show, from these. */
+const LIVE_FRAME_TURN = 0.25;
+const FOLLOW_FRAME_TURN = 0.75;
+const TRAIL_FROM_TURN = 0.2;
+const TRAIL_GROW_TURN = 0.45;
 
-/** 0 winding up, 1 live, 2 following through. */
-export const swingFrame = (swing: SwingData): 0 | 1 | 2 =>
-  swing.step < swing.liveAt ? 0 : swing.step < swing.liveUntil ? 1 : 2;
-
-const throughLive = (swing: SwingData): number => (swing.step - swing.liveAt) / (swing.liveUntil - swing.liveAt);
+export function swingFrame(swing: SwingData): 0 | 1 | 2 {
+  const { turn } = strokeOf(swing);
+  return turn < LIVE_FRAME_TURN ? 0 : turn < FOLLOW_FRAME_TURN ? 1 : 2;
+}
 
 export interface TrailPose {
   /** The cut's line on screen, turned from flat (across): positive tips its right end up. */
@@ -37,9 +38,12 @@ function trailLine(dir: SwingDir): { rollRad: number; from: 1 | -1 } {
 
 function trailPose(swing: SwingData | null): TrailPose | null {
   if (!swing || !isSwing(swing.attack)) return null;
-  const progress = (throughLive(swing) + TRAIL_LEAD) / TRAIL_DURATION;
-  if (progress < 0 || progress >= 1) return null;
-  return { ...trailLine(swing.attack), reach: Math.min(1, progress * 2.2), visibility: 1 - progress * progress };
+  const { turn, follow } = strokeOf(swing);
+  if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
+  return {
+    ...trailLine(swing.attack), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
+    visibility: 1 - follow * follow,
+  };
 }
 
 export interface ThrustPose {
@@ -50,9 +54,10 @@ export interface ThrustPose {
 
 function thrustPose(swing: SwingData | null, stabRangeM: number): ThrustPose | null {
   if (!swing || isSwing(swing.attack)) return null;
-  const progress = (throughLive(swing) + TRAIL_LEAD) / THRUST_DURATION;
-  if (progress < 0 || progress >= 1) return null;
-  return { reachM: Math.min(1, progress * 3) * stabRangeM, visibility: 1 - progress * progress };
+  const { turn, follow } = strokeOf(swing);
+  if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
+  const reach = Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN);
+  return { reachM: reach * stabRangeM, visibility: 1 - follow * follow };
 }
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -87,9 +92,13 @@ function windupBlade(attack: AttackKind, k: number): BladePose {
   };
 }
 
-function liveBlade(attack: AttackKind, s: number): BladePose {
-  if (!isSwing(attack)) return { blade: STAB_DIR, handZ: GUARD_BLADE.handZ + 0.45 * Math.sin(Math.PI * s) };
-  const start = swingStart(attack), a = Math.PI * s;
+/** `turn`: the share of the half-turn from the swing's start to its far side (strokeOf); past 1 it runs on. */
+function strokeBlade(attack: AttackKind, turn: number): BladePose {
+  if (!isSwing(attack)) {
+    const a = Math.PI * Math.min(1, turn);
+    return { blade: STAB_DIR, handZ: GUARD_BLADE.handZ + (turn < 0.5 ? 0.75 * Math.sin(a) - 0.3 : 0.45 * Math.sin(a)) };
+  }
+  const start = swingStart(attack), a = Math.PI * turn;
   const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + 0.15 });
   return { blade, handZ: GUARD_BLADE.handZ };
 }
@@ -106,13 +115,13 @@ export interface WeaponMotion {
   thrust(swing: SwingData | null, stabRangeM: number): ThrustPose | null;
   guard: BladePose;
   windup(attack: AttackKind, k: number): BladePose;
-  live(attack: AttackKind, s: number): BladePose;
+  stroke(attack: AttackKind, turn: number): BladePose;
   tellArrowRad(attack: AttackKind): number | null;
 }
 
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
   sword: {
-    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, live: liveBlade, tellArrowRad,
+    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, stroke: strokeBlade, tellArrowRad,
   },
 };
 
@@ -122,7 +131,17 @@ export interface WeaponLook {
   blade: { lengthM: number; widthM: number; color: string };
 }
 
+// Lengths are the sword's own share: the models' and the sprite's sword is drawn 1 long.
+const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
+const LONGSWORD = swordArt({ lengthScale: lengthOf("longsword"), bladeHalfPx: 1.6 });
+const GREATSWORD = swordArt({ lengthScale: lengthOf("greatsword"), bladeHalfPx: 2.3 });
+
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
   sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
   "kobold-blade": { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
+  longsword: { sprite: LONGSWORD, blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" } },
+  greatsword: { sprite: GREATSWORD, blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" } },
+  "kobold-greatsword": {
+    sprite: GREATSWORD, blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" },
+  },
 };
