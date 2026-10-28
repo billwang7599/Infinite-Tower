@@ -7,12 +7,13 @@ import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import { isSwing, PARRY, reverseOf, type AttackKind, type HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Stamina, Statuses, WeaponAttack, Wielder, type ActiveHitData,
-  type PlayerData,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Stamina, Statuses, WeaponAttack, Wielder,
+  type ActiveHitData, type PlayerData, type SkilledData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
 import type { FightEvent } from "./context.js";
+import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
 import { endChain, endSwing } from "./weapons/swing.js";
 
@@ -155,7 +156,7 @@ function hitPlayer(
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
   }
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag"].includes(player.action)) {
-    breakOff(player);
+    breakOff(player, world.require(target, Skilled));
   }
   endChain(world.require(target, Wielder));
   siphon(world, attacker, dealt);
@@ -163,10 +164,10 @@ function hitPlayer(
   return "landed";
 }
 
-export function breakOff(player: PlayerData): void {
+export function breakOff(player: PlayerData, skilled: SkilledData): void {
   if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
   player.action = "none";
-  player.casting = null;
+  interrupt(skilled);
   player.writing = null;
 }
 

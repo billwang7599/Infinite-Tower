@@ -1,7 +1,7 @@
 import { defineComponent } from "../core/ecs.js";
 import { roundTo } from "../core/math.js";
 import type { Spot } from "../items/gear.js";
-import type { Skill } from "../skills/skill.js";
+import type { Skill, Word } from "../skills/skill.js";
 import type { AttackKind } from "../weapons/weapons.js";
 
 /** What an arena fighter does this step: from the keys in the browser, from `battleInput` on the server. */
@@ -21,6 +21,8 @@ export interface PlayerInputData {
   cast: Skill | null;
   castHeld: boolean;
   chant: boolean;
+  /** Pressed: the chant's words, whole, when they change (sent once, so a long chant isn't resent every step). */
+  chantWords: readonly Word[] | null;
   write: PageWrite | null;
   /** The locked enemy, as its index in the fight's enemies. */
   locked: number | null;
@@ -40,20 +42,21 @@ export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
-  castHeld: false, chant: false, write: null, locked: null, bag: false, gear: null,
+  castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
   moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-  block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant, write: i.write, locked: i.locked, bag: i.bag,
-  gear: i.gear,
+  block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant, chantWords: i.chantWords, write: i.write,
+  locked: i.locked, bag: i.bag, gear: i.gear,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ && a.jump === b.jump
   && a.attack === b.attack && a.dodge === b.dodge && a.block === b.block && a.cast === b.cast
-  && a.castHeld === b.castHeld && a.chant === b.chant && a.write === b.write && a.locked === b.locked
+  && a.castHeld === b.castHeld && a.chant === b.chant && a.chantWords === b.chantWords && a.write === b.write
+  && a.locked === b.locked
   && a.bag === b.bag && a.gear === b.gear;
 
 /** Decimals the move and the aim keep on the wire: 0.001 of a direction is far below what anyone can aim. */

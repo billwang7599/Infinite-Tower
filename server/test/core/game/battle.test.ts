@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  Player, SAVE_IN_FIGHT_TIME, starterEquipment, WEAPONS, type Bag, type Equipment, type GearMove,
+  Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, WEAPONS, type Bag, type Equipment, type GearMove,
   type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -293,6 +293,24 @@ describe("casting skills", () => {
 
   test("a page's skill is cast without a chant", () => {
     assert.equal(casts({ knownWords: ["nova", "fire"], skillbook: [null, NOVA, null, null] }, false), true);
+  });
+
+  test("a chant's words reach the fight only if the player knows every one", () => {
+    const words = (knownWords: Word[]) => {
+      const { session } = startSession({ dev: true, saved: { knownWords } });
+      session.debugEncounter();
+      play(session, () => IDLE_INPUT, 2);
+      play(session, () => CHANT, 1);
+      play(session, () => ({ ...CHANT, chantWords: ["nova", "fire"] }), 1);
+      return fightOf(session).world.require(fightOf(session).players[0]!, Skilled).words;
+    };
+    assert.deepEqual(words(["nova", "fire"]), ["nova", "fire"]);
+    assert.deepEqual(words(["nova"]), []);
+  });
+
+  test("chanting needs no skillbook in hand", () => {
+    const equipment = { ...starterEquipment(), leftHand: null };
+    assert.equal(casts({ knownWords: ["nova", "fire"], equipment }, true), true);
   });
 
   test("the encounter gives the fight the player's pages", () => {

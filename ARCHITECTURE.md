@@ -147,8 +147,11 @@ main.ts
   `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst); each fires once per step and event (`FiredEffects`), so
   a step replayed after a resync doesn't fire it again. The overworld's actors are drawn the same way, from
-  `WALKERS` by their `kind`. The player's look is read from `ui.overworld`'s character and painted once
-  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it.
+  `WALKERS` by their `kind`. `fighter()` (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled`
+  fighter is doing is drawn the same: the circle at its feet while it chants or winds up, and, over anyone but you,
+  its chant's words as a row of squares in front of it (`chantWords.ts`). The player's look is read from
+  `ui.overworld`'s character and painted once (`visuals/characters.ts`), with the weapon in whichever hand its
+  `Wielder` holds it.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`;
   `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
@@ -206,24 +209,33 @@ main.ts
   lets go and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
   while it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
   Ending an action or an enemy state (`enter`) ends its swing (`endSwing`). A parry reads the target's swing.
-- **Skills are inputs too.** A player's input carries a whole skill (`cast`) only on the step its key goes down,
-  then just `castHeld` while the key stays down: the fight keeps the skill, so a long one isn't resent in every
-  input. The controller winds it up as the "cast" action, and `skillSystem` (`fight/skills/cast.ts`) pays its
-  stamina and fires it once the wind-up is over. Whatever lasts is a `SkillObject` entity (its `kind`: a Bolt flying
+- **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
+  chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
+  `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
+  release; one at a time), `chant(words)` and `releaseChant`; the player's controller does it from the input, an
+  enemy's brain will from its own choices. A player's input carries a whole skill (`cast`) only on the step its key
+  goes down, then just `castHeld` while the key stays down: the fight keeps the skill, so a long one isn't resent in
+  every input; the chant's words come the same way, whole, on the step they change (`chantWords`). The controller
+  winds a cast up as the "cast" action, `windUpSystem` counts any wind-up's time early in the step (so a sidestep sees
+  it), and `skillSystem` (`fight/skills/cast.ts`) pays its stamina (if the caster has any) and fires it once the
+  wind-up is over. Whatever lasts is a `SkillObject` entity (its `kind`: a Bolt flying
   by plain-math sweeps, not a physics body; a Beam ticking along its line, held while `castHeld` is; a lingering
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
-  Follow Bolt homes, at a limited turn rate, onto the input's `locked` enemy (an index into the fight's enemies) or the
-  nearest; split ones aim side by side beside it (`fanM`) until close. Split Bolts start in an upright circle round
+  Follow Bolt homes, at a limited turn rate, onto the caster's `target` (a player's is the input's `locked` enemy) or
+  the nearest; split ones aim side by side beside it (`fanM`) until close. Split Bolts start in an upright circle round
   the caster and fly in to meet a point ahead (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs
   `strike` (`fight/skills/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
   the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
   Warded, the Light shield, Siphoning: `fight/skills/statuses.ts`). Every number is in `SKILL_EFFECTS`
   (`shared/src/skills/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
-  player still; a skill on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
-  (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
+  player still, with or without the skillbook; a skill on none of the player's pages (`book`, from the setup), or any
+  skill with no book in hand, starts only from it. Writing a page (`write`, from the chant, book in hand) is the
+  "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
   `pageWritten` event), and the server saves that book with the result. A stun breaks either off, and so does a
   dodge; it reopens only once the input is let go (`brokenOff`), and the client closes its popup when it sees that.
+  A stun while chanting also loses the chant's words (a dodge keeps them), for any chanter: an enemy stunned, parried
+  or staggered is broken off the same way (`cantCast`).
   The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
   still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
@@ -303,7 +315,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost |
 | `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -388,7 +400,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   costs), and a dodge pressed during a swing waiting for it to let go (on any step of it, once, ahead of a buffered
   swing, through a save and a rollback). Skills (`shared/test/battle/fight/skills/`): the wind-up, its cost at release,
   waiting behind a swing, cancelled by a dodge or a hit; the chant (held still, broken off by a stun or a dodge but
-  not a sword hit, the only way to cast a skill on no page) and writing a page in it (its time, standing still,
+  not a sword hit, the only way to cast a skill on no page, needing no book; its words in the fight: kept by a dodge,
+  lost to a stun or a release); an enemy that chants word by word, releases, quick-casts and is broken off by a stun
+  (`skilled.test.ts`) and writing a page in it (its time, standing still,
   cancelled by a stun or closing, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included). Each fight test file awaits
@@ -405,10 +419,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; parrying the Kobold's swing the same way; the Kobold as
   tuned, beaten by a player who reads its wind-ups whatever its seed; a cast or a page written with a word the player
-  doesn't know dropped, a skill on none of the pages cast only from a chant; the skillbook (pages written, refused for
+  doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant, chanting without the
+  book; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, blanked
   by a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
-  silent player stopping, lateness).
+  silent player stopping, lateness, the latest of late chant words kept).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
@@ -515,11 +530,13 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       player/          controller.ts (move, jump, when to attack, block, dodge, a cast's wind-up, the chant
                        (held still; a skill on no page cast only from it), the bag (held still; gear moved) and
                        writing a page, stamina; controlPlayer; no sword in hand, no attacks or block; no
-                       skillbook, no casts or chant)
+                       skillbook, no quick-casts or pages)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
-                       strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
+                       skilled.ts (any fighter's skills: startCast, chant, releaseChant, endCast, interrupt,
+                       cantCast, windUpSystem), strike.ts (a stage hitting a target: statuses, reactions, damage;
+                       foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
                        weapon.ts (seeded chains of swings with the weapon in hand, the Kobold's), sidestep.ts
@@ -539,7 +556,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   skills/          skill.ts (a skill as data: segments of a Form, elements and modifiers; FORMS, ELEMENTS, OPPOSITE,
                    MODIFIER_FITS, WORDS (all of them); validateWord / validateSkill: why a word is refused, for the builder
                    and the server's check; skillCost, releaseTime; SKILL: their numbers; SKILLBOOK_PAGES, Skillbook,
-                   blankSkillbook, SAVE_IN_FIGHT_TIME, sameSkill), effects.ts (SKILL_EFFECTS: what skills
+                   blankSkillbook, SAVE_IN_FIGHT_TIME, sameSkill; wordKind, NEXT_WORDS, skillOf / wordsOf: words in
+                   the order they're chanted <-> a skill), effects.ts (SKILL_EFFECTS: what skills
                    do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind; weaponIn, weaponItemIn;
@@ -697,7 +715,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
       skills/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
-                       a known word doesn't fit, `quickPick`, addWord / undoWord, words <-> skill),
+                       a known word doesn't fit, `quickPick`, addWord / undoWord, skillText),
                        SkillBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
                        keys), ChantPopup.tsx (the fight's chant: open / close, cast, a page written, shown
                        while the fight writes it; the fight breaks it off, through game.ts), SkillbookScreen.tsx
@@ -765,13 +783,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, lights / fog / shadows / post,
                          materials, the skill kit, each fighter's node, the shake
-        battle.ts        fighter() (a fighter's node following its body, eased over corrections, and its reactions'
-                         bursts), arenaStage (the scenery per arena size, the camera on the mode's view plus shake,
-                         the lock-on's diamond)
+        battle.ts        fighter() (a fighter's node following its body, eased over corrections, its reactions'
+                         bursts, and any skilled fighter's chant circle and chant words), arenaStage (the scenery
+                         per arena size, the camera on the mode's view plus shake, the lock-on's diamond)
         arena.ts         The scenery: grass, stones, forest
         materials.ts     The arena's materials (the player's frames among them)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
-                         Imbue's colour), the chant's circle
+                         Imbue's colour)
+        chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
         weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
                          weapon kind: the trail's line, the stab's thrust, a 3D blade's way through a wind-up and a

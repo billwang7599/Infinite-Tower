@@ -2,7 +2,7 @@ import {
   Color3, Vector3, type Mesh, type ParticleSystem, type Scene, type StandardMaterial, type TransformNode,
 } from "@babylonjs/core";
 import {
-  releaseTime, SKILL_EFFECTS, SkillObject, type BodyData, type PlayerData, type Reaction, type SkillElement,
+  releaseTime, SKILL_EFFECTS, SkillObject, type BodyData, type Reaction, type SkillElement, type SkilledData,
   type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import type { Visual } from "../visuals.js";
@@ -68,11 +68,10 @@ export function createSkillKit(
 export interface ChantCircle { look: LookKey; disc: Mesh; motes: ParticleSystem }
 
 export function drawChantCircle(
-  kit: SkillKit, c: ChantCircle | null, player: PlayerData, body: BodyData, node: TransformNode,
+  kit: SkillKit, c: ChantCircle | null, skilled: SkilledData, body: BodyData, node: TransformNode,
 ): ChantCircle | null {
-  const chanting = player.action === "chant" || player.action === "write";
-  const skill = player.action === "cast" ? player.casting : null;
-  if (!chanting && !skill) return dropChantCircle(kit, c);
+  const skill = skilled.casting;
+  if (!skilled.chanting && !skill) return dropChantCircle(kit, c);
   const look = skill ? lookOf(skill.segments[0]!.elements) : "none";
   if (c && c.look !== look) c = dropChantCircle(kit, c);
   if (!c) {
@@ -81,7 +80,7 @@ export function drawChantCircle(
     c = { look, disc: kit.shaders.take("disc", "circle", look), motes };
   }
   const feetY = node.position.y - body.centerHeight + 0.04;
-  const progress = skill ? Math.min(1, player.actionTime / releaseTime(skill)) : 1;
+  const progress = skill ? Math.min(1, skilled.castTime / releaseTime(skill)) : 1;
   c.disc.position.set(node.position.x, feetY, node.position.z);
   c.disc.scaling.setAll(skill ? 0.7 + 0.3 * progress : CHANT_RADIUS_M);
   c.disc.visibility = skill ? 0.3 + 0.7 * progress : 0.85;

@@ -87,15 +87,18 @@ Decided by the user:
   Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are
   clicked, searched for, or picked by number from the list, and Backspace undoes; its keys are a layer of their own,
   so 1-4 don't cast there. The fight goes on and you can't move; a hit cancels it only if it staggers you; a dodge
-  closes it and keeps the squares. A chanted skill costs the same as a saved one and is for that one cast. The
+  closes it and keeps the squares. A chanted skill costs the same as a saved one and is for that one cast. Chanting
+  needs no book. Anyone may chant and quick-cast (enemies too, later other players), and the words being chanted are
+  the shared fight's, shown in a small popup in front of every other chanter, always there while they chant; a stun
+  breaks off anyone's chant alike. One cast at a time per fighter for now (maybe ~2 later). The
   skillbook (in hand) has 4 pages of saved skills, quick-cast with 1-4 (rebindable), written outside fights or in one
   (like chanting: standing still, a stagger cancels it, it takes time). The pages are saved with the player and the
   server checks every page and cast against the words they know. Death blanks the pages; the words are kept.
 - The sword and the skillbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
-  character starts with both equipped, swinging needs a sword and casting a skillbook. Dying still empties the bag,
-  and you respawn with a fresh equipped sword and skillbook. Equipped things count toward the carry weight but take
-  no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for
-  a while; what's left on it when the screen closes is lost), then the bag.
+  character starts with both equipped, swinging needs a sword and quick-casting a skillbook. Dying still empties the
+  bag, and you respawn with a fresh equipped sword and skillbook. Equipped things count toward the carry weight but take
+  no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for a
+  while; what's left on it when the screen closes is lost), then the bag.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -217,11 +220,11 @@ them; treat them as changeable, and still ask before deciding new ones):
   chant (pages are matched by their words); a page written in a fight is the fight's at once and saved with its
   result (a `saveSkill` message mid-battle is refused). The chant's dodge goes where the walk keys point. The hotbar
   shows the pages on the left of the battle HUD.
-- Equipment: the sword is 1 x 3 and weighs 3, the skillbook 2 x 2 and 1.5 (with both in hand a full bag is just
-  over the carry limit). Either hand takes either; the sword starts in the right and the book in the left;
-  dragging one hand onto the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand
-  means no swings, stabs or blocks (you block with the blade); no skillbook, no casting. Head, body, legs and boots
-  stay empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
+- Equipment: the sword is 1 x 3 and weighs 3, the skillbook 2 x 2 and 1.5 (with both in hand a full bag is just over the
+  carry limit). Either hand takes either; the sword starts in the right and the book in the left; dragging one hand onto
+  the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand means no swings, stabs or
+  blocks (you block with the blade); no skillbook, no quick-casting or writing pages. Head, body, legs and boots stay
+  empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
 - The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
   server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
   and on disconnect; it's never saved. Things on it can be eaten from there.
@@ -376,8 +379,8 @@ The global rules apply; here is how to set one up in this repo.
 - Words: the 2D map is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
 - Combat words (code, UI and docs use them):
   - **Gear**: anything equipped (weapons, armour, the skillbook). Physical combat comes from gear.
-  - **Skill**: an ability built from words. Anyone can use skills, with or without a book (not built yet: chanting
-    still needs the book in hand). The skillbook only saves sequences for quick-cast.
+  - **Skill**: an ability built from words. Anyone can use skills, with or without a book. The skillbook only saves
+    sequences for quick-cast.
   - **Stamina**: what both gear and skills spend. **Skillpower** scales skill damage.
   - **Skill grammar**: the rules. A form, then elements, then modifiers, each applied in order to everything before it.
   - **Word**: one of a form, an element or a modifier.

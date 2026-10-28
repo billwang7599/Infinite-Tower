@@ -23,6 +23,7 @@ import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
 import { skillSystem } from "./skills/cast.js";
+import { windUpSystem } from "./skills/skilled.js";
 import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
@@ -88,9 +89,9 @@ export class Fight {
       outcome: this.outcome,
     };
     this.systems = [
-      playerControllerSystem(),
+      playerControllerSystem(this.enemies),
       enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(), weaponSystem(),
-      sidestepSystem(ctx), enemyMotorSystem(),
+      windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),
       outcomeSystem(this.outcome),

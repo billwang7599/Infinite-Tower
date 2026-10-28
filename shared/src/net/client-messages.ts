@@ -59,6 +59,7 @@ const StepInputSchema = z.object({
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),
+  chantWords: z.array(z.union([z.enum(FORMS), z.enum(ELEMENTS), z.enum(MODIFIERS)])).readonly().nullable(),
   write: z.object({ page: PageSchema, skill: SkillSchema }).nullable(),
   locked: z.number().int().nonnegative().max(MAX_ENEMY_INDEX).nullable(),
   bag: z.boolean(),

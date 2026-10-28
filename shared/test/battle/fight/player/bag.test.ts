@@ -77,14 +77,14 @@ describe("the bag in a fight", () => {
     assert.equal(swings(fight), true);
   });
 
-  test("the skillbook put away: no chant", () => {
+  test("the skillbook put away, the chant still opens: it needs no book", () => {
     const fight = alone();
     run(fight, 0.3);
     moveInBag(fight, { from: { in: "slot", slot: "leftHand" }, to: { in: "bag", x: 0, y: 0 }, turned: false });
     assert.equal(handsOf(fight).leftHand, null);
     fight.step([IDLE]);
     fight.step([input({ chant: true })]);
-    assert.equal(playerOf(fight).action, "none");
+    assert.equal(playerOf(fight).action, "chant");
   });
 
   test("a move is made once, on the step it's first there", () => {

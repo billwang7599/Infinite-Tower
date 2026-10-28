@@ -1,4 +1,4 @@
-import type { Skill, Word } from "@infinite-tower/shared";
+import { skillOf, wordsOf, type Skill, type Word } from "@infinite-tower/shared";
 import { useMemo, useState } from "react";
 import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
@@ -7,7 +7,7 @@ import { useAction } from "../components/useAction.js";
 import type { SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
-import { addWord, NO_CHANT, skillOf, skillText, undoWord, wordsOf, type ChantState } from "./chant.js";
+import { addWord, NO_CHANT, skillText, undoWord, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
 interface BookProps {

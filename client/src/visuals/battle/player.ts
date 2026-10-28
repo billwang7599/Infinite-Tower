@@ -6,7 +6,6 @@ import { fighter } from "./battle.js";
 import { spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
-import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 import { MOTIONS } from "./weapons.js";
 
 const SPRITE_SIZE = 1.8;
@@ -36,7 +35,6 @@ interface PlayerSprite {
   /** The hitstun the current stagger began with (0: not staggered). */
   staggerTime: number;
   sword: StandardMaterial;
-  chant: ChantCircle | null;
 }
 
 export const playerVisual = fighter<PlayerSprite>("player", { spawn, frame, dispose });
@@ -97,7 +95,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
 
   return {
     ctx, node, plane, shadow, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0,
-    sword: materials.slashFx, chant: null,
+    sword: materials.slashFx,
   };
 }
 
@@ -105,7 +103,6 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
 function dispose(sprite: PlayerSprite): void {
   sprite.shadow.dispose();
   for (const node of [sprite.trail, sprite.thrust, sprite.guard]) node.dispose();
-  dropChantCircle(sprite.ctx.skills, sprite.chant);
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
@@ -181,5 +178,4 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     sprite.slash.material = sword;
     for (const mesh of sprite.thrust.getChildMeshes()) mesh.material = sword;
   }
-  sprite.chant = drawChantCircle(ctx.skills, sprite.chant, player, body, sprite.node);
 }

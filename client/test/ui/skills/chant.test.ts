@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { MODIFIER_FITS, FORMS, WORDS, type Word } from "@infinite-tower/shared";
 import {
-  addWord, choices, NO_CHANT, quickPick, skillOf, undoWord, wordsOf, type ChantState,
+  addWord, choices, NO_CHANT, quickPick, undoWord, type ChantState,
 } from "../../../src/ui/skills/chant.js";
 
 const ALL: ReadonlySet<Word> = new Set(WORDS);
@@ -79,28 +79,10 @@ describe("the chant's words", () => {
     assert.deepEqual(undoWord(chanting()).words, []);
   });
 
-  test("the words become a skill, a new segment at each Form", () => {
-    assert.equal(skillOf([]), null);
-    assert.deepEqual(skillOf(["bolt", "water", "swift", "nova", "lightning", "fire", "widen"]), {
-      segments: [
-        { form: "bolt", elements: ["water"], modifiers: ["swift"] },
-        { form: "nova", elements: ["lightning", "fire"], modifiers: ["widen"] },
-      ],
-    });
-    assert.deepEqual(skillOf(["self", "light"]), { segments: [{ form: "self", elements: ["light"], modifiers: [] }] });
-  });
-
   test("every modifier is offered somewhere", () => {
     for (const modifier of Object.keys(MODIFIER_FITS) as Word[]) {
       const form = MODIFIER_FITS[modifier as keyof typeof MODIFIER_FITS][0];
       assert.ok(allowed([form, "fire"]).includes(modifier), modifier);
     }
-  });
-});
-
-describe("a written skill", () => {
-  test("is its words again, in order, for the book's builder", () => {
-    const words: Word[] = ["bolt", "water", "swift", "nova", "lightning"];
-    assert.deepEqual(wordsOf(skillOf(words)!), words);
   });
 });

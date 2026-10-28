@@ -12,7 +12,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
-  cast: null, castHeld: false, chant: false, write: null, locked: null, bag: false, gear: null,
+  cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });

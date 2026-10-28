@@ -10,8 +10,8 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
 ## Words
 
 - **Gear**: anything equipped (weapons, armour, the skillbook). Physical combat comes from gear.
-- **Skill**: an ability built from words. Anyone can use skills, with or without a book (not built yet: chanting
-  still needs the book in hand). The skillbook only saves sequences for quick-cast.
+- **Skill**: an ability built from words. Anyone can use skills, with or without a book. The skillbook only saves
+  sequences for quick-cast.
 - **Stamina**: what both gear and skills spend. **Skillpower** scales skill damage. It may become soul / soulpower
   later, for the lore.
 - **Skill grammar**: the rules. A form, then elements, then modifiers, each applied in order to everything before it.
@@ -64,8 +64,11 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   fires.
 - **Objects** (clouds) last until the fight ends; allies may use each other's. Hidden caps guard the server, like
   `MAX_FIGHT_TIME`: 12 per player, 60 per fight.
-- **No skills on the overworld.** Player-only skills for now; enemies and bosses use authored attacks with the same
-  statuses.
+- **No skills on the overworld.** In fights anyone may use skills: enemies "could both quick cast and chant", and so
+  will other players. What a chanter is chanting is shown in a small popup in front of them, always while they chant
+  ("if we look close enough we can see what they're chanting"); your own chant is the big popup. Interrupts are the
+  same for every chanter. One cast at a time per entity until it resolves. Built: the `Skilled` component on every
+  fighter (below); no enemy uses it yet (the goblin warlock, next).
 - **Stats:** skillpower (was spellpower, then Intellect) scales skill damage. D below is a skill's base damage after
   skillpower.
 - **Elements** (numbers are placeholders; each element is its own damage type, so per-element resistances can apply;
@@ -95,11 +98,12 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   Conduct, Doused, Fanned, Eclipse. Any other pair just applies both statuses.
 - **Words** are learned per player and saved in the database. A new player knows none for now; the dev accounts
   test1-3 know every word. Chaining unlocks when a player learns a second Form. How words are learned: later.
-- **The skillbook** is an item, equipped in a hand (see [inventory.md](inventory.md)); without one you can't cast or
-  chant. Saved skills are written in it: 4 for now, cast with one key each (quick casting). Building and saving a
-  skill happens at a campfire, by typing words into boxes that autofill from learned words (a rejected word greyed
-  out with its reason), or in a fight (below). Built: outside fights the book opens from the bag screen anywhere
-  (the agent's pick: no campfire needed, as the later ruling says outside fights) and a page is written at once.
+- **The skillbook** is an item, equipped in a hand (see [inventory.md](inventory.md)). It only saves and quick-casts:
+  "book purely to save and quickcast"; chanting works the same without it. Saved skills are written in it: 4 for now,
+  cast with one key each (quick casting). Building and saving a skill happens at a campfire, by typing words into boxes
+  that autofill from learned words (a rejected word greyed out with its reason), or in a fight (below). Built: outside
+  fights the book opens from the bag screen anywhere (the agent's pick: no campfire needed, as the later ruling says
+  outside fights) and a page is written at once.
 - **Chanting in a fight:** the grammar view can be brought up in battle "to chant/create spells on the fly. the
   spellbook is just for quick casting". It's "a big popup at the center of the screen showing 3 squares, each one is
   what word goes in there. ie one square for bolt, one for fire, and one for augment." It's a carousel, one square at
@@ -175,6 +179,14 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   while chanting or writing (as standing does). A dodge out of the chant goes where the walk keys point (backwards
   with none); closing the chant mid-write stops it, and nothing is written.
 
+- **Any fighter's skills** (`Skilled`, `fight/skills/skilled.ts`): what it's chanting (its words), the skill winding up,
+  a held Beam, its aim and target, its seed. The player's keys and, later, an enemy's brain drive it through the same
+  calls: `startCast` (a quick-cast, or a chant's release), `chant(words)` and `releaseChant`. The player's chant words
+  reach the fight as the input `chantWords` (the whole list, on the step it changes), checked by the server against the
+  words they know. A stun (or a parry or stagger for an enemy) breaks it off. A fighter without a `Stamina` pays
+  nothing; enemies have none, and their skillpower is 0 (their skills would do no damage): both for the warlock to
+  settle.
+
 ## PRs
 
 1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
@@ -184,6 +196,16 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
 4. **F** the effects (built, in code: shaders, particles and meshes, one look per element and Form, the chant's
    circle, the Imbue glow on the sword's trail, the four reactions). Not built: statuses shown on their targets
    (Burning, Wet, Shocked stacks, ...), Self's lasting statuses on the player, sounds.
+
+5. **G** any fighter's skills (`Skilled`), chanting without the book, the chant's words in the fight and over
+   other chanters (built). **H** a goblin warlock that uses them (next).
+
+## Later
+
+- Multicast: about two casts open at once per entity, instead of one.
+- Advanced boss AI that builds its chants to suit the situation, and quick-casts for quick skills.
+- "One cast at a time until it resolves" counts only the build and wind-up for now: you can cast again while your last
+  skill's effects are still out. Whether a cast should block the next until its last effect ends is open.
 
 ## Open
 
