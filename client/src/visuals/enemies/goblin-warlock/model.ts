@@ -1,12 +1,16 @@
 import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
 import { colorMaterial } from "../../materials.js";
+import { buildArm, type Arm } from "../../battle/arm.js";
 import type { ArenaScene } from "../../battle/scene.js";
+
+const ARM_REACH_M = 0.5;
 
 export interface GoblinModel {
   root: TransformNode;
   model: TransformNode;
-  hand: TransformNode;
+  staffArm: Arm;
+  offArm: Arm;
   legs: [TransformNode, TransformNode];
   stars: TransformNode;
   orb: StandardMaterial;
@@ -90,15 +94,13 @@ export function buildGoblin(
     ear.rotation.z = -s * 1.25;
     const eye = part(MeshBuilder.CreateSphere("g-eye", { diameter: 0.06, segments: 6 }, scene), head, eyes);
     eye.position.set(s * 0.08, 0.03, 0.15);
-    if (s < 0) {
-      const arm = part(MeshBuilder.CreateBox("g-arm", { width: 0.09, height: 0.34, depth: 0.09 }, scene), model, robe);
-      arm.position.set(-0.2, 0.58, 0.02);
-      arm.rotation.z = -0.2;
-    }
   }
 
-  const hand = node("g-hand", model, 0.2, 0.62, 0.22);
-  part(MeshBuilder.CreateSphere("g-fist", { diameter: 0.1, segments: 6 }, scene), hand, skin);
+  const arm = (side: 1 | -1): Arm => buildArm(scene, part, model, null, {
+    side, shoulder: { x: side * 0.15, y: 0.74, z: 0 }, reachM: ARM_REACH_M, thicknessM: 0.085,
+    upper: robe, fore: robe, fist: skin,
+  });
+  const staffArm = arm(1), offArm = arm(-1), hand = staffArm.hand;
   const staff = part(MeshBuilder.CreateCylinder("g-staff", { height: 1.3, diameter: 0.045, tessellation: 6 }, scene),
     hand, wood);
   staff.position.y = 0.25;
@@ -124,5 +126,5 @@ export function buildGoblin(
   for (const p of parts) sunShadows.addShadowCaster(p);
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
-  return { root, model, hand, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw };
+  return { root, model, staffArm, offArm, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw };
 }

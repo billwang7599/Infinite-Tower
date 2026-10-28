@@ -2,20 +2,24 @@ import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
   Body, damp, dampFactor, Enemy, Health, strokeOf, weaponItemIn, WEAPONS, Wielder, wrapAngle,
 } from "@infinite-tower/shared";
+import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../battle/weapons.js";
-import { buildKobold, disposeKobold, type KoboldModel } from "./model.js";
+import { buildKobold, disposeKobold, OFF_GRIP_M, type KoboldModel } from "./model.js";
 import { koboldPose } from "./pose.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
-const bladeDir = new Vector3();
+const HEAD_COUNTER = 0.6;
+const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3();
 
-export const koboldVisual = fighter<KoboldModel & { blade: Quaternion; motion: WeaponMotion }>("enemy", {
+type KoboldNodes = KoboldModel & { blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion };
+
+export const koboldVisual = fighter<KoboldNodes>("enemy", {
   spawn(ctx, world, e, node) {
-    const enemy = world.require(e, Enemy), held = weaponItemIn(world.require(e, Wielder).hands);
-    const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, held && WEAPON_LOOKS[held].blade);
+    const enemy = world.require(e, Enemy), wielder = world.require(e, Wielder), held = weaponItemIn(wielder.hands);
+    const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, held && WEAPON_LOOKS[held], wielder.armReachM);
     // Empty-handed, its hand still moves like a sword's.
-    return { ...model, blade: new Quaternion(), motion: MOTIONS[held ? WEAPONS[held].kind : "sword"] };
+    return { ...model, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"] };
   },
   dispose: disposeKobold,
   frame(nodes, world, e, dt) {
@@ -32,11 +36,31 @@ export const koboldVisual = fighter<KoboldModel & { blade: Quaternion; motion: W
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", nodes.motion,
       swing ? strokeOf(swing) : null);
+    nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
+    nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
+    nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
+    nodes.head.rotation.y = -nodes.chest.rotation.y * HEAD_COUNTER;
+
+    const hand = nodes.swordArm.hand;
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), bladeDir.set(pose.blade.x, pose.blade.y, pose.blade.z), nodes.blade);
-    nodes.hand.rotationQuaternion ??= new Quaternion();
-    Quaternion.SlerpToRef(nodes.hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, dt),
-      nodes.hand.rotationQuaternion);
-    nodes.hand.position.z = damp(nodes.hand.position.z, pose.handZ, 20, dt);
+    hand.rotationQuaternion ??= nodes.blade.clone();
+    Quaternion.SlerpToRef(hand.rotationQuaternion, nodes.blade, pose.bladeExact ? 1 : dampFactor(18, dt),
+      hand.rotationQuaternion);
+    handTarget.set(pose.hand.x, pose.hand.y, pose.hand.z);
+    nodes.handAt ??= handTarget.clone();
+    Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, dt), nodes.handAt);
+    poseArm(nodes.swordArm, nodes.handAt);
+
+    const off = nodes.offArm;
+    if (nodes.twoHanded) {
+      Vector3.Up().applyRotationQuaternionToRef(hand.rotationQuaternion, bladeDir);
+      hand.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
+      off.hand.rotationQuaternion ??= new Quaternion();
+      off.hand.rotationQuaternion.copyFrom(hand.rotationQuaternion);
+    } else {
+      offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.25);
+    }
+    poseArm(off, offTarget);
     nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
     nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);
     nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, dt);

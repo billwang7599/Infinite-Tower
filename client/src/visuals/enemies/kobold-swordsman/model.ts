@@ -8,6 +8,7 @@ import {
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaScene } from "../../battle/scene.js";
+import { buildArm, type Arm } from "../../battle/arm.js";
 import type { WeaponLook } from "../../battle/weapons.js";
 
 export interface KoboldModel {
@@ -15,8 +16,13 @@ export interface KoboldModel {
   root: TransformNode;
   /** Child of root: lean, wobble, fall over. */
   model: TransformNode;
-  /** The sword hand: the blade runs along its +y. */
-  hand: TransformNode;
+  hips: TransformNode;
+  chest: TransformNode;
+  head: TransformNode;
+  /** The sword is in swordArm's hand, along its +y. */
+  swordArm: Arm;
+  offArm: Arm;
+  twoHanded: boolean;
   /** Hip pivots: left, right. */
   legs: [TransformNode, TransformNode];
   stars: TransformNode;
@@ -27,13 +33,17 @@ export interface KoboldModel {
   visualYaw: number;
 }
 
+/** A two-handed grip's off hand, this far (m) down the grip from the sword hand. */
+export const OFF_GRIP_M = 0.2;
+
 export function disposeKobold(v: KoboldModel): void {
   v.root.dispose();
   for (const m of v.materials) m.dispose();
 }
 
 export function buildKobold(
-  ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number, weapon: WeaponLook["blade"] | null,
+  ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number, weapon: WeaponLook | null,
+  armReachM: number,
 ): KoboldModel {
   const { scene, sunShadows } = ctx;
   const materials: StandardMaterial[] = [];
@@ -67,12 +77,14 @@ export function buildKobold(
   root.position.y = -def.radius;
   const model = node(`kobold-model-${e}`, root, 0, 0, 0);
 
+  const WAIST_Y = 0.7;
+  const hips = node("k-hips", model, 0, WAIST_Y, 0);
+  const chest = node("k-chest", model, 0, WAIST_Y, 0);
   const torso = part(MeshBuilder.CreateCylinder("k-torso", { height: 0.62, diameterTop: 0.42, diameterBottom: 0.5 },
-    scene), model, cloth);
-  torso.position.y = 0.95;
-  const belt = part(MeshBuilder.CreateCylinder("k-belt", { height: 0.08, diameter: 0.52 }, scene), model, dark);
-  belt.position.y = 0.7;
-  const head = node("k-head", model, 0, 1.42, 0.02);
+    scene), chest, cloth);
+  torso.position.y = 0.25;
+  part(MeshBuilder.CreateCylinder("k-belt", { height: 0.08, diameter: 0.52 }, scene), hips, dark);
+  const head = node("k-head", chest, 0, 0.72, 0.02);
   const skull = part(MeshBuilder.CreateSphere("k-skull", { diameter: 0.42, segments: 10 }, scene), head, fur);
   skull.scaling.set(1, 0.95, 1.05);
   const snout = part(MeshBuilder.CreateCylinder("k-snout", { height: 0.3, diameterTop: 0.12, diameterBottom: 0.22 },
@@ -88,41 +100,39 @@ export function buildKobold(
     ear.rotation.z = -s * 0.35;
     const eye = part(MeshBuilder.CreateSphere("k-eye", { diameter: 0.06, segments: 6 }, scene), head, eyes);
     eye.position.set(s * 0.1, 0.04, 0.17);
-    // The off arm hangs; the sword arm is the hand below.
-    if (s < 0) {
-      const arm = part(MeshBuilder.CreateBox("k-arm", { width: 0.12, height: 0.5, depth: 0.12 }, scene), model, fur);
-      arm.position.set(-0.3, 0.95, 0);
-      arm.rotation.z = -0.15;
-    }
   }
   const tail = part(MeshBuilder.CreateCylinder("k-tail", { height: 0.5, diameterTop: 0.03, diameterBottom: 0.09 },
-    scene), model, fur);
-  tail.position.set(0, 0.7, -0.32);
+    scene), hips, fur);
+  tail.position.set(0, 0, -0.32);
   tail.rotation.x = -1.0;
 
   const hip = (x: number): TransformNode => {
-    const pivot = node("k-hip", model, x, 0.66, 0);
+    const pivot = node("k-hip", hips, x, -0.04, 0);
     const leg = part(MeshBuilder.CreateBox("k-leg", { width: 0.14, height: 0.6, depth: 0.16 }, scene), pivot, dark);
     leg.position.y = -0.3;
     return pivot;
   };
   const legs: KoboldModel["legs"] = [hip(-0.13), hip(0.13)];
 
-  // The sword hand, held in front of its right shoulder; the arm reaches from the shoulder to it.
-  const hand = node("k-hand", model, 0.22, 1.08, 0.28);
+  const arm = (side: 1 | -1): Arm => buildArm(scene, part, model, chest, {
+    side, shoulder: { x: side * 0.27, y: 0.5, z: 0 }, reachM: armReachM, thicknessM: 0.11,
+    upper: cloth, fore: fur, fist: fur,
+  });
+  const swordArm = arm(1), offArm = arm(-1);
+  const twoHanded = weapon?.twoHanded ?? false;
   if (weapon) {
-    const grip = part(MeshBuilder.CreateBox("k-grip", { width: 0.05, height: 0.2, depth: 0.05 }, scene), hand, dark);
-    grip.position.y = 0;
+    const { hand } = swordArm, gripM = twoHanded ? 0.42 : 0.2;
+    const grip = part(MeshBuilder.CreateBox("k-grip", { width: 0.05, height: gripM, depth: 0.05 }, scene), hand, dark);
+    grip.position.y = 0.1 - gripM / 2;
     const guardBar = part(MeshBuilder.CreateBox("k-guard", { width: 0.24, height: 0.04, depth: 0.06 }, scene), hand,
       brass);
     guardBar.position.y = 0.12;
-    const steel = mat("kobold-steel", weapon.color);
-    const blade = part(MeshBuilder.CreateBox("k-blade", { width: weapon.widthM, height: weapon.lengthM, depth: 0.02 },
-      scene), hand, steel);
-    blade.position.y = 0.14 + weapon.lengthM / 2;
+    const steel = mat("kobold-steel", weapon.blade.color);
+    const blade = part(MeshBuilder.CreateBox("k-blade", {
+      width: weapon.blade.widthM, height: weapon.blade.lengthM, depth: 0.02,
+    }, scene), hand, steel);
+    blade.position.y = 0.14 + weapon.blade.lengthM / 2;
   }
-  const fist = part(MeshBuilder.CreateSphere("k-fist", { diameter: 0.13, segments: 6 }, scene), hand, fur);
-  fist.position.y = -0.02;
 
   const stars = node("k-stars", model, 0, 1.85, 0);
   const starMat = mat("kobold-star", "#ffd84a");
@@ -140,5 +150,8 @@ export function buildKobold(
 
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
-  return { root, model, hand, legs, stars, materials, baseEmissive, gait: 0, visualYaw: yaw };
+  return {
+    root, model, hips, chest, head, swordArm, offArm, twoHanded, legs, stars, materials, baseEmissive, gait: 0,
+    visualYaw: yaw,
+  };
 }
