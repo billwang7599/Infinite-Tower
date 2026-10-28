@@ -1,7 +1,7 @@
 /** A Fight's state, as plain data. The physics world holds the colliders, by handle. */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, WeaponAttackDef } from "./defs.js";
+import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
@@ -208,6 +208,7 @@ export type EnemyState =
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
   | "weaponWindup" | "weapon" | "weaponRecover"
+  | "skillChant" | "skillCast"
   | "sidestep";
 
 /** Any arena enemy. Each attack component (below) has its own system; models animate from `state`. */
@@ -245,8 +246,13 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   parryCooldown: number;
 }
 
+export interface SkillAttackData extends AttackState<SkillAttackDef> {
+  toSay: Word[];
+}
+
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
 export const WeaponAttack = defineComponent<WeaponAttackData>("WeaponAttack");
+export const SkillAttack = defineComponent<SkillAttackData>("SkillAttack");
 export interface SidestepData { def: SidestepDef; dir: Vec2 }
 export const Sidestep = defineComponent<SidestepData>("Sidestep");

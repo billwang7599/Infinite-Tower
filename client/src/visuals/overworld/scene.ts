@@ -4,7 +4,7 @@ import {
 } from "@babylonjs/core";
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import type { OverworldState } from "../../modes/overworld/components.js";
-import { drawAlert, drawBoar, drawKobold } from "../characters.js";
+import { drawAlert, drawBoar, drawGoblin, drawKobold } from "../characters.js";
 import { pixelMaterial, spriteMaterial } from "../sprites.js";
 import { tuftTexture } from "../textures.js";
 
@@ -15,6 +15,7 @@ export interface OverworldScene {
     player: Record<ChibiFacing, StandardMaterial>;
     boar: StandardMaterial;
     kobold: StandardMaterial;
+    goblin: StandardMaterial;
     alert: StandardMaterial;
     tuft: StandardMaterial;
   };
@@ -55,6 +56,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
       player: chibiMaterials(scene),
       boar: spriteMaterial(scene, "overworld-boar", drawBoar),
       kobold: spriteMaterial(scene, "overworld-kobold", drawKobold),
+      goblin: spriteMaterial(scene, "overworld-goblin", drawGoblin),
       alert: spriteMaterial(scene, "overworld-alert", drawAlert),
     },
   };

@@ -4,7 +4,7 @@
  */
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
-import type { SkillElement } from "../skills/skill.js";
+import type { Modifier, Segment, SkillElement } from "../skills/skill.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Stats } from "./stats.js";
 
@@ -86,17 +86,29 @@ export interface SidestepDef {
   stepTime: number;
 }
 
+export interface SkillAttackDef {
+  skill: Segment;
+  extras: { modifier: Modifier; chance: number }[];
+  quickCastM: number;
+  rangeM: number;
+  wordTime: number;
+  // Counted from when its last cast's effects are gone.
+  cooldown: number;
+  firstDelay: number;
+}
+
 export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
   weapon?: WeaponAttackDef;
+  skill?: SkillAttackDef;
 }
 
 export interface EnemyDef {
   id: string;
   name: string;
   /** Which 3D model the client builds. */
-  model: "boar" | "kobold";
+  model: "boar" | "kobold" | "goblin";
   maxHp: number;
   stats: Stats;
   /** Its body is a ball this big. It shoves players aside however heavy it is; players never push it. */
@@ -111,5 +123,6 @@ export interface EnemyDef {
   attacks: EnemyAttacks;
   wielder?: { hands: Partial<Record<Hand, ItemId>>; armReachM: number };
   sidestep?: SidestepDef;
+  keepAway?: { nearM: number; farM: number };
   resist?: Partial<Record<SkillElement, number>>;
 }

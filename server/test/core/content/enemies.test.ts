@@ -94,3 +94,51 @@ describe("stepping aside from a Bolt", () => {
   test("the Kobold sometimes does", () => assert.ok(seeds.some((seed) => stepsAside(KOBOLD, seed))));
   test("the boar never does", () => assert.ok(!seeds.some((seed) => stepsAside(ENEMIES["wild-boar"], seed))));
 });
+
+describe("the Goblin Warlock", () => {
+  const WARLOCK = ENEMIES["goblin-warlock"];
+
+  function chaser(fight: Fight, swings: boolean): PlayerInputData {
+    const at = fight.world.require(fight.players[0]!, Body).pos, it = fight.world.require(fight.enemies[0]!, Body).pos;
+    const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
+    const aimX = dx / dist, aimZ = dz / dist, close = dist < 1.4;
+    const attack = swings && close && fight.steps % 2 === 0 ? (fight.steps % 4 === 0 ? "lr" : "rl") : null;
+    return { ...IDLE_INPUT, moveX: close ? 0 : aimX, moveZ: close ? 0 : aimZ, aimX, aimZ, attack };
+  }
+
+  test("left alone, it keeps its distance and its Bolts find you", () => {
+    const fight = newFight(1, WARLOCK);
+    let closest = Infinity;
+    for (let i = 0; i < 20 / FIXED_DT; i++) {
+      fight.step([IDLE_INPUT]);
+      const a = fight.world.require(fight.players[0]!, Body).pos, b = fight.world.require(fight.enemies[0]!, Body).pos;
+      closest = Math.min(closest, Math.hypot(a.x - b.x, a.z - b.z));
+    }
+    const hp = fight.world.require(fight.players[0]!, Health).hp;
+    assert.ok(closest > WARLOCK.keepAway!.nearM, `came within ${closest} m`);
+    assert.ok(hp < PLAYER.maxHp - 20, `${hp} HP left`);
+  });
+
+  test("a player who runs it down beats it, whatever its seed", () => {
+    for (const seed of [1, 2, 3, 1234, 99999]) {
+      const fight = newFight(seed, WARLOCK);
+      while (fight.outcome.state === "fighting" && fight.steps < 60 / FIXED_DT) fight.step([chaser(fight, true)]);
+      const hp = fight.world.require(fight.players[0]!, Health).hp;
+      assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
+    }
+  });
+
+  test("standing on it gets you poked by its staff, for a little", () => {
+    const fight = newFight(1, WARLOCK);
+    const pokes: number[] = [];
+    for (let i = 0; i < 15 / FIXED_DT; i++) {
+      fight.step([chaser(fight, false)]);
+      for (const ev of fight.events) {
+        if (ev.type === "hit" && ev.by === fight.enemies[0] && !ev.weapon
+          && fight.world.require(fight.enemies[0]!, Enemy).state === "lunge") pokes.push(ev.damage);
+      }
+    }
+    assert.ok(pokes.length > 0);
+    for (const damage of pokes) assert.equal(damage, WARLOCK.attacks.lunge!.damage);
+  });
+});

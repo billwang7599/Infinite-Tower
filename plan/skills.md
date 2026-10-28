@@ -68,7 +68,7 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   will other players. What a chanter is chanting is shown in a small popup in front of them, always while they chant
   ("if we look close enough we can see what they're chanting"); your own chant is the big popup. Interrupts are the
   same for every chanter. One cast at a time per entity until it resolves. Built: the `Skilled` component on every
-  fighter (below); no enemy uses it yet (the goblin warlock, next).
+  fighter (below), and the Goblin Warlock, an enemy that casts (`skill` in its attacks).
 - **Stats:** skillpower (was spellpower, then Intellect) scales skill damage. D below is a skill's base damage after
   skillpower.
 - **Elements** (numbers are placeholders; each element is its own damage type, so per-element resistances can apply;
@@ -184,8 +184,8 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   calls: `startCast` (a quick-cast, or a chant's release), `chant(words)` and `releaseChant`. The player's chant words
   reach the fight as the input `chantWords` (the whole list, on the step it changes), checked by the server against the
   words they know. A stun (or a parry or stagger for an enemy) breaks it off. A fighter without a `Stamina` pays
-  nothing; enemies have none, and their skillpower is 0 (their skills would do no damage): both for the warlock to
-  settle.
+  nothing. An enemy that casts (a `skill` attack) gets a stamina bar like a player's and pays the same; the boar and
+  the Kobold have none, and skillpower 0.
 
 ## PRs
 
@@ -198,14 +198,16 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
    (Burning, Wet, Shocked stacks, ...), Self's lasting statuses on the player, sounds.
 
 5. **G** any fighter's skills (`Skilled`), chanting without the book, the chant's words in the fight and over
-   other chanters (built). **H** a goblin warlock that uses them (next).
+   other chanters (built). **H** the Goblin Warlock, an enemy that uses them (built: quick-casts and chants Bolt Fire,
+   sometimes with Follow or Split, keeping its distance).
 
 ## Later
 
 - Multicast: about two casts open at once per entity, instead of one.
 - Advanced boss AI that builds its chants to suit the situation, and quick-casts for quick skills.
-- "One cast at a time until it resolves" counts only the build and wind-up for now: you can cast again while your last
-  skill's effects are still out. Whether a cast should block the next until its last effect ends is open.
+- "One cast at a time until it resolves" counts only the build and wind-up for the player for now: you can cast again
+  while your last skill's effects are still out (the warlock waits for its own to end). Whether a cast should block the
+  next until its last effect ends is open.
 
 ## Open
 

@@ -5,11 +5,12 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillObject, Skilled, Stamina,
-  Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillAttack, SkillObject, Skilled,
+  Stamina, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
   type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
+import type { Word } from "../../skills/skill.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
@@ -37,6 +38,8 @@ interface EnemySnapshot extends FighterSnapshot {
   charge: { cooldown: number; dir: Vec2 } | null;
   weapon: Omit<WeaponAttackData, "def"> | null;
   sidestep: { dir: Vec2 } | null;
+  skill: { cooldown: number; toSay: Word[] } | null;
+  stamina: Omit<StaminaData, "max"> | null;
 }
 
 /** Whose hitbox it is and whom it has hit, as fighter indices (the players in seat order, then the enemies). */
@@ -101,13 +104,15 @@ export function saveFight(fight: Fight): FightSnapshot {
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
       const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), weapon = world.get(e, WeaponAttack);
-      const sidestep = world.get(e, Sidestep);
+      const sidestep = world.get(e, Sidestep), skill = world.get(e, SkillAttack), stamina = world.get(e, Stamina);
       return {
         ...fighter(e), enemy,
         lunge: lunge ? { cooldown: lunge.cooldown } : null,
         charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
         weapon: weapon ? withoutDef(weapon) : null,
         sidestep: sidestep ? { dir: { ...sidestep.dir } } : null,
+        skill: skill ? { cooldown: skill.cooldown, toSay: [...skill.toSay] } : null,
+        stamina: stamina ? { value: stamina.value, regenDelay: stamina.regenDelay } : null,
       };
     }),
     hits: [...world.query(ActiveHit)].map(([e, { alreadyHit, ...hit }]) => ({
@@ -159,6 +164,9 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     if (weapon && s.weapon) Object.assign(weapon, s.weapon);
     const sidestep = world.get(e, Sidestep);
     if (sidestep && s.sidestep) sidestep.dir = { ...s.sidestep.dir };
+    const skill = world.get(e, SkillAttack), stamina = world.get(e, Stamina);
+    if (skill && s.skill) Object.assign(skill, { cooldown: s.skill.cooldown, toSay: [...s.skill.toSay] });
+    if (stamina && s.stamina) Object.assign(stamina, s.stamina);
   });
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });

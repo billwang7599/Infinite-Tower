@@ -79,4 +79,18 @@ describe("getLevel", () => {
     touchSystem(f.ctx)(f.world, 0.1);
     assert.deepEqual(f.encounters, [{ source: e, enemy: "kobold-swordsman" }]);
   });
+
+  test("the Goblin Warlock has a corner of its own, away from the others, and starts its fight on touch", () => {
+    const level = getLevel(START_LEVEL);
+    const goblin = level.spawns.find((s) => s.prefab === "goblin");
+    assert.ok(goblin);
+    for (const other of level.spawns.filter((s) => s !== goblin)) {
+      assert.ok(Math.hypot(goblin.at.x - other.at.x, goblin.at.z - other.at.z) > 8);
+    }
+    assert.equal(inTallGrass(level.layout, goblin.at.x, goblin.at.z), false);
+    const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
+    const e = OVERWORLD_PREFABS.goblin(f.world, { x: 0, z: 0 });
+    touchSystem(f.ctx)(f.world, 0.1);
+    assert.deepEqual(f.encounters, [{ source: e, enemy: "goblin-warlock" }]);
+  });
 });
