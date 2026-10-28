@@ -5,6 +5,7 @@ import {
 import type { Buttons } from "./buttons.js";
 import type { Keyboard } from "./keyboard.js";
 import type { Mouse } from "./mouse.js";
+import type { MouseSettings } from "../settings/mouse.js";
 
 type OverworldAction = Action<"general" | "overworld">;
 const BAG_ACTIONS = ["inventory", "character", "turnItem", "useItem"] as const satisfies readonly OverworldAction[];
@@ -57,7 +58,10 @@ export class Actions {
   private mapped: KeyMap | null = null;
   private readonly maps = {} as Record<Group, Map<string, string>>;
 
-  constructor(private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, mouse: Mouse) {
+  constructor(
+    private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, private readonly mouse: Mouse,
+    private readonly mouseSettings: MouseSettings,
+  ) {
     this.devices = [keyboard, mouse];
     keyboard.listen((key, repeat) => this.keydown(key, repeat));
   }
@@ -67,6 +71,7 @@ export class Actions {
     if (layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i])) return;
     this.layers = layers;
     for (const d of this.devices) d.clearPressed();
+    this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
   }
 
   on(action: ActionName, handle: Handler): () => void {
@@ -87,6 +92,12 @@ export class Actions {
     const held = new Set(this.devices.flatMap((d) => [...d.held].flatMap((key) => this.worldAction(key) ?? [])));
     const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
     return { held, pressed, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
+  }
+
+  // Every frame, not per tick: movement is an amount, so a snapshot would count it again.
+  lookDelta(): { dx: number; dy: number } {
+    const delta = this.mouse.consumeDelta();
+    return this.top === "battle" ? delta : { dx: 0, dy: 0 };
   }
 
   private get top(): Layer {

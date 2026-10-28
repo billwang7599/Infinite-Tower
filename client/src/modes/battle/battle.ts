@@ -9,7 +9,6 @@ import {
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
-import type { Mouse } from "../../core/mouse.js";
 import { frameSeconds } from "../../core/time.js";
 import type { Settings } from "../../settings/settings.js";
 import type { BattleHudState } from "../../ui/state.js";
@@ -52,7 +51,6 @@ export interface BattleOptions {
   engine: AbstractEngine;
   world: World;
   scene: BattleScene;
-  mouse: Mouse;
   actions: Actions;
   settings: Settings;
   hud: Store<BattleHudState>;
@@ -65,7 +63,7 @@ export function createBattle(opts: BattleOptions): Battle {
   registerArenaDisposers(world);
 
   const ctx: BattleContext = {
-    world, scene, camera, polled: actions.poll(), mouse: opts.mouse, settings, sunShadows,
+    world, scene, camera, polled: actions.poll(), actions, settings, sunShadows,
     materials: createMaterials(scene),
     arena: { radius: 0 },
     view: { ...START_VIEW },

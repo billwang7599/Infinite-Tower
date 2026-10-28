@@ -19,9 +19,9 @@ document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW
 const ui = new UiState();
 const settings = createSettings();
 const mouse = new Mouse(document.getElementById("game") as HTMLCanvasElement);
-const input = new Actions(settings.bindings, new Keyboard(), mouse);
+const input = new Actions(settings.bindings, new Keyboard(), mouse, settings.mouse);
 
-const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings, input, mouse));
+const preparing = import("./game/start.js").then((m) => m.prepareGame(ui, settings, input));
 // Failing before Play (no WebGL, say) shows on the title right away; after Play, play() reports it.
 preparing.catch((err: unknown) => {
   if (["checking", "menu", "signingIn"].includes(ui.title.get().phase)) fail(err);

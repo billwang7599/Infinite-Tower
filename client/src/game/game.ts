@@ -9,7 +9,6 @@ import {
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
-import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
 import { BATTLE_FRAMES, playerFrames } from "../gfx/characters.js";
 import type { Pose, SwordPose } from "../gfx/look/battle.js";
@@ -43,14 +42,13 @@ export interface Game {
 interface GameParts {
   engine: AbstractEngine;
   actions: Actions;
-  mouse: Mouse;
   ui: UiState;
   settings: Settings;
   battle: Battle;
   overworld: Overworld;
 }
 
-export function createGame({ engine, actions, mouse, ui, settings, battle, overworld }: GameParts): Game {
+export function createGame({ engine, actions, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Connection | null = null;
   let stopSync = () => {};
@@ -65,11 +63,7 @@ export function createGame({ engine, actions, mouse, ui, settings, battle, overw
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
    * world, nor the open bag), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
    */
-  const updateInput = () => {
-    const layers = whoHasTheKeys(ui, mode);
-    actions.setLayers(layers);
-    mouse.setLockable(layers.at(-1) === "battle", settings.mouse.get().autoLock);
-  };
+  const updateInput = () => actions.setLayers(whoHasTheKeys(ui, mode));
   ui.settingsScreen.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
   ui.overworldPanel.subscribe(updateInput);

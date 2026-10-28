@@ -2,8 +2,7 @@
 import type { Scene, ShadowGenerator, UniversalCamera } from "@babylonjs/core";
 import type { ArenaDef, World } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
-import type { Polled } from "../../core/actions.js";
-import type { Mouse } from "../../core/mouse.js";
+import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
 import type { Materials } from "./materials.js";
 import type { FightSync } from "./sync.js";
@@ -20,8 +19,7 @@ export interface BattleContext {
   camera: UniversalCamera;
   // The last fight step's; a frame without a step keeps it.
   polled: Polled;
-  /** Its movement turns the camera; its buttons come through `actions`. */
-  mouse: Mouse;
+  actions: Actions;
   settings: Settings;
   materials: Materials;
   /** The sun's shadow maps (casters are added to it); not the blob shadows under the sprites. */

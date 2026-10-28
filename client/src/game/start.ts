@@ -8,16 +8,13 @@ import { initPhysics } from "@infinite-tower/shared/fight";
 import { createBattle } from "../modes/battle/battle.js";
 import { createBattleScene } from "../modes/battle/scene.js";
 import type { Actions } from "../core/actions.js";
-import type { Mouse } from "../core/mouse.js";
 import { createOverworld } from "../modes/overworld/overworld.js";
 import { createOverworldScene } from "../modes/overworld/scene.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import { createGame, type Game } from "./game.js";
 
-export async function prepareGame(
-  ui: UiState, settings: Settings, actions: Actions, mouse: Mouse,
-): Promise<Game> {
+export async function prepareGame(ui: UiState, settings: Settings, actions: Actions): Promise<Game> {
   const canvas = document.getElementById("game") as HTMLCanvasElement;
   // Each mode keeps its own fixed-step clock (the arena's: modes/battle/pace.ts).
   const engine = new Engine(canvas, true);
@@ -30,11 +27,11 @@ export async function prepareGame(
   const overworldView = createOverworldScene(engine);
 
   const battle = createBattle({
-    engine, world, scene: battleScene, mouse, actions, settings, hud: ui.battle,
+    engine, world, scene: battleScene, actions, settings, hud: ui.battle,
     onLeave: () => game.leaveBattle(),
   });
   const overworld = createOverworld({ engine, world, view: overworldView, actions, hud: ui.overworld });
-  const game = createGame({ engine, actions, mouse, ui, settings, battle, overworld });
+  const game = createGame({ engine, actions, ui, settings, battle, overworld });
   await physicsLoaded;
   return game;
 }

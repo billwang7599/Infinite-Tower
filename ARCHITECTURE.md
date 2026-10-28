@@ -113,9 +113,10 @@ main.ts
   things listen by action name alone (`actions.on`, `useAction` in the UI), so an action name means one thing
   everywhere; the overworld's tick and the fight's steps call `actions.poll()` once each, for what's held and what was
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
-  only while their layer is on top; the arena camera reads the fight's last poll. In a text field only the arrows
-  and Esc count; rebinding takes raw keys with `captureKey`. Mouse movement and pointer input in the UI stay plain
-  DOM events.
+  only while their layer is on top; the arena camera reads the fight's last poll. Actions also owns the mouse: the
+  pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
+  movement each frame with `actions.lookDelta()`; no mode sees `Mouse`. In a text field only the arrows and Esc
+  count; rebinding takes raw keys with `captureKey`. Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
@@ -534,7 +535,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
-                     layer's held and pressed actions and its axes),
+                     layer's held and pressed actions and its axes, `lookDelta` for the arena's mouse movement,
+                     and when the mouse may lock),
                      time.ts
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change

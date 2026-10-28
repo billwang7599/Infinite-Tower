@@ -6,15 +6,35 @@ import { readPlayerInput } from "../../src/modes/battle/player/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
+import { MouseSettings } from "../../src/settings/mouse.js";
 
 /** The real Keyboard and Mouse on stand-ins for window, document and canvas, fed plain Events; the mouse captured. */
 function setup(...layers: Layer[]) {
-  const win = new EventTarget(), canvas = new EventTarget();
+  return setupWith({ autoLock: true, locked: true }, ...layers);
+}
+
+function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean }, ...layers: Layer[]) {
+  const win = new EventTarget();
+  const doc = Object.assign(new EventTarget(), {
+    exits: 0,
+    exitPointerLock() {
+      doc.exits++;
+    },
+  });
+  const canvas = Object.assign(new EventTarget(), {
+    requests: 0,
+    requestPointerLock(): Promise<void> {
+      canvas.requests++;
+      return Promise.resolve();
+    },
+  });
   const bindings = new KeyBindings();
-  const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, new EventTarget() as unknown as Document,
+  const mouseSettings = new MouseSettings();
+  mouseSettings.setAutoLock(autoLock);
+  const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document,
     win as unknown as Window);
-  mouse.locked = true;
-  const actions = new Actions(bindings, new Keyboard(win as unknown as Window), mouse);
+  mouse.locked = locked;
+  const actions = new Actions(bindings, new Keyboard(win as unknown as Window), mouse, mouseSettings);
   actions.setLayers(layers.length > 0 ? layers : ["battle"]);
   const send = (target: EventTarget, type: string, fields: object) => {
     const event = Object.assign(new Event(type, { cancelable: true }), fields);
@@ -35,7 +55,8 @@ function setup(...layers: Layer[]) {
     return input.attack;
   };
   return {
-    bindings, actions, listen, attack,
+    bindings, actions, listen, attack, canvas, doc,
+    move: (movementX: number, movementY: number) => send(doc, "mousemove", { movementX, movementY }),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
     release: (code: string) => send(win, "keyup", { code }),
     click: (button: number) => send(canvas, "mousedown", { button }),
@@ -197,7 +218,7 @@ describe("Actions: the layers", () => {
     const win = new EventTarget();
     const actions = new Actions(new KeyBindings(), new Keyboard(win as unknown as Window),
       new Mouse(new EventTarget() as unknown as HTMLCanvasElement, new EventTarget() as unknown as Document,
-        win as unknown as Window));
+        win as unknown as Window), new MouseSettings());
     let played = false;
     actions.on("play", () => void (played = true));
     win.dispatchEvent(Object.assign(new Event("keydown"), { code: "Enter", repeat: false }));
@@ -369,6 +390,46 @@ describe("Actions: the layers", () => {
     press("KeyW");
     actions.setLayers(["battle"]);
     assert.equal(actions.poll().held.has("forward"), true);
+  });
+});
+
+describe("Actions: the mouse", () => {
+  test("with the arena on top, lookDelta is what the mouse moved since the last call", () => {
+    const { actions, move } = setup("battle");
+    move(3, -2);
+    move(4, 1);
+    assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 });
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+  });
+
+  test("under a screen, lookDelta is zero and what moved meanwhile is dropped", () => {
+    const { actions, move } = setup("battle", "settings");
+    move(5, 5);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    actions.setLayers(["battle"]);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+  });
+
+  test("the arena coming on top captures the mouse when Auto mouse lock is on", () => {
+    const { actions, canvas } = setupWith({ autoLock: true, locked: false }, "overworld");
+    assert.equal(canvas.requests, 0);
+    actions.setLayers(["battle"]);
+    assert.equal(canvas.requests, 1);
+  });
+
+  test("with Auto mouse lock off, only a click in the arena captures it", () => {
+    const { actions, canvas } = setupWith({ autoLock: false, locked: false }, "overworld");
+    canvas.dispatchEvent(new Event("click"));
+    actions.setLayers(["battle"]);
+    assert.equal(canvas.requests, 0);
+    canvas.dispatchEvent(new Event("click"));
+    assert.equal(canvas.requests, 1);
+  });
+
+  test("a screen over the arena lets go of the mouse", () => {
+    const { actions, doc } = setup("battle");
+    actions.setLayers(["battle", "settings"]);
+    assert.equal(doc.exits, 1);
   });
 });
 
