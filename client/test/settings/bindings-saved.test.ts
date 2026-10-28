@@ -41,7 +41,7 @@ describe("KeyBindings saving", () => {
     const b = new KeyBindings();
     b.bind(jump, "KeyX", null);
     b.bind(inventory, "KeyC", "KeyB");
-    b.unbind(turnLeft, "ArrowLeft");
+    b.bind(turnLeft, "KeyZ", "ArrowLeft");
     const copy = new KeyBindings();
     copy.restore(JSON.parse(JSON.stringify(b.toSaved())));
     assert.deepEqual(copy.get(), b.get());
@@ -183,17 +183,11 @@ describe("KeyBindings reset", () => {
   test("reset brings back the defaults", () => {
     const b = new KeyBindings();
     b.bind(jump, "KeyX", null);
-    b.unbind(turnLeft, "KeyQ");
+    b.bind(turnLeft, "KeyZ", null);
     assert.equal(b.isDefault(), false);
     b.reset();
     assert.equal(b.isDefault(), true);
     assert.deepEqual(b.get(), defaults());
-  });
-
-  test("isDefault notices a reordering", () => {
-    const b = new KeyBindings();
-    b.restore({ battle: { turnLeft: ["ArrowLeft", "KeyQ"] } });
-    assert.equal(b.isDefault(), false);
   });
 });
 
@@ -242,5 +236,22 @@ describe("KeyBindings saved before the swings were named as the fight names them
     assert.deepEqual(keysOf(b.get(), { group: "battle", action: "lr" }), ["KeyY"]);
     assert.deepEqual(keysOf(b.get(), { group: "battle", action: "brtl" }), ["KeyH"]);
     assert.deepEqual(b.toSaved(), { battle: { lr: ["KeyY"], brtl: ["KeyH"] } });
+  });
+});
+
+describe("KeyBindings saved before lock-on", () => {
+  test("a turn saved on Q (the lock now) or a block on right Shift (lock closest now) clashes: battle defaults", () => {
+    for (const battle of [{ turnLeft: ["KeyQ", "KeyH"] }, { block: ["ShiftRight", "KeyH"] }]) {
+      const b = new KeyBindings();
+      b.restore({ battle, general: { inventory: ["KeyN"] } });
+      assert.deepEqual(b.get().battle, defaults().battle);
+      assert.deepEqual(keysOf(b.get(), { group: "general", action: "inventory" }), ["KeyN"], "other groups are kept");
+    }
+  });
+
+  test("a turn saved on E is kept: E is free in the arena now", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { turnRight: ["KeyE", "ArrowRight"] } });
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "turnRight" }), ["KeyE", "ArrowRight"]);
   });
 });

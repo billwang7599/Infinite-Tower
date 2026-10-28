@@ -89,18 +89,18 @@ describe("Actions: key to action", () => {
     assert.deepEqual(overworld.actions.poll().pressed, []);
 
     const battle = setup("battle");
-    battle.press("KeyE");
-    assert.equal(battle.actions.poll().held.has("turnRight"), true);
+    battle.press("KeyQ");
+    assert.equal(battle.actions.poll().held.has("lockOn"), true);
     battle.press("KeyR");
+    battle.press("KeyE");
     assert.deepEqual(battle.actions.poll().pressed, []);
-
   });
 
   test("mouse buttons go by Mouse0, Mouse2…, the right one doing what its place gives it", () => {
     const battle = setup("battle");
     battle.click(0);
     battle.click(2);
-    assert.deepEqual(battle.actions.poll().pressed, ["lr", "dodge"]);
+    assert.deepEqual(battle.actions.poll().pressed, ["lr", "dragCamera"]);
     const overworld = setup("overworld");
     overworld.click(2);
     assert.deepEqual(overworld.actions.poll().pressed, ["turnItem"]);
@@ -120,12 +120,13 @@ describe("Actions: key to action", () => {
 
 describe("Actions: poll", () => {
   test("an action is held while any of its keys is", () => {
-    const { actions, press, release } = setup();
+    const { actions, bindings, press, release } = setup();
+    bindings.bind({ group: "battle", action: "block" }, "KeyX", null);
     press("ShiftLeft");
-    press("ShiftRight");
+    press("KeyX");
     release("ShiftLeft");
     assert.equal(actions.poll().held.has("block"), true);
-    release("ShiftRight");
+    release("KeyX");
     assert.equal(actions.poll().held.has("block"), false);
   });
 
@@ -153,18 +154,18 @@ describe("Actions: poll", () => {
     };
     assert.deepEqual(axes(), { z: 0, turn: 0, look: 0 });
     press("KeyW");
-    press("KeyQ");
+    press("ArrowLeft");
     press("ArrowDown");
     assert.deepEqual(axes(), { z: 1, turn: -1, look: 1 });
     release("KeyW");
-    release("KeyQ");
+    release("ArrowLeft");
     release("ArrowDown");
     press("KeyS");
-    press("KeyE");
+    press("ArrowRight");
     press("ArrowUp");
     assert.deepEqual(axes(), { z: -1, turn: 1, look: -1 });
     press("KeyW");
-    press("KeyQ");
+    press("ArrowLeft");
     press("ArrowDown");
     assert.deepEqual(axes(), { z: 0, turn: 0, look: 0 });
   });
@@ -195,12 +196,25 @@ describe("Actions: poll", () => {
     assert.equal(polled.held.has("dodge"), true);
   });
 
-  test("the right mouse button dodges", () => {
-    const { actions, click } = setup();
+  test("the right mouse button is held as the camera drag, and doesn't dodge", () => {
+    const { actions, click, unclick } = setup();
     click(2);
     const polled = actions.poll();
-    assert.equal(polled.held.has("dodge"), true);
-    assert.deepEqual(polled.pressed, ["dodge"]);
+    assert.equal(polled.held.has("dragCamera"), true);
+    assert.equal(polled.held.has("dodge"), false);
+    unclick(2);
+    assert.equal(actions.poll().held.has("dragCamera"), false);
+  });
+
+  test("Q is the lock toggle and right Shift locks the closest; E does nothing in the arena", () => {
+    const { actions, press } = setup();
+    press("KeyQ");
+    press("ShiftRight");
+    press("KeyE");
+    const polled = actions.poll();
+    assert.deepEqual(polled.pressed, ["lockOn", "lockClosest"]);
+    assert.equal(polled.held.has("block"), false);
+    assert.equal(polled.turn, 0);
   });
 
   test("a rebound key does its new action, and the old key nothing", () => {
@@ -267,7 +281,7 @@ describe("Actions: the layers", () => {
 
   test("each layer reads its own keys", () => {
     const cases: [Layer, string, ActionName][] = [
-      ["overworld", "KeyE", "rest"], ["battle", "KeyE", "turnRight"], ["bag", "KeyR", "turnItem"],
+      ["overworld", "KeyE", "rest"], ["battle", "KeyQ", "lockOn"], ["bag", "KeyR", "turnItem"],
       ["bag", "Enter", "useItem"], ["bag", "KeyB", "inventory"], ["bag", "KeyC", "character"],
       ["bag", "Escape", "closeBag"], ["overworld", "Escape", "menu"], ["battle", "Escape", "menu"],
       ["settings", "Escape", "menu"], ["title", "Enter", "play"], ["creation", "Escape", "goBack"],

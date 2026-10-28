@@ -61,8 +61,12 @@ Decided by the user:
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
   by the shared Zod schemas through fastify-type-provider-zod. Game messages stay on plain `ws` (`ws/`); Fastify
   only does the `/ws` handshake.
-- No lock-on or auto-aim in fights. Only the player turns the camera, and attacks go where it faces, so aiming
-  is a skill. This covers swords and weapons; spells may home (the Follow augment).
+- Fights lock on: a fight starts locked onto the closest enemy, Q toggles the lock, Right Shift locks the closest,
+  and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
+  off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
+  Unlocked, the arrows or a right-button drag turn the camera, and attacks go where it faces; the mouse alone
+  doesn't turn it. Spells may home (the Follow augment). The locked camera's numbers (top of
+  `client/src/modes/battle/systems/camera.ts`) are the agent's pick, to tune.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
@@ -112,10 +116,10 @@ Decided by the user:
   first.
 - The sword (hand-tested and approved): eight swings, named by their way across the screen, and a stab, each on its
   own key in a U I O / J K L / M , . grid (K stabs; each other key swings from its side to the opposite one); block
-  is held (Shift), Space jumps, F dodges, Q / E turn the camera. A swing's reach and arc come from the sword's
-  length and its line (horizontal wide and short, vertical narrow and long; the stab a long thin ray). Swings chain:
-  the next one's start depends on how it follows the last (the reverse quickest, a perpendicular one slowest), and
-  a chain builds momentum (more damage, a quicker start) until a gap, a block, a dodge or a hit taken; a stab after
+  is held (Left Shift), Space jumps, F dodges (the right mouse button doesn't). A swing's reach and arc come from the
+  sword's length and its line (horizontal wide and short, vertical narrow and long; the stab a long thin ray). Swings
+  chain: the next one's start depends on how it follows the last (the reverse quickest, a perpendicular one slowest),
+  and a chain builds momentum (more damage, a quicker start) until a gap, a block, a dodge or a hit taken; a stab after
   a chain spends it. A block stops a hit from in front for stamina and pushes you back; short of stamina, the guard
   breaks and you're staggered. Numbers: `shared/src/battle/sword.ts` and `PLAYER` in `player.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two

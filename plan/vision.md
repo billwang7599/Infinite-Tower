@@ -15,8 +15,8 @@ Status: **direction** (the user's). Details are undecided unless listed under "D
 
 ## Decided so far
 
-- Attacks go wherever the camera faces; no lock-on or auto-aim. Lock-on with swipe-to-swing is planned to replace
-  this ([lock-on.md](lock-on.md)).
+- Fights lock on to an enemy (see [AGENTS.md](../AGENTS.md)); the sword's swings are to come from mouse movement
+  ([lock-on.md](lock-on.md)).
 - The rest (HP / stamina carrying over, resting, items, stats, character looks) is listed in
   [AGENTS.md](../AGENTS.md) under "Decided by the user" and "Decided by the agent".
 

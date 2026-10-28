@@ -1,7 +1,8 @@
 import { Vector3 } from "@babylonjs/core";
-import { Body, clamp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
+import { Body, clamp, damp, dampFactor, LocalPlayer, wrapAngle, type System } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../context.js";
+import { lockYaw } from "../lock.js";
 
 // Turn rates at 100% sensitivity; Settings → Camera scales all three (settings/camera.ts).
 const YAW_RAD_PER_SEC = 2.6;
@@ -22,6 +23,12 @@ const LOOK_HEIGHT = 1.3;
 /** Shake decays by e every 1/9 s; below the cutoff it stops. */
 const SHAKE_DECAY_PER_SEC = 9;
 const SHAKE_CUTOFF = 0.005;
+/** Locked: how quickly the camera swings round behind the player to the target, and tilts to LOCK_PITCH_RAD. */
+const LOCK_TURN_RATE = 12;
+const LOCK_PITCH_RAD = 0.3;
+/** Locked: the camera looks this share of the way from the player to the target, at most LOCK_LOOK_MAX_M. */
+const LOCK_LOOK_SHARE = 0.35;
+const LOCK_LOOK_MAX_M = 3;
 
 /** How hard each event shakes the camera: a slam, a hit taken or dealt, blades meeting, a blow on the guard. */
 function shakeOf(event: FightEvent): number {
@@ -39,33 +46,47 @@ export function addImpactShake(ctx: BattleContext, events: readonly FightEvent[]
 }
 
 /**
- * Third-person orbit camera around the player. Mouse/trackpad (when captured) or the turn keys (Q/E) turn it a full
- * 360°. Only the player turns it: there is no lock-on, so aiming is a skill. Where it looks is where the player
- * attacks (see player/input.ts). Also applies the impact shake (addImpactShake), decaying it.
+ * Third-person orbit camera around the player. Locked on, it swings round behind the player to keep the target in
+ * view, and tilts itself. Unlocked, the arrow keys or a right-button drag turn it a full 360°, and where it looks is
+ * where the player attacks (see player/input.ts). Also applies the impact shake (addImpactShake), decaying it.
  */
 export function cameraSystem(ctx: BattleContext): System {
-  const focus = new Vector3(), look = new Vector3();
+  const focus = new Vector3(), look = new Vector3(), lookShift = new Vector3();
   /** On a new fight, the camera jumps to the player instead of gliding over from where the last fight ended. */
   let followed: Fight | null = null;
 
   return (world, dt) => {
     const view = ctx.view;
-    const { turn, look: tilt } = ctx.polled;
     const { dx, dy } = ctx.actions.lookDelta();
-    const sensitivity = ctx.settings.camera.get().sensitivity;
-    view.yaw = wrapAngle(view.yaw + (turn * YAW_RAD_PER_SEC * dt + dx * MOUSE_RAD_PER_PX) * sensitivity);
-    view.pitch = clamp(
-      view.pitch + (tilt * PITCH_RAD_PER_SEC * dt + dy * MOUSE_RAD_PER_PX) * sensitivity, PITCH_MIN_RAD, PITCH_MAX_RAD,
-    );
-
     const row = world.first(LocalPlayer, Body);
     if (!row) return;
     const p = row[2].pos;
 
-    // Follow a smoothed point on the player; rotation itself is not smoothed (aiming must feel direct).
-    if (ctx.fight !== followed) { focus.set(p.x, p.y, p.z); followed = ctx.fight; }
+    // Follow a smoothed point on the player; unlocked, rotation itself is not smoothed (aiming must feel direct).
+    if (ctx.fight !== followed) { focus.set(p.x, p.y, p.z); lookShift.set(0, 0, 0); followed = ctx.fight; }
     const k = dampFactor(FOLLOW_RATE, dt);
     focus.set(focus.x + (p.x - focus.x) * k, focus.y + (p.y - focus.y) * k, focus.z + (p.z - focus.z) * k);
+
+    const target = ctx.lock === null ? null : world.get(ctx.lock, Body)?.pos ?? null;
+    if (target) {
+      const turn = dampFactor(LOCK_TURN_RATE, dt), goal = lockYaw(p, target);
+      if (goal !== null) view.yaw = wrapAngle(view.yaw + wrapAngle(goal - view.yaw) * turn);
+      view.pitch = damp(view.pitch, LOCK_PITCH_RAD, LOCK_TURN_RATE, dt);
+      const tx = target.x - focus.x, tz = target.z - focus.z;
+      const share = Math.min(LOCK_LOOK_SHARE, LOCK_LOOK_MAX_M / Math.max(1e-3, Math.hypot(tx, tz)));
+      lookShift.x += (tx * share - lookShift.x) * turn;
+      lookShift.z += (tz * share - lookShift.z) * turn;
+    } else {
+      const { turn, look: tilt } = ctx.polled;
+      const drag = ctx.polled.held.has("dragCamera");
+      const sensitivity = ctx.settings.camera.get().sensitivity;
+      view.yaw = wrapAngle(view.yaw + (turn * YAW_RAD_PER_SEC * dt + (drag ? dx * MOUSE_RAD_PER_PX : 0)) * sensitivity);
+      view.pitch = clamp(
+        view.pitch + (tilt * PITCH_RAD_PER_SEC * dt + (drag ? dy * MOUSE_RAD_PER_PX : 0)) * sensitivity,
+        PITCH_MIN_RAD, PITCH_MAX_RAD,
+      );
+      lookShift.scaleInPlace(1 - dampFactor(LOCK_TURN_RATE, dt));
+    }
 
     const fx = Math.sin(view.yaw), fz = Math.cos(view.yaw);
     // Pull the camera in so it never leaves the arena (the standing stones would block the view).
@@ -82,7 +103,7 @@ export function cameraSystem(ctx: BattleContext): System {
       focus.y + ORBIT_HEIGHT + Math.sin(view.pitch) * dist + (Math.random() - 0.5) * shake,
       focus.z - fz * flat + (Math.random() - 0.5) * shake,
     );
-    look.set(focus.x, focus.y + LOOK_HEIGHT, focus.z);
+    look.set(focus.x + lookShift.x, focus.y + LOOK_HEIGHT, focus.z + lookShift.z);
     ctx.camera.setTarget(look);
   };
 }

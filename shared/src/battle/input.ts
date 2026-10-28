@@ -7,7 +7,7 @@ export interface PlayerInputData {
   /** World-space move direction, -1..1. */
   moveX: number;
   moveZ: number;
-  /** World-space unit vector on the ground: where attacks go (the camera's facing). */
+  /** World-space unit vector on the ground: where attacks go (the camera's facing, or the locked enemy). */
   aimX: number;
   aimZ: number;
   /** Held this step. A different attack from the last step's is a new press of it. */

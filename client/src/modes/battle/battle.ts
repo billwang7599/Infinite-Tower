@@ -19,6 +19,7 @@ import {
 } from "./components.js";
 import { resultShown, type BattleContext } from "./context.js";
 import { ENEMY_MODELS } from "./enemies/models/index.js";
+import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { createMaterials } from "./materials.js";
 import { registerPlayerDisposers } from "./player/components.js";
 import { readPlayerInput } from "./player/input.js";
@@ -28,6 +29,7 @@ import type { BattleScene } from "./scene.js";
 import { FightSync } from "./sync.js";
 import { addImpactShake, cameraSystem } from "./systems/camera.js";
 import { hudSystem } from "./systems/hud.js";
+import { lockMarkerSystem } from "./lockMarker.js";
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
@@ -67,6 +69,7 @@ export function createBattle(opts: BattleOptions): Battle {
     materials: createMaterials(scene),
     arena: { radius: 0 },
     view: { ...START_VIEW },
+    lock: null,
     fight: null,
     sync: null,
     outcome: { state: "fighting", stateTime: 0 },
@@ -90,7 +93,11 @@ export function createBattle(opts: BattleOptions): Battle {
     if (steps === 0) return;
     ctx.polled = actions.poll();
     if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
-    readPlayerInput(ctx.polled, ctx.view.yaw, input);
+    const me = fight.world.first(LocalPlayer, Body)![2].pos;
+    const foes = livingFoes(fight);
+    ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.camera.position, yaw: ctx.view.yaw }, me);
+    const target = foes.find((f) => f.e === ctx.lock)?.pos;
+    readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, input);
     for (let i = 0; i < steps; i++) {
       sync.advance(input);
       addImpactShake(ctx, fight.events);
@@ -99,7 +106,7 @@ export function createBattle(opts: BattleOptions): Battle {
   };
 
   const render: System[] = [
-    followSystem(), cameraSystem(ctx), playerSpriteSystem(ctx),
+    followSystem(), cameraSystem(ctx), lockMarkerSystem(ctx), playerSpriteSystem(ctx),
     ...Object.values(ENEMY_MODELS).map((model) => model.animation()),
     hudSystem(ctx, opts.hud),
   ];
@@ -131,7 +138,10 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.fight = fight;
       ctx.sync = new FightSync(fight, seat, send);
       ctx.outcome = ctx.sync.outcome;
-      Object.assign(ctx.view, START_VIEW);
+      const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
+      ctx.lock = closestFoe(foes, me);
+      const target = foes.find((f) => f.e === ctx.lock)?.pos;
+      Object.assign(ctx.view, START_VIEW, { yaw: (target && lockYaw(me, target)) ?? START_VIEW.yaw });
       ctx.polled = actions.poll();
       ctx.shake = 0;
       // The last fight's result off the HUD before it shows again (its systems write it from the next frame on).
@@ -158,6 +168,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.fight?.dispose();
       ctx.fight = null;
       ctx.sync = null;
+      ctx.lock = null;
     },
     render: () => scene.render(),
   };

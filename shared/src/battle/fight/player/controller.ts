@@ -79,7 +79,7 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
 
 /**
  * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks and the block go where the
- * player aims (the camera's facing); a dodge goes where they move, or backwards standing still.
+ * player aims (the camera's facing, or the locked enemy); a dodge goes where they move, or backwards standing still.
  */
 export function playerControllerSystem(): System {
   return (world, dt) => {
