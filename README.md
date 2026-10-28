@@ -80,7 +80,7 @@ npm run typecheck  # shared, server, client and their tests, then the server's l
 npm run build      # the client bundle
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
-npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username)
+npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username, all spell words)
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```

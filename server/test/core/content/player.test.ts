@@ -9,9 +9,9 @@ describe("player content", () => {
     assert.equal(fullVitals({ ...PLAYER_STATS, stamina: 7 }).stamina, 7);
   });
 
-  test("a new player is rested, with no wins, settings or character, and an empty bag", () => {
+  test("a new player is rested, with no wins, settings, character or spell words, and an empty bag", () => {
     assert.deepEqual(newPlayer(), {
-      vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
+      vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
     });
   });
 

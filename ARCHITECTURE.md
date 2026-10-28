@@ -297,11 +297,12 @@ delayed like everything else, so `?ping=200` reads about 200.
 
 ## Saving
 
-What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character and
-bag, keyed by account. The `GameSession` saves after every fight (the moment it's decided, or lost by leaving it),
-rest, item use and making a character, on disconnect, and within a second of a settings change or a move in the
-bag. Position and level aren't saved (you
-start at the level's start), and stats aren't either (everyone has the same).
+What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag
+and the spell words they know (`knownWords`, not sent to the client yet), keyed by account; words not in the
+shared `WORDS` are dropped on load. The `GameSession` saves after every fight (the moment it's decided, or lost by
+leaving it), rest, item use and making a character, on disconnect, and within a second of a settings change or a
+move in the bag. Position and level aren't saved (you start at the level's start), and stats aren't either (everyone
+has the same).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -446,7 +447,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), burden.ts
                    (BURDEN, bagBurden: light / heavy / overloaded, and what each does to walking and dodging)
   spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
-                   AUGMENT_FITS; rejectWord / spellProblems: why a word is refused, for the builder
+                   AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
                    and the server's check; spellCost, castTime; SPELL: their numbers). Nothing casts them yet
                    (plan/spells.md)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
@@ -511,7 +512,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the
                      two stores core asks for; one query at a time per player), migrations/ (SQL written by
                      `npm run db:generate`, plus drizzle-kit's meta/), seed.ts (dev data: accounts test1-3,
-                     password = username; refuses to run in production)
+                     password = username, knowing every spell word; refuses to run in production)
 
 client/          Browser game: Babylon rendering, input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui

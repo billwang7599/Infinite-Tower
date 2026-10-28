@@ -47,7 +47,8 @@ built at a campfire and cast from the hotbar in fights. Numbers marked *placehol
 3. **C** casting in the shared `Fight` (the server decides; the client sends inputs only): wind-up, stamina, Bolt and
    Nova, the element / status engine with the four reactions, hand-off, the object caps, mana removed, plain
    placeholder visuals, and a dev-only way to cast so it can be hand-played.
-4. **D** the builder screen at campfires, learned words and saved spells (database), the hotbar 1-4.
+4. **D** the builder screen at campfires, learning words, saved spells (database), the hotbar 1-4. The words a
+   player knows are already saved (`PlayerSave.knownWords`).
 5. **E** the remaining Forms and augments.
 6. **F** real art and effects.
 

@@ -1,5 +1,5 @@
 /** What core needs from the outside world, as interfaces it owns; main.ts picks the implementations. */
-import type { Bag, Character, SavedSettings, ServerMsg, Vitals } from "@infinite-tower/shared";
+import type { Bag, Character, SavedSettings, ServerMsg, Vitals, Word } from "@infinite-tower/shared";
 
 /** The account's id. */
 export type PlayerId = string;
@@ -18,6 +18,7 @@ export interface PlayerSave {
   /** null until they've made one (their first visit). */
   character: Character | null;
   bag: Bag;
+  knownWords: Word[];
 }
 
 export interface PlayerStore {

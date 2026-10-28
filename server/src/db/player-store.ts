@@ -1,3 +1,4 @@
+import { WORDS, type Word } from "@infinite-tower/shared";
 import { eq, sql } from "drizzle-orm";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
@@ -43,10 +44,11 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
-  character: data.character, bag: data.bag,
+  character: data.character, bag: data.bag, knownWords: data.knownWords,
 });
 
 const fromRow = (row: typeof players.$inferSelect): PlayerSave => ({
   vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
   character: row.character, bag: row.bag,
+  knownWords: row.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word)),
 });
