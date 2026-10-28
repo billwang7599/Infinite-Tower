@@ -13,6 +13,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
 | [inventory.md](inventory.md): the rest of the grid inventory (bag screen, weight, loot screen, death) | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
+| [lock-on.md](lock-on.md): lock onto an enemy, arrows retarget, mouse movement swings the sword | later |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
 
 Statuses:
