@@ -20,7 +20,10 @@ export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: Lock
   return autoLock && lockable && !wasLockable && !locked;
 }
 
+type MoveListener = (dx: number, dy: number, atMs: number) => void;
+
 export class Mouse extends Buttons {
+  private moved: MoveListener = () => {};
   private dx = 0;
   private dy = 0;
   locked = false;
@@ -48,9 +51,14 @@ export class Mouse extends Buttons {
       if (!this.locked) return;
       this.dx += e.movementX;
       this.dy += e.movementY;
+      this.moved(e.movementX, e.movementY, e.timeStamp);
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
+  }
+
+  onMove(listener: MoveListener): void {
+    this.moved = listener;
   }
 
   /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured at once if `autoLock`. */

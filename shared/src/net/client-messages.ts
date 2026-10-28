@@ -81,7 +81,7 @@ const SavedSettingsSchema = z.object({
   bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(MAX_KEYS_PER_ACTION))).optional(),
   camera: z.object({ sensitivity: z.number().optional() }).optional(),
   /** Left out means on: saves from before it existed have no such field. */
-  mouse: z.object({ autoLock: z.boolean().optional() }).optional(),
+  mouse: z.object({ autoLock: z.boolean().optional(), swingSensitivity: z.number().optional() }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
 });

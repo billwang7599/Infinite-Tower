@@ -37,11 +37,11 @@ What's built so far:
   On guard it parries your swings and blocks your stabs, so hit it while it recovers from a chain or is stunned. Your
   sprite winds up, strikes and follows through on every swing and the stab, raises its guard to block, and reels when
   staggered.
-- **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
+- **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
-  the camera), Space jumps, F dodges, Left Shift blocks; U I O / J K L / M , . is a grid where K stabs
-  and each other key swings from its side to the opposite one (J or a left click: left to right).
+  the camera), Space jumps, F dodges, Left Shift blocks; a quick flick of the mouse swings the way it moves (one of
+  eight), and a left click stabs.
 - **Stats:** strength, agility, stamina and intellect on every fighter (intellect scales spell damage).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
@@ -53,8 +53,8 @@ What's built so far:
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
   and fade; only a fight starting gets the big banner in the middle.
-- **Settings** (Esc): camera sensitivity, auto mouse lock and show ping (both on by default), key bindings (general:
-  Esc, WASD, the panels; the overworld's; the arena's), return to title.
+- **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), key
+  bindings (general: Esc, WASD, the panels; the overworld's; the arena's), return to title.
 - **Saving:** your character, vitals, wins, bag and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its

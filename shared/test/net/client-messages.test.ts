@@ -164,6 +164,13 @@ describe("parseClientMsg", () => {
     for (const autoLock of ["false", 0, null]) assert.equal(settings({ mouse: { autoLock } }), null);
   });
 
+  test("settings: the swing sensitivity is kept as saved, and must be a number", () => {
+    const settings = (mouse: object) => parse({ t: "settings", settings: { mouse } });
+    const mouse = { autoLock: true, swingSensitivity: 1.5 };
+    assert.deepEqual(settings(mouse), { t: "settings", settings: { mouse } });
+    for (const swingSensitivity of ["1", null]) assert.equal(settings({ swingSensitivity }), null);
+  });
+
   test("settings: show ping may be left out (on), and must be true or false", () => {
     const settings = (hud: object) => parse({ t: "settings", settings: { hud } });
     for (const hud of [{ showPing: false }, {}]) assert.deepEqual(settings(hud), { t: "settings", settings: { hud } });

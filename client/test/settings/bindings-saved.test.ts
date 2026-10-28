@@ -215,27 +215,26 @@ describe("KeyBindings saved before one key per swing", () => {
     assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"], "other groups are kept");
   });
 
-  test("a block saved on I (now a swing) clashes too", () => {
-    const b = new KeyBindings();
-    b.restore({ battle: { block: ["KeyI", "KeyY"] } });
-    assert.deepEqual(b.get().battle, defaults().battle);
-  });
-
   test("a save that clashes with nothing new is kept, and the reverse action is dropped", () => {
     const b = new KeyBindings();
-    b.restore({ battle: { stab: ["KeyY"], reverse: ["KeyR"] } });
-    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "stab" }), ["KeyY"]);
-    assert.deepEqual(b.toSaved(), { battle: { stab: ["KeyY"] } });
+    b.restore({ battle: { jump: ["KeyY"], reverse: ["KeyR"] } });
+    assert.deepEqual(keysOf(b.get(), jump), ["KeyY"]);
+    assert.deepEqual(b.toSaved(), { battle: { jump: ["KeyY"] } });
   });
 });
 
-describe("KeyBindings saved before the swings were named as the fight names them", () => {
-  test("a swing saved under its old name loads where it is now, and saves under the new one", () => {
+describe("KeyBindings saved before the mouse swung the sword", () => {
+  test("saved swing and stab keys are dropped, under old names too; the rest is kept", () => {
     const b = new KeyBindings();
-    b.restore({ battle: { swingLR: ["KeyY"], swingBRTL: ["KeyH"] } });
-    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "lr" }), ["KeyY"]);
-    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "brtl" }), ["KeyH"]);
-    assert.deepEqual(b.toSaved(), { battle: { lr: ["KeyY"], brtl: ["KeyH"] } });
+    b.restore({ battle: { tlbr: ["KeyY"], lr: ["KeyJ"], swingLR: ["KeyH"], stab: ["KeyK"], jump: ["KeyX"] } });
+    assert.deepEqual(b.get().battle, { ...defaults().battle, jump: ["KeyX"] });
+    assert.deepEqual(b.toSaved(), { battle: { jump: ["KeyX"] } });
+  });
+
+  test("a key that was a swing's is free: a block saved on I is kept", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { block: ["KeyI", "ShiftLeft"] } });
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "block" }), ["KeyI", "ShiftLeft"]);
   });
 });
 
