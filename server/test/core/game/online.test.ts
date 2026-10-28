@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { CLOSE_CODES, FIXED_DT } from "@infinite-tower/shared";
+import { AUGMENTS, CLOSE_CODES, ELEMENTS, FIXED_DT, FORMS } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
@@ -30,12 +30,14 @@ describe("joining", () => {
     const { link } = await joinNew(online);
     assert.deepEqual(link.sent.map((m) => m.t), ["welcome"]);
     const welcome = link.last("welcome");
-    const fresh = newPlayer();
+    const { knownWords, ...fresh } = newPlayer();
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.bag },
       fresh,
     );
+    assert.deepEqual(knownWords, []);
+    assert.equal("knownWords" in welcome, false);
     assert.equal(welcome.dev, false);
   });
 
@@ -75,6 +77,15 @@ describe("joining", () => {
     assert.deepEqual(second.session.vitals, { hp: 40, stamina: 12 });
     assert.deepEqual(second.link.last("welcome").vitals, { hp: 40, stamina: 12 });
     assert.equal(second.link.open, true);
+  });
+
+  test("the spell words a player knows come back from the store and are saved again", async () => {
+    const { online, store } = setup();
+    const knownWords = [...FORMS, ...ELEMENTS, ...AUGMENTS];
+    store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, knownWords });
+    const { session } = await joinNew(online);
+    session.save();
+    assert.deepEqual(store.saves.at(-1)?.data.knownWords, knownWords);
   });
 
   test("a failed load closes the link with 1011 and resolves null", async (t) => {

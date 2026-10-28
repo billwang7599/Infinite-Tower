@@ -12,7 +12,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
-  bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] },
+  bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
 };
 
 /** Lets a pending store load (and what follows it) finish. */

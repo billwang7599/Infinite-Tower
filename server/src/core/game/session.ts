@@ -4,7 +4,7 @@
  */
 import {
   bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
-  type Character, type SavedSettings, type StepInput, type Stats, type Vitals,
+  type Character, type SavedSettings, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
@@ -31,6 +31,7 @@ export class GameSession {
   settings: SavedSettings;
   character: Character | null;
   private carried: Bag;
+  private readonly knownWords: Word[];
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -47,6 +48,7 @@ export class GameSession {
     this.character = saved.character;
     this.carried = saved.bag;
     this.bag = saved.bag;
+    this.knownWords = saved.knownWords;
   }
 
   /** Its weight sets how fast they walk the overworld. */
@@ -148,7 +150,7 @@ export class GameSession {
     this.saveTimer = null;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
-      bag: this.bag,
+      bag: this.bag, knownWords: this.knownWords,
     });
   }
 

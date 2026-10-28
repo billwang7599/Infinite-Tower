@@ -29,6 +29,7 @@ export type Augment = keyof typeof AUGMENT_FITS;
 export const AUGMENTS = Object.keys(AUGMENT_FITS) as Augment[];
 
 export type Word = Form | SpellElement | Augment;
+export const WORDS: readonly Word[] = [...FORMS, ...ELEMENTS, ...AUGMENTS];
 
 export interface Segment {
   form: Form;

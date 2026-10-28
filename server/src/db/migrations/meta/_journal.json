@@ -57,6 +57,13 @@
       "when": 1792997274166,
       "tag": "0007_empty-bags",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793167483405,
+      "tag": "0008_known-words",
+      "breakpoints": true
     }
   ]
 }

@@ -54,6 +54,8 @@ Decided by the user:
   database is seeded with the accounts test1, test2 and test3 (password = username).
 - Settings (key bindings, camera) live on the server with the player's save and come down in `welcome`; the client
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
+- The spell words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
+  accounts test1-3 know every word.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -168,7 +170,7 @@ npm test           # unit tests of shared, server and client (Node's test runner
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
-npm run db:seed    # dev accounts test1, test2, test3, password = username (dev runs it; safe to repeat)
+npm run db:seed    # dev accounts test1, test2, test3, password = username, knowing every spell word (dev runs it; safe to repeat)
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
 ```
 

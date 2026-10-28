@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "known_words" text[] DEFAULT '{}' NOT NULL;

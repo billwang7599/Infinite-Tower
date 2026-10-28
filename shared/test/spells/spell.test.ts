@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   AUGMENT_FITS, AUGMENTS, castTime, ELEMENTS, FORMS, OPPOSITE, rejectWord, SPELL, spellCost, spellProblems,
-  type Segment, type Spell, type Word,
+  type Segment, type Spell, type Word, WORDS,
 } from "@infinite-tower/shared";
 
-const ALL: ReadonlySet<Word> = new Set<Word>([...FORMS, ...ELEMENTS, ...AUGMENTS]);
+const ALL: ReadonlySet<Word> = new Set(WORDS);
 const STARTERS: ReadonlySet<Word> = new Set<Word>(["bolt", "fire", "earth"]);
 
 const segment = (form: Segment["form"], elements: Segment["elements"] = [], augments: Segment["augments"] = []) =>
@@ -13,6 +13,10 @@ const segment = (form: Segment["form"], elements: Segment["elements"] = [], augm
 const spell = (...segments: [Segment, ...Segment[]]): Spell => ({ segments });
 
 describe("the words", () => {
+  test("WORDS is every Form, element and augment, once each", () => {
+    assert.deepEqual([...WORDS].sort(), [...FORMS, ...ELEMENTS, ...AUGMENTS].sort());
+  });
+
   test("opposites pair both ways; Lightning has none", () => {
     for (const element of ELEMENTS) {
       const opposite = OPPOSITE[element];

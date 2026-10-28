@@ -35,5 +35,6 @@ export const players = pgTable("players", {
   character: jsonb().$type<Character>(),
   /** Named "inventory" in the database. */
   bag: jsonb("inventory").$type<Bag>().notNull(),
+  knownWords: text("known_words").array().notNull().default([]),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
