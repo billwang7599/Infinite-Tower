@@ -4,8 +4,8 @@ Status: **being built**. The user's design, condensed (their own doc isn't in th
 Built so far: the grammar (`shared/src/spells/spell.ts`), the words each player knows (saved), casting in the
 shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), PR D's chanting in fights, the
 spellbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/spells/`), and PR E's Beam, Imbue, Forms with no
-element and every augment. Numbers marked *placeholder* are the agent's picks, to tune; they all live in `MAGIC`
-(`shared/src/spells/effects.ts`).
+element and every augment, and PR F's effects (`client/src/modes/battle/spells/`). Numbers marked *placeholder* are
+the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`).
 
 ## Decided by the user
 
@@ -144,8 +144,9 @@ element and every augment. Numbers marked *placeholder* are the agent's picks, t
 2. **D** the spellbook's 4 saved spells, quick-cast keys 1-4, the builder and chanting in fights (built); learning
    words (not built: new players know none).
 3. **E** the remaining Forms (Beam, Imbue) and augments, objects and their caps (built).
-4. **F** real art and effects (now a coloured ball per Bolt, a rod per Beam, a disc per cloud and a fading sphere
-   per Nova / Self / Imbue).
+4. **F** the effects (built, in code: shaders, particles and meshes, one look per element and Form, the chant's
+   circle, the Imbue glow on the sword's trail, the four reactions). Not built: statuses shown on their targets
+   (Burning, Wet, Shocked stacks, ...), Self's lasting statuses on the player, sounds.
 
 ## Open
 

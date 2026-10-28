@@ -608,7 +608,7 @@ client/          Browser game: Babylon rendering, input, React UI.
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
                      sensitivity, SWING_SENSITIVITY), hud.ts
                      (HudSettings: show ping, the same way)
-    gfx/             textures.ts (procedural textures), materials.ts (colorMaterial), sprites.ts (pixelMaterial,
+    gfx/             textures.ts (procedural textures; glowTexture and puffTexture for particles), materials.ts (colorMaterial), sprites.ts (pixelMaterial,
                      spriteMaterial, redrawSprite),
                      characters.ts (PlayerLook: paints a look's chibi at once and its battle frames one per slice
                      after, or the rest when a fight starts; BATTLE_FRAMES; the boar, the kobold)
@@ -726,9 +726,17 @@ client/          Browser game: Babylon rendering, input, React UI.
         enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
                          (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
         systems/         camera (the orbit, locked or not, and its shake for each step's hard hits: addImpactShake),
-                         hud (fills the battle HUD's store, stunned and the spellbook in hand included), spells
-                         (placeholder visuals by element: a ball per Bolt, a rod per Beam, a disc per cloud, a small
-                         ball over an Imbued player or a Delay, a fading sphere per Nova / Self / Imbue)
+                         hud (fills the battle HUD's store, stunned and the spellbook in hand included)
+        spells/          The spells' effects, built in code (no image files), pooled: spells.ts (createSpellEffects: the
+                         render system, the chant's and the wind-up's circle at the caster's feet, a reaction's burst
+                         when an enemy's reaction cooldown jumps), objects.ts (each SpellObject drawn: a Bolt's glowing
+                         core and trail or an Earth rock, a Beam's two tubes and end flares, a cloud's dome, circle and
+                         pulse, a Delay's orb, an Imbue's glow at the sword hand and the sword's trail in its colour),
+                         bursts.ts (Nova, Self, Imbue's cast, a Bolt's impact, the four reactions, Earth's shards),
+                         looks.ts (SHADER_LOOKS and PARTICLE_LOOKS: each element's colours and motion), shaders.ts
+                         (the spell shader, written in GLSL here: flow / shell / circle / ring, and the pooled unit
+                         meshes), particles.ts (pooled particle systems: streams and bursts), arcs.ts (Lightning's
+                         jagged arcs)
 ```
 
 ## Adding things
@@ -798,6 +806,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
 | How long writing a page takes in a fight | `shared/src/spells/spell.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Spells in a fight: D, the Forms, each element, the reactions, Self, the augments, the object caps | `shared/src/spells/effects.ts` (`MAGIC`) |
+| How each element's spells look (colours, how ragged and fast they move, their particles) | `client/src/modes/battle/spells/looks.ts` |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/systems/camera.ts` |
