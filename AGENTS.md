@@ -60,7 +60,7 @@ Decided by the user:
   by the shared Zod schemas through fastify-type-provider-zod. Game messages stay on plain `ws` (`ws/`); Fastify
   only does the `/ws` handshake.
 - No lock-on or auto-aim in fights. Only the player turns the camera, and attacks go where it faces, so aiming
-  is a skill.
+  is a skill. This covers swords and weapons; spells may home (the Follow augment).
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.
