@@ -2,10 +2,10 @@ import {
   Color3, Color4, Constants, Matrix, Mesh, MeshBuilder, ParticleSystem, ShaderMaterial, StandardMaterial, Vector3,
   type BaseTexture, type InstancedMesh, type Scene,
 } from "@babylonjs/core";
-import { seededRandom, type SpellElement, type Vec3 } from "@infinite-tower/shared";
+import { seededRandom, type SkillElement, type Vec3 } from "@infinite-tower/shared";
 import { glowTexture, puffTexture } from "../textures.js";
 
-export type LookKey = SpellElement | "none";
+export type LookKey = SkillElement | "none";
 export type ParticleKey = LookKey | "steam";
 
 export interface ShaderLook {
@@ -81,8 +81,8 @@ export const PARTICLE_LOOKS: Record<ParticleKey, ParticleLook> = {
   },
 };
 
-export const lookOf = (elements: readonly SpellElement[]): LookKey => elements[0] ?? "none";
-export const particleKeysOf = (elements: readonly SpellElement[]): ParticleKey[] =>
+export const lookOf = (elements: readonly SkillElement[]): LookKey => elements[0] ?? "none";
+export const particleKeysOf = (elements: readonly SkillElement[]): ParticleKey[] =>
   elements.length === 0 ? ["none"] : [...elements];
 
 // Each mesh's `visibility` is its alpha.
@@ -162,14 +162,14 @@ void main() {
 // Unit shapes: a sphere of radius 1, a disc of radius 1 lying flat, a tube of radius 1 from z = 0 to 1, a lit rock.
 export type Shape = "sphere" | "disc" | "tube" | "rock";
 
-export interface SpellShaders {
+export interface SkillShaders {
   take(shape: Exclude<Shape, "rock">, mode: ShaderMode, look: LookKey): Mesh;
   rock(): Mesh;
   give(mesh: Mesh): void;
   tick(dtS: number): void;
 }
 
-export function createSpellShaders(scene: Scene): SpellShaders {
+export function createSkillShaders(scene: Scene): SkillShaders {
   const made = new Map<string, ShaderMaterial>();
   let timeS = 0;
   const material = (mode: ShaderMode, key: LookKey): ShaderMaterial => {
@@ -177,7 +177,7 @@ export function createSpellShaders(scene: Scene): SpellShaders {
     let m = made.get(id);
     if (m) return m;
     const look = SHADER_LOOKS[key];
-    m = new ShaderMaterial(`spell-${id}`, scene, { vertexSource: VERTEX, fragmentSource: FRAGMENT }, {
+    m = new ShaderMaterial(`skill-${id}`, scene, { vertexSource: VERTEX, fragmentSource: FRAGMENT }, {
       attributes: ["position", "normal"],
       uniforms: ["world", "worldViewProjection", "cameraPosition", "time", "core", "edge", "rough", "flow", "alpha"],
       defines: mode === "flow" ? [] : [`#define ${mode.toUpperCase()}`],
@@ -194,12 +194,12 @@ export function createSpellShaders(scene: Scene): SpellShaders {
     return m;
   };
   const templates: Record<Shape, Mesh> = {
-    sphere: MeshBuilder.CreateSphere("spell-sphere", { diameter: 2, segments: 16 }, scene),
-    disc: MeshBuilder.CreateDisc("spell-disc", { radius: 1, tessellation: 48 }, scene),
-    tube: MeshBuilder.CreateCylinder("spell-tube", { height: 1, diameter: 2, tessellation: 16, cap: 0 }, scene),
-    rock: MeshBuilder.CreatePolyhedron("spell-rock", { type: 2, size: 0.5 }, scene),
+    sphere: MeshBuilder.CreateSphere("skill-sphere", { diameter: 2, segments: 16 }, scene),
+    disc: MeshBuilder.CreateDisc("skill-disc", { radius: 1, tessellation: 48 }, scene),
+    tube: MeshBuilder.CreateCylinder("skill-tube", { height: 1, diameter: 2, tessellation: 16, cap: 0 }, scene),
+    rock: MeshBuilder.CreatePolyhedron("skill-rock", { type: 2, size: 0.5 }, scene),
   };
-  const stone = new StandardMaterial("spell-rock", scene);
+  const stone = new StandardMaterial("skill-rock", scene);
   stone.diffuseColor = new Color3(0.45, 0.34, 0.24);
   stone.emissiveColor = new Color3(0.12, 0.06, 0.02);
   stone.specularColor = Color3.Black();
@@ -208,7 +208,7 @@ export function createSpellShaders(scene: Scene): SpellShaders {
   templates.tube.bakeTransformIntoVertices(Matrix.RotationX(Math.PI / 2).multiply(Matrix.Translation(0, 0, 0.5)));
   const idle: Record<Shape, Mesh[]> = { sphere: [], disc: [], tube: [], rock: [] };
   const reuse = (shape: Shape): Mesh => {
-    const mesh = idle[shape].pop() ?? templates[shape].clone(`spell-${shape}`);
+    const mesh = idle[shape].pop() ?? templates[shape].clone(`skill-${shape}`);
     mesh.metadata = shape;
     mesh.isPickable = false;
     mesh.visibility = 1;
@@ -239,7 +239,7 @@ export function createSpellShaders(scene: Scene): SpellShaders {
 
 const CAPACITY = 160;
 
-export interface SpellParticles {
+export interface SkillParticles {
   stream(key: ParticleKey, perSec: number, radiusM: number): ParticleSystem;
   release(system: ParticleSystem): void;
   burst(key: ParticleKey, at: Vec3, count: number, radiusM: number, speedFactor?: number): void;
@@ -247,7 +247,7 @@ export interface SpellParticles {
   clear(): void;
 }
 
-export function createSpellParticles(scene: Scene): SpellParticles {
+export function createSkillParticles(scene: Scene): SkillParticles {
   const glow = glowTexture(scene), puff = puffTexture(scene);
   const idle = new Map<ParticleKey, ParticleSystem[]>();
   const all: ParticleSystem[] = [];
@@ -257,7 +257,7 @@ export function createSpellParticles(scene: Scene): SpellParticles {
     const look = PARTICLE_LOOKS[key];
     let system = idle.get(key)?.pop();
     if (!system) {
-      system = new ParticleSystem(`spell-${key}`, CAPACITY, scene);
+      system = new ParticleSystem(`skill-${key}`, CAPACITY, scene);
       const texture: BaseTexture = look.smoke ? puff : glow;
       system.particleTexture = texture;
       system.blendMode = look.smoke ? ParticleSystem.BLENDMODE_STANDARD : ParticleSystem.BLENDMODE_ADD;
@@ -278,7 +278,7 @@ export function createSpellParticles(scene: Scene): SpellParticles {
   };
   const give = (system: ParticleSystem) => {
     system.stop();
-    const key = system.name.slice("spell-".length) as ParticleKey;
+    const key = system.name.slice("skill-".length) as ParticleKey;
     const list = idle.get(key) ?? [];
     list.push(system);
     idle.set(key, list);
@@ -329,7 +329,7 @@ export interface Arcs {
 }
 
 export function createArcs(scene: Scene): Arcs {
-  const material = new StandardMaterial("spell-arc", scene);
+  const material = new StandardMaterial("skill-arc", scene);
   material.disableLighting = true;
   material.emissiveColor = new Color3(2.4, 2.3, 3);
   material.backFaceCulling = false;

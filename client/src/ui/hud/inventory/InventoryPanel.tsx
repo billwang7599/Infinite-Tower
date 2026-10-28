@@ -35,7 +35,7 @@ interface PanelProps {
   settingsScreen: Store<SettingsScreenState>;
   use: (at: GridSpot) => void;
   move: (from: Spot, to: Spot, turned: boolean) => void;
-  openSpellbook: () => void;
+  openSkillbook: () => void;
   close: () => void;
 }
 
@@ -52,7 +52,7 @@ const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
-  const { gear, stats, canHeal, input, settingsScreen, use, move, openSpellbook, close } = props;
+  const { gear, stats, canHeal, input, settingsScreen, use, move, openSkillbook, close } = props;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
@@ -82,11 +82,11 @@ export function InventoryPanel(props: PanelProps) {
   };
   const send = (m: GearMove | null) => { if (m) move(m.from, m.to, m.turned); };
   const bookInHand = (m: BagMouse) => !m.drag && m.selected?.in === "slot"
-    && gear.equipment[m.selected.slot] === "spellbook";
+    && gear.equipment[m.selected.slot] === "skillbook";
   const applyUse = (m: BagMouse) => {
     const at = itemToUse(m, gear, !canHeal);
     if (at) use(at);
-    else if (bookInHand(m)) openSpellbook();
+    else if (bookInHand(m)) openSkillbook();
   };
   const turnWith = (turn: typeof turnKey) => {
     const { mouse: next, move: turned } = turn(current(), gear);

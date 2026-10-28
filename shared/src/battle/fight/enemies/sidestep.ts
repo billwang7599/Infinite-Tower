@@ -1,6 +1,6 @@
 import type { System } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
-import { castTime } from "../../../spells/spell.js";
+import { releaseTime } from "../../../skills/skill.js";
 import { Body, Enemy, Player, Sidestep } from "../../components.js";
 import { PlayerInput } from "../../input.js";
 import type { FightContext } from "../context.js";
@@ -18,9 +18,9 @@ export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
       const def = sidestep.def, move = enemy.move;
       if (enemy.state === "sidestep" && enemy.stateTime >= def.stepTime) enter(world, e, enemy, "approach");
       for (const [, player, input, from] of world.query(Player, PlayerInput, Body)) {
-        const spell = player.casting;
-        if (enemy.state !== "approach" || player.action !== "cast" || spell?.segments[0].form !== "bolt") continue;
-        if (stepsOf(player.actionTime) !== stepsOf(Math.max(def.reactTime, castTime(spell) - def.leadTime))) continue;
+        const skill = player.casting;
+        if (enemy.state !== "approach" || player.action !== "cast" || skill?.segments[0].form !== "bolt") continue;
+        if (stepsOf(player.actionTime) !== stepsOf(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
         const dx = body.pos.x - from.pos.x, dz = body.pos.z - from.pos.z, dist = Math.hypot(dx, dz);
         if (dist === 0 || (dx * input.aimX + dz * input.aimZ) / dist < AIM_MIN_DOT) continue;
         if (roll(enemy) >= def.chance) continue;

@@ -7,7 +7,7 @@ const WILD_BOAR: EnemyDef = {
   model: "boar",
   maxHp: 160,
   // A boar spends no stamina and casts nothing; its agility and strength are average.
-  stats: { stamina: 100, intellect: 0, agility: 10, strength: 10 },
+  stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
   radius: 0.85,
   walkSpeed: 3.2,
   turnRate: 3.0,
@@ -36,7 +36,7 @@ const KOBOLD_SWORDSMAN: EnemyDef = {
   name: "Kobold Swordsman",
   model: "kobold",
   maxHp: 160,
-  stats: { stamina: 100, intellect: 0, agility: 10, strength: 10 },
+  stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
   radius: 0.5,
   walkSpeed: 2.6,
   turnRate: 4,

@@ -1,19 +1,19 @@
-import { castTime, spellCost, type Rejection, type Word } from "@infinite-tower/shared";
+import { releaseTime, skillCost, type Rejection, type Word } from "@infinite-tower/shared";
 import { useRef, useState } from "react";
 import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { TEXT_INPUT } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
-import { choices, kindOf, quickPick, spellOf, wordTitle, type WordKind } from "./chant.js";
+import { choices, kindOf, quickPick, skillOf, wordTitle, type WordKind } from "./chant.js";
 
 const SQUARE_PX = 76;
 const STEP_PX = SQUARE_PX + 12;
 const PICKS = ["pick1", "pick2", "pick3", "pick4", "pick5", "pick6", "pick7", "pick8", "pick9"] as const;
 
 const KIND_BORDER: Record<WordKind, string> = {
-  form: "border-victory/80", element: "border-sky-300/70", augment: "border-fuchsia-300/70",
+  form: "border-victory/80", element: "border-sky-300/70", modifier: "border-fuchsia-300/70",
 };
-const KIND_NAME: Record<WordKind, string> = { form: "Form", element: "Element", augment: "Augment" };
+const KIND_NAME: Record<WordKind, string> = { form: "Form", element: "Element", modifier: "Modifier" };
 const WHY: Record<Rejection, string> = {
   "not-learned": "not learned", "no-chaining": "chaining needs a second Form", repeated: "already in",
   opposite: "its opposite is in", "doesnt-fit": "doesn't fit this Form",
@@ -28,11 +28,11 @@ interface BuilderProps {
   busy?: boolean;
 }
 
-export function SpellBuilder({ words, known, input, pick, undo, busy = false }: BuilderProps) {
+export function SkillBuilder({ words, known, input, pick, undo, busy = false }: BuilderProps) {
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
   const listed = choices(words, known, query);
-  const spell = spellOf(words);
+  const skill = skillOf(words);
   const next = [...new Set(listed.map((c) => KIND_NAME[kindOf(c.word)]))];
 
   const choose = (word: Word | null) => {
@@ -95,10 +95,10 @@ export function SpellBuilder({ words, known, input, pick, undo, busy = false }: 
         }}
       >
         <input
-          ref={search} id="spell-search" className={TEXT_INPUT} placeholder="Search words" value={query}
+          ref={search} id="skill-search" className={TEXT_INPUT} placeholder="Search words" value={query}
           autoComplete="off" spellCheck={false} disabled={busy} onChange={(e) => setQuery(e.target.value)}
         />
-        <ul id="spell-words" className="grid max-h-56 grid-cols-3 gap-1.5 overflow-y-auto">
+        <ul id="skill-words" className="grid max-h-56 grid-cols-3 gap-1.5 overflow-y-auto">
           {listed.map(({ word, why }) => {
             const n = why === null ? ++number : null;
             return (
@@ -122,8 +122,8 @@ export function SpellBuilder({ words, known, input, pick, undo, busy = false }: 
         </ul>
       </form>
 
-      <p id="spell-cost" className="text-xs font-normal text-white/60 tabular-nums">
-        {spell ? `${spellCost(spell)} stamina · ${castTime(spell).toFixed(1)} s to cast` : "Pick a Form"}
+      <p id="skill-cost" className="text-xs font-normal text-white/60 tabular-nums">
+        {skill ? `${skillCost(skill)} stamina · ${releaseTime(skill).toFixed(1)} s to release` : "Pick a Form"}
       </p>
     </div>
   );

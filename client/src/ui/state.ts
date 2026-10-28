@@ -1,17 +1,17 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
- * The UI writes `settingsScreen`, `creation`, `overworldPanel`, `chant`, `battleBag` and `spellbookScreen` too, and
+ * The UI writes `settingsScreen`, `creation`, `overworldPanel`, `chant`, `battleBag` and `skillbookScreen` too, and
  * the game watches them. `UiActions` is the other direction.
  */
 import {
-  blankSpellbook, type Carried, type Character, type Credentials, type Gear, type GridSpot, type Spell, type Spellbook,
+  blankSkillbook, type Carried, type Character, type Credentials, type Gear, type GridSpot, type Skill, type Skillbook,
   type Spot, type Stats, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
 import type { Mode } from "../game/transition.js";
 import { Notifications } from "./notifications/state.js";
-import { NO_CHANT, type ChantState } from "./spells/chant.js";
+import { NO_CHANT, type ChantState } from "./skills/chant.js";
 import { Store } from "./store.js";
 
 export interface ScreenState {
@@ -67,15 +67,15 @@ export interface BattleHudState {
   /** Turns on a moment after `result` is decided. */
   showResult: boolean;
   stunned: boolean;
-  spellbookInHand: boolean;
+  skillbookInHand: boolean;
   brokenOff: boolean;
   writingPage: number | null;
   carried: Carried;
 }
 
-export interface SpellsState {
+export interface SkillsState {
   known: readonly Word[];
-  book: Spellbook;
+  book: Skillbook;
 }
 
 export interface SettingsScreenState {
@@ -103,12 +103,12 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
   const layers: Layer[] = [mode];
   if (mode === "overworld" && ui.overworldPanel.get().open === "inventory") {
     layers.push("bag");
-    if (ui.spellbookScreen.get().open) layers.push("spellbook");
+    if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
   if (mode === "battle" && ui.chant.get().open) layers.push("chant");
   if (mode === "battle" && ui.battleBag.get().open) {
     layers.push("battleBag");
-    if (ui.spellbookScreen.get().open) layers.push("spellbook");
+    if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
   if (ui.settingsScreen.get().open) layers.push("settings");
   if (ui.creation.get().open) layers.push("creation");
@@ -130,8 +130,8 @@ export interface UiActions {
   rest(): void;
   useItem(at: GridSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
-  castSpell(spell: Spell): void;
-  saveSpell(page: number, spell: Spell): void;
+  castSkill(skill: Skill): void;
+  saveSkill(page: number, skill: Skill): void;
   saveCharacter(character: Character): void;
   returnToTitle(): void;
 }
@@ -155,16 +155,16 @@ export class UiState {
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
-    result: "fighting", showResult: false, stunned: false, spellbookInHand: false, brokenOff: false,
+    result: "fighting", showResult: false, stunned: false, skillbookInHand: false, brokenOff: false,
     writingPage: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
     },
   });
-  readonly spells = new Store<SpellsState>({ known: [], book: blankSpellbook() });
+  readonly skills = new Store<SkillsState>({ known: [], book: blankSkillbook() });
   readonly chant = new Store<ChantState>(NO_CHANT);
-  readonly spellbookScreen = new Store<{ open: boolean }>({ open: false });
+  readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
   readonly battleBag = new Store<{ open: boolean }>({ open: false });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
@@ -172,18 +172,18 @@ export class UiState {
   readonly closeCreation = (): void => this.creation.set({ open: false });
   readonly toggleOverworldPanel = (panel: OverworldPanel): void => {
     this.overworldPanel.set({ open: this.overworldPanel.get().open === panel ? null : panel });
-    this.spellbookScreen.set({ open: false });
+    this.skillbookScreen.set({ open: false });
   };
   readonly toggleBattleBag = (): void => {
     this.battleBag.set({ open: !this.battleBag.get().open });
-    this.spellbookScreen.set({ open: false });
+    this.skillbookScreen.set({ open: false });
   };
   readonly closeBattleBag = (): void => {
     this.battleBag.set({ open: false });
-    this.spellbookScreen.set({ open: false });
+    this.skillbookScreen.set({ open: false });
   };
   readonly closeOverworldPanel = (): void => {
     this.overworldPanel.set({ open: null });
-    this.spellbookScreen.set({ open: false });
+    this.skillbookScreen.set({ open: false });
   };
 }

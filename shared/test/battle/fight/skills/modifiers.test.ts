@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, CHAIN, Health, liveStep, MAGIC, MAX_LIVE_SHOTS, shotOf, SpellObject, Statuses, Wielder,
-  type Augment, type Form, type SpellElement, type SpellObjectData, type Vec3,
+  Body, CHAIN, Health, liveStep, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, Wielder,
+  type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, castNow, enemy, IDLE, input, player, run, segment, spell, STATUE } from "../fixtures.js";
+import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
 
 await initPhysics();
 
-const D = MAGIC.damage, W = MAGIC.elements.water.damage, A = MAGIC.augments;
+const D = SKILL_EFFECTS.damage, W = SKILL_EFFECTS.elements.water.damage, A = SKILL_EFFECTS.modifiers;
 const ME: Vec3 = { x: 0, y: 0.05, z: -4 };
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 
@@ -19,17 +19,17 @@ const lostHp = (fight: Fight, i: number) => {
   const health = fight.world.require(fight.enemies[i]!, Health);
   return health.max - health.hp;
 };
-const objects = (fight: Fight, kind: string) => [...fight.world.query(SpellObject)].filter(([, o]) => o.kind === kind);
-const one = (form: Form, elements: SpellElement[], augments: Augment[]) => spell(segment(form, elements, augments));
+const objects = (fight: Fight, kind: string) => [...fight.world.query(SkillObject)].filter(([, o]) => o.kind === kind);
+const one = (form: Form, elements: SkillElement[], modifiers: Modifier[]) => skill(segment(form, elements, modifiers));
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-6, `${actual} != ${expected}`);
 const untilDone = (fight: Fight) => {
   for (let i = 0; i < 240 && objects(fight, "bolt").length > 0; i++) fight.step([IDLE]);
 };
 
-describe("augments, in order", () => {
-  const shot = (...augments: Augment[]) => shotOf(segment("bolt", [], augments));
-  const B = MAGIC.bolt;
+describe("modifiers, in order", () => {
+  const shot = (...modifiers: Modifier[]) => shotOf(segment("bolt", [], modifiers));
+  const B = SKILL_EFFECTS.bolt;
 
   test("a repeat is a full step, applied again to the shot so far", () => {
     close(shot().delayTime, 0);
@@ -51,8 +51,8 @@ describe("augments, in order", () => {
   });
 
   test("the first Extend leaves a cloud, each after it makes it last longer", () => {
-    close(shotOf(segment("nova", [], ["extend"])).cloudTime, MAGIC.cloud.time);
-    close(shotOf(segment("nova", [], ["extend", "extend"])).cloudTime, MAGIC.cloud.time * (1 + A.extend));
+    close(shotOf(segment("nova", [], ["extend"])).cloudTime, SKILL_EFFECTS.cloud.time);
+    close(shotOf(segment("nova", [], ["extend", "extend"])).cloudTime, SKILL_EFFECTS.cloud.time * (1 + A.extend));
   });
 
   test("Follow then Split: every split Bolt homes", () => {
@@ -62,18 +62,18 @@ describe("augments, in order", () => {
 
 describe("Amplify", () => {
   test("adds damage, again in full with each repeat", () => {
-    for (const augments of [["amplify"], ["amplify", "amplify"]] as Augment[][]) {
+    for (const modifiers of [["amplify"], ["amplify", "amplify"]] as Modifier[][]) {
       const fight = fightWith([at(0, 0)]);
-      castNow(fight, one("bolt", ["water"], augments));
+      castNow(fight, one("bolt", ["water"], modifiers));
       untilDone(fight);
-      close(lostHp(fight, 0), W * D * (1 + A.amplify) ** augments.length);
+      close(lostHp(fight, 0), W * D * (1 + A.amplify) ** modifiers.length);
     }
   });
 });
 
 describe("Widen", () => {
   test("a wider Nova reaches what a plain one can't", () => {
-    const beyond = at(0, ME.z + MAGIC.nova.radius + STATUE.radius + 0.4);
+    const beyond = at(0, ME.z + SKILL_EFFECTS.nova.radius + STATUE.radius + 0.4);
     const plain = fightWith([beyond]), wide = fightWith([beyond]);
     castNow(plain, one("nova", ["water"], []));
     castNow(wide, one("nova", ["water"], ["widen"]));
@@ -82,7 +82,7 @@ describe("Widen", () => {
   });
 
   test("a wider Beam hits what passes beside a plain one", () => {
-    const beside = at(STATUE.radius + MAGIC.beam.radiusM + 0.1, 0);
+    const beside = at(STATUE.radius + SKILL_EFFECTS.beam.radiusM + 0.1, 0);
     const plain = fightWith([beside]), wide = fightWith([beside]);
     castNow(plain, one("beam", ["water"], []));
     castNow(wide, one("beam", ["water"], ["widen"]));
@@ -110,9 +110,9 @@ describe("Pierce", () => {
 });
 
 describe("Split", () => {
-  const B = MAGIC.bolt;
-  const splits = (n: number): Augment[] => Array.from({ length: n }, () => "split");
-  const spellHits = (fight: Fight) => {
+  const B = SKILL_EFFECTS.bolt;
+  const splits = (n: number): Modifier[] => Array.from({ length: n }, () => "split");
+  const skillHits = (fight: Fight) => {
     const hits: number[] = [];
     for (let i = 0; i < 240 && objects(fight, "bolt").length > 0; i++) {
       fight.step([IDLE]);
@@ -131,7 +131,7 @@ describe("Split", () => {
 
   test(`a fight holds at most ${MAX_LIVE_SHOTS} shots: past that, they don't spawn`, () => {
     const fight = fightWith([at(5, 5)]);
-    castNow(fight, spell(segment("bolt", ["water"], splits(20)), segment("bolt", [], splits(10))));
+    castNow(fight, skill(segment("bolt", ["water"], splits(20)), segment("bolt", [], splits(10))));
     assert.equal(objects(fight, "bolt").length, MAX_LIVE_SHOTS);
     for (let i = 0; i < 240 && objects(fight, "bolt").length > 0; i++) {
       fight.step([IDLE]);
@@ -144,7 +144,7 @@ describe("Split", () => {
       const fight = fightWith([at(0, -2)]);
       castNow(fight, one("bolt", ["water"], splits(n)));
       for (const [, o] of objects(fight, "bolt")) close(o.reachM, B.radiusM * B.splitRadiusFactor ** n);
-      const hits = spellHits(fight);
+      const hits = skillHits(fight);
       assert.ok(hits.length > 0);
       for (const damage of hits) close(damage, W * D * B.splitDamageFactor ** n);
     }
@@ -152,26 +152,26 @@ describe("Split", () => {
 
   test("Amplify strengthens every Bolt, wherever it's written", () => {
     const orders = [["amplify", "split", "split"], ["split", "amplify", "split"], ["split", "split", "amplify"]];
-    for (const augments of orders) {
+    for (const modifiers of orders) {
       const fight = fightWith([at(0, -2)]);
-      castNow(fight, one("bolt", ["water"], augments as Augment[]));
-      const hits = spellHits(fight);
+      castNow(fight, one("bolt", ["water"], modifiers as Modifier[]));
+      const hits = skillHits(fight);
       assert.ok(hits.length > 0);
       for (const damage of hits) close(damage, W * D * (1 + A.amplify) * B.splitDamageFactor ** 2);
     }
   });
 
   test("Follow homes every Bolt, wherever it's written", () => {
-    for (const augments of [["follow", "split", "split"], ["split", "split", "follow"]]) {
+    for (const modifiers of [["follow", "split", "split"], ["split", "split", "follow"]]) {
       const fight = fightWith([at(0, 4)]);
-      castNow(fight, one("bolt", ["water"], augments as Augment[]));
-      assert.equal(spellHits(fight).length, 4);
+      castNow(fight, one("bolt", ["water"], modifiers as Modifier[]));
+      assert.equal(skillHits(fight).length, 4);
     }
   });
 
   const seeded = (seed: number, radius = ARENA.radius) =>
     new Fight({ arena: { radius }, players: [player(ME, { seed })], enemies: [enemy(STATUE, at(5, 5))] });
-  const startOf = (o: SpellObjectData): Vec3 => ({
+  const startOf = (o: SkillObjectData): Vec3 => ({
     x: o.pos.x - o.dir.x * o.flownM, y: o.pos.y - o.climbPerM * Math.min(o.flownM, o.climbUntilM),
     z: o.pos.z - o.dir.z * o.flownM,
   });
@@ -247,10 +247,10 @@ describe("Split", () => {
   test("every Bolt hands off", () => {
     const fight = fightWith([at(0, 4)]);
     const novas: FightEvent[] = [];
-    castNow(fight, spell(segment("bolt", ["water"], ["split"]), segment("nova")));
+    castNow(fight, skill(segment("bolt", ["water"], ["split"]), segment("nova")));
     for (let i = 0; i < 240 && objects(fight, "bolt").length > 0; i++) {
       fight.step([IDLE]);
-      novas.push(...fight.events.filter((e) => e.type === "spell" && e.form === "nova"));
+      novas.push(...fight.events.filter((e) => e.type === "skill" && e.form === "nova"));
     }
     assert.equal(novas.length, 2);
   });
@@ -282,19 +282,19 @@ describe("Extend", () => {
     castNow(plain, one("self", ["fire"], []));
     castNow(long, one("self", ["fire"], ["extend"]));
     const left = (f: Fight) => f.world.require(f.players[0]!, Statuses).left.empowered;
-    close(left(long), left(plain) + MAGIC.self.fire.time * A.extend);
+    close(left(long), left(plain) + SKILL_EFFECTS.self.fire.time * A.extend);
   });
 
   test("an Imbue holds more hits", () => {
     const fight = fightWith([at(5, 5)]);
     castNow(fight, one("imbue", ["fire"], ["extend"]));
-    assert.equal(objects(fight, "imbue")[0]![1].hitsLeft, Math.round(MAGIC.imbue.hits * (1 + A.extend)));
+    assert.equal(objects(fight, "imbue")[0]![1].hitsLeft, Math.round(SKILL_EFFECTS.imbue.hits * (1 + A.extend)));
   });
 
   test("a Beam lasts longer", () => {
     const fight = fightWith([at(5, 5)]);
     castNow(fight, one("beam", ["water"], ["extend"]));
-    run(fight, MAGIC.beam.time * (1 + A.extend) - 0.1);
+    run(fight, SKILL_EFFECTS.beam.time * (1 + A.extend) - 0.1);
     assert.equal(objects(fight, "beam").length, 1);
     run(fight, 0.2);
     assert.equal(objects(fight, "beam").length, 0);
@@ -304,12 +304,12 @@ describe("Extend", () => {
 describe("Delay", () => {
   test("holds back the hand-off after its segment completes", () => {
     const fight = fightWith([at(0, 0)]);
-    castNow(fight, spell(segment("bolt", ["water"], ["delay"]), segment("nova", ["earth"])));
+    castNow(fight, skill(segment("bolt", ["water"], ["delay"]), segment("nova", ["earth"])));
     untilDone(fight);
     run(fight, A.delayTime - 0.1);
     close(lostHp(fight, 0), W * D);
     run(fight, 0.2);
-    close(lostHp(fight, 0), (W + MAGIC.elements.earth.damage) * D);
+    close(lostHp(fight, 0), (W + SKILL_EFFECTS.elements.earth.damage) * D);
   });
 });
 
@@ -373,9 +373,9 @@ describe("Follow", () => {
 
   test("split Bolts come in apart: Split twice and Follow, still two radii apart halfway there, however strong", () => {
     for (const follows of [1, 3]) {
-      const words = segment("bolt", ["water"], ["split", "split", ...Array<Augment>(follows).fill("follow")]);
+      const words = segment("bolt", ["water"], ["split", "split", ...Array<Modifier>(follows).fill("follow")]);
       const fight = fightWith([FAR]);
-      castNow(fight, spell(words));
+      castNow(fight, skill(words));
       const halfwayM = (FAR.z - ME.z) / 2;
       for (let i = 0; i < 240 && bolts(fight)[0]!.flownM < halfwayM; i++) fight.step([IDLE]);
       const flying = bolts(fight);

@@ -3,7 +3,7 @@ import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
-import type { Spellbook } from "../../spells/spell.js";
+import type { Skillbook } from "../../skills/skill.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, Stamina, Statuses, SwordAttack, Wielder,
   type WielderData,
@@ -13,7 +13,7 @@ import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
-import { noStatuses } from "./spells/statuses.js";
+import { noStatuses } from "./skills/statuses.js";
 import { handsOf } from "./weapons/swing.js";
 
 /** A one-on-one's starting spots (feet, a little above the floor; the arena's center is 0), the enemy facing you. */
@@ -22,7 +22,7 @@ export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 
 export interface PlayerSetup {
-  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Spellbook; seed?: number;
+  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Skillbook; seed?: number;
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }

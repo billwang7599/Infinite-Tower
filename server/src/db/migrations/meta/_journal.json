@@ -78,6 +78,20 @@
       "when": 1793173226536,
       "tag": "0010_spellbook",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793220781061,
+      "tag": "0011_skills-rename",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793221244883,
+      "tag": "0012_skills-data",
+      "breakpoints": true
     }
   ]
 }

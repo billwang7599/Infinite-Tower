@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, castTime, Enemy, FIXED_DT, Health, MAGIC, SpellObject, type EnemyDef, type PlayerInputData, type Vec3,
+  Body, releaseTime, Enemy, FIXED_DT, Health, SKILL_EFFECTS, SkillObject, type EnemyDef, type PlayerInputData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, castNow, enemy, IDLE, input, player, segment, spell, STATUE, STEPPER } from "../fixtures.js";
+import { ARENA, castNow, enemy, IDLE, input, player, segment, skill, STATUE, STEPPER } from "../fixtures.js";
 
 before(() => initPhysics());
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const ME = at(0, -4), THEM = at(0, 4);
-const BOLT = spell(segment("bolt", ["water"]));
+const BOLT = skill(segment("bolt", ["water"]));
 const STEP = STEPPER.sidestep!;
 
 const fightWith = (def: EnemyDef, { me = ME, them = THEM, seed = 1, radius = ARENA.radius } = {}) =>
@@ -20,7 +20,7 @@ const lostHp = (fight: Fight) => {
   const health = fight.world.require(them(fight), Health);
   return health.max - health.hp;
 };
-const bolts = (fight: Fight) => [...fight.world.query(SpellObject)].length;
+const bolts = (fight: Fight) => [...fight.world.query(SkillObject)].length;
 const untilDone = (fight: Fight) => {
   for (let i = 0; i < 240 && bolts(fight) > 0; i++) fight.step([IDLE]);
 };
@@ -37,7 +37,7 @@ describe("stepping aside from a Bolt", () => {
     assert.equal(lostHp(stepper), 0);
     assert.ok(lostHp(statue) > 0);
     const moved = Math.abs(stepper.world.require(them(stepper), Body).pos.x - THEM.x);
-    assert.ok(moved > STEPPER.radius + MAGIC.bolt.radiusM, `moved ${moved}`);
+    assert.ok(moved > STEPPER.radius + SKILL_EFFECTS.bolt.radiusM, `moved ${moved}`);
   });
 
   test("it starts stepping its lead time before the Bolt leaves, so the caster can't re-aim", () => {
@@ -57,7 +57,7 @@ describe("stepping aside from a Bolt", () => {
   });
 
   test("a cast quicker than its reaction catches it", () => {
-    const slow: EnemyDef = { ...STEPPER, sidestep: { ...STEP, reactTime: castTime(BOLT) + 0.05 } };
+    const slow: EnemyDef = { ...STEPPER, sidestep: { ...STEP, reactTime: releaseTime(BOLT) + 0.05 } };
     const fight = fightWith(slow);
     castAt(fight);
     assert.ok(lostHp(fight) > 0);

@@ -1,6 +1,6 @@
 /** What core needs from the outside world, as interfaces it owns; main.ts picks the implementations. */
 import type {
-  Bag, Character, Equipment, SavedSettings, ServerMsg, Spellbook, Vitals, Word,
+  Bag, Character, Equipment, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
 } from "@infinite-tower/shared";
 
 /** The account's id. */
@@ -22,7 +22,7 @@ export interface PlayerSave {
   bag: Bag;
   equipment: Equipment;
   knownWords: Word[];
-  spellbook: Spellbook;
+  skillbook: Skillbook;
 }
 
 export interface PlayerStore {

@@ -1,13 +1,13 @@
-import type { GridSpot, Spell, Spot } from "@infinite-tower/shared";
+import type { GridSpot, Skill, Spot } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { useAction } from "../components/useAction.js";
-import { SpellbookScreen } from "../spells/SpellbookScreen.js";
+import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import type {
-  OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SpellsState,
+  OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SkillsState,
 } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
@@ -32,20 +32,20 @@ interface OverworldHudProps extends HudProps {
   rest: () => void;
   useItem: (at: GridSpot) => void;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
-  spells: Store<SpellsState>;
-  spellbookScreen: Store<{ open: boolean }>;
-  saveSpell: (page: number, spell: Spell) => void;
+  skills: Store<SkillsState>;
+  skillbookScreen: Store<{ open: boolean }>;
+  saveSkill: (page: number, skill: Skill) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
 export function OverworldHud(props: OverworldHudProps) {
   const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
   const panel = useStore(panels, (s) => s.open);
-  const bookOpen = useStore(props.spellbookScreen, (s) => s.open);
+  const bookOpen = useStore(props.skillbookScreen, (s) => s.open);
   const gear = useStore(hud, (s) => s.gear);
   const stats = useStore(hud, (s) => s.stats);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
-  const showBook = (open: boolean) => props.spellbookScreen.set({ open });
+  const showBook = (open: boolean) => props.skillbookScreen.set({ open });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
   });
@@ -74,11 +74,11 @@ export function OverworldHud(props: OverworldHudProps) {
       {panel === "inventory" && (
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} input={input} settingsScreen={settingsScreen}
-          use={props.useItem} move={props.moveItem} openSpellbook={() => showBook(true)} close={close}
+          use={props.useItem} move={props.moveItem} openSkillbook={() => showBook(true)} close={close}
         />
       )}
       {panel === "inventory" && bookOpen && (
-        <SpellbookScreen spells={props.spells} input={input} save={props.saveSpell} close={() => showBook(false)} />
+        <SkillbookScreen skills={props.skills} input={input} save={props.saveSkill} close={() => showBook(false)} />
       )}
     </HudLayer>
   );

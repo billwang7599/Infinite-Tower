@@ -1,4 +1,4 @@
-import type { Gear, GridSpot, Spell, Spot } from "@infinite-tower/shared";
+import type { Gear, GridSpot, Skill, Spot } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
@@ -6,13 +6,13 @@ import type { HudSettings } from "../../settings/hud.js";
 import { Bar } from "../components/Bar.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { keyName } from "../keyNames.js";
-import type { ChantState } from "../spells/chant.js";
+import type { ChantState } from "../skills/chant.js";
 import { useAction } from "../components/useAction.js";
-import { ChantPopup } from "../spells/ChantPopup.js";
-import { Hotbar } from "../spells/Hotbar.js";
-import { SpellbookScreen } from "../spells/SpellbookScreen.js";
+import { ChantPopup } from "../skills/ChantPopup.js";
+import { Hotbar } from "../skills/Hotbar.js";
+import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import type {
-  BattleCue, BattleHudState, OverworldHudState, PingState, SettingsScreenState, SpellsState,
+  BattleCue, BattleHudState, OverworldHudState, PingState, SettingsScreenState, SkillsState,
 } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
@@ -29,11 +29,11 @@ interface BattleHudProps extends HudProps {
   bindings: KeyBindings;
   ping: Store<PingState>;
   hudSettings: HudSettings;
-  spells: Store<SpellsState>;
+  skills: Store<SkillsState>;
   chant: Store<ChantState>;
   input: Actions;
-  castSpell: (spell: Spell) => void;
-  saveSpell: (page: number, spell: Spell) => void;
+  castSkill: (skill: Skill) => void;
+  saveSkill: (page: number, skill: Skill) => void;
   bag: BagProps;
 }
 
@@ -43,12 +43,12 @@ interface BagProps {
   close: () => void;
   overworld: Store<OverworldHudState>;
   settingsScreen: Store<SettingsScreenState>;
-  spellbookScreen: Store<{ open: boolean }>;
+  skillbookScreen: Store<{ open: boolean }>;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
 }
 
 export function BattleHud(props: BattleHudProps) {
-  const { hud, bindings, ping, hudSettings, spells } = props;
+  const { hud, bindings, ping, hudSettings, skills } = props;
   return (
     <HudLayer id="battle-hud">
       <Vitals hud={hud} />
@@ -57,12 +57,12 @@ export function BattleHud(props: BattleHudProps) {
       </div>
       <Cue hud={hud} />
       <BossBar hud={hud} />
-      <Hotbar spells={spells} bindings={bindings} />
+      <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
       <ChantPopup
-        chant={props.chant} spells={spells} hud={hud} input={props.input} cast={props.castSpell} save={props.saveSpell}
+        chant={props.chant} skills={skills} hud={hud} input={props.input} cast={props.castSkill} save={props.saveSkill}
       />
-      <BattleBag {...props.bag} hud={hud} input={props.input} spells={spells} saveSpell={props.saveSpell} />
+      <BattleBag {...props.bag} hud={hud} input={props.input} skills={skills} saveSkill={props.saveSkill} />
     </HudLayer>
   );
 }
@@ -72,14 +72,14 @@ const NO_USE = (_at: GridSpot) => {};
 
 type BattleBagProps = BagProps & HudProps & {
   input: Actions;
-  spells: Store<SpellsState>;
-  saveSpell: (page: number, spell: Spell) => void;
+  skills: Store<SkillsState>;
+  saveSkill: (page: number, skill: Skill) => void;
 };
 
 function BattleBag(props: BattleBagProps) {
-  const { hud, input, spellbookScreen } = props;
+  const { hud, input, skillbookScreen } = props;
   const open = useStore(props.open, (s) => s.open);
-  const bookOpen = useStore(spellbookScreen, (s) => s.open);
+  const bookOpen = useStore(skillbookScreen, (s) => s.open);
   const carried = useStore(hud, (s) => s.carried);
   const writingPage = useStore(hud, (s) => s.writingPage);
   const stats = useStore(props.overworld, (s) => s.stats);
@@ -92,12 +92,12 @@ function BattleBag(props: BattleBagProps) {
     <>
       <InventoryPanel
         gear={gear} stats={stats} canHeal={false} input={input} settingsScreen={props.settingsScreen} use={NO_USE}
-        move={props.moveItem} openSpellbook={() => spellbookScreen.set({ open: true })} close={props.close}
+        move={props.moveItem} openSkillbook={() => skillbookScreen.set({ open: true })} close={props.close}
       />
       {bookOpen && (
-        <SpellbookScreen
-          spells={props.spells} input={input} save={props.saveSpell} writingPage={writingPage}
-          close={() => spellbookScreen.set({ open: false })}
+        <SkillbookScreen
+          skills={props.skills} input={input} save={props.saveSkill} writingPage={writingPage}
+          close={() => skillbookScreen.set({ open: false })}
         />
       )}
     </>

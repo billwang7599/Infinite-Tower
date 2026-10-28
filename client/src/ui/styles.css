@@ -36,7 +36,7 @@
   /* The creation screen (ui/screens/creation/): the System's "go on" mark, and its window opening. */
   --animate-blink: blink 1s steps(2, jump-none) infinite;
   --animate-window-in: window-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  /* A page written in a fight (ui/spells/ChantPopup.tsx sets the duration). */
+  /* A page written in a fight (ui/skills/ChantPopup.tsx sets the duration). */
   --animate-page-fill: page-fill 2s linear both;
 
   @keyframes rise { from { opacity: 0; transform: translateY(18px); } }

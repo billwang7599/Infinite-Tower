@@ -1,18 +1,18 @@
 import type { Entity, World } from "../../../core/ecs.js";
 import { distXZ, type Vec3 } from "../../../core/math.js";
-import { MAGIC } from "../../../spells/effects.js";
-import type { SpellElement } from "../../../spells/spell.js";
+import { SKILL_EFFECTS } from "../../../skills/effects.js";
+import type { SkillElement } from "../../../skills/skill.js";
 import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
-import { FighterStats, spellDamage } from "../../stats.js";
+import { FighterStats, skillDamage } from "../../stats.js";
 import { HIT_FLASH_TIME, knock } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { enter } from "../enemies/common.js";
 import { damageDealtFactor, heal, hurt, siphon } from "./statuses.js";
 
-const E = MAGIC.elements, R = MAGIC.reactions;
+const E = SKILL_EFFECTS.elements, R = SKILL_EFFECTS.reactions;
 
-export const spellPower = (world: World, caster: Entity): number =>
-  spellDamage(MAGIC.damage, world.require(caster, FighterStats)) * damageDealtFactor(world, caster);
+export const skillPower = (world: World, caster: Entity): number =>
+  skillDamage(SKILL_EFFECTS.damage, world.require(caster, FighterStats)) * damageDealtFactor(world, caster);
 
 // Nearest first; `range` reaches to their surface.
 export function foesNear(world: World, caster: Entity, at: Vec3, range: number, except?: Entity): Entity[] {
@@ -26,7 +26,7 @@ export function foesNear(world: World, caster: Entity, at: Vec3, range: number, 
   return found.sort((a, b) => a.dist - b.dist).map(({ e }) => e);
 }
 
-const resisted = (world: World, e: Entity, element: SpellElement): number =>
+const resisted = (world: World, e: Entity, element: SkillElement): number =>
   1 - (world.get(e, Enemy)?.def.resist?.[element] ?? 0);
 
 function damage(world: World, events: FightEvent[], caster: Entity, target: Entity, amount: number): number {
@@ -40,16 +40,16 @@ function damage(world: World, events: FightEvent[], caster: Entity, target: Enti
 
 // `factor` scales the hit (its damage, poise damage and knockback), not the statuses.
 export function strike(
-  world: World, events: FightEvent[], caster: Entity, target: Entity, elements: readonly SpellElement[], from: Vec3,
+  world: World, events: FightEvent[], caster: Entity, target: Entity, elements: readonly SkillElement[], from: Vec3,
   factor = 1,
 ): void {
   const s = world.require(target, Statuses), body = world.require(target, Body), enemy = world.get(target, Enemy);
-  const d = spellPower(world, caster);
+  const d = skillPower(world, caster);
   if (elements.length === 0) {
-    damage(world, events, caster, target, MAGIC.plain.damage * d * factor);
+    damage(world, events, caster, target, SKILL_EFFECTS.plain.damage * d * factor);
     return;
   }
-  const has = (element: SpellElement) => elements.includes(element);
+  const has = (element: SkillElement) => elements.includes(element);
   const cursedBefore = s.left.cursed;
   // Statuses go on first, then reactions are checked against the result, in this order.
 
@@ -100,7 +100,7 @@ export function strike(
     eclipse = true;
   }
 
-  const shareOf = (element: SpellElement) =>
+  const shareOf = (element: SkillElement) =>
     E[element].damage * d * factor * (element === "lightning" ? lightningFactor : 1) * resisted(world, target, element);
   damage(world, events, caster, target, elements.reduce((sum, element) => sum + shareOf(element), 0));
   if (has("darkness")) heal(world, caster, shareOf("darkness") * E.darkness.healShare);

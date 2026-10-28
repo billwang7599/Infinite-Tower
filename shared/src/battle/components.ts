@@ -6,8 +6,8 @@ import type { AttackKind } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
-import type { Reaction, Status } from "../spells/effects.js";
-import type { Spell, Spellbook } from "../spells/spell.js";
+import type { Reaction, Status } from "../skills/effects.js";
+import type { Skill, Skillbook } from "../skills/skill.js";
 import type { PageWrite } from "./input.js";
 
 /**
@@ -30,16 +30,16 @@ export interface PlayerData {
   gearHeld: boolean;
   /** The chant or the bag broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
   brokenOff: boolean;
-  /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or spell pressed. */
+  /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or skill pressed. */
   jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
   castBuffer: number;
   queued: AttackKind | null;
-  castQueued: Spell | null;
-  casting: Spell | null;
+  castQueued: Skill | null;
+  casting: Skill | null;
   writing: PageWrite | null;
-  book: Spellbook;
+  book: Skillbook;
   action: PlayerAction;
   /** Seconds since the current action started. */
   actionTime: number;
@@ -99,12 +99,12 @@ export interface StatusData {
 export const Statuses = defineComponent<StatusData>("Statuses");
 
 // "cloud": a lingering Nova; "wait": a Delay holding back the next segment.
-export type SpellObjectKind = "bolt" | "beam" | "cloud" | "imbue" | "wait";
+export type SkillObjectKind = "bolt" | "beam" | "cloud" | "imbue" | "wait";
 
-export interface SpellObjectData {
-  kind: SpellObjectKind;
+export interface SkillObjectData {
+  kind: SkillObjectKind;
   caster: Entity;
-  spell: Spell;
+  skill: Skill;
   segment: number;
   pos: Vec3;
   dir: Vec2;
@@ -125,7 +125,7 @@ export interface SpellObjectData {
   climbUntilM: number;
   ignore: Entity | null;
 }
-export const SpellObject = defineComponent<SpellObjectData>("SpellObject");
+export const SkillObject = defineComponent<SkillObjectData>("SkillObject");
 
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");

@@ -122,7 +122,7 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | wrap-around top (a chest piece) | 114: 3 body types x 38 |
 | wrap-around legs (trousers) | 105: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 34 battle frames |
 
-Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the spellbook. Of what's
+Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the skillbook. Of what's
 worn, only the sword is drawn on the character, in the arena: in the hand that holds it, or not at all. In the left
 hand the body is the right-handed frame flipped (a swing uses its mirror image's), so it needs no drawings of its own.
 

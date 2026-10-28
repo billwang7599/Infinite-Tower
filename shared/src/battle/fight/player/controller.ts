@@ -6,15 +6,15 @@ import {
   Body, Health, Player, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData, type StaminaData,
   type WielderData,
 } from "../../components.js";
-import { MAGIC, shotOf } from "../../../spells/effects.js";
-import { sameSpell, spellCost, type Spell, type Spellbook } from "../../../spells/spell.js";
+import { SKILL_EFFECTS, shotOf } from "../../../skills/effects.js";
+import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skills/skill.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
 import { CHAIN, isSwing, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
 import { breakOff } from "../combat.js";
-import { imbueOf } from "../spells/cast.js";
-import { statusMoveFactor } from "../spells/statuses.js";
+import { imbueOf } from "../skills/cast.js";
+import { statusMoveFactor } from "../skills/statuses.js";
 import { bladeLive, chainedSwing, chainOn, endChain, endSwing, handsOf, startSwing } from "../weapons/swing.js";
 
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
@@ -39,7 +39,7 @@ function startAttack(
   const chained = wielder.combo !== null && (player.action === "attack" || wielder.comboTime > 0);
   let { startup, power } = chainOn(wielder, weapon, attack, chained, PLAYER.stab.damageFactor);
   const imbue = imbueOf(world, e)?.[1];
-  if (imbue) startup /= shotOf(imbue.spell.segments[imbue.segment]!).swiftFactor;
+  if (imbue) startup /= shotOf(imbue.skill.segments[imbue.segment]!).swiftFactor;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
   const move = isSwing(attack) ? PLAYER.swing : PLAYER.stab;
   startSwing(world, e, chainedSwing(attack, { x: input.aimX, z: input.aimZ }, startup, {
@@ -68,7 +68,7 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
   if (!input.jump && player.jumpHeld && v.y > 0) v.y *= PLAYER.jumpCutMultiplier;
 }
 
-const onPage = (book: Spellbook, spell: Spell): boolean => book.some((page) => page !== null && sameSpell(page, spell));
+const onPage = (book: Skillbook, skill: Skill): boolean => book.some((page) => page !== null && sameSkill(page, skill));
 
 /** Walk at `speed` while busy (swinging, blocking). */
 function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
@@ -100,10 +100,10 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   // Presses are buffered, so a slightly early one still counts. During an attack, the buffer only runs down once the
   // attack lets go: a dodge or the next attack waits for it, however early it's pressed.
   const locked = wielder.swing !== null && wielder.swing.step < wielder.swing.letGoAt;
-  const weapon = weaponIn(wielder.hands), spellbook = heldIn(wielder.hands, "spellbook") !== null;
+  const weapon = weaponIn(wielder.hands), skillbook = heldIn(wielder.hands, "skillbook") !== null;
   const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
-  const castPressed = spellbook && input.cast !== null && !player.castHeld;
+  const castPressed = skillbook && input.cast !== null && !player.castHeld;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
@@ -143,7 +143,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     if (player.action === "stagger") player.action = "none";
     const dodge = PLAYER.dodge, burdenCost = dodgeCost(player.burden);
     const dodgeStamina = burdenCost === null ? null
-      : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? MAGIC.self.air.dodgeCostFactor : 1);
+      : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? SKILL_EFFECTS.self.air.dodgeCostFactor : 1);
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
     const chanting = player.action === "chant" || player.action === "write";
     const inBag = player.action === "bag";
@@ -165,12 +165,12 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       player.dodgeBuffer = 0;
       endChain(wielder);
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
-      && stamina.value >= spellCost(queuedCast)) {
+      && stamina.value >= skillCost(queuedCast)) {
       startAction(world, e, player, "cast", input.aimX, input.aimZ);
       player.casting = queuedCast;
       player.castBuffer = 0;
       endChain(wielder);
-    } else if ((player.action === "chant" || (inBag && spellbook)) && writePressed && write
+    } else if ((player.action === "chant" || (inBag && skillbook)) && writePressed && write
       && write.page < player.book.length) {
       player.action = "write";
       player.actionTime = 0;
@@ -179,7 +179,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       || (player.action === "write" && !input.chant && !input.bag)) {
       player.action = "none";
       player.writing = null;
-    } else if (free && spellbook && input.chant && !player.brokenOff) {
+    } else if (free && skillbook && input.chant && !player.brokenOff) {
       startAction(world, e, player, "chant", input.aimX, input.aimZ);
       endChain(wielder);
     } else if (free && input.bag && !player.brokenOff) {
@@ -225,7 +225,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       }
       case "cast":
       case "beam":
-        shuffle(input, v, dt, walkSpeed * MAGIC.castMoveFactor);
+        shuffle(input, v, dt, walkSpeed * SKILL_EFFECTS.castMoveFactor);
         break;
       case "chant":
       case "write":
@@ -256,7 +256,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
   }
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else {
-    const charged = (statuses?.left.charged ?? 0) > 0 ? MAGIC.self.lightning.staminaRegenFactor : 1;
+    const charged = (statuses?.left.charged ?? 0) > 0 ? SKILL_EFFECTS.self.lightning.staminaRegenFactor : 1;
     stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * charged * dt);
   }
 }

@@ -52,7 +52,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the spellbook's pages). With no
+   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
@@ -62,13 +62,13 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
    setup (arena, enemy, your HP / stamina, stats, burden, the bag and what's worn (so whether a sword and a
-   spellbook are in hand), and its pages). The client
+   skillbook are in hand), and its pages). The client
    flashes into battle mode, builds the same
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
    moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and hands you a
-   fresh sword and a blank spellbook), saves and sends
+   fresh sword and a blank skillbook), saves and sends
    `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death.
@@ -125,7 +125,7 @@ main.ts
   no mode sees `Mouse`. Mouse movement in the arena is also read as swipes there: a quick move (`SWIPE`, scaled by
   the swing sensitivity) is pressed as the swing named by its way across the screen, in order with the keys and
   clicks, so the fight sees it like any attack; not while blocking or dragging the camera. In a text field only the
-  arrows, Esc, the digits and Backspace count (the spell word search picks and undoes with them; a key nobody uses
+  arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
   stays the field's); rebinding takes raw keys with `captureKey`.
   Pointer input in the UI stays plain DOM events.
 - **Two modes, one world.** `game/game.ts` routes server messages, runs the frame loop and switches between the
@@ -140,7 +140,7 @@ main.ts
   reads the shown mode's state itself: `battle.ctx` (the fight, the lock, the camera's view, this frame's events) or
   `overworld.state` (the level, the actors). Every kind of thing in a fight has one row in `VISUALS`
   (`visuals/visuals.ts`), picked by `kindOf` from the components it already has (`Player`, an `Enemy`'s model, a
-  `SpellObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
+  `SkillObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
   has drawn: it spawns the new, frames the rest and disposes the gone. A row's own state holds only its meshes and
   smoothing (squash, eased angles); its pose comes from the components each frame, from Babylon-free pose functions
   that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, each enemy's
@@ -195,7 +195,7 @@ main.ts
   invulnerability doesn't stop a parry) or block it (held, facing it: stopped for stamina); a swordsman on guard parries
   a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
   player facing it sees it.
-- **Weapons are a system of their own, like magic.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
+- **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
   `WEAPONS` (each weapon by item id: length, damage, speed), eight swings named by their way across the screen (`lr`:
   left to right) and a stab, their hit shapes (`attackShape`, from the weapon's length), how swings chain (`CHAIN`,
   `MOMENTUM`) and `PARRY`. Anyone with a `Wielder` (what each hand holds, the swing under way, its chain) swings the
@@ -204,21 +204,21 @@ main.ts
   and is over) and its damage; `weaponSystem` then runs every swing the same way, raising its hitbox exactly while
   it's live. The player's steps come from their chain (`chainOn`, `chainedSwing`), the Kobold's from its wind-ups.
   Ending an action or an enemy state (`enter`) ends its swing (`endSwing`). A parry reads the target's swing.
-- **Spells are inputs too.** A player's input carries a whole spell (`cast`) only on the step its key goes down,
-  then just `castHeld` while the key stays down: the fight keeps the spell, so a long one isn't resent in every
-  input. The controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
-  stamina and fires it once the wind-up is over. Whatever lasts is a `SpellObject` entity (its `kind`: a Bolt flying
+- **Skills are inputs too.** A player's input carries a whole skill (`cast`) only on the step its key goes down,
+  then just `castHeld` while the key stays down: the fight keeps the skill, so a long one isn't resent in every
+  input. The controller winds it up as the "cast" action, and `skillSystem` (`fight/skills/cast.ts`) pays its
+  stamina and fires it once the wind-up is over. Whatever lasts is a `SkillObject` entity (its `kind`: a Bolt flying
   by plain-math sweeps, not a physics body; a Beam ticking along its line, held while `castHeld` is; a lingering
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
   Follow Bolt homes, at a limited turn rate, onto the input's `locked` enemy (an index into the fight's enemies) or the
   nearest; split ones aim side by side beside it (`fanM`) until close. Split Bolts start in an upright circle round
   the caster and fly in to meet a point ahead (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs
-  `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
+  `strike` (`fight/skills/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
   the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
-  Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
-  (`shared/src/spells/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
-  player still; a spell on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
+  Warded, the Light shield, Siphoning: `fight/skills/statuses.ts`). Every number is in `SKILL_EFFECTS`
+  (`shared/src/skills/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
+  player still; a skill on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
   (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
   `pageWritten` event), and the server saves that book with the result. A stun breaks either off, and so does a
   dodge; it reopens only once the input is let go (`brokenOff`), and the client closes its popup when it sees that.
@@ -300,8 +300,8 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`) |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost |
-| `saveSpell {page, spell}` | write a spell on a page of the spellbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell on its first step only, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
+| `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -310,17 +310,17 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, spellbook, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, spellbook |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, skillbook |
 | `rested`, `itemUsed` | what resting or eating did |
 | `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
-| `spellbook` | the spellbook's pages after a `saveSpell` (written or not) |
+| `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
@@ -359,9 +359,9 @@ delayed like everything else, so `?ping=200` reads about 200.
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
-equipment (items gone from the game or in the wrong slot are dropped on load), the spell words they know
-(`knownWords`) and the spellbook's 4 pages (`spellbook`, each a spell or null), keyed by account; words not in the
-shared `WORDS` are dropped on load, and so is a page that's no longer a spell of known words. The `GameSession` saves
+equipment (items gone from the game or in the wrong slot are dropped on load), the skill words they know
+(`knownWords`) and the skillbook's 4 pages (`skillbook`, each a skill or null), keyed by account; words not in the
+shared `WORDS` are dropped on load, and so is a page that's no longer a skill of known words. The `GameSession` saves
 after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a character, on
 disconnect, and within a second of a settings change, a move in the bag or a page written. The cloth is never saved.
 Position and level aren't saved (you start at the level's start), and stats aren't either (everyone has the same).
@@ -384,9 +384,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
   difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
   costs), and a dodge pressed during a swing waiting for it to let go (on any step of it, once, ahead of a buffered
-  swing, through a save and a rollback). Spells (`shared/test/battle/fight/spells/`): the wind-up, its cost at release,
+  swing, through a save and a rollback). Skills (`shared/test/battle/fight/skills/`): the wind-up, its cost at release,
   waiting behind a swing, cancelled by a dodge or a hit; the chant (held still, broken off by a stun or a dodge but
-  not a sword hit, the only way to cast a spell on no page) and writing a page in it (its time, standing still,
+  not a sword hit, the only way to cast a skill on no page) and writing a page in it (its time, standing still,
   cancelled by a stun or closing, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included). Each fight test file awaits
@@ -403,7 +403,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; parrying the Kobold's swing the same way; the Kobold as
   tuned, beaten by a player who reads its wind-ups whatever its seed; a cast or a page written with a word the player
-  doesn't know dropped, a spell on none of the pages cast only from a chant; the spellbook (pages written, refused for
+  doesn't know dropped, a skill on none of the pages cast only from a chant; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, blanked
   by a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
   silent player stopping, lateness).
@@ -424,7 +424,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news
   ignored), the title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
   and rows, the chant's carousel (what the next square takes, known words only, why one doesn't fit, the search,
-  number picks, Backspace, words into a spell and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
+  number picks, Backspace, words into a skill and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose; the
   chibi's legs standing together in two boots, the right one in shadow). Rendering, how the fight feels and the React
@@ -490,12 +490,12 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
-                   SpellObject, Enemy, LungeAttack, ChargeAttack, SwordAttack),
+                   SkillObject, Enemy, LungeAttack, ChargeAttack, SwordAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
-                   FighterStats, physicalDamage / spellDamage / moveSpeed / carryLimit)
+                   FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, leave(player), outcome, events, dispose; the enemy motor and player ground
@@ -511,11 +511,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, when to attack, block, dodge, a cast's wind-up, the chant
-                       (held still; a spell on no page cast only from it), the bag (held still; gear moved) and
+                       (held still; a skill on no page cast only from it), the bag (held still; gear moved) and
                        writing a page, stamina; controlPlayer; no sword in hand, no attacks or block; no
-                       spellbook, no casts or chant)
-      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn and their augments,
-                       the spell objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
+                       skillbook, no casts or chant)
+      skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
+                       the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
@@ -534,15 +534,15 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    the bag, the cloth (CLOTH) and the Equipment slots; Spot, moveGear between them, gearWeight
                    without the cloth, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
                    each does to walking and dodging)
-  spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
-                   AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
-                   and the server's check; spellCost, castTime; SPELL: their numbers; SPELLBOOK_PAGES, Spellbook,
-                   blankSpellbook, SAVE_IN_FIGHT_TIME, sameSpell), effects.ts (MAGIC: what spells
-                   do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's augments
+  skills/          skill.ts (a skill as data: segments of a Form, elements and modifiers; FORMS, ELEMENTS, OPPOSITE,
+                   MODIFIER_FITS, WORDS (all of them); validateWord / validateSkill: why a word is refused, for the builder
+                   and the server's check; skillCost, releaseTime; SKILL: their numbers; SKILLBOOK_PAGES, Skillbook,
+                   blankSkillbook, SAVE_IN_FIGHT_TIME, sameSkill), effects.ts (SKILL_EFFECTS: what skills
+                   do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS by item id, weaponIn; SWING_DIRS, ATTACK_KINDS, attackShape; CHAIN and
                    MOMENTUM: how swings chain; lettingGoAt, liveStep, stepsUntil; PARRY)
-  net/             client-messages.ts (Zod schemas + inferred ClientMsg, SpellSchema; server-only import),
+  net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
                    accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
@@ -570,7 +570,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        they're in; a method per thing a player can ask; disconnect: mid-fight, leaving it),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
-                       and handing a fresh sword and spellbook, vitals), snapshot.ts (the state message: only
+                       and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
                        actors near your screen), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -605,7 +605,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the
                      two stores core asks for; one query at a time per player), migrations/ (SQL written by
                      `npm run db:generate`, plus drizzle-kit's meta/), seed.ts (dev data: accounts test1-3,
-                     password = username, knowing every spell word; refuses to run in production)
+                     password = username, knowing every skill word; refuses to run in production)
 
 client/          Browser game: the two modes, their drawing (Babylon), input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui
@@ -623,9 +623,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      `drawing.frame`), overworld <-> battle switching, who has the keys, the character from
                      `welcome` / `character`, opening creation without one; tells the player what happened with
                      `say`; the known words and pages from the server; the fight breaking off the chant;
-                     `saveSpell` as the fight's `write` in a battle),
+                     `saveSkill` as the fight's `write` in a battle),
                      transition.ts (Mode,
-                     flash / fade), debug.ts (the dev handles on `window`, `cast(spell)` among them)
+                     flash / fade), debug.ts (the dev handles on `window`, `cast(skill)` among them)
     net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
                      account.ts (the /api calls: who's
@@ -643,7 +643,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
                      keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's and the
-                     spellbook's fixed keys; KeyBindings:
+                     skillbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
@@ -666,13 +666,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        modes (game/transition.ts sets it), Settings, character creation, title screen (the HUD and
                        Settings only once `inWorld` and not creating; creation as soon as a game runs without a
                        character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, spells:
+      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant`, `battleBag` and `spellbookScreen` (the UI writes them too, the game watches them;
+                       `chant`, `battleBag` and `skillbookScreen` (the UI writes them too, the game watches them;
                        `whoHasTheKeys`:
                        the layer stack, the top one gets the keys), and UiActions (what the UI asks of the game:
-                       signIn, logOut, play, rest, useItem, moveItem, castSpell, saveSpell, saveCharacter,
+                       signIn, logOut, play, rest, useItem, moveItem, castSkill, saveSkill, saveCharacter,
                        returnToTitle). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -693,11 +693,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        PanelFrame.tsx (the side panels'
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
-      spells/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
-                       a known word doesn't fit, `quickPick`, addWord / undoWord, words <-> spell),
-                       SpellBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
+      skills/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
+                       a known word doesn't fit, `quickPick`, addWord / undoWord, words <-> skill),
+                       SkillBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
                        keys), ChantPopup.tsx (the fight's chant: open / close, cast, a page written, shown
-                       while the fight writes it; the fight breaks it off, through game.ts), SpellbookScreen.tsx
+                       while the fight writes it; the fight breaks it off, through game.ts), SkillbookScreen.tsx
                        (the book in hand, over the bag: its 4 pages, written at once), Hotbar.tsx (the pages on
                        the battle HUD with their keys)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
@@ -734,7 +734,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         components.ts    OverworldPos, OverworldActor (its kind: the player, a boar, a Kobold), OverworldState
       battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
         battle.ts        The mode: start / end a fight (the fight's copy from the encounter's setup), per frame the
-                         fight's steps (as many as pace.ts says) and the inputs out (1-4 cast the fight's pages, the
+                         fight's steps (as many as pace.ts says) and the inputs out (1-4 quick-cast the fight's pages, the
                          chant held open, a page to write), the fight's pages into the HUD, hashes, syncs and the
                          result in; each frame's events and corrections
         sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
@@ -743,13 +743,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, the lock, the camera's
-                         view, this frame's events and corrections, the spells waiting to be cast), resultShown
+                         view, this frame's events and corrections, the skills waiting to be cast), resultShown
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
                          yaw is the aim
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed)
-        hud.ts           Fills the battle HUD's store, stunned and the spellbook in hand included
+        hud.ts           Fills the battle HUD's store, stunned and the skillbook in hand included
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; the player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
@@ -761,7 +761,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, lights / fog / shadows / post,
-                         materials, the spell kit, each fighter's node, the shake
+                         materials, the skill kit, each fighter's node, the shake
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, and its reactions'
                          bursts), arenaStage (the scenery per arena size, the camera on the mode's view plus shake,
                          the lock-on's diamond)
@@ -775,11 +775,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          wind-up and a swing (the Kobold's). No Babylon: tested
         enemies/         boar/, kobold/: model.ts (built from primitives), pose.ts (where its parts head, from its
                          state; no Babylon: tested), animation.ts (its visual: the pose eased into, the walk)
-        spells.ts        The spells' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
+        skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards), the chant's and wind-up's circle, and a visual
-                         per SpellObject kind (a Bolt's core and trail or an Earth rock, a Beam's tubes and flares, a
+                         per SkillObject kind (a Bolt's core and trail or an Earth rock, a Beam's tubes and flares, a
                          cloud's dome and pulse, a Delay's orb, an Imbue's glow at the sword hand)
-        spellLooks.ts    SHADER_LOOKS and PARTICLE_LOOKS (each element's colours and motion), the spell shader
+        skillLooks.ts    SHADER_LOOKS and PARTICLE_LOOKS (each element's colours and motion), the skill shader
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/
         scene.ts         OverworldScene: the scene, ortho camera, materials; layerY, flatSprite
@@ -866,10 +866,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
-| Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
-| How long writing a page takes in a fight | `shared/src/spells/spell.ts` (`SAVE_IN_FIGHT_TIME`) |
-| Spells in a fight: D, the Forms, each element, the reactions, Self, the augments, the object caps | `shared/src/spells/effects.ts` (`MAGIC`) |
-| How each element's spells look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/spellLooks.ts` |
+| Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
+| How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
+| Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
+| How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |

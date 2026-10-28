@@ -43,11 +43,11 @@ export const ACTIONS = {
     lookUp: { label: "Tilt camera up (locked: next target up)", keys: ["ArrowUp"] },
     lookDown: { label: "Tilt camera down (locked: next target down)", keys: ["ArrowDown"] },
     dragCamera: { label: "Turn camera (hold and drag, unlocked)", keys: [], mouse: [2] },
-    chant: { label: "Chant a spell (open / close)", keys: ["KeyR"] },
-    spell1: { label: "Cast the spellbook's page 1", keys: ["Digit1"] },
-    spell2: { label: "Cast the spellbook's page 2", keys: ["Digit2"] },
-    spell3: { label: "Cast the spellbook's page 3", keys: ["Digit3"] },
-    spell4: { label: "Cast the spellbook's page 4", keys: ["Digit4"] },
+    chant: { label: "Chant a skill (open / close)", keys: ["KeyR"] },
+    skill1: { label: "Quick-cast the skillbook's page 1", keys: ["Digit1"] },
+    skill2: { label: "Quick-cast the skillbook's page 2", keys: ["Digit2"] },
+    skill3: { label: "Quick-cast the skillbook's page 3", keys: ["Digit3"] },
+    skill4: { label: "Quick-cast the skillbook's page 4", keys: ["Digit4"] },
     leave: { label: "Leave a finished fight", keys: ["Enter"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
@@ -71,8 +71,8 @@ export const MENUS = {
   },
   bag: { closeBag: ["Escape"] },
   battleBag: { closeBag: ["Escape"] },
-  chant: { ...WORD_KEYS, castChant: ["Enter"], closeChant: ["Escape"] },
-  spellbook: { ...WORD_KEYS, writePage: ["Enter"], closeSpellbook: ["Escape"] },
+  chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },
+  skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;
 
 export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;
@@ -230,7 +230,8 @@ const prop = (o: unknown, key: string): unknown =>
 
 /**
  * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
- * the overworld was the field, movement and the panels were per mode, and the bag had a group of its own.
+ * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, and skills were
+ * spells.
  */
 const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.forward": ["battle.forward", "overworld.up", "field.up"],
@@ -242,6 +243,10 @@ const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "overworld.rest": ["field.rest"],
   "overworld.turnItem": ["bag.turn"],
   "overworld.useItem": ["bag.use"],
+  "battle.skill1": ["battle.spell1"],
+  "battle.skill2": ["battle.spell2"],
+  "battle.skill3": ["battle.spell3"],
+  "battle.skill4": ["battle.spell4"],
 };
 
 function savedKeys(saved: unknown, ref: ActionRef): unknown {

@@ -35,8 +35,8 @@ export const ITEMS = {
     name: "Sword", description: "A plain straight blade. You swing it with the mouse and stab with a click.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wornOn: "hand",
   },
-  spellbook: {
-    name: "Spellbook", description: "A worn grimoire of four pages. You need it in hand to cast, and to write in it.",
+  skillbook: {
+    name: "Skillbook", description: "A worn book of four pages. You need it in hand to use skills, and to write in it.",
     cols: 2, rows: 2, stackSize: 1, weight: 1.5, wornOn: "hand", verb: "Open",
   },
 } as const satisfies Record<string, ItemDef>;

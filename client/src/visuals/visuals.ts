@@ -1,7 +1,7 @@
 import { Engine } from "@babylonjs/core";
 import {
-  Enemy, heldIn, LocalPlayer, Player, SpellObject, Wielder, type EnemyDef, type Entity, type Hand, type Look,
-  type SpellObjectKind, type World,
+  Enemy, heldIn, LocalPlayer, Player, SkillObject, Wielder, type EnemyDef, type Entity, type Hand, type Look,
+  type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
@@ -13,7 +13,7 @@ import { boarVisual } from "./battle/enemies/boar/animation.js";
 import { koboldVisual } from "./battle/enemies/kobold/animation.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
-import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/spells.js";
+import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
 import { PlayerLook } from "./characters.js";
 import { overworldStage, WALKERS } from "./overworld/overworld.js";
 import { createOverworldScene } from "./overworld/scene.js";
@@ -26,7 +26,7 @@ export interface Visual<S, Scene = ArenaScene> {
   dispose(s: S): void;
 }
 
-export type VisualKind = "player" | EnemyDef["model"] | SpellObjectKind;
+export type VisualKind = "player" | EnemyDef["model"] | SkillObjectKind;
 
 type AnyVisual<Scene = ArenaScene> = Visual<any, Scene>;
 
@@ -43,7 +43,7 @@ export const VISUALS: Record<VisualKind, AnyVisual> = {
 
 export function kindOf(world: World, e: Entity): VisualKind | null {
   if (world.get(e, Player)) return "player";
-  return world.get(e, Enemy)?.def.model ?? world.get(e, SpellObject)?.kind ?? null;
+  return world.get(e, Enemy)?.def.model ?? world.get(e, SkillObject)?.kind ?? null;
 }
 
 const shake = (scene: ArenaScene, amount: number) => {
@@ -56,7 +56,7 @@ export const EFFECTS: Effects = {
   hit: (scene, ev) => shake(scene, ev.team === "player" ? 0.15 + ev.damage * 0.008 : 0.06),
   parry: (scene) => shake(scene, 0.2),
   block: (scene, ev) => shake(scene, ev.guardBreak ? 0.2 : 0.08),
-  spell({ spells: { bursts } }, ev) {
+  skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);
     else if (ev.form === "self") bursts.self(ev.elements, ev.at);
     else if (ev.form === "imbue") bursts.imbue(ev.elements, ev.at);
@@ -148,14 +148,14 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
     if (fight !== drawnFight) {
       for (const d of fighters.values()) VISUALS[d.kind].dispose(d.state);
       fighters.clear();
-      arena.spells.clear();
+      arena.skills.clear();
       fired = new FiredEffects();
       if (fight) stage.newFight(fight);
       drawnFight = fight;
     }
     if (fight) {
       const { world } = fight, kinds = new Map<Entity, VisualKind>();
-      for (const type of [Player, Enemy, SpellObject]) {
+      for (const type of [Player, Enemy, SkillObject]) {
         for (const [e] of world.query(type)) {
           const kind = kindOf(world, e);
           if (kind) kinds.set(e, kind);
@@ -166,7 +166,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
         (EFFECTS[event.type] as ((scene: ArenaScene, ev: FightEvent) => void) | undefined)?.(arena, event);
       }
       stage.frame(world, dt);
-      arena.spells.tick(dt);
+      arena.skills.tick(dt);
     }
     arena.scene.render();
   };

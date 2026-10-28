@@ -152,7 +152,7 @@ function sword(px: Pixels): void {
   hilt.shade(darkEdge(pommel, 2), SHADOW);
 }
 
-function spellbook(px: Pixels): void {
+function skillbook(px: Pixels): void {
   const pages = new Pen(px, 0);
   const block = rect(6, 5, 28, 28);
   pages.fill(block, ink("parchment", BASE));
@@ -184,7 +184,7 @@ function spellbook(px: Pixels): void {
 }
 
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
-  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, spellbook,
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, skillbook,
 };
 
 const drawn = new Map<ItemId, Picture>();

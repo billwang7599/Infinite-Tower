@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { AUGMENT_FITS, FORMS, WORDS, type Word } from "@infinite-tower/shared";
+import { MODIFIER_FITS, FORMS, WORDS, type Word } from "@infinite-tower/shared";
 import {
-  addWord, choices, NO_CHANT, quickPick, spellOf, undoWord, wordsOf, type ChantState,
-} from "../../../src/ui/spells/chant.js";
+  addWord, choices, NO_CHANT, quickPick, skillOf, undoWord, wordsOf, type ChantState,
+} from "../../../src/ui/skills/chant.js";
 
 const ALL: ReadonlySet<Word> = new Set(WORDS);
 const allowed = (words: Word[], known = ALL, query = "") =>
@@ -19,7 +19,7 @@ describe("the chant's carousel: what the next square takes", () => {
     assert.deepEqual(allowed(["bolt"]), ["fire", "water", "earth", "air", "lightning", "light", "darkness"]);
   });
 
-  test("after an element: another element, an augment that fits the Form, or a Form starting the next segment", () => {
+  test("after an element: another element, a modifier that fits the Form, or a Form starting the next segment", () => {
     const next = allowed(["bolt", "fire"]);
     assert.ok(next.includes("lightning"));
     assert.ok(!next.includes("fire"), "not the same element twice");
@@ -29,14 +29,14 @@ describe("the chant's carousel: what the next square takes", () => {
     assert.ok(next.includes("nova"));
   });
 
-  test("after an augment: another augment or a Form, no more elements", () => {
+  test("after a modifier: another modifier or a Form, no more elements", () => {
     const next = allowed(["bolt", "fire", "swift"]);
     assert.ok(next.includes("pierce"));
     assert.ok(next.includes("bolt"));
     assert.ok(!next.includes("earth"));
   });
 
-  test("a new Form's segment is judged on its own: its elements and augments start over", () => {
+  test("a new Form's segment is judged on its own: its elements and modifiers start over", () => {
     const next = allowed(["bolt", "fire", "nova", "water"]);
     assert.ok(next.includes("widen"), "Widen fits the Nova");
     assert.ok(!next.includes("split"), "Split doesn't");
@@ -70,7 +70,7 @@ describe("the chant's words", () => {
 
   test("a word that fits goes in; one that doesn't, or isn't known, changes nothing", () => {
     assert.deepEqual(addWord(chanting("bolt"), "fire", ALL).words, ["bolt", "fire"]);
-    assert.deepEqual(addWord(chanting("bolt"), "split", ALL).words, ["bolt"], "an augment before any element");
+    assert.deepEqual(addWord(chanting("bolt"), "split", ALL).words, ["bolt"], "a modifier before any element");
     assert.deepEqual(addWord(chanting("bolt"), "fire", new Set(["bolt"])).words, ["bolt"]);
   });
 
@@ -79,28 +79,28 @@ describe("the chant's words", () => {
     assert.deepEqual(undoWord(chanting()).words, []);
   });
 
-  test("the words become a spell, a new segment at each Form", () => {
-    assert.equal(spellOf([]), null);
-    assert.deepEqual(spellOf(["bolt", "water", "swift", "nova", "lightning", "fire", "widen"]), {
+  test("the words become a skill, a new segment at each Form", () => {
+    assert.equal(skillOf([]), null);
+    assert.deepEqual(skillOf(["bolt", "water", "swift", "nova", "lightning", "fire", "widen"]), {
       segments: [
-        { form: "bolt", elements: ["water"], augments: ["swift"] },
-        { form: "nova", elements: ["lightning", "fire"], augments: ["widen"] },
+        { form: "bolt", elements: ["water"], modifiers: ["swift"] },
+        { form: "nova", elements: ["lightning", "fire"], modifiers: ["widen"] },
       ],
     });
-    assert.deepEqual(spellOf(["self", "light"]), { segments: [{ form: "self", elements: ["light"], augments: [] }] });
+    assert.deepEqual(skillOf(["self", "light"]), { segments: [{ form: "self", elements: ["light"], modifiers: [] }] });
   });
 
-  test("every augment is offered somewhere", () => {
-    for (const augment of Object.keys(AUGMENT_FITS) as Word[]) {
-      const form = AUGMENT_FITS[augment as keyof typeof AUGMENT_FITS][0];
-      assert.ok(allowed([form, "fire"]).includes(augment), augment);
+  test("every modifier is offered somewhere", () => {
+    for (const modifier of Object.keys(MODIFIER_FITS) as Word[]) {
+      const form = MODIFIER_FITS[modifier as keyof typeof MODIFIER_FITS][0];
+      assert.ok(allowed([form, "fire"]).includes(modifier), modifier);
     }
   });
 });
 
-describe("a written spell", () => {
+describe("a written skill", () => {
   test("is its words again, in order, for the book's builder", () => {
     const words: Word[] = ["bolt", "water", "swift", "nova", "lightning"];
-    assert.deepEqual(wordsOf(spellOf(words)!), words);
+    assert.deepEqual(wordsOf(skillOf(words)!), words);
   });
 });

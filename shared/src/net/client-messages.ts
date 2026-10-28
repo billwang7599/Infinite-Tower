@@ -6,7 +6,7 @@ import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../weapons/weapons.js";
 import { SLOTS, type Spot } from "../items/gear.js";
-import { AUGMENTS, ELEMENTS, FORMS, SPELLBOOK_PAGES, type Spell } from "../spells/spell.js";
+import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION } from "./settings.js";
 import { ruledText } from "./text-schema.js";
@@ -32,13 +32,13 @@ const MAX_ENEMY_INDEX = 255;
 const SegmentSchema = z.object({
   form: z.enum(FORMS),
   elements: z.array(z.enum(ELEMENTS)).max(ELEMENTS.length).readonly(),
-  augments: z.array(z.enum(AUGMENTS)).readonly(),
+  modifiers: z.array(z.enum(MODIFIERS)).readonly(),
 });
-export const SpellSchema = z.object({
+export const SkillSchema = z.object({
   segments: z.tuple([SegmentSchema]).rest(SegmentSchema).readonly(),
-}) satisfies z.ZodType<Spell>;
+}) satisfies z.ZodType<Skill>;
 
-const PageSchema = z.number().int().nonnegative().max(SPELLBOOK_PAGES - 1);
+const PageSchema = z.number().int().nonnegative().max(SKILLBOOK_PAGES - 1);
 
 const GridSpot = z.object({
   in: z.enum(["bag", "cloth"]), x: z.number().int().nonnegative(), y: z.number().int().nonnegative(),
@@ -56,10 +56,10 @@ const StepInputSchema = z.object({
   attack: z.enum(ATTACK_KINDS).nullable(),
   dodge: z.boolean(),
   block: z.boolean(),
-  cast: SpellSchema.nullable(),
+  cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),
-  write: z.object({ page: PageSchema, spell: SpellSchema }).nullable(),
+  write: z.object({ page: PageSchema, skill: SkillSchema }).nullable(),
   locked: z.number().int().nonnegative().max(MAX_ENEMY_INDEX).nullable(),
   bag: z.boolean(),
   gear: z.object({ from: SpotSchema, to: SpotSchema, turned: z.boolean() }).nullable(),
@@ -126,8 +126,8 @@ const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: SpotSchema, to: S
 
 const CloseBagMsg = z.object({ t: z.literal("closeBag") });
 
-const SaveSpellMsg = z.object({
-  t: z.literal("saveSpell"), page: PageSchema, spell: SpellSchema,
+const SaveSkillMsg = z.object({
+  t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
 });
 
 /** The connection answers it with a `pong` itself; the game never sees it. */
@@ -138,7 +138,7 @@ const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]), e
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, SaveSpellMsg, PingMsg, DebugMsg,
+  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, DebugMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

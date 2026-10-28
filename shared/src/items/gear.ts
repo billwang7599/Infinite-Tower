@@ -25,7 +25,7 @@ export type Spot = { in: GridName; x: number; y: number } | { in: "slot"; slot: 
 export type GridSpot = Extract<Spot, { in: GridName }>;
 
 export const starterEquipment = (): Equipment =>
-  ({ rightHand: "sword", leftHand: "spellbook", head: null, body: null, legs: null, boots: null });
+  ({ rightHand: "sword", leftHand: "skillbook", head: null, body: null, legs: null, boots: null });
 export const emptyCloth = (): Bag => ({ cols: CLOTH.cols, rows: CLOTH.rows, items: [] });
 
 export const fitsSlot = (item: ItemId, slot: Slot): boolean => itemDef(item).wornOn === SLOT_TAKES[slot];

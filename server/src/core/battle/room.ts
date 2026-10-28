@@ -5,7 +5,7 @@
  */
 import {
   HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Carried, type Entity,
-  type Spellbook, type StepInput, type Vitals,
+  type Skillbook, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import type { PlayerLink } from "../ports.js";
@@ -19,7 +19,7 @@ export const MIN_SYNC_GAP_STEPS = 5;
 export interface Seat {
   link: PlayerLink;
   /** Called once, when the fight is over for this player, with the HP, stamina, pages and gear it left them with. */
-  onEnd(result: PlayerResult, vitals: Vitals, book: Spellbook, gear: Carried): void;
+  onEnd(result: PlayerResult, vitals: Vitals, book: Skillbook, gear: Carried): void;
 }
 
 interface SeatState {

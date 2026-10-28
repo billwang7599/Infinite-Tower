@@ -1,5 +1,5 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
-import { MAGIC, REACTIONS, STATUSES, type Reaction, type Status } from "../../../spells/effects.js";
+import { SKILL_EFFECTS, REACTIONS, STATUSES, type Reaction, type Status } from "../../../skills/effects.js";
 import { Health, Statuses, type StatusData } from "../../components.js";
 
 export function noStatuses(): StatusData {
@@ -26,15 +26,15 @@ export function statusSystem(): System {
 export function damageDealtFactor(world: World, e: Entity): number {
   const s = world.get(e, Statuses);
   if (!s) return 1;
-  return (s.left.empowered > 0 ? MAGIC.self.fire.damageDealtFactor : 1)
-    * (s.left.cursed > 0 ? MAGIC.elements.darkness.cursedDamageFactor : 1);
+  return (s.left.empowered > 0 ? SKILL_EFFECTS.self.fire.damageDealtFactor : 1)
+    * (s.left.cursed > 0 ? SKILL_EFFECTS.elements.darkness.cursedDamageFactor : 1);
 }
 
 export function hurt(world: World, e: Entity, damage: number): number {
   const health = world.require(e, Health), s = world.get(e, Statuses);
   let rest = damage;
   if (s) {
-    if (s.left.warded > 0) rest *= MAGIC.self.earth.damageTakenFactor;
+    if (s.left.warded > 0) rest *= SKILL_EFFECTS.self.earth.damageTakenFactor;
     const absorbed = Math.min(s.shield, rest);
     s.shield -= absorbed;
     rest -= absorbed;
@@ -49,11 +49,11 @@ export function heal(world: World, e: Entity, amount: number): void {
 }
 
 export function siphon(world: World, e: Entity, damage: number): void {
-  if ((world.get(e, Statuses)?.left.siphoning ?? 0) > 0) heal(world, e, damage * MAGIC.self.darkness.healShare);
+  if ((world.get(e, Statuses)?.left.siphoning ?? 0) > 0) heal(world, e, damage * SKILL_EFFECTS.self.darkness.healShare);
 }
 
 export function statusMoveFactor(s: StatusData | undefined): number {
   if (!s) return 1;
-  return (s.left.rooted > 0 ? 1 - MAGIC.elements.earth.rootSlow : 1)
-    * (s.left.hasted > 0 ? MAGIC.self.air.moveFactor : 1);
+  return (s.left.rooted > 0 ? 1 - SKILL_EFFECTS.elements.earth.rootSlow : 1)
+    * (s.left.hasted > 0 ? SKILL_EFFECTS.self.air.moveFactor : 1);
 }

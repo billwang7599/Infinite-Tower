@@ -41,8 +41,8 @@ What's built so far:
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
   the camera), Space jumps, F dodges, Left Shift blocks; a quick flick of the mouse swings the way it moves (one of
-  eight), and a left click stabs. R opens the chant, and 1-4 cast the spellbook's pages.
-- **Stats:** strength, agility, stamina and intellect on every fighter (intellect scales spell damage).
+  eight), and a left click stabs. R opens the chant, and 1-4 quick-cast the skillbook's pages.
+- **Stats:** strength, agility, stamina and skillpower on every fighter (skillpower scales skill damage).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
@@ -51,14 +51,14 @@ What's built so far:
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
-- **Spells:** words chained into spells (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
-  statuses and four reactions; eight augments), paid in stamina. In a fight, R opens the chant: a spell built word by
+- **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
+  statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter.
-  The spellbook has four pages, written from the bag screen (Open on the book in hand) or in a fight (2 s, standing
-  still), and cast with 1-4 (hold the key to keep a Beam going).
+  The skillbook has four pages, written from the bag screen (Open on the book in hand) or in a fight (2 s, standing
+  still), and quick-cast with 1-4 (hold the key to keep a Beam going).
   Dying blanks the pages; the words you know stay.
-- **Equipment:** you start with a sword in your right hand and a spellbook in your left (and get a fresh pair after
-  dying). Without a sword in hand you can't swing, stab or block; without the spellbook you can't cast. Worn
+- **Equipment:** you start with a sword in your right hand and a skillbook in your left (and get a fresh pair after
+  dying). Without a sword in hand you can't swing, stab or block; without the skillbook you can't cast. Worn
   things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
@@ -92,7 +92,7 @@ npm run typecheck  # shared, server, client and their tests, then the server's l
 npm run build      # the client bundle
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
-npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username, all spell words)
+npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username, all skill words)
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```

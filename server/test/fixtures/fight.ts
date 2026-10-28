@@ -4,7 +4,7 @@
  * back for a number of server ticks.
  */
 import {
-  blankSpellbook, emptyBag, IDLE_INPUT, PLAYER, sameInput, starterEquipment, type EnemyDef, type PlayerInputData,
+  blankSkillbook, emptyBag, IDLE_INPUT, PLAYER, sameInput, starterEquipment, type EnemyDef, type PlayerInputData,
   type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -22,7 +22,7 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   return {
     arena: { radius: 16 },
     players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
-      burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook() }],
+      burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }

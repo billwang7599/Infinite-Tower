@@ -6,7 +6,7 @@ type KeyListener = (key: string, repeat: boolean) => boolean;
 const inTextField = (target: EventTarget | null): boolean =>
   ["INPUT", "TEXTAREA"].includes((target as Partial<Element> | null)?.tagName ?? "");
 
-// In a text field: the arrows, Esc, and the digits and Backspace (a spell's word search picks and undoes with them).
+// In a text field: the arrows, Esc, and the digits and Backspace (a skill's word search picks and undoes with them).
 const TEXT_FIELD_KEYS = /^(Arrow|Escape$|Digit\d$|Backspace$)/;
 
 export class Keyboard extends Buttons {

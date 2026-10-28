@@ -24,7 +24,7 @@ export function exposeDebugHandles(h: DebugHandles): void {
   Object.assign(window, {
     battle: h.battle.ctx, overworld: h.overworld.state, mode: h.mode, ui: h.ui, settings: h.settings,
     encounter: h.encounter,
-    cast: (spell: shared.Spell) => h.battle.ctx.casts.push(spell),
+    cast: (skill: shared.Skill) => h.battle.ctx.casts.push(skill),
     components: { ...shared, ...overworldComponents },
   });
 }

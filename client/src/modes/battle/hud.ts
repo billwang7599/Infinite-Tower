@@ -19,7 +19,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (worl
       patch.staminaFraction = fraction(me[3].value, me[3].max);
       patch.comboMultiplier = me[5].combo === null ? 1 : roundTo(momentumDamage(me[5].momentum), 2);
       patch.stunned = me[2].hitstun > 0 || me[4].action === "stagger";
-      patch.spellbookInHand = heldIn(me[5].hands, "spellbook") !== null;
+      patch.skillbookInHand = heldIn(me[5].hands, "skillbook") !== null;
       patch.brokenOff = me[4].brokenOff;
       patch.writingPage = me[4].writing?.page ?? null;
       patch.carried = me[4].gear;

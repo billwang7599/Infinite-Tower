@@ -3,7 +3,7 @@ import { footprint, itemDef, type BagItem, type ItemId } from "@infinite-tower/s
 
 const HELD: Partial<Record<ItemId, string>> = {
   sword: "In a hand: swing, stab and block.",
-  spellbook: "In a hand: cast spells.",
+  skillbook: "In a hand: quick-cast skills.",
 };
 
 export interface ItemInfo {

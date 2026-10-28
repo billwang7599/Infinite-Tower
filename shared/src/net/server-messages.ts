@@ -8,7 +8,7 @@ import type { Character } from "../character/character.js";
 import type { Gear } from "../items/gear.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
 import type { LevelLayout } from "../overworld/layout.js";
-import type { Spellbook, Word } from "../spells/spell.js";
+import type { Skillbook, Word } from "../skills/skill.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";
 
@@ -29,7 +29,7 @@ export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. */
   | {
     t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
-    gear: Gear; knownWords: Word[]; spellbook: Spellbook; dev: boolean;
+    gear: Gear; knownWords: Word[]; skillbook: Skillbook; dev: boolean;
   }
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
@@ -45,12 +45,12 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
-  | { t: "spellbook"; spellbook: Spellbook }
+  | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot` is packed into the bag but
    * `leftBehind`. */
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; leftBehind: ItemCounts;
-    lost: ItemCounts; gear: Gear; spellbook: Spellbook;
+    lost: ItemCounts; gear: Gear; skillbook: Skillbook;
   }
   | { t: "pong"; id: number };
 

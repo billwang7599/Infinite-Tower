@@ -54,7 +54,7 @@ export function fighter<S>(name: string, own: {
       if (!statuses) return;
       if (f.cooldowns) {
         for (const r of REACTIONS) {
-          if (statuses.cooldown[r] > f.cooldowns[r] + 1e-6) f.ctx.spells.bursts.reaction(r, pos);
+          if (statuses.cooldown[r] > f.cooldowns[r] + 1e-6) f.ctx.skills.bursts.reaction(r, pos);
         }
       }
       f.cooldowns = { ...statuses.cooldown };

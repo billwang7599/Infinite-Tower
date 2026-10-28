@@ -1,0 +1,2 @@
+ALTER TABLE "players" RENAME COLUMN "spellbook" TO "skillbook";--> statement-breakpoint
+ALTER TABLE "players" ALTER COLUMN "equipment" SET DEFAULT '{"rightHand":"sword","leftHand":"skillbook","head":null,"body":null,"legs":null,"boots":null}'::jsonb;

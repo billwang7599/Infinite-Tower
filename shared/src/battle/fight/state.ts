@@ -5,9 +5,9 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SpellObject, Stamina, Statuses,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillObject, Stamina, Statuses,
   SwordAttack, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SpellObjectData, type StaminaData,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type StaminaData,
   type StatusData, type SwingData, type SwordAttackData, type WielderData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
@@ -42,7 +42,7 @@ interface EnemySnapshot extends FighterSnapshot {
 interface HitSnapshot extends Omit<ActiveHitData, "alreadyHit"> { by: number; alreadyHit: number[] }
 
 // `caster`, `target` and `ignore` as fighter indices (-1: none).
-interface ObjectSnapshot extends Omit<SpellObjectData, "caster" | "target" | "ignore"> {
+interface ObjectSnapshot extends Omit<SkillObjectData, "caster" | "target" | "ignore"> {
   caster: number;
   target: number;
   ignore: number;
@@ -56,7 +56,7 @@ export interface FightSnapshot {
   enemies: EnemySnapshot[];
   /** In the order the fight checks them. */
   hits: HitSnapshot[];
-  spells: ObjectSnapshot[];
+  skills: ObjectSnapshot[];
 }
 
 const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }, cooldown: { ...s.cooldown } });
@@ -109,7 +109,7 @@ export function saveFight(fight: Fight): FightSnapshot {
     hits: [...world.query(ActiveHit)].map(([e, { alreadyHit, ...hit }]) => ({
       ...hit, by: fighters.indexOf(e), alreadyHit: [...alreadyHit].map((target) => fighters.indexOf(target)),
     })),
-    spells: [...world.query(SpellObject)].map(([, { caster, target, ignore, pos, dir, ...o }]) => ({
+    skills: [...world.query(SkillObject)].map(([, { caster, target, ignore, pos, dir, ...o }]) => ({
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters.indexOf(caster),
       target: target === null ? -1 : fighters.indexOf(target), ignore: ignore === null ? -1 : fighters.indexOf(ignore),
     })),
@@ -155,11 +155,11 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });
   }
-  for (const [e] of world.query(SpellObject)) world.destroy(e);
+  for (const [e] of world.query(SkillObject)) world.destroy(e);
   world.flush();
   const fighterAt = (i: number) => (i === -1 ? null : fighters[i]!);
-  for (const { caster, target, ignore, pos, dir, ...o } of snap.spells) {
-    world.add(world.spawn(), SpellObject, {
+  for (const { caster, target, ignore, pos, dir, ...o } of snap.skills) {
+    world.add(world.spawn(), SkillObject, {
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters[caster]!, target: fighterAt(target),
       ignore: fighterAt(ignore),
     });

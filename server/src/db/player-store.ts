@@ -1,8 +1,8 @@
 import {
-  blankSpellbook, fitsSlot, ITEMS, SLOTS, spellProblems, WORDS, type Equipment, type ItemId, type Slot, type Spell,
-  type Spellbook, type Word,
+  blankSkillbook, fitsSlot, ITEMS, SLOTS, validateSkill, WORDS, type Equipment, type ItemId, type Slot, type Skill,
+  type Skillbook, type Word,
 } from "@infinite-tower/shared";
-import { SpellSchema } from "@infinite-tower/shared/net/client-messages";
+import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
@@ -49,7 +49,7 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
-  spellbook: data.spellbook,
+  skillbook: data.skillbook,
 });
 
 function fromRow(row: typeof players.$inferSelect): PlayerSave {
@@ -57,15 +57,15 @@ function fromRow(row: typeof players.$inferSelect): PlayerSave {
   return {
     vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
     character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
-    spellbook: readable(row.spellbook, new Set(knownWords)),
+    skillbook: readable(row.skillbook, new Set(knownWords)),
   };
 }
 
-function readable(saved: unknown, known: ReadonlySet<Word>): Spellbook {
+function readable(saved: unknown, known: ReadonlySet<Word>): Skillbook {
   const pages: readonly unknown[] = Array.isArray(saved) ? saved : [];
-  return blankSpellbook().map((_, i) => {
-    const page = SpellSchema.safeParse(pages[i]);
-    return page.success && spellProblems(page.data, known).length === 0 ? page.data as Spell : null;
+  return blankSkillbook().map((_, i) => {
+    const page = SkillSchema.safeParse(pages[i]);
+    return page.success && validateSkill(page.data, known).length === 0 ? page.data as Skill : null;
   });
 }
 

@@ -1,7 +1,7 @@
 import { defineComponent } from "../core/ecs.js";
 import { roundTo } from "../core/math.js";
 import type { Spot } from "../items/gear.js";
-import type { Spell } from "../spells/spell.js";
+import type { Skill } from "../skills/skill.js";
 import type { AttackKind } from "../weapons/weapons.js";
 
 /** What an arena fighter does this step: from the keys in the browser, from `battleInput` on the server. */
@@ -17,8 +17,8 @@ export interface PlayerInputData {
   attack: AttackKind | null;
   dodge: boolean;
   block: boolean;
-  /** Pressed: the spell only on the step its cast key goes down, and `castHeld` while the key stays down after. */
-  cast: Spell | null;
+  /** Pressed: the skill only on the step its cast key goes down, and `castHeld` while the key stays down after. */
+  cast: Skill | null;
   castHeld: boolean;
   chant: boolean;
   write: PageWrite | null;
@@ -28,7 +28,7 @@ export interface PlayerInputData {
   gear: GearMove | null;
 }
 
-export interface PageWrite { page: number; spell: Spell }
+export interface PageWrite { page: number; skill: Skill }
 export interface GearMove { from: Spot; to: Spot; turned: boolean }
 export const PlayerInput = defineComponent<PlayerInputData>("PlayerInput");
 

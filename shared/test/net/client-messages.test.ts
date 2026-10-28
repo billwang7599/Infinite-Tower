@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, SPELLBOOK_PAGES, type StepInput,
+  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, SKILLBOOK_PAGES, type StepInput,
 } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
@@ -14,7 +14,7 @@ const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
   cast: null, castHeld: false, chant: false, write: null, locked: null, bag: false, gear: null,
 };
-const segment = (form: string, elements: string[] = [], augments: string[] = []) => ({ form, elements, augments });
+const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
 /** A battleInput up to the last input's step (or step 1). */
 const battleInput = (...inputs: unknown[]) => {
@@ -40,7 +40,7 @@ describe("parseClientMsg", () => {
       { t: "moveItem", from: { in: "bag", x: 0, y: 0 }, to: { in: "cloth", x: 3, y: 2 }, turned: true },
       { t: "moveItem", from: { in: "slot", slot: "rightHand" }, to: { in: "slot", slot: "leftHand" }, turned: false },
       { t: "closeBag" },
-      { t: "saveSpell", page: 3, spell: { segments: [{ form: "bolt", elements: ["fire"], augments: ["swift"] }] } },
+      { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
       { t: "debug", cmd: "encounter" },
       { t: "debug", cmd: "encounter", enemy: "kobold-swordsman" },
       { t: "ping", id: 0 },
@@ -81,15 +81,15 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "battleInput", upTo: 5, inputs: [{ ...STEP, step: 6 }] }), null);
   });
 
-  test("battleInput: a cast carries the whole spell, made of known kinds of word", () => {
+  test("battleInput: a cast carries the whole skill, made of known kinds of word", () => {
     const chain = casting(segment("bolt", ["water"], ["swift"]), segment("nova", ["lightning", "fire"]));
     assert.deepEqual(battleInput(chain), { t: "battleInput", upTo: 1, inputs: [chain] });
     assert.equal(battleInput(casting()), null, "no segment");
     assert.equal(battleInput(casting(segment("summon", ["earth"]))), null, "not a Form");
     assert.equal(battleInput(casting(segment("bolt", ["plasma"]))), null, "not an element");
-    assert.equal(battleInput(casting(segment("bolt", [], ["fire"]))), null, "an element in the augments");
+    assert.equal(battleInput(casting(segment("bolt", [], ["fire"]))), null, "an element in the modifiers");
     assert.ok(battleInput(casting(...Array.from({ length: 100 }, () => segment("bolt")))), "no cap on segments");
-    assert.ok(battleInput(casting(segment("bolt", [], Array.from({ length: 100 }, () => "split")))), "nor augments");
+    assert.ok(battleInput(casting(segment("bolt", [], Array.from({ length: 100 }, () => "split")))), "nor modifiers");
   });
 
   test("battleInput: every field is there, with the right type", () => {
@@ -218,23 +218,23 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "slot", slot: "tail" }, turned: false }), null);
   });
 
-  test("saveSpell: a page of the book, and a whole spell", () => {
+  test("saveSkill: a page of the book, and a whole skill", () => {
     const save = (page: unknown, segments: unknown[] = [segment("nova", ["fire"])]) =>
-      parse({ t: "saveSpell", page, spell: { segments } });
+      parse({ t: "saveSkill", page, skill: { segments } });
     assert.notEqual(save(0), null);
-    assert.notEqual(save(SPELLBOOK_PAGES - 1), null);
-    assert.equal(save(SPELLBOOK_PAGES), null);
+    assert.notEqual(save(SKILLBOOK_PAGES - 1), null);
+    assert.equal(save(SKILLBOOK_PAGES), null);
     assert.equal(save(-1), null);
     assert.equal(save(1.5), null);
     assert.equal(save(0, []), null, "no segment");
     assert.equal(save(0, [segment("summon")]), null, "not a Form");
   });
 
-  test("battleInput: a page written in a fight is a page of the book, and a whole spell", () => {
+  test("battleInput: a page written in a fight is a page of the book, and a whole skill", () => {
     const write = (page: unknown, segments: unknown[] = [segment("nova", ["fire"])]) =>
-      battleInput({ ...STEP, chant: true, write: { page, spell: { segments } } });
-    assert.notEqual(write(SPELLBOOK_PAGES - 1), null);
-    assert.equal(write(SPELLBOOK_PAGES), null);
+      battleInput({ ...STEP, chant: true, write: { page, skill: { segments } } });
+    assert.notEqual(write(SKILLBOOK_PAGES - 1), null);
+    assert.equal(write(SKILLBOOK_PAGES), null);
     assert.equal(write(0, []), null, "no segment");
     assert.equal(battleInput({ ...STEP, chant: "yes" }), null);
   });

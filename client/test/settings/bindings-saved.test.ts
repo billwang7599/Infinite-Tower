@@ -254,3 +254,13 @@ describe("KeyBindings saved before lock-on", () => {
     assert.deepEqual(keysOf(b.get(), { group: "battle", action: "turnRight" }), ["KeyE", "ArrowRight"]);
   });
 });
+
+describe("KeyBindings saved before spells were skills", () => {
+  test("keys saved on the old spell actions load on the skill ones", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { spell1: ["KeyZ"], spell4: ["KeyX"] } });
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "skill1" }), ["KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "skill4" }), ["KeyX"]);
+    assert.deepEqual(b.toSaved(), { battle: { skill1: ["KeyZ"], skill4: ["KeyX"] } });
+  });
+});
