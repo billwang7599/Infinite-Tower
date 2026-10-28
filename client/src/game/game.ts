@@ -5,7 +5,7 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Spell, type Spot,
+  bagCounts, moveGear, type Character, type GridSpot, type Hand, type ServerMsgOf, type Spell, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -30,6 +30,8 @@ export interface Game {
   /** Sends any unsent settings, hangs up, stops drawing, forgets the level and any fight. */
   leave(): void;
   /** Once the server's result is in: fade back to the overworld. */
+  /** A fight's gear changed: the arena sprite is repainted at once. */
+  holdSword(hand: Hand | null): void;
   leaveBattle(): void;
   rest(): void;
   useItem(at: GridSpot): void;
@@ -107,6 +109,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     const to = net;
     if (!to) return;
     result = null;
+    playerLook.hold(msg.setup.players[msg.seat]!.wields.sword);
     playerLook.finish();
     battle.start(msg, (m) => to.send(m));
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
@@ -153,6 +156,10 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
 
   return {
     mode: () => mode,
+    holdSword(hand) {
+      playerLook.hold(hand);
+      playerLook.finish();
+    },
     leaveBattle() {
       if (mode !== "battle" || transition || !result) return;
       transition = startTransition("overworld");

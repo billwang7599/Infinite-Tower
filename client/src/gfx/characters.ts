@@ -1,5 +1,5 @@
 /** Frames for the 24x24 pixel sprites (sprites.ts): the player's from their look (gfx/look/), the rest drawn here. */
-import type { Look } from "@infinite-tower/shared";
+import type { Hand, Look } from "@infinite-tower/shared";
 import { VIEWS, type Picture } from "./look/art.js";
 import { SWORD_POSES, type Pose, type SwordPose } from "./look/battle.js";
 import { CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "./look/look.js";
@@ -17,9 +17,11 @@ export interface PlayerSprites<Sprite> {
 /** About a frame between slices, so the screen keeps moving while the arena's frames are painted. */
 export const PAINT_GAP_MS = 16;
 
-/** The chibi is painted at once; the arena's frames (~85 ms each) one per slice after, or the rest on `finish`. */
+/** The chibi is painted at once; the arena's frames (~3 ms each) one per slice after, or the rest on `finish`. */
 export class PlayerLook<Sprite> {
   private worn: string | null = null;
+  private look: Look | null = null;
+  private swordHand: Hand | null = "rightHand";
   private unpainted: (() => void)[] = [];
   private nextSlice: ReturnType<typeof setTimeout> | undefined;
 
@@ -32,22 +34,34 @@ export class PlayerLook<Sprite> {
     const key = JSON.stringify(look);
     if (key === this.worn) return;
     this.worn = key;
+    this.look = look;
     for (const facing of CHIBI_FACINGS) {
       const pic = drawChibi(look, facing);
       this.redraw(this.sprites.chibi[facing], (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side"));
     }
-    this.unpainted = (Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]).flatMap((pose) =>
-      this.sprites.battle[pose].map((sprite, frame) => () => {
-        const pic = drawBattle(look, pose, frame);
-        this.redraw(sprite, (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width));
-      }),
-    );
-    this.paintLater();
+    this.paintBattle(look);
+  }
+
+  hold(swordHand: Hand | null): void {
+    if (swordHand === this.swordHand) return;
+    this.swordHand = swordHand;
+    if (this.look) this.paintBattle(this.look);
   }
 
   finish(): void {
     clearTimeout(this.nextSlice);
     for (const paintFrame of this.unpainted.splice(0)) paintFrame();
+  }
+
+  private paintBattle(look: Look): void {
+    const swordHand = this.swordHand;
+    this.unpainted = (Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]).flatMap((pose) =>
+      this.sprites.battle[pose].map((sprite, frame) => () => {
+        const pic = drawBattle(look, pose, frame, undefined, swordHand);
+        this.redraw(sprite, (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width));
+      }),
+    );
+    this.paintLater();
   }
 
   private paintLater(): void {

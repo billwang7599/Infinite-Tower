@@ -7,6 +7,8 @@ import { BODY_TYPES } from "../../src/gfx/look/body.js";
 import { LEATHER_JERKIN } from "../../src/gfx/look/jerkin.js";
 import { CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait } from "../../src/gfx/look/look.js";
 import { STARTER_CLOTHES } from "../../src/gfx/look/outfit.js";
+import { FIXED } from "../../src/gfx/look/palette.js";
+import { BASE, LIGHT } from "../../src/gfx/look/pixels.js";
 
 const WEARS: Record<string, readonly Art[]> = {
   "starter clothes": STARTER_CLOTHES,
@@ -70,6 +72,26 @@ describe("the sword fight's poses", () => {
           }
         }
       }
+    }
+  });
+
+  test("the sword is drawn in the hand that holds it (from behind, the right is on our right), or not at all", () => {
+    const blade = new Set<string>([FIXED.steel[BASE], FIXED.steel[LIGHT]]);
+    const steelSides = (pic: Picture) => {
+      const sides = { left: 0, right: 0 };
+      for (let i = 0; i < pic.width * pic.height; i++) {
+        const hex = `#${[0, 1, 2].map((c) => pic.rgba[i * 4 + c]!.toString(16).padStart(2, "0")).join("")}`;
+        if (blade.has(hex)) sides[i % pic.width < pic.width / 2 ? "left" : "right"]++;
+      }
+      return sides;
+    };
+    for (const pose of POSES) {
+      const right = steelSides(drawBattle(DEFAULT_LOOK, pose, 0, STARTER_CLOTHES, "rightHand"));
+      const left = steelSides(drawBattle(DEFAULT_LOOK, pose, 0, STARTER_CLOTHES, "leftHand"));
+      assert.ok(right.right > right.left, `${pose} right hand: ${JSON.stringify(right)}`);
+      assert.ok(left.left > left.right, `${pose} left hand: ${JSON.stringify(left)}`);
+      const none = steelSides(drawBattle(DEFAULT_LOOK, pose, 0, STARTER_CLOTHES, null));
+      assert.deepEqual(none, { left: 0, right: 0 }, pose);
     }
   });
 

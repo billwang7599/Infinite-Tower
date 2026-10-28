@@ -3,7 +3,7 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  emptyCloth, gearBurden, holds, itemAt, itemDef, moveGear, nearCampfire, PLAYER, spellProblems, takeOne, walkPace,
+  emptyCloth, gearBurden, heldIn, itemAt, itemDef, moveGear, nearCampfire, PLAYER, spellProblems, takeOne, walkPace,
   type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Spell, type Spellbook,
   type Spot, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
@@ -167,7 +167,7 @@ export class GameSession {
 
   saveSpell(page: number, spell: Spell): void {
     const known = new Set(this.knownWords);
-    if (!this.battle && holds(this.gear.equipment, "spellbook") && spellProblems(spell, known).length === 0) {
+    if (!this.battle && heldIn(this.gear.equipment, "spellbook") !== null && spellProblems(spell, known).length === 0) {
       this.spellbook = this.spellbook.map((written, i) => i === page ? spell : written);
       this.saveSoon();
     }

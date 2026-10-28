@@ -94,7 +94,8 @@ describe("starting a battle", () => {
     assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"], at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     assert.deepEqual(msg.setup.players, [{
-      at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light", wields: { sword: true, spellbook: true },
+      at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
+      wields: { sword: "rightHand", spellbook: "leftHand" },
       book: blankSpellbook(),
     }]);
   });
@@ -103,7 +104,7 @@ describe("starting a battle", () => {
     const bookOnly: Equipment = { ...starterEquipment(), rightHand: null };
     const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly } });
     session.debugEncounter();
-    assert.deepEqual(link.last("encounter").setup.players[0]!.wields, { sword: false, spellbook: true });
+    assert.deepEqual(link.last("encounter").setup.players[0]!.wields, { sword: null, spellbook: "leftHand" });
   });
 
   test("says how weighed down the player comes in (the fight applies it)", () => {

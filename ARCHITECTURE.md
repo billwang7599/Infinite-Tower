@@ -493,7 +493,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
                    moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), gear.ts (Gear:
                    the bag, the cloth (CLOTH) and the Equipment slots; Spot, moveGear between them, gearWeight
-                   without the cloth, holds), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
+                   without the cloth, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
                    each does to walking and dodging)
   spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
@@ -611,16 +611,17 @@ client/          Browser game: Babylon rendering, input, React UI.
     gfx/             textures.ts (procedural textures; glowTexture and puffTexture for particles), materials.ts (colorMaterial), sprites.ts (pixelMaterial,
                      spriteMaterial, redrawSprite),
                      characters.ts (PlayerLook: paints a look's chibi at once and its battle frames one per slice
-                     after, or the rest when a fight starts; BATTLE_FRAMES; the boar, the kobold)
+                     after, or the rest when a fight starts, again when the fight's sword hand changes
+                     (`wields.sword`); BATTLE_FRAMES; the boar, the kobold)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, later dialogue), a 32x32 chibi facing front, back or side (the world) and a
                        64x64 battle sprite from behind in each pose (the arena), in code. art.ts (VIEWS,
                        CHIBI_FACINGS, layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts
-                       (body types), battle.ts (POSES, SWORD_POSES), moves.ts (the sword fight's frames), head.ts
-                       (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts (wear),
-                       sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
+                       (body types), battle.ts (POSES, SWORD_POSES, leftHanded), moves.ts (the sword fight's frames),
+                       head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
+                       (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
                      the chibi facing each way and the battle sprite in each pose and frame, to check art
     ui/              React: everything drawn over the canvas

@@ -7,7 +7,7 @@
  */
 import type { BattleFrame } from "./art.js";
 import { swordPoses } from "./moves.js";
-import { ellipse, limb, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
+import { ellipse, flip, limb, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
 
 /**
  * A picture each. stand: arms down, the sword held up and out. slash: the sword arm swung out to our right, the
@@ -28,6 +28,13 @@ export const SWORD_POSES = {
   stab: 3, block: 2, stagger: 2,
 } as const;
 export type SwordPose = keyof typeof SWORD_POSES;
+
+/** A swing drawn left-handed is its mirror image's pose, mirrored, so it still sweeps the same way on screen. */
+const MIRRORED_POSE: Record<Pose | SwordPose, Pose | SwordPose> = {
+  stand: "stand", slash: "slash", down: "down", stab: "stab", block: "block", stagger: "stagger",
+  "swing-tb": "swing-tb", "swing-bt": "swing-bt", "swing-lr": "swing-rl", "swing-rl": "swing-lr",
+  "swing-tlbr": "swing-trbl", "swing-trbl": "swing-tlbr", "swing-brtl": "swing-bltr", "swing-bltr": "swing-brtl",
+};
 
 const W = 64, M = 32;
 const sym = (half: readonly Point[]) => symmetric(half, W);
@@ -101,4 +108,23 @@ export function battleFrames(b: BattleBuild): Record<Pose | SwordPose, readonly 
     sword: [[M + 13, 61.5], [M + 29, 57.5]],
   };
   return { stand: [stand], slash: [slash], down: [down], ...swordPoses(b, stand) };
+}
+
+/** The body flipped, so the sword is in the left hand; what's drawn on it (the hair, the light) isn't. */
+export function leftHanded(
+  frames: Record<Pose | SwordPose, readonly BattleFrame[]>, pose: Pose | SwordPose, frame: number,
+): BattleFrame | undefined {
+  const f = frames[MIRRORED_POSE[pose]][frame];
+  if (!f) return undefined;
+  const flipped = (mask: Mask) => flip(mask, W);
+  const at = ([x, y]: Point): Point => [W - x, y];
+  return {
+    ...f,
+    neck: flipped(f.neck), torso: flipped(f.torso), arms: flipped(f.arms), legs: flipped(f.legs),
+    hands: flipped(f.hands), feet: flipped(f.feet), shins: flipped(f.shins),
+    middle: W - f.middle,
+    shoulders: [at(f.shoulders[1]), at(f.shoulders[0])],
+    head: [-f.head[0], f.head[1]],
+    sword: [at(f.sword[0]), at(f.sword[1])],
+  };
 }

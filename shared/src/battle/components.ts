@@ -4,6 +4,7 @@ import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
+import type { Hand } from "../items/gear.js";
 import type { Reaction, Status } from "../spells/effects.js";
 import type { Spell, Spellbook } from "../spells/spell.js";
 import type { PageWrite } from "./input.js";
@@ -51,7 +52,7 @@ export interface PlayerData {
   momentum: number;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
-  wields: { sword: boolean; spellbook: boolean };
+  wields: { sword: Hand | null; spellbook: Hand | null };
 }
 export const Player = defineComponent<PlayerData>("Player");
 
