@@ -52,6 +52,26 @@ describe("keeping away", () => {
     assert.ok(Math.cos(fight.world.require(them(fight), Enemy).yaw - Math.PI) > 0.9);
   });
 
+  test("rushed while it chants, it backs away facing you, still chanting", () => {
+    const fight = fightWith({ ...CASTER, attacks: { skill: casts({ quickCastM: 0, wordTime: 1 }) } }, 2);
+    while (!skilledOf(fight).chanting) fight.step([IDLE]);
+    const from = gap(fight);
+    run(fight, 1.5);
+    assert.equal(stateOf(fight), "skillChant");
+    assert.ok(skilledOf(fight).words.length > 0);
+    assert.ok(gap(fight) > from + 1, `gap ${from} -> ${gap(fight)}`);
+    assert.ok(Math.cos(fight.world.require(them(fight), Enemy).yaw - Math.PI) > 0.9);
+  });
+
+  test("without keeping away, it stands while it chants", () => {
+    const fight = fightWith({ ...CASTER, keepAway: undefined, attacks: { skill: casts({ quickCastM: 0 }) } }, 2);
+    while (!skilledOf(fight).chanting) fight.step([IDLE]);
+    const from = gap(fight);
+    run(fight, SKILL.wordTime);
+    assert.equal(stateOf(fight), "skillChant");
+    assert.ok(Math.abs(gap(fight) - from) < 0.05, `gap ${from} -> ${gap(fight)}`);
+  });
+
   test("between its edges, it stands", () => {
     const fight = fightWith(NEVER_CASTS, 5.5);
     run(fight, 2);

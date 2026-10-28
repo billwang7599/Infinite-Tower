@@ -205,6 +205,8 @@ Decided by the user:
   stun, a parry or a stagger breaks the chant off), one cast at a time until it resolves. Its skillpower is 10 like
   yours, and it pays the same stamina from the same size of bar, refilled the same way. The other numbers (the chant's
   pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/enemies/goblin-warlock.ts`.
+- The Goblin Warlock walks backwards while it chants, facing you, if you're inside its keep-away distance; the chant
+  goes on. How fast is the agent's pick: its walking speed, as when it backs away otherwise.
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
