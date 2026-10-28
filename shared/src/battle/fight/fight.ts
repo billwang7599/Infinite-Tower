@@ -1,7 +1,8 @@
 /**
  * One arena fight, whole: its own ECS world and physics world, stepped at a fixed rate by the players' inputs.
  * Nothing lives outside it and nothing in it is random but its own seeds, so the same setup and inputs give the
- * same fight on any machine. The server runs it and decides it; each client runs its own copy (client/src/battle/).
+ * same fight on any machine. The server runs it and decides it; each client runs its own copy
+ * (client/src/modes/battle/).
  */
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";

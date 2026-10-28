@@ -1,13 +1,13 @@
 /**
- * Sessions and switching between the two modes (overworld/, battle/). A session (join -> leave) is one connection;
- * this routes its messages, keeps the settings in sync, and runs the transitions: an encounter flashes into battle,
- * leaving a decided fight fades back to the overworld, where the server's result is applied and told.
+ * Sessions and switching between the two modes (modes/overworld/, modes/battle/). A session (join -> leave) is one
+ * connection; this routes its messages, keeps the settings in sync, and runs the transitions: an encounter flashes
+ * into battle, leaving a decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
   moveItem as moveInBag, type Cell, type Character, type Look, type ServerMsgOf,
 } from "@infinite-tower/shared";
-import type { Battle } from "../battle/battle.js";
+import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
 import type { Mouse } from "../core/mouse.js";
 import { frameSeconds } from "../core/time.js";
@@ -15,7 +15,7 @@ import { BATTLE_FRAMES, playerFrames } from "../gfx/characters.js";
 import type { Pose, SwordPose } from "../gfx/look/battle.js";
 import { CHIBI_FACINGS } from "../gfx/look/look.js";
 import { redrawSprite } from "../gfx/sprites.js";
-import type { Overworld } from "../overworld/overworld.js";
+import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
 import { startPinging, type Pinging } from "../net/ping.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
