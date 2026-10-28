@@ -12,7 +12,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
-  cast: null, chant: false, write: null, locked: null, bag: false, gear: null,
+  cast: null, castHeld: false, chant: false, write: null, locked: null, bag: false, gear: null,
 };
 const segment = (form: string, elements: string[] = [], augments: string[] = []) => ({ form, elements, augments });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -88,7 +88,8 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput(casting(segment("summon", ["earth"]))), null, "not a Form");
     assert.equal(battleInput(casting(segment("bolt", ["plasma"]))), null, "not an element");
     assert.equal(battleInput(casting(segment("bolt", [], ["fire"]))), null, "an element in the augments");
-    assert.equal(battleInput(casting(...Array.from({ length: 100 }, () => segment("bolt")))), null, "far too long");
+    assert.ok(battleInput(casting(...Array.from({ length: 100 }, () => segment("bolt")))), "no cap on segments");
+    assert.ok(battleInput(casting(segment("bolt", [], Array.from({ length: 100 }, () => "split")))), "nor augments");
   });
 
   test("battleInput: every field is there, with the right type", () => {

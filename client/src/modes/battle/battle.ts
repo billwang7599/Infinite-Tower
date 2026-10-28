@@ -5,7 +5,7 @@
 import { TransformNode, type AbstractEngine } from "@babylonjs/core";
 import {
   Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, Player, sameSpell, type ArenaDef, type ClientMsg,
-  type Entity, type Hand, type ServerMsgOf, type System, type Vec3, type World,
+  type Entity, type Hand, type ServerMsgOf, type Spell, type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
@@ -98,6 +98,7 @@ export function createBattle(opts: BattleOptions): Battle {
   };
 
   const input = copyInput(IDLE_INPUT);
+  let casting: Spell | null = null;
   let swordHand: Hand | null = null;
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
@@ -115,12 +116,13 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.camera.position, yaw: ctx.view.yaw }, me);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, input);
-    const casting = input.cast;
-    const holding = casting !== null && HOTBAR.some((key, i) => {
+    const last = casting;
+    input.castHeld = last !== null && HOTBAR.some((key, i) => {
       const page = book[i];
-      return ctx.polled.held.has(key) && page && sameSpell(page, casting);
+      return ctx.polled.held.has(key) && page && sameSpell(page, last);
     });
-    input.cast = holding ? casting : casting ? null : ctx.casts.shift() ?? null;
+    input.cast = last ? null : ctx.casts.shift() ?? null;
+    casting = input.castHeld ? last : input.cast;
     input.locked = ctx.lock === null ? null : fight.enemies.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     input.chant = opts.chant.get().open;

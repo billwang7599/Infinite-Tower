@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   castTime, dodgeCost, FIXED_DT, Health, MAGIC, Player, SpellObject, Stamina, spellCost, Statuses, type EnemyDef,
-  type Spell, type Vec3,
+  type Segment, type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -67,6 +67,17 @@ describe("casting", () => {
     fight.world.require(me(fight), Stamina).value = spellCost(BOLT_FIRE) - 1;
     fight.step([input({ cast: BOLT_FIRE })]);
     assert.equal(fight.world.require(me(fight), Player).action, "none");
+  });
+
+  test("a chain too long to pay for doesn't start, and costs nothing", () => {
+    const fight = fightWith([at(0, 4)]);
+    const long = spell(...(Array.from({ length: 2000 }, () => segment("nova")) as [Segment, ...Segment[]]));
+    const stamina = fight.world.require(me(fight), Stamina), before = stamina.value;
+    fight.step([input({ chant: true })]);
+    fight.step([input({ cast: long, chant: true })]);
+    run(fight, 0.5);
+    assert.notEqual(fight.world.require(me(fight), Player).action, "cast");
+    assert.equal(stamina.value, before);
   });
 
   test("a dodge during the wind-up cancels it at no cost", () => {

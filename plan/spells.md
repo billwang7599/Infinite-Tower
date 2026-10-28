@@ -17,9 +17,16 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
 - **Elements** are a set (order doesn't matter): Fire, Water, Earth, Air, Lightning, Light, Darkness. Opposites
   (Fire / Water, Earth / Air, Light / Darkness) can't share a stage, but may be in different segments.
 - **Augments** change their whole stage: Amplify, Widen, Pierce, Split, Extend, Swift, Delay (holds back the hand-off
-  after the segment completes), Follow (homing; spells may home, unlike weapons). Repeating one gives diminishing
-  returns: 100%, then 50%, then 25%. Extend only ever means "lasts longer"; Extend on Nova is a lingering cloud
-  (like Minecraft's lingering potion).
+  after the segment completes), Follow (homing; spells may home, unlike weapons). Extend only ever means "lasts
+  longer"; Extend on Nova is a lingering cloud (like Minecraft's lingering potion).
+- **Augments go in order:** each changes the shot built from the Form, the elements and the augments before it.
+  Amplify then Split gives two Bolts, both amplified; Follow then Split, split Bolts that all home; Split then Split
+  splits each Bolt again. A repeat is a full step, applied again (no diminishing returns); repeats will cost more
+  stamina later instead.
+- **No caps** on augments or segments: a segment takes any number of augments (Splits too), and a chain any number
+  of segments; stamina is the only limit.
+- **Split** splits the Bolt, and each further Split splits the split ones: n Splits make 2^n Bolts, each smaller and
+  dealing 10% less per Split (×0.9^n).
 - **Which augments fit which Form** (the builder rejects the rest): Amplify any; Widen Beam, Nova; Pierce Bolt,
   Beam; Split Bolt; Extend Beam, Nova, Imbue, Self; Swift Bolt, Beam, Imbue.
 - **Cost:** stamina from the same bar as dodging and blocking, not mana (the mana stat is gone). Form 3, element 2,
@@ -31,8 +38,8 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
   go, like a dodge. Your own spells never hurt you. A Beam is held and paid per second.
 - **Aim:** Bolt and Beam aim at the locked enemy, or where the camera faces when unlocked; Follow homes onto the
   locked enemy, or the nearest when unlocked.
-- **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; Split x3
-  gives three next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
+- **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
+  Splits give four next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
   segment's travel direction; after a directionless one (Nova, Self, Imbue) it takes the caster's facing when it
   fires.
 - **Objects** (clouds) last until the fight ends; allies may use each other's. Hidden caps guard the server, like
@@ -114,16 +121,20 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
   off from the enemy the last hit landed on (onward from you through it, skipping it), or from you when it runs out.
 - A share of a hit (a Beam's tick, an Imbue, a cloud, a split Bolt, Amplify) scales its damage, poise damage and
   knockback; statuses go on in full, so a Lightning Beam stacks Shocked every tick.
-- **Augments,** each per its strength (1, 1.5, 1.75 for one, two, three of it): Amplify +50% damage (Self: its heal
-  and shield). Widen +50% radius (a Nova's, a Beam's width). Pierce: a Bolt goes through 2 more enemies before it
-  stops (it still hands off once, at its end); a Beam strikes up to 3 on its line. Split: +2 Bolts (3, 4, 5), 0.25
-  rad apart, each at 50% damage and each handing off. Extend +100% time (a Beam's, an Imbue's hits and time, Self's
-  statuses); on a Nova, a cloud as wide as the Nova for 8 s per strength, pulsing it every second at 40%, its
-  hand-off still at the burst. Swift +50% speed (a Bolt's flight, a Beam's ticks; an Imbue's swings start quicker).
-  Delay holds the hand-off back 1 s per strength (on a spell's last segment it does nothing). Follow turns a Bolt up
-  to 8 rad/s toward its target, picked as it fires (the locked enemy, else the nearest; if it dies, the nearest).
-- **Caps:** clouds only (Bolts, Beams and waits end on their own): a player's 13th ends their oldest, and so does the
-  fight's 61st.
+- **Augments,** in one ordered pass (`shotOf` in `effects.ts`). A "+%" one multiplies the shot so far, so repeats
+  compound (Amplify twice ×2.25); a "+units" one adds. Amplify ×1.5 damage (Self: its heal and shield). Widen ×1.5
+  radius (a Nova's, a Beam's width). Pierce: a Bolt goes through 2 more enemies before it stops (it still hands off
+  once, at its end); a Beam strikes up to 3 on its line. Split: twice the Bolts, each ×0.8 radius and ×0.9 damage,
+  fanned 0.35 rad apart but within 2.4 rad in all and starting side by side, 2 radii apart but within a 6 m row (past
+  either, they share it evenly), so each is seen on its own; each hands off. Extend ×2 time (a Beam's, an Imbue's hits
+  and time, Self's statuses); on a Nova, the first leaves a cloud as wide as the Nova for 8 s, pulsing it every second
+  at 40%, its hand-off still at the burst, and each after it doubles the cloud's time. Swift ×1.5 speed (a Bolt's
+  flight, a Beam's ticks; an Imbue's swings start quicker). Delay holds the hand-off back 1 s each (on a spell's last
+  segment it does nothing). Follow turns a Bolt up to 8 rad/s each toward its target, picked as it fires (the
+  locked enemy, else the nearest; if it dies, the nearest).
+- **Caps:** a player's 13th cloud ends their oldest, and so does the fight's 61st. A guard on the server's work, not
+  a game rule: a fight holds at most 256 spell objects (`MAX_LIVE_SHOTS`); past it, new ones (Bolts from a Split,
+  hand-offs) don't spawn. A chain too long to count costs Infinity, so it's never cast.
 - A cast waits behind a buffered dodge, and goes before a buffered swing. Casting works in the air.
 - Only a hit that stuns or staggers you (a boar's bite or charge, a broken guard) interrupts the wind-up; the
   Kobold's sword only hurts, so the cast goes off, as with the chant.
@@ -131,7 +142,8 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
 - Conduct's two arcs replace Lightning's plain one; arcs and the Eclipse burst do damage only (no statuses). Fanned
   spreads the doubled Burning, with the time it has left, to the nearest enemy within 4 m. A new Fire hit resets a
   Fanned burn to the normal rate.
-- The wire refuses a spell of more than 16 segments or 16 augments in a box: far past what any stamina bar pays for.
+- The wire has no spell caps, only the socket's 16 KB a message (over it, the socket closes): about 1,600 augments
+  or 300 segments in one input, 76 augments when a frame's 16 inputs all carry a held cast.
 - The chant and writing a page run in the shared fight, so the server decides them: the fight holds a chanter still,
   casts a spell that's on none of the pages only from an open chant (pages matched by their words), writes a page
   after `SAVE_IN_FIGHT_TIME` (2 s), and the server saves the fight's pages with its result. Stamina still recovers
@@ -153,8 +165,11 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
 - The agent's placeholders for fits nobody decided: Delay fits every Form, Follow only Bolt.
 - The chain's growth: each extra segment doubles the whole spell's cost (`SPELL.chainGrowth`, placeholder).
 - The agent's reading of the grammar: a repeated element is refused (elements are a set); Lightning has no opposite.
-- The agent's clouds last 8 s per Extend, against "Objects (clouds) last until the fight ends" above: a cloud that
-  pulses for the whole fight seemed too strong; the user to decide.
+- The agent's clouds last 8 s, doubled by each further Extend, against "Objects (clouds) last until the fight ends"
+  above: a cloud that pulses for the whole fight seemed too strong; the user to decide.
 - The dev cost scale.
+- Repeated augments will cost more stamina (the user's plan; how much is open). For now every augment costs 1.
+- With many Bolts every one hands off, so Splits then another Bolt with Splits multiply; `MAX_LIVE_SHOTS` (256) is
+  the agent's pick, for the user to change.
 - How words are learned.
 - Statuses on players (from enemies' authored attacks), and their HUD.

@@ -62,6 +62,15 @@ Decided by the user:
   Pushed, Shocked, Marked, Cursed), and four reactions on enemies (Conduct, Doused, Fanned, Eclipse), each with a
   cooldown per target. Spell damage scales with Intellect (was spellpower); Summon is out for now. The tables and
   what's still to build: [plan/spells.md](plan/spells.md).
+- Augments go in order: each changes the shot built from the Form, the elements and the augments before it (Amplify
+  then Split: both Bolts amplified; Follow then Split: every Bolt homes; Split then Split splits each Bolt again). A
+  repeat is a full step, with no diminishing returns ("we will penalize in the future by higher stamina costs"; for
+  now every augment costs 1).
+- No caps on augments or segments ("no caps to augments", then none on chaining either): not in the rules, the
+  builder or the wire. The only limits are stamina, the socket's message size and a server guard, the most spell
+  objects one fight holds (`MAX_LIVE_SHOTS`, 256, the agent's pick; past it new ones don't spawn).
+- Split splits a Bolt, and each further Split splits the split ones again: n Splits make 2^n Bolts, each smaller and
+  dealing 10% less per Split (×0.9^n). The size and fan are the agent's picks.
 - Spells are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
   time (a Form, then an element, then elements, augments or a Form; after an augment only augments or a Form; a
   Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are

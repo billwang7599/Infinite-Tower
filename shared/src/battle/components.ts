@@ -89,7 +89,7 @@ export interface SpellObjectData {
   pos: Vec3;
   dir: Vec2;
   flownM: number;
-  /** A Beam's length (to what it stops in), a cloud's radius. */
+  /** A Bolt's radius, a Beam's length (to what it stops in), a cloud's radius. */
   reachM: number;
   left: number;
   tickLeft: number;

@@ -183,10 +183,11 @@ main.ts
   come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
   to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
   `MOMENTUM`).
-- **Spells are inputs too.** A player's input may carry a whole spell (`cast`, pressed on the first step it's
-  there); the controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
+- **Spells are inputs too.** A player's input carries a whole spell (`cast`) only on the step its key goes down,
+  then just `castHeld` while the key stays down: the fight keeps the spell, so a long one isn't resent in every
+  input. The controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
   stamina and fires it once the wind-up is over. Whatever lasts is a `SpellObject` entity (its `kind`: a Bolt flying
-  by plain-math sweeps, not a physics body; a Beam ticking along its line, held while the cast input is; a lingering
+  by plain-math sweeps, not a physics body; a Beam ticking along its line, held while `castHeld` is; a lingering
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
   Follow Bolt homes onto the input's `locked` enemy (an index into the fight's enemies) or the nearest. A hit runs
@@ -275,7 +276,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost |
 | `saveSpell {page, spell}` | write a spell on a page of the spellbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell on its first step only, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -506,7 +507,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
                    and the server's check; spellCost, castTime; SPELL: their numbers; SPELLBOOK_PAGES, Spellbook,
                    blankSpellbook, SAVE_IN_FIGHT_TIME, sameSpell), effects.ts (MAGIC: what spells
-                   do in a fight, every number; STATUSES, REACTIONS; augmentStrength: repeats at 100 / 50 / 25%)
+                   do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's augments
+                   applied in order)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SpellSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
