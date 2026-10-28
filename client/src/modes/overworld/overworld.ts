@@ -1,31 +1,17 @@
-/**
- * The overworld mode: the server decides everything; this predicts your own walking, mirrors the actors, draws, and
- * keeps the overworld HUD up to date. Built once; each session joins it and leaves it empty again.
- */
-import type { AbstractEngine } from "@babylonjs/core";
 import {
-  dampFactor, FIXED_DT, gearBurden, nearCampfire, PLAYER, VIEW, viewCenter, viewHalfWidth, walkPace,
-  type Entity, type Gear, type ServerMsgOf, type Stats, type System, type Vec2, type Vitals, type WalkInput,
-  type World,
+  gearBurden, FIXED_DT, LocalPlayer, nearCampfire, PLAYER, walkPace, type Gear, type ServerMsgOf, type Stats,
+  type Vitals, type WalkInput, type World,
 } from "@infinite-tower/shared";
 import type { Actions, Polled } from "../../core/actions.js";
-import { frameSeconds } from "../../core/time.js";
 import type { Connection, Joined } from "../../net/connection.js";
 import type { OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { OverworldPos, registerOverworldDisposers } from "./components.js";
-import { spawnOverworldPlayer } from "./entities.js";
-import { loadLevel, unloadLevel } from "./levels/index.js";
+import { OverworldActor, OverworldPos, type OverworldState } from "./components.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
-import { CAMERA_HEIGHT, type OverworldView } from "./scene.js";
-import { overworldSpriteSystem } from "./systems/sprites.js";
-
-/** How fast the camera follows the player (1/s, for dampFactor). */
-const CAMERA_FOLLOW_RATE = 10;
 
 export interface Overworld {
-  view: OverworldView;
+  state: OverworldState;
   /** A session starts: your walking goes to this connection, which sends the level next. */
   join(joined: Joined): void;
   /** The session ended: forget the level and its actors. */
@@ -41,21 +27,21 @@ export interface Overworld {
   setGear(gear: Gear): void;
   /** The Rest key, or the HUD's button. */
   rest(): void;
-  render(): void;
 }
 
 interface OverworldOptions {
-  engine: AbstractEngine;
   world: World;
-  view: OverworldView;
   actions: Actions;
   hud: Store<OverworldHudState>;
 }
 
-export function createOverworld({ engine, world, view, actions, hud }: OverworldOptions): Overworld {
-  registerOverworldDisposers(world);
-  const player = spawnOverworldPlayer(world, view, { x: 0, z: 0 });
-  const actors = new ActorMirror(world, view);
+export function createOverworld({ world, actions, hud }: OverworldOptions): Overworld {
+  const player = world.spawn();
+  world.add(player, OverworldPos, { x: 0, z: 0 });
+  world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, facing: "down", alert: false });
+  world.add(player, LocalPlayer, true);
+  const state: OverworldState = { world, player, level: null };
+  const actors = new ActorMirror(world);
 
   /** One per session (its input numbering starts over with the server's). */
   let prediction: Prediction | null = null;
@@ -65,15 +51,9 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
   /** From `welcome`: stats don't change during a session. */
   let stats: Stats | null = null;
 
-  const render: System[] = [overworldSpriteSystem(view), overworldCameraSystem(view, player)];
-  view.scene.onBeforeRenderObservable.add(() => {
-    const dt = frameSeconds(engine);
-    for (const s of render) s(world, dt);
-  });
-
   const playerPos = () => world.require(player, OverworldPos);
   /** Walking a level (not in or leaving a battle), next to a campfire. */
-  const byCampfire = () => !!prediction && !inBattle && !!view.level && nearCampfire(view.level, playerPos());
+  const byCampfire = () => !!prediction && !inBattle && !!state.level && nearCampfire(state.level, playerPos());
   const rest = () => {
     if (byCampfire()) net?.send({ t: "rest" });
   };
@@ -86,10 +66,10 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
 
   let accumulator = 0;
   return {
-    view,
+    state,
     join({ net: joinedNet, welcome }) {
       net = joinedNet;
-      prediction = new Prediction(world, view, player, joinedNet);
+      prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
       stats = welcome.stats;
       hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats });
@@ -101,21 +81,21 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
       net = null;
       inBattle = false;
       actors.clear();
-      unloadLevel(view);
+      state.level = null;
     },
     update(dt, frozen) {
-      if (frozen || inBattle || !view.level || !prediction) { accumulator = 0; return; }
-      accumulator += dt;
-      while (accumulator >= FIXED_DT) {
+      if (frozen || inBattle || !state.level || !prediction) accumulator = 0;
+      else accumulator += dt;
+      while (prediction && accumulator >= FIXED_DT) {
         prediction.step(readWalkInput(actions.poll()));
         accumulator -= FIXED_DT;
       }
+      hud.set({ nearCampfire: byCampfire() });
     },
     onLevel(msg) {
       actors.clear();
-      loadLevel(view, msg.level);
+      state.level = msg.level;
       prediction?.reset(msg.me);
-      snapOverworldCamera(view, playerPos());
       hud.set({ levelName: msg.level.name });
     },
     onState(msg) {
@@ -130,7 +110,6 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
     onBattleResult(msg) {
       inBattle = false;
       prediction?.reset(msg.me);
-      snapOverworldCamera(view, playerPos());
       hud.set({ wins: msg.wins });
       setGear(msg.gear);
       setVitals(msg.vitals);
@@ -138,34 +117,10 @@ export function createOverworld({ engine, world, view, actions, hud }: Overworld
     setVitals,
     setGear,
     rest,
-    render() {
-      hud.set({ nearCampfire: byCampfire() });
-      view.scene.render();
-    },
   };
 }
 
 /** Screen-aligned: forward is up the map, +z. */
 function readWalkInput(polled: Polled): WalkInput {
   return { moveX: polled.move.x, moveZ: polled.move.z };
-}
-
-/** Smoothly follow the local player, without showing past the edge of the level. */
-function overworldCameraSystem(view: OverworldView, player: Entity): System {
-  return (world, dt) => {
-    const level = view.level;
-    if (!level) return;
-    const h = VIEW.halfHeight, w = viewHalfWidth(view.scene.getEngine().getAspectRatio(view.camera));
-    const cam = view.camera;
-    cam.orthoTop = h; cam.orthoBottom = -h; cam.orthoLeft = -w; cam.orthoRight = w;
-    const to = viewCenter(level, world.require(player, OverworldPos), w);
-    const k = dampFactor(CAMERA_FOLLOW_RATE, dt);
-    cam.position.x += (to.x - cam.position.x) * k;
-    cam.position.z += (to.z - cam.position.z) * k;
-  };
-}
-
-/** After the server moved the player. */
-function snapOverworldCamera(view: OverworldView, at: Vec2): void {
-  view.camera.position.set(at.x, CAMERA_HEIGHT, at.z);
 }

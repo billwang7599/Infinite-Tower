@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, type Vec3 } from "@infinite-tower/shared";
 import type { Polled } from "../../../src/core/actions.js";
 import { closestFoe, lockYaw, retarget, steerLock, type Foe } from "../../../src/modes/battle/lock.js";
-import { readPlayerInput } from "../../../src/modes/battle/player/input.js";
+import { readPlayerInput } from "../../../src/modes/battle/input.js";
 
 const at = (x: number, z: number, y = 0.5): Vec3 => ({ x, y, z });
 const player = at(0, -4);

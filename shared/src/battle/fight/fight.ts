@@ -62,7 +62,6 @@ function enemyMotorSystem(): System {
 export class Fight {
   static readonly STEP_SECONDS = FIXED_DT;
 
-  /** The fighters' components. Whoever draws the fight may add their own to the same entities. */
   readonly world = new World();
   readonly physics: ArenaPhysics;
   readonly arena: ArenaDef;

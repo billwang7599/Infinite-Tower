@@ -119,7 +119,7 @@ needed. Production never delays.
 ```
 shared/            code the server and the browser both run: ECS, math, the arena fight (Rapier), the Zod messages
 server/            the authoritative game server: core/ is the game, api/ ws/ db/ plug into it
-client/            the browser game: Babylon.js modes, React UI, character art in code (ART.md)
+client/            the browser game: its modes, their drawing (Babylon.js), React UI, character art in code (ART.md)
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas

@@ -36,7 +36,7 @@ are the user's; the open questions at the end need the user's say before they're
   instead of at `middle`.
 - **No hair hiding.** Every hair style draws in full (`hair/index.ts`), so a helmet would have to cover all of it.
 - **Only the starter clothes are worn.** `lookArts` defaults `wear` to `STARTER_CLOTHES` (`look.ts`), and
-  `playerFrames` (`gfx/characters.ts`) and `ui/components/LookPicture.tsx` never pass anything else. The jerkin
+  `playerFrames` (`visuals/characters.ts`) and `ui/components/LookPicture.tsx` never pass anything else. The jerkin
   shows only in the art lab (`dev/art-lab.ts`). There's no equip code anywhere.
 
 ## Decided
@@ -101,7 +101,7 @@ mask is one more reserved color, "no hair here", that draws nothing. An earlier 
 - Pinned pictures attach to a bone and are drawn at a few angles; the nearest one is used. Never rotated in code:
   rotating pixel art smears it. Wrap-around pictures are drawn per frame, on that frame's template.
 - When the look changes, every frame is redrawn (not rotated copies) into one sprite sheet. Today each frame is its
-  own material (`player` in `modes/battle/materials.ts`), all 34 repainted by `applyLook` (`game/game.ts`).
+  own material (`player` in `visuals/battle/materials.ts`), all 34 repainted by `PlayerLook` (`visuals/characters.ts`).
 - Not chosen now: limb textures rotated in Babylon (loses the crisp pixel look); rendering a 3D model as pixels,
   Dead Cells style (a separate pipeline; only if animation gets very ambitious).
 - Portraits are the easiest place to go fully hand-drawn: one view, no animation.
@@ -132,10 +132,10 @@ placeholder, and it's the template the artist draws over.
 Not decided, apart from the battle skeleton above. Today there's hardly any:
 
 - The overworld chibi has one picture per facing (the two sides share one, mirrored). Walking is a small hop: the
-  sprite moves, the picture stays the same (`modes/overworld/systems/sprites.ts`).
+  sprite moves, the picture stays the same (`visuals/overworld/overworld.ts`).
 - The battle sprite plays the sword fight's frames (a wind-up, strike and follow-through per swing; the stab, block
   and stagger) and stands or kneels in single stills. It bobs, squashes and stretches by moving and scaling the
-  sprite, and the swing's arc is a separate effect, the sword trail (`modes/battle/player/sprite.ts`).
+  sprite, and the swing's arc is a separate effect, the sword trail (`visuals/battle/player.ts`).
 
 Three ways to animate:
 

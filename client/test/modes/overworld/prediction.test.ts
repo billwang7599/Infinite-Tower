@@ -3,9 +3,8 @@ import { describe, test } from "node:test";
 import {
   BURDEN, FIXED_DT, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
 } from "@infinite-tower/shared";
-import { OverworldActor, OverworldPos } from "../../../src/modes/overworld/components.js";
+import { OverworldActor, OverworldPos, type OverworldState } from "../../../src/modes/overworld/components.js";
 import { Prediction } from "../../../src/modes/overworld/prediction.js";
-import type { OverworldView } from "../../../src/modes/overworld/scene.js";
 import { FakeNet } from "../../fixtures/fake-net.js";
 
 /** Walkable x ∈ [-9, 9], z ∈ [-4, 4]. */
@@ -23,8 +22,8 @@ function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) 
   const world = new World();
   const player = world.spawn();
   const pos = world.add(player, OverworldPos, { ...start });
-  const actor = world.add(player, OverworldActor, { vx: 0, vz: 0, facing: "down", alert: false, target: null });
-  const view = { level } as OverworldView;
+  const actor = world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, facing: "down", alert: false });
+  const view = { level } as OverworldState;
   const net = new FakeNet();
   const prediction = new Prediction(world, view, player, net.asConnection());
   return { prediction, pos, actor, view, net };

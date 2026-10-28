@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, SWING_DIRS, type AttackKind, type SwingDir } from "@infinite-tower/shared";
 import { Actions, SWIPE, type ActionName, type Layer } from "../../src/core/actions.js";
-import { readPlayerInput } from "../../src/modes/battle/player/input.js";
+import { readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";

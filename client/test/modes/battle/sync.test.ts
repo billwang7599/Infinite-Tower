@@ -206,6 +206,22 @@ describe("the client's own copy of the fight", () => {
     assert.equal(inputsSent(net.sent).at(-1)?.upTo, 41);
   });
 
+  test("reports every step's events with their step, and a replayed step's again", () => {
+    const { fight, net, sync, step, server } = setup();
+    const run = fight.step.bind(fight);
+    fight.step = (inputs) => {
+      run(inputs);
+      fight.events.push({ type: "slam", enemy: fight.steps });
+    };
+    for (let i = 1; i <= 20; i++) step(script(i));
+    server.receive(net);
+    server.run(10);
+    sync.onSync(server.sync());
+    const steps = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    assert.deepEqual(sync.events.map((e) => e.step), [...steps(1, 20), ...steps(11, 20)]);
+    assert.ok(sync.events.every(({ step, event }) => event.type === "slam" && event.enemy === step));
+  });
+
   test("a rollback neither replays a dodge twice nor drops it", () => {
     const DODGE_AT = 25;
     const dodgeScript = (i: number) => (i === DODGE_AT ? input({ moveX: 1, dodge: true }) : IDLE_INPUT);

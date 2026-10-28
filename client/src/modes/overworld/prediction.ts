@@ -6,9 +6,8 @@
  */
 import { FIXED_DT, stepWalker, type Entity, type Vec2, type WalkInput, type World } from "@infinite-tower/shared";
 import type { Connection } from "../../net/connection.js";
-import { OverworldActor, OverworldPos } from "./components.js";
+import { OverworldActor, OverworldPos, type OverworldState } from "./components.js";
 import { faceToward } from "./facing.js";
-import type { OverworldView } from "./scene.js";
 
 export class Prediction {
   private seq = 0;
@@ -18,14 +17,14 @@ export class Prediction {
 
   constructor(
     private readonly world: World,
-    private readonly view: OverworldView,
+    private readonly state: OverworldState,
     private readonly player: Entity,
     private readonly net: Connection,
   ) {}
 
   step(input: WalkInput): void {
     // Until the server's `level` arrives there's nothing to walk on here, so nothing is predicted or sent.
-    if (!this.view.level) return;
+    if (!this.state.level) return;
     // Standing still isn't sent: it doesn't move the player, and the server already stops a player
     // whose input queue is empty, so the replay comes out the same without it.
     if (input.moveX === 0 && input.moveZ === 0) { this.move(input); return; }
@@ -57,7 +56,7 @@ export class Prediction {
   }
 
   private move(input: WalkInput): void {
-    const level = this.view.level;
+    const level = this.state.level;
     if (!level) return;
     const pos = this.world.require(this.player, OverworldPos);
     const actor = this.world.require(this.player, OverworldActor);

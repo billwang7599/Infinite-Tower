@@ -101,7 +101,7 @@ export interface EnemyAttacks {
 export interface EnemyDef {
   id: string;
   name: string;
-  /** Which 3D model the client builds (client/src/modes/battle/enemies/models). */
+  /** Which 3D model the client builds. */
   model: "boar" | "kobold";
   maxHp: number;
   stats: Stats;
