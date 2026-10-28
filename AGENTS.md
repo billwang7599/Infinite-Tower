@@ -197,6 +197,8 @@ Decided by the user:
   drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.
+  Its attacks are read from its blade alone, with no marker over its head (the user: "remove the attack indicator
+  now. it should be purely visual based").
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
   too"; not hand-played yet): a Longsword and a Greatsword, which the dev seed puts in test1-3's bags. The Kobold

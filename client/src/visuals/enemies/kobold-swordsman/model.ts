@@ -1,7 +1,6 @@
 /**
  * The Kobold Swordsman's 3D model, from primitives like the boar's: a small dog-headed fighter with a sword in its
- * right hand, and the wind-up's tell, an arrow in front of it pointing the way the coming swing will cross the
- * player's screen (a ring for a stab). Faces +z locally.
+ * right hand. Faces +z locally.
  */
 import {
   Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial,
@@ -21,10 +20,6 @@ export interface KoboldModel {
   /** Hip pivots: left, right. */
   legs: [TransformNode, TransformNode];
   stars: TransformNode;
-  /** The wind-up's tells: an arrow for a swing (pointing along its +y), a ring for a stab. */
-  arrow: TransformNode;
-  ring: Mesh;
-  tell: StandardMaterial;
   materials: StandardMaterial[];
   /** Each material's own emissive color (same order), to return to after the hit flash. */
   baseEmissive: Color3[];
@@ -141,35 +136,9 @@ export function buildKobold(
   }
   stars.setEnabled(false);
 
-  // The tells: over its head, facing whoever it faces, drawn over everything (the player's sprite is in front).
-  const tell = mat("kobold-tell", "#ff6a2a");
-  tell.emissiveColor = new Color3(1.6, 0.5, 0.15);
-  tell.disableLighting = true;
-  tell.backFaceCulling = false;
-  const arrow = node("k-arrow", root, 0, 2.35, 0.2);
-  const shaft = MeshBuilder.CreateBox("k-arrow-shaft", { width: 0.1, height: 0.9, depth: 0.01 }, scene);
-  shaft.parent = arrow;
-  shaft.position.y = -0.12;
-  const arrowHead = MeshBuilder.CreateDisc("k-arrow-head",
-    { radius: 0.28, tessellation: 3, sideOrientation: Mesh.DOUBLESIDE }, scene);
-  arrowHead.parent = arrow;
-  arrowHead.position.y = 0.4;
-  arrowHead.rotation.z = Math.PI / 2; // a point up
-  const ring = MeshBuilder.CreateTorus("k-ring", { diameter: 0.55, thickness: 0.08, tessellation: 24 }, scene);
-  ring.parent = root;
-  ring.position.set(0, 2.35, 0.2);
-  ring.rotation.x = Math.PI / 2;
-  for (const m of [shaft, arrowHead, ring]) {
-    m.material = tell;
-    m.isPickable = false;
-    m.renderingGroupId = 1;
-  }
-  arrow.setEnabled(false);
-  ring.setEnabled(false);
-
   for (const p of parts) sunShadows.addShadowCaster(p);
 
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
-  return { root, model, hand, legs, stars, arrow, ring, tell, materials, baseEmissive, gait: 0, visualYaw: yaw };
+  return { root, model, hand, legs, stars, materials, baseEmissive, gait: 0, visualYaw: yaw };
 }

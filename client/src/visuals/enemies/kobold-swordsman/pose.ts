@@ -17,10 +17,6 @@ export interface KoboldPose {
   rollRate: number;
   yOff: number;
   stars: boolean;
-  /** The wind-up's tell, 0 (none) to 1. */
-  tell: number;
-  /** The tell's arrow, turned this way in the kobold's frame (rad); null shows the stab's ring instead. */
-  arrowRad: number | null;
 }
 
 /** `k`: the share of the state's duration gone; `stroke`: its swing's, while it has one (strokeOf). */
@@ -30,8 +26,7 @@ export function koboldPose(
 ): KoboldPose {
   const p: KoboldPose = {
     ...motion.guard, bladeExact: false, lean: 0, roll: 0,
-    rollRate: state === "dead" ? 6 : 12, yOff: 0, stars: state === "parried" || state === "stunned", tell: 0,
-    arrowRad: null,
+    rollRate: state === "dead" ? 6 : 12, yOff: 0, stars: state === "parried" || state === "stunned",
   };
   const swinging = stroke !== null && (state === "weaponWindup" || state === "weapon" || state === "weaponRecover");
   if (swinging) {
@@ -42,8 +37,6 @@ export function koboldPose(
   switch (state) {
     case "weaponWindup":
       p.lean = -0.12 * k;
-      p.tell = 0.25 + 0.75 * k;
-      p.arrowRad = motion.tellArrowRad(attack);
       break;
     case "weapon":
       p.lean = 0.15;

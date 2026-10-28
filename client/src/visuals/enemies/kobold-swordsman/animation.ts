@@ -43,11 +43,6 @@ export const koboldVisual = fighter<KoboldModel & { blade: Quaternion; motion: W
 
     nodes.stars.setEnabled(pose.stars);
     if (pose.stars) nodes.stars.rotation.y += dt * 5;
-    nodes.arrow.setEnabled(pose.arrowRad !== null);
-    nodes.ring.setEnabled(pose.tell > 0 && pose.arrowRad === null);
-    if (pose.arrowRad !== null) nodes.arrow.rotation.z = pose.arrowRad;
-    for (const m of nodes.arrow.getChildMeshes()) m.visibility = pose.tell;
-    nodes.ring.visibility = pose.tell;
 
     for (let i = 0; i < nodes.materials.length; i++) {
       nodes.materials[i]!.emissiveColor.copyFrom(health.flash > 0 ? HIT_FLASH_COLOR : nodes.baseEmissive[i]!);
