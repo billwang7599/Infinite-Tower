@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   blankSpellbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, lettingGoAt, liveStep, Player,
-  PLAYER, reverseOf, starterEquipment, SwordAttack, type PlayerInputData,
+  PLAYER, reverseOf, starterEquipment, SwordAttack, type EnemyDef, type PlayerInputData, type Spell,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -14,11 +14,11 @@ before(() => initPhysics());
 const KOBOLD = ENEMIES["kobold-swordsman"];
 const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 
-const newFight = (seed: number) => new Fight({
+const newFight = (seed: number, def: EnemyDef = KOBOLD) => new Fight({
   arena: { radius: 16 },
   players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook() }],
-  enemies: [{ def: KOBOLD, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
+  enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
 });
 
 /**
@@ -71,4 +71,23 @@ describe("the Kobold Swordsman", () => {
     }
     assert.ok(parried > 0);
   });
+});
+
+describe("stepping aside from a Bolt", () => {
+  const BOLT: Spell = { segments: [{ form: "bolt", elements: [], augments: [] }] };
+  const stepsAside = (def: EnemyDef, seed: number) => {
+    const fight = newFight(seed, def);
+    const aimed = { ...IDLE_INPUT, aimX: 0, aimZ: 1 };
+    fight.step([{ ...aimed, chant: true }]);
+    fight.step([{ ...aimed, cast: BOLT }]);
+    for (let i = 0; i < 1 / FIXED_DT; i++) {
+      fight.step([aimed]);
+      if (fight.world.require(fight.enemies[0]!, Enemy).state === "sidestep") return true;
+    }
+    return false;
+  };
+  const seeds = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  test("the Kobold sometimes does", () => assert.ok(seeds.some((seed) => stepsAside(KOBOLD, seed))));
+  test("the boar never does", () => assert.ok(!seeds.some((seed) => stepsAside(ENEMIES["wild-boar"], seed))));
 });

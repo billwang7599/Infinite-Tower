@@ -39,7 +39,7 @@ the agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects
 - **Aim:** Bolt and Beam aim at the locked enemy, or where the camera faces when unlocked; Follow homes onto the locked
   enemy, or the nearest when unlocked. Lock-on is close to auto-aim, so the defender's side is the skill: a Bolt aims at
   where the target is, never leads, so a step aside makes it miss; Follow turns slowly, so a late dodge shakes it; the
-  boar and the Kobold sometimes step aside from a Bolt winding up at them (`sidestep` in
+  Kobold (not the boar) sometimes steps aside from a Bolt winding up at it (`sidestep` in
   `server/src/core/content/enemies.ts`: a chance per cast, a reaction time, stepping `leadTime` before it leaves).
 - **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
   Splits give four next segments; Pierce or a multi-hit Nova never multiply it). A later Bolt or Beam keeps the previous
