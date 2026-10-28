@@ -92,7 +92,7 @@ function windupBlade(attack: AttackKind, k: number): BladePose {
   };
 }
 
-/** `turn`: the share of the half-turn from the swing's start to its far side (strokeOf); past 1 it runs on. */
+/** `turn` as in strokeOf; past 1 it runs on. */
 function strokeBlade(attack: AttackKind, turn: number): BladePose {
   if (!isSwing(attack)) {
     const a = Math.PI * Math.min(1, turn);

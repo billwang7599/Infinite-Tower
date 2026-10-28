@@ -30,7 +30,6 @@ export function koboldPose(
   };
   const swinging = stroke !== null && (state === "weaponWindup" || state === "weapon" || state === "weaponRecover");
   if (swinging) {
-    // Set eases toward the swing's start; from the drive on, the blade is drawn exactly where the fight has it.
     Object.assign(p, stroke.set < 1 ? motion.windup(attack, stroke.set) : motion.stroke(attack, stroke.turn));
     p.bladeExact = stroke.set >= 1;
   }

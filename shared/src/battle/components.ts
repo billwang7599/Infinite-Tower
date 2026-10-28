@@ -71,10 +71,6 @@ export interface SwingData {
   attack: AttackKind;
   dir: Vec2;
   step: number;
-  /**
-   * Driven from `driveAt`, its blade is live from `liveAt` until `liveUntil`; from `letGoAt` another action may start;
-   * over at `endAt`, its follow-through done.
-   */
   driveAt: number;
   liveAt: number;
   liveUntil: number;
