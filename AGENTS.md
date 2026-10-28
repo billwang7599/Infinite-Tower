@@ -101,11 +101,11 @@ Decided by the user:
   `client/src/modes/battle/camera.ts`) are the agent's pick, to tune.
 - Lock-on stays, and spells are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
-  shakes it. The boar and the Kobold read a Bolt winding up at them and sometimes step out of its line just before it
-  leaves (a chance per cast from the fight's seed; not while attacking or stunned, and not from a cast quicker than
-  their reaction). The wind-up, slower walking while winding up and the stamina cost keep spells from being spammed. The
-  numbers (`followTurnRadPerSec` in `MAGIC`, each enemy's `sidestep` in `server/src/core/content/enemies.ts`) are the
-  agent's picks, to tune.
+  shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
+  chance per cast from the fight's seed; not while attacking or stunned, and not from a cast quicker than its
+  reaction); the boar doesn't. The wind-up, slower walking while winding up and the stamina cost keep spells from being
+  spammed. The numbers (`followTurnRadPerSec` in `MAGIC`, the Kobold's `sidestep` in
+  `server/src/core/content/enemies.ts`) are the agent's picks, to tune.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
   fixed bag per character for now (6 x 4); bag slots come later. No stash for now.

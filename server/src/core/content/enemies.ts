@@ -28,7 +28,6 @@ const WILD_BOAR: EnemyDef = {
       cooldown: 4.5, firstDelay: 2.0,
     },
   },
-  sidestep: { chance: 0.4, reactTime: 0.35, leadTime: 0.1, speed: 6, stepTime: 0.45 },
 };
 
 /** Floor 1's swordsman: hit it while it recovers from a chain, or while it's stunned from a parry. */
