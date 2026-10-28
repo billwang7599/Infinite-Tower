@@ -52,19 +52,21 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, bag). With no character yet, the white the
+   `welcome` (HP / stamina, stats, settings, character, wins, gear). With no character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
 4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
-   shared `stepWalker` (at the pace the bag's weight allows). The server replays the inputs, runs the level's
+   shared `stepWalker` (at the pace the gear's weight allows). The server replays the inputs, runs the level's
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
-   setup (arena, enemy, your HP / stamina, stats and burden). The client flashes into battle mode, builds the same
+   setup (arena, enemy, your HP / stamina, stats, burden, and whether a sword and a spellbook are in hand). The client
+   flashes into battle mode, builds the same
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
-   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag), saves and sends
+   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and hands you a
+   fresh sword and spellbook), saves and sends
    `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death.
@@ -125,7 +127,7 @@ main.ts
   overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
   systems run. The fighters live in the fight's own world (below), made on encounter and dropped when you return.
-  The fight's result comes while you're still in the arena; game.ts holds it and applies it (bag, vitals, wins,
+  The fight's result comes while you're still in the arena; game.ts holds it and applies it (gear, vitals, wins,
   notices) as you come back.
 - **The overworld draws what the server says.** `modes/overworld/mirror.ts` spawns a drawing per actor `kind`;
   `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
@@ -253,8 +255,9 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
 | `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
-| `useItem {at}` | used one of the item in bag cell `at` |
-| `moveItem {from, to, turned}` | moved cell `from`'s item so its top-left is at `to` (overworld only; shown at once) |
+| `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`) |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once) |
+| `closeBag` | the bag screen closed: what's on the cloth is lost |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
@@ -264,16 +267,16 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, bag, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
-| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats and burden) and your `seat` in it |
+| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield) and your `seat` in it |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, bag |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear |
 | `rested`, `itemUsed` | what resting or eating did |
-| `bag` | your bag after a `moveItem`, whether or not the move was allowed |
+| `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
@@ -311,12 +314,12 @@ delayed like everything else, so `?ping=200` reads about 200.
 
 ## Saving
 
-What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag
-and the spell words they know (`knownWords`, not sent to the client yet), keyed by account; words not in the
-shared `WORDS` are dropped on load. The `GameSession` saves after every fight (the moment it's decided, or lost by
-leaving it), rest, item use and making a character, on disconnect, and within a second of a settings change or a
-move in the bag. Position and level aren't saved (you start at the level's start), and stats aren't either (everyone
-has the same).
+What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
+equipment (items gone from the game or in the wrong slot are dropped on load) and the spell words they know
+(`knownWords`, not sent to the client yet), keyed by account; words not in the shared `WORDS` are dropped on load. The
+`GameSession` saves after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a
+character, on disconnect, and within a second of a settings change or a move in the bag. The cloth is never saved.
+Position and level aren't saved (you start at the level's start), and stats aren't either (everyone has the same).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -370,10 +373,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   nor dropped; the result and its banner waiting for the server) and pace (real time's steps, catching up after a stall,
   a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news
   ignored), the title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
-  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag, turn, use) and tooltip (itemInfo.ts), the item
-  pictures' sizes, and the look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite
-  in each pose; the chibi's legs standing together in two boots, the right one in shadow). Rendering, how the fight
-  feels and the React screens are tried in a browser.
+  and rows, the bag screen's mouse (bagMouse.ts: hover, select, drag between the bag, the cloth and the slots, turn,
+  use) and tooltip (itemInfo.ts), the item pictures' sizes, and the look's pictures (each view's size: the portrait, the
+  chibi facing each way, the battle sprite in each pose; the chibi's legs standing together in two boots, the right one
+  in shadow). Rendering, how the fight feels and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
 tuning numbers from the code, so retuning the game doesn't break them.
@@ -454,7 +457,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, stamina;
-                       controlPlayer)
+                       controlPlayer; no sword in hand, no attacks or block; no spellbook, no casts)
       spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn, Bolts flying),
                        strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
@@ -465,8 +468,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    name rules)
   items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, what using one does;
                    ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
-                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), burden.ts
-                   (BURDEN, bagBurden: light / heavy / overloaded, and what each does to walking and dodging)
+                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), gear.ts (Gear:
+                   the bag, the cloth (CLOTH) and the Equipment slots; Spot, moveGear between them, gearWeight
+                   without the cloth, holds), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
+                   each does to walking and dodging)
   spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
                    and the server's check; spellCost, castTime; SPELL: their numbers), effects.ts (MAGIC: what spells
@@ -497,8 +502,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over), session.ts (GameSession, one player: their save, their overworld, the battle
                        they're in; a method per thing a player can ask; disconnect: mid-fight, leaving it),
-                       battle.ts (start a battle in a BattleRoom, settle its end for the player: wins, loot packed
-                       into the bag, a loss emptying it, vitals), snapshot.ts (the state message: only actors near
+                       battle.ts (start a battle in a BattleRoom with what's in hand, settle its end for the player:
+                       wins, loot packed into the bag, a loss emptying it and handing a fresh sword and spellbook,
+                       vitals), snapshot.ts (the state message: only actors near
                        your screen), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -610,10 +616,12 @@ client/          Browser game: Babylon rendering, input, React UI.
                        canvas: the portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and rest keys),
                        BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx wires the mouse and the
-                       bag keys and shows the selected item, BagGrid.tsx draws the grid, the items, the hovered /
-                       selected / dragged states and the tooltip, bagMouse.ts holds those as plain data,
-                       itemInfo.ts the tooltip's lines, grid.ts the cell size), PanelFrame.tsx (the side panels'
+                       portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
+                       the cloth and the bag, wires the mouse and the bag keys, and shows the selected item, the
+                       dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag or the cloth) and its
+                       hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
+                       states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
+                       PanelFrame.tsx (the side panels'
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
@@ -744,8 +752,9 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats and attacks | `server/src/core/content/enemies.ts` |
 | Drops | `server/src/core/content/drops.ts` |
-| Items: size, stack size, weight, healing | `shared/src/items/items.ts` |
+| Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
+| Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |

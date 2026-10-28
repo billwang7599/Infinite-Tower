@@ -29,7 +29,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
   const phase = useStore(ui.title, (s) => s.phase);
   const creating = useStore(ui.creation, (s) => s.open);
   const panel = useStore(ui.overworldPanel, (s) => s.open);
-  const bagCols = useStore(ui.overworld, (s) => s.bag.cols);
+  const gear = useStore(ui.overworld, (s) => s.gear);
   const nearCampfire = useStore(ui.overworld, (s) => s.nearCampfire);
   const playing = inWorld(mode, phase) && !creating;
   const overworldHud = playing && mode === "overworld";
@@ -52,7 +52,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       )}
       <Notices
         notices={ui.notifications.notices} dismiss={ui.notifications.dismissNotice}
-        besidePanelPx={overworldHud && panel ? panelWidthPx(panel, bagCols) : null}
+        besidePanelPx={overworldHud && panel ? panelWidthPx(panel, gear) : null}
         aboveRestButton={overworldHud && nearCampfire}
       />
       <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />

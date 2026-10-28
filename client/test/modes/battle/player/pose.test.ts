@@ -17,7 +17,7 @@ function attackAt(attack: AttackKind, t: number, aimYaw = 0, action: PlayerActio
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, castHeld: false,
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, casting: null,
-    burden: "light",
+    burden: "light", wields: { sword: true, spellbook: true },
     action, actionTime: t, actionDir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) },
     attack, startup: STARTUP, power: 1, combo: null, comboTime: 0, momentum: 0,
   };

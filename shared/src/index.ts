@@ -14,6 +14,7 @@ export * from "./battle/sword.js";
 export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";
+export * from "./items/gear.js";
 export * from "./items/burden.js";
 export * from "./spells/spell.js";
 export * from "./spells/effects.js";

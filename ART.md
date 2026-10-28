@@ -122,6 +122,9 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | wrap-around top (a chest piece) | 114: 3 body types x 38 |
 | wrap-around legs (trousers) | 105: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 34 battle frames |
 
+Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the spellbook. Worn
+items aren't drawn on the character yet: the arena's sprite holds its sword whether or not one is in hand.
+
 Adding a body type adds a full set to every wrap-around piece (38 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle pose (every animation
 frame is one) adds one per body type to each, and one to every held piece. Face shapes, hair styles, eye and

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BURDEN, carryLimit, emptyBag, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE, type Bag, type BagItem, type ItemId,
+  BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE, starterEquipment,
+  type Bag, type BagItem, type Equipment, type GridName, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -140,12 +141,16 @@ describe("rest", () => {
   });
 });
 
+const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
+const spot = (grid: GridName, x: number, y: number) => ({ in: grid, x, y });
+const bagSpot = (x: number, y: number) => spot("bag", x, y);
+
 /** A bag holding `items`, each `[item, count, x, y]`, lying flat. */
 const bagOf = (...items: [ItemId, number, number, number][]): Bag =>
   ({ ...emptyBag(), items: items.map(([item, count, x, y]) => ({ item, count, x, y, turned: false })) });
 
 describe("useItem", () => {
-  const MEAT_CELL = { x: 2, y: 1 };
+  const MEAT_CELL = bagSpot(2, 1);
 
   test("eating meat while hurt heals, uses one up, saves, and sends itemUsed", () => {
     const hp = PLAYER.maxHp - MEAT_HEAL_HP - 5;
@@ -157,7 +162,7 @@ describe("useItem", () => {
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
     assert.equal(saves.length, 1);
     assert.deepEqual(link.last("itemUsed"), {
-      t: "itemUsed", item: "boar-meat", vitals: session.vitals, bag: session.bag,
+      t: "itemUsed", item: "boar-meat", vitals: session.vitals, gear: session.gear,
     });
   });
 
@@ -183,7 +188,7 @@ describe("useItem", () => {
       saved: { vitals: { hp: 10, stamina: 20 }, bag: bagOf(["boar-tusk", 1, 0, 0]) },
     });
     session.useItem(MEAT_CELL);
-    session.useItem({ x: 0, y: 1 });
+    session.useItem(bagSpot(0, 1));
     assert.equal(session.vitals.hp, 10);
     assert.deepEqual(session.bag, bagOf(["boar-tusk", 1, 0, 0]));
     assert.equal(link.all("itemUsed").length, 0);
@@ -201,33 +206,117 @@ describe("useItem", () => {
 });
 
 describe("moveItem", () => {
-  test("moves an item, sends the bag back, and saves it soon after", (t) => {
+  test("moves an item, sends the gear back, and saves it soon after", (t) => {
     t.mock.timers.enable({ apis: ["setTimeout"] });
     const { session, link, saves } = startSession({ saved: { bag: bagOf(["boar-hide", 1, 0, 0]) } });
-    session.moveItem({ x: 1, y: 1 }, { x: 3, y: 2 }, false);
+    session.moveItem(bagSpot(1, 1), bagSpot(3, 2), false);
     assert.deepEqual(session.bag, bagOf(["boar-hide", 1, 3, 2]));
-    assert.deepEqual(link.last("bag"), { t: "bag", bag: session.bag });
+    assert.deepEqual(link.last("gear"), { t: "gear", gear: session.gear });
     assert.equal(saves.length, 0);
     t.mock.timers.tick(5000);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, session.bag);
   });
 
-  test("a move that doesn't fit changes nothing, and sends the bag back as it is", () => {
+  test("a move that doesn't fit changes nothing, and sends the gear back as it is", () => {
     const start = bagOf(["boar-hide", 1, 0, 0], ["boar-tusk", 1, 2, 0]);
     const { session, link } = startSession({ saved: { bag: start } });
-    session.moveItem({ x: 0, y: 0 }, { x: 1, y: 0 }, false);
+    session.moveItem(bagSpot(0, 0), bagSpot(1, 0), false);
     assert.deepEqual(session.bag, start);
-    assert.deepEqual(link.last("bag"), { t: "bag", bag: start });
+    assert.deepEqual(link.last("gear")?.gear.bag, start);
   });
 
   test("does nothing during a battle", () => {
     const start = bagOf(["boar-hide", 1, 0, 0]);
     const { session, link } = startSession({ dev: true, saved: { bag: start } });
     session.debugEncounter();
-    session.moveItem({ x: 0, y: 0 }, { x: 3, y: 2 }, false);
+    session.moveItem(bagSpot(0, 0), bagSpot(3, 2), false);
+    session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(3, 2), false);
     assert.deepEqual(session.bag, start);
-    assert.equal(link.all("bag").length, 0);
+    assert.deepEqual(session.gear.equipment, starterEquipment());
+    assert.equal(link.all("gear").length, 0);
+  });
+});
+
+describe("equipment", () => {
+  test("a new player has the sword and the spellbook in hand, and the welcome says so", () => {
+    const { session, link } = startSession();
+    assert.deepEqual(session.gear.equipment, starterEquipment());
+    assert.deepEqual(link.last("welcome")?.gear.equipment, starterEquipment());
+  });
+
+  test("taking the sword off puts it in the bag, and the save has it there", (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const { session, saves } = startSession();
+    session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(0, 0), false);
+    assert.equal(session.gear.equipment.rightHand, null);
+    assert.equal(session.bag.items[0]?.item, "sword");
+    t.mock.timers.tick(5000);
+    assert.equal(saves.at(-1)?.equipment.rightHand, null);
+    assert.equal(saves.at(-1)?.bag.items[0]?.item, "sword");
+  });
+
+  test("what's worn weighs on you: a bag at the limit with the sword in hand is heavy", () => {
+    const limit = carryLimit(PLAYER_STATS);
+    const tusks = Math.ceil(limit / ITEMS["boar-tusk"].weight);
+    const atLimit: Bag = {
+      cols: tusks, rows: 2,
+      items: Array.from({ length: tusks }, (_, x) => ({ item: "boar-tusk", count: 1, x, y: 0, turned: false })),
+    };
+    assert.equal(startSession({ saved: { bag: atLimit, equipment: NOTHING_WORN } }).session.burden, "light");
+    assert.equal(startSession({ saved: { bag: atLimit } }).session.burden, "heavy");
+  });
+});
+
+describe("the cloth", () => {
+  const onCloth = () => {
+    const started = startSession({ saved: { bag: bagOf(["boar-tusk", 1, 0, 0], ["boar-meat", 3, 2, 0]) } });
+    started.session.moveItem(bagSpot(0, 0), spot("cloth", 1, 1), false);
+    return started;
+  };
+
+  test("an item put on it leaves the bag and weighs nothing", () => {
+    const { session } = onCloth();
+    assert.deepEqual(session.gear.cloth.items, [{ item: "boar-tusk", count: 1, x: 1, y: 1, turned: false }]);
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 3, 2, 0]));
+  });
+
+  test("it can be taken back off into the bag", () => {
+    const { session } = onCloth();
+    session.moveItem(spot("cloth", 1, 2), bagSpot(5, 0), false);
+    assert.deepEqual(session.gear.cloth.items, []);
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 3, 2, 0], ["boar-tusk", 1, 5, 0]));
+  });
+
+  test("closing the bag loses what's left on it, and says so", () => {
+    const { session, link } = onCloth();
+    session.closeBag();
+    assert.deepEqual(session.gear.cloth, emptyCloth());
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 3, 2, 0]));
+    assert.deepEqual(link.last("gear"), { t: "gear", gear: session.gear });
+  });
+
+  test("it isn't saved: on a disconnect what's on it is gone", () => {
+    const { session, saves } = onCloth();
+    session.disconnect();
+    assert.deepEqual(saves.at(-1)?.bag, bagOf(["boar-meat", 3, 2, 0]));
+    assert.equal("cloth" in saves.at(-1)!, false);
+  });
+
+  test("walking away (the bag is closed) leaves it behind too", () => {
+    const { session, link } = onCloth();
+    session.input(1, 0, 0);
+    assert.equal(session.gear.cloth.items.length, 1, "standing still keeps it");
+    session.input(2, 1, 0);
+    assert.deepEqual(session.gear.cloth, emptyCloth());
+    assert.deepEqual(link.last("gear")?.gear.cloth, emptyCloth());
+  });
+
+  test("a fight starting leaves it behind", () => {
+    const started = startSession({ dev: true, saved: { bag: bagOf(["boar-tusk", 1, 0, 0]) } });
+    started.session.moveItem(bagSpot(0, 0), spot("cloth", 0, 0), false);
+    started.session.debugEncounter();
+    assert.deepEqual(started.session.gear.cloth, emptyCloth());
   });
 });
 
@@ -258,18 +347,20 @@ describe("carry weight", () => {
     assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≉ ${expected}`);
 
   test("overloaded, the player walks the overworld at half speed", () => {
-    const { session } = startSession({ saved: { bag: OVERLOADED } });
+    const { session } = startSession({ saved: { bag: OVERLOADED, equipment: NOTHING_WORN } });
     close(stepRight(session), FULL_STEP * BURDEN.overloadedPace);
   });
 
   test("heavy (over the limit but not overloaded), walking is full speed", () => {
-    const { session } = startSession({ saved: { bag: HEAVY } });
+    const { session } = startSession({ saved: { bag: HEAVY, equipment: NOTHING_WORN } });
     close(stepRight(session), FULL_STEP);
   });
 
   test("eating back under the line restores full speed at once", () => {
-    const { session } = startSession({ saved: { vitals: { hp: 10, stamina: 20 }, bag: OVERLOADED } });
-    session.useItem({ x: tuskCount, y: 0 });
+    const { session } = startSession({
+      saved: { vitals: { hp: 10, stamina: 20 }, bag: OVERLOADED, equipment: NOTHING_WORN },
+    });
+    session.useItem(bagSpot(tuskCount, 0));
     close(stepRight(session), FULL_STEP);
   });
 });

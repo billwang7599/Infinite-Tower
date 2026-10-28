@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "equipment" jsonb DEFAULT '{"rightHand":"sword","leftHand":"spellbook","head":null,"body":null,"legs":null,"boots":null}'::jsonb NOT NULL;

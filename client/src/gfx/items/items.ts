@@ -7,7 +7,7 @@ import { ITEMS, type ItemId } from "@infinite-tower/shared";
 import { toPicture, type Picture } from "../look/art.js";
 import type { Ramp } from "../look/palette.js";
 import {
-  BASE, DEEP, LIGHT, Pen, Pixels, SHADOW, SHINE, both, ellipse, minus, mirror, outline, rect, union,
+  BASE, DEEP, LIGHT, Pen, Pixels, SHADOW, SHINE, both, ellipse, minus, mirror, outline, polygon, rect, union,
   type Mask, type Point, type Tone,
 } from "../look/pixels.js";
 
@@ -22,6 +22,11 @@ const RAMPS = {
   bristle: ["#0f0b09", "#211813", "#33261e", "#4a392c", "#65513e", "#8a765a"],
   ivory: ["#3a2f1c", "#6a5a39", "#9b875d", "#c9b789", "#e3d6b1", "#f8f1dc"],
   root: ["#24180f", "#3d2a1a", "#5a4029", "#73553a", "#8d6e4f", "#ad9171"],
+  steel: ["#1c2026", "#363d47", "#5c6672", "#8a949f", "#b9c1c9", "#eef2f5"],
+  brass: ["#2e2210", "#5a4320", "#86672f", "#ad8a45", "#d0b066", "#f2e2a4"],
+  leather: ["#1d120c", "#331f15", "#4b2e1f", "#63402b", "#7d563a", "#9c7351"],
+  oxblood: ["#1c0a0c", "#341215", "#4f1c1f", "#6a2a2b", "#86403c", "#a8625a"],
+  parchment: ["#3d3427", "#6b5d46", "#9a8a6b", "#c4b591", "#ddd2b2", "#f3ecd6"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -124,7 +129,63 @@ function tusk(px: Pixels): void {
   pen.shade(both(shape, rect(0, 29, 15, 31)), SHADOW, "root");
 }
 
-const DRAW: Record<ItemId, (px: Pixels) => void> = { "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk };
+function sword(px: Pixels): void {
+  const metal = new Pen(px, 0);
+  const blade: Mask = (x, y) => y >= 1 && y <= 33 && Math.abs(x + 0.5 - 8) <= Math.min(3, y / 2);
+  metal.fill(blade, ink("steel", BASE));
+  metal.shade(rect(6, 1, 7, 33), LIGHT);
+  metal.shade(both(blade, rect(9, 1, 10, 33)), SHADOW);
+  metal.shade(both(blade, rect(8, 8, 8, 31)), DEEP);
+  metal.shade(both(blade, rect(7, 4, 7, 12)), SHINE);
+
+  const hilt = new Pen(px, 1);
+  const guard = union(rect(1, 33, 14, 36), rect(0, 34, 15, 35));
+  hilt.fill(guard, ink("brass", BASE));
+  hilt.shade(rect(1, 34, 14, 34), LIGHT);
+  hilt.shade(rect(1, 35, 14, 35), SHADOW);
+  const grip = rect(6, 37, 9, 43);
+  hilt.fill(grip, ink("leather", BASE));
+  hilt.shade(both(rect(7, 38, 8, 42), (_x, y) => y % 2 === 0), LIGHT);
+  const pommel = ellipse(8, 45.5, 3, 2.6);
+  hilt.fill(pommel, ink("brass", BASE));
+  hilt.shade(litEdge(pommel, 2), LIGHT);
+  hilt.shade(darkEdge(pommel, 2), SHADOW);
+}
+
+function spellbook(px: Pixels): void {
+  const pages = new Pen(px, 0);
+  const block = rect(6, 5, 28, 28);
+  pages.fill(block, ink("parchment", BASE));
+  pages.shade(both(block, (_x, y) => y % 2 === 1), SHADOW);
+
+  const cover = new Pen(px, 1);
+  const board = rect(3, 3, 26, 27);
+  cover.fill(board, ink("oxblood", BASE));
+  cover.shade(litEdge(board, 1), LIGHT);
+  cover.shade(darkEdge(board, 1), SHADOW);
+  cover.shade(rect(3, 3, 6, 27), DEEP);
+  cover.shade(rect(4, 4, 4, 26), SHADOW);
+  const corners = union(
+    polygon([[19, 3], [27, 3], [27, 11]]), polygon([[19, 28], [27, 28], [27, 20]]),
+  );
+  cover.fill(both(board, corners), ink("brass", BASE));
+  cover.shade(both(board, both(corners, rect(19, 3, 27, 4))), LIGHT, "brass");
+  const ring = (x: number, y: number) => {
+    const d = Math.hypot(x + 0.5 - 15.5, y + 0.5 - 15.5);
+    return d >= 3.6 && d <= 5.1;
+  };
+  cover.fill(ring, ink("brass", BASE));
+  cover.shade((x, y) => ring(x, y) && x + y < 30, LIGHT, "brass");
+  cover.fill(ellipse(15.5, 15.5, 1.6, 1.6), ink("brass", SHINE));
+  const clasp = rect(24, 13, 29, 17);
+  cover.fill(clasp, ink("leather", BASE));
+  cover.shade(rect(24, 13, 29, 13), LIGHT, "leather");
+  cover.fill(rect(27, 14, 28, 16), ink("brass", BASE));
+}
+
+const DRAW: Record<ItemId, (px: Pixels) => void> = {
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, spellbook,
+};
 
 const drawn = new Map<ItemId, Picture>();
 

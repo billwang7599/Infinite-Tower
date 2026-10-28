@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  bagBurden, BURDEN, burdenOf, carryLimit, dodgeCost, ITEMS, PLAYER, walkPace, type Bag, type Stats,
+  BURDEN, burdenOf, carryLimit, dodgeCost, emptyCloth, gearBurden, ITEMS, PLAYER, walkPace, type Bag, type Gear,
+  type Stats,
 } from "@infinite-tower/shared";
 
 const STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
@@ -31,17 +32,22 @@ describe("burdenOf", () => {
   });
 });
 
-describe("bagBurden", () => {
+const only = (bag: Bag): Gear => ({
+  bag, cloth: emptyCloth(),
+  equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
+});
+
+describe("gearBurden", () => {
   test("weighs the bag against the carry limit from strength", () => {
     const atLimit = LIMIT / TUSK;
-    assert.equal(bagBurden(tusks(atLimit), STATS), "light");
-    assert.equal(bagBurden(tusks(atLimit + 1), STATS), "heavy");
-    assert.equal(bagBurden(tusks(atLimit + 3), STATS), "overloaded");
+    assert.equal(gearBurden(only(tusks(atLimit)), STATS), "light");
+    assert.equal(gearBurden(only(tusks(atLimit + 1)), STATS), "heavy");
+    assert.equal(gearBurden(only(tusks(atLimit + 3)), STATS), "overloaded");
   });
 
   test("more strength carries more", () => {
     const stronger = { ...STATS, strength: STATS.strength + 10 };
-    assert.equal(bagBurden(tusks(LIMIT / TUSK + 3), stronger), "light");
+    assert.equal(gearBurden(only(tusks(LIMIT / TUSK + 3)), stronger), "light");
   });
 });
 

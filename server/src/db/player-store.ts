@@ -1,4 +1,6 @@
-import { WORDS, type Word } from "@infinite-tower/shared";
+import {
+  fitsSlot, ITEMS, SLOTS, WORDS, type Equipment, type ItemId, type Slot, type Word,
+} from "@infinite-tower/shared";
 import { eq, sql } from "drizzle-orm";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
@@ -44,11 +46,19 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
-  character: data.character, bag: data.bag, knownWords: data.knownWords,
+  character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
 });
 
 const fromRow = (row: typeof players.$inferSelect): PlayerSave => ({
   vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
-  character: row.character, bag: row.bag,
+  character: row.character, bag: row.bag, equipment: wearable(row.equipment),
   knownWords: row.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word)),
 });
+
+function wearable(saved: Partial<Record<Slot, string | null>>): Equipment {
+  const keep = (slot: Slot) => {
+    const item = saved[slot];
+    return item && Object.hasOwn(ITEMS, item) && fitsSlot(item as ItemId, slot) ? item as ItemId : null;
+  };
+  return Object.fromEntries(SLOTS.map((slot) => [slot, keep(slot)])) as Equipment;
+}

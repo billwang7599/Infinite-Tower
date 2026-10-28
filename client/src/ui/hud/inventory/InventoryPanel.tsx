@@ -1,11 +1,13 @@
 /**
- * The bag screen: the grid, its weight against what you can carry, and the selected item. Worked with the mouse
- * (bagMouse.ts) and the bag keys. Moves go to the server, which has the last word on the bag.
+ * The bag screen: what's worn, the cloth and the bag side by side, the weight against what you can carry, and the
+ * selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go to the server, which has the last
+ * word on all of it.
  */
 import {
-  bagBurden, bagWeight, carryLimit, itemDef, type Bag, type BagItem, type Burden, type Cell,
+  carryLimit, gearBurden, gearWeight, itemDef, type BagItem, type Burden, type Cell, type Gear, type GridSpot,
+  type Slot, type Spot,
 } from "@infinite-tower/shared";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
@@ -13,22 +15,23 @@ import { useAction } from "../../components/useAction.js";
 import type { OverworldHudState, SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
-import { bagPanelWidthPx } from "../layout.js";
+import { inventoryPanelWidthPx } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
-import { BagGrid, type GridEvents } from "./BagGrid.js";
+import { BagGrid, ItemTooltip, Placed } from "./BagGrid.js";
 import {
-  cancel, canDrop, doubleClick, itemToUse, keepUp, NO_MOUSE, pointerDown, pointerMove, pointerUp, rightPress,
-  selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Move,
+  cancel, canDrop, doubleClick, hoveredStack, itemToUse, keepUp, NO_MOUSE, pointerDown, pointerMove, pointerUp,
+  rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Move, type Pointer,
 } from "./bagMouse.js";
-import { CELL } from "./grid.js";
+import { EquipmentSlots } from "./EquipmentSlots.js";
+import { CELL, INVENTORY_GAP_PX } from "./grid.js";
 import { formatWeight } from "./itemInfo.js";
 
 interface PanelProps {
   hud: Store<OverworldHudState>;
   input: Actions;
   settingsScreen: Store<SettingsScreenState>;
-  use: (at: Cell) => void;
-  move: (from: Cell, to: Cell, turned: boolean) => void;
+  use: (at: GridSpot) => void;
+  move: (from: Spot, to: Spot, turned: boolean) => void;
   close: () => void;
 }
 
@@ -38,10 +41,14 @@ interface View {
   grab: Cell;
 }
 
-const START: View = { mouse: NO_MOUSE, grab: { x: CELL / 2, y: CELL / 2 } };
+const MIDDLE: Cell = { x: CELL / 2, y: CELL / 2 };
+const START: View = { mouse: NO_MOUSE, grab: MIDDLE };
+
+const MAIN = { button: 0, bit: 1 };
+const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel({ hud, input, settingsScreen, use, move, close }: PanelProps) {
-  const bag = useStore(hud, (s) => s.bag);
+  const gear = useStore(hud, (s) => s.gear);
   const stats = useStore(hud, (s) => s.stats);
   // Healing items do nothing at full HP (the server refuses), so they can't be used then.
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
@@ -49,17 +56,23 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
   const latest = useRef<View>(START);
-  // The bag can change under the mouse (the server's answer, a meal eaten), so it's kept up with it every render.
-  const mouse = keepUp(view.mouse, bag);
+  const panel = useRef<HTMLDivElement>(null);
+  const pressedAtPx = useRef<Cell>(MIDDLE);
+  const areas = useRef(new Map<GridSpot["in"] | Slot, HTMLDivElement>());
+  const area = (key: GridSpot["in"] | Slot) => (el: HTMLDivElement | null) => {
+    if (el) areas.current.set(key, el);
+    else areas.current.delete(key);
+  };
+  // The gear can change under the mouse (the server's answer, a meal eaten), so keep up with it every render.
+  const mouse = keepUp(view.mouse, gear);
 
-  const current = () => keepUp(latest.current.mouse, bag);
+  const current = () => keepUp(latest.current.mouse, gear);
   /** The mouse is now `next`; the ghost's hold is taken as a drag starts and turned with it. */
   const set = (next: BagMouse) => {
     const before = latest.current.mouse;
     let { grab } = latest.current;
-    const press = before.press?.at;
-    if (!before.drag && next.drag && press) {
-      grab = { x: press.x - press.cell.x * CELL, y: press.y - press.cell.y * CELL };
+    if (!before.drag && next.drag) {
+      grab = next.drag.from.in === "slot" ? MIDDLE : pressedAtPx.current;
     } else if (before.drag && next.drag && before.drag.turned !== next.drag.turned) {
       grab = { x: grab.y, y: grab.x };
     }
@@ -68,13 +81,27 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
   };
   const send = (m: Move | null) => { if (m) move(m.from, m.to, m.turned); };
   const applyUse = (m: BagMouse) => {
-    const at = itemToUse(m, bag, fullHp);
+    const at = itemToUse(m, gear, fullHp);
     if (at) use(at);
   };
   const turnWith = (turn: typeof turnKey) => {
-    const { mouse: next, move: turned } = turn(current(), bag);
+    const { mouse: next, move: turned } = turn(current(), gear);
     set(next);
     send(turned);
+  };
+
+  const locate = (e: MouseEvent): Pointer => {
+    const box = panel.current!.getBoundingClientRect();
+    const x = e.clientX - box.left, y = e.clientY - box.top;
+    for (const [key, el] of areas.current) {
+      const r = el.getBoundingClientRect();
+      const ix = e.clientX - r.left, iy = e.clientY - r.top;
+      if (ix < 0 || iy < 0 || ix >= r.width || iy >= r.height) continue;
+      pressedAtPx.current = { x: ix % CELL, y: iy % CELL };
+      if (key !== "bag" && key !== "cloth") return { over: { in: "slot", slot: key }, x, y };
+      return { over: { in: key, x: Math.floor(ix / CELL), y: Math.floor(iy / CELL) }, x, y };
+    }
+    return { over: null, x, y };
   };
 
   // Settings over the bag: a drag in progress goes back.
@@ -96,39 +123,88 @@ export function InventoryPanel({ hud, input, settingsScreen, use, move, close }:
     else close();
   });
 
-  const on: GridEvents = {
-    down: (p) => set(pointerDown(current(), bag, p)),
-    move: (p) => set(pointerMove(current(), bag, p, performance.now())),
-    up: (p) => {
-      const { mouse: next, move: moved } = pointerUp(current(), bag, p, performance.now());
-      set(next);
-      send(moved);
-    },
-    cancel: () => set(cancel(current())),
-    turn: () => turnWith(rightPress),
-    doubleClick: (p) => {
-      const next = doubleClick(current(), bag, p);
-      set(next);
-      applyUse(next);
-    },
+  const up = (p: Pointer) => {
+    const { mouse: next, move: moved } = pointerUp(current(), gear, p, performance.now());
+    set(next);
+    send(moved);
   };
+  const fits = canDrop(mouse, gear);
+  const { drag, pointer } = mouse;
+  const dragged = drag && (drag.from.in === "slot"
+    ? { item: drag.item, count: 1, x: 0, y: 0, turned: false }
+    : gear[drag.from.in].items.find((s) => s.x === (drag.from as GridSpot).x && s.y === (drag.from as GridSpot).y));
+  const hovered = hoveredStack(mouse, gear);
+  const width = inventoryPanelWidthPx(gear);
 
   return (
-    <PanelFrame id="inventory-panel" title="Inventory" close={close} width={bagPanelWidthPx(bag.cols)}>
-      <div className="pointer-events-auto" onContextMenu={(e) => e.preventDefault()}>
+    <PanelFrame id="inventory-panel" title="Inventory" close={close} width={width}>
+      <div
+        ref={panel} className="pointer-events-auto relative touch-none select-none"
+        onContextMenu={(e) => e.preventDefault()}
+        onPointerDown={(e) => {
+          if (e.button === SECONDARY.button) turnWith(rightPress);
+          if (e.button !== MAIN.button) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          set(pointerDown(current(), gear, locate(e)));
+        }}
+        onPointerMove={(e) => {
+          // A button pressed or let go while another is held comes as a move, not a down or an up (chorded buttons).
+          if (e.button === SECONDARY.button && e.buttons & SECONDARY.bit) turnWith(rightPress);
+          if (e.button === MAIN.button && !(e.buttons & MAIN.bit)) up(locate(e));
+          else set(pointerMove(current(), gear, locate(e), performance.now()));
+        }}
+        onPointerUp={(e) => { if (e.button === MAIN.button) up(locate(e)); }}
+        onPointerLeave={() => set(pointerMove(current(), gear, null, performance.now()))}
+        onPointerCancel={() => set(cancel(current()))}
+        onDoubleClick={(e) => {
+          const next = doubleClick(current(), gear, locate(e));
+          set(next);
+          applyUse(next);
+        }}
+      >
         {stats && (
           <p id="bag-weight" className="mb-3 text-xs text-white/55 tabular-nums">
-            Weight {formatWeight(bagWeight(bag))} / {formatWeight(carryLimit(stats))}
-            <BurdenNote burden={bagBurden(bag, stats)} />
+            Weight {formatWeight(gearWeight(gear))} / {formatWeight(carryLimit(stats))}
+            <BurdenNote burden={gearBurden(gear, stats)} />
           </p>
         )}
-        <BagGrid bag={bag} mouse={mouse} fits={canDrop(mouse, bag)} grab={view.grab} on={on} />
+        <div className="flex items-start" style={{ gap: INVENTORY_GAP_PX }}>
+          <Column title="Equipment">
+            <EquipmentSlots gear={gear} mouse={mouse} area={area} />
+          </Column>
+          <Column title="Cloth" note="Left behind when you close the bag. Weighs nothing.">
+            <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
+          </Column>
+          <Column title="Bag">
+            <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
+          </Column>
+        </div>
         <BagDetails
-          bag={bag} stack={selectedStack(mouse, bag)} usable={itemToUse(mouse, bag, fullHp) !== null}
+          gear={gear} stack={selectedStack(mouse, gear)} usable={itemToUse(mouse, gear, fullHp) !== null}
           use={() => applyUse(current())}
         />
+        {drag && dragged && pointer && (
+          <Placed
+            id="bag-ghost" data-fits={fits} stack={dragged} turned={drag.turned}
+            left={pointer.x - drag.grip.x * CELL - view.grab.x} top={pointer.y - drag.grip.y * CELL - view.grab.y}
+            className={`z-20 border-2 opacity-90 ${fits ? "border-stamina bg-stamina/20" : "border-hp bg-hp/25"}`}
+          />
+        )}
+        {hovered && hover?.tooltip && pointer && (
+          <ItemTooltip stack={hovered} at={pointer} panelWidth={panel.current?.clientWidth ?? width} />
+        )}
       </div>
     </PanelFrame>
+  );
+}
+
+function Column({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs tracking-[0.12em] text-white/55 uppercase">{title}</h3>
+      {children}
+      {note && <p className="max-w-48 text-[11px] text-white/40">{note}</p>}
+    </section>
   );
 }
 
@@ -145,7 +221,7 @@ function BurdenNote({ burden }: { burden: Burden }) {
 }
 
 interface DetailsProps {
-  bag: Bag;
+  gear: Gear;
   /** The selected stack. */
   stack: BagItem | null;
   usable: boolean;
@@ -153,11 +229,11 @@ interface DetailsProps {
 }
 
 /** Under the grid: the selected item's name, count and description, and its use button. */
-function BagDetails({ bag, stack, usable, use }: DetailsProps) {
+function BagDetails({ gear, stack, usable, use }: DetailsProps) {
   if (!stack) {
     return (
       <p id="bag-details" className="mt-3 min-h-16 text-sm text-white/55">
-        {bag.items.length === 0 ? "Nothing yet. Boars sometimes drop things." : ""}
+        {gear.bag.items.length === 0 ? "Nothing in the bag yet. Boars sometimes drop things." : ""}
       </p>
     );
   }

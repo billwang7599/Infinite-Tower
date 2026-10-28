@@ -35,8 +35,11 @@ describe("parseClientMsg", () => {
       { t: "settings", settings: { mouse: { autoLock: false } } },
       { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
       { t: "rest" },
-      { t: "useItem", at: { x: 2, y: 1 } },
-      { t: "moveItem", from: { x: 0, y: 0 }, to: { x: 3, y: 2 }, turned: true },
+      { t: "useItem", at: { in: "bag", x: 2, y: 1 } },
+      { t: "useItem", at: { in: "cloth", x: 0, y: 3 } },
+      { t: "moveItem", from: { in: "bag", x: 0, y: 0 }, to: { in: "cloth", x: 3, y: 2 }, turned: true },
+      { t: "moveItem", from: { in: "slot", slot: "rightHand" }, to: { in: "slot", slot: "leftHand" }, turned: false },
+      { t: "closeBag" },
       { t: "debug", cmd: "encounter" },
       { t: "debug", cmd: "encounter", enemy: "kobold-swordsman" },
       { t: "ping", id: 0 },
@@ -183,12 +186,17 @@ describe("parseClientMsg", () => {
     }
   });
 
-  test("useItem and moveItem: cells are whole, non-negative numbers", () => {
+  test("useItem and moveItem: cells are whole, non-negative numbers in the bag or the cloth, slots are named", () => {
+    const bag = (x: unknown, y: unknown) => ({ in: "bag", x, y });
     assert.equal(parse({ t: "useItem", item: "boar-meat" }), null);
-    assert.equal(parse({ t: "useItem", at: { x: -1, y: 0 } }), null);
-    assert.equal(parse({ t: "useItem", at: { x: 0.5, y: 0 } }), null);
-    assert.equal(parse({ t: "moveItem", from: { x: 0, y: 0 }, to: { x: 1, y: "1" }, turned: false }), null);
-    assert.equal(parse({ t: "moveItem", from: { x: 0, y: 0 }, to: { x: 1, y: 1 } }), null);
+    assert.equal(parse({ t: "useItem", at: bag(-1, 0) }), null);
+    assert.equal(parse({ t: "useItem", at: bag(0.5, 0) }), null);
+    assert.equal(parse({ t: "useItem", at: { x: 0, y: 0 } }), null);
+    assert.equal(parse({ t: "useItem", at: { in: "slot", slot: "rightHand" } }), null);
+    assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: bag(1, "1"), turned: false }), null);
+    assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: bag(1, 1) }), null);
+    assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "stash", x: 1, y: 1 }, turned: false }), null);
+    assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "slot", slot: "tail" }, turned: false }), null);
   });
 
   test("debug: only known commands", () => {

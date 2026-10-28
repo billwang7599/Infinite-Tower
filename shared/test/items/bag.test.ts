@@ -272,7 +272,7 @@ describe("bagProblems", () => {
     assert.equal(bagProblems(bag(4, 4, stack("boar-hide", 3, 0))).length, 1);
     assert.equal(bagProblems(bag(4, 4, stack("boar-meat", 0, 0, 0))).length, 1);
     assert.equal(bagProblems(bag(4, 4, stack("boar-meat", 0, 0, MEAT_STACK + 1))).length, 1);
-    assert.equal(bagProblems(bag(4, 4, stack("sword" as ItemId, 0, 0))).length, 1);
+    assert.equal(bagProblems(bag(4, 4, stack("axe" as ItemId, 0, 0))).length, 1);
   });
 
   test("no sequence of adds, moves and takes breaks a bag", () => {

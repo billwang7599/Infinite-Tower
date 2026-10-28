@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import type { ClientMsg } from "@infinite-tower/shared";
+import { emptyBag, emptyCloth, starterEquipment, type ClientMsg } from "@infinite-tower/shared";
 import { Connection } from "../../src/ws/connection.js";
 import { FakeSocket } from "./fake-socket.js";
 
@@ -62,7 +62,7 @@ describe("Connection", () => {
     socket.receive({ t: "input", seq: -1, moveX: 0, moveZ: 0 });
     socket.receive({ t: "battleEnd", won: true, vitals: { hp: 1, stamina: 1 } });
     socket.receive({ t: "battleInput", upTo: 1, inputs: [{ step: 1, moveX: 9, moveZ: 0, aimX: 0, aimZ: 1 }] });
-    socket.receive({ t: "useItem", at: { x: -1, y: 0 } });
+    socket.receive({ t: "useItem", at: { in: "bag", x: -1, y: 0 } });
     socket.receive("null");
     assert.deepEqual(received, []);
   });
@@ -136,11 +136,11 @@ describe("Connection with a simulated ping (dev)", () => {
   test("what the game sends leaves half the ping later, in order", (t) => {
     const { socket, conn } = slow(t, 37);
     conn.send(RESTED);
-    conn.send({ t: "bag", bag: { cols: 1, rows: 1, items: [] } });
+    conn.send({ t: "gear", gear: { bag: emptyBag(), cloth: emptyCloth(), equipment: starterEquipment() } });
     t.mock.timers.tick(18);
     assert.deepEqual(socket.sent, []);
     t.mock.timers.tick(1);
-    assert.deepEqual(socket.kinds(), ["rested", "bag"]);
+    assert.deepEqual(socket.kinds(), ["rested", "gear"]);
   });
 
   test("the client hanging up is heard after what it sent before", (t) => {

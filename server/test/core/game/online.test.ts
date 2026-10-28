@@ -33,7 +33,7 @@ describe("joining", () => {
     const { knownWords, ...fresh } = newPlayer();
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
-        bag: welcome.bag },
+        bag: welcome.gear.bag, equipment: welcome.gear.equipment },
       fresh,
     );
     assert.deepEqual(knownWords, []);

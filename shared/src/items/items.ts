@@ -1,5 +1,7 @@
 /** What each item is and does. Who drops what is server content (server/src/core/content/drops.ts). */
 
+export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
+
 export interface ItemDef {
   name: string;
   description: string;
@@ -13,6 +15,7 @@ export interface ItemDef {
   healHp?: number;
   /** The use button's word. */
   verb?: string;
+  wornOn?: WornOn;
 }
 
 export const ITEMS = {
@@ -27,6 +30,14 @@ export const ITEMS = {
   "boar-tusk": {
     name: "Boar tusk", description: "Dense and curved. Heavier than it looks.", cols: 1, rows: 2, stackSize: 1,
     weight: 5,
+  },
+  sword: {
+    name: "Sword", description: "A plain straight blade. You swing it with the mouse and stab with a click.", cols: 1,
+    rows: 3, stackSize: 1, weight: 3, wornOn: "hand",
+  },
+  spellbook: {
+    name: "Spellbook", description: "A worn grimoire. You need it in hand to cast.", cols: 2, rows: 2, stackSize: 1,
+    weight: 1.5, wornOn: "hand",
   },
 } as const satisfies Record<string, ItemDef>;
 

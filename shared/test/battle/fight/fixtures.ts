@@ -60,7 +60,8 @@ export const SWORDSMAN: EnemyDef = {
 export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { sword: sword({ firstDelay: 999 }) } };
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
-  ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light", ...over });
+  ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light",
+    wields: { sword: true, spellbook: true }, ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */

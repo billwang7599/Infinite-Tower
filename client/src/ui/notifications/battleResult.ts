@@ -17,7 +17,7 @@ export function battleResultLines(outcome: BattleOutcome): string[] {
 }
 
 /** "boar meat" / "2 boar meat", or "" for nothing. */
-function describeItems(items: ItemCounts): string {
+export function describeItems(items: ItemCounts): string {
   return countEntries(items)
     .map(([id, count]) => `${count > 1 ? `${count} ` : ""}${itemDef(id).name.toLowerCase()}`)
     .join(", ");

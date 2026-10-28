@@ -130,3 +130,33 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
     }
   });
 });
+
+describe("what the player holds", () => {
+  const unarmed = (wields: { sword: boolean; spellbook: boolean }) => new Fight({
+    arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { wields })],
+    enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
+  });
+  const actionsOf = (fight: Fight, press: Partial<PlayerInputData>) => {
+    const held = (step: number) => input(step >= SWING_AT && step < SWING_AT + 30 ? press : {});
+    return new Set(play(held, 40, fight).actions);
+  };
+
+  test("no sword: no swing, no stab and no block", () => {
+    for (const press of [{ attack: "lr" }, { attack: "stab" }, { block: true }] as const) {
+      const seen = actionsOf(unarmed({ sword: false, spellbook: true }), press);
+      assert.deepEqual([...seen], ["none"], JSON.stringify(press));
+    }
+  });
+
+  test("no spellbook: no casting, but the sword still swings", () => {
+    const cast = { segments: [{ form: "bolt", elements: ["fire"], augments: [] }] } as const;
+    assert.deepEqual([...actionsOf(unarmed({ sword: true, spellbook: false }), { cast })], ["none"]);
+    assert.ok(actionsOf(unarmed({ sword: true, spellbook: false }), { attack: "lr" }).has("attack"));
+  });
+
+  test("with both, the same presses do what they always did", () => {
+    const both = { sword: true, spellbook: true };
+    assert.ok(actionsOf(unarmed(both), { attack: "lr" }).has("attack"));
+    assert.ok(actionsOf(unarmed(both), { block: true }).has("block"));
+  });
+});

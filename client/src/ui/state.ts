@@ -3,7 +3,7 @@
  * The UI writes `settingsScreen`, `creation` and `overworldPanel` too, and the game watches them. `UiActions` is the
  * other direction.
  */
-import type { Bag, Cell, Character, Credentials, Stats } from "@infinite-tower/shared";
+import type { Character, Credentials, Gear, GridSpot, Spot, Stats } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
 import type { Mode } from "../game/transition.js";
@@ -44,7 +44,7 @@ export interface OverworldHudState {
   character: Character | null;
   /** The Rest button shows. */
   nearCampfire: boolean;
-  bag: Bag;
+  gear: Gear;
 }
 
 /** A word over the fight for a moment: you parried the enemy, or you're staggered. */
@@ -103,9 +103,8 @@ export interface UiActions {
   logOut(): void;
   play(): void;
   rest(): void;
-  useItem(at: Cell): void;
-  /** Shown at once; the server answers with the bag as it has it. */
-  moveItem(from: Cell, to: Cell, turned: boolean): void;
+  useItem(at: GridSpot): void;
+  moveItem(from: Spot, to: Spot, turned: boolean): void;
   saveCharacter(character: Character): void;
   returnToTitle(): void;
 }
@@ -121,7 +120,10 @@ export class UiState {
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
   readonly overworld = new Store<OverworldHudState>({
     levelName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null, nearCampfire: false,
-    bag: { cols: 0, rows: 0, items: [] },
+    gear: {
+      bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] },
+      equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
+    },
   });
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,

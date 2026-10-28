@@ -57,6 +57,13 @@ describe("say", () => {
     assert.equal(banner(to), null);
   });
 
+  test("closing the bag with things on the cloth is a notice of what's left behind", () => {
+    const to = new Notifications();
+    say(to, { kind: "leftOnCloth", items: { "boar-meat": 2, "boar-tusk": 1 } });
+    assert.deepEqual(notices(to), ["You leave 2 boar meat, boar tusk behind on the cloth."]);
+    assert.equal(banner(to), null);
+  });
+
   test("resting is a notice", () => {
     const to = new Notifications();
     say(to, { kind: "rested" });

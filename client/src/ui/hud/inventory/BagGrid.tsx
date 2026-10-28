@@ -1,120 +1,77 @@
 /**
- * The bag as a grid, with the mouse's states drawn (bagMouse.ts): hovered, selected, and dragged (a ghost, green
- * where it fits and red where it doesn't). It only draws and reports the pointer; the panel decides what that does.
+ * A grid of the bag screen (the bag or the cloth), with the mouse's states drawn (bagMouse.ts): hovered, selected,
+ * and where a dragged item would land (green where it fits, red where it doesn't). It only draws; the panel reads
+ * the pointer and decides what that does.
  */
-import { footprint, ITEMS, type Bag, type BagItem, type Cell, type ItemId } from "@infinite-tower/shared";
-import { useEffect, useRef, type MouseEvent } from "react";
+import {
+  footprint, ITEMS, type BagItem, type Cell, type Gear, type GridName, type ItemId,
+} from "@infinite-tower/shared";
+import { useEffect, useRef } from "react";
 import { drawItem } from "../../../gfx/items/items.js";
-import { hoveredStack, landing, selectedStack, type BagMouse, type Pointer } from "./bagMouse.js";
+import { hoveredStack, landing, selectedStack, type BagMouse } from "./bagMouse.js";
 import { CELL, SCALE } from "./grid.js";
 import { itemInfo } from "./itemInfo.js";
 
-/** MouseEvent.button, and its bit in PointerEvent.buttons. */
-const MAIN = { button: 0, bit: 1 };
-const SECONDARY = { button: 2, bit: 2 };
-
-export interface GridEvents {
-  down(p: Pointer): void;
-  /** null: the pointer left the grid. */
-  move(p: Pointer | null): void;
-  up(p: Pointer): void;
-  cancel(): void;
-  /** A right press. */
-  turn(): void;
-  doubleClick(p: Pointer): void;
-}
-
 interface GridProps {
-  bag: Bag;
+  name: GridName;
+  gear: Gear;
   mouse: BagMouse;
   /** The dragged item can go down where it would land. */
   fits: boolean;
-  /** Where in its grip cell the dragged item is held, in pixels. */
-  grab: Cell;
-  on: GridEvents;
+  area: (el: HTMLDivElement | null) => void;
 }
 
-export function BagGrid({ bag, mouse, fits, grab, on }: GridProps) {
-  const grid = useRef<HTMLDivElement>(null);
-  const at = (e: MouseEvent): Pointer => {
-    const box = grid.current!.getBoundingClientRect();
-    const x = e.clientX - box.left, y = e.clientY - box.top;
-    const cell = { x: Math.floor(x / CELL), y: Math.floor(y / CELL) };
-    return { cell, inside: cell.x >= 0 && cell.y >= 0 && cell.x < bag.cols && cell.y < bag.rows, x, y };
-  };
-  const { drag, pointer } = mouse;
-  const hovered = hoveredStack(mouse, bag);
-  const selected = drag ? null : selectedStack(mouse, bag);
-  const dragged = drag && bag.items.find((s) => s.x === drag.from.x && s.y === drag.from.y);
-  const spot = landing(mouse, bag);
+export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
+  const grid = gear[name];
+  const { drag } = mouse;
+  const hovered = mouse.hover?.stack.in === name ? hoveredStack(mouse, gear) : null;
+  const selected = !drag && mouse.selected?.in === name ? selectedStack(mouse, gear) : null;
+  const from = drag?.from;
+  const dragged = from && from.in === name ? grid.items.find((s) => s.x === from.x && s.y === from.y) : undefined;
+  const spot = landing(mouse, gear);
+  const lands = drag && spot && spot.in === name ? spot : null;
 
   return (
     <div
-      ref={grid} id="bag-grid" data-cols={bag.cols} data-rows={bag.rows}
-      className="pointer-events-auto relative touch-none select-none"
-      style={{ width: bag.cols * CELL, height: bag.rows * CELL }}
-      onPointerDown={(e) => {
-        if (e.button === SECONDARY.button) on.turn();
-        if (e.button !== MAIN.button) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        on.down(at(e));
-      }}
-      onPointerMove={(e) => {
-        // A button pressed or let go while another is held comes as a move, not a down or an up (chorded buttons).
-        if (e.button === SECONDARY.button && e.buttons & SECONDARY.bit) on.turn();
-        if (e.button === MAIN.button && !(e.buttons & MAIN.bit)) on.up(at(e));
-        else on.move(at(e));
-      }}
-      onPointerUp={(e) => { if (e.button === MAIN.button) on.up(at(e)); }}
-      onPointerLeave={() => on.move(null)}
-      onPointerCancel={() => on.cancel()}
-      onDoubleClick={(e) => on.doubleClick(at(e))}
+      ref={area} id={`${name}-grid`} data-cols={grid.cols} data-rows={grid.rows}
+      className="relative touch-none select-none" style={{ width: grid.cols * CELL, height: grid.rows * CELL }}
     >
       <div
         className="absolute inset-0 grid border border-white/15 bg-black/45"
-        style={{ gridTemplateColumns: `repeat(${bag.cols}, ${CELL}px)` }}
+        style={{ gridTemplateColumns: `repeat(${grid.cols}, ${CELL}px)` }}
       >
-        {Array.from({ length: bag.cols * bag.rows }, (_, i) => (
+        {Array.from({ length: grid.cols * grid.rows }, (_, i) => (
           <div key={i} className="border border-white/[0.06]" />
         ))}
       </div>
-      {hovered && <Box id="bag-hover" stack={hovered} className="border border-white/30 bg-white/15" />}
-      {bag.items.map((stack) => (
+      {hovered && <Box id={`${name}-hover`} stack={hovered} className="border border-white/30 bg-white/15" />}
+      {grid.items.map((stack) => (
         <Placed
           key={`${stack.x},${stack.y}`} stack={stack} left={stack.x * CELL} top={stack.y * CELL} turned={stack.turned}
           className={stack === dragged ? "opacity-25" : ""}
         />
       ))}
       {selected && (
-        <Box id="bag-selected" stack={selected} className="border-2 border-victory shadow-[0_0_10px_#e8c45a99]" />
+        <Box id={`${name}-selected`} stack={selected} className="border-2 border-victory shadow-[0_0_10px_#e8c45a99]" />
       )}
-      {drag && spot && (
+      {drag && lands && (
         <div
-          id="bag-landing" data-fits={fits} data-x={spot.x} data-y={spot.y}
+          id={`${name}-landing`} data-fits={fits} data-x={lands.x} data-y={lands.y}
           className={`pointer-events-none absolute border-2 border-dashed ${fits ? "border-stamina" : "border-hp"}`}
-          style={area(spot, footprint(drag.item, drag.turned))}
+          style={cellBox(lands, footprint(drag.item, drag.turned))}
         />
       )}
-      {drag && dragged && pointer && (
-        <Placed
-          id="bag-ghost" data-fits={fits} stack={dragged} turned={drag.turned}
-          left={pointer.x - drag.grip.x * CELL - grab.x} top={pointer.y - drag.grip.y * CELL - grab.y}
-          className={`z-20 border-2 opacity-90 ${fits ? "border-stamina bg-stamina/20" : "border-hp bg-hp/25"}`}
-        />
-      )}
-      {hovered && mouse.hover?.tooltip && <ItemTooltip stack={hovered} bag={bag} />}
     </div>
   );
 }
 
-const area = (at: Cell, size: { cols: number; rows: number }) =>
+const cellBox = (at: Cell, size: { cols: number; rows: number }) =>
   ({ left: at.x * CELL, top: at.y * CELL, width: size.cols * CELL, height: size.rows * CELL });
 
 interface PlacedProps {
   id?: string;
   "data-fits"?: boolean;
   stack: BagItem;
-  /** Pixels from the grid's top-left. */
   left: number;
   top: number;
   turned: boolean;
@@ -122,7 +79,7 @@ interface PlacedProps {
 }
 
 /** A stack's picture over the cells it covers, with its count when there's more than one. */
-function Placed({ stack, left, top, turned, className, ...attrs }: PlacedProps) {
+export function Placed({ stack, left, top, turned, className, ...attrs }: PlacedProps) {
   const { cols, rows } = footprint(stack.item, turned);
   return (
     <div
@@ -145,13 +102,14 @@ function Box({ id, stack, className }: { id: string; stack: BagItem; className: 
   return (
     <div
       id={id} data-x={stack.x} data-y={stack.y}
-      className={`pointer-events-none absolute ${className}`} style={area(stack, footprint(stack.item, stack.turned))}
+      className={`pointer-events-none absolute ${className}`}
+      style={cellBox(stack, footprint(stack.item, stack.turned))}
     />
   );
 }
 
 /** `scale` screen pixels per art pixel. A turned item is the same picture turned 90° clockwise. */
-function ItemPicture({ item, turned, scale }: { item: ItemId; turned: boolean; scale: number }) {
+export function ItemPicture({ item, turned, scale }: { item: ItemId; turned: boolean; scale: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const pic = drawItem(item);
   useEffect(() => {
@@ -170,13 +128,9 @@ function ItemPicture({ item, turned, scale }: { item: ItemId; turned: boolean; s
   );
 }
 
-/** Just below the stack; on the bag's right half it hangs leftward. */
-function ItemTooltip({ stack, bag }: { stack: BagItem; bag: Bag }) {
+export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cell; panelWidth: number }) {
   const info = itemInfo(stack);
-  const { cols, rows } = footprint(stack.item, stack.turned);
-  const side = stack.x + cols / 2 > bag.cols / 2
-    ? { right: (bag.cols - stack.x - cols) * CELL }
-    : { left: stack.x * CELL };
+  const side = at.x > panelWidth / 2 ? { right: panelWidth - at.x } : { left: at.x };
   return (
     <div
       id="bag-tooltip" role="tooltip" data-item={stack.item}
@@ -184,7 +138,7 @@ function ItemTooltip({ stack, bag }: { stack: BagItem; bag: Bag }) {
         "pointer-events-none absolute z-30 w-max max-w-60 rounded-sm border border-white/20 bg-night/95 px-3 py-2 "
         + "text-xs font-normal shadow-[0_8px_24px_#000a]"
       }
-      style={{ top: (stack.y + rows) * CELL + 4, ...side }}
+      style={{ top: at.y + 20, ...side }}
     >
       <div className="text-sm font-semibold">{info.name}</div>
       <div className="text-white/65 tabular-nums">Size {info.size}</div>

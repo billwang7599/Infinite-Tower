@@ -64,9 +64,9 @@ Decided by the user:
   what's still to build: [plan/spells.md](plan/spells.md).
 - The sword and the spellbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
   character starts with both equipped, swinging needs a sword and casting a spellbook. Dying still empties the bag,
-  and you respawn with a fresh equipped sword and spellbook. The bag screen shows the equipment on its left, a
-  cloth in the middle (a grid to sort things on for a while; what's left on it when the screen closes is lost),
-  then the bag. Not built yet: [plan/inventory.md](plan/inventory.md).
+  and you respawn with a fresh equipped sword and spellbook. Equipped things count toward the carry weight but take
+  no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for
+  a while; what's left on it when the screen closes is lost), then the bag.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -89,11 +89,13 @@ Decided by the user:
   drops are packed in where they fit and the rest is left behind.)
 - Dying is hardcore: the bag is emptied. Stats go back to their defaults, but they can't change yet, so for now
   nothing else is reset.
-- Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size).
+- Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
+  sword and the spellbook.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
   rest about 600 ms, a tooltip with its name, size, weight and what it does), selected (a click; the same item or
   empty space deselects) or dragged (past a few pixels: a ghost under the pointer, green where it fits and red
-  where it doesn't; dropped on a bad spot or outside the bag it goes back; dragging selects it). R or a right click
+  where it doesn't; dropped on a bad spot or outside the bag it goes back; dragging selects it), between the bag, the
+  cloth and the equipment slots alike. R or a right click
   turns the dragged item; with nothing dragged, R turns the selected item and a right click the one under the
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
   bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. B and Esc close it, and you
@@ -167,7 +169,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
 - Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, and the
   smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent";
-  the cloth's size, hands and the spellbook's 4 pages in [plan/inventory.md](plan/inventory.md).
+  the spellbook's 4 pages in [plan/inventory.md](plan/inventory.md).
+- Equipment: the sword is 1 x 3 and weighs 3, the spellbook 2 x 2 and 1.5 (with both in hand a full bag is just
+  over the carry limit). Either hand takes either; the sword starts in the right and the book in the left;
+  dragging one hand onto the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand
+  means no swings, stabs or blocks (you block with the blade); no spellbook, no casting. Head, body, legs and boots
+  stay empty (no armour yet). Saves from before equipment get the starting sword and spellbook in hand.
+- The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
+  server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
+  and on disconnect; it's never saved. Things on it can be eaten from there. Nothing is moved mid-fight (the bag
+  screen doesn't open in the arena yet).
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
   made on the first visit before the server sends a level, then locked: the server ignores a second one. It's

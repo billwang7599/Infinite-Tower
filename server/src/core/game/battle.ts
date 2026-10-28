@@ -1,6 +1,6 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, type Bag, type Entity, type ItemCounts, type ItemId, type Vitals,
+  addItem, bagCounts, holds, starterEquipment, type Bag, type Entity, type ItemCounts, type ItemId, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
@@ -25,10 +25,13 @@ export interface Battle {
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 export function startBattle(session: GameSession, source: Entity | null, enemyId: EnemyId): void {
+  session.closeBag();
   const { overworld, vitals } = session;
+  const { equipment } = session.gear;
+  const wields = { sword: holds(equipment, "sword"), spellbook: holds(equipment, "spellbook") };
   const setup: FightSetup = {
     arena: overworld.level.arena,
-    players: [{ at: PLAYER_START, vitals, stats: session.stats, burden: session.burden }],
+    players: [{ at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, wields }],
     // Its random numbers' seed (a swordsman's swings) is the server's pick, so a client can't choose it.
     enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
@@ -75,9 +78,9 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals)
     // A winner is standing (a teammate's win, later, could leave them down).
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    // Dying is hardcore: everything carried is gone. You wake up back at the start, rested.
+    // Dying is hardcore: everything carried is gone. You wake up at the start, rested, with a fresh sword and book.
     lost = bagCounts(session.bag);
-    session.bag = { ...session.bag, items: [] };
+    session.gear = { ...session.gear, bag: { ...session.bag, items: [] }, equipment: starterEquipment() };
     overworld.place(overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
@@ -85,6 +88,6 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals)
   session.save();
   session.link.send({
     t: "battleResult", won, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
-    loot, leftBehind: packed.left, lost, bag: session.bag,
+    loot, leftBehind: packed.left, lost, gear: session.gear,
   });
 }
