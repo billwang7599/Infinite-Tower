@@ -5,14 +5,12 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  moveItem as moveInBag, type Cell, type Character, type Look, type ServerMsgOf,
+  moveItem as moveInBag, type Cell, type Character, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
 import { frameSeconds } from "../core/time.js";
-import { BATTLE_FRAMES, playerFrames } from "../gfx/characters.js";
-import type { Pose, SwordPose } from "../gfx/look/battle.js";
-import { CHIBI_FACINGS } from "../gfx/look/look.js";
+import { PlayerLook } from "../gfx/characters.js";
 import { redrawSprite } from "../gfx/sprites.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Connection, Joined } from "../net/connection.js";
@@ -58,6 +56,9 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   let encounter: ServerMsgOf<"encounter"> | null = null;
   /** Held while the player is still in the arena: applied when they leave it. */
   let result: ServerMsgOf<"battleResult"> | null = null;
+  const playerLook = new PlayerLook(
+    { chibi: overworld.view.materials.player, battle: battle.ctx.materials.player }, redrawSprite,
+  );
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
@@ -82,6 +83,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     const to = net;
     if (!to) return;
     result = null;
+    playerLook.finish();
     battle.start(msg, (m) => to.send(m));
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
     say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
@@ -102,7 +104,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   /** No character yet: the creation screen opens (it closes itself), and the server holds the level back. */
   const applyCharacter = (character: Character | null) => {
     ui.overworld.set({ character });
-    if (character) applyLook(battle, overworld, character.look);
+    if (character) playerLook.wear(character.look);
     else ui.creation.set({ open: true });
   };
 
@@ -210,12 +212,3 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   };
 }
 
-/** Paints the player's sprites, overworld and arena, in their look. */
-function applyLook(battle: Battle, overworld: Overworld, look: Look): void {
-  const frames = playerFrames(look);
-  const arenaSprites = battle.ctx.materials.player;
-  for (const pose of Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]) {
-    arenaSprites[pose].forEach((material, i) => redrawSprite(material, frames.battle[pose][i]!));
-  }
-  for (const facing of CHIBI_FACINGS) redrawSprite(overworld.view.materials.player[facing], frames.chibi[facing]);
-}

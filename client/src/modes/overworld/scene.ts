@@ -3,10 +3,10 @@ import {
   Camera, Color4, FreeCamera, MeshBuilder, Scene, Vector3, type AbstractEngine, type Mesh, type StandardMaterial,
   type TransformNode,
 } from "@babylonjs/core";
-import { DEFAULT_LOOK, type LevelLayout } from "@infinite-tower/shared";
-import { drawAlert, drawBoar, drawKobold, playerFrames } from "../../gfx/characters.js";
+import type { LevelLayout } from "@infinite-tower/shared";
+import { drawAlert, drawBoar, drawKobold } from "../../gfx/characters.js";
 import type { ChibiFacing } from "../../gfx/look/look.js";
-import { pixelMaterial, spriteMaterial, type SpriteDraw } from "../../gfx/sprites.js";
+import { pixelMaterial, spriteMaterial } from "../../gfx/sprites.js";
 import { tuftTexture } from "../../gfx/textures.js";
 
 export interface OverworldView {
@@ -56,7 +56,7 @@ export function createOverworldScene(engine: AbstractEngine): OverworldView {
     scene, camera, level: null, levelRoot: null,
     materials: {
       tuft: pixelMaterial(scene, "overworld-tuft", tuftTexture(scene), { unlit: true }),
-      player: chibiMaterials(scene, playerFrames(DEFAULT_LOOK).chibi),
+      player: chibiMaterials(scene),
       boar: spriteMaterial(scene, "overworld-boar", drawBoar),
       kobold: spriteMaterial(scene, "overworld-kobold", drawKobold),
       alert: spriteMaterial(scene, "overworld-alert", drawAlert),
@@ -64,9 +64,7 @@ export function createOverworldScene(engine: AbstractEngine): OverworldView {
   };
 }
 
-function chibiMaterials(
-  scene: Scene, frames: Record<ChibiFacing, SpriteDraw>,
-): Record<ChibiFacing, StandardMaterial> {
-  const material = (facing: ChibiFacing) => spriteMaterial(scene, `overworld-player-${facing}`, frames[facing]);
+function chibiMaterials(scene: Scene): Record<ChibiFacing, StandardMaterial> {
+  const material = (facing: ChibiFacing) => spriteMaterial(scene, `overworld-player-${facing}`, () => {});
   return { front: material("front"), back: material("back"), side: material("side") };
 }
