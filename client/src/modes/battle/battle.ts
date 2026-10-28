@@ -31,7 +31,7 @@ import { FightSync } from "./sync.js";
 import { addImpactShake, cameraSystem } from "./systems/camera.js";
 import { hudSystem } from "./systems/hud.js";
 import { lockMarkerSystem } from "./lockMarker.js";
-import { createSpellEffects } from "./systems/spells.js";
+import { createSpellEffects } from "./spells/spells.js";
 
 const HOTBAR = ["spell1", "spell2", "spell3", "spell4"] as const;
 

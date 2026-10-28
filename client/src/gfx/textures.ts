@@ -113,3 +113,30 @@ export function tuftTexture(scene: Scene): DynamicTexture {
   tex.hasAlpha = true;
   return tex;
 }
+
+export function glowTexture(scene: Scene): DynamicTexture {
+  const size = 64;
+  return drawnTexture(scene, "glow", { width: size, alpha: true }, (ctx) => {
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.25, "rgba(255,255,255,0.7)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  });
+}
+
+export function puffTexture(scene: Scene): DynamicTexture {
+  const size = 64;
+  return drawnTexture(scene, "puff", { width: size, alpha: true }, (ctx) => {
+    const rand = seededRandom(7);
+    for (let i = 0; i < 9; i++) {
+      const x = size / 2 + (rand() - 0.5) * 24, y = size / 2 + (rand() - 0.5) * 24, r = 10 + rand() * 12;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(255,255,255,0.45)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, size, size);
+    }
+  });
+}
