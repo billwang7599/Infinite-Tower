@@ -17,6 +17,9 @@ export interface Gear {
   equipment: Equipment;
 }
 
+/** What a player carries into a fight: the cloth stays behind. */
+export type Carried = Omit<Gear, "cloth">;
+
 export type GridName = "bag" | "cloth";
 export type Spot = { in: GridName; x: number; y: number } | { in: "slot"; slot: Slot };
 export type GridSpot = Extract<Spot, { in: GridName }>;

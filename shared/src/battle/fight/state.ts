@@ -12,6 +12,7 @@ import {
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
+import { wieldsOf } from "./setup.js";
 
 interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max">; statuses: StatusData }
 
@@ -112,7 +113,9 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   fight.players.forEach((e, i) => {
     const s = snap.players[i]!;
     place(e, s);
-    Object.assign(world.require(e, Player), s.player, { actionDir: { ...s.player.actionDir } });
+    Object.assign(world.require(e, Player), s.player, {
+      actionDir: { ...s.player.actionDir }, wields: wieldsOf(s.player.gear.equipment),
+    });
     Object.assign(world.require(e, PlayerInput), copyInput(s.input));
     Object.assign(world.require(e, Stamina), s.stamina);
   });

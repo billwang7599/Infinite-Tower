@@ -4,16 +4,17 @@ import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
-import type { Hand } from "../items/gear.js";
+import type { Carried, Hand } from "../items/gear.js";
 import type { Reaction, Status } from "../spells/effects.js";
 import type { Spell, Spellbook } from "../spells/spell.js";
 import type { PageWrite } from "./input.js";
 
 /**
  * "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun).
- * "write": writing a page, in a chant.
+ * "write": writing a page, from the chant or the bag. "bag": the bag screen open.
  */
-export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam";
+export type PlayerAction =
+  "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag";
 
 export interface PlayerData {
   grounded: boolean;
@@ -25,8 +26,9 @@ export interface PlayerData {
   dodgeHeld: boolean;
   castHeld: boolean;
   writeHeld: boolean;
-  /** Broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
-  chantBroken: boolean;
+  gearHeld: boolean;
+  /** The chant or the bag broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
+  brokenOff: boolean;
   /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or spell pressed. */
   jumpBuffer: number;
   attackBuffer: number;
@@ -52,6 +54,7 @@ export interface PlayerData {
   momentum: number;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
+  gear: Carried;
   wields: { sword: Hand | null; spellbook: Hand | null };
 }
 export const Player = defineComponent<PlayerData>("Player");

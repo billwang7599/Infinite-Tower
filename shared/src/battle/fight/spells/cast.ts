@@ -36,7 +36,8 @@ export function spellSystem(ctx: FightContext): System {
       const { writing } = player;
       if (player.action === "write" && writing && stepsOf(player.actionTime) >= stepsOf(SAVE_IN_FIGHT_TIME)) {
         player.book = player.book.map((page, i) => (i === writing.page ? writing.spell : page));
-        Object.assign(player, { action: "chant", actionTime: 0, writing: null });
+        const back = world.require(e, PlayerInput).chant ? "chant" : "bag";
+        Object.assign(player, { action: back, actionTime: 0, writing: null });
         ctx.events.push({ type: "pageWritten", player: e, page: writing.page });
       }
       const spell = player.casting;

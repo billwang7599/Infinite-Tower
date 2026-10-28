@@ -61,8 +61,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    actors, rolls encounters and sends `state`
    20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
-   setup (arena, enemy, your HP / stamina, stats, burden, whether a sword and a spellbook are in hand, and its
-   pages). The client
+   setup (arena, enemy, your HP / stamina, stats, burden, the bag and what's worn (so whether a sword and a
+   spellbook are in hand), and its pages). The client
    flashes into battle mode, builds the same
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
@@ -117,7 +117,8 @@ main.ts
   things listen by action name alone (`actions.on`, `useAction` in the UI), so an action name means one thing
   everywhere; the overworld's tick and the fight's steps call `actions.poll()` once each, for what's held and what was
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
-  only while their layer is on top (the chant's lets through only the dodge and the walk keys, for the dodge's way);
+  only while their layer is on top (the chant's, and the arena's bag's, let through only the dodge and the walk keys,
+  for the dodge's way; the arena's bag takes its R and Enter from the overworld's keys, first, then the arena's);
   the arena camera reads the fight's last poll. Actions also owns the mouse: the
   pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
   movement each frame with `actions.lookDelta()` (it turns only while the right button, `dragCamera`, is held);
@@ -196,7 +197,11 @@ main.ts
   player still; a spell on none of the player's pages (`book`, from the setup) starts only from it. Writing a page
   (`write`, from the chant) is the "write" action: after `SAVE_IN_FIGHT_TIME` the fight's `book` has it (a
   `pageWritten` event), and the server saves that book with the result. A stun breaks either off, and so does a
-  dodge; it reopens only once the input is let go (`chantBroken`), and the client closes its popup when it sees that.
+  dodge; it reopens only once the input is let go (`brokenOff`), and the client closes its popup when it sees that.
+  The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
+  still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
+  the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
+  equipment; no cloth). `wields` follows the equipment, and the server settles the battle with the fight's gear.
 - **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's animation system (client) reads the
   state and poses the model.
@@ -267,10 +272,10 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `character` | made your character (ignored if you have one) |
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`) |
-| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once) |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost |
 | `saveSpell {page, spell}` | write a spell on a page of the spellbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words), and the last step run |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -468,7 +473,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      load / hash, leave(player), outcome, events, dispose; the enemy motor and player ground
                      systems), setup.ts (FightSetup, the one-on-one
                      starting spots, spawning players and enemies: components + a collider, one component per
-                     attack in the def), context.ts (FightContext, FightOutcome, FightEvent), combat.ts (addHit,
+                     attack in the def; wieldsOf), context.ts (FightContext, FightOutcome, FightEvent),
+                     combat.ts (addHit,
                      hits in an arc or a ray, blocking, knockback, the hit timers, endCombo), outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
@@ -477,8 +483,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, the chant
-                       (held still; a spell on no page cast only from it) and writing a page, stamina;
-                       controlPlayer; no sword in hand, no attacks or block; no spellbook, no casts or chant)
+                       (held still; a spell on no page cast only from it), the bag (held still; gear moved) and
+                       writing a page, stamina; controlPlayer; no sword in hand, no attacks or block; no
+                       spellbook, no casts or chant)
       spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn and their augments,
                        the spell objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
@@ -526,10 +533,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over), session.ts (GameSession, one player: their save, their overworld, the battle
                        they're in; a method per thing a player can ask; disconnect: mid-fight, leaving it),
-                       battle.ts (start a battle in a BattleRoom with what's in hand, settle its end for the player:
-                       wins, loot packed into the bag, a loss emptying it and handing a fresh sword and spellbook,
-                       vitals), snapshot.ts (the state message: only actors near
-                       your screen), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
+                       battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
+                       the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
+                       and handing a fresh sword and spellbook, vitals), snapshot.ts (the state message: only
+                       actors near your screen), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
@@ -632,7 +639,8 @@ client/          Browser game: Babylon rendering, input, React UI.
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, spells:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant` and `spellbookScreen` (the UI writes them too, the game watches them; `whoHasTheKeys`:
+                       `chant`, `battleBag` and `spellbookScreen` (the UI writes them too, the game watches them;
+                       `whoHasTheKeys`:
                        the layer stack, the top one gets the keys), and UiActions (what the UI asks of the game:
                        signIn, logOut, play, rest, useItem, moveItem, castSpell, saveSpell, saveCharacter,
                        returnToTitle). No React.
@@ -645,7 +653,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
                        canvas: the portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and rest keys),
-                       BattleHud.tsx, HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
+                       BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, no eating; the book over
+                       it), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
                        the cloth and the bag, wires the mouse and the bag keys, and shows the selected item, the
                        dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag or the cloth) and its

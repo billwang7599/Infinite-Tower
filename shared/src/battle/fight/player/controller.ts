@@ -2,6 +2,7 @@ import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
+import { emptyCloth, moveGear } from "../../../items/gear.js";
 import {
   ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
 } from "../../components.js";
@@ -16,12 +17,13 @@ import {
 } from "../../sword.js";
 import { addHit, breakOff, endCombo } from "../combat.js";
 import { imbueOf } from "../spells/cast.js";
+import { wieldsOf } from "../setup.js";
 import { statusMoveFactor } from "../spells/statuses.js";
 
 /** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   world.remove(e, ActiveHit);
-  if (player.action === "chant" || player.action === "write") player.chantBroken = true;
+  if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
   player.casting = null;
   player.writing = null;
   player.action = action;
@@ -127,11 +129,13 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     player.castBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.castBuffer = Math.max(0, player.castBuffer - dt);
   const writePressed = input.write !== null && !player.writeHeld;
+  const gearPressed = input.gear !== null && !player.gearHeld;
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
   player.castHeld = input.cast !== null;
   player.writeHeld = input.write !== null;
-  if (!input.chant) player.chantBroken = false;
+  player.gearHeld = input.gear !== null;
+  if (!input.chant && !input.bag) player.brokenOff = false;
   if (player.action !== "attack" && player.comboTime > 0) {
     player.comboTime -= dt;
     if (player.comboTime <= 0) endCombo(player);
@@ -156,6 +160,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? MAGIC.self.air.dodgeCostFactor : 1);
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
     const chanting = player.action === "chant" || player.action === "write";
+    const inBag = player.action === "bag";
     let queuedCast = player.castQueued;
     if (queuedCast !== null && player.action !== "chant" && !onPage(player.book, queuedCast)) {
       player.castQueued = queuedCast = null;
@@ -163,7 +168,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
     }
     const write = input.write;
     // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
-    const dodgeable = free || chanting || player.action === "cast" || player.action === "beam";
+    const dodgeable = free || chanting || inBag || player.action === "cast" || player.action === "beam";
     if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
@@ -179,15 +184,20 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       player.casting = queuedCast;
       player.castBuffer = 0;
       endCombo(player);
-    } else if (player.action === "chant" && writePressed && write && write.page < player.book.length) {
+    } else if ((player.action === "chant" || (inBag && spellbook)) && writePressed && write
+      && write.page < player.book.length) {
       player.action = "write";
       player.actionTime = 0;
       player.writing = write;
-    } else if (chanting && !input.chant) {
+    } else if ((player.action === "chant" && !input.chant) || (inBag && !input.bag)
+      || (player.action === "write" && !input.chant && !input.bag)) {
       player.action = "none";
       player.writing = null;
-    } else if (free && spellbook && input.chant && !player.chantBroken) {
+    } else if (free && spellbook && input.chant && !player.brokenOff) {
       startAction(world, e, player, "chant", input.aimX, input.aimZ);
+      endCombo(player);
+    } else if (free && input.bag && !player.brokenOff) {
+      startAction(world, e, player, "bag", input.aimX, input.aimZ);
       endCombo(player);
     } else if (free && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
       startAttack(world, e, player, input, player.queued);
@@ -242,6 +252,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
         break;
       case "chant":
       case "write":
+      case "bag":
         v.x = approach(v.x, 0, PLAYER.accel * dt);
         v.z = approach(v.z, 0, PLAYER.accel * dt);
         break;
@@ -250,11 +261,20 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
         break;
     }
     player.actionTime += dt;
+
+    const move = input.gear;
+    if (gearPressed && move && player.action === "bag" && move.from.in !== "cloth" && move.to.in !== "cloth") {
+      const moved = moveGear({ ...player.gear, cloth: emptyCloth() }, move.from, move.to, move.turned);
+      if (moved) {
+        player.gear = { bag: moved.bag, equipment: moved.equipment };
+        player.wields = wieldsOf(moved.equipment);
+      }
+    }
   }
   player.jumpHeld = input.jump;
 
-  // Stamina: paused during actions (blocking too, not chanting), regenerates after a short delay.
-  if (player.action !== "none" && player.action !== "chant" && player.action !== "write") {
+  // Stamina: paused during actions (blocking too, not chanting or in the bag), regenerates after a short delay.
+  if (player.action !== "none" && player.action !== "chant" && player.action !== "write" && player.action !== "bag") {
     stamina.regenDelay = PLAYER.staminaRegenDelay;
   }
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;

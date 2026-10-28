@@ -11,7 +11,7 @@ const FRAME_PX = 42;
 
 export const CHARACTER_PANEL_WIDTH_PX = 288;
 export const inventoryPanelWidthPx = ({ bag, cloth }: Gear): number =>
-  EQUIPMENT_WIDTH_PX + (cloth.cols + bag.cols) * CELL + 2 * INVENTORY_GAP_PX + FRAME_PX;
+  EQUIPMENT_WIDTH_PX + (cloth.cols + bag.cols) * CELL + (cloth.cols > 0 ? 2 : 1) * INVENTORY_GAP_PX + FRAME_PX;
 
 /** The side panels' width on screen (PanelFrame, at the top right). */
 export const panelWidthPx = (panel: OverworldPanel, gear: Gear): number =>

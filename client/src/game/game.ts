@@ -5,7 +5,7 @@
  */
 import type { AbstractEngine } from "@babylonjs/core";
 import {
-  bagCounts, moveGear, type Character, type GridSpot, type Hand, type ServerMsgOf, type Spell, type Spot,
+  bagCounts, heldIn, moveGear, type Character, type GridSpot, type Hand, type ServerMsgOf, type Spell, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -74,10 +74,13 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
   ui.overworldPanel.subscribe(updateInput);
   ui.chant.subscribe(updateInput);
   ui.spellbookScreen.subscribe(updateInput);
-  // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't.
+  ui.battleBag.subscribe(updateInput);
+  // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
+  // breaks the bag off the same way, and a decided fight closes it.
   ui.battle.subscribe(() => {
-    const { chantBroken, stunned } = ui.battle.get();
-    if (chantBroken && ui.chant.get().open) ui.chant.set(stunned ? NO_CHANT : { open: false });
+    const { brokenOff, stunned, result } = ui.battle.get();
+    if (brokenOff && ui.chant.get().open) ui.chant.set(stunned ? NO_CHANT : { open: false });
+    if ((brokenOff || result !== "fighting") && ui.battleBag.get().open) ui.closeBattleBag();
   });
   let bagOpen = false;
   ui.overworldPanel.subscribe(() => {
@@ -100,6 +103,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     mode = next;
     // Panels are the overworld's: a fight, or leaving, closes them.
     if (next !== "overworld") ui.closeOverworldPanel();
+    ui.closeBattleBag();
     ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
     updateInput();
@@ -109,7 +113,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
     const to = net;
     if (!to) return;
     result = null;
-    playerLook.hold(msg.setup.players[msg.seat]!.wields.sword);
+    playerLook.hold(heldIn(msg.setup.players[msg.seat]!.gear.equipment, "sword"));
     playerLook.finish();
     battle.start(msg, (m) => to.send(m));
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
@@ -171,6 +175,7 @@ export function createGame({ engine, actions, ui, settings, battle, overworld }:
       if (mode === "overworld" && !transition) net?.send({ t: "useItem", at });
     },
     moveItem(from, to, turned) {
+      if (mode === "battle" && !transition) battle.ctx.gearMoves.push({ from, to, turned });
       if (mode !== "overworld" || transition || !net) return;
       const moved = moveGear(ui.overworld.get().gear, from, to, turned);
       if (!moved) return;

@@ -155,7 +155,7 @@ function hitPlayer(
     const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
   }
-  if (health.hitstun > 0 && ["cast", "chant", "write", "beam"].includes(player.action)) {
+  if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag"].includes(player.action)) {
     breakOff(player);
   }
   endCombo(player);
@@ -165,7 +165,7 @@ function hitPlayer(
 }
 
 export function breakOff(player: PlayerData): void {
-  if (player.action === "chant" || player.action === "write") player.chantBroken = true;
+  if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
   player.action = "none";
   player.casting = null;
   player.writing = null;

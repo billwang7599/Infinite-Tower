@@ -196,8 +196,14 @@ them; treat them as changeable, and still ask before deciding new ones):
   stay empty (no armour yet). Saves from before equipment get the starting sword and spellbook in hand.
 - The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
   server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
-  and on disconnect; it's never saved. Things on it can be eaten from there. Nothing is moved mid-fight (the bag
-  screen doesn't open in the arena yet).
+  and on disconnect; it's never saved. Things on it can be eaten from there.
+- The bag in a fight: B opens the bag screen in the arena too, without the cloth; the fight goes on, it holds you
+  still while the bag is open (stamina still recovers), and B or Esc close it. Things move between the bag and the
+  equipment slots, and within the bag, at once, as the shared fight's inputs (`bag` held, `gear` pressed), so the
+  server runs and checks them with the same gear rules; what the fight's bag and slots end up as is its result. A
+  stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Nothing is eaten mid-fight.
+  The spellbook opens from it (book in hand) and writes a page in the fight's 2 s; with the book open over the bag,
+  no dodge gets through.
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
   made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
@@ -209,8 +215,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Items: boar meat heals 35 HP (eaten from the bag screen, overworld only, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
-  bag is empty. Moving things around the bag only works on the overworld (not mid-fight), and the server checks
-  every move with the shared bag rules.
+  bag is empty. The server checks every move with the shared bag rules (mid-fight, the fight does).
 - The view is 16:9 at most (23 x 13 overworld tiles). Wider windows get bars on the sides; taller ones see a little
   less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
   cheatable, so it always assumes the full 16:9).

@@ -50,6 +50,10 @@ export function App({ ui, settings, input, actions }: AppProps) {
             <BattleHud
               hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} spells={ui.spells}
               chant={ui.chant} input={input} castSpell={actions.castSpell} saveSpell={actions.saveSpell}
+              bag={{
+                open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
+                settingsScreen: ui.settingsScreen, spellbookScreen: ui.spellbookScreen, moveItem: actions.moveItem,
+              }}
             />
           )}
         </>

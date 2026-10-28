@@ -28,6 +28,7 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
 
   const battle = createBattle({
     engine, world, scene: battleScene, actions, settings, hud: ui.battle, spells: ui.spells, chant: ui.chant,
+    bag: ui.battleBag,
     onLeave: () => game.leaveBattle(),
     onSwordHand: (hand) => game.holdSword(hand),
   });

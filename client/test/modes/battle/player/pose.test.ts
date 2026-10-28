@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, CHAIN, liveStep, PARRY, PLAYER, reverseOf, SWING_DIRS, type AttackKind, type PlayerAction,
-  type PlayerData, type SwingDir,
+  ATTACK_KINDS, CHAIN, emptyBag, liveStep, PARRY, PLAYER, reverseOf, starterEquipment, SWING_DIRS, type AttackKind,
+  type PlayerAction, type PlayerData, type SwingDir,
 } from "@infinite-tower/shared";
 import {
   SCREEN_DIR, spritePose, thrustPose, trailPose, type TrailPose,
@@ -17,8 +17,9 @@ function attackAt(attack: AttackKind, t: number, aimYaw = 0, action: PlayerActio
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, castHeld: false,
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, casting: null,
-    writeHeld: false, chantBroken: false, writing: null, book: [],
-    burden: "light", wields: { sword: "rightHand", spellbook: "leftHand" },
+    writeHeld: false, gearHeld: false, brokenOff: false, writing: null, book: [],
+    burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
+    wields: { sword: "rightHand", spellbook: "leftHand" },
     action, actionTime: t, actionDir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) },
     attack, startup: STARTUP, power: 1, combo: null, comboTime: 0, momentum: 0,
   };

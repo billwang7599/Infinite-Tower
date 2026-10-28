@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSpellbook, castTime, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SpellObject, type PlayerInputData,
-  type Spell, type Vec3,
+  blankSpellbook, castTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SpellObject, starterEquipment,
+  type PlayerInputData, type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -56,7 +56,9 @@ describe("chanting", () => {
 
   test("no chant without the spellbook in hand", () => {
     const fight = new Fight({
-      arena: ARENA, players: [player(at(0, -4), { wields: { sword: "rightHand", spellbook: null } })],
+      arena: ARENA, players: [player(at(0, -4), {
+        gear: { bag: emptyBag(), equipment: { ...starterEquipment(), leftHand: null } },
+      })],
       enemies: [enemy(STATUE, at(0, 6))],
     });
     run(fight, 0.3);

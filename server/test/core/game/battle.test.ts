@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   blankSpellbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  Player, SAVE_IN_FIGHT_TIME, STARTER_SWORD, starterEquipment, type Bag, type Equipment, type PlayerInputData,
-  type Spell, type Word,
+  Player, SAVE_IN_FIGHT_TIME, STARTER_SWORD, starterEquipment, type Bag, type Equipment, type GearMove,
+  type PlayerInputData, type Spell, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -42,6 +42,8 @@ const fightOf = (session: GameSession) => {
   if (!room) throw new Error("not in a battle");
   return room.fight;
 };
+
+const action = (session: GameSession) => fightOf(session).world.require(fightOf(session).players[0]!, Player);
 
 /** What the player's client would do: send `next()` for each step (numbered), while the server ticks. */
 function play(session: GameSession, next: () => PlayerInputData, maxSteps = MAX_TEST_STEPS): void {
@@ -95,16 +97,15 @@ describe("starting a battle", () => {
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
-      wields: { sword: "rightHand", spellbook: "leftHand" },
-      book: blankSpellbook(),
+      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook(),
     }]);
   });
 
-  test("says what the player has in hand: no sword or spellbook there, no swinging or casting", () => {
+  test("gives the fight the player's bag and what they have in hand (no sword there, no swinging)", () => {
     const bookOnly: Equipment = { ...starterEquipment(), rightHand: null };
-    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly } });
+    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED } });
     session.debugEncounter();
-    assert.deepEqual(link.last("encounter").setup.players[0]!.wields, { sword: null, spellbook: "leftHand" });
+    assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, equipment: bookOnly });
   });
 
   test("says how weighed down the player comes in (the fight applies it)", () => {
@@ -264,7 +265,6 @@ describe("the server runs the fight", () => {
 describe("casting spells", () => {
   const NOVA: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
   const CHANT = { ...IDLE_INPUT, chant: true };
-  const action = (session: GameSession) => fightOf(session).world.require(fightOf(session).players[0]!, Player);
 
   function casts(saved: Partial<PlayerSave>, chanted: boolean): boolean {
     const { session } = startSession({ dev: true, saved });
@@ -321,6 +321,58 @@ describe("casting spells", () => {
   test("a page with a word they don't know isn't written", () => {
     const session = writing(["nova"]);
     assert.deepEqual(action(session).book, blankSpellbook());
+  });
+});
+
+describe("the bag in a fight", () => {
+  const BAG = { ...IDLE_INPUT, bag: true };
+  const RIGHT_HAND = { in: "slot", slot: "rightHand" } as const;
+  const SWORD_AWAY: GearMove = { from: RIGHT_HAND, to: { in: "bag", x: 5, y: 0 }, turned: false };
+  const SWORD_BACK: GearMove = { from: { in: "bag", x: 5, y: 0 }, to: RIGHT_HAND, turned: false };
+  const moveInBag = (session: GameSession, gear: GearMove) => {
+    play(session, () => BAG, 1);
+    play(session, () => ({ ...BAG, gear }), 1);
+    play(session, () => IDLE_INPUT, 1);
+  };
+
+  test("the server runs the player's gear moves: the sword put away can't swing", () => {
+    const { session } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 2);
+    moveInBag(session, SWORD_AWAY);
+    assert.equal(action(session).gear.equipment.rightHand, null);
+    play(session, () => ({ ...IDLE_INPUT, attack: "lr" }), 3);
+    assert.notEqual(action(session).action, "attack");
+    moveInBag(session, SWORD_BACK);
+    play(session, () => ({ ...IDLE_INPUT, attack: "lr" }), 3);
+    assert.equal(action(session).action, "attack");
+  });
+
+  test("a win keeps the gear as the fight left it, loot packed around it, and saves it", () => {
+    const { session, link, saves } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 2);
+    moveInBag(session, { from: { in: "slot", slot: "leftHand" }, to: { in: "bag", x: 4, y: 0 }, turned: false });
+    win(session);
+    const { gear } = link.last("battleResult");
+    assert.equal(gear.equipment.leftHand, null);
+    assert.ok(gear.bag.items.some((s) => s.item === "spellbook" && s.x === 4 && s.y === 0));
+    assert.deepEqual(saves.at(-1)?.equipment, gear.equipment);
+    assert.deepEqual(saves.at(-1)?.bag, gear.bag);
+  });
+
+  test("a loss empties the bag as the fight left it: a sword put away there is lost too", () => {
+    const { session, link } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 2);
+    moveInBag(session, SWORD_AWAY);
+    lose(session);
+    assert.deepEqual(link.last("battleResult").lost, { "boar-meat": 2, "boar-tusk": 1, sword: 1 });
+    assert.deepEqual(link.last("battleResult").gear.equipment, starterEquipment());
+  });
+
+  test("moveItem messages are still refused mid-fight", () => {
+    const { session } = inBattle(CARRIED);
+    session.moveItem({ in: "slot", slot: "rightHand" }, { in: "bag", x: 5, y: 0 }, false);
+    assert.equal(action(session).gear.equipment.rightHand, "sword");
+    assert.equal(session.gear.equipment.rightHand, "sword");
   });
 });
 

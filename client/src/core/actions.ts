@@ -13,6 +13,9 @@ const BAG_ACTIONS = ["inventory", "character", "turnItem", "useItem"] as const s
 const CHANT_ACTIONS = [
   "chant", "dodge", "forward", "back", "left", "right",
 ] as const satisfies readonly Action<"general" | "battle">[];
+const BATTLE_BAG_ACTIONS = [
+  "inventory", "turnItem", "useItem", "dodge", "forward", "back", "left", "right",
+] as const satisfies readonly Action<Group>[];
 
 interface LayerActions {
   title: MenuAction<"title">;
@@ -20,6 +23,7 @@ interface LayerActions {
   settings: "menu";
   bag: MenuAction<"bag"> | (typeof BAG_ACTIONS)[number];
   chant: MenuAction<"chant"> | (typeof CHANT_ACTIONS)[number];
+  battleBag: MenuAction<"battleBag"> | (typeof BATTLE_BAG_ACTIONS)[number];
   spellbook: MenuAction<"spellbook">;
   overworld: OverworldAction;
   battle: Action<"general" | "battle">;
@@ -48,17 +52,20 @@ export interface Polled {
 // Returning false leaves the key to the page.
 type Handler = (repeat: boolean) => boolean | void;
 
-const GROUP_OF: Partial<Record<Layer, Group>> = {
-  settings: "general", bag: "overworld", overworld: "overworld", battle: "battle", chant: "battle",
+// A key on actions in two groups (R: turn an item, or chant) means the first group's that the layer keeps.
+const GROUPS_OF: Partial<Record<Layer, readonly Group[]>> = {
+  settings: ["general"], bag: ["overworld"], overworld: ["overworld"], battle: ["battle"], chant: ["battle"],
+  battleBag: ["overworld", "battle"],
 };
 const KEPT: Partial<Record<Layer, readonly ActionName[]>> = {
-  settings: ["menu"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS,
+  settings: ["menu"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS, battleBag: BATTLE_BAG_ACTIONS,
 };
 const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as Layer, new Map(
   Object.entries<readonly string[]>(actions).flatMap(([action, keys]) => keys.map((k) => [k, action as ActionName])),
 )]));
-// Only these read held keys and taps: under a screen or the open bag you stand still. The fight holds a chanter still.
-const WORLD: readonly Layer[] = ["overworld", "battle", "chant"];
+// Only these read held keys and taps: under a screen or the overworld's bag you stand still. The fight holds a
+// chanter, and anyone in the bag, still.
+const WORLD: readonly Layer[] = ["overworld", "battle", "chant", "battleBag"];
 // Keys the browser would otherwise use in the world (scrolling, moving focus, Firefox's quick find).
 const SWALLOW = new Set([
   "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
@@ -157,10 +164,12 @@ export class Actions {
 
   private of(layer: Layer, key: string): ActionName | undefined {
     const fixed = FIXED.get(layer)?.get(key);
-    const group = GROUP_OF[layer];
-    if (fixed || !group) return fixed;
-    const action = this.actionOf(group, key) as ActionName | undefined;
-    return action && (KEPT[layer]?.includes(action) ?? true) ? action : undefined;
+    if (fixed) return fixed;
+    for (const group of GROUPS_OF[layer] ?? []) {
+      const action = this.actionOf(group, key) as ActionName | undefined;
+      if (action && (KEPT[layer]?.includes(action) ?? true)) return action;
+    }
+    return undefined;
   }
 
   private actionOf(group: Group, key: string): string | undefined {

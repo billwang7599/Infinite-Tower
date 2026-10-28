@@ -4,7 +4,8 @@
  * the server for.
  */
 import {
-  footprint, itemDef, moveGear, stackIn, type BagItem, type Cell, type Gear, type GridSpot, type ItemId, type Spot,
+  footprint, itemDef, moveGear, stackIn, type BagItem, type Cell, type Gear, type GearMove, type GridSpot, type ItemId,
+  type Spot,
 } from "@infinite-tower/shared";
 
 /** How far a press on an item moves before it's a drag rather than a click. */
@@ -41,13 +42,6 @@ export interface BagMouse {
   /** The button is down but hasn't moved far enough to drag: let go, it's a click. `stack` is the one pressed. */
   press: { at: Pointer; stack: Spot | null } | null;
   drag: Drag | null;
-}
-
-/** What to send the server (`moveItem`). */
-export interface Move {
-  from: Spot;
-  to: Spot;
-  turned: boolean;
 }
 
 export const NO_MOUSE: BagMouse = { pointer: null, hover: null, selected: null, press: null, drag: null };
@@ -108,7 +102,9 @@ export function pointerDown(m: BagMouse, gear: Gear, p: Pointer): BagMouse {
  * else back where it was; either way it stays selected. Ending a click, it selects the stack clicked, or deselects
  * (clicking the selected one again, or empty space).
  */
-export function pointerUp(m: BagMouse, gear: Gear, p: Pointer, nowMs: number): { mouse: BagMouse; move: Move | null } {
+export function pointerUp(
+  m: BagMouse, gear: Gear, p: Pointer, nowMs: number,
+): { mouse: BagMouse; move: GearMove | null } {
   const at = { ...m, pointer: p, press: null, drag: null };
   if (m.drag) {
     const to = landing({ ...m, pointer: p }, gear);
@@ -153,14 +149,14 @@ export const cancel = (m: BagMouse): BagMouse => (m.drag || m.press ? { ...m, dr
  * Turning the stack covering a grid spot where it lies: a move to the same top-left, turned the other way. null if
  * there's nothing there, it's worn or square (it would look the same), or turned it wouldn't fit.
  */
-export function turnInPlace(gear: Gear, spot: Spot): Move | null {
+export function turnInPlace(gear: Gear, spot: Spot): GearMove | null {
   const s = stackIn(gear, spot);
   if (!s || spot.in === "slot" || isSquare(s.item)) return null;
   const at = keyOf(spot, s);
   return moveGear(gear, at, at, !s.turned) ? { from: at, to: at, turned: !s.turned } : null;
 }
 
-type Turned = { mouse: BagMouse; move: Move | null };
+type Turned = { mouse: BagMouse; move: GearMove | null };
 
 /** The turn key: turns what's dragged (held by the same cell of it), or else the selected item in place. */
 export function turnKey(m: BagMouse, gear: Gear): Turned {

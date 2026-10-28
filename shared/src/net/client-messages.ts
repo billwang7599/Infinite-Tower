@@ -44,6 +44,12 @@ export const SpellSchema = z.object({
 
 const PageSchema = z.number().int().nonnegative().max(SPELLBOOK_PAGES - 1);
 
+const GridSpot = z.object({
+  in: z.enum(["bag", "cloth"]), x: z.number().int().nonnegative(), y: z.number().int().nonnegative(),
+});
+const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
+  z.ZodType<Spot>;
+
 const StepInputSchema = z.object({
   step: FightStep,
   moveX: z.number(),
@@ -58,6 +64,8 @@ const StepInputSchema = z.object({
   chant: z.boolean(),
   write: z.object({ page: PageSchema, spell: SpellSchema }).nullable(),
   locked: z.number().int().nonnegative().max(MAX_ENEMY_INDEX).nullable(),
+  bag: z.boolean(),
+  gear: z.object({ from: SpotSchema, to: SpotSchema, turned: z.boolean() }).nullable(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies
@@ -113,12 +121,6 @@ const CharacterMsg = z.object({
 }) satisfies z.ZodType<{ t: "character"; character: Character }>;
 
 const RestMsg = z.object({ t: z.literal("rest") });
-
-const GridSpot = z.object({
-  in: z.enum(["bag", "cloth"]), x: z.number().int().nonnegative(), y: z.number().int().nonnegative(),
-});
-const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
-  z.ZodType<Spot>;
 
 /** Overworld only. */
 const UseItemMsg = z.object({ t: z.literal("useItem"), at: GridSpot });

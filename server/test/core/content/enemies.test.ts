@@ -2,9 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSpellbook, Body, CHAIN, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, lettingGoAt, liveStep, Player, PLAYER,
-  reverseOf, SwordAttack,
-  type PlayerInputData,
+  blankSpellbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, lettingGoAt, liveStep, Player,
+  PLAYER, reverseOf, starterEquipment, SwordAttack, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -18,7 +17,7 @@ const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 const newFight = (seed: number) => new Fight({
   arena: { radius: 16 },
   players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
-    wields: { sword: "rightHand", spellbook: "leftHand" }, book: blankSpellbook() }],
+    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook() }],
   enemies: [{ def: KOBOLD, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
 });
 
