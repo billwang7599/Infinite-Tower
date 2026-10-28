@@ -1,14 +1,14 @@
 import type { KeyBindings } from "../../settings/bindings.js";
 import { keyName } from "../keyNames.js";
-import type { SpellsState } from "../state.js";
+import type { SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
-import { spellText } from "./chant.js";
+import { skillText } from "./chant.js";
 
-const PAGE_KEYS = ["spell1", "spell2", "spell3", "spell4"] as const;
+const PAGE_KEYS = ["skill1", "skill2", "skill3", "skill4"] as const;
 
-export function Hotbar({ spells, bindings }: { spells: Store<SpellsState>; bindings: KeyBindings }) {
-  const book = useStore(spells, (s) => s.book);
+export function Hotbar({ skills, bindings }: { skills: Store<SkillsState>; bindings: KeyBindings }) {
+  const book = useStore(skills, (s) => s.book);
   const keys = useStore(bindings, (s) => s.battle);
   return (
     <ol id="hotbar" className="absolute bottom-24 left-4 flex flex-col gap-1.5">
@@ -20,7 +20,7 @@ export function Hotbar({ spells, bindings }: { spells: Store<SpellsState>; bindi
           }`}
         >
           <span className="text-xs text-victory">{keyName(keys[PAGE_KEYS[page]!][0] ?? "")}</span>
-          <span className="line-clamp-2 text-[11px]/tight font-normal">{written ? spellText(written) : "—"}</span>
+          <span className="line-clamp-2 text-[11px]/tight font-normal">{written ? skillText(written) : "—"}</span>
         </li>
       ))}
     </ol>

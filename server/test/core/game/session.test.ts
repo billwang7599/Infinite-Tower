@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSpellbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE,
-  starterEquipment, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId, type Spell,
+  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE,
+  starterEquipment, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -239,7 +239,7 @@ describe("moveItem", () => {
 });
 
 describe("equipment", () => {
-  test("a new player has the sword and the spellbook in hand, and the welcome says so", () => {
+  test("a new player has the sword and the skillbook in hand, and the welcome says so", () => {
     const { session, link } = startSession();
     assert.deepEqual(session.gear.equipment, starterEquipment());
     assert.deepEqual(link.last("welcome")?.gear.equipment, starterEquipment());
@@ -365,51 +365,51 @@ describe("carry weight", () => {
   });
 });
 
-describe("the spellbook", () => {
-  const FIREBOLT: Spell = { segments: [{ form: "bolt", elements: ["fire"], augments: [] }] };
+describe("the skillbook", () => {
+  const FIREBOLT: Skill = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] };
   const knowing = () => startSession({ dev: true, saved: { knownWords: [...WORDS] } });
 
   test("the welcome has the words the player knows and the book's pages, blank for a new player", () => {
     const { link } = startSession({ saved: { knownWords: ["bolt", "fire"] } });
     const welcome = link.last("welcome");
     assert.deepEqual(welcome.knownWords, ["bolt", "fire"]);
-    assert.deepEqual(welcome.spellbook, blankSpellbook());
+    assert.deepEqual(welcome.skillbook, blankSkillbook());
   });
 
-  test("writing a spell on a page sends the book back and saves it soon after", (t) => {
+  test("writing a skill on a page sends the book back and saves it soon after", (t) => {
     t.mock.timers.enable({ apis: ["setTimeout"] });
     const { session, link, saves } = knowing();
-    session.saveSpell(2, FIREBOLT);
-    assert.deepEqual(link.last("spellbook").spellbook, [null, null, FIREBOLT, null]);
+    session.saveSkill(2, FIREBOLT);
+    assert.deepEqual(link.last("skillbook").skillbook, [null, null, FIREBOLT, null]);
     t.mock.timers.tick(5000);
-    assert.deepEqual(saves.at(-1)?.spellbook, [null, null, FIREBOLT, null]);
+    assert.deepEqual(saves.at(-1)?.skillbook, [null, null, FIREBOLT, null]);
   });
 
   test("a page can be written over", () => {
     const { session, link } = knowing();
-    const nova: Spell = { segments: [{ form: "nova", elements: ["water"], augments: [] }] };
-    session.saveSpell(0, FIREBOLT);
-    session.saveSpell(0, nova);
-    assert.deepEqual(link.last("spellbook").spellbook[0], nova);
+    const nova: Skill = { segments: [{ form: "nova", elements: ["water"], modifiers: [] }] };
+    session.saveSkill(0, FIREBOLT);
+    session.saveSkill(0, nova);
+    assert.deepEqual(link.last("skillbook").skillbook[0], nova);
   });
 
-  test("a spell with a word the player doesn't know isn't written: the book comes back as it was", () => {
+  test("a skill with a word the player doesn't know isn't written: the book comes back as it was", () => {
     const { session, link } = startSession({ saved: { knownWords: ["bolt"] } });
-    session.saveSpell(0, FIREBOLT);
-    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
+    session.saveSkill(0, FIREBOLT);
+    assert.deepEqual(link.last("skillbook").skillbook, blankSkillbook());
   });
 
-  test("nothing is written without the spellbook in hand", () => {
+  test("nothing is written without the skillbook in hand", () => {
     const { session, link } = startSession({ saved: { knownWords: [...WORDS], equipment: NOTHING_WORN } });
-    session.saveSpell(0, FIREBOLT);
-    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
+    session.saveSkill(0, FIREBOLT);
+    assert.deepEqual(link.last("skillbook").skillbook, blankSkillbook());
   });
 
   test("not by a message during a battle: in a fight, writing is the fight's", () => {
     const { session, link } = knowing();
     session.debugEncounter();
-    session.saveSpell(1, FIREBOLT);
-    assert.deepEqual(session.spellbook, blankSpellbook());
-    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
+    session.saveSkill(1, FIREBOLT);
+    assert.deepEqual(session.skillbook, blankSkillbook());
+    assert.deepEqual(link.last("skillbook").skillbook, blankSkillbook());
   });
 });

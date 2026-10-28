@@ -7,7 +7,7 @@
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import { Body, Enemy, Health, Player, SpellObject, Statuses } from "../components.js";
+import { Body, Enemy, Health, Player, SkillObject, Statuses } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { ArenaDef } from "../defs.js";
 import { PLAYER } from "../player.js";
@@ -22,8 +22,8 @@ import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
-import { spellSystem } from "./spells/cast.js";
-import { statusMoveFactor, statusSystem } from "./spells/statuses.js";
+import { skillSystem } from "./skills/cast.js";
+import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { weaponSystem } from "./weapons/swing.js";
@@ -92,7 +92,7 @@ export class Fight {
       enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), swordAttackSystem(), weaponSystem(),
       sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), spellSystem(ctx),
+      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),
       outcomeSystem(this.outcome),
     ];
   }
@@ -131,7 +131,7 @@ export class Fight {
   /** Destroys the entities (their remove hooks run) and frees the physics world. */
   dispose(): void {
     for (const e of [...this.players, ...this.enemies]) this.world.destroy(e);
-    for (const [e] of this.world.query(SpellObject)) this.world.destroy(e);
+    for (const [e] of this.world.query(SkillObject)) this.world.destroy(e);
     this.world.flush();
     this.physics.free();
   }

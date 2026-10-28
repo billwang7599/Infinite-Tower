@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, blankSpellbook, starterEquipment, type Bag, type Carried, type Entity, type ItemCounts,
-  type ItemId, type Spellbook, type Vitals,
+  addItem, bagCounts, blankSkillbook, starterEquipment, type Bag, type Carried, type Entity, type ItemCounts,
+  type ItemId, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
@@ -33,7 +33,7 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
     arena: overworld.level.arena,
     players: [{
       at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
-      book: session.spellbook, seed: randomSeed(overworld.rng),
+      book: session.skillbook, seed: randomSeed(overworld.rng),
     }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId], at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
@@ -61,12 +61,12 @@ export function packLoot(bag: Bag, loot: ItemCounts): { bag: Bag; left: ItemCoun
 
 /** `after`, `book` and `gear`: the HP, stamina, pages and gear the fight left them. */
 function settleBattle(
-  session: GameSession, result: PlayerResult, after: Vitals, book: Spellbook, gear: Carried,
+  session: GameSession, result: PlayerResult, after: Vitals, book: Skillbook, gear: Carried,
 ): void {
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
-  session.spellbook = book;
+  session.skillbook = book;
   // Gone with nothing won or lost: the save keeps what they came in with.
   if (result === "left" || result === "fighting") return;
   session.gear = { ...session.gear, ...gear };
@@ -88,7 +88,7 @@ function settleBattle(
     // Dying is hardcore: everything carried is gone. You wake at the start, rested, with a fresh sword and blank book.
     lost = bagCounts(session.bag);
     session.gear = { ...session.gear, bag: { ...session.bag, items: [] }, equipment: starterEquipment() };
-    session.spellbook = blankSpellbook();
+    session.skillbook = blankSkillbook();
     overworld.place(overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
@@ -96,6 +96,6 @@ function settleBattle(
   session.save();
   session.link.send({
     t: "battleResult", won, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
-    loot, leftBehind: packed.left, lost, gear: session.gear, spellbook: session.spellbook,
+    loot, leftBehind: packed.left, lost, gear: session.gear, skillbook: session.skillbook,
   });
 }

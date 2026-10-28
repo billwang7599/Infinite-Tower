@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { AUGMENTS, CLOSE_CODES, ELEMENTS, FIXED_DT, FORMS } from "@infinite-tower/shared";
+import { MODIFIERS, CLOSE_CODES, ELEMENTS, FIXED_DT, FORMS } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
@@ -33,7 +33,7 @@ describe("joining", () => {
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
-        spellbook: welcome.spellbook },
+        skillbook: welcome.skillbook },
       newPlayer(),
     );
     assert.equal(welcome.dev, false);
@@ -77,9 +77,9 @@ describe("joining", () => {
     assert.equal(second.link.open, true);
   });
 
-  test("the spell words a player knows come back from the store and are saved again", async () => {
+  test("the skill words a player knows come back from the store and are saved again", async () => {
     const { online, store } = setup();
-    const knownWords = [...FORMS, ...ELEMENTS, ...AUGMENTS];
+    const knownWords = [...FORMS, ...ELEMENTS, ...MODIFIERS];
     store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, knownWords });
     const { session } = await joinNew(online);
     session.save();

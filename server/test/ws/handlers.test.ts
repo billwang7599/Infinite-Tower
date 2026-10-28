@@ -91,7 +91,7 @@ describe("message handlers", () => {
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "saveSpell", "debug",
+      "closeBag", "saveSkill", "debug",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

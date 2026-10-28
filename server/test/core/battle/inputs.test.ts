@@ -55,7 +55,7 @@ describe("InputTimeline", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);
     takeRange(timeline, 1, 5);
-    const cast = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] } as const;
+    const cast = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] } as const;
     timeline.receive(7, [at(3, { ...WALK, cast }), at(4, WALK)], 6);
     assert.deepEqual(timeline.take(6), { ...WALK, cast });
     assert.deepEqual(timeline.take(7), WALK);

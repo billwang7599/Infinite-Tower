@@ -1,26 +1,26 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSpellbook, castTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SpellObject, starterEquipment,
-  type PlayerInputData, type Spell, type Vec3,
+  blankSkillbook, releaseTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, starterEquipment,
+  type PlayerInputData, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, bodyOf, dumpState, enemy, IDLE, input, player, run, segment, spell, STATUE, SWORDSMAN,
+  ARENA, BITER, bodyOf, dumpState, enemy, IDLE, input, player, run, segment, skill, STATUE, SWORDSMAN,
 } from "../fixtures.js";
 
 await initPhysics();
 
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
-const BOLT_FIRE = spell(segment("bolt", ["fire"]));
-const NOVA_WATER = spell(segment("nova", ["water"]));
+const BOLT_FIRE = skill(segment("bolt", ["fire"]));
+const NOVA_WATER = skill(segment("nova", ["water"]));
 const CHANT = input({ chant: true });
 
-function alone(book = blankSpellbook()): Fight {
+function alone(book = blankSkillbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });
 }
 const playerOf = (fight: Fight) => fight.world.require(fight.players[0]!, Player);
-const shots = (fight: Fight) => [...fight.world.query(SpellObject)].length;
+const shots = (fight: Fight) => [...fight.world.query(SkillObject)].length;
 const flatPos = (fight: Fight) => {
   const { x, z } = bodyOf(fight, fight.players[0]!).pos;
   return { x, z };
@@ -54,7 +54,7 @@ describe("chanting", () => {
     assert.ok(flatPos(fight).x - before.x > 0.3);
   });
 
-  test("no chant without the spellbook in hand", () => {
+  test("no chant without the skillbook in hand", () => {
     const fight = new Fight({
       arena: ARENA, players: [player(at(0, -4), {
         gear: { bag: emptyBag(), equipment: { ...starterEquipment(), leftHand: null } },
@@ -99,11 +99,11 @@ describe("chanting", () => {
 });
 
 describe("what may be cast", () => {
-  test("a spell that's on none of the pages isn't cast outside a chant", () => {
+  test("a skill that's on none of the pages isn't cast outside a chant", () => {
     const fight = alone();
     run(fight, 0.3);
     fight.step([input({ cast: BOLT_FIRE })]);
-    run(fight, castTime(BOLT_FIRE) + 0.1);
+    run(fight, releaseTime(BOLT_FIRE) + 0.1);
     assert.equal(shots(fight), 0);
     assert.equal(playerOf(fight).action, "none");
   });
@@ -114,12 +114,12 @@ describe("what may be cast", () => {
     fight.step([CHANT]);
     fight.step([input({ chant: true, cast: BOLT_FIRE })]);
     assert.equal(playerOf(fight).action, "cast");
-    run(fight, castTime(BOLT_FIRE));
+    run(fight, releaseTime(BOLT_FIRE));
     assert.equal(shots(fight), 1);
     assert.equal(playerOf(fight).action, "none");
   });
 
-  test("closed on the step it's cast, the chanted spell still goes off", () => {
+  test("closed on the step it's cast, the chanted skill still goes off", () => {
     const fight = alone();
     run(fight, 0.3);
     fight.step([CHANT]);
@@ -127,9 +127,9 @@ describe("what may be cast", () => {
     assert.equal(playerOf(fight).action, "cast");
   });
 
-  test("a spell on a page is cast at any time, matched by its words, not by being the same object", () => {
-    const copy: Spell = JSON.parse(JSON.stringify({
-      segments: [{ augments: [], elements: ["fire"], form: "bolt" }],
+  test("a skill on a page is cast at any time, matched by its words, not by being the same object", () => {
+    const copy: Skill = JSON.parse(JSON.stringify({
+      segments: [{ modifiers: [], elements: ["fire"], form: "bolt" }],
     }));
     const fight = alone([null, BOLT_FIRE, null, null]);
     run(fight, 0.3);
@@ -139,9 +139,9 @@ describe("what may be cast", () => {
 });
 
 describe("writing a page in a fight", () => {
-  const write = (page: number, written: Spell) => input({ chant: true, write: { page, spell: written } });
+  const write = (page: number, written: Skill) => input({ chant: true, write: { page, skill: written } });
 
-  test("it takes SAVE_IN_FIGHT_TIME standing still; then the page has the spell and the chant goes on", () => {
+  test("it takes SAVE_IN_FIGHT_TIME standing still; then the page has the skill and the chant goes on", () => {
     const fight = alone();
     run(fight, 0.3);
     fight.step([CHANT]);
@@ -154,7 +154,7 @@ describe("writing a page in a fight", () => {
       fight.step([input({ chant: true, moveX: 1 })]);
       events.push(...fight.events);
     }
-    assert.deepEqual(playerOf(fight).book, blankSpellbook(), "not yet");
+    assert.deepEqual(playerOf(fight).book, blankSkillbook(), "not yet");
     fight.step([CHANT]);
     events.push(...fight.events);
     assert.deepEqual(playerOf(fight).book, [null, NOVA_WATER, null, null]);
@@ -180,9 +180,9 @@ describe("writing a page in a fight", () => {
   test("not without the chant open", () => {
     const fight = alone();
     run(fight, 0.3);
-    fight.step([input({ write: { page: 0, spell: NOVA_WATER } })]);
+    fight.step([input({ write: { page: 0, skill: NOVA_WATER } })]);
     run(fight, SAVE_IN_FIGHT_TIME + 0.1);
-    assert.deepEqual(playerOf(fight).book, blankSpellbook());
+    assert.deepEqual(playerOf(fight).book, blankSkillbook());
   });
 
   test("closing the chant stops the writing, and nothing is written", () => {
@@ -194,7 +194,7 @@ describe("writing a page in a fight", () => {
     fight.step([IDLE]);
     assert.equal(playerOf(fight).action, "none");
     run(fight, SAVE_IN_FIGHT_TIME);
-    assert.deepEqual(playerOf(fight).book, blankSpellbook());
+    assert.deepEqual(playerOf(fight).book, blankSkillbook());
   });
 
   test("a hit that stuns cancels it", () => {
@@ -204,7 +204,7 @@ describe("writing a page in a fight", () => {
     assert.equal(playerOf(fight).action, "write");
     run(fight, SAVE_IN_FIGHT_TIME + 0.2, () => CHANT);
     assert.ok(fight.world.require(fight.players[0]!, Health).hp < 100, "bitten");
-    assert.deepEqual(playerOf(fight).book, blankSpellbook());
+    assert.deepEqual(playerOf(fight).book, blankSkillbook());
   });
 
   test("saved mid-write and loaded into another fight, it finishes the same", () => {

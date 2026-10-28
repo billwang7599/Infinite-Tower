@@ -4,7 +4,7 @@
  */
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
-import type { SpellElement } from "../spells/spell.js";
+import type { SkillElement } from "../skills/skill.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Stats } from "./stats.js";
 
@@ -112,5 +112,5 @@ export interface EnemyDef {
   attacks: EnemyAttacks;
   hands?: Partial<Record<Hand, ItemId>>;
   sidestep?: SidestepDef;
-  resist?: Partial<Record<SpellElement, number>>;
+  resist?: Partial<Record<SkillElement, number>>;
 }

@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, Wielder, type Bag, type Carried,
-  type GearMove, type Spell, type Vec3,
+  type GearMove, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, spell, STATUE } from "../fixtures.js";
+import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
 
 await initPhysics();
 
@@ -14,7 +14,7 @@ const BAG = input({ bag: true });
 const RIGHT_HAND = { in: "slot", slot: "rightHand" } as const;
 const UNEQUIP_SWORD: GearMove = { from: RIGHT_HAND, to: { in: "bag", x: 0, y: 0 }, turned: false };
 const EQUIP_SWORD: GearMove = { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false };
-const NOVA: Spell = spell(segment("nova", ["fire"]));
+const NOVA: Skill = skill(segment("nova", ["fire"]));
 
 function alone(gear?: Carried): Fight {
   return new Fight({
@@ -77,7 +77,7 @@ describe("the bag in a fight", () => {
     assert.equal(swings(fight), true);
   });
 
-  test("the spellbook put away: no chant", () => {
+  test("the skillbook put away: no chant", () => {
     const fight = alone();
     run(fight, 0.3);
     moveInBag(fight, { from: { in: "slot", slot: "leftHand" }, to: { in: "bag", x: 0, y: 0 }, turned: false });
@@ -119,7 +119,7 @@ describe("the bag in a fight", () => {
     const fight = alone(gear);
     assert.deepEqual(playerOf(fight).gear, gear);
     assert.equal(handsOf(fight).rightHand, null);
-    assert.equal(handsOf(fight).leftHand, "spellbook");
+    assert.equal(handsOf(fight).leftHand, "skillbook");
   });
 
   test("a hit that stuns closes it, and it stays shut until the bag is asked for again", () => {
@@ -152,7 +152,7 @@ describe("the bag in a fight", () => {
     const fight = alone();
     run(fight, 0.3);
     fight.step([BAG]);
-    fight.step([input({ bag: true, write: { page: 1, spell: NOVA } })]);
+    fight.step([input({ bag: true, write: { page: 1, skill: NOVA } })]);
     assert.equal(playerOf(fight).action, "write");
     run(fight, SAVE_IN_FIGHT_TIME - 2 * FIXED_DT, () => BAG);
     assert.equal(playerOf(fight).book[1], null, "not yet");
@@ -165,7 +165,7 @@ describe("the bag in a fight", () => {
     const fight = alone({ bag: emptyBag(), equipment: { ...starterEquipment(), leftHand: null } });
     run(fight, 0.3);
     fight.step([BAG]);
-    fight.step([input({ bag: true, write: { page: 1, spell: NOVA } })]);
+    fight.step([input({ bag: true, write: { page: 1, skill: NOVA } })]);
     assert.equal(playerOf(fight).action, "bag");
   });
 

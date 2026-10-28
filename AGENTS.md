@@ -54,38 +54,41 @@ Decided by the user:
   database is seeded with the accounts test1, test2 and test3 (password = username).
 - Settings (key bindings, camera) live on the server with the player's save and come down in `welcome`; the client
   keeps them in memory and sends each change back. Nothing is kept in localStorage.
-- The spell words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
+- Combat is two parts: gear (weapons, physical combat) and skills. Skills are the grammar (a Form, elements,
+  modifiers), for making magic, enhancing yourself or anything else; nothing about them is magic-specific (they were
+  called spells). The skillbook only stores built skills.
+- The skill words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
   accounts test1-3 know every word.
-- Spells are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
-  the shared fight like the sword: the client sends the whole spell as an input, the server checks its words
+- Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
+  the shared fight like the sword: the client sends the whole skill as an input, the server checks its words
   against what the player knows. Seven elements, each its own damage type with a status (Burning, Wet, Rooted,
   Pushed, Shocked, Marked, Cursed), and four reactions on enemies (Conduct, Doused, Fanned, Eclipse), each with a
-  cooldown per target. Spell damage scales with Intellect (was spellpower); Summon is out for now. The tables and
-  what's still to build: [plan/spells.md](plan/spells.md).
-- Augments go in order: each changes the shot built from the Form, the elements and the augments before it (Amplify
+  cooldown per target. Skill damage scales with skillpower (was Intellect); Summon is out for now. The tables and
+  what's still to build: [plan/skills.md](plan/skills.md).
+- Modifiers go in order: each changes the shot built from the Form, the elements and the modifiers before it (Amplify
   then Split: both Bolts amplified; Follow then Split: every Bolt homes; Split then Split splits each Bolt again). A
   repeat is a full step, with no diminishing returns ("we will penalize in the future by higher stamina costs"; for
-  now every augment costs 1).
-- No caps on augments or segments ("no caps to augments", then none on chaining either): not in the rules, the
-  builder or the wire. The only limits are stamina, the socket's message size and a server guard, the most spell
+  now every modifier costs 1).
+- No caps on modifiers or segments ("no caps to augments", then none on chaining either): not in the rules, the
+  builder or the wire. The only limits are stamina, the socket's message size and a server guard, the most skill
   objects one fight holds (`MAX_LIVE_SHOTS`, 256, the agent's pick; past it new ones don't spawn).
 - Split splits a Bolt, and each further Split splits the split ones again: n Splits make 2^n Bolts, each smaller and
   dealing 10% less per Split (×0.9^n). They start at random spots (the fight's seed) in an upright circle round the
   player, facing the aim, its bottom clear of the ground, spaced apart unless there are too many to fit, and fly in to
   meet a point ahead, each off it by a little randomness. The size, the circle's and the point's numbers are the
   agent's picks.
-- Spells are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
-  time (a Form, then an element, then elements, augments or a Form; after an augment only augments or a Form; a
+- Skills are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
+  time (a Form, then an element, then elements, modifiers or a Form; after a modifier only modifiers or a Form; a
   Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are
   clicked, searched for, or picked by number from the list, and Backspace undoes; its keys are a layer of their own,
   so 1-4 don't cast there. The fight goes on and you can't move; a hit cancels it only if it staggers you; a dodge
-  closes it and keeps the squares. A chanted spell costs the same as a saved one and is for that one cast. The
-  spellbook (in hand) has 4 pages of saved spells, cast with 1-4 (rebindable), written outside fights or in one
+  closes it and keeps the squares. A chanted skill costs the same as a saved one and is for that one cast. The
+  skillbook (in hand) has 4 pages of saved skills, quick-cast with 1-4 (rebindable), written outside fights or in one
   (like chanting: standing still, a stagger cancels it, it takes time). The pages are saved with the player and the
   server checks every page and cast against the words they know. Death blanks the pages; the words are kept.
-- The sword and the spellbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
-  character starts with both equipped, swinging needs a sword and casting a spellbook. Dying still empties the bag,
-  and you respawn with a fresh equipped sword and spellbook. Equipped things count toward the carry weight but take
+- The sword and the skillbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
+  character starts with both equipped, swinging needs a sword and casting a skillbook. Dying still empties the bag,
+  and you respawn with a fresh equipped sword and skillbook. Equipped things count toward the carry weight but take
   no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for
   a while; what's left on it when the screen closes is lost), then the bag.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
@@ -97,14 +100,14 @@ Decided by the user:
   and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
   off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
   Unlocked, the arrows or a right-button drag turn the camera, and attacks go where it faces; the mouse alone
-  doesn't turn it. Spells may home (the Follow augment). The locked camera's numbers (top of
+  doesn't turn it. Skills may home (the Follow modifier). The locked camera's numbers (top of
   `client/src/modes/battle/camera.ts`) are the agent's pick, to tune.
-- Lock-on stays, and spells are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
+- Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
   chance per cast from the fight's seed; not while attacking or stunned, and not from a cast quicker than its
-  reaction); the boar doesn't. The wind-up, slower walking while winding up and the stamina cost keep spells from being
-  spammed. The numbers (`followTurnRadPerSec` in `MAGIC`, the Kobold's `sidestep` in
+  reaction); the boar doesn't. The wind-up, slower walking while winding up and the stamina cost keep skills from being
+  spammed. The numbers (`followTurnRadPerSec` in `SKILL_EFFECTS`, the Kobold's `sidestep` in
   `server/src/core/content/enemies.ts`) are the agent's picks, to tune.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). One
@@ -118,7 +121,7 @@ Decided by the user:
 - Dying is hardcore: the bag is emptied. Stats go back to their defaults, but they can't change yet, so for now
   nothing else is reset.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
-  sword and the spellbook.
+  sword and the skillbook.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
   rest about 600 ms, a tooltip with its name, size, weight and what it does), selected (a click; the same item or
   empty space deselects) or dragged (past a few pixels: a ghost under the pointer, green where it fits and red
@@ -187,7 +190,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 
 - The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
 - Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
-  spellpower is Intellect): stamina = the stamina bar's size, intellect = spell damage × intellect / 10, agility =
+  spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
   arena movement speed × agility / 10, strength = physical damage × strength / 10. HP stays separate. They apply
   only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10. Everyone has the same player stats, so they
   aren't saved.
@@ -195,24 +198,24 @@ them; treat them as changeable, and still ask before deciding new ones):
   slower or smaller movement is dropped. Once a move swings, more movement the same way is the same sweep (one
   swing) until the mouse rests 100 ms; turning away swings again at once, so the reverse for a parry is quick. The
   numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
-- Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
-  Beam is held and paid, what Imbue does to sword hits, how strong each augment is, lingering clouds of 8 s, and the
-  smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent".
-- Chanting and the spellbook: R opens and closes the chant (E stays free, as saved camera turns may still use it).
-  Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/spells/spell.ts`); a Write button per
+- Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
+  Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
+  smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
+- Chanting and the skillbook: R opens and closes the chant (E stays free, as saved camera turns may still use it).
+  Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the
   book in hand: it has to be equipped) and a page is written at once, anywhere (no campfire needed). Tab focuses
   the word search, whose Enter takes the first word that fits; numbers pick the first nine that fit. The chant and
   writing a page are the shared fight's, so the server decides them too: the chant is a held fight input, during
-  which the fight holds you still (stamina still recovers); a spell on none of your pages is cast only from an open
+  which the fight holds you still (stamina still recovers); a skill on none of your pages is cast only from an open
   chant (pages are matched by their words); a page written in a fight is the fight's at once and saved with its
-  result (a `saveSpell` message mid-battle is refused). The chant's dodge goes where the walk keys point. The hotbar
+  result (a `saveSkill` message mid-battle is refused). The chant's dodge goes where the walk keys point. The hotbar
   shows the pages on the left of the battle HUD.
-- Equipment: the sword is 1 x 3 and weighs 3, the spellbook 2 x 2 and 1.5 (with both in hand a full bag is just
+- Equipment: the sword is 1 x 3 and weighs 3, the skillbook 2 x 2 and 1.5 (with both in hand a full bag is just
   over the carry limit). Either hand takes either; the sword starts in the right and the book in the left;
   dragging one hand onto the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand
-  means no swings, stabs or blocks (you block with the blade); no spellbook, no casting. Head, body, legs and boots
-  stay empty (no armour yet). Saves from before equipment get the starting sword and spellbook in hand.
+  means no swings, stabs or blocks (you block with the blade); no skillbook, no casting. Head, body, legs and boots
+  stay empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
 - The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
   server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
   and on disconnect; it's never saved. Things on it can be eaten from there.
@@ -221,7 +224,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   equipment slots, and within the bag, at once, as the shared fight's inputs (`bag` held, `gear` pressed), so the
   server runs and checks them with the same gear rules; what the fight's bag and slots end up as is its result. A
   stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Nothing is eaten mid-fight.
-  The spellbook opens from it (book in hand) and writes a page in the fight's 2 s; with the book open over the bag,
+  The skillbook opens from it (book in hand) and writes a page in the fight's 2 s; with the book open over the bag,
   no dodge gets through.
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
@@ -249,7 +252,7 @@ npm test           # unit tests of shared, server and client (Node's test runner
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
-npm run db:seed    # dev accounts test1, test2, test3, password = username, knowing every spell word (dev runs it; safe to repeat)
+npm run db:seed    # dev accounts test1, test2, test3, password = username, knowing every skill word (dev runs it; safe to repeat)
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
 ```
 
@@ -302,7 +305,7 @@ tests say what was agreed. Where tests go and how they're written:
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold) and, in a fight, `window.cast({ segments: [{ form: "bolt",
-  elements: ["fire"], augments: [] }] })` (a spell on none of the pages goes off only with the chant open: R). A new
+  elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages goes off only with the chant open: R). A new
   account has no character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
@@ -365,6 +368,20 @@ The global rules apply; here is how to set one up in this repo.
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
 - Words: the 2D map is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
+- Combat words (code, UI and docs use them):
+  - **Gear**: anything equipped (weapons, armour, the skillbook). Physical combat comes from gear.
+  - **Skill**: an ability built from words. Anyone can use skills, with or without a book (not built yet: chanting
+    still needs the book in hand). The skillbook only saves sequences for quick-cast.
+  - **Stamina**: what both gear and skills spend. **Skillpower** scales skill damage.
+  - **Skill grammar**: the rules. A form, then elements, then modifiers, each applied in order to everything before it.
+  - **Word**: one of a form, an element or a modifier.
+  - **Skill sequence**: one specific string of words (e.g. Bolt Fire Split). A skillbook page holds one.
+  - **Building**: putting a sequence together, by chanting it or quick-casting it from a page.
+  - **Validating**: checking a sequence against the grammar. Internal only, never shown to players.
+  - **Release**: the moment a built skill fires.
+  - **Effect**: what it leaves in the world (bolts in flight, a cloud, an Imbue).
+  - **Cast**: the whole lifecycle (build, then release, then effect). It's resolved when its last effect ends. One open
+    cast per entity for now. Avoid the word "channel".
 - Game time is seconds (like `dt`), so a name ending in Time, Delay or Duration is seconds; milliseconds always say
   `Ms`. A name that doesn't say what kind of number it holds gets that word: `lungeSpeed`, `poiseDamage`,
   `staminaRegenPerSec`.

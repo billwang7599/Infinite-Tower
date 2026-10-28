@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSpellbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, spellCost, starterEquipment, type Augment,
-  type Spell, type StepInput,
+  blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, skillCost, starterEquipment, type Modifier,
+  type Skill, type StepInput,
 } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 import { PLAYER_STATS } from "../../src/core/content/player.js";
@@ -18,7 +18,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: starterEquipment(), spellbook: blankSpellbook(),
+  equipment: starterEquipment(), skillbook: blankSkillbook(),
 };
 
 /** Lets a pending store load (and what follows it) finish. */
@@ -165,12 +165,12 @@ describe("game sockets", () => {
 
   test("take a frame of inputs holding the longest Beam a full stamina bar pays for, in one message", () => {
     const { sockets } = setup();
-    const beam = (augments: Augment[]): Spell => ({ segments: [{ form: "beam", elements: ["fire"], augments }] });
-    const augments: Augment[] = [];
-    while (spellCost(beam([...augments, "amplify"])) <= PLAYER_STATS.stamina) augments.push("amplify");
+    const beam = (modifiers: Modifier[]): Skill => ({ segments: [{ form: "beam", elements: ["fire"], modifiers }] });
+    const modifiers: Modifier[] = [];
+    while (skillCost(beam([...modifiers, "amplify"])) <= PLAYER_STATS.stamina) modifiers.push("amplify");
     const inputs: StepInput[] = Array.from({ length: MAX_INPUTS_PER_MESSAGE }, (_, i) => ({
       ...IDLE_INPUT, step: i + 1, aimX: Math.sin(i / 10), aimZ: Math.cos(i / 10),
-      cast: i === 0 ? beam(augments) : null, castHeld: i > 0,
+      cast: i === 0 ? beam(modifiers) : null, castHeld: i > 0,
     }));
     const raw = JSON.stringify({ t: "battleInput", upTo: MAX_INPUTS_PER_MESSAGE, inputs });
     assert.ok(raw.length < sockets.maxMessageBytes, `${raw.length} bytes`);

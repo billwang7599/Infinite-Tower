@@ -94,24 +94,24 @@ describe("whoHasTheKeys", () => {
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "chant", "settings"]);
   });
 
-  test("in the arena the bag opens over the fight, the spellbook over it, and both go when the bag does", () => {
+  test("in the arena the bag opens over the fight, the skillbook over it, and both go when the bag does", () => {
     const { ui } = playing("battle");
     ui.toggleBattleBag();
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag"]);
-    ui.spellbookScreen.set({ open: true });
-    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag", "spellbook"]);
+    ui.skillbookScreen.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag", "skillbook"]);
     ui.toggleBattleBag();
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle"]);
-    assert.equal(ui.spellbookScreen.get().open, false);
+    assert.equal(ui.skillbookScreen.get().open, false);
   });
 
-  test("the spellbook opens over the bag, and goes when the bag does", () => {
+  test("the skillbook opens over the bag, and goes when the bag does", () => {
     const { ui, mode } = playing();
     ui.toggleOverworldPanel("inventory");
-    ui.spellbookScreen.set({ open: true });
-    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag", "spellbook"]);
+    ui.skillbookScreen.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag", "skillbook"]);
     ui.toggleOverworldPanel("inventory");
-    assert.equal(ui.spellbookScreen.get().open, false);
+    assert.equal(ui.skillbookScreen.get().open, false);
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
   });
 

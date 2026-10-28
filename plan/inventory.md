@@ -10,11 +10,11 @@ fight) emptying the bag, the bag screen (in fights too), and the equipment and t
 1. **Loot screen:** after a win, the drops on one side and the bag on the other; drag in what you want, leave the
    rest. The server keeps the drops until you leave the screen.
 2. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
-   spellbook.
+   skillbook.
 
 ## Open questions
 
-- With the sword and the spellbook in hand (4.5), a full bag (at most 60) is just over the limit: heavy, never
+- With the sword and the skillbook in hand (4.5), a full bag (at most 60) is just over the limit: heavy, never
   overloaded. Heavier items, armour or a bigger bag would change that.
 - Two-handed items, and armour for the head, body, legs and boots.
 - Splitting a stack (taking some of it), dropping items on the overworld, and sorting the bag.

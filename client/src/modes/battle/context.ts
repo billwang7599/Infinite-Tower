@@ -1,4 +1,4 @@
-import type { Entity, GearMove, PageWrite, Spell, Vec3 } from "@infinite-tower/shared";
+import type { Entity, GearMove, PageWrite, Skill, Vec3 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -29,7 +29,7 @@ export interface BattleContext {
   /** This frame's: what the fight's steps reported (a replayed step's again), the bodies a server's fight moved. */
   events: StepEvent[];
   corrections: Correction[];
-  casts: Spell[];
+  casts: Skill[];
   writes: PageWrite[];
   gearMoves: GearMove[];
 }

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSpellbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
+  blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
   Player, SAVE_IN_FIGHT_TIME, starterEquipment, WEAPONS, type Bag, type Equipment, type GearMove,
-  type PlayerInputData, type Spell, type Word,
+  type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -98,7 +98,7 @@ describe("starting a battle", () => {
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
-      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook(), seed: playerSeed,
+      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), seed: playerSeed,
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
@@ -151,12 +151,12 @@ describe("the server runs the fight", () => {
   });
 
   test("a win keeps the book as it was", () => {
-    const written: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+    const written: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
     const book = [written, null, null, null];
-    const { session, link } = startSession({ dev: true, saved: { spellbook: book } });
+    const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
     session.debugEncounter();
     win(session);
-    assert.deepEqual(link.last("battleResult").spellbook, book);
+    assert.deepEqual(link.last("battleResult").skillbook, book);
   });
 
   test("a win keeps the HP and stamina the fight left, and the player where they were", () => {
@@ -205,7 +205,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
   });
 
-  test("after a death the player wakes with a fresh sword and spellbook in hand, whatever they had", () => {
+  test("after a death the player wakes with a fresh sword and skillbook in hand, whatever they had", () => {
     const swapped: Equipment = { ...starterEquipment(), rightHand: null, leftHand: "sword" };
     const started = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: swapped } });
     const { session, link, saves } = started;
@@ -219,18 +219,18 @@ describe("the server runs the fight", () => {
   });
 
   test("after a death the book's pages are blank, and the words the player knows are kept", () => {
-    const written: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+    const written: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
     const book = [written, null, written, null];
     const started = startSession({
-      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, spellbook: book, knownWords: ["nova", "fire"] },
+      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, skillbook: book, knownWords: ["nova", "fire"] },
     });
     const { session, link, saves } = started;
     session.debugEncounter();
     session.overworld.place({ x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     assert.equal(link.last("battleResult").won, false);
-    assert.deepEqual(link.last("battleResult").spellbook, blankSpellbook());
-    assert.deepEqual(saves.at(-1)?.spellbook, blankSpellbook());
+    assert.deepEqual(link.last("battleResult").skillbook, blankSkillbook());
+    assert.deepEqual(saves.at(-1)?.skillbook, blankSkillbook());
     assert.deepEqual(saves.at(-1)?.knownWords, ["nova", "fire"]);
   });
 
@@ -264,8 +264,8 @@ describe("the server runs the fight", () => {
   });
 });
 
-describe("casting spells", () => {
-  const NOVA: Spell = { segments: [{ form: "nova", elements: ["fire"], augments: [] }] };
+describe("casting skills", () => {
+  const NOVA: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
   const CHANT = { ...IDLE_INPUT, chant: true };
 
   function casts(saved: Partial<PlayerSave>, chanted: boolean): boolean {
@@ -278,7 +278,7 @@ describe("casting spells", () => {
     return action(session).action === "cast";
   }
 
-  test("a chanted spell the player knows every word of is cast", () => {
+  test("a chanted skill the player knows every word of is cast", () => {
     assert.equal(casts({ knownWords: ["nova", "fire"] }, true), true);
   });
 
@@ -287,17 +287,17 @@ describe("casting spells", () => {
     assert.equal(casts({ knownWords: [] }, true), false);
   });
 
-  test("a spell on none of the pages, sent without a chant, isn't cast", () => {
+  test("a skill on none of the pages, sent without a chant, isn't cast", () => {
     assert.equal(casts({ knownWords: ["nova", "fire"] }, false), false);
   });
 
-  test("a page's spell is cast without a chant", () => {
-    assert.equal(casts({ knownWords: ["nova", "fire"], spellbook: [null, NOVA, null, null] }, false), true);
+  test("a page's skill is cast without a chant", () => {
+    assert.equal(casts({ knownWords: ["nova", "fire"], skillbook: [null, NOVA, null, null] }, false), true);
   });
 
   test("the encounter gives the fight the player's pages", () => {
     const book = [null, NOVA, null, null];
-    const { session, link } = startSession({ dev: true, saved: { spellbook: book } });
+    const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
     session.debugEncounter();
     assert.deepEqual(link.last("encounter").setup.players[0]!.book, book);
   });
@@ -307,7 +307,7 @@ describe("casting spells", () => {
     session.debugEncounter();
     play(session, () => IDLE_INPUT, 2);
     play(session, () => CHANT, 1);
-    play(session, () => ({ ...CHANT, write: { page: 2, spell: NOVA } }), 1);
+    play(session, () => ({ ...CHANT, write: { page: 2, skill: NOVA } }), 1);
     play(session, () => CHANT, Math.round(SAVE_IN_FIGHT_TIME / FIXED_DT) + 1);
     return session;
   }
@@ -315,14 +315,14 @@ describe("casting spells", () => {
   test("a page written in the fight is the fight's at once, and saved with the result", () => {
     const session = writing(["nova", "fire"]);
     assert.deepEqual(action(session).book, [null, null, NOVA, null]);
-    assert.deepEqual(session.spellbook, blankSpellbook(), "not before the result");
+    assert.deepEqual(session.skillbook, blankSkillbook(), "not before the result");
     win(session);
-    assert.deepEqual(session.spellbook, [null, null, NOVA, null]);
+    assert.deepEqual(session.skillbook, [null, null, NOVA, null]);
   });
 
   test("a page with a word they don't know isn't written", () => {
     const session = writing(["nova"]);
-    assert.deepEqual(action(session).book, blankSpellbook());
+    assert.deepEqual(action(session).book, blankSkillbook());
   });
 });
 
@@ -356,7 +356,7 @@ describe("the bag in a fight", () => {
     win(session);
     const { gear } = link.last("battleResult");
     assert.equal(gear.equipment.leftHand, null);
-    assert.ok(gear.bag.items.some((s) => s.item === "spellbook" && s.x === 4 && s.y === 0));
+    assert.ok(gear.bag.items.some((s) => s.item === "skillbook" && s.x === 4 && s.y === 0));
     assert.deepEqual(saves.at(-1)?.equipment, gear.equipment);
     assert.deepEqual(saves.at(-1)?.bag, gear.bag);
   });

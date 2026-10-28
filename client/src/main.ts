@@ -110,7 +110,7 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   rest: () => void preparing.then((game) => game.rest()),
   useItem: (at) => void preparing.then((game) => game.useItem(at)),
   moveItem: (from, to, turned) => void preparing.then((game) => game.moveItem(from, to, turned)),
-  castSpell: (spell) => void preparing.then((game) => game.castSpell(spell)),
-  saveSpell: (page, spell) => void preparing.then((game) => game.saveSpell(page, spell)),
+  castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
+  saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),
   returnToTitle: () => void backToTitle(),
 });

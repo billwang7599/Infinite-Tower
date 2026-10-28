@@ -128,11 +128,11 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
 });
 
 describe("what the player holds", () => {
-  const unarmed = ({ sword, spellbook }: Record<"sword" | "spellbook", Hand | null>) => new Fight({
+  const unarmed = ({ sword, skillbook }: Record<"sword" | "skillbook", Hand | null>) => new Fight({
     arena: ARENA,
     players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), equipment: {
       ...starterEquipment(), rightHand: null, leftHand: null,
-      ...(sword && { [sword]: "sword" }), ...(spellbook && { [spellbook]: "spellbook" }),
+      ...(sword && { [sword]: "sword" }), ...(skillbook && { [skillbook]: "skillbook" }),
     } } })],
     enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
   });
@@ -143,19 +143,19 @@ describe("what the player holds", () => {
 
   test("no sword: no swing, no stab and no block", () => {
     for (const press of [{ attack: "lr" }, { attack: "stab" }, { block: true }] as const) {
-      const seen = actionsOf(unarmed({ sword: null, spellbook: "leftHand" }), press);
+      const seen = actionsOf(unarmed({ sword: null, skillbook: "leftHand" }), press);
       assert.deepEqual([...seen], ["none"], JSON.stringify(press));
     }
   });
 
-  test("no spellbook: no casting, but the sword still swings", () => {
-    const cast = { segments: [{ form: "bolt", elements: ["fire"], augments: [] }] } as const;
-    assert.deepEqual([...actionsOf(unarmed({ sword: "rightHand", spellbook: null }), { cast })], ["none"]);
-    assert.ok(actionsOf(unarmed({ sword: "rightHand", spellbook: null }), { attack: "lr" }).has("attack"));
+  test("no skillbook: no casting, but the sword still swings", () => {
+    const cast = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] } as const;
+    assert.deepEqual([...actionsOf(unarmed({ sword: "rightHand", skillbook: null }), { cast })], ["none"]);
+    assert.ok(actionsOf(unarmed({ sword: "rightHand", skillbook: null }), { attack: "lr" }).has("attack"));
   });
 
   test("with both, the same presses do what they always did", () => {
-    const both = { sword: "rightHand", spellbook: "leftHand" } as const;
+    const both = { sword: "rightHand", skillbook: "leftHand" } as const;
     assert.ok(actionsOf(unarmed(both), { attack: "lr" }).has("attack"));
     assert.ok(actionsOf(unarmed(both), { block: true }).has("block"));
   });

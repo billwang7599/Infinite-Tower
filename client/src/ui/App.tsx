@@ -43,16 +43,16 @@ export function App({ ui, settings, input, actions }: AppProps) {
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
-              spells={ui.spells} spellbookScreen={ui.spellbookScreen} saveSpell={actions.saveSpell}
+              skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
             />
           )}
           {mode === "battle" && (
             <BattleHud
-              hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} spells={ui.spells}
-              chant={ui.chant} input={input} castSpell={actions.castSpell} saveSpell={actions.saveSpell}
+              hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} skills={ui.skills}
+              chant={ui.chant} input={input} castSkill={actions.castSkill} saveSkill={actions.saveSkill}
               bag={{
                 open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
-                settingsScreen: ui.settingsScreen, spellbookScreen: ui.spellbookScreen, moveItem: actions.moveItem,
+                settingsScreen: ui.settingsScreen, skillbookScreen: ui.skillbookScreen, moveItem: actions.moveItem,
               }}
             />
           )}

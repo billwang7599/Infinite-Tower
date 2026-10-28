@@ -1,12 +1,12 @@
 import {
-  Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSpell, type ClientMsg, type ServerMsgOf, type Spell,
+  Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSkill, type ClientMsg, type ServerMsgOf, type Skill,
   type Vec3,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
-import type { ChantState } from "../../ui/spells/chant.js";
-import type { BattleHudState, SpellsState } from "../../ui/state.js";
+import type { ChantState } from "../../ui/skills/chant.js";
+import type { BattleHudState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { arenaCamera } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
@@ -15,7 +15,7 @@ import { readPlayerInput } from "./input.js";
 import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
-const HOTBAR = ["spell1", "spell2", "spell3", "spell4"] as const;
+const HOTBAR = ["skill1", "skill2", "skill3", "skill4"] as const;
 
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
@@ -37,7 +37,7 @@ export interface BattleOptions {
   actions: Actions;
   settings: Settings;
   hud: Store<BattleHudState>;
-  spells: Store<SpellsState>;
+  skills: Store<SkillsState>;
   chant: Store<ChantState>;
   bag: Store<{ open: boolean }>;
   onLeave: () => void;
@@ -64,7 +64,7 @@ export function createBattle(opts: BattleOptions): Battle {
   let corrected: Correction[] = [];
 
   const input = copyInput(IDLE_INPUT);
-  let casting: Spell | null = null;
+  let casting: Skill | null = null;
   /** The fight's steps due this frame, with the keys as they are now. */
   const runFight = (fight: Fight, sync: FightSync) => {
     // None due (held back: ahead of the server's clock): the keys wait, so a tap isn't lost.
@@ -84,7 +84,7 @@ export function createBattle(opts: BattleOptions): Battle {
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {
       const page = book[i];
-      return ctx.polled.held.has(key) && page && sameSpell(page, last);
+      return ctx.polled.held.has(key) && page && sameSkill(page, last);
     });
     input.cast = last ? null : ctx.casts.shift() ?? null;
     casting = input.castHeld ? last : input.cast;
@@ -95,7 +95,7 @@ export function createBattle(opts: BattleOptions): Battle {
     input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
     for (let i = 0; i < steps; i++) sync.advance(input);
     sync.flush();
-    opts.spells.set({ book: fight.world.first(LocalPlayer, Player)![2].book });
+    opts.skills.set({ book: fight.world.first(LocalPlayer, Player)![2].book });
   };
 
   /** Every fighter's position, to ease the drawings over a correction. */

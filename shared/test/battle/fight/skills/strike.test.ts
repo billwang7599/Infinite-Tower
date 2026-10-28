@@ -1,30 +1,30 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, dodgeCost, ELEMENTS, Enemy, Health, MAGIC, PLAYER, Stamina, Statuses, WEAPONS, type EnemyDef,
-  type SpellElement, type Vec3,
+  Body, dodgeCost, ELEMENTS, Enemy, Health, SKILL_EFFECTS, PLAYER, Stamina, Statuses, WEAPONS, type EnemyDef,
+  type SkillElement, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, castNow, enemy, IDLE, input, player, run, segment, spell, STATS, STATUE,
+  ARENA, BITER, castNow, enemy, IDLE, input, player, run, segment, skill, STATS, STATUE,
 } from "../fixtures.js";
 
 await initPhysics();
 
-const D = MAGIC.damage;
-const E = MAGIC.elements, R = MAGIC.reactions, SELF = MAGIC.self;
+const D = SKILL_EFFECTS.damage;
+const E = SKILL_EFFECTS.elements, R = SKILL_EFFECTS.reactions, SELF = SKILL_EFFECTS.self;
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const ME = at(0, 0);
 const NEAR = at(0, 2);
 
-function fightWith(enemies: Vec3[], def: EnemyDef = STATUE, intellect = STATS.intellect): Fight {
+function fightWith(enemies: Vec3[], def: EnemyDef = STATUE, skillpower = STATS.skillpower): Fight {
   return new Fight({
-    arena: ARENA, players: [player(ME, { stats: { ...STATS, intellect } })],
+    arena: ARENA, players: [player(ME, { stats: { ...STATS, skillpower } })],
     enemies: enemies.map((e) => enemy(def, e)),
   });
 }
-const nova = (fight: Fight, ...elements: SpellElement[]) => castNow(fight, spell(segment("nova", elements)));
-const self = (fight: Fight, ...elements: SpellElement[]) => castNow(fight, spell(segment("self", elements)));
+const nova = (fight: Fight, ...elements: SkillElement[]) => castNow(fight, skill(segment("nova", elements)));
+const self = (fight: Fight, ...elements: SkillElement[]) => castNow(fight, skill(segment("self", elements)));
 const statusesOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Statuses);
 const myStatuses = (fight: Fight) => fight.world.require(fight.players[0]!, Statuses);
 const hpOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).hp;
@@ -43,8 +43,8 @@ describe("each element", () => {
     });
   }
 
-  test("D grows with intellect", () => {
-    const fight = fightWith([NEAR], STATUE, STATS.intellect * 2);
+  test("D grows with skillpower", () => {
+    const fight = fightWith([NEAR], STATUE, STATS.skillpower * 2);
     nova(fight, "fire");
     close(hitFor(fight, 0), E.fire.damage * D * 2);
   });
@@ -114,7 +114,7 @@ describe("each element", () => {
   test("Lightning arcs to the nearest other enemy in range at a share of its damage", () => {
     const far = at(0, 2 + E.lightning.arcRange + 2);
     const fight = fightWith([NEAR, at(3.5, 2 + 3.5), far]);
-    castNow(fight, spell(segment("bolt", ["lightning"])));
+    castNow(fight, skill(segment("bolt", ["lightning"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     close(hitFor(fight, 0), E.lightning.damage * D);
     close(hitFor(fight, 1), E.lightning.damage * D * E.lightning.arcShare);
@@ -164,9 +164,9 @@ describe("reactions", () => {
 
   test("Conduct: from a Wet target, Lightning arcs to up to two enemies within range", () => {
     const fight = fightWith([at(0, 3), at(4, 3), at(-4, 3), at(5, -4)]);
-    castNow(fight, spell(segment("bolt", ["water"])));
+    castNow(fight, skill(segment("bolt", ["water"])));
     for (let i = 0; i < 30 && statusesOf(fight, 0).left.wet === 0; i++) fight.step([IDLE]);
-    castNow(fight, spell(segment("bolt", ["lightning"])));
+    castNow(fight, skill(segment("bolt", ["lightning"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const lightning = E.lightning.damage * D * R.conduct.lightningFactor;
     close(hitFor(fight, 0), lightning);
@@ -202,9 +202,9 @@ describe("reactions", () => {
 
   test("Fanned: Air on Burning doubles the burn and spreads it to one enemy nearby", () => {
     const fight = fightWith([NEAR, at(2.5, 2), at(-2 - R.fanned.spreadRange, 2)]);
-    castNow(fight, spell(segment("bolt", ["fire"])));
+    castNow(fight, skill(segment("bolt", ["fire"])));
     for (let i = 0; i < 30 && statusesOf(fight, 0).left.burning === 0; i++) fight.step([IDLE]);
-    castNow(fight, spell(segment("bolt", ["air"])));
+    castNow(fight, skill(segment("bolt", ["air"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const burn = E.fire.burnDamagePerSec * D * R.fanned.burnFactor;
     close(statusesOf(fight, 0).burnDamagePerSec, burn);
@@ -215,9 +215,9 @@ describe("reactions", () => {
 
   test("Eclipse: Darkness on Marked bursts around the target, uses up the Mark and doesn't Curse", () => {
     const fight = fightWith([at(0, 3), at(2, 3), at(0, -4)]);
-    castNow(fight, spell(segment("bolt", ["light"])));
+    castNow(fight, skill(segment("bolt", ["light"])));
     for (let i = 0; i < 30 && statusesOf(fight, 0).left.marked === 0; i++) fight.step([IDLE]);
-    castNow(fight, spell(segment("bolt", ["darkness"])));
+    castNow(fight, skill(segment("bolt", ["darkness"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const burst = R.eclipse.damage * D;
     close(hitFor(fight, 0), E.darkness.damage * D + burst);

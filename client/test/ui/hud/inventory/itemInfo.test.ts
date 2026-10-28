@@ -29,9 +29,9 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("boar-hide")).effect, null);
   });
 
-  test("the sword and the spellbook say what holding them lets you do", () => {
+  test("the sword and the skillbook say what holding them lets you do", () => {
     assert.equal(itemInfo(stack("sword")).effect, "In a hand: swing, stab and block.");
-    assert.equal(itemInfo(stack("spellbook")).effect, "In a hand: cast spells.");
+    assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
   });
 
   test("weights show one decimal place at most", () => {

@@ -5,7 +5,7 @@ import {
   type Stats,
 } from "@infinite-tower/shared";
 
-const STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
+const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 const LIMIT = carryLimit(STATS);
 const TUSK = ITEMS["boar-tusk"].weight;
 

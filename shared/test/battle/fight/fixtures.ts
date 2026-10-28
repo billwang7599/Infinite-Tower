@@ -1,17 +1,17 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, blankSpellbook, Body, castTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
-  PLAYER, PlayerInput, Sidestep, SpellObject, Stamina, starterEquipment, Statuses, SwordAttack, Wielder, type EnemyDef,
-  type Entity, type LungeDef, type PlayerInputData, type Segment, type Spell, type Stats, type SwordDef, type Vec3,
+  ActiveHit, ATTACK_KINDS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
+  PLAYER, PlayerInput, Sidestep, SkillObject, Stamina, starterEquipment, Statuses, SwordAttack, Wielder, type EnemyDef,
+  type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats, type SwordDef, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
 export const ARENA = { radius: 8 };
-export const STATS: Stats = { stamina: 100, intellect: 10, agility: 10, strength: 10 };
+export const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 
 const ENEMY_BASE: EnemyDef = {
   id: "test", name: "Test", model: "boar", maxHp: 100,
-  stats: { stamina: 100, intellect: 0, agility: 10, strength: 10 },
+  stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
   radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
 
@@ -67,7 +67,7 @@ export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { sword: sword({ firstDe
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light",
-    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook(), ...over });
+    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */
@@ -88,14 +88,14 @@ export function run(fight: Fight, seconds: number, next: (step: number) => Playe
 }
 
 export const segment = (
-  form: Segment["form"], elements: Segment["elements"] = [], augments: Segment["augments"] = [],
-): Segment => ({ form, elements, augments });
-export const spell = (...segments: [Segment, ...Segment[]]): Spell => ({ segments });
+  form: Segment["form"], elements: Segment["elements"] = [], modifiers: Segment["modifiers"] = [],
+): Segment => ({ form, elements, modifiers });
+export const skill = (...segments: [Segment, ...Segment[]]): Skill => ({ segments });
 
-export function castNow(fight: Fight, cast: Spell, over: Partial<PlayerInputData> = {}): void {
+export function castNow(fight: Fight, cast: Skill, over: Partial<PlayerInputData> = {}): void {
   fight.step([input({ ...over, chant: true })]);
   fight.step([input({ ...over, cast })]);
-  run(fight, castTime(cast) - Fight.STEP_SECONDS, () => input({ ...over, cast: null }));
+  run(fight, releaseTime(cast) - Fight.STEP_SECONDS, () => input({ ...over, cast: null }));
 }
 
 export const bodyOf = (fight: Fight, e: Entity) => fight.world.require(e, Body);
@@ -125,7 +125,7 @@ export function dumpState(fight: Fight): string {
       statuses: fight.world.get(e, Statuses),
     };
   });
-  const shots = [...fight.world.query(SpellObject)].map(([, shot]) => shot);
+  const shots = [...fight.world.query(SkillObject)].map(([, shot]) => shot);
   return JSON.stringify({ steps: fight.steps, outcome: fight.outcome, rows, shots });
 }
 

@@ -1,16 +1,16 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { clamp, nextRandom, wrapAngle, type Vec2, type Vec3 } from "../../../core/math.js";
-import { HARMFUL_STATUSES, MAGIC, MAX_LIVE_SHOTS, shotOf } from "../../../spells/effects.js";
+import { HARMFUL_STATUSES, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf } from "../../../skills/effects.js";
 import {
-  castTime, SAVE_IN_FIGHT_TIME, SPELL, spellCost, type Segment, type Spell,
-} from "../../../spells/spell.js";
+  releaseTime, SAVE_IN_FIGHT_TIME, SKILL, skillCost, type Segment, type Skill,
+} from "../../../skills/skill.js";
 import {
-  Body, Fighter, Health, Player, SpellObject, Stamina, Statuses, type PlayerData, type SpellObjectData,
+  Body, Fighter, Health, Player, SkillObject, Stamina, Statuses, type PlayerData, type SkillObjectData,
 } from "../../components.js";
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
-import { FighterStats, spellDamage } from "../../stats.js";
+import { FighterStats, skillDamage } from "../../stats.js";
 import type { FightContext } from "../context.js";
 import { heal } from "./statuses.js";
 import { foesNear, strike } from "./strike.js";
@@ -20,12 +20,12 @@ const EPS = 1e-6;
 
 const stepsOf = (seconds: number): number => Math.round(seconds / FIXED_DT);
 
-export function imbueOf(world: World, caster: Entity): [Entity, SpellObjectData] | undefined {
-  for (const row of world.query(SpellObject)) if (row[1].kind === "imbue" && row[1].caster === caster) return row;
+export function imbueOf(world: World, caster: Entity): [Entity, SkillObjectData] | undefined {
+  for (const row of world.query(SkillObject)) if (row[1].kind === "imbue" && row[1].caster === caster) return row;
   return undefined;
 }
 
-export function spellSystem(ctx: FightContext): System {
+export function skillSystem(ctx: FightContext): System {
   return (world, dt) => {
     for (const event of ctx.events.slice()) {
       if (event.type === "hit" && event.sword && event.team === "enemy") imbueHit(ctx, event.by, event.target);
@@ -33,20 +33,20 @@ export function spellSystem(ctx: FightContext): System {
     for (const [e, player, stamina, body] of world.query(Player, Stamina, Body)) {
       const { writing } = player;
       if (player.action === "write" && writing && stepsOf(player.actionTime) >= stepsOf(SAVE_IN_FIGHT_TIME)) {
-        player.book = player.book.map((page, i) => (i === writing.page ? writing.spell : page));
+        player.book = player.book.map((page, i) => (i === writing.page ? writing.skill : page));
         const back = world.require(e, PlayerInput).chant ? "chant" : "bag";
         Object.assign(player, { action: back, actionTime: 0, writing: null });
         ctx.events.push({ type: "pageWritten", player: e, page: writing.page });
       }
-      const spell = player.casting;
-      if (player.action !== "cast" || !spell || stepsOf(player.actionTime) < stepsOf(castTime(spell))) continue;
+      const skill = player.casting;
+      if (player.action !== "cast" || !skill || stepsOf(player.actionTime) < stepsOf(releaseTime(skill))) continue;
       player.action = "none";
       player.casting = null;
-      stamina.value = Math.max(0, stamina.value - spellCost(spell));
+      stamina.value = Math.max(0, stamina.value - skillCost(skill));
       stamina.regenDelay = PLAYER.staminaRegenDelay;
-      fire(ctx, e, spell, 0, { ...body.pos }, null, null);
+      release(ctx, e, skill, 0, { ...body.pos }, null, null);
     }
-    for (const [e, o] of world.query(SpellObject)) {
+    for (const [e, o] of world.query(SkillObject)) {
       if (o.kind === "bolt") fly(ctx, e, o);
       else if (o.kind === "beam") stream(ctx, e, o, dt);
       else if (o.kind === "cloud") linger(ctx, e, o, dt);
@@ -54,21 +54,21 @@ export function spellSystem(ctx: FightContext): System {
         o.left -= dt;
         if (o.left > EPS) continue;
         world.destroy(e);
-        if (o.kind === "wait") fire(ctx, o.caster, o.spell, o.segment + 1, o.pos, o.dir, o.ignore);
-        else handOff(ctx, o.caster, o.spell, o.segment, { ...world.require(o.caster, Body).pos }, null, null);
+        if (o.kind === "wait") release(ctx, o.caster, o.skill, o.segment + 1, o.pos, o.dir, o.ignore);
+        else handOff(ctx, o.caster, o.skill, o.segment, { ...world.require(o.caster, Body).pos }, null, null);
       }
     }
   };
 }
 
-type NewObject = Partial<SpellObjectData>
-  & Pick<SpellObjectData, "kind" | "caster" | "spell" | "segment" | "pos" | "dir">;
+type NewObject = Partial<SkillObjectData>
+  & Pick<SkillObjectData, "kind" | "caster" | "skill" | "segment" | "pos" | "dir">;
 
-const liveShots = (world: World): number => [...world.query(SpellObject)].length;
+const liveShots = (world: World): number => [...world.query(SkillObject)].length;
 
-function spawn(ctx: FightContext, o: NewObject): SpellObjectData | null {
+function spawn(ctx: FightContext, o: NewObject): SkillObjectData | null {
   if (liveShots(ctx.world) >= MAX_LIVE_SHOTS) return null;
-  return ctx.world.add(ctx.world.spawn(), SpellObject, {
+  return ctx.world.add(ctx.world.spawn(), SkillObject, {
     flownM: 0, reachM: 0, left: 0, tickLeft: 0, hitsLeft: 0, held: false, target: null, fanM: { x: 0, z: 0 },
     climbPerM: 0, climbUntilM: 0,
     ignore: null, ...o, pos: { ...o.pos }, dir: { ...o.dir },
@@ -76,30 +76,30 @@ function spawn(ctx: FightContext, o: NewObject): SpellObjectData | null {
 }
 
 function handOff(
-  ctx: FightContext, caster: Entity, spell: Spell, index: number, from: Vec3, dir: Vec2 | null, ignore: Entity | null,
+  ctx: FightContext, caster: Entity, skill: Skill, index: number, from: Vec3, dir: Vec2 | null, ignore: Entity | null,
 ): void {
-  const { delayTime } = shotOf(spell.segments[index]!);
+  const { delayTime } = shotOf(skill.segments[index]!);
   if (delayTime === 0) {
-    fire(ctx, caster, spell, index + 1, from, dir, ignore);
+    release(ctx, caster, skill, index + 1, from, dir, ignore);
     return;
   }
   spawn(ctx, {
-    kind: "wait", caster, spell, segment: index, pos: from, dir: dir ?? { x: 0, z: 0 }, ignore,
+    kind: "wait", caster, skill, segment: index, pos: from, dir: dir ?? { x: 0, z: 0 }, ignore,
     left: delayTime,
   });
 }
 
-function fire(
-  ctx: FightContext, caster: Entity, spell: Spell, index: number, from: Vec3, dir: Vec2 | null, ignore: Entity | null,
+function release(
+  ctx: FightContext, caster: Entity, skill: Skill, index: number, from: Vec3, dir: Vec2 | null, ignore: Entity | null,
 ): void {
-  const segment = spell.segments[index];
+  const segment = skill.segments[index];
   const { world, events } = ctx;
   if (!segment || world.require(caster, Health).hp <= 0) return;
   const input = world.require(caster, PlayerInput);
   // A zero direction is a directionless segment's, kept through a Delay: the caster's aim as it fires.
   const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : { x: input.aimX, z: input.aimZ };
   const shot = shotOf(segment);
-  const base = { caster, spell, segment: index, pos: from, dir: aim, ignore };
+  const base = { caster, skill, segment: index, pos: from, dir: aim, ignore };
   switch (segment.form) {
     case "bolt": {
       const count = Math.min(shot.bolts, MAX_LIVE_SHOTS - liveShots(world));
@@ -112,7 +112,7 @@ function fire(
         return;
       }
       const aimGapM = Math.min(
-        MAGIC.bolt.followGapRadii * shot.boltRadiusM, MAGIC.bolt.followRowMaxM / Math.max(1, count - 1),
+        SKILL_EFFECTS.bolt.followGapRadii * shot.boltRadiusM, SKILL_EFFECTS.bolt.followRowMaxM / Math.max(1, count - 1),
       );
       const wallM = ctx.arena.radius - shot.boltRadiusM;
       for (const bolt of splitBolts(world.require(caster, Player), from, aim, count, wallM)) {
@@ -129,7 +129,7 @@ function fire(
       const player = index === 0 ? world.get(caster, Player) : undefined;
       const beam = spawn(ctx, {
         ...base, kind: "beam", held: player?.castHeld ?? false,
-        left: MAGIC.beam.time * shot.longerFactor, tickLeft: 0,
+        left: SKILL_EFFECTS.beam.time * shot.longerFactor, tickLeft: 0,
       });
       if (!beam) return;
       if (player) Object.assign(player, { action: "beam", actionTime: 0 });
@@ -137,16 +137,16 @@ function fire(
       return;
     }
     case "nova": {
-      const radiusM = MAGIC.nova.radius * shot.widenFactor;
+      const radiusM = SKILL_EFFECTS.nova.radius * shot.widenFactor;
       pulse(ctx, caster, segment, from, radiusM, shot.damageFactor);
-      events.push({ type: "spell", form: "nova", elements: segment.elements, at: { ...from }, radiusM });
+      events.push({ type: "skill", form: "nova", elements: segment.elements, at: { ...from }, radiusM });
       if (shot.cloudTime > 0) {
-        const clouds = [...world.query(SpellObject)].filter(([, o]) => o.kind === "cloud");
+        const clouds = [...world.query(SkillObject)].filter(([, o]) => o.kind === "cloud");
         const mine = clouds.filter(([, o]) => o.caster === caster);
-        if (mine.length >= MAGIC.objects.perPlayer) world.destroy(mine[0]![0]);
-        else if (clouds.length >= MAGIC.objects.perFight) world.destroy(clouds[0]![0]);
+        if (mine.length >= SKILL_EFFECTS.objects.perPlayer) world.destroy(mine[0]![0]);
+        else if (clouds.length >= SKILL_EFFECTS.objects.perFight) world.destroy(clouds[0]![0]);
         spawn(ctx, {
-          ...base, kind: "cloud", reachM: radiusM, left: shot.cloudTime, tickLeft: MAGIC.cloud.tickTime,
+          ...base, kind: "cloud", reachM: radiusM, left: shot.cloudTime, tickLeft: SKILL_EFFECTS.cloud.tickTime,
         });
       }
       break;
@@ -155,27 +155,27 @@ function fire(
       const old = imbueOf(world, caster);
       if (old) world.destroy(old[0]);
       const at = world.require(caster, Body).pos;
-      const hitsLeft = Math.round(MAGIC.imbue.hits * shot.longerFactor);
-      spawn(ctx, { ...base, kind: "imbue", pos: at, hitsLeft, left: MAGIC.imbue.time * shot.longerFactor });
-      events.push({ type: "spell", form: "imbue", elements: segment.elements, at: { ...at } });
+      const hitsLeft = Math.round(SKILL_EFFECTS.imbue.hits * shot.longerFactor);
+      spawn(ctx, { ...base, kind: "imbue", pos: at, hitsLeft, left: SKILL_EFFECTS.imbue.time * shot.longerFactor });
+      events.push({ type: "skill", form: "imbue", elements: segment.elements, at: { ...at } });
       return;
     }
     case "self": {
-      castOnSelf(world, caster, segment);
+      releaseOnSelf(world, caster, segment);
       const at = world.require(caster, Body).pos;
-      events.push({ type: "spell", form: "self", elements: segment.elements, at: { ...at } });
-      handOff(ctx, caster, spell, index, { ...at }, null, null);
+      events.push({ type: "skill", form: "self", elements: segment.elements, at: { ...at } });
+      handOff(ctx, caster, skill, index, { ...at }, null, null);
       return;
     }
   }
-  handOff(ctx, caster, spell, index, from, null, null);
+  handOff(ctx, caster, skill, index, from, null, null);
 }
 
 interface SplitBolt { pos: Vec3; dir: Vec2; climbPerM: number; climbUntilM: number; slot: number }
 interface Spot { side: number; up: number }
 
 function splitBolts(player: PlayerData, from: Vec3, aim: Vec2, count: number, wallM: number): SplitBolt[] {
-  const B = MAGIC.bolt;
+  const B = SKILL_EFFECTS.bolt;
   const roll = (): number => {
     const [value, next] = nextRandom(player.rng);
     player.rng = next;
@@ -224,13 +224,13 @@ function pulse(ctx: FightContext, caster: Entity, segment: Segment, at: Vec3, ra
   }
 }
 
-function linger(ctx: FightContext, e: Entity, o: SpellObjectData, dt: number): void {
+function linger(ctx: FightContext, e: Entity, o: SkillObjectData, dt: number): void {
   o.left -= dt;
   o.tickLeft -= dt;
-  const segment = o.spell.segments[o.segment]!;
+  const segment = o.skill.segments[o.segment]!;
   if (o.tickLeft <= EPS) {
-    o.tickLeft += MAGIC.cloud.tickTime;
-    pulse(ctx, o.caster, segment, o.pos, o.reachM, MAGIC.cloud.tickShare * shotOf(segment).damageFactor);
+    o.tickLeft += SKILL_EFFECTS.cloud.tickTime;
+    pulse(ctx, o.caster, segment, o.pos, o.reachM, SKILL_EFFECTS.cloud.tickShare * shotOf(segment).damageFactor);
   }
   if (o.left <= EPS) ctx.world.destroy(e);
 }
@@ -239,13 +239,14 @@ function imbueHit(ctx: FightContext, by: Entity, target: Entity): void {
   const { world } = ctx;
   const imbue = imbueOf(world, by);
   if (!imbue) return;
-  const [e, o] = imbue, segment = o.spell.segments[o.segment]!;
+  const [e, o] = imbue, segment = o.skill.segments[o.segment]!;
   const from = world.require(by, Body).pos, at = world.require(target, Body).pos;
-  strike(world, ctx.events, by, target, segment.elements, from, MAGIC.imbue.share * shotOf(segment).damageFactor);
+  const share = SKILL_EFFECTS.imbue.share * shotOf(segment).damageFactor;
+  strike(world, ctx.events, by, target, segment.elements, from, share);
   if (--o.hitsLeft > 0) return;
   world.destroy(e);
   const dx = at.x - from.x, dz = at.z - from.z, len = Math.hypot(dx, dz) || 1;
-  handOff(ctx, by, o.spell, o.segment, { ...at }, { x: dx / len, z: dz / len }, target);
+  handOff(ctx, by, o.skill, o.segment, { ...at }, { x: dx / len, z: dz / len }, target);
 }
 
 function toWall(ctx: FightContext, pos: Vec3, dir: Vec2): number {
@@ -253,9 +254,9 @@ function toWall(ctx: FightContext, pos: Vec3, dir: Vec2): number {
   return -along + Math.sqrt(Math.max(0, along * along - (pos.x * pos.x + pos.z * pos.z - ctx.arena.radius ** 2)));
 }
 
-function stream(ctx: FightContext, e: Entity, o: SpellObjectData, dt: number): void {
+function stream(ctx: FightContext, e: Entity, o: SkillObjectData, dt: number): void {
   const { world } = ctx;
-  const segment = o.spell.segments[o.segment]!;
+  const segment = o.skill.segments[o.segment]!;
   const player = o.segment === 0 ? world.get(o.caster, Player) : undefined;
   if (player) {
     if (player.action !== "beam") {
@@ -267,9 +268,9 @@ function stream(ctx: FightContext, e: Entity, o: SpellObjectData, dt: number): v
     o.dir = { x: input.aimX, z: input.aimZ };
     if (o.held && (!player.castHeld || stamina.value <= 0)) o.held = false;
     if (o.held) {
-      const words = SPELL.cost.form + segment.elements.length * SPELL.cost.element
-        + segment.augments.length * SPELL.cost.augment;
-      stamina.value = Math.max(0, stamina.value - words * MAGIC.beam.heldCostFactor * dt);
+      const words = SKILL.cost.form + segment.elements.length * SKILL.cost.element
+        + segment.modifiers.length * SKILL.cost.modifier;
+      stamina.value = Math.max(0, stamina.value - words * SKILL_EFFECTS.beam.heldCostFactor * dt);
       stamina.regenDelay = PLAYER.staminaRegenDelay;
     }
   }
@@ -280,16 +281,16 @@ function stream(ctx: FightContext, e: Entity, o: SpellObjectData, dt: number): v
   world.destroy(e);
   if (player) player.action = "none";
   const end = { x: o.pos.x + o.dir.x * o.reachM, y: o.pos.y, z: o.pos.z + o.dir.z * o.reachM };
-  handOff(ctx, o.caster, o.spell, o.segment, end, o.dir, hits.at(-1) ?? null);
+  handOff(ctx, o.caster, o.skill, o.segment, end, o.dir, hits.at(-1) ?? null);
 }
 
-function tickBeam(ctx: FightContext, o: SpellObjectData): Entity[] {
+function tickBeam(ctx: FightContext, o: SkillObjectData): Entity[] {
   const { world } = ctx;
-  const segment = o.spell.segments[o.segment]!;
+  const segment = o.skill.segments[o.segment]!;
   const shot = shotOf(segment);
-  const radiusM = MAGIC.beam.radiusM * shot.widenFactor;
+  const radiusM = SKILL_EFFECTS.beam.radiusM * shot.widenFactor;
   const maxHits = 1 + shot.pierceTargets;
-  const rangeM = Math.min(MAGIC.beam.rangeM, toWall(ctx, o.pos, o.dir));
+  const rangeM = Math.min(SKILL_EFFECTS.beam.rangeM, toWall(ctx, o.pos, o.dir));
   const team = world.require(o.caster, Fighter).team;
   const onLine: { e: Entity; t: number }[] = [];
   for (const [target, fighter, health, body] of world.query(Fighter, Health, Body)) {
@@ -303,18 +304,18 @@ function tickBeam(ctx: FightContext, o: SpellObjectData): Entity[] {
   const hits = onLine.sort((a, b) => a.t - b.t).slice(0, maxHits);
   o.reachM = hits.length === maxHits ? hits.at(-1)!.t : rangeM;
   if (o.tickLeft <= EPS) {
-    o.tickLeft += MAGIC.beam.tickTime / shot.swiftFactor;
+    o.tickLeft += SKILL_EFFECTS.beam.tickTime / shot.swiftFactor;
     for (const { e } of hits) {
-      strike(world, ctx.events, o.caster, e, segment.elements, o.pos, MAGIC.beam.tickShare * shot.damageFactor);
+      strike(world, ctx.events, o.caster, e, segment.elements, o.pos, SKILL_EFFECTS.beam.tickShare * shot.damageFactor);
     }
   }
   return hits.map(({ e }) => e);
 }
 
-function fly(ctx: FightContext, e: Entity, o: SpellObjectData): void {
+function fly(ctx: FightContext, e: Entity, o: SkillObjectData): void {
   const { world } = ctx;
   const { pos } = o;
-  const segment = o.spell.segments[o.segment]!;
+  const segment = o.skill.segments[o.segment]!;
   const shot = shotOf(segment);
   const follow = shot.followTurnRadPerSec;
   if (follow > 0 && (o.target === null || world.require(o.target, Health).hp <= 0)) {
@@ -322,16 +323,16 @@ function fly(ctx: FightContext, e: Entity, o: SpellObjectData): void {
   }
   if (follow > 0 && o.target !== null) {
     const to = world.require(o.target, Body).pos, maxTurnRad = follow * FIXED_DT;
-    const fan = Math.min(1, Math.hypot(to.x - pos.x, to.z - pos.z) / MAGIC.bolt.followMergeM);
+    const fan = Math.min(1, Math.hypot(to.x - pos.x, to.z - pos.z) / SKILL_EFFECTS.bolt.followMergeM);
     const toX = to.x + o.fanM.x * fan - pos.x, toZ = to.z + o.fanM.z * fan - pos.z;
     const have = Math.atan2(o.dir.x, o.dir.z);
     const turned = have + clamp(wrapAngle(Math.atan2(toX, toZ) - have), -maxTurnRad, maxTurnRad);
     o.dir = { x: Math.sin(turned), z: Math.cos(turned) };
   }
   const { dir } = o;
-  const speedMps = MAGIC.bolt.speedMps * shot.swiftFactor;
-  let travel = Math.min(speedMps * FIXED_DT, MAGIC.bolt.rangeM - o.flownM);
-  let done = travel >= MAGIC.bolt.rangeM - o.flownM;
+  const speedMps = SKILL_EFFECTS.bolt.speedMps * shot.swiftFactor;
+  let travel = Math.min(speedMps * FIXED_DT, SKILL_EFFECTS.bolt.rangeM - o.flownM);
+  let done = travel >= SKILL_EFFECTS.bolt.rangeM - o.flownM;
   const wallM = toWall(ctx, pos, dir);
   if (wallM <= travel) { travel = Math.max(0, wallM); done = true; }
 
@@ -361,21 +362,21 @@ function fly(ctx: FightContext, e: Entity, o: SpellObjectData): void {
     return;
   }
   world.destroy(e);
-  handOff(ctx, o.caster, o.spell, o.segment, { ...pos }, dir, hit);
+  handOff(ctx, o.caster, o.skill, o.segment, { ...pos }, dir, hit);
 }
 
-function castOnSelf(world: World, caster: Entity, segment: Segment): void {
+function releaseOnSelf(world: World, caster: Entity, segment: Segment): void {
   const s = world.require(caster, Statuses);
   const shot = shotOf(segment);
-  const d = spellDamage(MAGIC.damage, world.require(caster, FighterStats)) * shot.damageFactor;
+  const d = skillDamage(SKILL_EFFECTS.damage, world.require(caster, FighterStats)) * shot.damageFactor;
   for (const element of segment.elements) {
-    const self = MAGIC.self[element];
+    const self = SKILL_EFFECTS.self[element];
     if (self.status) s.left[self.status] = self.time * shot.longerFactor;
-    if (element === "light") s.shield = MAGIC.self.light.shield * d;
+    if (element === "light") s.shield = SKILL_EFFECTS.self.light.shield * d;
     if (element === "water") {
       for (const status of HARMFUL_STATUSES) s.left[status] = 0;
       s.burnDamagePerSec = s.shocks = 0;
-      heal(world, caster, MAGIC.self.water.heal * d);
+      heal(world, caster, SKILL_EFFECTS.self.water.heal * d);
     }
   }
 }

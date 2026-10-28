@@ -127,7 +127,7 @@ describe("Keyboard: typing in a text field", () => {
     assert.deepEqual(heard.map(([key]) => key), ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Escape"]);
   });
 
-  test("digits and Backspace count too (a spell's word search), but stay the field's if nobody uses them", () => {
+  test("digits and Backspace count too (a skill's word search), but stay the field's if nobody uses them", () => {
     const { send, heard } = setup((key) => key === "Digit3");
     assert.equal(send("keydown", "Digit3", { tagName: "INPUT" }).defaultPrevented, true);
     assert.equal(send("keydown", "Digit5", { tagName: "INPUT" }).defaultPrevented, false);

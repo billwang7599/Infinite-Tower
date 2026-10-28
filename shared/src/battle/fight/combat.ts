@@ -13,7 +13,7 @@ import {
 import { PLAYER } from "../player.js";
 import { FighterStats, physicalDamage } from "../stats.js";
 import type { FightEvent } from "./context.js";
-import { damageDealtFactor, hurt, siphon } from "./spells/statuses.js";
+import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
 import { endChain, endSwing } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;

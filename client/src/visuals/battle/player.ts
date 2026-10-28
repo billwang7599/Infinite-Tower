@@ -1,12 +1,12 @@
 import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, SpellObject, weaponIn, Wielder, type Entity, type World,
+  Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
 import { fighter } from "./battle.js";
 import { spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
-import { lookOf } from "./spellLooks.js";
-import { drawChantCircle, dropChantCircle, type ChantCircle } from "./spells.js";
+import { lookOf } from "./skillLooks.js";
+import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 import { thrustPose, trailPose } from "./weapons.js";
 
 const SPRITE_SIZE = 1.8;
@@ -105,7 +105,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
 function dispose(sprite: PlayerSprite): void {
   sprite.shadow.dispose();
   for (const node of [sprite.trail, sprite.thrust, sprite.guard]) node.dispose();
-  dropChantCircle(sprite.ctx.spells, sprite.chant);
+  dropChantCircle(sprite.ctx.skills, sprite.chant);
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
@@ -171,14 +171,14 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   }
 
   let imbued = null;
-  for (const [, o] of world.query(SpellObject)) {
-    if (o.kind === "imbue" && o.caster === e) imbued = lookOf(o.spell.segments[o.segment]!.elements);
+  for (const [, o] of world.query(SkillObject)) {
+    if (o.kind === "imbue" && o.caster === e) imbued = lookOf(o.skill.segments[o.segment]!.elements);
   }
-  const sword = ctx.spells.slashFor(imbued);
+  const sword = ctx.skills.slashFor(imbued);
   if (sword !== sprite.sword) {
     sprite.sword = sword;
     sprite.slash.material = sword;
     for (const mesh of sprite.thrust.getChildMeshes()) mesh.material = sword;
   }
-  sprite.chant = drawChantCircle(ctx.spells, sprite.chant, player, body, sprite.node);
+  sprite.chant = drawChantCircle(ctx.skills, sprite.chant, player, body, sprite.node);
 }

@@ -412,12 +412,12 @@ describe("Actions: the layers", () => {
   });
 });
 
-describe("Actions: spells", () => {
-  test("in the arena, 1 to 4 cast the spellbook's pages and R opens the chant", () => {
+describe("Actions: skills", () => {
+  test("in the arena, 1 to 4 cast the skillbook's pages and R opens the chant", () => {
     const { actions, press, listen } = setup("battle");
     const chant = listen("chant");
     for (const code of ["Digit1", "Digit2", "Digit3", "Digit4"]) press(code);
-    assert.deepEqual(actions.poll().pressed, ["spell1", "spell2", "spell3", "spell4"]);
+    assert.deepEqual(actions.poll().pressed, ["skill1", "skill2", "skill3", "skill4"]);
     press("KeyR");
     assert.equal(chant.got.length, 1);
   });
@@ -425,7 +425,7 @@ describe("Actions: spells", () => {
   test("the chant has its own keys: the numbers pick a word (none casts a page), Backspace, Enter, Esc", () => {
     const cases: [string, ActionName][] = [
       ["Digit1", "pick1"], ["Digit4", "pick4"], ["Digit9", "pick9"], ["Backspace", "undoWord"],
-      ["Tab", "findWord"], ["Enter", "castChant"], ["Escape", "closeChant"], ["KeyR", "chant"], ["KeyF", "dodge"],
+      ["Tab", "findWord"], ["Enter", "releaseChant"], ["Escape", "closeChant"], ["KeyR", "chant"], ["KeyF", "dodge"],
     ];
     for (const [code, action] of cases) {
       const { press, listen } = setup("battle", "chant");
@@ -477,17 +477,17 @@ describe("Actions: spells", () => {
     assert.deepEqual(polled.pressed, ["forward", "dodge"]);
   });
 
-  test("the spellbook over the bag picks words with the same keys; Enter writes, Esc closes it alone", () => {
+  test("the skillbook over the bag picks words with the same keys; Enter writes, Esc closes it alone", () => {
     const cases: [string, ActionName][] = [
       ["Digit2", "pick2"], ["Backspace", "undoWord"], ["Tab", "findWord"], ["Enter", "writePage"],
-      ["Escape", "closeSpellbook"],
+      ["Escape", "closeSkillbook"],
     ];
     for (const [code, action] of cases) {
-      const { press, listen } = setup("overworld", "bag", "spellbook");
+      const { press, listen } = setup("overworld", "bag", "skillbook");
       const { got } = listen(action);
       const bag = listen("closeBag");
       press(code);
-      assert.equal(got.length, 1, `${code} in the spellbook`);
+      assert.equal(got.length, 1, `${code} in the skillbook`);
       assert.equal(bag.got.length, 0);
     }
   });

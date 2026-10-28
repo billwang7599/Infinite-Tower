@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSpellbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, Player, PLAYER,
-  reverseOf, starterEquipment, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Spell,
+  blankSkillbook, Body, CHAIN, emptyBag, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, Player, PLAYER,
+  reverseOf, starterEquipment, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/content/enemies.js";
@@ -17,7 +17,7 @@ const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 const newFight = (seed: number, def: EnemyDef = KOBOLD) => new Fight({
   arena: { radius: 16 },
   players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
-    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSpellbook() }],
+    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
   enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
 });
 
@@ -77,7 +77,7 @@ describe("the Kobold Swordsman", () => {
 });
 
 describe("stepping aside from a Bolt", () => {
-  const BOLT: Spell = { segments: [{ form: "bolt", elements: [], augments: [] }] };
+  const BOLT: Skill = { segments: [{ form: "bolt", elements: [], modifiers: [] }] };
   const stepsAside = (def: EnemyDef, seed: number) => {
     const fight = newFight(seed, def);
     const aimed = { ...IDLE_INPUT, aimX: 0, aimZ: 1 };
