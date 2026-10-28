@@ -9,7 +9,7 @@ export interface Rect { x: number; z: number; w: number; h: number }
 export interface LevelLayout {
   id: string;
   name: string;
-  /** Which client renderer draws it (client/src/overworld/levels). */
+  /** Which client renderer draws it (client/src/modes/overworld/levels). */
   theme: "grass-field";
   /** The level spans x ∈ [-halfWidth, halfWidth], z ∈ [-halfDepth, halfDepth]; a border sits on the edge. */
   halfWidth: number;

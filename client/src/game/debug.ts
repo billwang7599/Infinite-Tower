@@ -3,11 +3,11 @@
  * `battle.fight.world` while a fight is on; `encounter()` fights a wild boar, or the enemy named (dev servers only).
  */
 import * as shared from "@infinite-tower/shared";
-import type { Battle } from "../battle/battle.js";
-import * as battleComponents from "../battle/components.js";
-import * as playerComponents from "../battle/player/components.js";
-import * as overworldComponents from "../overworld/components.js";
-import type { Overworld } from "../overworld/overworld.js";
+import type { Battle } from "../modes/battle/battle.js";
+import * as battleComponents from "../modes/battle/components.js";
+import * as playerComponents from "../modes/battle/player/components.js";
+import * as overworldComponents from "../modes/overworld/components.js";
+import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import type { Mode } from "./transition.js";

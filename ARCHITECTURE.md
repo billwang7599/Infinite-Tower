@@ -19,7 +19,7 @@ add, move or rename files, or change how the pieces talk to each other.
 
 ```
               Browser: client/
-  ui/ (React)    game/    overworld/    battle/ (Babylon)
+  ui/ (React)    game/    modes/: overworld/, battle/ (Babylon)
        │                                 │
        │ HTTP /api                       │ WebSocket /ws
        ▼                                 ▼
@@ -118,13 +118,13 @@ main.ts
   movement each frame with `actions.lookDelta()`; no mode sees `Mouse`. In a text field only the arrows and Esc
   count; rebinding takes raw keys with `captureKey`. Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
-  overworld (`overworld/`, mode `"overworld"`) and the fight (`battle/`, mode `"battle"`). Overworld mirrors
+  overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
   systems run. The fighters live in the fight's own world (below), made on encounter and dropped when you return.
   The fight's result comes while you're still in the arena; game.ts holds it and applies it (bag, vitals, wins,
   notices) as you come back.
-- **The overworld draws what the server says.** `overworld/mirror.ts` spawns a drawing per actor `kind`;
-  `overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
+- **The overworld draws what the server says.** `modes/overworld/mirror.ts` spawns a drawing per actor `kind`;
+  `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
@@ -146,9 +146,9 @@ main.ts
   stamina, deaths and the result. Once it's decided, each player's `onEnd` settles the battle for them
   (`core/game/battle.ts`) and the fight is freed. A room takes any number of players; every battle has one for now,
   and that player's session steps it.
-- **The browser runs its own copy of the whole fight** (`battle/`), built from the encounter's setup, so the boar
-  reacts to you at once. Each frame its clock (`battle/pace.ts`: real time since the fight's first step, plus an
-  offset that keeps it in step with the server's) says how many steps are due, and `battle/sync.ts` (`FightSync`)
+- **The browser runs its own copy of the whole fight** (`modes/battle/`), built from the encounter's setup, so the boar
+  reacts to you at once. Each frame its clock (`modes/battle/pace.ts`: real time since the fight's first step, plus an
+  offset that keeps it in step with the server's) says how many steps are due, and `modes/battle/sync.ts` (`FightSync`)
   runs them with the keys' input, sends its changes, and on a hash mismatch loads the server's fight and replays;
   every fighter's drawing eases over the jump (`DrawOffset`). (Babylon's own lockstep isn't used: it would catch up
   stalls a second time.) HP and hits show at once from the client's copy, but the result is only ever the server's:
@@ -386,9 +386,9 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 ## Folders and files
 
 **Names.** The 2D map is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
-`overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode), and the
-place it happens is the **arena**. React components are PascalCase `.tsx` files that export components only (so
-Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the
+`modes/overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode),
+and the place it happens is the **arena**. React components are PascalCase `.tsx` files that export components only
+(so Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the
 name (`MAX_BODY_BYTES`).
 
 **Top level.**
@@ -612,42 +612,43 @@ client/          Browser game: Babylon rendering, input, React UI.
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what
                          the System says), LookMaker.tsx (the panel), options.ts (its rows), SystemWindow.tsx,
                          useTyped.ts (text typed out), styles.ts (dark on white)
-    overworld/       The 2D overworld mode: mirrors the server
-      overworld.ts     The mode: level loads, the walk keys, server state, the overworld HUD, the camera (follow, the
-                       view's edge rule), render
-      scene.ts         Babylon scene + ortho camera, OverworldView, layerY, flatSprite (a quad lying on the overworld)
-      prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
-      facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
-      mirror.ts        Mirror the server's actors (spawned by kind via entities.ts)
-      components.ts    OverworldPos, OverworldActor, OverworldSprite
-      entities.ts      An actor's drawing (position + sprite + overlays): OVERWORLD_PREFABS by ActorSnap.kind (the
-                       boar, the Kobold), and the local player
-      systems/         sprites.ts (glide to server positions, the chibi's facing, tuft, "!")
-      levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel, any
-                       theme's campfires, flickering), grass-field.ts (terrain and its textures)
-    battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
-      battle.ts        The mode: start / end a fight (arena built / resized on demand; the fight's copy from the
-                       encounter's setup, each enemy's model on it), per frame the fight's steps (as many as
-                       pace.ts says) and the inputs out, hashes, syncs and the result in, the render systems (follow:
-                       drawings to their bodies, easing corrections)
-      sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
-                       server's hashes, loads its fight and replays on a mismatch; the server's outcome; stats
-                       (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
-      pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
-                       MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
-      scene.ts         Babylon scene, camera, lights / fog / shadows / post
-      context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says), resultShown
-      components.ts    BodyNode (what a fighter's drawing hangs from), DrawOffset (a correction easing out),
-                       Meshes (+ disposers)
-      materials.ts, arena.ts (scenery: grass, stones, forest)
-      player/          spawn (the sprite, shadow, and the sword's trail, thrust and guard on the fight's player),
-                       components (PlayerSprite), input (a poll -> PlayerInputData; the attack is the last pressed),
-                       sprite (puts pose on the meshes, shadow), pose (pose and its frame, the trail's line
-                       and the stab's thrust from the action, no Babylon: tested)
-      enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
-                       (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
-      systems/         camera (the orbit, and its shake for each step's hard hits: addImpactShake), hud (fills the
-                       battle HUD's store)
+    modes/           The two game modes, a Babylon scene each
+      overworld/       The 2D overworld mode: mirrors the server
+        overworld.ts     The mode: level loads, the walk keys, server state, the overworld HUD, the camera (follow, the
+                         view's edge rule), render
+        scene.ts         Babylon scene + ortho camera, OverworldView, layerY, flatSprite (a quad lying on the overworld)
+        prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
+        facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
+        mirror.ts        Mirror the server's actors (spawned by kind via entities.ts)
+        components.ts    OverworldPos, OverworldActor, OverworldSprite
+        entities.ts      An actor's drawing (position + sprite + overlays): OVERWORLD_PREFABS by ActorSnap.kind (the
+                         boar, the Kobold), and the local player
+        systems/         sprites.ts (glide to server positions, the chibi's facing, tuft, "!")
+        levels/          Level renderers by LevelLayout.theme: index.ts (registry, loadLevel, unloadLevel, any
+                         theme's campfires, flickering), grass-field.ts (terrain and its textures)
+      battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
+        battle.ts        The mode: start / end a fight (arena built / resized on demand; the fight's copy from the
+                         encounter's setup, each enemy's model on it), per frame the fight's steps (as many as
+                         pace.ts says) and the inputs out, hashes, syncs and the result in, the render systems (follow:
+                         drawings to their bodies, easing corrections)
+        sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
+                         server's hashes, loads its fight and replays on a mismatch; the server's outcome; stats
+                         (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
+        pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
+                         MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
+        scene.ts         Babylon scene, camera, lights / fog / shadows / post
+        context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says), resultShown
+        components.ts    BodyNode (what a fighter's drawing hangs from), DrawOffset (a correction easing out),
+                         Meshes (+ disposers)
+        materials.ts, arena.ts (scenery: grass, stones, forest)
+        player/          spawn (the sprite, shadow, and the sword's trail, thrust and guard on the fight's player),
+                         components (PlayerSprite), input (a poll -> PlayerInputData; the attack is the last pressed),
+                         sprite (puts pose on the meshes, shadow), pose (pose and its frame, the trail's line
+                         and the stab's thrust from the action, no Babylon: tested)
+        enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
+                         (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
+        systems/         camera (the orbit, and its shake for each step's hard hits: addImpactShake), hud (fills the
+                         battle HUD's store)
 ```
 
 ## Adding things
@@ -657,15 +658,15 @@ client/          Browser game: Babylon rendering, input, React UI.
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   handler in `client/src/game/game.ts`'s `net.listen({...})`.
 - **A level.** A `LevelDef` in `server/src/core/levels/index.ts`; reuse a theme or add a renderer in
-  `client/src/overworld/levels/`.
+  `client/src/modes/overworld/levels/`.
 - **An overworld actor.** A prefab in `server/src/core/overworld/prefabs.ts` (a list of behavior parts) plus a client
-  drawing in `client/src/overworld/entities.ts` under the same `kind`. New behavior: component + factory + system in
-  `behaviors/`.
+  drawing in `client/src/modes/overworld/entities.ts` under the same `kind`. New behavior: component + factory +
+  system in `behaviors/`.
 - **An arena enemy.** An `EnemyDef` in `server/src/core/content/enemies.ts` combining attacks. A new attack type is
   a def shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
   `shared/src/battle/fight/enemies/`, listed in `fight.ts`; a new look is a folder in
-  `client/src/battle/enemies/models/` listed in its `index.ts`.
+  `client/src/modes/battle/enemies/models/` listed in its `index.ts`.
 - **Something kept between connections.** A field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
   (`core/content/player.ts`), read in `GameSession`'s constructor and written in `GameSession.save()`; a column in
   `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
@@ -715,14 +716,14 @@ client/          Browser game: Babylon rendering, input, React UI.
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
-| Arena camera feel | top of `client/src/battle/systems/camera.ts` |
+| Arena camera feel | top of `client/src/modes/battle/systems/camera.ts` |
 | Where a fight starts | `shared/src/battle/fight/setup.ts` |
 | The arena's wall and floor | `shared/src/battle/fight/physics/arena-physics.ts` |
 | How a fight ends: time limit, leaving mid-fight | `shared/src/battle/fight/outcome.ts` |
 | Fight netcode: hash rate, how late an input may be, how far ahead | `shared/src/battle/netcode.ts` |
 | Fight netcode: start wait, resync gap | `server/src/core/battle/room.ts` |
 | Fight netcode: a silent player letting go | `server/src/core/battle/inputs.ts` |
-| Fight netcode: heartbeat, history, pacing | `client/src/battle/sync.ts`, `client/src/battle/pace.ts` |
+| Fight netcode: heartbeat, history, pacing | `client/src/modes/battle/sync.ts`, `client/src/modes/battle/pace.ts` |
 | View size | `shared/src/overworld/view.ts` (`VIEW`) |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).
