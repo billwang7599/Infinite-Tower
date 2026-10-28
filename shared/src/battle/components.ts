@@ -56,6 +56,8 @@ export interface PlayerData {
   burden: Burden;
   gear: Carried;
   wields: { sword: Hand | null; spellbook: Hand | null };
+  /** Its random numbers' seed (where its split Bolts start), kept in the fight so both sides roll the same. */
+  rng: number;
 }
 export const Player = defineComponent<PlayerData>("Player");
 
@@ -98,8 +100,11 @@ export interface SpellObjectData {
   /** A Beam's time doesn't run while its caster holds the cast. */
   held: boolean;
   target: Entity | null;
-  /** A homing split Bolt's aim beside its target (m), from its place in the fan. */
+  /** A homing split Bolt's aim beside its target (m), from its place across the circle it started in. */
   fanM: Vec2;
+  /** A Bolt's height change per metre flown, until it has flown `climbUntilM`. */
+  climbPerM: number;
+  climbUntilM: number;
   ignore: Entity | null;
 }
 export const SpellObject = defineComponent<SpellObjectData>("SpellObject");

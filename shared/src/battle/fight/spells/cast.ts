@@ -1,12 +1,12 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
-import { clamp, wrapAngle, type Vec2, type Vec3 } from "../../../core/math.js";
+import { clamp, nextRandom, wrapAngle, type Vec2, type Vec3 } from "../../../core/math.js";
 import { HARMFUL_STATUSES, MAGIC, MAX_LIVE_SHOTS, shotOf } from "../../../spells/effects.js";
 import {
   castTime, SAVE_IN_FIGHT_TIME, SPELL, spellCost, type Segment, type Spell,
 } from "../../../spells/spell.js";
 import {
-  Body, Fighter, Health, Player, SpellObject, Stamina, Statuses, type SpellObjectData,
+  Body, Fighter, Health, Player, SpellObject, Stamina, Statuses, type PlayerData, type SpellObjectData,
 } from "../../components.js";
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -70,6 +70,7 @@ function spawn(ctx: FightContext, o: NewObject): SpellObjectData | null {
   if (liveShots(ctx.world) >= MAX_LIVE_SHOTS) return null;
   return ctx.world.add(ctx.world.spawn(), SpellObject, {
     flownM: 0, reachM: 0, left: 0, tickLeft: 0, hitsLeft: 0, held: false, target: null, fanM: { x: 0, z: 0 },
+    climbPerM: 0, climbUntilM: 0,
     ignore: null, ...o, pos: { ...o.pos }, dir: { ...o.dir },
   });
 }
@@ -102,25 +103,23 @@ function fire(
   switch (segment.form) {
     case "bolt": {
       const count = Math.min(shot.bolts, MAX_LIVE_SHOTS - liveShots(world));
-      const spreadRad = Math.min(MAGIC.bolt.splitSpreadRad, MAGIC.bolt.splitFanMaxRad / Math.max(1, count - 1));
       const lock = input.locked === null ? undefined : ctx.enemies[input.locked];
       const target = shot.followTurnRadPerSec === 0 ? null
         : lock !== undefined && lock !== ignore && world.require(lock, Health).hp > 0 ? lock
         : foesNear(world, caster, from, Infinity, ignore ?? undefined)[0] ?? null;
-      const yaw = Math.atan2(aim.x, aim.z);
-      const gapM = Math.min(
-        MAGIC.bolt.splitGapRadii * shot.boltRadiusM, MAGIC.bolt.splitRowMaxM / Math.max(1, count - 1),
-      );
+      if (count === 1) {
+        spawn(ctx, { ...base, kind: "bolt", target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM });
+        return;
+      }
       const aimGapM = Math.min(
         MAGIC.bolt.followGapRadii * shot.boltRadiusM, MAGIC.bolt.followRowMaxM / Math.max(1, count - 1),
       );
-      for (let i = 0; i < count; i++) {
-        const side = i - (count - 1) / 2;
-        const turned = yaw + side * spreadRad;
-        const boltDir = count === 1 ? aim : { x: Math.sin(turned), z: Math.cos(turned) };
-        const pos = { ...from, x: from.x + aim.z * side * gapM, z: from.z - aim.x * side * gapM };
+      const wallM = ctx.arena.radius - shot.boltRadiusM;
+      for (const bolt of splitBolts(world.require(caster, Player), from, aim, count, wallM)) {
+        const side = bolt.slot - (count - 1) / 2;
         spawn(ctx, {
-          ...base, kind: "bolt", pos, dir: boltDir, target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM,
+          ...base, kind: "bolt", pos: bolt.pos, dir: bolt.dir, climbPerM: bolt.climbPerM, climbUntilM: bolt.climbUntilM,
+          target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM,
           fanM: { x: aim.z * side * aimGapM, z: -aim.x * side * aimGapM },
         });
       }
@@ -170,6 +169,53 @@ function fire(
     }
   }
   handOff(ctx, caster, spell, index, from, null, null);
+}
+
+interface SplitBolt { pos: Vec3; dir: Vec2; climbPerM: number; climbUntilM: number; slot: number }
+interface Spot { side: number; up: number }
+
+function splitBolts(player: PlayerData, from: Vec3, aim: Vec2, count: number, wallM: number): SplitBolt[] {
+  const B = MAGIC.bolt;
+  const roll = (): number => {
+    const [value, next] = nextRandom(player.rng);
+    player.rng = next;
+    return value;
+  };
+  const inDisc = (radiusM: number): Spot => {
+    const r = radiusM * Math.sqrt(roll()), a = 2 * Math.PI * roll();
+    return { side: r * Math.cos(a), up: r * Math.sin(a) };
+  };
+  const ringM = clamp(B.splitRingPerRootM * Math.sqrt(count), B.splitRingMinM, B.splitRingMaxM);
+  // The sides along the circle's line that stay inside the wall: -across ± halfM.
+  const across = from.x * aim.z - from.z * aim.x;
+  const halfM = Math.sqrt(Math.max(0, across ** 2 - (from.x ** 2 + from.z ** 2 - wallM ** 2)));
+  const inArena = (spot: Spot): Spot => ({ ...spot, side: clamp(spot.side, -across - halfM, -across + halfM) });
+  const spots: Spot[] = [];
+  const roomM = (s: Spot) => Math.min(...spots.map((o) => Math.hypot(o.side - s.side, o.up - s.up)));
+  for (let i = 0; i < count; i++) {
+    let best = inArena(inDisc(ringM)), bestRoomM = roomM(best);
+    for (let t = 1; t < B.splitSpotTries && spots.length > 0; t++) {
+      const spot = inArena(inDisc(ringM)), spotRoomM = roomM(spot);
+      if (spotRoomM > bestRoomM) [best, bestRoomM] = [spot, spotRoomM];
+    }
+    spots.push(best);
+  }
+  const centerY = Math.max(from.y, B.splitGroundM + ringM);
+  const slots = spots.map((_, i) => i).sort((a, b) => spots[a]!.side - spots[b]!.side);
+  return spots.map((spot, i) => {
+    const pos = { x: from.x + aim.z * spot.side, y: centerY + spot.up, z: from.z - aim.x * spot.side };
+    const off = inDisc(B.splitJitterM);
+    const to = {
+      x: from.x + aim.x * B.splitFocusM + aim.z * off.side,
+      y: Math.max(B.splitGroundM, from.y + off.up),
+      z: from.z + aim.z * B.splitFocusM - aim.x * off.side,
+    };
+    const flatM = Math.hypot(to.x - pos.x, to.z - pos.z);
+    return {
+      pos, dir: { x: (to.x - pos.x) / flatM, z: (to.z - pos.z) / flatM },
+      climbPerM: (to.y - pos.y) / flatM, climbUntilM: flatM, slot: slots.indexOf(i),
+    };
+  });
 }
 
 function pulse(ctx: FightContext, caster: Entity, segment: Segment, at: Vec3, radiusM: number, factor: number): void {
@@ -304,6 +350,7 @@ function fly(ctx: FightContext, e: Entity, o: SpellObjectData): void {
   }
 
   pos.x += dir.x * travel;
+  pos.y += o.climbPerM * clamp(o.climbUntilM - o.flownM, 0, travel);
   pos.z += dir.z * travel;
   o.flownM += travel;
   if (hit === null && !done) return;

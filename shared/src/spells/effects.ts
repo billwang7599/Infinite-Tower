@@ -16,8 +16,11 @@ export const MAGIC = {
   plain: { damage: 0.6 },
   bolt: {
     speedMps: 20, rangeM: 16, radiusM: 0.3,
-    splitDamageFactor: 0.9, splitRadiusFactor: 0.8, splitSpreadRad: 0.35, splitFanMaxRad: 2.4,
-    splitGapRadii: 2, splitRowMaxM: 6,
+    splitDamageFactor: 0.9, splitRadiusFactor: 0.8,
+    // Split Bolts start in an upright circle round the caster, its radius splitRingPerRootM × √bolts within these.
+    splitRingMinM: 1.5, splitRingMaxM: 3, splitRingPerRootM: 0.75, splitGroundM: 0.3,
+    splitGapRadii: 2, splitSpotTries: 8,
+    splitFocusM: 10, splitJitterM: 0.5,
     // Homing split Bolts aim side by side, this many radii apart, at their target, closing in over its last metres.
     followGapRadii: 4, followRowMaxM: 3, followMergeM: 2.5,
   },

@@ -21,7 +21,7 @@ export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 
 export interface PlayerSetup {
-  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Spellbook;
+  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Spellbook; seed?: number;
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -50,7 +50,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 },
     attack: "lr", startup: 0, power: 1, combo: null, comboTime: 0, momentum: 0, burden: setup.burden,
-    gear: setup.gear, wields: wieldsOf(setup.gear.equipment),
+    gear: setup.gear, wields: wieldsOf(setup.gear.equipment), rng: (setup.seed ?? 1) >>> 0,
   });
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });

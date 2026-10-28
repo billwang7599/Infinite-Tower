@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   Body, Health, MAGIC, MAX_LIVE_SHOTS, Player, shotOf, SpellObject, Statuses,
-  type Augment, type Form, type SpellElement, type Vec3,
+  type Augment, type Form, type SpellElement, type SpellObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, castNow, enemy, IDLE, input, player, run, segment, spell, STATUE } from "../fixtures.js";
@@ -169,31 +169,79 @@ describe("Split", () => {
     }
   });
 
-  test("the Bolts fan out by the Split step, sharing the widest fan once they'd pass it", () => {
-    for (const n of [1, 2, 5]) {
-      const fight = fightWith([at(5, 5)]);
-      castNow(fight, one("bolt", ["water"], splits(n)));
-      const yaws = objects(fight, "bolt").map(([, o]) => Math.atan2(o.dir.x, o.dir.z)).sort((a, b) => a - b);
-      const stepRad = Math.min(B.splitSpreadRad, B.splitFanMaxRad / (yaws.length - 1));
-      for (let i = 1; i < yaws.length; i++) close(yaws[i]! - yaws[i - 1]!, stepRad);
-      assert.ok(yaws.at(-1)! - yaws[0]! <= B.splitFanMaxRad + 1e-9);
+  const seeded = (seed: number, radius = ARENA.radius) =>
+    new Fight({ arena: { radius }, players: [player(ME, { seed })], enemies: [enemy(STATUE, at(5, 5))] });
+  const startOf = (o: SpellObjectData): Vec3 => ({
+    x: o.pos.x - o.dir.x * o.flownM, y: o.pos.y - o.climbPerM * Math.min(o.flownM, o.climbUntilM),
+    z: o.pos.z - o.dir.z * o.flownM,
+  });
+  const starts = (fight: Fight, n: number) => {
+    castNow(fight, one("bolt", ["water"], splits(n)));
+    return objects(fight, "bolt").map(([, o]) => startOf(o));
+  };
+
+  test("the Bolts start in an upright circle round the caster, across the aim, clear of the ground", () => {
+    for (const n of [1, 2, 4, 6]) {
+      const fight = seeded(1);
+      const me = fight.world.require(fight.players[0]!, Body).pos;
+      for (const p of starts(fight, n)) {
+        close(p.z, me.z);
+        assert.ok(Math.abs(p.x - me.x) <= B.splitRingMaxM + 1e-9, `${n} Splits: ${p.x}`);
+        assert.ok(p.y >= B.splitGroundM - 1e-9, `${n} Splits: ${p.y} underground`);
+        assert.ok(p.y <= B.splitGroundM + 2 * B.splitRingMaxM + 1e-9, `${n} Splits: ${p.y}`);
+      }
     }
   });
 
-  test("the Bolts start side by side, two radii apart, sharing the widest row once they'd pass it", () => {
-    for (const n of [1, 2, 5, 7]) {
-      const fight = fightWith([at(5, 5)]);
-      fight.step([input({ chant: true })]);
-      const cast = one("bolt", ["water"], splits(n));
-      for (let i = 0; objects(fight, "bolt").length === 0; i++) fight.step([input({ cast: i === 0 ? cast : null })]);
-      const bolts = objects(fight, "bolt").map(([, o]) => o).sort((a, b) => a.pos.x - b.pos.x);
-      for (let i = 1; i < bolts.length; i++) {
-        const [a, b] = [bolts[i - 1]!, bolts[i]!];
-        const apartM = Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
-        const gapM = Math.min(B.splitGapRadii * a.reachM, B.splitRowMaxM / (bolts.length - 1));
-        assert.ok(apartM >= gapM - 1e-9, `${n} Splits: ${apartM} < ${gapM}`);
+  test("the Bolts start at least two radii apart, however many fit the circle", () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      for (let n = 1; 2 ** n <= B.splitRingMaxM ** 2 / B.splitRingPerRootM ** 2; n++) {
+        const spots = starts(seeded(seed), n);
+        const gapM = B.splitGapRadii * B.radiusM * B.splitRadiusFactor ** n;
+        for (const a of spots) for (const b of spots) {
+          if (a === b) continue;
+          const apartM = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+          assert.ok(apartM >= gapM - 1e-9, `seed ${seed}, ${n} Splits: ${apartM} < ${gapM}`);
+        }
       }
     }
+  });
+
+  test("by the wall, they all start inside the arena", () => {
+    const fight = fightWith([at(0, 2)], 5);
+    castNow(fight, one("bolt", ["water"], splits(4)), { aimX: 1, aimZ: 0 });
+    const flying = objects(fight, "bolt").map(([, o]) => o);
+    assert.equal(flying.length, 2 ** 4);
+    for (const o of flying) assert.ok(Math.hypot(o.pos.x, o.pos.z) < 5, `${o.pos.x}, ${o.pos.z} outside`);
+  });
+
+  test("the fight's seed places them: the same seed, the same spots", () => {
+    assert.deepEqual(starts(seeded(7), 3), starts(seeded(7), 3));
+    assert.notDeepEqual(starts(seeded(7), 3), starts(seeded(8), 3));
+  });
+
+  test("they fly in to meet near a point ahead, each off it by at most the jitter, then on straight", () => {
+    const fight = seeded(3, 30);
+    const me = { ...fight.world.require(fight.players[0]!, Body).pos };
+    castNow(fight, one("bolt", ["water"], splits(3)));
+    const focus = { x: me.x, y: me.y, z: me.z + B.splitFocusM };
+    const flying = objects(fight, "bolt").map(([, o]) => o);
+    const nearestM = flying.map(() => Infinity), last = flying.map((o) => ({ ...o.pos }));
+    for (let i = 0; i < 120 && objects(fight, "bolt").length === flying.length; i++) {
+      fight.step([IDLE]);
+      flying.forEach((o, j) => {
+        const a = last[j]!, b = o.pos;
+        const d = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+        const t = Math.max(0, Math.min(1, ((focus.x - a.x) * d.x + (focus.y - a.y) * d.y + (focus.z - a.z) * d.z)
+          / (d.x * d.x + d.y * d.y + d.z * d.z || 1)));
+        const near = Math.hypot(a.x + d.x * t - focus.x, a.y + d.y * t - focus.y, a.z + d.z * t - focus.z);
+        nearestM[j] = Math.min(nearestM[j]!, near);
+        if (o.flownM > o.climbUntilM + 1) close(b.y, a.y);
+        last[j] = { ...b };
+      });
+    }
+    for (const m of nearestM) assert.ok(m <= B.splitJitterM + 1e-6, `${m} off the point`);
+    assert.ok(Math.max(...nearestM) > 0.01, "not all through one pinpoint");
   });
 
   test("every Bolt hands off", () => {
@@ -333,7 +381,7 @@ describe("Follow", () => {
       assert.equal(flying.length, shotOf(words).bolts);
       let nearestM = Infinity;
       for (const a of flying) for (const b of flying) {
-        if (a !== b) nearestM = Math.min(nearestM, Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z));
+        if (a !== b) nearestM = Math.min(nearestM, Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y, a.pos.z - b.pos.z));
       }
       assert.ok(nearestM >= 2 * shotOf(words).boltRadiusM, `${follows} Follow: ${nearestM}`);
     }
