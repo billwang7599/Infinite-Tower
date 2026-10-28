@@ -32,7 +32,7 @@ function watchful(fight: Fight): PlayerInputData {
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
   const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.3 ? 1 : dist < 1.5 ? -1 : 0;
   const input: PlayerInputData = {
-    moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, jump: false, attack: null, dodge: false, block: false,
+    moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, jump: false, attack: null, dodge: false, block: false, cast: null,
   };
   const winding = kobold.state === "swordWindup" || kobold.state === "sword";
   if (winding && !isSwing(sword.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };

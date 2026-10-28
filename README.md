@@ -42,7 +42,7 @@ What's built so far:
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
   the camera), Space jumps, F dodges, Left Shift blocks; U I O / J K L / M , . is a grid where K stabs
   and each other key swings from its side to the opposite one (J or a left click: left to right).
-- **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
+- **Stats:** strength, agility, stamina and intellect on every fighter (intellect scales spell damage).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the

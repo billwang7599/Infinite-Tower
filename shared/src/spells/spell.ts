@@ -5,7 +5,7 @@ export const SPELL = {
   castTime: { base: 0.3, perWord: 0.1 },
 };
 
-export const FORMS = ["bolt", "beam", "nova", "imbue", "self", "summon"] as const;
+export const FORMS = ["bolt", "beam", "nova", "imbue", "self"] as const;
 export type Form = (typeof FORMS)[number];
 
 export const ELEMENTS = ["fire", "water", "earth", "air", "lightning", "light", "darkness"] as const;

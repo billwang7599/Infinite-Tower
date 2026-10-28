@@ -3,8 +3,8 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, takeOne, walkPace, type Bag, type Burden, type Cell,
-  type Character, type SavedSettings, type StepInput, type Stats, type Vitals, type Word,
+  bagBurden, itemAt, itemDef, moveItem, nearCampfire, PLAYER, spellProblems, takeOne, walkPace, type Bag, type Burden,
+  type Cell, type Character, type SavedSettings, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
@@ -75,7 +75,11 @@ export class GameSession {
 
   battleInput(upTo: number, inputs: readonly StepInput[]): void {
     const battle = this.battle;
-    if (battle && !battle.over) battle.room.input(battle.seat, upTo, inputs);
+    if (!battle || battle.over) return;
+    const known = new Set(this.knownWords);
+    const allowed = inputs.map((input) =>
+      input.cast && spellProblems(input.cast, known).length > 0 ? { ...input, cast: null } : input);
+    battle.room.input(battle.seat, upTo, allowed);
   }
 
   battleResync(): void {

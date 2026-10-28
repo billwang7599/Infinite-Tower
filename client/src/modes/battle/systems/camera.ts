@@ -37,6 +37,7 @@ function shakeOf(event: FightEvent): number {
     case "hit": return event.team === "player" ? 0.15 + event.damage * 0.008 : 0.06;
     case "parry": return 0.2;
     case "block": return event.guardBreak ? 0.2 : 0.08;
+    case "spell": return 0;
   }
 }
 

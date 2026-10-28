@@ -12,8 +12,7 @@ const STAT_TEXT: Record<keyof Stats, { name: string; effect: (value: number) => 
   strength: { name: "Strength", effect: (v) => `Physical damage ×${(v / 10).toFixed(1)}` },
   agility: { name: "Agility", effect: (v) => `Movement in fights ×${(v / 10).toFixed(1)}` },
   stamina: { name: "Stamina", effect: (v) => `Stamina bar: ${v}` },
-  mana: { name: "Mana", effect: (v) => `Mana pool: ${v} (no spells yet)` },
-  spellpower: { name: "Spellpower", effect: (v) => `Spell damage ×${(v / 10).toFixed(1)} (no spells yet)` },
+  intellect: { name: "Intellect", effect: (v) => `Spell damage ×${(v / 10).toFixed(1)}` },
 };
 const STAT_KEYS = Object.keys(STAT_TEXT) as (keyof Stats)[];
 

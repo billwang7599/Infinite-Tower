@@ -1,0 +1,116 @@
+import type { Entity, World } from "../../../core/ecs.js";
+import { distXZ, type Vec3 } from "../../../core/math.js";
+import { MAGIC } from "../../../spells/effects.js";
+import type { SpellElement } from "../../../spells/spell.js";
+import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
+import { FighterStats, spellDamage } from "../../stats.js";
+import { HIT_FLASH_TIME, knock } from "../combat.js";
+import type { FightEvent } from "../context.js";
+import { enter } from "../enemies/common.js";
+import { damageDealtFactor, heal, hurt, siphon } from "./statuses.js";
+
+const E = MAGIC.elements, R = MAGIC.reactions;
+
+export const spellPower = (world: World, caster: Entity): number =>
+  spellDamage(MAGIC.damage, world.require(caster, FighterStats)) * damageDealtFactor(world, caster);
+
+// Nearest first; `range` reaches to their surface.
+export function foesNear(world: World, caster: Entity, at: Vec3, range: number, except?: Entity): Entity[] {
+  const team = world.require(caster, Fighter).team;
+  const found: { e: Entity; dist: number }[] = [];
+  for (const [e, fighter, health, body] of world.query(Fighter, Health, Body)) {
+    if (fighter.team === team || health.hp <= 0 || e === except) continue;
+    const dist = distXZ(at, body.pos) - fighter.radius;
+    if (dist <= range) found.push({ e, dist });
+  }
+  return found.sort((a, b) => a.dist - b.dist).map(({ e }) => e);
+}
+
+const resisted = (world: World, e: Entity, element: SpellElement): number =>
+  1 - (world.get(e, Enemy)?.def.resist?.[element] ?? 0);
+
+function damage(world: World, events: FightEvent[], caster: Entity, target: Entity, amount: number): number {
+  const dealt = hurt(world, target, amount);
+  world.require(target, Health).flash = HIT_FLASH_TIME;
+  events.push({ type: "hit", target, team: world.require(target, Fighter).team, damage: dealt });
+  siphon(world, caster, dealt);
+  return dealt;
+}
+
+export function strike(
+  world: World, events: FightEvent[], caster: Entity, target: Entity, elements: readonly SpellElement[], from: Vec3,
+): void {
+  const s = world.require(target, Statuses), body = world.require(target, Body), enemy = world.get(target, Enemy);
+  const d = spellPower(world, caster);
+  const has = (element: SpellElement) => elements.includes(element);
+  const cursedBefore = s.left.cursed;
+  // Statuses go on first, then reactions are checked against the result, in this order.
+
+  if (has("fire")) {
+    s.left.burning = E.fire.burnTime;
+    s.burnDamagePerSec = E.fire.burnDamagePerSec * d;
+  }
+  if (has("water")) s.left.wet = E.water.wetTime;
+  if (has("earth")) {
+    s.left.rooted = E.earth.rootTime;
+    if (enemy) enemy.poise -= E.earth.poiseDamage;
+  }
+  if (has("air")) knock(body.pos, from, body.vel, E.air.knockbackSpeed);
+  if (has("lightning")) {
+    s.shocks = Math.min(E.lightning.maxShocks, s.shocks + 1);
+    s.left.shocked = E.lightning.shockTime;
+  }
+  if (has("light")) s.left.marked = E.light.markTime;
+  if (has("darkness")) s.left.cursed = E.darkness.curseTime;
+
+  let lightningFactor = 1;
+  let arcs: { count: number; range: number; share: number } = { count: 1, range: E.lightning.arcRange, share: E.lightning.arcShare };
+  if (has("lightning") && s.left.wet > 0 && s.cooldown.conduct <= 0) {
+    s.cooldown.conduct = R.conduct.cooldown;
+    s.left.wet = 0;
+    lightningFactor = R.conduct.lightningFactor;
+    arcs = { count: R.conduct.arcs, range: R.conduct.arcRange, share: R.conduct.arcShare };
+  }
+  if (((has("fire") && s.left.wet > 0) || (has("water") && s.left.burning > 0)) && s.cooldown.doused <= 0) {
+    s.cooldown.doused = R.doused.cooldown;
+    s.left.burning = s.left.wet = s.burnDamagePerSec = 0;
+  }
+  if (has("air") && s.left.burning > 0 && s.cooldown.fanned <= 0) {
+    s.cooldown.fanned = R.fanned.cooldown;
+    s.burnDamagePerSec *= R.fanned.burnFactor;
+    const [next] = foesNear(world, caster, body.pos, R.fanned.spreadRange, target);
+    if (next !== undefined) {
+      const other = world.require(next, Statuses);
+      other.left.burning = s.left.burning;
+      other.burnDamagePerSec = s.burnDamagePerSec;
+    }
+  }
+  let eclipse = false;
+  if (has("darkness") && s.left.marked > 0 && s.cooldown.eclipse <= 0) {
+    s.cooldown.eclipse = R.eclipse.cooldown;
+    s.left.marked = 0;
+    s.left.cursed = cursedBefore;
+    eclipse = true;
+  }
+
+  const shareOf = (element: SpellElement) =>
+    E[element].damage * d * (element === "lightning" ? lightningFactor : 1) * resisted(world, target, element);
+  damage(world, events, caster, target, elements.reduce((sum, element) => sum + shareOf(element), 0));
+  if (has("darkness")) heal(world, caster, shareOf("darkness") * E.darkness.healShare);
+  if (has("lightning")) {
+    const arc = E.lightning.damage * d * lightningFactor * arcs.share;
+    for (const next of foesNear(world, caster, body.pos, arcs.range, target).slice(0, arcs.count)) {
+      damage(world, events, caster, next, arc * resisted(world, next, "lightning"));
+    }
+  }
+  if (eclipse) {
+    for (const near of foesNear(world, caster, body.pos, R.eclipse.radius)) {
+      damage(world, events, caster, near, R.eclipse.damage * d * resisted(world, near, "darkness"));
+    }
+  }
+  if (s.shocks >= E.lightning.maxShocks) {
+    s.shocks = 0;
+    s.left.shocked = 0;
+    if (enemy && world.require(target, Health).hp > 0) enter(world, target, enemy, "stunned", E.lightning.stunTime);
+  }
+}

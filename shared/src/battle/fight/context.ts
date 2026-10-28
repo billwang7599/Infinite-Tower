@@ -1,5 +1,7 @@
 /** What a fight's systems share besides the ECS world: its physics, its arena, what happened and how it stands. */
 import type { Entity, World } from "../../core/ecs.js";
+import type { Vec3 } from "../../core/math.js";
+import type { Form, SpellElement } from "../../spells/spell.js";
 import type { TeamId } from "../components.js";
 import type { ArenaDef } from "../defs.js";
 import type { ArenaPhysics } from "./physics/arena-physics.js";
@@ -20,7 +22,8 @@ export type FightEvent =
   /** `by` parried `target`'s swing: `target` is stunned (an enemy) or staggered (a player). */
   | { type: "parry"; by: Entity; target: Entity }
   /** `target` blocked a hit; short of stamina, its guard broke (a player staggered). */
-  | { type: "block"; target: Entity; guardBreak: boolean };
+  | { type: "block"; target: Entity; guardBreak: boolean }
+  | { type: "spell"; form: Form; elements: readonly SpellElement[]; at: Vec3 };
 
 export interface FightContext {
   world: World;

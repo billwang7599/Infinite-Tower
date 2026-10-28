@@ -29,7 +29,6 @@ These were asked early on and never answered:
 - Art direction beyond the current pixel sprites and simple 3D models.
 - Weapons: sword only, or more?
 - How floors work: how many, how big, what's on each, how you go up (a boss per floor?).
-- What the mana and spellpower stats will be used for (there are no spells yet).
 
 ## Notes
 

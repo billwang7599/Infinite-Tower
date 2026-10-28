@@ -4,9 +4,11 @@ import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SwordDef } from "./defs.js";
 import type { AttackKind } from "./sword.js";
 import type { Burden } from "../items/burden.js";
+import type { Reaction, Status } from "../spells/effects.js";
+import type { Spell } from "../spells/spell.js";
 
 /** "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun). */
-export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger";
+export type PlayerAction = "none" | "attack" | "dodge" | "block" | "stagger" | "cast";
 
 export interface PlayerData {
   grounded: boolean;
@@ -16,11 +18,15 @@ export interface PlayerData {
   /** The attack held on the last step: a different one is a new press. */
   attackHeld: AttackKind | null;
   dodgeHeld: boolean;
-  /** Seconds left on a buffered (early) press of jump / attack / dodge, and the attack pressed. */
+  castHeld: boolean;
+  /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or spell pressed. */
   jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
+  castBuffer: number;
   queued: AttackKind | null;
+  castQueued: Spell | null;
+  casting: Spell | null;
   action: PlayerAction;
   /** Seconds since the current action started. */
   actionTime: number;
@@ -48,6 +54,26 @@ export interface HealthData {
   flash: number;
 }
 export const Health = defineComponent<HealthData>("Health");
+
+export interface StatusData {
+  left: Record<Status, number>;
+  burnDamagePerSec: number;
+  shocks: number;
+  shield: number;
+  cooldown: Record<Reaction, number>;
+}
+export const Statuses = defineComponent<StatusData>("Statuses");
+
+export interface SpellShotData {
+  caster: Entity;
+  spell: Spell;
+  segment: number;
+  pos: Vec3;
+  dir: Vec2;
+  flownM: number;
+  ignore: Entity | null;
+}
+export const SpellShot = defineComponent<SpellShotData>("SpellShot");
 
 export interface StaminaData { value: number; max: number; regenDelay: number }
 export const Stamina = defineComponent<StaminaData>("Stamina");

@@ -5,14 +5,15 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Stamina, SwordAttack, type ActiveHitData,
-  type EnemyData, type HealthData, type PlayerData, type StaminaData, type SwordAttackData,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, SpellShot, Stamina, Statuses, SwordAttack,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SpellShotData, type StaminaData,
+  type StatusData, type SwordAttackData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
 
-interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max"> }
+interface FighterSnapshot { pos: Vec3; vel: Vec3; health: Omit<HealthData, "max">; statuses: StatusData }
 
 interface PlayerSnapshot extends FighterSnapshot {
   player: Omit<PlayerData, "burden">;
@@ -31,6 +32,9 @@ interface EnemySnapshot extends FighterSnapshot {
 /** Whose hitbox it is and whom it has hit, as fighter indices (the players in seat order, then the enemies). */
 interface HitSnapshot extends Omit<ActiveHitData, "alreadyHit"> { by: number; alreadyHit: number[] }
 
+// `caster` and `ignore` as fighter indices (-1: none).
+interface ShotSnapshot extends Omit<SpellShotData, "caster" | "ignore"> { caster: number; ignore: number }
+
 export interface FightSnapshot {
   /** Steps run: the fight is as it was after this one. */
   steps: number;
@@ -39,7 +43,10 @@ export interface FightSnapshot {
   enemies: EnemySnapshot[];
   /** In the order the fight checks them. */
   hits: HitSnapshot[];
+  shots: ShotSnapshot[];
 }
+
+const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }, cooldown: { ...s.cooldown } });
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
 
@@ -53,7 +60,7 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
     const { max: _, ...health } = world.require(e, Health);
-    return { pos: { ...pos }, vel: { ...vel }, health };
+    return { pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)) };
   };
   return {
     steps: fight.steps,
@@ -77,6 +84,10 @@ export function saveFight(fight: Fight): FightSnapshot {
     hits: [...world.query(ActiveHit)].map(([e, { alreadyHit, ...hit }]) => ({
       ...hit, by: fighters.indexOf(e), alreadyHit: [...alreadyHit].map((target) => fighters.indexOf(target)),
     })),
+    shots: [...world.query(SpellShot)].map(([, { caster, ignore, pos, dir, ...shot }]) => ({
+      ...shot, pos: { ...pos }, dir: { ...dir }, caster: fighters.indexOf(caster),
+      ignore: ignore === null ? -1 : fighters.indexOf(ignore),
+    })),
   };
 }
 
@@ -90,6 +101,7 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     Object.assign(body.vel, s.vel);
     physics.place(body.collider, body.pos);
     Object.assign(world.require(e, Health), s.health);
+    world.add(e, Statuses, copyStatuses(s.statuses));
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.
   for (const e of fighters) world.remove(e, ActiveHit);
@@ -112,6 +124,14 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   });
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });
+  }
+  for (const [e] of world.query(SpellShot)) world.destroy(e);
+  world.flush();
+  for (const { caster, ignore, pos, dir, ...shot } of snap.shots) {
+    world.add(world.spawn(), SpellShot, {
+      ...shot, pos: { ...pos }, dir: { ...dir }, caster: fighters[caster]!,
+      ignore: ignore === -1 ? null : fighters[ignore]!,
+    });
   }
   Object.assign(fight.outcome, snap.outcome);
   fight.steps = snap.steps;

@@ -1,5 +1,6 @@
 import { defineComponent } from "../core/ecs.js";
 import { roundTo } from "../core/math.js";
+import type { Spell } from "../spells/spell.js";
 import type { AttackKind } from "./sword.js";
 
 /** What an arena fighter does this step: from the keys in the browser, from `battleInput` on the server. */
@@ -15,6 +16,8 @@ export interface PlayerInputData {
   attack: AttackKind | null;
   dodge: boolean;
   block: boolean;
+  // Pressed on the first step it's there, like a key: two casts need a null step between.
+  cast: Spell | null;
 }
 export const PlayerInput = defineComponent<PlayerInputData>("PlayerInput");
 
@@ -25,18 +28,18 @@ export interface StepInput extends PlayerInputData { step: number }
 export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
   moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-  block: i.block,
+  block: i.block, cast: i.cast,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ && a.jump === b.jump
-  && a.attack === b.attack && a.dodge === b.dodge && a.block === b.block;
+  && a.attack === b.attack && a.dodge === b.dodge && a.block === b.block && a.cast === b.cast;
 
 /** Decimals the move and the aim keep on the wire: 0.001 of a direction is far below what anyone can aim. */
 const WIRE_DECIMALS = 3;

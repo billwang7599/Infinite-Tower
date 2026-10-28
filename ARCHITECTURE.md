@@ -173,6 +173,14 @@ main.ts
   come from the sword (`shared/src/battle/sword.ts`): eight swings named by their way across the screen (`lr`: left
   to right) and a stab; a swing's start and the momentum it adds depend on how it follows the last one (`CHAIN`,
   `MOMENTUM`).
+- **Spells are inputs too.** A player's input may carry a whole spell (`cast`, pressed on the first step it's
+  there); the controller winds it up as the "cast" action, and `spellSystem` (`fight/spells/cast.ts`) pays its
+  stamina and fires it once the wind-up is over. A Bolt is a `SpellShot` entity flying by plain-math sweeps, not a
+  physics body; a Nova and Self go off at once; each segment fires when the one before it completes. A hit runs
+  `strike` (`fight/spells/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
+  the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
+  Warded, the Light shield, Siphoning: `fight/spells/statuses.ts`). Every number is in `MAGIC`
+  (`shared/src/spells/effects.ts`).
 - **AI and animation are separate.** Enemy behavior systems (`fight/enemies/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's animation system (client) reads the
   state and poses the model.
@@ -244,7 +252,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `rest` | Rest key by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in bag cell `at` |
 | `moveItem {from, to, turned}` | moved cell `from`'s item so its top-left is at `to` (overworld only; shown at once) |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step, and the last step run |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its spell, dropped by the server if the player doesn't know its words), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -325,8 +333,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
   difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
   costs), and a dodge pressed during a swing waiting for it to let go (on any step of it, once, ahead of a buffered
-  swing, through a save and a rollback). Each fight test file awaits `initPhysics()` first. Also the battle inputs'
-  rounding and what counts as a change.
+  swing, through a save and a rollback). Spells (`shared/test/battle/fight/spells/`): the wind-up, its cost at release,
+  waiting behind a swing, cancelled by a dodge or a hit; Bolt, Nova and Self; chains (from a hit, at full range, at
+  the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
+  the four reactions, their order and cooldowns; Self per element (sword hits included). Each fight test file awaits
+  `initPhysics()` first. Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items,
@@ -338,9 +349,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; parrying the Kobold's swing the same way; the Kobold as
-  tuned, beaten by a player who reads its wind-ups whatever its seed; and the input timeline (changes held, late
-  presses kept,
-  too far ahead dropped, a silent player stopping, lateness).
+  tuned, beaten by a player who reads its wind-ups whatever its seed; a cast with a word the player doesn't know
+  dropped; and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a silent player
+  stopping, lateness).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
@@ -417,13 +428,13 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
                    prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
                    16:9; viewCenter, the camera's edge rule)
-  battle/          components.ts (Player, Health, Stamina, Body, Fighter, ActiveHit, Enemy, LungeAttack,
-                   ChargeAttack, SwordAttack),
+  battle/          components.ts (Player, Health, Stamina, Statuses, Body, Fighter, ActiveHit, SpellShot, Enemy,
+                   LungeAttack, ChargeAttack, SwordAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
                    optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
-                   FighterStats, physicalDamage / moveSpeed / carryLimit), sword.ts (the sword's attacks:
+                   FighterStats, physicalDamage / spellDamage / moveSpeed / carryLimit), sword.ts (the sword's attacks:
                    SWING_DIRS, ATTACK_KINDS, STARTER_SWORD, attackShape; CHAIN and MOMENTUM: how swings chain;
                    PARRY)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
@@ -439,7 +450,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
-      player/          controller.ts (move, jump, attacks and their chains, block, dodge, stamina; controlPlayer)
+      player/          controller.ts (move, jump, attacks and their chains, block, dodge, a cast's wind-up, stamina;
+                       controlPlayer)
+      spells/          cast.ts (spellSystem: casts released and paid for, segments fired in turn, Bolts flying),
+                       strike.ts (a stage hitting a target: statuses, reactions, damage; foesNear), statuses.ts
+                       (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       enemies/         brain.ts (target, approach / poise / stagger / stun / parried / death), lunge.ts, charge.ts,
                        sword.ts (a swordsman's seeded chains of swings), common.ts
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
@@ -451,8 +466,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    (BURDEN, bagBurden: light / heavy / overloaded, and what each does to walking and dodging)
   spells/          spell.ts (a spell as data: segments of a Form, elements and augments; FORMS, ELEMENTS, OPPOSITE,
                    AUGMENT_FITS, WORDS (all of them); rejectWord / spellProblems: why a word is refused, for the builder
-                   and the server's check; spellCost, castTime; SPELL: their numbers). Nothing casts them yet
-                   (plan/spells.md)
+                   and the server's check; spellCost, castTime; SPELL: their numbers), effects.ts (MAGIC: what spells
+                   do in a fight, every number; STATUSES, REACTIONS)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -533,7 +548,7 @@ client/          Browser game: Babylon rendering, input, React UI.
                      character from `welcome` / `character`, opening creation without one; tells the player
                      what happened with `say`; has PlayerLook paint the player's look, finishing it before a
                      fight), transition.ts (Mode,
-                     flash / fade), debug.ts (the dev handles on `window`)
+                     flash / fade), debug.ts (the dev handles on `window`, `cast(spell)` among them)
     net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
                      `listen`s with one handler per type; a lost connection becomes a sentence for the title),
                      account.ts (the /api calls: who's
@@ -646,7 +661,8 @@ client/          Browser game: Babylon rendering, input, React UI.
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         scene.ts         Babylon scene, camera, lights / fog / shadows / post
-        context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says, the lock),
+        context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says, the lock, the
+                         spells waiting to be cast),
                          resultShown
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
@@ -661,7 +677,8 @@ client/          Browser game: Babylon rendering, input, React UI.
         enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
                          (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
         systems/         camera (the orbit, locked or not, and its shake for each step's hard hits: addImpactShake),
-                         hud (fills the battle HUD's store)
+                         hud (fills the battle HUD's store), spells (placeholder visuals: a ball per Bolt, a fading
+                         sphere per Nova / Self, by element)
 ```
 
 ## Adding things
@@ -728,6 +745,7 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
+| Spells in a fight: D, the Forms, each element, the reactions, Self | `shared/src/spells/effects.ts` (`MAGIC`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/systems/camera.ts` |
