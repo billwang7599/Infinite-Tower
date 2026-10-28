@@ -20,6 +20,9 @@ The client on **Cloudflare Workers** (static assets), the server on **AWS EC2** 
   - A `HOST` setting: the server listens on every interface (`::`) right now; dev could use localhost only.
 - `npm start` already builds the client and serves it, `/api` and `/ws` from one process; production cookies are
   `Secure`.
+- **Squash the migrations before launch** (the user: yes). Until a real player's data exists, the 0000-00NN files
+  can become one migration made fresh from `schema.ts`, and the dev databases reset. After launch they're never
+  squashed, only added to. With more than one server, migrations run once per deploy, not at each server's start.
 
 ## Open questions
 
