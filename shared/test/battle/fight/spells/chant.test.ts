@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  blankSpellbook, castTime, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SpellShot, type PlayerInputData, type Spell,
-  type Vec3,
+  blankSpellbook, castTime, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SpellObject, type PlayerInputData,
+  type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -20,7 +20,7 @@ function alone(book = blankSpellbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });
 }
 const playerOf = (fight: Fight) => fight.world.require(fight.players[0]!, Player);
-const shots = (fight: Fight) => [...fight.world.query(SpellShot)].length;
+const shots = (fight: Fight) => [...fight.world.query(SpellObject)].length;
 const flatPos = (fight: Fight) => {
   const { x, z } = bodyOf(fight, fight.players[0]!).pos;
   return { x, z };

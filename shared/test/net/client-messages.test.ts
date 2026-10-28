@@ -12,7 +12,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
-  cast: null, chant: false, write: null,
+  cast: null, chant: false, write: null, locked: null,
 };
 const segment = (form: string, elements: string[] = [], augments: string[] = []) => ({ form, elements, augments });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -110,6 +110,13 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "block" }), null);
     assert.equal(battleInput({ ...STEP, attack: "LR" }), null);
+  });
+
+  test("battleInput: the locked enemy is a whole index, or none", () => {
+    const locked = { ...STEP, locked: 2 };
+    assert.deepEqual(battleInput(locked), { t: "battleInput", upTo: 1, inputs: [locked] });
+    assert.equal(battleInput({ ...STEP, locked: -1 }), null);
+    assert.equal(battleInput({ ...STEP, locked: 0.5 }), null);
   });
 
   test("battleInput: the aim is a direction (length 1), the move no longer than the keys can make", () => {

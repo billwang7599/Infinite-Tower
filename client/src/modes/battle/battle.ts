@@ -4,8 +4,8 @@
  */
 import { TransformNode, type AbstractEngine } from "@babylonjs/core";
 import {
-  Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, Player, type ArenaDef, type ClientMsg, type Entity,
-  type ServerMsgOf, type System, type Vec3, type World,
+  Body, copyInput, dampFactor, Enemy, IDLE_INPUT, LocalPlayer, Player, sameSpell, type ArenaDef, type ClientMsg,
+  type Entity, type ServerMsgOf, type System, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
@@ -111,7 +111,13 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.camera.position, yaw: ctx.view.yaw }, me);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, input);
-    input.cast = input.cast ? null : ctx.casts.shift() ?? null;
+    const casting = input.cast;
+    const holding = casting !== null && HOTBAR.some((key, i) => {
+      const page = book[i];
+      return ctx.polled.held.has(key) && page && sameSpell(page, casting);
+    });
+    input.cast = holding ? casting : casting ? null : ctx.casts.shift() ?? null;
+    input.locked = ctx.lock === null ? null : fight.enemies.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     input.chant = opts.chant.get().open;
     for (let i = 0; i < steps; i++) {

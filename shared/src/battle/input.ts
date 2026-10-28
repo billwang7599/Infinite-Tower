@@ -20,6 +20,8 @@ export interface PlayerInputData {
   cast: Spell | null;
   chant: boolean;
   write: PageWrite | null;
+  /** The locked enemy, as its index in the fight's enemies. */
+  locked: number | null;
 }
 
 export interface PageWrite { page: number; spell: Spell }
@@ -33,19 +35,19 @@ export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
-  chant: false, write: null,
+  chant: false, write: null, locked: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
   moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-  block: i.block, cast: i.cast, chant: i.chant, write: i.write,
+  block: i.block, cast: i.cast, chant: i.chant, write: i.write, locked: i.locked,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ && a.jump === b.jump
   && a.attack === b.attack && a.dodge === b.dodge && a.block === b.block && a.cast === b.cast && a.chant === b.chant
-  && a.write === b.write;
+  && a.write === b.write && a.locked === b.locked;
 
 /** Decimals the move and the aim keep on the wire: 0.001 of a direction is far below what anyone can aim. */
 const WIRE_DECIMALS = 3;

@@ -1,5 +1,7 @@
 import { Color3, MeshBuilder, StandardMaterial, type Mesh, type Scene } from "@babylonjs/core";
-import { MAGIC, SpellShot, type Entity, type SpellElement, type System } from "@infinite-tower/shared";
+import {
+  Body, MAGIC, SpellObject, type Entity, type SpellElement, type SpellObjectData, type System,
+} from "@infinite-tower/shared";
 import type { FightEvent } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../context.js";
 
@@ -9,6 +11,8 @@ const ELEMENT_COLORS: Record<SpellElement | "none", string> = {
 };
 const FLASH_TIME = 0.35;
 const SELF_RADIUS = 1;
+const MARK_DIAMETER_M = 0.25;
+const IMBUE_HEIGHT_M = 1;
 
 interface Flash { mesh: Mesh; left: number }
 
@@ -31,20 +35,39 @@ export function createSpellEffects(ctx: BattleContext): SpellEffects {
     }
     return m;
   };
-  const bolts = new Map<Entity, Mesh>();
+  const meshFor = (e: Entity, o: SpellObjectData): Mesh => {
+    const name = `spell-${o.kind}-${e}`;
+    switch (o.kind) {
+      case "bolt": return MeshBuilder.CreateSphere(name, { diameter: MAGIC.bolt.radiusM * 2, segments: 8 }, ctx.scene);
+      // 1 m long along z, stretched to the beam's length each frame.
+      case "beam": {
+        const mesh = MeshBuilder.CreateCylinder(name, { height: 1, diameter: MAGIC.beam.radiusM * 2 }, ctx.scene);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.bakeCurrentTransformIntoVertices();
+        return mesh;
+      }
+      case "cloud": {
+        const mesh = MeshBuilder.CreateCylinder(name, { height: 0.6, diameter: o.reachM * 2 }, ctx.scene);
+        mesh.visibility = 0.3;
+        return mesh;
+      }
+      default: return MeshBuilder.CreateSphere(name, { diameter: MARK_DIAMETER_M, segments: 6 }, ctx.scene);
+    }
+  };
+  const drawn = new Map<Entity, Mesh>();
   const flashes: Flash[] = [];
 
   return {
     clear() {
-      for (const mesh of bolts.values()) mesh.dispose();
+      for (const mesh of drawn.values()) mesh.dispose();
       for (const { mesh } of flashes) mesh.dispose();
-      bolts.clear();
+      drawn.clear();
       flashes.length = 0;
     },
     addEvents(events) {
       for (const event of events) {
         if (event.type !== "spell") continue;
-        const radius = event.form === "nova" ? MAGIC.nova.radius : SELF_RADIUS;
+        const radius = event.radiusM ?? SELF_RADIUS;
         const mesh = MeshBuilder.CreateSphere("spell-flash", { diameter: radius * 2, segments: 12 }, ctx.scene);
         mesh.material = materialFor(ctx.scene, event.elements);
         mesh.position.set(event.at.x, event.at.y, event.at.z);
@@ -54,21 +77,28 @@ export function createSpellEffects(ctx: BattleContext): SpellEffects {
     },
     system(world, dt) {
       const live = new Set<Entity>();
-      for (const [e, shot] of world.query(SpellShot)) {
+      for (const [e, o] of world.query(SpellObject)) {
         live.add(e);
-        let mesh = bolts.get(e);
+        let mesh = drawn.get(e);
         if (!mesh) {
-          mesh = MeshBuilder.CreateSphere(`bolt-${e}`, { diameter: MAGIC.bolt.radiusM * 2, segments: 8 }, ctx.scene);
-          mesh.material = materialFor(ctx.scene, shot.spell.segments[shot.segment]!.elements);
+          mesh = meshFor(e, o);
+          mesh.material = materialFor(ctx.scene, o.spell.segments[o.segment]!.elements);
           mesh.isPickable = false;
-          bolts.set(e, mesh);
+          drawn.set(e, mesh);
         }
-        mesh.position.set(shot.pos.x, shot.pos.y, shot.pos.z);
+        if (o.kind === "imbue") {
+          const at = world.require(o.caster, Body).pos;
+          mesh.position.set(at.x, at.y + IMBUE_HEIGHT_M, at.z);
+        } else if (o.kind === "beam") {
+          mesh.position.set(o.pos.x + o.dir.x * o.reachM / 2, o.pos.y, o.pos.z + o.dir.z * o.reachM / 2);
+          mesh.rotation.y = Math.atan2(o.dir.x, o.dir.z);
+          mesh.scaling.z = Math.max(0.01, o.reachM);
+        } else mesh.position.set(o.pos.x, o.pos.y, o.pos.z);
       }
-      for (const [e, mesh] of bolts) {
+      for (const [e, mesh] of drawn) {
         if (live.has(e)) continue;
         mesh.dispose();
-        bolts.delete(e);
+        drawn.delete(e);
       }
       for (let i = flashes.length - 1; i >= 0; i--) {
         const flash = flashes[i]!;

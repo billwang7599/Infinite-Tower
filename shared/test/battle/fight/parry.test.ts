@@ -118,8 +118,8 @@ describe("parrying the swordsman's swing", () => {
     assert.ok(hit, "the second swing lands");
     assert.ok((hit.step - LANDS_AT) * FIXED_DT < PARRY.stunTime, "while still stunned");
     assert.deepEqual(hit.event, {
-      type: "hit", target: after.fight.enemies[0], team: "enemy",
-      damage: physicalDamage(STARTER_SWORD.damage, STATS) * PARRY.bonusDamage,
+      type: "hit", by: after.fight.players[0], target: after.fight.enemies[0], team: "enemy",
+      damage: physicalDamage(STARTER_SWORD.damage, STATS) * PARRY.bonusDamage, sword: true,
     });
 
     const done = play(swingBefore("rl", 2), LANDS_AT + Math.round(PARRY.stunTime / FIXED_DT) + 2);

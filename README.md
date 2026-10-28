@@ -51,10 +51,11 @@ What's built so far:
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
-- **Spells:** words chained into spells (Bolt, Nova and Self so far, seven elements with their statuses and four
-  reactions), paid in stamina. In a fight, R opens the chant: a spell built word by word in a carousel of squares
-  (click a word, search for one, or pick by number; Backspace undoes), cast with Enter. The spellbook has four pages,
-  written from the bag screen (Open on the book in hand) or in a fight (2 s, standing still), and cast with 1-4.
+- **Spells:** words chained into spells (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
+  statuses and four reactions; eight augments), paid in stamina. In a fight, R opens the chant: a spell built word by
+  word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter.
+  The spellbook has four pages, written from the bag screen (Open on the book in hand) or in a fight (2 s, standing
+  still), and cast with 1-4 (hold the key to keep a Beam going).
   Dying blanks the pages; the words you know stay.
 - **Equipment:** you start with a sword in your right hand and a spellbook in your left (and get a fresh pair after
   dying). Without a sword in hand you can't swing, stab or block; without the spellbook you can't cast. Worn

@@ -2,9 +2,10 @@
 
 Status: **being built**. The user's design, condensed (their own doc isn't in the repo). A spell is a chain of words.
 Built so far: the grammar (`shared/src/spells/spell.ts`), the words each player knows (saved), casting in the
-shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), and PR D's chanting in fights, the
-spellbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/spells/`). Numbers marked *placeholder* are the
-agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`).
+shared fight (PR C: Bolt, Nova and Self, the seven elements and four reactions), PR D's chanting in fights, the
+spellbook's 4 pages (saved) and their keys 1-4 (`client/src/ui/spells/`), and PR E's Beam, Imbue, Forms with no
+element and every augment. Numbers marked *placeholder* are the agent's picks, to tune; they all live in `MAGIC`
+(`shared/src/spells/effects.ts`).
 
 ## Decided by the user
 
@@ -100,8 +101,29 @@ agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`
   for 5 s (Hasted). Lightning: +50% stamina regeneration for 5 s (Charged). Light: a shield of 1.0D for 6 s. Darkness:
   your hits heal you 10% of their damage for 8 s (Siphoning). These count for sword hits too.
 - **Imbue** imbues your own sword, for now; arena props come later.
-- A Form with no element does nothing but hand off. Beam and Imbue complete at once, doing nothing, until they're
-  built. Augments cost but do nothing yet.
+- **No element:** a plain hit of 0.6D with no status (Imbue adds it to sword hits); Self with none does nothing.
+- **Beam:** a line 10 m long and 0.35 m wide that strikes the first enemy on it as it starts and every 0.5 s, each
+  tick 50% of a hit, for 1 s. As a spell's first segment it streams from the caster along their aim (the locked
+  enemy, or the camera's facing) and is held while the cast key is (a page's key; a chanted Beam is a tap): held, it
+  costs its own words' cost ×2 a second (no chain growth), and its 1 s runs from the release. While it lasts you
+  walk at 40% and can't swing; a dodge or a stun ends it at once with no hand-off; running out of stamina ends the
+  hold. A later Beam starts where the segment before it ended and keeps its direction. It hands off where it ends:
+  in the enemy it stops in, or at its range or the wall.
+- **Imbue:** the next 3 sword hits that land within 8 s (swings or stabs; blocked or parried ones don't count) each
+  also strike with its elements at 50% of a hit. A new Imbue replaces the old one (without its hand-off). It hands
+  off from the enemy the last hit landed on (onward from you through it, skipping it), or from you when it runs out.
+- A share of a hit (a Beam's tick, an Imbue, a cloud, a split Bolt, Amplify) scales its damage, poise damage and
+  knockback; statuses go on in full, so a Lightning Beam stacks Shocked every tick.
+- **Augments,** each per its strength (1, 1.5, 1.75 for one, two, three of it): Amplify +50% damage (Self: its heal
+  and shield). Widen +50% radius (a Nova's, a Beam's width). Pierce: a Bolt goes through 2 more enemies before it
+  stops (it still hands off once, at its end); a Beam strikes up to 3 on its line. Split: +2 Bolts (3, 4, 5), 0.25
+  rad apart, each at 50% damage and each handing off. Extend +100% time (a Beam's, an Imbue's hits and time, Self's
+  statuses); on a Nova, a cloud as wide as the Nova for 8 s per strength, pulsing it every second at 40%, its
+  hand-off still at the burst. Swift +50% speed (a Bolt's flight, a Beam's ticks; an Imbue's swings start quicker).
+  Delay holds the hand-off back 1 s per strength (on a spell's last segment it does nothing). Follow turns a Bolt up
+  to 8 rad/s toward its target, picked as it fires (the locked enemy, else the nearest; if it dies, the nearest).
+- **Caps:** clouds only (Bolts, Beams and waits end on their own): a player's 13th ends their oldest, and so does the
+  fight's 61st.
 - A cast waits behind a buffered dodge, and goes before a buffered swing. Casting works in the air.
 - Only a hit that stuns or staggers you (a boar's bite or charge, a broken guard) interrupts the wind-up; the
   Kobold's sword only hurts, so the cast goes off, as with the chant.
@@ -121,14 +143,17 @@ agent's picks, to tune; they all live in `MAGIC` (`shared/src/spells/effects.ts`
 1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
 2. **D** the spellbook's 4 saved spells, quick-cast keys 1-4, the builder and chanting in fights (built); learning
    words (not built: new players know none).
-3. **E** the remaining Forms (Beam, Imbue) and augments, objects and their caps.
-4. **F** real art and effects (now a coloured ball per Bolt and a fading sphere per Nova / Self).
+3. **E** the remaining Forms (Beam, Imbue) and augments, objects and their caps (built).
+4. **F** real art and effects (now a coloured ball per Bolt, a rod per Beam, a disc per cloud and a fading sphere
+   per Nova / Self / Imbue).
 
 ## Open
 
 - The agent's placeholders for fits nobody decided: Delay fits every Form, Follow only Bolt.
 - The chain's growth: each extra segment doubles the whole spell's cost (`SPELL.chainGrowth`, placeholder).
 - The agent's reading of the grammar: a repeated element is refused (elements are a set); Lightning has no opposite.
-- How strong each augment is (how much wider, longer, faster), and the dev cost scale.
+- The agent's clouds last 8 s per Extend, against "Objects (clouds) last until the fight ends" above: a cloud that
+  pulses for the whole fight seemed too strong; the user to decide.
+- The dev cost scale.
 - How words are learned.
 - Statuses on players (from enemies' authored attacks), and their HUD.

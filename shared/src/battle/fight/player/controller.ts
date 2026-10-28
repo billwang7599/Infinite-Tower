@@ -5,7 +5,7 @@ import { dodgeCost, walkPace } from "../../../items/burden.js";
 import {
   ActiveHit, Body, Health, Player, Stamina, Statuses, type PlayerAction, type PlayerData, type StaminaData,
 } from "../../components.js";
-import { MAGIC } from "../../../spells/effects.js";
+import { augmentStrength, MAGIC } from "../../../spells/effects.js";
 import { sameSpell, spellCost, type Spell, type Spellbook } from "../../../spells/spell.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
@@ -15,6 +15,7 @@ import {
   type AttackKind,
 } from "../../sword.js";
 import { addHit, breakOff, endCombo } from "../combat.js";
+import { imbueOf } from "../spells/cast.js";
 import { statusMoveFactor } from "../spells/statuses.js";
 
 /** Start an action toward (x, z), ending the last attack's hitbox if it's still live. */
@@ -51,6 +52,9 @@ function startAttack(world: World, e: Entity, player: PlayerData, input: PlayerI
     player.power = PLAYER.stab.damageFactor * (1 + player.momentum * MOMENTUM.stabBonusPerPoint);
     endCombo(player);
   }
+  const imbue = imbueOf(world, e)?.[1];
+  const swift = imbue ? augmentStrength(imbue.spell.segments[imbue.segment]!.augments, "swift") : 0;
+  player.startup /= 1 + MAGIC.augments.swift * swift;
   startAction(world, e, player, "attack", input.aimX, input.aimZ);
   player.attack = attack;
 }
@@ -158,10 +162,9 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
       player.castBuffer = 0;
     }
     const write = input.write;
-    // A dodge cancels a cast's wind-up, which costs nothing until it's released.
-    if ((free || chanting || player.action === "cast") && player.dodgeBuffer > 0 && dodgeStamina !== null
-      && player.grounded
-      && stamina.value > 0) {
+    // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
+    const dodgeable = free || chanting || player.action === "cast" || player.action === "beam";
+    if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
       if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
@@ -234,6 +237,7 @@ function controlPlayer(world: World, e: Entity, dt: number): void {
         break;
       }
       case "cast":
+      case "beam":
         shuffle(input, v, dt, walkSpeed * MAGIC.castMoveFactor);
         break;
       case "chant":

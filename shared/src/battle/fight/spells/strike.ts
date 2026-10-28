@@ -32,16 +32,23 @@ const resisted = (world: World, e: Entity, element: SpellElement): number =>
 function damage(world: World, events: FightEvent[], caster: Entity, target: Entity, amount: number): number {
   const dealt = hurt(world, target, amount);
   world.require(target, Health).flash = HIT_FLASH_TIME;
-  events.push({ type: "hit", target, team: world.require(target, Fighter).team, damage: dealt });
+  const team = world.require(target, Fighter).team;
+  events.push({ type: "hit", by: caster, target, team, damage: dealt, sword: false });
   siphon(world, caster, dealt);
   return dealt;
 }
 
+// `factor` scales the hit (its damage, poise damage and knockback), not the statuses.
 export function strike(
   world: World, events: FightEvent[], caster: Entity, target: Entity, elements: readonly SpellElement[], from: Vec3,
+  factor = 1,
 ): void {
   const s = world.require(target, Statuses), body = world.require(target, Body), enemy = world.get(target, Enemy);
   const d = spellPower(world, caster);
+  if (elements.length === 0) {
+    damage(world, events, caster, target, MAGIC.plain.damage * d * factor);
+    return;
+  }
   const has = (element: SpellElement) => elements.includes(element);
   const cursedBefore = s.left.cursed;
   // Statuses go on first, then reactions are checked against the result, in this order.
@@ -53,9 +60,9 @@ export function strike(
   if (has("water")) s.left.wet = E.water.wetTime;
   if (has("earth")) {
     s.left.rooted = E.earth.rootTime;
-    if (enemy) enemy.poise -= E.earth.poiseDamage;
+    if (enemy) enemy.poise -= E.earth.poiseDamage * factor;
   }
-  if (has("air")) knock(body.pos, from, body.vel, E.air.knockbackSpeed);
+  if (has("air")) knock(body.pos, from, body.vel, E.air.knockbackSpeed * factor);
   if (has("lightning")) {
     s.shocks = Math.min(E.lightning.maxShocks, s.shocks + 1);
     s.left.shocked = E.lightning.shockTime;
@@ -94,18 +101,18 @@ export function strike(
   }
 
   const shareOf = (element: SpellElement) =>
-    E[element].damage * d * (element === "lightning" ? lightningFactor : 1) * resisted(world, target, element);
+    E[element].damage * d * factor * (element === "lightning" ? lightningFactor : 1) * resisted(world, target, element);
   damage(world, events, caster, target, elements.reduce((sum, element) => sum + shareOf(element), 0));
   if (has("darkness")) heal(world, caster, shareOf("darkness") * E.darkness.healShare);
   if (has("lightning")) {
-    const arc = E.lightning.damage * d * lightningFactor * arcs.share;
+    const arc = E.lightning.damage * d * factor * lightningFactor * arcs.share;
     for (const next of foesNear(world, caster, body.pos, arcs.range, target).slice(0, arcs.count)) {
       damage(world, events, caster, next, arc * resisted(world, next, "lightning"));
     }
   }
   if (eclipse) {
     for (const near of foesNear(world, caster, body.pos, R.eclipse.radius)) {
-      damage(world, events, caster, near, R.eclipse.damage * d * resisted(world, near, "darkness"));
+      damage(world, events, caster, near, R.eclipse.damage * d * factor * resisted(world, near, "darkness"));
     }
   }
   if (s.shocks >= E.lightning.maxShocks) {
