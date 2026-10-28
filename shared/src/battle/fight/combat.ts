@@ -155,14 +155,20 @@ function hitPlayer(
     const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
   }
-  if (health.hitstun > 0 && player.action === "cast") {
-    player.action = "none";
-    player.casting = null;
+  if (health.hitstun > 0 && (player.action === "cast" || player.action === "chant" || player.action === "write")) {
+    breakOff(player);
   }
   endCombo(player);
   siphon(world, attacker, dealt);
   events.push({ type: "hit", target, team: "player", damage: dealt });
   return "landed";
+}
+
+export function breakOff(player: PlayerData): void {
+  if (player.action === "chant" || player.action === "write") player.chantBroken = true;
+  player.action = "none";
+  player.casting = null;
+  player.writing = null;
 }
 
 /** The enemy `e`'s swing was parried by a player at `by`: stunned, knocked back, its chain cut short. */

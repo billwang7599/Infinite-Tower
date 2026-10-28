@@ -62,6 +62,15 @@ Decided by the user:
   Pushed, Shocked, Marked, Cursed), and four reactions on enemies (Conduct, Doused, Fanned, Eclipse), each with a
   cooldown per target. Spell damage scales with Intellect (was spellpower); Summon is out for now. The tables and
   what's still to build: [plan/spells.md](plan/spells.md).
+- Spells are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
+  time (a Form, then an element, then elements, augments or a Form; after an augment only augments or a Form; a
+  Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are
+  clicked, searched for, or picked by number from the list, and Backspace undoes; its keys are a layer of their own,
+  so 1-4 don't cast there. The fight goes on and you can't move; a hit cancels it only if it staggers you; a dodge
+  closes it and keeps the squares. A chanted spell costs the same as a saved one and is for that one cast. The
+  spellbook (in hand) has 4 pages of saved spells, cast with 1-4 (rebindable), written outside fights or in one
+  (like chanting: standing still, a stagger cancels it, it takes time). The pages are saved with the player and the
+  server checks every page and cast against the words they know. Death blanks the pages; the words are kept.
 - The sword and the spellbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
   character starts with both equipped, swinging needs a sword and casting a spellbook. Dying still empties the bag,
   and you respawn with a fresh equipped sword and spellbook. Equipped things count toward the carry weight but take
@@ -168,8 +177,17 @@ them; treat them as changeable, and still ask before deciding new ones):
   swing) until the mouse rests 100 ms; turning away swings again at once, so the reverse for a parry is quick. The
   numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
 - Spells' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, and the
-  smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent";
-  the spellbook's 4 pages in [plan/inventory.md](plan/inventory.md).
+  smaller rules the user's design left open are in [plan/spells.md](plan/spells.md) under "Decided by the agent".
+- Chanting and the spellbook: R opens and closes the chant (E stays free, as saved camera turns may still use it).
+  Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/spells/spell.ts`); a Write button per
+  page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the
+  book in hand: it has to be equipped) and a page is written at once, anywhere (no campfire needed). Tab focuses
+  the word search, whose Enter takes the first word that fits; numbers pick the first nine that fit. The chant and
+  writing a page are the shared fight's, so the server decides them too: the chant is a held fight input, during
+  which the fight holds you still (stamina still recovers); a spell on none of your pages is cast only from an open
+  chant (pages are matched by their words); a page written in a fight is the fight's at once and saved with its
+  result (a `saveSpell` message mid-battle is refused). The chant's dodge goes where the walk keys point. The hotbar
+  shows the pages on the left of the battle HUD.
 - Equipment: the sword is 1 x 3 and weighs 3, the spellbook 2 x 2 and 1.5 (with both in hand a full bag is just
   over the carry limit). Either hand takes either; the sword starts in the right and the book in the left;
   dragging one hand onto the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand
@@ -259,8 +277,8 @@ tests say what was agreed. Where tests go and how they're written:
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold) and, in a fight, `window.cast({ segments: [{ form: "bolt",
-  elements: ["fire"], augments: [] }] })`. A new account has no character: make one first. Skip this when the user
-  says it isn't needed.
+  elements: ["fire"], augments: [] }] })` (a spell on none of the pages goes off only with the chant open: R). A new
+  account has no character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

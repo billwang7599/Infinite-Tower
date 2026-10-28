@@ -30,14 +30,12 @@ describe("joining", () => {
     const { link } = await joinNew(online);
     assert.deepEqual(link.sent.map((m) => m.t), ["welcome"]);
     const welcome = link.last("welcome");
-    const { knownWords, ...fresh } = newPlayer();
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
-        bag: welcome.gear.bag, equipment: welcome.gear.equipment },
-      fresh,
+        bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
+        spellbook: welcome.spellbook },
+      newPlayer(),
     );
-    assert.deepEqual(knownWords, []);
-    assert.equal("knownWords" in welcome, false);
     assert.equal(welcome.dev, false);
   });
 

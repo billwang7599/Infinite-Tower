@@ -1,6 +1,8 @@
 import {
-  fitsSlot, ITEMS, SLOTS, WORDS, type Equipment, type ItemId, type Slot, type Word,
+  blankSpellbook, fitsSlot, ITEMS, SLOTS, spellProblems, WORDS, type Equipment, type ItemId, type Slot, type Spell,
+  type Spellbook, type Word,
 } from "@infinite-tower/shared";
+import { SpellSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
@@ -47,13 +49,25 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
+  spellbook: data.spellbook,
 });
 
-const fromRow = (row: typeof players.$inferSelect): PlayerSave => ({
-  vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
-  character: row.character, bag: row.bag, equipment: wearable(row.equipment),
-  knownWords: row.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word)),
-});
+function fromRow(row: typeof players.$inferSelect): PlayerSave {
+  const knownWords = row.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word));
+  return {
+    vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
+    character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
+    spellbook: readable(row.spellbook, new Set(knownWords)),
+  };
+}
+
+function readable(saved: unknown, known: ReadonlySet<Word>): Spellbook {
+  const pages: readonly unknown[] = Array.isArray(saved) ? saved : [];
+  return blankSpellbook().map((_, i) => {
+    const page = SpellSchema.safeParse(pages[i]);
+    return page.success && spellProblems(page.data, known).length === 0 ? page.data as Spell : null;
+  });
+}
 
 function wearable(saved: Partial<Record<Slot, string | null>>): Equipment {
   const keep = (slot: Slot) => {

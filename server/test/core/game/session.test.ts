@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE, starterEquipment,
-  type Bag, type BagItem, type Equipment, type GridName, type ItemId,
+  blankSpellbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE,
+  starterEquipment, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId, type Spell,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -362,5 +362,54 @@ describe("carry weight", () => {
     });
     session.useItem(bagSpot(tuskCount, 0));
     close(stepRight(session), FULL_STEP);
+  });
+});
+
+describe("the spellbook", () => {
+  const FIREBOLT: Spell = { segments: [{ form: "bolt", elements: ["fire"], augments: [] }] };
+  const knowing = () => startSession({ dev: true, saved: { knownWords: [...WORDS] } });
+
+  test("the welcome has the words the player knows and the book's pages, blank for a new player", () => {
+    const { link } = startSession({ saved: { knownWords: ["bolt", "fire"] } });
+    const welcome = link.last("welcome");
+    assert.deepEqual(welcome.knownWords, ["bolt", "fire"]);
+    assert.deepEqual(welcome.spellbook, blankSpellbook());
+  });
+
+  test("writing a spell on a page sends the book back and saves it soon after", (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const { session, link, saves } = knowing();
+    session.saveSpell(2, FIREBOLT);
+    assert.deepEqual(link.last("spellbook").spellbook, [null, null, FIREBOLT, null]);
+    t.mock.timers.tick(5000);
+    assert.deepEqual(saves.at(-1)?.spellbook, [null, null, FIREBOLT, null]);
+  });
+
+  test("a page can be written over", () => {
+    const { session, link } = knowing();
+    const nova: Spell = { segments: [{ form: "nova", elements: ["water"], augments: [] }] };
+    session.saveSpell(0, FIREBOLT);
+    session.saveSpell(0, nova);
+    assert.deepEqual(link.last("spellbook").spellbook[0], nova);
+  });
+
+  test("a spell with a word the player doesn't know isn't written: the book comes back as it was", () => {
+    const { session, link } = startSession({ saved: { knownWords: ["bolt"] } });
+    session.saveSpell(0, FIREBOLT);
+    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
+  });
+
+  test("nothing is written without the spellbook in hand", () => {
+    const { session, link } = startSession({ saved: { knownWords: [...WORDS], equipment: NOTHING_WORN } });
+    session.saveSpell(0, FIREBOLT);
+    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
+  });
+
+  test("not by a message during a battle: in a fight, writing is the fight's", () => {
+    const { session, link } = knowing();
+    session.debugEncounter();
+    session.saveSpell(1, FIREBOLT);
+    assert.deepEqual(session.spellbook, blankSpellbook());
+    assert.deepEqual(link.last("spellbook").spellbook, blankSpellbook());
   });
 });

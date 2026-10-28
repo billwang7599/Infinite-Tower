@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   castTime, dodgeCost, FIXED_DT, Health, MAGIC, Player, SpellShot, Stamina, spellCost, Statuses, type EnemyDef,
-  type Vec3,
+  type Spell, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -15,8 +15,12 @@ const D = MAGIC.damage;
 const ME: Vec3 = { x: 0, y: 0.05, z: -4 };
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 
+const BOLT_FIRE = spell(segment("bolt", ["fire"]));
+const onPage = (written: Spell) => ({ book: [written, null, null, null] });
+
 function fightWith(enemies: Vec3[], def: EnemyDef = STATUE): Fight {
-  return new Fight({ arena: ARENA, players: [player(ME)], enemies: enemies.map((e) => enemy(def, e)) });
+  const players = [player(ME, onPage(BOLT_FIRE))];
+  return new Fight({ arena: ARENA, players, enemies: enemies.map((e) => enemy(def, e)) });
 }
 const hpOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).hp;
 const lostHp = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).max - hpOf(fight, i);
@@ -26,8 +30,6 @@ const shots = (fight: Fight) => [...fight.world.query(SpellShot)];
 function untilLanded(fight: Fight): void {
   for (let i = 0; i < 120 && shots(fight).length > 0; i++) fight.step([IDLE]);
 }
-
-const BOLT_FIRE = spell(segment("bolt", ["fire"]));
 
 describe("casting", () => {
   test("the wind-up lasts the spell's cast time; its stamina is paid as it's released", () => {
@@ -93,8 +95,10 @@ describe("casting", () => {
   });
 
   test("a hit that stuns during the wind-up interrupts it at no cost", () => {
-    const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
     const slow = spell(segment("bolt", ["fire", "earth", "lightning"]));
+    const fight = new Fight({
+      arena: ARENA, players: [player(at(0, -1), onPage(slow))], enemies: [enemy(BITER, at(0, 1.5))],
+    });
     const stamina = fight.world.require(me(fight), Stamina);
     const before = stamina.value;
     fight.step([input({ cast: slow })]);
@@ -105,8 +109,10 @@ describe("casting", () => {
   });
 
   test("a sword hit during the wind-up only hurts: the cast still goes off", () => {
-    const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(SWORDSMAN, at(0, 1))] });
     const slow = spell(segment("bolt", ["fire", "earth", "lightning"]), segment("bolt", ["water", "air"]));
+    const fight = new Fight({
+      arena: ARENA, players: [player(at(0, -1), onPage(slow))], enemies: [enemy(SWORDSMAN, at(0, 1))],
+    });
     const stamina = fight.world.require(me(fight), Stamina);
     const before = stamina.value;
     fight.step([input({ cast: slow })]);

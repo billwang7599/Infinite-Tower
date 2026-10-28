@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { CLOSE_CODES, emptyBag, starterEquipment } from "@infinite-tower/shared";
+import { blankSpellbook, CLOSE_CODES, emptyBag, starterEquipment } from "@infinite-tower/shared";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
 import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
@@ -13,7 +13,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: starterEquipment(),
+  equipment: starterEquipment(), spellbook: blankSpellbook(),
 };
 
 /** Lets a pending store load (and what follows it) finish. */

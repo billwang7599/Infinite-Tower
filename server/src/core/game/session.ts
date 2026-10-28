@@ -3,9 +3,9 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  emptyCloth, gearBurden, itemAt, itemDef, moveGear, nearCampfire, PLAYER, spellProblems, takeOne, walkPace, type Bag,
-  type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Spot, type StepInput, type Stats,
-  type Vitals, type Word,
+  emptyCloth, gearBurden, holds, itemAt, itemDef, moveGear, nearCampfire, PLAYER, spellProblems, takeOne, walkPace,
+  type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Spell, type Spellbook,
+  type Spot, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { isEnemyId } from "../content/enemies.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
@@ -31,6 +31,7 @@ export class GameSession {
   readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
+  spellbook: Spellbook;
   private held: Gear;
   private readonly knownWords: Word[];
   private ticks = 0;
@@ -50,6 +51,7 @@ export class GameSession {
     this.held = { bag: saved.bag, cloth: emptyCloth(), equipment: saved.equipment };
     this.gear = this.held;
     this.knownWords = saved.knownWords;
+    this.spellbook = saved.spellbook;
   }
 
   /** Its weight sets how fast they walk the overworld. */
@@ -68,7 +70,7 @@ export class GameSession {
   start(): void {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, gear: this.gear, dev: this.dev,
+      character: this.character, gear: this.gear, knownWords: this.knownWords, spellbook: this.spellbook, dev: this.dev,
     });
     if (this.character) this.enterLevel(START_LEVEL);
   }
@@ -83,8 +85,12 @@ export class GameSession {
     const battle = this.battle;
     if (!battle || battle.over) return;
     const known = new Set(this.knownWords);
-    const allowed = inputs.map((input) =>
-      input.cast && spellProblems(input.cast, known).length > 0 ? { ...input, cast: null } : input);
+    const unknown = (spell: Spell | undefined) => spell !== undefined && spellProblems(spell, known).length > 0;
+    const allowed = inputs.map((input) => ({
+      ...input,
+      cast: unknown(input.cast ?? undefined) ? null : input.cast,
+      write: unknown(input.write?.spell) ? null : input.write,
+    }));
     battle.room.input(battle.seat, upTo, allowed);
   }
 
@@ -159,13 +165,22 @@ export class GameSession {
     this.link.send({ t: "gear", gear: this.gear });
   }
 
+  saveSpell(page: number, spell: Spell): void {
+    const known = new Set(this.knownWords);
+    if (!this.battle && holds(this.gear.equipment, "spellbook") && spellProblems(spell, known).length === 0) {
+      this.spellbook = this.spellbook.map((written, i) => i === page ? spell : written);
+      this.saveSoon();
+    }
+    this.link.send({ t: "spellbook", spellbook: this.spellbook });
+  }
+
   /** Now, cancelling a pending `saveSoon`. */
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
-      bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords,
+      bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, spellbook: this.spellbook,
     });
   }
 

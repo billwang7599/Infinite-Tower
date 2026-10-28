@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, CHAIN, Enemy, FIXED_DT, Health, isSwing, lettingGoAt, liveStep, Player, PLAYER, reverseOf, SwordAttack,
+  blankSpellbook, Body, CHAIN, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, lettingGoAt, liveStep, Player, PLAYER,
+  reverseOf, SwordAttack,
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, Fight, initPhysics, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -17,7 +18,7 @@ const LIVE_AFTER = liveStep(CHAIN.startupTime.opening);
 const newFight = (seed: number) => new Fight({
   arena: { radius: 16 },
   players: [{ at: PLAYER_START, vitals: fullVitals(PLAYER_STATS), stats: PLAYER_STATS, burden: "light",
-    wields: { sword: true, spellbook: true } }],
+    wields: { sword: true, spellbook: true }, book: blankSpellbook() }],
   enemies: [{ def: KOBOLD, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }],
 });
 
@@ -33,7 +34,7 @@ function watchful(fight: Fight): PlayerInputData {
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
   const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.3 ? 1 : dist < 1.5 ? -1 : 0;
   const input: PlayerInputData = {
-    moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, jump: false, attack: null, dodge: false, block: false, cast: null,
+    ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ,
   };
   const winding = kobold.state === "swordWindup" || kobold.state === "sword";
   if (winding && !isSwing(sword.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };

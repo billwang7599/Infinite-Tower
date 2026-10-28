@@ -1,8 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, Body, castTime, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER, PlayerInput,
-  SpellShot, Stamina, Statuses, SwordAttack, type EnemyDef, type Entity, type LungeDef, type PlayerInputData,
-  type Segment, type Spell, type Stats, type SwordDef, type Vec3,
+  ActiveHit, ATTACK_KINDS, blankSpellbook, Body, castTime, ChargeAttack, Enemy, Health, LungeAttack, Player, PLAYER,
+  PlayerInput, SpellShot, Stamina, Statuses, SwordAttack, type EnemyDef, type Entity, type LungeDef,
+  type PlayerInputData, type Segment, type Spell, type Stats, type SwordDef, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -61,7 +61,7 @@ export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { sword: sword({ firstDe
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light",
-    wields: { sword: true, spellbook: true }, ...over });
+    wields: { sword: true, spellbook: true }, book: blankSpellbook(), ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */
@@ -71,6 +71,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
+  chant: false, write: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -85,8 +86,8 @@ export const segment = (
 ): Segment => ({ form, elements, augments });
 export const spell = (...segments: [Segment, ...Segment[]]): Spell => ({ segments });
 
-// Ends on the step that releases the spell.
 export function castNow(fight: Fight, cast: Spell, over: Partial<PlayerInputData> = {}): void {
+  fight.step([input({ ...over, chant: true })]);
   fight.step([input({ ...over, cast })]);
   run(fight, castTime(cast) - Fight.STEP_SECONDS, () => input({ ...over, cast: null }));
 }

@@ -43,9 +43,19 @@ export const ACTIONS = {
     lookUp: { label: "Tilt camera up (locked: next target up)", keys: ["ArrowUp"] },
     lookDown: { label: "Tilt camera down (locked: next target down)", keys: ["ArrowDown"] },
     dragCamera: { label: "Turn camera (hold and drag, unlocked)", keys: [], mouse: [2] },
+    chant: { label: "Chant a spell (open / close)", keys: ["KeyR"] },
+    spell1: { label: "Cast the spellbook's page 1", keys: ["Digit1"] },
+    spell2: { label: "Cast the spellbook's page 2", keys: ["Digit2"] },
+    spell3: { label: "Cast the spellbook's page 3", keys: ["Digit3"] },
+    spell4: { label: "Cast the spellbook's page 4", keys: ["Digit4"] },
     leave: { label: "Leave a finished fight", keys: ["Enter"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
+
+const WORD_KEYS = {
+  pick1: ["Digit1"], pick2: ["Digit2"], pick3: ["Digit3"], pick4: ["Digit4"], pick5: ["Digit5"], pick6: ["Digit6"],
+  pick7: ["Digit7"], pick8: ["Digit8"], pick9: ["Digit9"], undoWord: ["Backspace"], findWord: ["Tab"],
+} as const;
 
 // Fixed: the title runs before the server sends the player's bindings, and Esc can't be rebound.
 export const MENUS = {
@@ -60,6 +70,8 @@ export const MENUS = {
     menuRight: ["ArrowRight", "KeyD"],
   },
   bag: { closeBag: ["Escape"] },
+  chant: { ...WORD_KEYS, castChant: ["Enter"], closeChant: ["Escape"] },
+  spellbook: { ...WORD_KEYS, writePage: ["Enter"], closeSpellbook: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;
 
 export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;

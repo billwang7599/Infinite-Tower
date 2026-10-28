@@ -27,7 +27,7 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
   const overworldView = createOverworldScene(engine);
 
   const battle = createBattle({
-    engine, world, scene: battleScene, actions, settings, hud: ui.battle,
+    engine, world, scene: battleScene, actions, settings, hud: ui.battle, spells: ui.spells, chant: ui.chant,
     onLeave: () => game.leaveBattle(),
   });
   const overworld = createOverworld({ engine, world, view: overworldView, actions, hud: ui.overworld });

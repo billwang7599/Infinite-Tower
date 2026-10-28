@@ -6,6 +6,9 @@ type KeyListener = (key: string, repeat: boolean) => boolean;
 const inTextField = (target: EventTarget | null): boolean =>
   ["INPUT", "TEXTAREA"].includes((target as Partial<Element> | null)?.tagName ?? "");
 
+// In a text field: the arrows, Esc, and the digits and Backspace (a spell's word search picks and undoes with them).
+const TEXT_FIELD_KEYS = /^(Arrow|Escape$|Digit\d$|Backspace$)/;
+
 export class Keyboard extends Buttons {
   private listener: KeyListener = () => false;
   private capture: ((key: string) => boolean) | null = null;
@@ -36,8 +39,7 @@ export class Keyboard extends Buttons {
       if (!e.repeat && take(e.code) && this.capture === take) this.capture = null;
       return;
     }
-    // In a text field only the arrows and Esc count.
-    if (inTextField(e.target) && !e.code.startsWith("Arrow") && e.code !== "Escape") return;
+    if (inTextField(e.target) && !TEXT_FIELD_KEYS.test(e.code)) return;
     this.press(e.code, e.repeat);
     if (this.listener(e.code, e.repeat)) e.preventDefault();
   }

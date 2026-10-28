@@ -95,7 +95,7 @@ describe("Actions: key to action", () => {
     const battle = setup("battle");
     battle.press("KeyQ");
     assert.equal(battle.actions.poll().held.has("lockOn"), true);
-    battle.press("KeyR");
+    battle.press("KeyI");
     battle.press("KeyE");
     assert.deepEqual(battle.actions.poll().pressed, []);
   });
@@ -409,6 +409,63 @@ describe("Actions: the layers", () => {
     press("KeyW");
     actions.setLayers(["battle"]);
     assert.equal(actions.poll().held.has("forward"), true);
+  });
+});
+
+describe("Actions: spells", () => {
+  test("in the arena, 1 to 4 cast the spellbook's pages and R opens the chant", () => {
+    const { actions, press, listen } = setup("battle");
+    const chant = listen("chant");
+    for (const code of ["Digit1", "Digit2", "Digit3", "Digit4"]) press(code);
+    assert.deepEqual(actions.poll().pressed, ["spell1", "spell2", "spell3", "spell4"]);
+    press("KeyR");
+    assert.equal(chant.got.length, 1);
+  });
+
+  test("the chant has its own keys: the numbers pick a word (none casts a page), Backspace, Enter, Esc", () => {
+    const cases: [string, ActionName][] = [
+      ["Digit1", "pick1"], ["Digit4", "pick4"], ["Digit9", "pick9"], ["Backspace", "undoWord"],
+      ["Tab", "findWord"], ["Enter", "castChant"], ["Escape", "closeChant"], ["KeyR", "chant"], ["KeyF", "dodge"],
+    ];
+    for (const [code, action] of cases) {
+      const { press, listen } = setup("battle", "chant");
+      const { got } = listen(action);
+      press(code);
+      assert.equal(got.length, 1, `${code} in the chant`);
+    }
+    const { press, listen } = setup("battle", "chant");
+    const settings = listen("menu");
+    press("Escape");
+    assert.equal(settings.got.length, 0);
+  });
+
+  test("under the chant only a dodge and its way reach the fight: nothing swings, blocks or casts a page", () => {
+    const { actions, press, move } = setup("battle", "chant");
+    press("KeyW");
+    press("ShiftLeft");
+    press("Digit1");
+    press("Enter");
+    press("KeyF");
+    move(200, 0);
+    const polled = actions.poll();
+    assert.deepEqual([...polled.held].sort(), ["dodge", "forward"]);
+    assert.deepEqual(polled.pressed, ["forward", "dodge"]);
+    assert.deepEqual(polled.move, { x: 0, z: 1 });
+  });
+
+  test("the spellbook over the bag picks words with the same keys; Enter writes, Esc closes it alone", () => {
+    const cases: [string, ActionName][] = [
+      ["Digit2", "pick2"], ["Backspace", "undoWord"], ["Tab", "findWord"], ["Enter", "writePage"],
+      ["Escape", "closeSpellbook"],
+    ];
+    for (const [code, action] of cases) {
+      const { press, listen } = setup("overworld", "bag", "spellbook");
+      const { got } = listen(action);
+      const bag = listen("closeBag");
+      press(code);
+      assert.equal(got.length, 1, `${code} in the spellbook`);
+      assert.equal(bag.got.length, 0);
+    }
   });
 });
 

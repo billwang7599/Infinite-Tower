@@ -41,7 +41,7 @@ What's built so far:
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
   the camera), Space jumps, F dodges, Left Shift blocks; a quick flick of the mouse swings the way it moves (one of
-  eight), and a left click stabs.
+  eight), and a left click stabs. R opens the chant, and 1-4 cast the spellbook's pages.
 - **Stats:** strength, agility, stamina and intellect on every fighter (intellect scales spell damage).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.
@@ -51,6 +51,11 @@ What's built so far:
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
+- **Spells:** words chained into spells (Bolt, Nova and Self so far, seven elements with their statuses and four
+  reactions), paid in stamina. In a fight, R opens the chant: a spell built word by word in a carousel of squares
+  (click a word, search for one, or pick by number; Backspace undoes), cast with Enter. The spellbook has four pages,
+  written from the bag screen (Open on the book in hand) or in a fight (2 s, standing still), and cast with 1-4.
+  Dying blanks the pages; the words you know stay.
 - **Equipment:** you start with a sword in your right hand and a spellbook in your left (and get a fresh pair after
   dying). Without a sword in hand you can't swing, stab or block; without the spellbook you can't cast. Worn
   things count toward the weight.

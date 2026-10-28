@@ -19,6 +19,10 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): Syste
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
       patch.comboMultiplier = me[4].combo === null ? 1 : roundTo(momentumDamage(me[4].momentum), 2);
+      patch.stunned = me[2].hitstun > 0 || me[4].action === "stagger";
+      patch.spellbookInHand = me[4].wields.spellbook;
+      patch.chantBroken = me[4].chantBroken;
+      patch.writingPage = me[4].writing?.page ?? null;
     }
 
     const enemy = world.first(Enemy, Health);

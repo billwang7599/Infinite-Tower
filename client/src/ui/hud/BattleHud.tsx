@@ -1,9 +1,14 @@
+import type { Spell } from "@infinite-tower/shared";
+import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { Bar } from "../components/Bar.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { keyName } from "../keyNames.js";
-import type { BattleCue, BattleHudState, PingState } from "../state.js";
+import type { ChantState } from "../spells/chant.js";
+import { ChantPopup } from "../spells/ChantPopup.js";
+import { Hotbar } from "../spells/Hotbar.js";
+import type { BattleCue, BattleHudState, PingState, SpellsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
@@ -18,9 +23,15 @@ interface BattleHudProps extends HudProps {
   bindings: KeyBindings;
   ping: Store<PingState>;
   hudSettings: HudSettings;
+  spells: Store<SpellsState>;
+  chant: Store<ChantState>;
+  input: Actions;
+  castSpell: (spell: Spell) => void;
+  saveSpell: (page: number, spell: Spell) => void;
 }
 
-export function BattleHud({ hud, bindings, ping, hudSettings }: BattleHudProps) {
+export function BattleHud(props: BattleHudProps) {
+  const { hud, bindings, ping, hudSettings, spells } = props;
   return (
     <HudLayer id="battle-hud">
       <Vitals hud={hud} />
@@ -29,7 +40,11 @@ export function BattleHud({ hud, bindings, ping, hudSettings }: BattleHudProps) 
       </div>
       <Cue hud={hud} />
       <BossBar hud={hud} />
+      <Hotbar spells={spells} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
+      <ChantPopup
+        chant={props.chant} spells={spells} hud={hud} input={props.input} cast={props.castSpell} save={props.saveSpell}
+      />
     </HudLayer>
   );
 }

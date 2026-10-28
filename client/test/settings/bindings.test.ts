@@ -191,9 +191,9 @@ describe("KeyBindings.bind", () => {
 
   test("the same key can be used in the overworld and in the arena", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(jump, "KeyR", null), unchanged);
-    assert.deepEqual(keys(b, jump), ["Space", "KeyR"]);
-    assert.deepEqual(keys(b, turnItem), ["KeyR"]);
+    assert.deepEqual(b.bind(jump, "KeyE", null), unchanged);
+    assert.deepEqual(keys(b, jump), ["Space", "KeyE"]);
+    assert.deepEqual(keys(b, { group: "overworld", action: "rest" }), ["KeyE"]);
   });
 
   test("a key the overworld and the arena share, put on a general action, comes off both", () => {

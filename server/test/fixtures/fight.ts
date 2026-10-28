@@ -4,7 +4,7 @@
  * back for a number of server ticks.
  */
 import {
-  IDLE_INPUT, PLAYER, sameInput, type EnemyDef, type PlayerInputData, type StepInput, type Vitals,
+  blankSpellbook, IDLE_INPUT, PLAYER, sameInput, type EnemyDef, type PlayerInputData, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START, type FightSetup, type PlayerResult,
@@ -21,7 +21,7 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   return {
     arena: { radius: 16 },
     players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
-      burden: "light", wields: { sword: true, spellbook: true } }],
+      burden: "light", wields: { sword: true, spellbook: true }, book: blankSpellbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }
