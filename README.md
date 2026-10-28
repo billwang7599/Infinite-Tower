@@ -29,16 +29,18 @@ What's built so far:
   short, vertical ones narrow and long, the stab a long thin line. Swings chain: the next starts quicker or slower
   by how it follows the last (the reverse swing quickest) and builds momentum, more damage a hit (the HUD shows the
   combo), until a gap, a block, a dodge or a hit taken; a stab after a chain spends it. A block stops what hits it
-  from in front for stamina, and breaks, staggering you, when the stamina runs out. You attack where the camera
-  faces (no lock-on). The boar lunges up close and does a telegraphed charge from further away (it's stunned if it
-  hits the wall), and staggers after a few quick hits. The Kobold Swordsman swings in chains of two or three (any
-  way, or a stab), each with a wind-up to read: the reverse swing just before one lands parries it (the Kobold is
-  stunned and takes more damage); a stab can only be blocked or dodged. On guard it parries your swings and blocks
-  your stabs, so hit it while it recovers from a chain or is stunned. Your sprite winds up, strikes and follows
-  through on every swing and the stab, raises its guard to block, and reels when staggered.
+  from in front for stamina, and breaks, staggering you, when the stamina runs out. A fight starts locked onto the
+  closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
+  telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
+  Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing
+  just before one lands parries it (the Kobold is stunned and takes more damage); a stab can only be blocked or dodged.
+  On guard it parries your swings and blocks your stabs, so hit it while it recovers from a chain or is stunned. Your
+  sprite winds up, strikes and follows through on every swing and the stab, raises its guard to block, and reels when
+  staggered.
 - **Controls:** keyboard only, or keyboard + mouse / trackpad (a fight captures the mouse as it starts, or on a
-  click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q / E turn the
-  camera, Space jumps, F (or a right click) dodges, Shift blocks; U I O / J K L / M , . is a grid where K stabs
+  click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
+  lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
+  the camera), Space jumps, F dodges, Left Shift blocks; U I O / J K L / M , . is a grid where K stabs
   and each other key swings from its side to the opposite one (J or a left click: left to right).
 - **Stats:** strength, agility, stamina, mana and spellpower on every fighter (mana and spellpower do nothing yet).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat

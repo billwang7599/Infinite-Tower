@@ -15,22 +15,30 @@ const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
 const block: ActionRef = { group: "battle", action: "block" };
+const dragCamera: ActionRef = { group: "battle", action: "dragCamera" };
 const leave: ActionRef = { group: "battle", action: "leave" };
 
 const keys = (b: KeyBindings, ref: ActionRef) => keysOf(b.get(), ref);
 const unchanged = { ok: true, takenFrom: [], gave: null };
+function withSpareKey(): KeyBindings {
+  const b = new KeyBindings();
+  b.bind(turnLeft, "KeyZ", null);
+  return b;
+}
 
 describe("ACTIONS and helpers", () => {
   test("three groups: general (everywhere), the overworld's and the arena's", () => {
     assert.deepEqual(GROUPS, ["general", "overworld", "battle"]);
   });
 
-  test("every action lists at least one default key, within the limit, none reserved but the settings' Esc", () => {
+  test("every action has a default key or a mouse button, within the limit, none reserved but Esc", () => {
     for (const group of GROUPS) {
       for (const ref of actionsOf(group)) {
         const defaults = keysOf(new KeyBindings().get(), ref);
-        assert.ok(defaults.length >= 1 && defaults.length <= MAX_KEYS_PER_ACTION, `${group}.${ref.action}`);
-        assert.equal(defaults.every(isBindable), !isFixed(ref), `${group}.${ref.action}`);
+        const buttons = (ACTIONS[group] as Record<string, { mouse?: readonly number[] }>)[ref.action]!.mouse ?? [];
+        assert.ok(defaults.length + buttons.length >= 1, `${group}.${ref.action}`);
+        assert.ok(defaults.length <= MAX_KEYS_PER_ACTION, `${group}.${ref.action}`);
+        assert.equal(defaults.length > 0 && defaults.every(isBindable), !isFixed(ref), `${group}.${ref.action}`);
       }
     }
     assert.deepEqual(ACTIONS.general.menu.keys, ["Escape"]);
@@ -43,7 +51,6 @@ describe("ACTIONS and helpers", () => {
       assert.equal(new Set(all).size, all.length, place);
     }
     assert.deepEqual(map.overworld.rest, ["KeyE"]);
-    assert.deepEqual(map.battle.turnRight, ["KeyE", "ArrowRight"]);
     assert.deepEqual(map.overworld.useItem, ["Enter"]);
     assert.deepEqual(map.battle.leave, ["Enter"]);
   });
@@ -57,7 +64,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(general.inventory, ["KeyB"], "I is a swing");
   });
 
-  test("the arena: u i o / j l / m , . swing from their key's side, k stabs, Shift blocks, F dodges, Space jumps", () => {
+  test("the arena: u i o / j l / m , . swing k stabs, left Shift blocks, F dodges, Space jumps", () => {
     const battle = new KeyBindings().get().battle;
     assert.deepEqual(battle.tlbr, ["KeyU"]);
     assert.deepEqual(battle.tb, ["KeyI"]);
@@ -68,15 +75,29 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.bt, ["Comma"]);
     assert.deepEqual(battle.brtl, ["Period"]);
     assert.deepEqual(battle.stab, ["KeyK"]);
-    assert.deepEqual(battle.block, ["ShiftLeft", "ShiftRight"]);
+    assert.deepEqual(battle.block, ["ShiftLeft"]);
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.equal("reverse" in battle, false);
-    assert.deepEqual(battle.turnLeft, ["KeyQ", "ArrowLeft"]);
-    assert.deepEqual(battle.turnRight, ["KeyE", "ArrowRight"]);
     assert.deepEqual(battle.leave, ["Enter"]);
     assert.deepEqual(ACTIONS.battle.lr.mouse, [0], "the left button: the default swing");
-    assert.deepEqual(ACTIONS.battle.dodge.mouse, [2]);
+  });
+
+  test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
+    const battle = new KeyBindings().get().battle;
+    assert.deepEqual(battle.lockOn, ["KeyQ"]);
+    assert.deepEqual(battle.lockClosest, ["ShiftRight"]);
+    assert.deepEqual(battle.turnLeft, ["ArrowLeft"]);
+    assert.deepEqual(battle.turnRight, ["ArrowRight"]);
+    assert.deepEqual(battle.lookUp, ["ArrowUp"]);
+    assert.deepEqual(battle.lookDown, ["ArrowDown"]);
+    assert.equal(Object.values(battle).flat().includes("KeyE"), false, "E is free in the arena");
+  });
+
+  test("the right mouse button only drags the camera: it doesn't dodge", () => {
+    assert.equal("mouse" in ACTIONS.battle.dodge, false);
+    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [2]);
+    assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 
   test("the overworld's own: rest (E), and in the bag turn (R) and use (Enter); the mouse does the rest", () => {
@@ -99,8 +120,8 @@ describe("ACTIONS and helpers", () => {
     for (const key of ["KeyW", "Space", "Enter", "ShiftLeft"]) assert.equal(isBindable(key), true);
   });
 
-  test("only the settings (on Esc) are fixed", () => {
-    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [menu]);
+  test("only the settings (on Esc) and the camera drag (a mouse button) are fixed", () => {
+    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [menu, dragCamera]);
   });
 });
 
@@ -118,9 +139,9 @@ describe("KeyBindings.bind", () => {
   });
 
   test("replacing a key keeps its place in the list", () => {
-    const b = new KeyBindings();
-    b.bind(turnLeft, "KeyZ", "KeyQ");
-    assert.deepEqual(keys(b, turnLeft), ["KeyZ", "ArrowLeft"]);
+    const b = withSpareKey();
+    b.bind(turnLeft, "KeyX", "ArrowLeft");
+    assert.deepEqual(keys(b, turnLeft), ["KeyX", "KeyZ"]);
   });
 
   test("adding to an action that already has the most keys is refused and changes nothing", () => {
@@ -142,15 +163,15 @@ describe("KeyBindings.bind", () => {
   });
 
   test("a key held by another action with spare keys moves over", () => {
-    const b = new KeyBindings();
+    const b = withSpareKey();
     assert.deepEqual(b.bind(jump, "ArrowLeft", null), { ok: true, takenFrom: [turnLeft], gave: null });
     assert.deepEqual(keys(b, jump), ["Space", "ArrowLeft"]);
-    assert.deepEqual(keys(b, turnLeft), ["KeyQ"]);
+    assert.deepEqual(keys(b, turnLeft), ["KeyZ"]);
   });
 
   test("a key put on a general action comes off the arena's (it would work there too)", () => {
-    const b = new KeyBindings();
-    assert.deepEqual(b.bind(character, "KeyQ", null), { ok: true, takenFrom: [turnLeft], gave: null });
+    const b = withSpareKey();
+    assert.deepEqual(b.bind(character, "KeyZ", null), { ok: true, takenFrom: [turnLeft], gave: null });
     assert.deepEqual(keys(b, turnLeft), ["ArrowLeft"]);
   });
 
@@ -224,8 +245,8 @@ describe("KeyBindings.bind", () => {
   });
 
   test("replacing a key with another of the action's own keys leaves no duplicate", () => {
-    const b = new KeyBindings();
-    b.bind(turnLeft, "ArrowLeft", "KeyQ");
+    const b = withSpareKey();
+    b.bind(turnLeft, "ArrowLeft", "KeyZ");
     assert.deepEqual(keys(b, turnLeft), ["ArrowLeft"]);
   });
 
@@ -241,13 +262,13 @@ describe("KeyBindings.bind", () => {
 
   // It used to take the key off its action without adding it to the full one, leaving it bound to nothing.
   test("adding another action's key to a full action is refused and leaves the key where it was", () => {
-    const b = new KeyBindings();
-    b.bind(dodge, "KeyZ", null);
+    const b = withSpareKey();
     b.bind(dodge, "KeyX", null);
+    b.bind(dodge, "KeyY", null);
     const before = b.get();
-    assert.deepEqual(b.bind(dodge, "KeyQ", null), { ok: false, full: true });
+    assert.deepEqual(b.bind(dodge, "KeyZ", null), { ok: false, full: true });
     assert.equal(b.get(), before);
-    const holders = actionsOf("battle").filter((ref) => keys(b, ref).includes("KeyQ"));
+    const holders = actionsOf("battle").filter((ref) => keys(b, ref).includes("KeyZ"));
     assert.deepEqual(holders, [turnLeft]);
   });
 
@@ -259,17 +280,17 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, dodge), ["KeyZ", "KeyX", "KeyF"]);
   });
 
-  test("Shift is the block's, so binding it to dodge takes it from there", () => {
+  test("left Shift is the block's only key, so binding it to dodge swaps the dodge's key onto the block", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(dodge, "ShiftLeft", null), { ok: true, takenFrom: [block], gave: null });
-    assert.deepEqual(keys(b, block), ["ShiftRight"]);
+    assert.deepEqual(b.bind(dodge, "ShiftLeft", "KeyF"), { ok: true, takenFrom: [block], gave: "KeyF" });
+    assert.deepEqual(keys(b, block), ["KeyF"]);
   });
 });
 
 describe("KeyBindings.unbind", () => {
   test("drops one key from an action that has others", () => {
-    const b = new KeyBindings();
-    b.unbind(turnLeft, "KeyQ");
+    const b = withSpareKey();
+    b.unbind(turnLeft, "KeyZ");
     assert.deepEqual(keys(b, turnLeft), ["ArrowLeft"]);
   });
 
@@ -277,7 +298,6 @@ describe("KeyBindings.unbind", () => {
     const b = new KeyBindings();
     b.unbind(character, "KeyC");
     assert.deepEqual(keys(b, character), ["KeyC"]);
-    b.unbind(turnLeft, "KeyQ");
     b.unbind(turnLeft, "ArrowLeft");
     assert.deepEqual(keys(b, turnLeft), ["ArrowLeft"]);
   });

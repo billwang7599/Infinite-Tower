@@ -1,4 +1,4 @@
-/** Sensitivity, and Auto mouse lock, since the captured mouse is what turns the arena camera. */
+/** Sensitivity, and Auto mouse lock, since the arena camera's right-button drag needs the mouse captured. */
 import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
 import type { MouseSettings } from "../../../settings/mouse.js";
 import { BUTTON } from "../../components/styles.js";
@@ -13,7 +13,7 @@ export function CameraSection({ camera, mouse }: { camera: CameraSettings; mouse
       <div className={`mt-2 ${SETTING_ROW}`}>
         <label htmlFor="camera-sensitivity" className="flex flex-col">
           <span className={SETTING_LABEL}>Sensitivity</span>
-          <span className="text-xs text-white/45">Mouse, trackpad and the turn keys</span>
+          <span className="text-xs text-white/45">Right-button drag and the arrow keys, unlocked</span>
         </label>
         <span className="flex items-center gap-3">
           <input

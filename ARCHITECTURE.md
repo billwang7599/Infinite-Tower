@@ -115,8 +115,9 @@ main.ts
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
   only while their layer is on top; the arena camera reads the fight's last poll. Actions also owns the mouse: the
   pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
-  movement each frame with `actions.lookDelta()`; no mode sees `Mouse`. In a text field only the arrows and Esc
-  count; rebinding takes raw keys with `captureKey`. Pointer input in the UI stays plain DOM events.
+  movement each frame with `actions.lookDelta()` (it turns only while the right button, `dragCamera`, is held);
+  no mode sees `Mouse`. In a text field only the arrows and Esc count; rebinding takes raw keys with `captureKey`.
+  Pointer input in the UI stays plain DOM events.
 - **Two modes, two Babylon scenes, one world.** `game/game.ts` routes server messages and switches between the
   overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) and the arena's scenery live in the game's world; only the active mode's
@@ -154,7 +155,9 @@ main.ts
   stalls a second time.) HP and hits show at once from the client's copy, but the result is only ever the server's:
   the banner waits for `battleResult`. The client hangs its drawings (a node that follows `Body`, the sprite, the
   enemy model) on the fight's own entities; render systems run once per frame on the fight's world: follow, camera,
-  player sprite, enemy model animations, HUD.
+  lock marker, player sprite, enemy model animations, HUD. The lock-on is the client's alone (`ctx.lock`, steered by
+  `modes/battle/lock.ts` each step): it only changes the move and aim the input carries (toward the target), so the
+  fight and the server don't know about it.
 - **Fighters are moved by code, not by forces.** Systems set a body's velocity (`Body.vel`); the physics step
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
@@ -282,9 +285,9 @@ early, less what the client caused itself). The client compares it with its own 
 for a step it hasn't run yet waits until it has), and on a mismatch sends `battleResync` once; the server answers with
 `battleSync`, its whole fight (`FightSnapshot`, about 1.5 KB of exact JSON) at its own step, at most every 5 steps
 (`MIN_SYNC_GAP_STEPS`); the client loads it and replays its inputs since (or, behind it, jumps there). That's about 0.45
-KB/s down for one player against one boar; up, about 7 KB/s while the camera turns every step, a fraction of that while
-it doesn't. There's no message that says how a fight ended: only the server's fight decides it, and its final
-`battleSync` and `battleResult` say so.
+KB/s down for one player against one boar; up, about 7 KB/s while the aim changes every step (the camera turning, or
+locked on to a moving enemy), a fraction of that while it doesn't. There's no message that says how a fight ended: only
+the server's fight decides it, and its final `battleSync` and `battleResult` say so.
 
 **A simulated ping (dev only).** A dev server delays every game socket's messages by half of `DEV_PING_MS` each way
 (`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so the netcode can be
@@ -643,7 +646,11 @@ client/          Browser game: Babylon rendering, input, React UI.
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         scene.ts         Babylon scene, camera, lights / fog / shadows / post
-        context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says), resultShown
+        context.ts       BattleContext (the fight being drawn, its sync, its outcome as the server says, the lock),
+                         resultShown
+        lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
+                         target dies), lockYaw (the way to face it), no Babylon: tested
+        lockMarker.ts    The diamond over the locked enemy
         components.ts    BodyNode (what a fighter's drawing hangs from), DrawOffset (a correction easing out),
                          Meshes (+ disposers)
         materials.ts, arena.ts (scenery: grass, stones, forest)
@@ -653,8 +660,8 @@ client/          Browser game: Babylon rendering, input, React UI.
                          and the stab's thrust from the action, no Babylon: tested)
         enemies/models/  index.ts (ENEMY_MODELS: add + animation + disposers), boar/ (model, animation), kobold/
                          (model, animation: its swings and the wind-up's tell, an arrow the way the swing will go)
-        systems/         camera (the orbit, and its shake for each step's hard hits: addImpactShake), hud (fills the
-                         battle HUD's store)
+        systems/         camera (the orbit, locked or not, and its shake for each step's hard hits: addImpactShake),
+                         hud (fills the battle HUD's store)
 ```
 
 ## Adding things
@@ -723,7 +730,8 @@ client/          Browser game: Babylon rendering, input, React UI.
 | Spells: word costs, how a chain's cost grows, cast time; which augments fit which Form | `shared/src/spells/spell.ts` (`SPELL`, `AUGMENT_FITS`) |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Overworld-actor behavior numbers | `server/src/core/overworld/prefabs.ts` |
-| Arena camera feel | top of `client/src/modes/battle/systems/camera.ts` |
+| Arena camera feel, locked and not | top of `client/src/modes/battle/systems/camera.ts` |
+| Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |
 | Where a fight starts | `shared/src/battle/fight/setup.ts` |
 | The arena's wall and floor | `shared/src/battle/fight/physics/arena-physics.ts` |
 | How a fight ends: time limit, leaving mid-fight | `shared/src/battle/fight/outcome.ts` |
