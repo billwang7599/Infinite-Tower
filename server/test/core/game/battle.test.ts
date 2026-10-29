@@ -13,7 +13,7 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { findBoar, startSession } from "./helpers.js";
+import { findBoar, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -52,7 +52,7 @@ function play(session: GameSession, next: () => PlayerInputData, maxSteps = MAX_
   for (let i = 0; i < maxSteps && session.battle && !session.battle.over; i++) {
     const step = fight.steps + 1;
     session.battleInput(step, [{ step, ...next() }]);
-    session.tick(FIXED_DT);
+    session.tick();
   }
 }
 
@@ -92,13 +92,13 @@ describe("starting a battle", () => {
     const { session, link } = startSession();
     const found = [...session.overworld.world.query(OverworldActor)].find(([, a]) => a.kind === ARENA_SPAWN.enemy);
     assert.ok(found);
-    session.overworld.startEncounter(found[0], ARENA_SPAWN.enemy);
+    session.overworld.startEncounter(session.me, found[0], ARENA_SPAWN.enemy);
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
 
   test("tall grass, with no actor, is fought in the level's arena", () => {
     const { session, link } = startSession();
-    session.overworld.startEncounter(null, "wild-boar");
+    session.overworld.startEncounter(session.me, null, "wild-boar");
     assert.deepEqual(link.last("encounter").setup.arena, getArena(LEVEL.arenaId));
   });
 
@@ -149,8 +149,8 @@ describe("starting a battle", () => {
   test("touching the overworld boar starts a battle against it", () => {
     const { session, link } = startSession();
     const { boar, pos } = findBoar(session);
-    session.overworld.place(pos);
-    session.tick(FIXED_DT);
+    session.overworld.place(session.me, pos);
+    tick(session);
     assert.equal(session.battle?.source, boar);
     assert.equal(link.last("encounter").source, boar);
   });
@@ -185,12 +185,12 @@ describe("the server runs the fight", () => {
 
   test("a win keeps the HP and stamina the fight left, and the player where they were", () => {
     const { session, link } = inBattle();
-    const before = session.overworld.playerPos();
+    const before = session.overworld.playerPos(session.me);
     win(session);
     const last = link.last("battleSync").fight.players[0]!;
     assert.deepEqual(session.vitals, { hp: last.health.hp, stamina: last.stamina.value });
     assert.deepEqual(link.last("battleResult").vitals, session.vitals);
-    assert.deepEqual(session.overworld.playerPos(), before);
+    assert.deepEqual(session.overworld.playerPos(session.me), before);
   });
 
   test("checks the client's copy with a hash of the fight 4 times a second, and sends no states", () => {
@@ -214,7 +214,7 @@ describe("the server runs the fight", () => {
 
   test("a loss (the boar wins) empties the bag for good, refills HP, wakes the player at the start, and saves", () => {
     const { session, link, saves } = inBattle(CARRIED, { hp: 1, stamina: 40 });
-    session.overworld.place({ x: 3, z: 3 });
+    session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     const result = link.last("battleResult");
     assert.equal(result.won, false);
@@ -234,7 +234,7 @@ describe("the server runs the fight", () => {
     const started = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: swapped } });
     const { session, link, saves } = started;
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    session.overworld.place({ x: 3, z: 3 });
+    session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     assert.equal(link.last("battleResult").won, false);
     assert.deepEqual(link.last("battleResult").gear.equipment, starterEquipment());
@@ -250,7 +250,7 @@ describe("the server runs the fight", () => {
     });
     const { session, link, saves } = started;
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    session.overworld.place({ x: 3, z: 3 });
+    session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     assert.equal(link.last("battleResult").won, false);
     assert.deepEqual(link.last("battleResult").skillbook, blankSkillbook());
@@ -425,11 +425,11 @@ describe("leaving the arena", () => {
     const { session, link } = inBattle();
     lose(session);
     const sent = link.sent.length;
-    for (let i = 0; i < 10; i++) session.tick(FIXED_DT);
+    for (let i = 0; i < 10; i++) tick(session);
     assert.equal(link.sent.length, sent);
     session.leaveBattle();
     assert.equal(session.battle, null);
-    for (let i = 0; i < 3; i++) session.tick(FIXED_DT);
+    tick(session, 3);
     assert.equal(link.all("state").length, 1, "the overworld goes on");
   });
 });
@@ -438,22 +438,19 @@ describe("the overworld after a battle", () => {
   function touchBoar() {
     const started = startSession();
     const found = findBoar(started.session);
-    started.session.overworld.place(found.pos);
-    started.session.tick(FIXED_DT);
+    started.session.overworld.place(started.session.me, found.pos);
+    tick(started.session);
     return { ...started, ...found };
   }
 
-  test("winning against the overworld boar removes it", () => {
-    const { session, boar } = touchBoar();
-    win(session);
-    assert.equal(session.overworld.world.isAlive(boar), false);
-  });
-
-  test("losing leaves the overworld boar in place", () => {
-    const { session, boar } = touchBoar();
-    lose(session);
-    session.leaveBattle();
-    assert.equal(session.overworld.world.isAlive(boar), true);
+  test("the overworld boar is gone once touched, won or lost", () => {
+    const won = touchBoar();
+    win(won.session);
+    assert.equal(won.session.overworld.world.isAlive(won.boar), false);
+    const lost = touchBoar();
+    lose(lost.session);
+    lost.session.leaveBattle();
+    assert.equal(lost.session.overworld.world.isAlive(lost.boar), false);
   });
 
   test("the level's safe time blocks a new encounter right away, and only for that long", () => {
@@ -463,15 +460,15 @@ describe("the overworld after a battle", () => {
 
     const safeTicks = Math.floor(LEVEL.safeTime / FIXED_DT) - 1;
     for (let i = 0; i < safeTicks; i++) {
-      session.overworld.place(findBoar(session).pos);
-      session.tick(FIXED_DT);
+      session.overworld.place(session.me, findBoar(session).pos);
+      tick(session);
     }
     assert.equal(link.all("encounter").length, 1);
     assert.equal(session.battle, null);
 
     for (let i = 0; i < 5 && !session.battle; i++) {
-      session.overworld.place(findBoar(session).pos);
-      session.tick(FIXED_DT);
+      session.overworld.place(session.me, findBoar(session).pos);
+      tick(session);
     }
     assert.equal(link.all("encounter").length, 2);
   });

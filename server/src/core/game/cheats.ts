@@ -1,6 +1,5 @@
 import { addItem, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
 import { fullVitals } from "../content/player.js";
-import { startBattle } from "./battle.js";
 import type { GameSession } from "./session.js";
 
 export function runCheat(session: GameSession, cheat: Cheat): void {
@@ -9,7 +8,7 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
     case "encounter":
       if (session.inOverworld) {
         const spawn = session.overworld.level.spawns.find((s) => s.enemy === cheat.enemy);
-        startBattle(session, null, cheat.enemy, spawn);
+        session.overworld.startEncounter(session.me, null, cheat.enemy, spawn);
       }
       return;
     case "invulnerable":

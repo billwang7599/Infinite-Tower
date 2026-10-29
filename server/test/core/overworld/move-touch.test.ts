@@ -51,7 +51,7 @@ describe("encounter on touch", () => {
     const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
     const e = spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, [encounterOnTouch(TOUCH)]);
     touchSystem(f.ctx)(f.world, 0.1);
-    assert.deepEqual(f.encounters, [{ source: e, enemy: ENEMY }]);
+    assert.deepEqual(f.encounters, [{ player: f.player, source: e, enemy: ENEMY }]);
   });
 
   test("nothing happens out of range", () => {
@@ -64,6 +64,14 @@ describe("encounter on touch", () => {
   test("a safe player can't be touched into a fight", () => {
     const f = testOverworld({ playerAt: { x: 0, z: 0 } });
     f.world.require(f.player, OverworldPlayer).safeTime = 1;
+    spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, [encounterOnTouch(TOUCH)]);
+    touchSystem(f.ctx)(f.world, 0.1);
+    assert.equal(f.encounters.length, 0);
+  });
+
+  test("a player in a battle can't be touched into another", () => {
+    const f = testOverworld({ playerAt: { x: 0, z: 0 } });
+    f.world.require(f.player, OverworldPlayer).fighting = true;
     spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, [encounterOnTouch(TOUCH)]);
     touchSystem(f.ctx)(f.world, 0.1);
     assert.equal(f.encounters.length, 0);

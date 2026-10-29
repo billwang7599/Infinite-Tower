@@ -16,7 +16,8 @@ import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./
 import { WEAPON_LOOKS } from "./battle/weapons.js";
 import { PlayerLook, type Held } from "./characters.js";
 import { byEnemy } from "./enemies/index.js";
-import { overworldStage, WALKERS } from "./overworld/overworld.js";
+import { overworldStage } from "./overworld/overworld.js";
+import { WALKERS } from "./overworld/walker.js";
 import { createOverworldScene } from "./overworld/scene.js";
 import { redrawSprite } from "./sprites.js";
 

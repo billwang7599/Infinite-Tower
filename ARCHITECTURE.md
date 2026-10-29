@@ -60,7 +60,9 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
 4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
    shared `stepWalker` (at the pace the gear's weight allows; solid tiles stop it). The server replays the inputs,
    runs the level's actors (walking by the same rule), rolls encounters in tall-grass tiles and sends `state`
-   20 times a second with the actors near your screen. The client glides its mirrors toward those positions.
+   20 times a second with the actors and other players near your screen. Every player on a level walks the same
+   overworld: they see each other, and an enemy one of them touches leaves it for everyone. The client glides its
+   mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
    setup (arena, enemy, your HP / stamina, stats, burden, the bag and what's worn (so whether a sword and a
    skillbook are in hand), and its pages). The client
@@ -91,7 +93,8 @@ main.ts
  │     ├─ api/  Fastify: /api routes, /api/servers (this server's name and online.count), the built client, the
  │     │        /ws handshake
  │     └─ ws/   gameSockets(): each socket becomes a Connection (the PlayerLink) bound to a GameSession
- └─ timer -> FixedClock (60 steps a second) -> online.tick(dt): each session steps its overworld or its battle
+ └─ timer -> FixedClock (60 steps a second) -> online.tick(dt): each level's overworld steps, then each session
+                                                      sends its state or steps its battle
 ```
 
 | Port (`core/ports.ts`) | What core uses it for | Implemented by |
@@ -156,8 +159,9 @@ main.ts
   circle at its feet while it chants or winds up, and, over anyone but you, its chant's words as a row of squares in
   front of it (`chantWords.ts`). The player's look is read from `ui.overworld`'s character and painted once
   (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it.
-- **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`;
-  `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
+- **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`, and
+  each other player as a `peer` with their character (sent the first time you see them) and whether they're in a
+  battle; `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
@@ -326,8 +330,9 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
 While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zod check; dropped if invalid, more
 than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
 `GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks every
-session 60 times a second; on the overworld every 3rd tick sends a `state`, and in a fight every 15th step of the
-server's fight a `battleHash`. A `ping` never reaches the session: `Connection` answers it with a `pong` itself.
+level's overworld and then every session 60 times a second; on the overworld every 3rd tick sends a `state`, and in
+a fight every 15th step of the server's fight a `battleHash`. A `ping` never reaches the session: `Connection`
+answers it with a `pong` itself.
 
 In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect(socket)` opens a server's socket
 (from the list: a path on the page's host, or a whole URL) and resolves with it and the `welcome`; `net.send(msg)`
@@ -359,7 +364,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
-| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors |
+| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors and other players (a player's character only the first time) |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
@@ -373,8 +378,9 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
 the server is full (`MAX_PLAYERS` are on; a player already on it may still take over from another tab) (`CLOSE_CODES`
 in `shared/src/net/server-messages.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
-lost". Positions in `state` are rounded to 1 cm, and it only carries actors within `VIEW_RADIUS_TILES` of the
-server's copy of you (a circle, as the camera may look any way), so a hacked client can't see further.
+lost". Positions in `state` are rounded to 1 cm, and it only carries actors and players within
+`VIEW_RADIUS_TILES` of the server's copy of you (a circle, as the camera may look any way), so a hacked client can't
+see further.
 
 **A fight on the wire.** Both sides number the fight's steps from 1. Each frame the client sends the changes of its
 input since the last message, each tagged with the step it's for and rounded to 3 decimals (so both sides run the same
@@ -638,24 +644,30 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
                        PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
-                       tab takes over, a new player refused past maxPlayers; count), session.ts (GameSession, one
-                       player: their save, their overworld, the battle they're in; a method per thing a player can
-                       ask; disconnect: mid-fight, leaving it),
+                       tab takes over, a new player refused past maxPlayers; count; isOn (a left or replaced
+                       session's late messages are dropped); one Overworld per level, made when its first player
+                       arrives, stepped only while someone's on it), session.ts (GameSession, one player: their
+                       save, their walker in their level's overworld (`me`), the battle they're in; a method per
+                       thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
                        and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
-                       actors within VIEW_RADIUS_TILES), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
+                       actors and other players within VIEW_RADIUS_TILES, each player's character sent once),
+                       clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it; `edit` changes a player's fighter between steps
                        and sends everyone the fight; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
-      overworld/       The overworld simulation. overworld.ts (Overworld: one player's world, level, systems and
-                       spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer), parts.ts (spawnActor
-                       from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
-                       + replay, grass encounters, findPlayer), spawner.ts (each spawn an enemy's overworld actor)
+      overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
+                       join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
+                       systems and spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer: a
+                       player's walk, character and whether they're fighting), parts.ts (spawnActor from behavior
+                       parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay,
+                       grass encounters per player, nearestPlayer), spawner.ts (each spawn an enemy's overworld
+                       actor; one taken into a fight comes back respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
                        layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId;
@@ -669,7 +681,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
-                     joins the player; the connection's simulated ping), connection.ts (one socket = the
+                     joins the player, drops messages once it's no longer on; the connection's simulated
+                     ping), connection.ts (one socket = the
                      PlayerLink: Zod-checked in, typed out, delayed both ways by a dev ping), delay.ts (DelayLine:
                      a FIFO that holds each message for a while, in order), handlers.ts (each ClientMsg -> one call
                      on the session; connection.ts answers `ping` itself)
@@ -814,9 +827,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
                          screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
-        mirror.ts        Mirror the server's actors, each with its kind
-        components.ts    OverworldPos, OverworldActor (its kind: the player, a boar, a Kobold, a goblin),
-                         OverworldState
+        mirror.ts        Mirror the server's actors, each with its kind, and other players (peers)
+        components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin),
+                         Peer (another player's character, fighting), OverworldState
       battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
         battle.ts        The mode: start / end a fight (the fight's copy from the encounter's setup), per frame the
                          fight's steps (as many as pace.ts says) and the inputs out (1-4 quick-cast the fight's pages, the
@@ -841,7 +854,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
                        rest when a fight starts, again when the fight's weapon or its hand changes (its `Wielder`);
-                       BATTLE_FRAMES; the "!" alert
+                       BATTLE_FRAMES; chibiDraw; the "!" alert and the crossed swords over a player in a battle
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
                        with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
                        Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
@@ -884,8 +897,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        archived: plan/overworld-2d.md)
         scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
-        overworld.ts     WALKERS (chibi and enemy billboards: glide, hop, facing, the sky's tint and blob shadows, "!"),
-                         overworldStage (the level, the camera following the player and easing through its quarter
+        walker.ts        WALKERS (chibi, other players' and enemy billboards: glide, hop, facing, the sky's tint and
+                         blob shadows, "!", another player's own chibi, name and crossed swords)
+        overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
         terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
@@ -1027,7 +1041,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's colour grade and camera (its turn time), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
+| How each tile looks; the overworld's colour grade and camera (its turn time), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts` |
 | A level's daylight sky, fog and light; a campfire's light | `env` in `LEVEL_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/levels/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
@@ -1042,6 +1056,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Fight netcode: start wait, resync gap | `server/src/core/battle/room.ts` |
 | Fight netcode: a silent player letting go | `server/src/core/battle/inputs.ts` |
 | Fight netcode: heartbeat, history, pacing | `client/src/modes/battle/sync.ts`, `client/src/modes/battle/pace.ts` |
-| View: a screen's widest shape; how far round the player actors are sent | `shared/src/overworld/view.ts` (`VIEW`); `VIEW_RADIUS_TILES` in `server/src/core/game/snapshot.ts` |
+| View: a screen's widest shape; how far round the player actors and other players are sent | `shared/src/overworld/view.ts` (`VIEW`); `VIEW_RADIUS_TILES` in `server/src/core/game/snapshot.ts` |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).

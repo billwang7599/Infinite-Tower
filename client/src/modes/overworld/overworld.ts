@@ -83,7 +83,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       joinedNet.on("state", (msg) => {
         if (inBattle) return;
         prediction?.reconcile(msg.ack, msg.me);
-        actors.apply(msg.actors);
+        actors.apply(msg.actors, msg.players);
       });
       // Walking stops until the player is back from the arena with the battle's result.
       joinedNet.on("encounter", (msg) => {

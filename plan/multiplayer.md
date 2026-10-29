@@ -22,11 +22,12 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
    `.env`, default "Local"), with players online and a cap (`MAX_PLAYERS` 50; the socket is refused with a close
    code when full). After login the title screen shows the list; choosing one and Play connects to it. Shaped so a
    second server is a second entry later (same database, same login cookie).
-3. `shared-overworld`: one Overworld per level, shared by every player on it. Players see each other (chibi in their
-   look, name above), walking predicted for yourself, others interpolated. Enemies are shared: the one who touches
-   an enemy fights it and it's gone for everyone until it respawns. Tall-grass encounters stay per player. Players
-   pass through each other. A player in a battle stays on the overworld where they were, shown with a crossed-swords
-   marker. Server view rules (view radius) apply to players too.
+3. `shared-overworld` (built): one Overworld per level, shared by every player on it. Players see each other (chibi in
+   their look, name above), walking predicted for yourself, others interpolated. Enemies are shared: the one who
+   touches an enemy fights it and it's gone for everyone until it respawns (`respawnTime` after the fight is
+   decided). Tall-grass encounters stay per player. Players pass through each other. A player in a battle stays on
+   the overworld where they were, shown with a crossed-swords marker, and enemies pass them over. Server view rules
+   (view radius) apply to players too.
 4. `duels` (PvP): stand within 2 tiles of another player and press Challenge (`T`, overworld group, rebindable).
    They get a notice with Accept / Decline (buttons, and `Y` / `N`, rebindable); it expires after 15 s; one open
    challenge per player. On accept both go to their own isolated arena (stone ruins look), facing each other.
@@ -45,8 +46,9 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
 
 ## Where things stand
 
-- The server is already authoritative for the overworld, and every player has an account and a save. Each player has
-  their own `GameSession` with their own world: players can't see each other yet.
+- The server is already authoritative for the overworld, and every player has an account and a save. Each level has
+  one shared `Overworld`; each player's `GameSession` has a walker in it. A fought enemy comes back `respawnTime`
+  after its fight is decided (AGENTS.md lists the rest of the picks).
 - A second tab on the same account takes over the first (close code 4000).
 - Fights run on the server, built for any number of players, but every battle has one for now
   ([server-fights.md](server-fights.md) lists what more players would need).

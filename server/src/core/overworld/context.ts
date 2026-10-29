@@ -1,11 +1,9 @@
-/** What overworld systems get from their overworld: the current level, randomness, and how to start a battle. */
 import type { EnemyId, Entity } from "@infinite-tower/shared";
 import type { LevelDef } from "../world/level.js";
 
 export interface OverworldContext {
-  /** Changes when the player moves to another level. */
   readonly level: LevelDef;
   readonly rng: () => number;
-  /** Start a battle against `enemy`. `source`: the actor that touched the player, or null (tall grass). */
-  startEncounter(source: Entity | null, enemy: EnemyId): void;
+  /** Start `player`'s battle against `enemy`. `source`: the actor that touched them, or null (tall grass). */
+  startEncounter(player: Entity, source: Entity | null, enemy: EnemyId): void;
 }

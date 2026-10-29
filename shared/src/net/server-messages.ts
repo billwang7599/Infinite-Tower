@@ -26,6 +26,17 @@ export interface ActorSnap {
   alert: boolean;
 }
 
+/** Another player on the overworld. `character` comes only the first time they're sent to you. */
+export interface PlayerSnap {
+  id: number;
+  x: number;
+  z: number;
+  vx: number;
+  vz: number;
+  fighting: boolean;
+  character?: Character;
+}
+
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. */
   | {
@@ -35,7 +46,7 @@ export type ServerMsg =
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
   /** 20 times a second, so only what moves. */
-  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[] }
+  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; players: PlayerSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
   | { t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup }
   /** `lateSteps`: how late your inputs reach the server (the best since the last hash; negative: early), measured

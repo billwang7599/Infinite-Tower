@@ -1,14 +1,18 @@
 /**
- * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
- * the old session is saved first, so the new one loads what it had. Past `maxPlayers`, a new player is refused.
+ * Who's playing: one session per account, loaded on join and saved on leave, and the levels' overworlds they share.
+ * Joining from another tab takes over: the old session is saved first, so the new one loads what it had. Past
+ * `maxPlayers`, a new player is refused.
  */
 import { CLOSE_CODES } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
+import { Overworld } from "../overworld/overworld.js";
+import { getLevel } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
 import { GameSession } from "./session.js";
 
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
+  private readonly overworlds = new Map<string, Overworld>();
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {}
 
@@ -29,14 +33,19 @@ export class OnlinePlayers {
 
   /** Once, however many times it's called (a replaced session's link also reports closing). */
   leave(session: GameSession): void {
-    const id = session.account.id;
-    if (this.byAccount.get(id) !== session) return;
-    this.byAccount.delete(id);
+    if (!this.isOn(session)) return;
+    this.byAccount.delete(session.account.id);
     session.disconnect();
   }
 
+  /** False once it has left or been taken over: its socket may still deliver messages, which must be dropped. */
+  isOn(session: GameSession): boolean {
+    return this.byAccount.get(session.account.id) === session;
+  }
+
   tick(dt: number): void {
-    for (const session of this.byAccount.values()) session.tick(dt);
+    for (const overworld of this.overworlds.values()) if (!overworld.empty) overworld.step(dt);
+    for (const session of this.byAccount.values()) session.tick();
   }
 
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
@@ -48,11 +57,17 @@ export class OnlinePlayers {
     const session = new GameSession(account, link, this.dev, saved, (data) => {
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
-    });
+    }, (levelId) => this.overworldOf(levelId));
     session.start();
     // Only once it has started: a session that failed to start is never ticked or saved.
     this.byAccount.set(id, session);
     return session;
+  }
+
+  private overworldOf(levelId: string): Overworld {
+    let overworld = this.overworlds.get(levelId);
+    if (!overworld) this.overworlds.set(levelId, overworld = new Overworld(getLevel(levelId)));
+    return overworld;
   }
 
   /** A player already on (in another tab) is never refused: they'd only take their own place. */

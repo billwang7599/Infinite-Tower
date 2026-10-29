@@ -3,6 +3,8 @@ import { describe, test } from "node:test";
 import { ChaseOnSight, chaseOnSight, chaseSystem } from "../../../src/core/overworld/behaviors/chase.js";
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
+import { newWalk } from "../../../src/core/overworld/player.js";
+import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { pos, testOverworld } from "./helpers.js";
 
 const CHASE = { range: 5, noticeTime: 0.5, speed: 4, giveUpDist: 8 };
@@ -114,5 +116,15 @@ describe("chase on sight", () => {
     c.world.remove(c.player, OverworldPos);
     c.step(5);
     assert.equal(c.chase.state, "calm");
+  });
+  test("goes for the nearest player, passing over one in a battle", () => {
+    const c = chaser({ x: 1, z: 0 });
+    c.world.require(c.player, OverworldPlayer).fighting = true;
+    const other = c.world.spawn();
+    c.world.add(other, OverworldPos, { x: 0, z: -3 });
+    c.world.add(other, OverworldPlayer, newWalk(TEST_CHARACTER));
+    c.step(CHASE.noticeTime / DT + 2);
+    assert.equal(c.chase.state, "chase");
+    assert.ok(c.actor.vz < 0 && Math.abs(c.actor.vx) < 1e-9, "runs at the one not fighting");
   });
 });

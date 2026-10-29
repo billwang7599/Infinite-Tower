@@ -6,7 +6,7 @@ import {
 import type { EnemyId } from "@infinite-tower/shared";
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import type { OverworldState } from "../../modes/overworld/components.js";
-import { drawAlert } from "../characters.js";
+import { drawAlert, drawCrossedSwords } from "../characters.js";
 import { byEnemy } from "../enemies/index.js";
 import { createSky, type Sky } from "../sky/sky.js";
 import { spriteMaterial, type SpriteDraw } from "../sprites.js";
@@ -20,6 +20,7 @@ export interface OverworldScene {
     player: Record<ChibiFacing, StandardMaterial>;
     enemies: Record<EnemyId, StandardMaterial>;
     alert: StandardMaterial;
+    fighting: StandardMaterial;
     blob: StandardMaterial;
   };
   state: OverworldState;
@@ -51,6 +52,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
       },
       enemies: byEnemy(({ sprite: s }, id) => sprite(`overworld-${id}`, s.draw)),
       alert: sprite("overworld-alert", drawAlert),
+      fighting: sprite("overworld-fighting", drawCrossedSwords),
       blob: blobMaterial(scene),
     },
   };

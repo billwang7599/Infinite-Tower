@@ -27,7 +27,7 @@ function standStill(session: GameSession, seconds: number): void {
   for (let i = 0; i < seconds / FIXED_DT && session.battle && !session.battle.over; i++) {
     const step = fight.steps + 1;
     session.battleInput(step, [{ step, ...IDLE_INPUT }]);
-    session.tick(FIXED_DT);
+    session.tick();
   }
 }
 
