@@ -198,8 +198,9 @@ main.ts
   width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player may
   parry an enemy's swing (the reverse swing, live within `PARRY.window` before it lands: the enemy is stunned; hurt
   invulnerability doesn't stop a parry) or block it (held, facing it: stopped for stamina); a swordsman on guard parries
-  a player's swing (the player is staggered) and blocks a stab; anything else lands. An enemy's swing is named as the
-  player facing it sees it.
+  a player's swing coming in near the side its blade is held toward (`GUARD`, `guardCovers`; the player is staggered)
+  and blocks a stab; anything else lands, and a swing that lands turns its guard that way (`turnGuard`). An enemy's
+  swing is named as the player facing it sees it.
 - **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
   `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, and its length, mass,
   balance and power), eight swings named by their way across the screen (`lr`: left to right, `SCREEN_DIR`) and a
@@ -555,7 +556,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / parried / death), lunge.ts, charge.ts, weapon.ts (seeded chains of
-                       swings with the weapon in hand, the Kobold's), skill.ts (casting: a quick-cast up close, a
+                       swings with the weapon in hand, the Kobold's; on guard, its blade held toward a side that
+                       changes at seeded times), skill.ts (casting: a quick-cast up close, a
                        chant a word at a time from farther, backing away while it chants if kept away, seeded
                        extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
@@ -580,7 +582,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind; weaponIn, weaponItemIn;
                    SWING_DIRS, ATTACK_KINDS, SCREEN_DIR, attackShape (arm reach + length); SWING, Blade,
-                   planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY)
+                   planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY; GUARD)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
                    dispatch by `t`),
@@ -916,7 +918,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | What | Where |
 |---|---|
 | Player HP, speeds, swing / stab / block / dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, mass, balance, power); swing times, flow, the clamp; parrying | `shared/src/weapons/weapons.ts` (`WEAPONS`, `SWING`, `PARRY`) |
+| Weapons: the arsenal (length, mass, balance, power); swing times, flow, the clamp; parrying, an enemy's guard sides | `shared/src/weapons/weapons.ts` (`WEAPONS`, `SWING`, `PARRY`, `GUARD`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |

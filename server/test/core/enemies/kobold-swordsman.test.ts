@@ -2,8 +2,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, FighterStats, Health, IDLE_INPUT, isSwing, liveStep, planSwing, Player, PLAYER, reverseOf,
-  weaponIn, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, FighterStats, GUARD, Health, IDLE_INPUT, isSwing, liveStep, planSwing, Player, PLAYER,
+  reverseOf, SWING_DIRS, swingSide, WeaponAttack, weaponIn, Wielder, type AttackKind, type EnemyDef,
+  type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
@@ -57,17 +58,37 @@ describe("the Kobold Swordsman", () => {
     }
   });
 
-  test("swinging at it on guard gets you parried", () => {
-    const fight = fightWith(KOBOLD, 1);
-    let parried = 0;
+  function swingAtGuard(def: EnemyDef, side: (guarded: number) => number) {
+    const fight = fightWith(def, 1), e = fight.enemies[0]!, guard = fight.world.require(e, WeaponAttack);
+    let parried = 0, landed = 0, sent = false;
     for (let i = 0; i < 20 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
-      const input = watchful(fight);
-      if (fight.world.require(fight.enemies[0]!, Enemy).state === "approach" && i % 30 === 0) input.attack = "tb";
+      const input = watchful(fight), kobold = fight.world.require(e, Enemy);
+      const settled = kobold.state === "approach" && kobold.stateTime > def.attacks.weapon!.parryReaction
+        && guard.guardMoveTime === 0 && guard.guardHoldTime > 1;
+      const free = fight.world.require(fight.players[0]!, Player).action === "none";
+      if (settled && free && i % 30 === 0) {
+        input.attack = SWING_DIRS.find((d) => swingSide(d) === side(guard.guardSide))!;
+        sent = true;
+      }
       fight.step([input]);
-      parried += fight.events.filter((e) => e.type === "parry" && e.by === fight.enemies[0]).length;
+      for (const event of fight.events) {
+        if (event.type === "parry" && event.by === e) parried++;
+        if (sent && event.type === "hit" && event.target === e) landed++;
+      }
+      if (fight.world.require(e, Enemy).state !== "approach") sent = false;
     }
-    assert.ok(parried > 0);
-  });
+    return { parried, landed };
+  }
+
+  for (const id of ["kobold-swordsman", "kobold-greatsword"] as const) {
+    test(`${id}: swinging at the side it guards gets you parried; at the far side, it lands`, () => {
+      const def = ENEMIES[id].def;
+      assert.ok(swingAtGuard(def, (guarded) => guarded).parried > 0);
+      const far = swingAtGuard(def, (guarded) => (guarded + GUARD.sides / 2) % GUARD.sides);
+      assert.equal(far.parried, 0);
+      assert.ok(far.landed > 0);
+    });
+  }
 
   test("its own blade never drops, even on the lowest roll", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");

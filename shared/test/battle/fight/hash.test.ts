@@ -95,6 +95,10 @@ describe("a fight's hash", () => {
       ["its weapon attack's cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).cooldown += 0.05; }],
       ["its parry cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).parryCooldown += 0.05; }],
       ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).swingsLeft += 1; }],
+      ["its guard's side", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardSide += 1; }],
+      ["the side it guards while moving", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardFrom += 1; }],
+      ["its guard's move", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardMoveTime += 0.05; }],
+      ["how long it holds its guard", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardHoldTime += 0.05; }],
       ["being parried", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "parried"; }],
     ];
     const swordFight = () => busyFight(240, new Fight({

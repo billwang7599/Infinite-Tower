@@ -201,7 +201,11 @@ Decided by the user:
   `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage), even while you're briefly
   invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
   damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
-  while) and blocks your stabs. Its landed sword hits only hurt, with no stun or knockback (the boar's still stun). It
+  while) and blocks your stabs. It guards one side (the agent's pick, for the user to review): its blade held toward
+  one of the 8 ways, it parries only swings coming in within 45° of it (3 of 8) and the other 5 land; a swing that
+  lands turns its guard there, and otherwise it changes side every 1.5-3 s (the fight's seed), taking 0.3 s to move,
+  the old side covered until then (`GUARD` in `shared/src/weapons/weapons.ts`). Its landed sword hits only hurt, with
+  no stun or knockback (the boar's still stun). It
   drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.

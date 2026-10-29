@@ -1,8 +1,12 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
-import { planSwing, stepsUntil, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
-import { Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData } from "../../components.js";
+import {
+  GUARD, guardBlade, planSwing, stepsUntil, weaponIn, type AttackKind, type Weapon,
+} from "../../../weapons/weapons.js";
+import {
+  Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData, type WielderData,
+} from "../../components.js";
 import type { WeaponAttackDef } from "../../defs.js";
 import { FighterStats } from "../../stats.js";
 import { startSwing } from "../weapons/swing.js";
@@ -40,6 +44,28 @@ function windUp(
   });
 }
 
+export function turnGuard(enemy: EnemyData, attack: WeaponAttackData, side: number): void {
+  if (side === attack.guardSide) return;
+  if (attack.guardMoveTime <= 0) attack.guardFrom = attack.guardSide;
+  attack.guardSide = side;
+  attack.guardMoveTime = GUARD.moveTime;
+  attack.guardHoldTime = GUARD.minHoldTime + roll(enemy) * (GUARD.maxHoldTime - GUARD.minHoldTime);
+}
+
+function holdGuard(enemy: EnemyData, attack: WeaponAttackData, wielder: WielderData, dt: number): void {
+  attack.guardHoldTime -= dt;
+  if (attack.guardHoldTime <= 0 && attack.guardMoveTime <= 0) {
+    turnGuard(enemy, attack, (attack.guardSide + 1 + Math.floor(roll(enemy) * (GUARD.sides - 1))) % GUARD.sides);
+  }
+  if (!wielder.swing) {
+    const to = guardBlade(attack.guardSide), at = wielder.blade;
+    const k = attack.guardMoveTime > 0 ? Math.min(1, dt / attack.guardMoveTime) : 1;
+    wielder.blade = { x: at.x + (to.x - at.x) * k, y: at.y + (to.y - at.y) * k, vx: 0, vy: 0 };
+  }
+  attack.guardMoveTime = Math.max(0, attack.guardMoveTime - dt);
+  if (attack.guardMoveTime === 0) attack.guardFrom = attack.guardSide;
+}
+
 export function weaponAttackSystem(): System {
   return (world, dt) => {
     for (const [e, attack, enemy, wielder] of world.query(WeaponAttack, Enemy, Wielder)) {
@@ -47,6 +73,8 @@ export function weaponAttackSystem(): System {
       const weapon = weaponIn(wielder.hands);
       attack.cooldown -= dt;
       attack.parryCooldown = Math.max(0, attack.parryCooldown - dt);
+      if (enemy.state === "approach" && weapon) holdGuard(enemy, attack, wielder, dt);
+      else Object.assign(attack, { guardFrom: attack.guardSide, guardMoveTime: GUARD.moveTime });
       switch (enemy.state) {
         case "approach": {
           const inReach = sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT;
