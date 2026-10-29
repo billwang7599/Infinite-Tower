@@ -17,12 +17,12 @@ export interface LevelLayout {
   /** Rows of tile characters (`TILES`), north (+z) first, one character a tile; the map is centred on 0, 0. */
   tiles: string[];
   playerSpeed: number;
-  /** Campfire centers. Standing within REST_RANGE of one, you can rest: HP and stamina refill. */
+  /** Campfire centers. Standing within REST_RANGE_TILES of one, you can rest: HP and stamina refill. */
   campfires: Vec2[];
 }
 
-/** Tiles, center to center. */
-export const REST_RANGE = 1.6;
+/** Center to center. */
+export const REST_RANGE_TILES = 1.6;
 export const JOIN_RANGE_TILES = 1.6;
 
 /**
@@ -30,7 +30,7 @@ export const JOIN_RANGE_TILES = 1.6;
  * a round trip, so a player who just walked up would otherwise be refused.
  */
 export function nearCampfire(level: LevelLayout, pos: Vec2, slack = 0): boolean {
-  return level.campfires.some((c) => distXZ(c, pos) <= REST_RANGE + slack);
+  return level.campfires.some((c) => distXZ(c, pos) <= REST_RANGE_TILES + slack);
 }
 
 export interface WalkInput { moveX: number; moveZ: number }

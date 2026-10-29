@@ -1,14 +1,8 @@
-/**
- * Duels between players: a challenge to the nearest player in reach, answered or expiring, and on accept a spar in an
- * arena of their own. A spar costs and wins nothing: both come back with the HP and stamina they went in with.
- */
-import {
-  FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals,
-} from "@infinite-tower/shared";
+import { FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals } from "@infinite-tower/shared";
 import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../battle/room.js";
 import { getArena } from "../world/index.js";
-import { fighterOf } from "./battle.js";
+import { fighterOf, seatInBattle } from "./battle.js";
 import { nearestPlayer, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
@@ -29,7 +23,8 @@ export class Duels {
       tell(from, { kind: "busy", who: null });
       return;
     }
-    const to = this.nearestInReach(from);
+    const to = nearestPlayer(from, this.online(), CHALLENGE_RANGE_TILES,
+      (s) => s.inOverworld && !s.overworld.playerData(s.me).fighting);
     if (!to) tell(from, { kind: "nobodyNear" });
     else if (this.challengeOf(to)) tell(from, { kind: "busy", who: to.name });
     else {
@@ -75,11 +70,6 @@ export class Duels {
     tell(from, { kind: "cancelled", with: to.name });
     tell(to, { kind: "cancelled", with: from.name });
   }
-
-  private nearestInReach(from: GameSession): GameSession | null {
-    return nearestPlayer(from, this.online(), CHALLENGE_RANGE_TILES,
-      (s) => s.inOverworld && !s.overworld.playerData(s.me).fighting);
-  }
 }
 
 function startDuel(a: GameSession, b: GameSession): void {
@@ -96,16 +86,13 @@ function startDuel(a: GameSession, b: GameSession): void {
   }));
   duelists.forEach((s, seat) => {
     s.overworld.enterFight(s.me);
-    s.battle = { source: null, enemyId: null, room, seat, over: false };
     const other = duelists[1 - seat]!;
-    s.link.send({
-      t: "encounter", source: null, me: s.overworld.playerPos(s.me), seat, setup,
+    seatInBattle(s, room, seat, { source: null, enemyId: null }, {
       opponent: { name: other.name, character: other.character! },
     });
   });
 }
 
-/** The pages and gear as the duel left them (written and moved, never gained or lost), the vitals as before it. */
 function settleDuel(
   session: GameSession, result: PlayerResult, before: Vitals, opponent: string, book: Skillbook, gear: Carried,
 ): void {

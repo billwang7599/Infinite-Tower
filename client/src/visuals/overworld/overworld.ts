@@ -34,7 +34,9 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     view.yawRad = turn.fromRad + (turn.toRad - turn.fromRad) * share * share * (3 - 2 * share);
     if (view.yawRad !== facedYaw) level.drawing.face(facedYaw = view.yawRad);
     const flat = Math.cos(CAMERA_PITCH_RAD) * CAMERA_DISTANCE;
-    back.set(-Math.sin(view.yawRad) * flat, Math.sin(CAMERA_PITCH_RAD) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat);
+    back.set(
+      -Math.sin(view.yawRad) * flat, Math.sin(CAMERA_PITCH_RAD) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat,
+    );
     const player = state.world.require(state.player, OverworldPos);
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
     target.x += (player.x - target.x) * k;

@@ -18,10 +18,6 @@ export function dayFraction(clock: DayClock, nowMs: number): number {
   return wrap(clock.fraction + ((nowMs - clock.atMs) * clock.speed) / DAY_LENGTH_MS);
 }
 
-export function timeOfDay(nowMs: number): number {
-  return dayFraction(WALL_CLOCK, nowMs);
-}
-
 export interface DayChange { offsetFraction?: number; fraction?: number; speed?: number }
 
 export function retimeDay(clock: DayClock, nowMs: number, change: DayChange): DayClock {

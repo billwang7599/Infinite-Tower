@@ -1,7 +1,7 @@
 /**
  * Shown on load, before anything connects. Logged out, it's the login form; logged in, the game servers to pick
- * from, and Play (a MENUS key or a click) asks the game to join the picked one, and Log out is under it. If the server can't be reached the error shows here and Play
- * becomes Retry.
+ * from, and Play (a MENUS key or a click) asks the game to join the picked one, and Log out is under it. If the
+ * server can't be reached the error shows here and Play becomes Retry.
  *
  * Joining plays the enter sequence (sequence.ts; the camera's path is backdrop/path.ts): the text fades, the view
  * glides into the tower to its middle, looks straight up it, and rushes up it, faster and faster, while the server
@@ -51,7 +51,7 @@ export function TitleScreen({ title, input, actions }: TitleProps) {
   const error = useStore(title, (s) => s.error);
   const username = useStore(title, (s) => s.username);
   const servers = useStore(title, (s) => s.servers);
-  const server = useStore(title, (s) => s.server);
+  const pickedSocket = useStore(title, (s) => s.pickedSocket);
   const stage = useSequence(phase);
   const still = useReducedMotion();
   const ready = phase === "menu" && stage === "menu";
@@ -109,8 +109,8 @@ export function TitleScreen({ title, input, actions }: TitleProps) {
             <div className={`mt-12 ${RISE} [animation-delay:250ms]`}>
               {showForm && <LoginForm busy={phase === "signingIn"} submit={actions.signIn} />}
               {showPlay && servers.length > 0 && (
-                <ServerList servers={servers} picked={server} disabled={!ready}
-                  pick={(socket) => title.set({ server: socket })} />
+                <ServerList servers={servers} picked={pickedSocket} disabled={!ready}
+                  pick={(socket) => title.set({ pickedSocket: socket })} />
               )}
               {showPlay && (
                 <nav className="mt-5 flex flex-col items-start gap-3">

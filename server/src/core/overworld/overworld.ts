@@ -10,7 +10,6 @@ import type { OverworldContext } from "./context.js";
 import { newWalk, overworldPlayerSystem, queueInput } from "./player.js";
 import { Spawner } from "./spawner.js";
 
-/** `spawn`: the level's spawn the actor came from, or none (tall grass). */
 type OnEncounter = (source: Entity | null, enemy: EnemyId, spawn: SpawnDef | undefined) => void;
 
 export class Overworld implements OverworldContext {
@@ -67,7 +66,6 @@ export class Overworld implements OverworldContext {
     this.spawner.release(actor);
   }
 
-  /** Back from the arena: no stale inputs or encounter progress. */
   endFight(player: Entity, safeTime: number): void {
     const walk = this.playerData(player);
     walk.fighting = false;

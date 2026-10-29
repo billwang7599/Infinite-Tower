@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { JOIN_RANGE_TILES, REST_RANGE, type LevelLayout } from "@infinite-tower/shared";
+import { JOIN_RANGE_TILES, REST_RANGE_TILES, type LevelLayout } from "@infinite-tower/shared";
 import { interactionAt } from "../../../src/modes/overworld/overworld.js";
 
 const FIRE = { x: 0, z: 0 };
@@ -9,7 +9,7 @@ const at = (x: number) => ({ x, z: 0 });
 
 describe("what the Rest key does where you stand", () => {
   test("by a campfire, rests", () => {
-    assert.equal(interactionAt(level, at(REST_RANGE - 0.1), []), "rest");
+    assert.equal(interactionAt(level, at(REST_RANGE_TILES - 0.1), []), "rest");
   });
 
   test("by a player in a battle, joins it", () => {

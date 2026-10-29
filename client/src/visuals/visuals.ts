@@ -156,13 +156,10 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   let painted: Painted = null;
   let drawnFight: Fight | null = null;
 
-  const heldBy = (world: World, e: Entity): Held | null => {
-    const { hands } = world.require(e, Wielder);
-    const item = weaponItemIn(hands), hand = item && heldIn(hands, item);
-    return (item && hand && { hand, art: WEAPON_LOOKS[item].sprite }) || null;
-  };
   const paintHeld = (look: Pick<PlayerLook<unknown>, "hold" | "finish">, was: Painted, fight: Fight, e: Entity) => {
-    const held = heldBy(fight.world, e);
+    const { hands } = fight.world.require(e, Wielder);
+    const item = weaponItemIn(hands), hand = item && heldIn(hands, item);
+    const held = (item && hand && { hand, art: WEAPON_LOOKS[item].sprite }) || null;
     if (fight === was?.fight && held?.hand === was.held?.hand && held?.art === was.held?.art) return was;
     look.hold(held);
     look.finish();

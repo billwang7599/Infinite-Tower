@@ -1,7 +1,4 @@
-/**
- * The HTTP server: the account API and the server list (/api), the door to the game socket (/ws), and the built
- * client in production.
- */
+/** The HTTP server: the API (/api), the door to the game socket (/ws), and the built client in production. */
 import { join, sep } from "node:path";
 import fastifyCookie from "@fastify/cookie";
 import fastifyRateLimit from "@fastify/rate-limit";

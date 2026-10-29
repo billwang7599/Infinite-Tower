@@ -160,10 +160,7 @@ export interface BodyData {
 export const Body = defineComponent<BodyData>("Body");
 
 export type TeamId = "player" | "enemy";
-/**
- * Anything that can hit or be hit. `radius`: its hurt radius on the ground plane. Fighters on different `side`s are
- * foes: every enemy is on -1, players on 0, and in a duel each player on their own seat's.
- */
+/** `radius`: hurt radius on the ground. Different `side`s are foes: enemies -1, players 0, or their seat in a duel. */
 export interface FighterData { team: TeamId; side: number; radius: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 

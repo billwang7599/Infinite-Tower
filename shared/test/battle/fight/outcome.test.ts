@@ -11,6 +11,7 @@ before(() => initPhysics());
 const PLAYER_AT = { x: 0, y: 0.05, z: -5 };
 const STATUE_AT = { x: 0, y: 0.05, z: 5 };
 const STATES: FightState[] = ["fighting", "won", "lost"];
+const STANDING = { standing: true, duel: false };
 
 describe("the time limit", () => {
   test("a fight still undecided after MAX_FIGHT_TIME is lost, and not a step before", () => {
@@ -57,11 +58,11 @@ describe("leaving", () => {
 
   test("the player who left has lost, however the fight goes on without them", () => {
     for (const state of STATES) {
-      assert.equal(playerResult({ state, stateTime: 0 }, true), LEAVING_LOSES ? "lost" : "left", state);
+      assert.equal(playerResult({ state, stateTime: 0 }, true, STANDING), LEAVING_LOSES ? "lost" : "left", state);
     }
   });
 
-  test("everyone else gets the fight's own result", () => {
-    for (const state of STATES) assert.equal(playerResult({ state, stateTime: 0 }, false), state);
+  test("everyone still standing gets the fight's own result", () => {
+    for (const state of STATES) assert.equal(playerResult({ state, stateTime: 0 }, false, STANDING), state);
   });
 });

@@ -598,10 +598,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    time.ts
   world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, its floor, tile
                    map and campfires; moveWalker, the one collision rule, and stepWalker on it for prediction +
-                   replay; nearCampfire / REST_RANGE, JOIN_RANGE_TILES), tiles.ts (TILES: each tile kind's
+                   replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES), tiles.ts (TILES: each tile kind's
                    character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
                    (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
-                   time of day from the wall clock, the same everywhere with no messages: DayClock, timeOfDay,
+                   time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
@@ -672,7 +672,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    password rules, Credentials, AccountInfo, GameServer, ApiError), api-requests.ts (its Zod schemas;
                    server-only import), text-rules.ts (TextRules for the
                    username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
-                   settings.ts (MAX_KEYS_PER_ACTION)
+                   settings.ts (MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES)
 shared/test/      Unit tests, mirroring src/ (npm test)
 
 server/          Node. Authoritative: levels, encounters, overworld actors, enemy stats, fight results, saves.
@@ -701,9 +701,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        duels.ts (Duels: challenges, their reach, expiry and news; starting a duel; settling a
                        spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
-                       a player as the fight takes them, a duel's too), settle its end for
-                       the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
-                       and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
+                       a player as the fight takes them; seatInBattle: a session put in a room and sent its
+                       `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
+                       it, wins, loot packed into the bag, a loss emptying it and handing a fresh sword and
+                       skillbook, vitals), snapshot.ts (the state message: only
                        actors and other players within VIEW_RADIUS_TILES, each player's character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
@@ -729,7 +730,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                          arenas)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
-                       actor's behavior parts). index.ts (ENEMIES, one line each; isEnemyId, rollDrops)
+                       actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
       content/         player.ts (PLAYER_STATS, fullVitals, newPlayer, giveIfMissing)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)

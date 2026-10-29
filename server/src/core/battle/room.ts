@@ -116,17 +116,13 @@ export class BattleRoom {
     const e = this.fight.players[seat]!;
     const vitals = this.vitalsOf(e);
     this.fight.leave(e);
-    const { book, gear } = this.fight.world.require(e, Player);
-    s.seat.onEnd(this.resultOf(e, true), vitals, book, gear);
+    this.end(s, e, this.resultOf(e, true), vitals);
     if (this.seats.every((other) => other.gone)) this.close();
   }
 
-  /**
-   * One tick of the clock, once everyone is in: the fight runs as far as it can. Each player's session calls it with
-   * their seat; only the first seat still here moves the clock.
-   */
-  tick(by?: number): void {
-    if (by !== undefined && by !== this.seats.findIndex((s) => !s.gone)) return;
+  /** Each player's session calls it with their seat; only the first seat still here moves the clock. */
+  tick(seat?: number): void {
+    if (seat !== undefined && seat !== this.seats.findIndex((s) => !s.gone)) return;
     if (this.ended || !this.ready()) return;
     this.now++;
     while (!this.ended && this.fight.steps < this.now) {
@@ -195,10 +191,14 @@ export class BattleRoom {
       if (result === "fighting") return;
       s.gone = true;
       this.sendSync(s);
-      const { book, gear } = this.fight.world.require(e, Player);
-      s.seat.onEnd(result, this.vitalsOf(e), book, gear);
+      this.end(s, e, result, this.vitalsOf(e));
     });
     if (this.fight.outcome.state !== "fighting") this.close();
+  }
+
+  private end(s: SeatState, e: Entity, result: PlayerResult, vitals: Vitals): void {
+    const { book, gear } = this.fight.world.require(e, Player);
+    s.seat.onEnd(result, vitals, book, gear);
   }
 
   private resultOf(e: Entity, left: boolean): PlayerResult {

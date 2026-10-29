@@ -28,7 +28,9 @@ export function CameraSection({ camera, mouse }: { camera: CameraSettings; mouse
           <output htmlFor="camera-sensitivity" className="w-11 text-right text-[13px] font-semibold tabular-nums">
             {Math.round(sensitivity * 100)}%
           </output>
-          <button type="button" disabled={camera.sensitivityIsDefault()} onClick={() => camera.reset()} className={BUTTON.plain}>
+          <button
+            type="button" disabled={camera.sensitivityIsDefault()} onClick={() => camera.reset()} className={BUTTON.plain}
+          >
             Reset
           </button>
         </span>

@@ -24,6 +24,8 @@ export const LAG_SLACK_TILES = 0.6;
 /** Small changes (settings, the bag) are written at most this often, so a client can't hammer the database. */
 const SAVE_SOON_MS = 1000;
 
+interface Walking { overworld: Overworld; me: Entity }
+
 export interface Others {
   online(): Iterable<GameSession>;
   duels: Duels;
@@ -57,8 +59,7 @@ export class GameSession {
   private readonly knownWords: Word[];
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private walking: { overworld: Overworld; me: Entity } | null = null;
-  /** Other players whose character this one's client has been sent. */
+  private walking: Walking | null = null;
   private readonly introduced = new Set<Entity>();
 
   constructor(
@@ -108,8 +109,8 @@ export class GameSession {
   }
 
   battleInput(upTo: number, inputs: readonly StepInput[]): void {
-    const battle = this.battle;
-    if (!battle || battle.over) return;
+    const battle = this.liveBattle;
+    if (!battle) return;
     const known = new Set(this.knownWords);
     const unknown = (skill: Skill | undefined) => skill !== undefined && validateSkill(skill, known).length > 0;
     const unchantable = (words: readonly Word[]) => {
@@ -126,8 +127,8 @@ export class GameSession {
   }
 
   battleResync(): void {
-    const battle = this.battle;
-    if (battle && !battle.over) battle.room.resync(battle.seat);
+    const battle = this.liveBattle;
+    if (battle) battle.room.resync(battle.seat);
   }
 
   /** Ignored mid-fight. */
@@ -139,8 +140,8 @@ export class GameSession {
 
   /** Closed, lost, or taken over by another tab. Mid-fight, outcome.ts's LEAVING_LOSES says what that costs. */
   disconnect(): void {
-    const battle = this.battle;
-    if (battle && !battle.over) battle.room.leave(battle.seat);
+    const battle = this.liveBattle;
+    if (battle) battle.room.leave(battle.seat);
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
     this.save();
@@ -157,7 +158,7 @@ export class GameSession {
   joinBattle(): void {
     if (!this.inOverworld) return;
     const reach = JOIN_RANGE_TILES + LAG_SLACK_TILES;
-    const host = nearestPlayer(this, this.others?.online() ?? [], reach, (s) => s.battle?.over === false);
+    const host = nearestPlayer(this, this.others?.online() ?? [], reach, (s) => s.liveBattle !== null);
     if (host) joinBattle(this, host);
     else this.link.send({ t: "joinRefused", reason: "nobodyNear" });
   }
@@ -242,22 +243,22 @@ export class GameSession {
   /** Walking around a level: not in a battle, and not still making a character. */
   get inOverworld(): boolean { return this.battle === null && this.walking !== null; }
 
+  get liveBattle(): Battle | null { return this.battle && !this.battle.over ? this.battle : null; }
+
   get name(): string { return this.character?.name ?? this.account.username; }
 
   get inLevel(): boolean { return this.walking !== null; }
 
   /** Throws while they're still making a character. */
-  get overworld(): Overworld {
+  get overworld(): Overworld { return this.walk.overworld; }
+
+  get me(): Entity { return this.walk.me; }
+
+  private get walk(): Walking {
     if (!this.walking) throw new Error("not in a level yet");
-    return this.walking.overworld;
+    return this.walking;
   }
 
-  get me(): Entity {
-    if (!this.walking) throw new Error("not in a level yet");
-    return this.walking.me;
-  }
-
-  /** One fixed step of the battle, if there's one (its room steps at FIXED_DT); the overworld steps on its own. */
   tick(): void {
     if (this.battle) {
       this.battle.room.tick(this.battle.seat);

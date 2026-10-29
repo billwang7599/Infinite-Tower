@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, inRect, mapHalfSize, moveWalker, nearCampfire, REST_RANGE, stepWalker, WALKER_RADIUS, type Vec2,
+  FIXED_DT, inRect, mapHalfSize, moveWalker, nearCampfire, REST_RANGE_TILES, stepWalker, WALKER_RADIUS, type Vec2,
   type Velocity2,
 } from "@infinite-tower/shared";
 import { ROCKS, TEST_LAYOUT as level } from "./level.js";
@@ -109,11 +109,11 @@ test("inRect includes its edges", () => {
 
 describe("nearCampfire", () => {
   const fire = level.campfires[0]!;
-  test("within REST_RANGE of a campfire", () => {
-    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE, z: fire.z }), true);
-    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE + 0.1, z: fire.z }), false);
+  test("within REST_RANGE_TILES of a campfire", () => {
+    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE_TILES, z: fire.z }), true);
+    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE_TILES + 0.1, z: fire.z }), false);
   });
   test("slack reaches further", () => {
-    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE + 0.1, z: fire.z }, 0.2), true);
+    assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE_TILES + 0.1, z: fire.z }, 0.2), true);
   });
 });

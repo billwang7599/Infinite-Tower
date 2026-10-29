@@ -1,9 +1,7 @@
 /**
  * The client's own copy of the fight, run whole and at once so it answers your keys on the next step. It sends each
  * change of input with its step, checks the server's hashes against its own, and on a mismatch loads the server's
- * fight and replays its inputs since. Another player is shown doing what they last did until the server passes on
- * what they really did; then the fight goes back to that step and replays. The result is only ever the server's:
- * `outcome` waits for battleResult.
+ * fight and replays its inputs since. The result is only ever the server's: `outcome` waits for battleResult.
  */
 import {
   copyInput, FIXED_DT, HASH_EVERY_STEPS, Health, MAX_INPUT_DELAY_STEPS, MAX_INPUTS_PER_MESSAGE, Player, PlayerInput,
@@ -73,7 +71,7 @@ export class FightSync {
     now: () => number = () => performance.now(),
   ) {
     this.pace = new Pace(now);
-    if (fight.players.length > 1) this.states.set(fight.steps, fight.save());
+    this.keepState();
   }
 
   private get me(): Entity {
@@ -137,7 +135,7 @@ export class FightSync {
     this.fight.load(fight);
     this.hashes.clear();
     this.states.clear();
-    if (this.fight.players.length > 1) this.states.set(step, this.fight.save());
+    this.keepState();
     for (const at of this.ahead.keys()) if (at <= step) this.ahead.delete(at);
     if (step % HASH_EVERY_STEPS === 0) this.hashes.set(step, this.fight.hash());
     if (step >= present) {
@@ -215,11 +213,9 @@ export class FightSync {
     inputs[this.seat] = input;
     this.fight.step(inputs);
     const step = this.fight.steps;
-    if (this.fight.players.length > 1) {
-      this.states.set(step, this.fight.save());
-      this.states.delete(step - HISTORY_STEPS - 1);
-      this.theirs.delete(step - HISTORY_STEPS - 1);
-    }
+    this.keepState();
+    this.states.delete(step - HISTORY_STEPS - 1);
+    this.theirs.delete(step - HISTORY_STEPS - 1);
     for (const event of this.fight.events) this.events.push({ step, event });
     if (step % HASH_EVERY_STEPS !== 0) return;
     const hash = this.fight.hash();
@@ -242,6 +238,10 @@ export class FightSync {
     if (this.askedAt !== null && this.fight.steps - this.askedAt < RESYNC_RETRY_STEPS) return;
     this.askedAt = this.fight.steps;
     this.send({ t: "battleResync" });
+  }
+
+  private keepState(): void {
+    if (this.fight.players.length > 1) this.states.set(this.fight.steps, this.fight.save());
   }
 
   private hp(): number {

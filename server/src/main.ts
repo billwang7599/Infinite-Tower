@@ -35,7 +35,9 @@ await startServer({
   accounts,
   secureCookies: !DEV,
   socket: gameSockets(online, { dev: DEV, pingMs: DEV_PING_MS }),
-  servers: () => [{ name: SERVER_NAME, socket: GAME_SOCKET_PATH, players: online.count, maxPlayers: online.maxPlayers }],
+  servers: () => [
+    { name: SERVER_NAME, socket: GAME_SOCKET_PATH, players: online.count, maxPlayers: online.maxPlayers },
+  ],
 }).catch(exitOn("server"));
 console.log(`[server] ${DEV ? "dev" : "production"} on http://localhost:${PORT} (ws /ws, api /api)`);
 if (DEV_PING_MS > 0) console.log(`[server] simulating a ${DEV_PING_MS} ms ping (DEV_PING_MS; ?ping=N per page)`);

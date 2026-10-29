@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE,
+  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE_TILES,
   starterEquipment, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
@@ -73,7 +73,7 @@ describe("rest", () => {
   test("works anywhere within reach of the fire", () => {
     const fire = campfire();
     const { session, link } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.overworld.place(session.me, { x: fire.x + REST_RANGE * 0.9, z: fire.z });
+    session.overworld.place(session.me, { x: fire.x + REST_RANGE_TILES * 0.9, z: fire.z });
     session.rest();
     assert.deepEqual(link.last("rested").vitals, FULL);
   });
@@ -81,7 +81,7 @@ describe("rest", () => {
   test("away from the fire does nothing", () => {
     const fire = campfire();
     const { session, link, saves } = startSession({ saved: { vitals: { hp: 10, stamina: 3 } } });
-    session.overworld.place(session.me, { x: fire.x + REST_RANGE + 1, z: fire.z });
+    session.overworld.place(session.me, { x: fire.x + REST_RANGE_TILES + 1, z: fire.z });
     session.rest();
     assert.deepEqual(session.vitals, { hp: 10, stamina: 3 });
     assert.equal(saves.length, 0);

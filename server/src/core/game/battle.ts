@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
   addItem, bagCounts, blankSkillbook, starterEquipment, type Bag, type Carried, type EnemyId, type Entity,
-  type ItemCounts, type ItemId, type Skillbook, type Vitals,
+  type ItemCounts, type ItemId, type ServerMsgOf, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult, type PlayerSetup,
@@ -25,13 +25,13 @@ export interface Battle {
   over: boolean;
 }
 
-export const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
+const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 /** Held in the arena of the spawn it came from; tall grass has no spawn, so the level's. */
 export function startBattle(
   session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
-  const { overworld, me } = session;
+  const { overworld } = session;
   const setup: FightSetup = {
     arena: getArena(spawn?.arenaId ?? overworld.level.arenaId),
     players: [{ ...fighterOf(session), at: PLAYER_START }],
@@ -41,8 +41,7 @@ export function startBattle(
   const room = new BattleRoom(setup, [seatOf(session)], () => {
     if (source !== null) overworld.fightDecided(source);
   });
-  session.battle = { source, enemyId, room, seat: 0, over: false };
-  session.link.send({ t: "encounter", source, me: overworld.playerPos(me), seat: 0, setup });
+  seatInBattle(session, room, 0, { source, enemyId });
 }
 
 export function joinBattle(joiner: GameSession, host: GameSession): void {
@@ -52,12 +51,20 @@ export function joinBattle(joiner: GameSession, host: GameSession): void {
     return;
   }
   const seat = room.join(seatOf(joiner), fighterOf(joiner))!;
-  const { overworld, me } = joiner;
-  overworld.enterFight(me);
-  joiner.battle = { source: null, enemyId: hosted.enemyId, room, seat, over: false };
-  joiner.link.send({
-    t: "encounter", source: null, me: overworld.playerPos(me), seat, setup: room.setup,
+  joiner.overworld.enterFight(joiner.me);
+  seatInBattle(joiner, room, seat, { source: null, enemyId: hosted.enemyId }, {
     joined: { host: host.name, step: room.fight.steps, fight: room.fight.save() },
+  });
+}
+
+export function seatInBattle(
+  session: GameSession, room: BattleRoom, seat: number, from: Pick<Battle, "source" | "enemyId">,
+  extra: Pick<ServerMsgOf<"encounter">, "opponent" | "joined"> = {},
+): void {
+  session.battle = { ...from, room, seat, over: false };
+  session.link.send({
+    t: "encounter", source: from.source, me: session.overworld.playerPos(session.me), seat, setup: room.setup,
+    ...extra,
   });
 }
 
