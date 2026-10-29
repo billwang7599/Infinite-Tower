@@ -1,11 +1,11 @@
 /** The HTTP server: the API (/api), the door to the game socket (/ws), and the built client in production. */
 import { join, sep } from "node:path";
 import fastifyCookie from "@fastify/cookie";
-import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyRateLimit, { normalizeIP } from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
 import type { GameServer } from "@infinite-tower/shared";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import type { Accounts } from "../core/accounts/accounts.js";
 import { HttpError, onError, onNotFound } from "./errors.js";
@@ -19,6 +19,7 @@ export interface ServerOptions {
   accounts: Accounts;
   /** HTTPS only: on in production, off for dev's plain http://localhost. */
   secureCookies: boolean;
+  behindCloudflare: boolean;
   socket: GameSocket;
   servers(): GameServer[];
 }
@@ -44,6 +45,7 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, {
     global: false,
+    keyGenerator: (req) => normalizeIP(visitorIp(req, opts.behindCloudflare)),
     errorResponseBuilder: (_req, limit) =>
       new HttpError(limit.statusCode, `Too many tries. Wait ${limit.after} and try again.`),
   });
@@ -61,6 +63,11 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
     setHeaders: (reply, path) => reply.header("cache-control", path.startsWith(assets) ? CACHE_FOREVER : "no-cache"),
   });
   return app;
+}
+
+function visitorIp(req: FastifyRequest, behindCloudflare: boolean): string {
+  const header = req.headers["cf-connecting-ip"];
+  return behindCloudflare && typeof header === "string" ? header : req.ip;
 }
 
 /** On every interface, so it's reachable from outside in production. */

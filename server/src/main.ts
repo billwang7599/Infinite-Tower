@@ -12,7 +12,7 @@ import { OnlinePlayers } from "./core/game/online.js";
 import { PgAccountStore } from "./db/account-store.js";
 import { connectDb, errorText } from "./db/db.js";
 import { PgPlayerStore } from "./db/player-store.js";
-import { DEV, DEV_PING_MS, MAX_PLAYERS, PORT, SERVER_NAME } from "./env.js";
+import { BEHIND_CLOUDFLARE, DEV, DEV_PING_MS, MAX_PLAYERS, PORT, SERVER_NAME } from "./env.js";
 import { gameSockets } from "./ws/sockets.js";
 
 const CLIENT_DIST = fileURLToPath(new URL("../../client/dist", import.meta.url));
@@ -34,6 +34,7 @@ await startServer({
   clientDist: CLIENT_DIST,
   accounts,
   secureCookies: !DEV,
+  behindCloudflare: BEHIND_CLOUDFLARE,
   socket: gameSockets(online, { dev: DEV, pingMs: DEV_PING_MS }),
   servers: () => [
     { name: SERVER_NAME, socket: GAME_SOCKET_PATH, players: online.count, maxPlayers: online.maxPlayers },

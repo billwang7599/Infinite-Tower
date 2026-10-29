@@ -139,6 +139,30 @@ ignores cheats.
 - "a migration failed (relation ... already exists)": the dev database was made by another branch.
   `npm run db:reset`.
 
+## Hosting
+
+On a Linux machine with Docker and its compose plugin, reached only through a Cloudflare Tunnel (no open ports).
+`compose.prod.yaml` runs the game server and Postgres, with the server on the machine's own 127.0.0.1:8787 only.
+
+1. Clone the repo, `cp .env.example .env`, and in `.env` set `POSTGRES_PASSWORD` (`openssl rand -hex 32`),
+   `SERVER_NAME` and `MAX_PLAYERS`.
+2. `docker compose -f compose.prod.yaml up -d --build`. The server applies migrations as it starts; there are no
+   test accounts.
+3. In Cloudflare Zero Trust (Networks > Tunnels), create a tunnel and give it a public hostname for the game, with
+   the service `http://localhost:8787`. On the machine, install `cloudflared` from Cloudflare's apt repo
+   (pkg.cloudflare.com) and run `sudo cloudflared service install <token>` with the tunnel's token.
+
+The server counts login tries by Cloudflare's `CF-Connecting-IP` header (`BEHIND_CLOUDFLARE`, which
+`compose.prod.yaml` turns on), so it must be reachable only through the tunnel, as the loopback port keeps it.
+
+```sh
+git pull && docker compose -f compose.prod.yaml up -d --build      # update (fights under way are lost)
+docker compose -f compose.prod.yaml exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > tower.dump  # back up
+docker compose -f compose.prod.yaml stop app                       # restore: stop the game, then
+docker compose -f compose.prod.yaml exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' < tower.dump
+docker compose -f compose.prod.yaml start app
+```
+
 ## Files
 
 ```
@@ -149,6 +173,7 @@ client/            the browser game: its modes, their drawing (Babylon.js), Reac
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas
 compose.yaml       the dev database (Postgres in Docker)
+compose.prod.yaml  hosting: the server (Dockerfile) and Postgres
 .env.example       local settings; copied to .env
 ```
 
