@@ -258,6 +258,8 @@ Decided by the user:
   with a short ease (`CAMERA_TURN_TIME`, 0.25 s), and there are no Up / Down camera keys. Walking is relative to the
   camera (W away from it, A / D to its left and right), and sprites and the chibi's pictures follow it. The way it
   looks is saved with the settings (north for a new player).
+- A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
+  `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -349,8 +351,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   `VIEW_RADIUS_TILES` as actors.
 - Duels (the user: "request pvp with another player to send them both into an isolated arena"; the rest are the
   agent's picks from plan/multiplayer.md): T challenges the nearest player within 2 tiles who isn't fighting
-  (`CHALLENGE_RANGE_TILES`); they get a notice with Accept / Decline (Y / N, rebindable, in the overworld's keys), and
-  the challenger hears of a decline. A challenge expires after 15 s (`CHALLENGE_TIME`), and is called off if either
+  (`CHALLENGE_RANGE_TILES`, plus lag slack); they get a notice with Accept / Decline (Y / N, rebindable, in the
+  overworld's keys), and the challenger hears of a decline. A challenge expires after 15 s (`CHALLENGE_TIME`), and is called off if either
   leaves or starts another fight. One open challenge per player, either side: challenging while yours is open, or
   someone in one, is refused with a notice. Range is checked when challenging, not when accepting. Accepted, both go
   into one fight in the level's duel arena (the Grass Field's stone ruins), 12 m apart facing each other

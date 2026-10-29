@@ -200,7 +200,7 @@ main.ts
   the spawner holds its slot by the taken actor, not by a player. Every fighter is marked `fighting` on the
   overworld (the crossed swords), so the fight can be joined by any of them, the host gone or not.
 - **Duels** (`core/game/duels.ts`): the Challenge key sends `challenge`; the server picks the nearest player within
-  `CHALLENGE_RANGE_TILES` who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
+  `CHALLENGE_RANGE_TILES` (+ `LAG_SLACK_TILES`) who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
   side) and tells both how it goes (`challengeNews`). On `answerChallenge` with accept, both get one `encounter` (the
   other's seat; each player's name and character are in the setup's `who`) for a `FightSetup` with `duel: true`, no
   enemies, in the level's `duelArenaId`.
