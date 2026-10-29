@@ -4,7 +4,7 @@ import {
   ATTACK_KINDS, emptyBag, followingBlade, PARRY, PLAYER, restingBlade, starterEquipment, SWING_DIRS,
   type Blade, type PlayerAction, type PlayerData, type SwingData,
 } from "@infinite-tower/shared";
-import { spritePose } from "../../../src/visuals/battle/pose.js";
+import { facingSeen, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
 import { swingAt, swingSteps } from "../../fixtures/swings.js";
 
@@ -74,5 +74,40 @@ describe("the player's sprite", () => {
     }
     all.push(spritePose(playerDoing("none", 0), holding(null), false, 1));
     for (const { pose, frame } of all) assert.ok(frame >= 0 && frame < BATTLE_FRAMES[pose], `${pose} ${frame}`);
+  });
+});
+
+describe("the side of a player the camera sees", () => {
+  const at = { x: 2, z: -1 };
+  const seen = (yaw: number, offRad: number, was: "back" | "front") => {
+    const eye = { x: at.x + 6 * Math.sin(yaw + offRad), y: 3, z: at.z + 6 * Math.cos(yaw + offRad) };
+    return facingSeen(eye, at, { x: Math.sin(yaw), z: Math.cos(yaw) }, was);
+  };
+  const YAWS = [0, 1, 2.5, -2, Math.PI];
+
+  test("their back with the camera behind them, their front with it ahead of them, whichever way they face", () => {
+    for (const yaw of YAWS) {
+      for (const was of ["back", "front"] as const) {
+        assert.equal(seen(yaw, Math.PI, was), "back", `yaw ${yaw}, behind`);
+        assert.equal(seen(yaw, 0.3, was), "front", `yaw ${yaw}, ahead`);
+        assert.equal(seen(yaw, -1.2, was), "front", `yaw ${yaw}, ahead to the side`);
+        assert.equal(seen(yaw, 2, was), "back", `yaw ${yaw}, behind to the side`);
+      }
+    }
+  });
+
+  test("side-on, it keeps the side it showed until the camera is past side-on by the margin", () => {
+    for (const yaw of YAWS) {
+      for (const side of [1, -1]) {
+        const sideOn = side * Math.PI / 2, margin = side * TURN_MARGIN_RAD;
+        for (const was of ["back", "front"] as const) {
+          assert.equal(seen(yaw, sideOn, was), was, `yaw ${yaw}, side-on`);
+          assert.equal(seen(yaw, sideOn - margin * 0.9, was), was, `yaw ${yaw}, just ahead`);
+          assert.equal(seen(yaw, sideOn + margin * 0.9, was), was, `yaw ${yaw}, just behind`);
+        }
+        assert.equal(seen(yaw, sideOn - margin * 1.1, "back"), "front", `yaw ${yaw}, past side-on ahead`);
+        assert.equal(seen(yaw, sideOn + margin * 1.1, "front"), "back", `yaw ${yaw}, past side-on behind`);
+      }
+    }
   });
 });

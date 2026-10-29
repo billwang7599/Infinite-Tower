@@ -40,8 +40,11 @@ const sword = ({ lengthScale, bladeHalfPx: bladeHalf }: SwordShape, layer: Layer
   pen.shade(bar([GUARD[0], GUARD[0] + 0.7], GUARD_HALF), SHADOW, "brass");
 };
 
-export const swordArt = (shape: SwordShape): Art => ({
-  battle: { hairBack: sword(shape, "hairBack"), weapon: sword(shape, "weapon"), headwear: sword(shape, "headwear") },
-});
+export const swordArt = (shape: SwordShape): Art => {
+  const held = {
+    hairBack: sword(shape, "hairBack"), weapon: sword(shape, "weapon"), headwear: sword(shape, "headwear"),
+  };
+  return { battle: { back: held, front: held } };
+};
 
 export const SWORD = swordArt({ lengthScale: 1, bladeHalfPx: 1.6 });

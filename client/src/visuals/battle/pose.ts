@@ -1,6 +1,7 @@
 import {
-  isSwing, SCREEN_DIR, SWING_DIRS, type Blade, type PlayerData, type SwingDir, type WielderData,
+  isSwing, SCREEN_DIR, SWING_DIRS, type Blade, type PlayerData, type SwingDir, type Vec2, type WielderData,
 } from "@infinite-tower/shared";
+import type { BattleFacing } from "../../gfx/look/art.js";
 import { swingFrame } from "./weapons.js";
 
 /** A block shows raising the sword this long, then braced (seconds). */
@@ -51,4 +52,14 @@ export function spritePose(
     : out ? FOLLOW_THROUGH_FRAME
     : 0;
   return { pose, frame, scaleX: 1 / stretch, scaleY: stretch };
+}
+
+/** How far past side-on the camera goes before the sprite turns round, so side-on it doesn't flicker. */
+export const TURN_MARGIN_RAD = 0.15;
+
+export function facingSeen(eye: Vec2, at: Vec2, aim: Vec2, was: BattleFacing): BattleFacing {
+  const dx = eye.x - at.x, dz = eye.z - at.z;
+  const cos = (dx * aim.x + dz * aim.z) / (Math.hypot(dx, dz) * Math.hypot(aim.x, aim.z) || 1);
+  const margin = Math.sin(TURN_MARGIN_RAD);
+  return cos > margin ? "front" : cos < -margin ? "back" : was;
 }

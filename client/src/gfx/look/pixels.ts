@@ -227,6 +227,12 @@ export const both = (a: Mask, b: Mask): Mask => {
 };
 export const shift = (mask: Mask, dx: number, dy: number): Mask =>
   bounded(moved(mask.box, dx, dy, dx, dy), (x, y) => mask(x - dx, y - dy));
+/** The mask `factor` times bigger, its point `from` moved to `to` (pixel-edge coordinates). */
+export const scale = (mask: Mask, factor: number, [fx, fy]: Point, [tx, ty]: Point): Mask => {
+  const b = mask.box, x = (sx: number) => tx + (sx - fx) * factor, y = (sy: number) => ty + (sy - fy) * factor;
+  return bounded(b && [x(b[0]) - 1, y(b[1]) - 1, x(b[2] + 1), y(b[3] + 1)],
+    (px, py) => mask(fx + (px + 0.5 - tx) / factor - 0.5, fy + (py + 0.5 - ty) / factor - 0.5));
+};
 export const flip = (mask: Mask, width: number): Mask => {
   const b = mask.box;
   return bounded(b && [width - 1 - b[2], b[1], width - 1 - b[0], b[3]], (x, y) => mask(width - 1 - x, y));

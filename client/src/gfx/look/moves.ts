@@ -4,9 +4,10 @@
  * body type fits.
  * We look from behind and above, so a sword pointing forward (away from us) points up the screen, foreshortened,
  * and what's in front of the body (a hand reaching across the chest, a blade in front of the face) is hidden by it:
- * a swing shows where the blade comes out from behind the body.
+ * a swing shows where the blade comes out from behind the body. From the front (mirrored after, in battle.ts) the
+ * same pose shows what's in front of the body over it.
  */
-import type { BattleFrame, Layer } from "./art.js";
+import type { BattleFacing, BattleFrame, Layer } from "./art.js";
 import type { BattleBuild, SwordPose } from "./battle.js";
 import { both, ellipse, grow, limb, minus, union, type Mask, type Point } from "./pixels.js";
 
@@ -34,6 +35,8 @@ interface Key {
   head?: Point;
   /** Each foot moved, left then right. */
   feet?: readonly [Point, Point];
+  /** What's different from the front, before it's mirrored: a blade pointing at us points down the screen. */
+  front?: Partial<Omit<Key, "front">>;
 }
 
 const KEYS: Record<SwordPose, readonly Key[]> = {
@@ -78,9 +81,12 @@ const KEYS: Record<SwordPose, readonly Key[]> = {
     { hand: [8, -10], tip: [8, -18] },
   ],
   stab: [
-    { hand: [9, 10], tip: [-1, -16], crouch: 1, lean: -1, off: [-3, 11] },
-    { hand: [8, -1], tip: [-1, -9], off: [-4, 12] },
-    { hand: [9, -5], tip: [-1, -7], crouch: 2, lean: 1, head: [0, -1], off: [-5, 11], feet: [[-1, 0], [1, -3]] },
+    { hand: [9, 10], tip: [-1, -16], crouch: 1, lean: -1, off: [-3, 11], front: { tip: [-2, 9] } },
+    { hand: [8, -1], tip: [-1, -9], off: [-4, 12], front: { hand: [-2, 7], tip: [0, 11] } },
+    {
+      hand: [9, -5], tip: [-1, -7], crouch: 2, lean: 1, head: [0, -1], off: [-5, 11], feet: [[-1, 0], [1, -3]],
+      front: { hand: [-3, 8], tip: [0, 12] },
+    },
   ],
   block: [
     { hand: [9, -10], tip: [-15, -16], off: [-7, -11], swordLayer: "headwear", crouch: 1, feet: [[-1, 0], [1, 0]] },
@@ -107,7 +113,11 @@ function arm(b: BattleBuild, shoulder: Point, hand: Point, elbow?: Point): Mask 
     limb(elbow, wrist, b.arm, b.arm - 0.8));
 }
 
-function posed(b: BattleBuild, stand: BattleFrame, k: Key): BattleFrame {
+/** A blade in front of the player, under the body from behind, is over everything from the front. */
+const FRONT_LAYER: Partial<Record<Layer, Layer>> = { hairBack: "headwear" };
+
+function posed(b: BattleBuild, stand: BattleFrame, key: Key, facing: BattleFacing): BattleFrame {
+  const k = facing === "front" ? { ...key, ...key.front } : key;
   const lean = k.lean ?? 0, crouch = k.crouch ?? 0;
   const leanAt = (y: number) => lean * Math.min(1, Math.max(0, (HIPS_Y - y) / (HIPS_Y - SHOULDER_Y)));
   const upper = (mask: Mask): Mask => (x, y) => mask(x - leanAt(y - crouch), y - crouch);
@@ -127,7 +137,7 @@ function posed(b: BattleBuild, stand: BattleFrame, k: Key): BattleFrame {
   const offHand = k.off ? ellipse(...add(leftShoulder, k.off), 2.3, 2) : upper(left(stand.hands));
   let swordArm = arm(b, right, hand, k.elbow && add(right, k.elbow));
   let swordHand = ellipse(hand[0], hand[1], 2.2, 2.1);
-  if (k.hide) {
+  if (k.hide && facing === "back") {
     // All but the round of the shoulder.
     const body = minus(grow(torso), ellipse(right[0], right[1], b.arm * 0.8, b.arm * 0.8));
     swordArm = minus(swordArm, body);
@@ -145,12 +155,15 @@ function posed(b: BattleBuild, stand: BattleFrame, k: Key): BattleFrame {
     shoulders: [add(stand.shoulders[0], [lean, crouch]), add(stand.shoulders[1], [lean, crouch])],
     head: [Math.round(lean * 1.2) + hx, crouch + hy],
     sword: [hand, add(hand, k.tip)],
-    swordLayer: k.swordLayer ?? "weapon",
+    swordLayer: (facing === "front" && k.swordLayer && FRONT_LAYER[k.swordLayer]) || k.swordLayer || "weapon",
   };
 }
 
-export function swordPoses(b: BattleBuild, stand: BattleFrame): Record<SwordPose, readonly BattleFrame[]> {
+/** Facing front, as the poses are before battle.ts mirrors them. */
+export function swordPoses(
+  b: BattleBuild, stand: BattleFrame, facing: BattleFacing,
+): Record<SwordPose, readonly BattleFrame[]> {
   const poses = {} as Record<SwordPose, readonly BattleFrame[]>;
-  for (const pose of Object.keys(KEYS) as SwordPose[]) poses[pose] = KEYS[pose].map((k) => posed(b, stand, k));
+  for (const pose of Object.keys(KEYS) as SwordPose[]) poses[pose] = KEYS[pose].map((k) => posed(b, stand, k, facing));
   return poses;
 }

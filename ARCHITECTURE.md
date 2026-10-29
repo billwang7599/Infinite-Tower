@@ -163,7 +163,9 @@ main.ts
   front of it (`chantWords.ts`). The player's look is read from `ui.overworld`'s character and painted once
   (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it. Every other player in the fight
   is painted the same way into a set of frames of their own, in their look (`battle.ctx.who`) with their weapon; the
-  sets are kept between fights, one per other player.
+  sets are kept between fights, one per other player. Each player's sprite shows its back or, once your camera is
+  ahead of where they face (their `Skilled` aim), its front (`facingSeen`, `visuals/battle/pose.ts`); the back's
+  frames are painted ahead, a front frame the first time it's shown.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`, and
   each other player as a `peer` with their character (sent the first time you see them) and whether they're in a
   battle; `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
@@ -558,9 +560,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   known words only, why one doesn't fit, the search,
   number picks, Backspace, words into a skill and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
-  look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose; the
-  chibi's legs standing together in two boots, the right one in shadow). Rendering, how the fight feels and the React
-  screens are tried in a browser.
+  look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose from
+  behind and the front, the sword in the hand that holds it, the face only from the front; the chibi's legs standing
+  together in two boots, the right one in shadow), the side of a player the camera sees (and keeps side-on), and the
+  player's frames painted (the chibi at once, the back's one per slice, a front frame only when first shown).
+  Rendering, how the fight feels and the React screens are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
 tuning numbers from the code, so retuning the game doesn't break them.
@@ -833,13 +837,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, later dialogue), a 32x32 chibi facing front, back or side (the world) and a
-                       64x64 battle sprite from behind in each pose (the arena), in code. art.ts (VIEWS,
-                       CHIBI_FACINGS, layers, Frame, render), pixels.ts (Pen, masks), palette.ts (ramps), body.ts
-                       (body types), battle.ts (POSES, SWORD_POSES, leftHanded), moves.ts (the sword fight's frames),
+                       64x64 battle sprite from behind and the front in each pose (the arena), in code. art.ts
+                       (VIEWS, CHIBI_FACINGS, BATTLE_FACINGS, layers, Frame, render), pixels.ts (Pen, masks),
+                       palette.ts (ramps), body.ts (body types), battle.ts (POSES, SWORD_POSES, the front as the back
+                       mirrored, leftHanded, frontHead), moves.ts (the sword fight's frames),
                        head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
                        (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
-                     the chibi facing each way and the battle sprite in each pose and frame, to check art
+                     the chibi facing each way and the battle sprite in each pose and frame, from behind and the
+                     front, in either hand, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, notices, banner, the
                        fade between modes (game/transition.ts sets it), Settings, character creation, title screen
@@ -948,8 +954,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
-      characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
-                       rest when a fight starts, again when the fight's weapon or its hand changes (its `Wielder`);
+      characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
+                       after, or the rest when a fight starts, again when the fight's weapon or its hand changes (its
+                       `Wielder`); a frame from the front only the first time it's shown (battleSprite);
                        BATTLE_FRAMES; chibiDraw; the "!" alert and the crossed swords over a player in a battle
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
                        with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
@@ -962,18 +969,21 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
-                         skill kit, each fighter's node, each other player's frames, the shake, each fighter's impact
+                         skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
+                         impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, and any skilled fighter's chant circle and chant
                          words), arenaStage (the scenery per arena, the camera on the mode's view plus shake, the
                          lock-on's diamond)
-        materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's)
+        materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
+                         from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
                          Imbue's colour)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
-        pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
+        pose.ts          The player's pose and frame, from the action and the swing; facingSeen (their back or front,
+                         by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
         arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
                          reached each frame with two-joint IK (reachArm, no Babylon: tested) to where its pose puts
                          the hand; a wielder's arm is its armReachM long

@@ -7,9 +7,11 @@
  * sits under the ear at mouth level, so a short jawline runs forward to the chin (bottom row 39).
  * Chibi: facing front, symmetric around x = 16, chin at row 19. Facing back it's the back of the head
  * and the ears; facing side (to the left), one profile for every face shape, small enough that the jaw doesn't show.
- * Battle: from behind, the head is all hair (hair/back.ts), so face shapes draw nothing there.
+ * Battle: from behind, the head is all hair (hair/back.ts), so face shapes draw nothing there; from the front it's
+ * the chibi's front head, scaled up (frontHead, battle.ts).
  */
 import { ink, type Art, type Piece } from "./art.js";
+import { frontHead } from "./battle.js";
 import {
   BASE, DEEP, SHADOW, both, ellipse, farSide, gridMask, mirror, polygon, rect, shift, spans, symmetric, union,
   type Ink, type Mask, type Point,
@@ -29,6 +31,7 @@ const NOSE = { x: 24, y: 30 }, BLUSH_ROW = 29;
 
 const CHIBI_CRANIUM = ellipse(16, 11, 8.2, 7.6);
 const CHIBI_EARS = mirror(rect(7, 12, 7, 13), C);
+const ROUND_EARS = mirror(ellipse(7.4, 13, 1.1, 1.3), C);
 /** The chibi's head facing side (left): brow, nose, lips and chin. */
 const CHIBI_PROFILE = union(ellipse(17, 11, 8.2, 7.6), polygon([
   [9.2, 8], [8.4, 12.6], [7.6, 14], [8.4, 15], [8.5, 16.4], [9.8, 18.3], [12.4, 19.3], [15.8, 19.2], [18.4, 17.4],
@@ -66,6 +69,16 @@ function faceShape(jaw: readonly (readonly [number, number])[], chibiJaw: readon
       },
       back: CHIBI_BACK_OF_HEAD,
       side: CHIBI_SIDE_HEAD,
+    },
+    battle: {
+      front: {
+        body: (pen, { head }) => pen.fill(frontHead(ROUND_EARS, head), skin),
+        head: (pen, { head }) => {
+          const face = frontHead(chibi, head);
+          pen.castShadow(shift(face, 0, 1), "skin", SHADOW);
+          pen.fill(face, skin);
+        },
+      },
     },
   };
 }

@@ -3,7 +3,7 @@
  * against the body's frame (body.ts), so it fits every body type. The tunic takes the player's outfit color
  * ("cloth"); the rest is fixed.
  */
-import { ink, type Art, type Piece } from "./art.js";
+import { ink, type Art, type BattleFrame, type Draw, type Piece } from "./art.js";
 import {
   BASE, DEEP, LIGHT, SHADOW, both, farSide, grow, minus, polygon, rect, shift, underside, union, type Mask, type Pen,
 } from "./pixels.js";
@@ -25,6 +25,30 @@ function backCollar(neck: Mask, collarY: number): Mask {
   const [, back] = columns(neck, collarY - 3, 64);
   return polygon([[back - 1, collarY - 1], [back + 1, collarY - 5], [back + 4, collarY - 4], [back + 4.5, collarY]]);
 }
+
+function battleTunic(pen: Pen, tunic: Mask, middle: number, collarY: number, waistY: number): void {
+  const hemY = waistY + 5;
+  pen.fill(tunic, ink("cloth", BASE));
+  pen.shade(farSide(tunic, 4), SHADOW);
+  pen.shade((x, y) => y <= collarY + 2 && x < middle - 1, LIGHT); // across the near shoulder
+  pen.shade(below(hemY), DEEP);
+  pen.fill(both(tunic, rect(0, hemY, 63, hemY)), ink("accent", BASE));
+}
+
+function battleBelt(pen: Pen, torso: Mask, waistY: number): void {
+  const belt = both(grow(torso), rect(0, waistY, 63, waistY + 1));
+  pen.fill(belt, ink("leather", BASE));
+  pen.shade(above(waistY), LIGHT, "leather");
+  pen.shade(farSide(belt, 2), SHADOW, "leather");
+}
+
+const battleSleeves: Draw<BattleFrame> = (pen, { arms, hands, middle, armpitY }) => {
+  pen.fill(arms, ink("cloth", BASE));
+  pen.shade((x) => x > middle, SHADOW);
+  pen.shade(farSide(arms, 1), DEEP);
+  pen.shade((x, y) => x < middle && !arms(x - 1, y) && y < armpitY + 4, LIGHT);
+  pen.shade(grow(minus(hands, arms)), DEEP); // the cuff, round the wrist
+};
 
 /**
  * A plain tunic, V-necked over a linen shirt, its collar standing up behind the neck, buttoned down the front.
@@ -106,28 +130,29 @@ const TUNIC: Art = {
   },
   battle: {
     // From behind: the collar's back, a belt, the skirt split up the back seam and hemmed in the accent color.
-    torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
-      const hemY = waistY + 5;
-      const collar = both(grow(neck), rect(0, collarY - 1, 63, collarY));
-      const tunic = union(torso, both(grow(torso), below(waistY + 2)), collar);
-      pen.fill(tunic, ink("cloth", BASE));
-      pen.shade(farSide(tunic, 4), SHADOW);
-      pen.shade((x, y) => y <= collarY + 2 && x < middle - 1, LIGHT); // across the near shoulder
-      pen.shade(both(collar, above(collarY - 1)), LIGHT);
-      pen.shade(below(hemY), DEEP);
-      for (let y = waistY + 2; y <= hemY; y++) pen.dot(middle, y, ink("cloth", DEEP));
-      pen.fill(both(tunic, rect(0, hemY, 63, hemY)), ink("accent", BASE));
-      const belt = both(grow(torso), rect(0, waistY, 63, waistY + 1));
-      pen.fill(belt, ink("leather", BASE));
-      pen.shade(above(waistY), LIGHT, "leather");
-      pen.shade(farSide(belt, 2), SHADOW, "leather");
+    back: {
+      torsowear: (pen, { torso, neck, middle, collarY, waistY }) => {
+        const collar = both(grow(neck), rect(0, collarY - 1, 63, collarY));
+        const tunic = union(torso, both(grow(torso), below(waistY + 2)), collar);
+        battleTunic(pen, tunic, middle, collarY, waistY);
+        pen.shade(both(collar, above(collarY - 1)), LIGHT);
+        for (let y = waistY + 2; y < waistY + 5; y++) pen.dot(middle, y, ink("cloth", DEEP));
+        battleBelt(pen, torso, waistY);
+      },
+      armwear: battleSleeves,
     },
-    armwear: (pen, { arms, hands, middle, armpitY }) => {
-      pen.fill(arms, ink("cloth", BASE));
-      pen.shade((x) => x > middle, SHADOW);
-      pen.shade(farSide(arms, 1), DEEP);
-      pen.shade((x, y) => x < middle && !arms(x - 1, y) && y < armpitY + 4, LIGHT);
-      pen.shade(grow(minus(hands, arms)), DEEP); // the cuff, round the wrist
+    front: {
+      torsowear: (pen, { torso, middle, collarY, waistY }) => {
+        const opening = vNeck(middle - 0.5, collarY - 1, 6, 2.5);
+        const tunic = minus(union(torso, both(grow(torso), below(waistY + 2))), opening);
+        battleTunic(pen, tunic, middle, collarY, waistY);
+        pen.fill(both(opening, below(collarY + 2)), ink("linen", BASE));
+        pen.fill((x, y) => tunic(x, y) && y < waistY && (opening(x - 1, y) || opening(x + 1, y)), ink("accent", BASE));
+        for (const y of [collarY + 7, collarY + 10]) pen.dot(middle, y, ink("brass", LIGHT));
+        battleBelt(pen, torso, waistY);
+        pen.fill(rect(middle - 1, waistY, middle, waistY + 1), ink("brass", BASE));
+      },
+      armwear: battleSleeves,
     },
   },
 };
@@ -159,6 +184,13 @@ const chibiBoots: Piece = {
   },
 };
 
+const battleTrousers: Piece<BattleFrame> = {
+  legwear: (pen, { legs }) => {
+    pen.fill(legs, ink("wool", BASE));
+    pen.shade(farSide(legs, 2), SHADOW);
+  },
+};
+
 const TROUSERS: Art = {
   chibi: {
     front: chibiTrousers,
@@ -170,11 +202,15 @@ const TROUSERS: Art = {
       },
     },
   },
-  battle: {
-    legwear: (pen, { legs }) => {
-      pen.fill(legs, ink("wool", BASE));
-      pen.shade(farSide(legs, 2), SHADOW);
-    },
+  battle: { back: battleTrousers, front: battleTrousers },
+};
+
+const battleBoots: Piece<BattleFrame> = {
+  footwear: (pen, { shins }) => {
+    pen.fill(shins, ink("leather", BASE));
+    pen.shade((x, y) => !shins(x, y - 1), LIGHT); // the tops
+    pen.shade(farSide(shins, 2), SHADOW);
+    pen.shade(underside(shins, 1), DEEP);
   },
 };
 
@@ -194,14 +230,7 @@ const BOOTS: Art = {
       },
     },
   },
-  battle: {
-    footwear: (pen, { shins }) => {
-      pen.fill(shins, ink("leather", BASE));
-      pen.shade((x, y) => !shins(x, y - 1), LIGHT); // the tops
-      pen.shade(farSide(shins, 2), SHADOW);
-      pen.shade(underside(shins, 1), DEEP);
-    },
-  },
+  battle: { back: battleBoots, front: battleBoots },
 };
 
 export const STARTER_CLOTHES: readonly Art[] = [TROUSERS, BOOTS, TUNIC];

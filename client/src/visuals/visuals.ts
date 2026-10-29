@@ -10,7 +10,7 @@ import type { StepEvent } from "../modes/battle/sync.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
 import { clash, PARRY_HIT_STOP_MS, strike } from "./battle/impact.js";
-import { playerFrames, type PlayerFrames } from "./battle/materials.js";
+import { playerFrames } from "./battle/materials.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
@@ -99,7 +99,6 @@ export class FiredEffects {
 type Painted = { fight: Fight; held: Held | null } | null;
 
 interface Peer {
-  frames: PlayerFrames;
   look: PlayerLook<StandardMaterial>;
   painted: Painted;
 }
@@ -141,10 +140,8 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const level = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
-  const newPeer = (i: number): Peer => {
-    const peerFrames = playerFrames(arena.scene, `peer${i}`);
-    return { frames: peerFrames, look: new PlayerLook({ battle: peerFrames }, redrawSprite), painted: null };
-  };
+  const newPeer = (i: number): Peer =>
+    ({ look: new PlayerLook({ battle: playerFrames(arena.scene, `peer${i}`) }, redrawSprite), painted: null });
   // In order among the other players, kept between fights: making materials as a fight starts would slow it.
   const peers = [newPeer(0)];
   const fighters: Drawn<VisualKind> = new Map();
@@ -172,16 +169,17 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
     if (look && look !== worn) playerLook.wear(worn = look);
     const fight = from.battle.fight;
     const me = fight?.players.find((e) => fight.world.has(e, LocalPlayer));
-    arena.peerFrames.clear();
+    arena.looks.clear();
     if (!fight || me === undefined) return;
     painted = paintHeld(playerLook, painted, fight, me);
+    arena.looks.set(me, playerLook);
     fight.players.filter((e) => e !== me).forEach((e, i) => {
       const who = from.battle.who[fight.players.indexOf(e)];
       if (!who) return;
       const peer = peers[i] ??= newPeer(i);
       peer.look.wear(who.character.look);
       peer.painted = paintHeld(peer.look, peer.painted, fight, e);
-      arena.peerFrames.set(e, peer.frames);
+      arena.looks.set(e, peer.look);
     });
   };
 

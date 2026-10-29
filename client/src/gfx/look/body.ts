@@ -8,11 +8,11 @@
  * reaches further from the neck than the far one. The picture cuts off across the chest.
  * Chibi: 32x32. Facing front it's symmetric around x = 16, and facing back it has the same outline;
  * facing side (to the left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
- * Battle: the whole body from behind, in each pose (battle.ts).
+ * Battle: the whole body from behind and from the front, in each pose (battle.ts).
  */
-import type { Art, BattleFrame, Frame, Frames, Piece } from "./art.js";
+import type { Art, BattleFacing, BattleFrame, Draw, Frame, Frames, Piece } from "./art.js";
 import { ink } from "./art.js";
-import { battleFrames, type Pose, type SwordPose } from "./battle.js";
+import { battleFrames, type BattleFrames } from "./battle.js";
 import {
   BASE, SHADOW, ellipse, farSide, mirror, polygon, rect, symmetric, union, type Point,
 } from "./pixels.js";
@@ -118,9 +118,7 @@ export const BODY_TYPES = {
     chibi: chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
     battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
-} as const satisfies Record<
-  string, Omit<Frames, "battle"> & { battle: Record<Pose | SwordPose, readonly BattleFrame[]> }
->;
+} as const satisfies Record<string, Omit<Frames, "battle"> & { battle: Record<BattleFacing, BattleFrames> }>;
 
 const skin = ink("skin", BASE);
 
@@ -135,6 +133,12 @@ const CHIBI: Piece = {
     pen.fill(frame.arms, skin);
     pen.shade(farSide(frame.arms, 1), SHADOW);
   },
+};
+
+const BATTLE_ARMS: Draw<BattleFrame> = (pen, { arms, hands }) => {
+  const limbs = union(arms, hands);
+  pen.fill(limbs, skin);
+  pen.shade(farSide(limbs, 1), SHADOW);
 };
 
 /** The skin below the head, in whatever body type's frame it's drawn in. Mostly under clothes. */
@@ -164,15 +168,19 @@ export const BODY: Art = {
     side: CHIBI,
   },
   battle: {
-    body: (pen, { neck, torso, legs }) => {
-      pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
-      pen.fill(torso, skin);
-      pen.fill(legs, skin);
+    back: {
+      body: (pen, { neck, torso, legs }) => {
+        pen.fill(neck, ink("skin", SHADOW)); // in the hair's shadow
+        pen.fill(torso, skin);
+        pen.fill(legs, skin);
+      },
+      arms: BATTLE_ARMS,
     },
-    arms: (pen, { arms, hands }) => {
-      const limbs = union(arms, hands);
-      pen.fill(limbs, skin);
-      pen.shade(farSide(limbs, 1), SHADOW);
+    front: {
+      body: (pen, { neck, torso, legs }) => {
+        pen.fill(union(neck, torso, legs), skin);
+      },
+      arms: BATTLE_ARMS,
     },
   },
 };

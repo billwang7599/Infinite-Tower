@@ -2,9 +2,11 @@
  * The chibi's hair styles facing front, drawn from shapes: a back mass behind the head, a crown, and pointed
  * locks over it. Cel-shaded with light from the top left: the underside and the far side in shadow, a dark line
  * where one lock lies over another, a broken shine band round the crown, and the locks' shadow on the forehead.
- * Facing back and side (chibi-back.ts, chibi-side.ts) they're drawn the same way.
+ * Facing back and side (chibi-back.ts, chibi-side.ts) they're drawn the same way. The battle sprite's front has
+ * the chibi's front hair, scaled up (drawBattleFront).
  */
 import { ink } from "../art.js";
+import { frontHead, onFrontHead } from "../battle.js";
 import {
   BASE, DEEP, LIGHT, SHADOW, SHINE, both, ellipse, minus, rect, shift, symmetric, taper, underside, union,
   type Mask, type Pen, type Point,
@@ -63,6 +65,26 @@ export function drawBehindHead(pen: Pen, { back }: Style): void {
 }
 
 export const drawChibiFront = (pen: Pen, style: Style): void => drawChibiHair(pen, style, FRONT);
+
+export function battleFront(style: Style, head: Point): Style {
+  const big = (mask: Mask) => frontHead(mask, head);
+  return {
+    back: style.back && big(style.back), crown: big(style.crown), locks: style.locks.map(big),
+    tie: style.tie && big(style.tie),
+  };
+}
+
+/** The top of the head: scaled up, a gap between the crown and a lock would show the scalp. */
+const SCALP = both(ellipse(16, 11, 8.2, 7.6), (_x, y) => y <= 8);
+
+export function drawBattleFront(pen: Pen, style: Style, head: Point): void {
+  const big = (mask: Mask) => frontHead(mask, head);
+  const { band } = FRONT, [litBefore, belowY] = onFrontHead([band.litBefore, band.belowY], head);
+  pen.fill(big(SCALP), ink("hair", DEEP));
+  drawChibiHair(pen, battleFront(style, head), {
+    ...FRONT, underRows: 4, band: { outer: big(band.outer), inner: big(band.inner), belowY, litBefore },
+  });
+}
 
 /** The crown and locks, over the head. */
 export function drawChibiHair(pen: Pen, { crown, locks, tie }: Style, light: HairLight): void {
