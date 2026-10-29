@@ -128,29 +128,31 @@ export class KeyBindings extends Store<KeyMap> {
   }
 
   /**
-   * Only the actions they changed are saved, so a new default reaches everything they didn't touch; anything
-   * unreadable falls back to the defaults, and actions saved where they used to be (MOVED_FROM) load where they are
-   * now. Saved keys that now put one key on two actions working together (saved before the defaults moved) send
-   * general back to its defaults if it clashes with another group's defaults, and then any group still clashing.
+   * Only the actions they changed are saved, so a new default reaches the rest; but a default on one of their saved
+   * keys gives it up, even if that leaves its action unbound. Saved keys that clash with each other (saved before the
+   * defaults moved) send general, then any group still clashing with it, back to the defaults.
    */
   restore(saved: unknown): void {
-    const defaults = buildMap(defaultKeys);
-    let map = buildMap((ref) => {
+    const none = buildMap(() => []);
+    let own = buildMap((ref) => {
       const keys = savedKeys(saved, ref);
-      return isKeyList(keys) && !isFixed(ref) ? keys : defaultKeys(ref);
+      return isKeyList(keys) && !isFixed(ref) ? keys : [];
     });
-    if (PLACES.some((place) => clashes(map.general, defaults[place]))) map = { ...map, general: defaults.general };
-    for (const place of PLACES) if (clashes(map.general, map[place])) map = { ...map, [place]: defaults[place] };
-    this.set(map);
+    if (clashes(own.general)) own = { ...own, general: none.general };
+    for (const place of PLACES) if (clashes(own.general, own[place])) own = { ...own, [place]: none[place] };
+    this.set(buildMap((ref) => {
+      const keys = keysOf(own, ref);
+      return keys.length > 0 ? keys : defaultKeys(ref).filter((k) => holders(own, ref.group, k, ref).length === 0);
+    }));
   }
 
-  /** What `restore` takes: the actions that differ from the defaults. */
+  /** What `restore` takes: the actions that differ from the defaults, other than ones left unbound. */
   toSaved(): NonNullable<SavedSettings["bindings"]> {
     const changed: NonNullable<SavedSettings["bindings"]> = {};
     for (const group of GROUPS) {
       for (const ref of actionsOf(group)) {
         const keys = keysOf(this.get(), ref);
-        if (!sameKeys(keys, defaultKeys(ref))) (changed[group] ??= {})[ref.action] = [...keys];
+        if (keys.length > 0 && !sameKeys(keys, defaultKeys(ref))) (changed[group] ??= {})[ref.action] = [...keys];
       }
     }
     return changed;

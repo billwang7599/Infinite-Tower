@@ -517,8 +517,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
   `DEV_PING_MS`, `SERVER_NAME` and `MAX_PLAYERS`; `/api/servers`; a full server refusing a new player; a `ping`
   answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
-- **client**: only logic that runs without Babylon or the DOM: key bindings (a save that clashes with new defaults
-  falls back to them), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
+- **client**: only logic that runs without Babylon or the DOM: key bindings (a saved key keeps a new default off
+  it), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
   layer on top, each with its own keys; held keys read only there) and who has them, what the keys and buttons ask
   for (actions; the attack pressed last; swipes into swings), the player's pose, sword trail and thrust, the boar's
   and the Kobold's poses, effects fired once per step and event, camera, mouse and HUD settings, settings sync, when
@@ -791,7 +791,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's and the
                      skillbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
-                     MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity, the
+                     MOVED_FROM, load where they are now; a new default on
+                     a saved key is left unbound), camera.ts (CameraSettings: sensitivity, the
                      overworld camera's quarter turns), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
                      sensitivity, SWING_SENSITIVITY), hud.ts
@@ -1057,7 +1058,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A key binding.** The action in `ACTIONS` (`client/src/settings/bindings.ts`, label + default keys) in general,
   overworld or battle, read from `actions.poll()` (`held`, `pressed`; a pair of opposites goes in `AXES`), or
   listened for with `useAction(input, [<action>], ...)`, and added to its layer in `LayerActions` (`core/actions.ts`)
-  if it isn't the whole group's; the settings screen lists it on its own.
+  if it isn't the whole group's; the settings screen lists it on its own. A player whose saved keys hold its default
+  key gets it unbound, shown as Unbound in the settings.
 - **A new kind of setting.** A store in `client/src/settings/` with `restore` / `toSaved` (see camera.ts), added to
   `Settings`, `createSettings()`, `restoreSettings()` and `toSaved()` in settings.ts, a field in
   `SavedSettingsSchema` (`shared/src/net/client-messages.ts`), and a section in `ui/screens/settings/` shown by

@@ -9,8 +9,13 @@ const inventory: ActionRef = { group: "general", action: "inventory" };
 const rest: ActionRef = { group: "overworld", action: "rest" };
 const turnItem: ActionRef = { group: "overworld", action: "turnItem" };
 const useItem: ActionRef = { group: "overworld", action: "useItem" };
+const challenge: ActionRef = { group: "overworld", action: "challenge" };
+const acceptChallenge: ActionRef = { group: "overworld", action: "acceptChallenge" };
 const jump: ActionRef = { group: "battle", action: "jump" };
+const dodge: ActionRef = { group: "battle", action: "dodge" };
+const block: ActionRef = { group: "battle", action: "block" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
+const lookUp: ActionRef = { group: "battle", action: "lookUp" };
 
 const defaults = () => new KeyBindings().get();
 
@@ -110,6 +115,53 @@ describe("KeyBindings saving", () => {
   });
 });
 
+describe("KeyBindings saved before a new default key", () => {
+  test("a general key saved on a new overworld default keeps it: that action is unbound, nothing else changes", () => {
+    const b = new KeyBindings();
+    b.restore({ general: { inventory: ["KeyT"], forward: ["KeyZ"] }, overworld: { rest: ["KeyV"] } });
+    const expected = { ...defaults(), general: { ...defaults().general, inventory: ["KeyT"], forward: ["KeyZ"] } };
+    assert.deepEqual(b.get(), { ...expected, overworld: { ...expected.overworld, rest: ["KeyV"], challenge: [] } });
+  });
+
+  test("an overworld key saved on a new overworld default keeps it, and the group's other keys are kept", () => {
+    const b = new KeyBindings();
+    b.restore({ overworld: { rest: ["KeyY"], turnItem: ["KeyG"] } });
+    assert.deepEqual(keysOf(b.get(), rest), ["KeyY"]);
+    assert.deepEqual(keysOf(b.get(), turnItem), ["KeyG"]);
+    assert.deepEqual(keysOf(b.get(), acceptChallenge), []);
+    assert.deepEqual(keysOf(b.get(), challenge), ACTIONS.overworld.challenge.keys);
+  });
+
+  test("an action left unbound isn't saved, can be bound, and gets its default back once its key is free", () => {
+    const b = new KeyBindings();
+    b.restore({ overworld: { rest: ["KeyY"] } });
+    assert.deepEqual(b.toSaved(), { overworld: { rest: ["KeyY"] } });
+
+    const bound = new KeyBindings();
+    bound.restore(b.toSaved());
+    assert.deepEqual(bound.bind(acceptChallenge, "KeyH", null), { ok: true, takenFrom: [], gave: null });
+    assert.deepEqual(keysOf(bound.get(), acceptChallenge), ["KeyH"]);
+
+    b.bind(rest, "KeyV", "KeyY");
+    b.restore(b.toSaved());
+    assert.deepEqual(keysOf(b.get(), acceptChallenge), ACTIONS.overworld.acceptChallenge.keys);
+  });
+
+  test("saved keys that clash with each other send the place's group back to its defaults; general is kept", () => {
+    const b = new KeyBindings();
+    b.restore({ general: { inventory: ["KeyL"] }, overworld: { rest: ["KeyL"], turnItem: ["KeyG"] } });
+    assert.deepEqual(b.get().overworld, defaults().overworld);
+    assert.deepEqual(keysOf(b.get(), inventory), ["KeyL"]);
+  });
+
+  test("saved general keys that clash with each other send general back to its defaults", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { forward: ["KeyZ"] }, overworld: { character: ["KeyZ"], rest: ["KeyV"] } });
+    assert.deepEqual(b.get().general, defaults().general);
+    assert.deepEqual(keysOf(b.get(), rest), ["KeyV"]);
+  });
+});
+
 describe("KeyBindings saved before the field was renamed the overworld", () => {
   test("restore loads keys saved under the old group name `field` where they are now", () => {
     const b = new KeyBindings();
@@ -157,25 +209,28 @@ describe("KeyBindings saved before the groups were general, the overworld's and 
     assert.deepEqual(keysOf(b.get(), useItem), ["KeyL"]);
   });
 
-  test("a walk on the arrows (the arena's camera keys) clashes: general's defaults, the arena keeps its keys", () => {
+  test("a walk on the arrows keeps them: the arena's tilt up (on ↑) is unbound, the arena keeps its keys", () => {
     const b = new KeyBindings();
     b.restore({ overworld: { up: ["KeyW", "ArrowUp", "KeyZ"] }, battle: { jump: ["KeyX"] } });
-    assert.deepEqual(b.get().general, defaults().general);
+    assert.deepEqual(keysOf(b.get(), forward), ["KeyW", "ArrowUp", "KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), lookUp), []);
     assert.deepEqual(keysOf(b.get(), jump), ["KeyX"]);
   });
 
-  test("a rest saved with Enter (now the bag's use) clashes: the overworld's defaults", () => {
+  test("a rest saved with Enter (now the bag's use) keeps it: use is unbound, general is kept", () => {
     const b = new KeyBindings();
     b.restore({ overworld: { rest: ["KeyE", "Enter"], character: ["KeyH"] } });
-    assert.deepEqual(b.get().overworld, defaults().overworld);
-    assert.deepEqual(keysOf(b.get(), character), ["KeyH"], "general is kept");
+    assert.deepEqual(keysOf(b.get(), rest), ["KeyE", "Enter"]);
+    assert.deepEqual(keysOf(b.get(), useItem), []);
+    assert.deepEqual(keysOf(b.get(), character), ["KeyH"]);
   });
 
-  test("an arena key that is now general's (B, the inventory) clashes: the arena's defaults", () => {
+  test("an arena key that is now general's (B, the inventory) keeps it: the inventory is unbound", () => {
     const b = new KeyBindings();
     b.restore({ battle: { block: ["KeyB"] }, overworld: { rest: ["KeyV"] } });
-    assert.deepEqual(b.get().battle, defaults().battle);
-    assert.deepEqual(keysOf(b.get(), rest), ["KeyV"], "the overworld is kept");
+    assert.deepEqual(keysOf(b.get(), block), ["KeyB"]);
+    assert.deepEqual(keysOf(b.get(), inventory), []);
+    assert.deepEqual(keysOf(b.get(), rest), ["KeyV"]);
   });
 });
 
@@ -192,11 +247,13 @@ describe("KeyBindings reset", () => {
 });
 
 describe("KeyBindings saved before the sword's ten actions", () => {
-  test("a battle save whose keys now clash (K was dodge's, Shift too) goes back to the battle defaults", () => {
+  test("a dodge saved on left Shift (the block's now) keeps it: the block is unbound, the rest kept", () => {
     const b = new KeyBindings();
     b.restore({ battle: { dodge: ["KeyK", "ShiftLeft"], turnLeft: ["KeyH"] }, overworld: { up: ["KeyZ"] } });
-    assert.deepEqual(b.get().battle, defaults().battle);
-    assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"], "other groups are kept");
+    assert.deepEqual(keysOf(b.get(), dodge), ["KeyK", "ShiftLeft"]);
+    assert.deepEqual(keysOf(b.get(), block), []);
+    assert.deepEqual(keysOf(b.get(), turnLeft), ["KeyH"]);
+    assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"]);
   });
 
   test("an old save that clashes with nothing new is kept, and the old attack action is dropped", () => {
@@ -208,11 +265,11 @@ describe("KeyBindings saved before the sword's ten actions", () => {
 });
 
 describe("KeyBindings saved before one key per swing", () => {
-  test("a dodge saved on Space (now the jump) clashes: the battle defaults", () => {
+  test("a dodge saved on Space (now the jump) keeps it: the jump is unbound", () => {
     const b = new KeyBindings();
     b.restore({ battle: { dodge: ["Space", "KeyX"] }, overworld: { up: ["KeyZ"] } });
-    assert.deepEqual(b.get().battle, defaults().battle);
-    assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"], "other groups are kept");
+    assert.deepEqual(b.get().battle, { ...defaults().battle, dodge: ["Space", "KeyX"], jump: [] });
+    assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"]);
   });
 
   test("a save that clashes with nothing new is kept, and the reverse action is dropped", () => {
@@ -239,13 +296,13 @@ describe("KeyBindings saved before the mouse swung the sword", () => {
 });
 
 describe("KeyBindings saved before lock-on", () => {
-  test("a turn saved on Q (the lock now) or a block on right Shift (lock closest now) clashes: battle defaults", () => {
-    for (const battle of [{ turnLeft: ["KeyQ", "KeyH"] }, { block: ["ShiftRight", "KeyH"] }]) {
-      const b = new KeyBindings();
-      b.restore({ battle, general: { inventory: ["KeyL"] } });
-      assert.deepEqual(b.get().battle, defaults().battle);
-      assert.deepEqual(keysOf(b.get(), { group: "general", action: "inventory" }), ["KeyL"], "other groups are kept");
-    }
+  test("a turn saved on Q (the lock now) or a block on right Shift (lock closest now) keeps it: the lock's unbound", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { turnLeft: ["KeyQ", "KeyH"] }, general: { inventory: ["KeyL"] } });
+    assert.deepEqual(b.get().battle, { ...defaults().battle, turnLeft: ["KeyQ", "KeyH"], lockOn: [] });
+    assert.deepEqual(keysOf(b.get(), inventory), ["KeyL"]);
+    b.restore({ battle: { block: ["ShiftRight", "KeyH"] } });
+    assert.deepEqual(b.get().battle, { ...defaults().battle, block: ["ShiftRight", "KeyH"], lockClosest: [] });
   });
 
   test("a turn saved on E is kept: E is free in the arena now", () => {
