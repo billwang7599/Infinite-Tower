@@ -1,7 +1,7 @@
 # Infinite Tower
 
-A browser game in progress: an SAO-style souls-like where you explore a 2D overworld and fight monsters in small 2.5D
-arenas. Single-player for now.
+A browser game in progress: an SAO-style souls-like where you explore an HD-2D overworld and fight monsters in small
+2.5D arenas. Single-player for now.
 
 Babylon.js in the browser, Rapier for the arena's physics, React + Tailwind for the UI, a Node server (Fastify + ws),
 Postgres (Drizzle).
@@ -24,8 +24,8 @@ What's built so far:
   patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
   Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
-  than 16:9 get side bars. `?world=3d` on the page draws the same field as a 3D HD-2D world (cliffs, pixel-art
-  billboards, tilt-shift), to try out.
+  than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field, sun and
+  shadows, and a tilt-shift blur.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire).
   A sword with eight swings (one per way across

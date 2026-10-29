@@ -494,7 +494,7 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 
 ## Folders and files
 
-**Names.** The 2D map is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
+**Names.** The map you walk is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
 `modes/overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode),
 and the place it happens is the **arena**. The tower's places are the **world** (shared `world/`, server
 `core/world/`, client `visuals/levels/` and `visuals/arenas/`): the tower has floors, a floor has levels, and a level
@@ -526,7 +526,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    replay; nearCampfire / REST_RANGE), tiles.ts (TILES: each tile kind's character and rules, solid
                    or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts (ArenaDef: an arena's id,
                    radius and ArenaLook, sent in each encounter's FightSetup)
-  overworld/       view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter, the camera's edge rule)
+  overworld/       view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter: the server sends the actors
+                   around it)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
@@ -775,7 +776,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          the System says), LookMaker.tsx (the panel), options.ts (its rows), SystemWindow.tsx,
                          useTyped.ts (text typed out), styles.ts (dark on white)
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
-      overworld/       The 2D overworld mode: mirrors the server
+      overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors), level loads, the walk keys, server state, the
                          overworld HUD
         prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
@@ -815,7 +816,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
                        WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
                        byEnemy)
-      sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
+      sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, the sun and sky light (their
@@ -847,24 +848,20 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          sword hand)
         skillLooks.ts    SHADER_LOOKS and PARTICLE_LOOKS (each element's colours and motion), the skill shader
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
-      overworld/
-        scene.ts         OverworldScene: the scene, ortho camera, materials; layerY, flatSprite
-        overworld.ts     WALKERS (the player's and each enemy's sprite: glide, hop, facing, tuft, "!"), overworldStage
-                         (the level, the camera following the player within the view's edge rule)
-      overworld3d/     The opt-in 3D overworld (`?world=3d`, overworldLookFrom in visuals.ts picks it): the same
-                       level, actors and rules drawn HD-2D style
-        scene.ts         Overworld3dScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
+      overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
+                       archived: plan/overworld-2d.md)
+        scene.ts         OverworldScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
-        overworld3d.ts   WALKERS_3D (chibi and enemy billboards, blob shadows, "!"), overworld3dStage (level, camera)
+        overworld.ts     WALKERS (chibi and enemy billboards: glide, hop, facing, blob shadows, "!"), overworldStage
+                         (the level, the camera following the player)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
         terrain.ts       Builds it: cliff blocks, grass tops and fringes, the map's ground (paintGround), instanced
                          props (the tiles' and the scenery's), the campfire's light
-        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up
-                         in 3D and lying flat in 2D; Pen
+        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up;
+                         Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS, one line each:
-                       its tile looks, what lies past the map's edge, the 3D surroundings; buildLevel, the flat
-                       view: ground, props, any level's campfires and their glow), tiles.ts (paintGround and
-                       tileProps: a map's ground picture and props from its tile looks, the same for both views)
+                       its tile looks and the 3D surroundings; the campfire's picture), tiles.ts (paintGround and
+                       tileProps: a map's ground picture and props from its tile looks)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
@@ -891,7 +888,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A tile kind.** Its line in `TILES` (`shared/src/world/tiles.ts`: a character no other kind uses, solid or not,
   tall grass or not); walking, encounters and enemies follow from it. Then how it looks in every level look's tile
   table (`client/src/visuals/levels/<theme>/tiles.ts`: a ground painter, and props if it has any; TypeScript errors
-  until it's there), which both the flat and the 3D overworld draw. A new prop is its art in `PROP_ART`.
+  until it's there), which the overworld draws. A new prop is its art in `PROP_ART`.
 - **An arena.** An `ArenaDef` (id, radius, look) beside the level that fights in it, and its line in `ARENAS`. The
   level's `arenaId` is where tall grass and spawns without one fight; a spawn's own `arenaId` takes its fights
   elsewhere (`startBattle`). Every arena has the same radius for now (tested). The wall's shape is the fight's
@@ -981,7 +978,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the dusk tint and campfire glow; the 3D sun | `client/src/visuals/levels/` (`tiles.ts` per look, `FLAT_DUSK`, `GLOW`), `client/src/visuals/overworld3d/scene.ts` |
+| How each tile looks; the overworld's sun, fog, colour grade and camera | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
 | An arena look's sky, fog and light | `env` in each `client/src/visuals/arenas/<look>/` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |

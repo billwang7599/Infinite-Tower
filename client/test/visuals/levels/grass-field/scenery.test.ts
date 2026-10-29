@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inRect, mapHalfSize, type LevelLayout } from "@infinite-tower/shared";
 import { grassFieldScenery } from "../../../../src/visuals/levels/grass-field/scenery.js";
-import { groundY } from "../../../../src/visuals/overworld3d/scenery.js";
+import { groundY } from "../../../../src/visuals/overworld/scenery.js";
 
 const LEVEL: LevelLayout = {
   id: "test-field", name: "Test Field", floor: 1, theme: "grass-field", playerSpeed: 5,

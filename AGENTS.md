@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Infinite Tower is a browser game, single-player for now. You walk a 2D top-down overworld, and fights happen in a
-small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with three workspaces:
+Infinite Tower is a browser game, single-player for now. You walk an HD-2D overworld (pixel sprites on 3D ground),
+and fights happen in a small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with three
+workspaces:
 
 - `shared/`: code both sides run (simulation, message types)
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
@@ -241,8 +242,11 @@ Decided by the user:
 - The Grass Field is a tile map (the user: "go" on these picks): trees, rocks, water and ruin walls block walking for
   the player and overworld enemies alike (you slide along them; a walker is a 0.6-tile square), the start, campfire
   and spawns stayed where they were, and the map grew to 44 x 30 tiles with a ring of trees round it. Still one level,
-  no exits. It's a dusky, muted grassland with warm campfire light, flat and in 3D, and the HUD shows "Floor 1"
-  before its name (the floor comes with the level). Its paths, stream, ruins and tree lines are the agent's layout.
+  no exits. It's a dusky, muted grassland with warm campfire light, and the HUD shows "Floor 1" before its name (the
+  floor comes with the level). Its paths, stream, ruins and tree lines are the agent's layout.
+- The overworld is drawn in 3D, HD-2D style (the user: "i think 3d view is much cooler actually. can we make that
+  default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
+  ([plan/overworld-2d.md](plan/overworld-2d.md)).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -436,7 +440,7 @@ The global rules apply; here is how to set one up in this repo.
   signature) starts with `_`, like `(_x, y) => ...`.
 - Follow the naming of the folder you're in. React components are PascalCase `.tsx` files that export components
   only (so Fast Refresh works); constants they need go in a `.ts` file next to them.
-- Words: the 2D map is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
+- Words: the map you walk is the **overworld**, a fight is a **battle**, and the place it happens is the **arena**.
 - Combat words (code, UI and docs use them):
   - **Gear**: anything equipped (weapons, armour, the skillbook). Physical combat comes from gear.
   - **Skill**: an ability built from words. Anyone can use skills, with or without a book. The skillbook only saves

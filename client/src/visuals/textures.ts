@@ -6,8 +6,6 @@ interface DrawnTextureOptions {
   width: number;
   height?: number;
   mipmaps?: boolean;
-  /** Nearest-neighbour sampling: crisp pixel art. */
-  nearest?: boolean;
   /** Repeat across the surface (tiling). */
   wrap?: boolean;
   /** Use the canvas's alpha (transparent parts). */
@@ -18,10 +16,8 @@ interface DrawnTextureOptions {
 function drawnTexture(
   scene: Scene, name: string, opts: DrawnTextureOptions, draw: (ctx: CanvasRenderingContext2D) => void,
 ): DynamicTexture {
-  const { width, height = width, mipmaps = false, nearest = false } = opts;
-  const tex = nearest
-    ? new DynamicTexture(name, { width, height }, scene, mipmaps, Texture.NEAREST_SAMPLINGMODE)
-    : new DynamicTexture(name, { width, height }, scene, mipmaps);
+  const { width, height = width, mipmaps = false } = opts;
+  const tex = new DynamicTexture(name, { width, height }, scene, mipmaps);
   draw(tex.getContext() as CanvasRenderingContext2D);
   tex.update();
   if (opts.wrap) tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
@@ -90,27 +86,6 @@ export function telegraphTexture(scene: Scene): DynamicTexture {
     ctx.fillStyle = edge;
     ctx.fillRect(0, 0, width, height);
   });
-}
-
-/** A small nearest-filtered, tiling texture drawn with the 2D canvas API (pixel art). */
-export function pixelTexture(
-  scene: Scene, name: string, size: number, draw: (ctx: CanvasRenderingContext2D) => void,
-): DynamicTexture {
-  return drawnTexture(scene, name, { width: size, nearest: true, wrap: true }, draw);
-}
-
-/** Grass blades drawn over a walker's feet in tall grass (overworld; transparent background). */
-export function tuftTexture(scene: Scene): DynamicTexture {
-  const tex = pixelTexture(scene, "tuft", 16, (ctx) => {
-    ctx.clearRect(0, 0, 16, 16);
-    ctx.fillStyle = "#2c6128"; ctx.fillRect(1, 12, 14, 4);
-    ctx.fillStyle = "#62b24f";
-    for (const x of [1, 4, 7, 10, 13]) ctx.fillRect(x, 7 + (x % 3), 1, 6);
-    ctx.fillStyle = "#86d06a";
-    for (const x of [2, 5, 8, 11, 14]) ctx.fillRect(x, 9 + (x % 2), 1, 4);
-  });
-  tex.hasAlpha = true;
-  return tex;
 }
 
 export function glowTexture(scene: Scene): DynamicTexture {
