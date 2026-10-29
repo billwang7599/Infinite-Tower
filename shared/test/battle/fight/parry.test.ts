@@ -1,12 +1,13 @@
 /**
- * Parrying: a swing met by the player's swing the other way along the same line, its blade live within the parry
- * window before the enemy's lands; and the swordsman parrying a badly timed swing of the player's.
+ * Parrying: a swing met by the player's swing the other way (or 45° off it), or a stab by a stab, its blade live
+ * within the parry window before the enemy's lands; and the swordsman parrying a badly timed swing of the player's.
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ActiveHit, Body, Enemy, FIXED_DT, Health, isSwing, liveStep, PARRY, planSwing, Player, PLAYER, restingBlade,
-  reverseOf, stoppedBlade, strokeOf, SWING, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef,
+  reverseOf, stoppedBlade, strokeOf, SWING, SWING_DIRS, swingSide, WeaponAttack, WEAPONS, Wielder, type AttackKind,
+  type EnemyDef,
   type PlayerInputData, type Blade, type Stats, type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -120,8 +121,27 @@ describe("parrying the swordsman's swing", () => {
     }
   });
 
+  test("the reverse's 45\u00b0 neighbours parry too, for part of the stun and the knockback", () => {
+    const stunAndPush = (kind: AttackKind) => {
+      const { fight } = play(swingBefore(kind, 2), LANDS_AT);
+      const body = fight.world.require(fight.enemies[0]!, Body), at = body.pos.z;
+      const { duration, state } = kobold(fight);
+      play(() => ({}), LANDS_AT + 40, fight);
+      return { state, duration, pushed: body.pos.z - at, hp: hpOf(fight) };
+    };
+    const direct = stunAndPush("rl");
+    for (const kind of ["brtl", "trbl"] as const) {
+      const off = stunAndPush(kind);
+      assert.equal(off.state, "parried", kind);
+      assert.equal(off.hp, PLAYER.maxHp, kind);
+      assert.ok(Math.abs(off.duration - direct.duration * PARRY.offAngleShare) < 1e-9, `${kind}: ${off.duration}`);
+      const share = off.pushed / direct.pushed;
+      assert.ok(Math.abs(share - PARRY.offAngleShare) < 0.1, `${kind}: knocked back ${share.toFixed(2)} as far`);
+    }
+  });
+
   test("the wrong direction: both hits land", () => {
-    for (const kind of ["lr", "tb", "bt", "tlbr", "trbl"] as const) {
+    for (const kind of ["lr", "tb", "bt", "tlbr", "bltr"] as const) {
       const { fight } = play(swingBefore(kind, 2), LANDS_AT + 2);
       assert.ok(hpOf(fight) < PLAYER.maxHp, `${kind}: the player is hit`);
       assert.ok(hpOf(fight, fight.enemies[0]) < SWORDSMAN.maxHp, `${kind}: so is the swordsman`);
@@ -129,7 +149,27 @@ describe("parrying the swordsman's swing", () => {
     }
   });
 
-  test("a stab can't be parried, whatever the swing", () => {
+  test("a stab is parried by a stab live within the window before it lands, in full", () => {
+    const stabber = withMoves(["stab"]), lands = (() => {
+      const f = newFight(stabber);
+      while (hpOf(f) === PLAYER.maxHp && f.steps < 200) f.step([input({})]);
+      return f.steps;
+    })();
+    const live = liveStep(planSwing(WEAPONS.sword, STATS.strength, restingBlade(), "stab").windupTime);
+    const momentum = (strength: number) => planSwing(WEAPONS.sword, strength, restingBlade(), "stab").momentum;
+    const ratio = momentum(STATS.strength) / momentum(SWORDSMAN.stats.strength);
+    const scale = Math.min(PARRY.maxStunScale, Math.max(PARRY.minStunScale, ratio));
+    for (const k of [0, 2, WINDOW_STEPS]) {
+      const { fight } = play((step) => step === lands - live - k ? { attack: "stab" } : {}, lands, newFight(stabber));
+      assert.equal(hpOf(fight), PLAYER.maxHp, `k = ${k}: unhurt`);
+      assert.equal(kobold(fight).state, "parried", `k = ${k}`);
+      assert.equal(kobold(fight).duration, PARRY.stunTime * scale, `k = ${k}`);
+    }
+    const late = play((step) => step === lands - live + 1 ? { attack: "stab" } : {}, lands + 2, newFight(stabber));
+    assert.ok(hpOf(late.fight) < PLAYER.maxHp, "too late: hit");
+  });
+
+  test("a stab can't be parried by a swing, whatever the swing", () => {
     for (const kind of SWING_DIRS) {
       const { fight } = play(swingBefore(kind, 2), LANDS_AT + 2, newFight(withMoves(["stab"])));
       assert.ok(hpOf(fight) < PLAYER.maxHp, `${kind} against a stab`);
@@ -255,13 +295,19 @@ describe("a parry's stun goes by the blades' momentum", () => {
     }
   });
 
-  test("parried by the swordsman, a stronger player's swing staggers them for less", () => {
+  test("parried by the swordsman head-on, a stronger player's swing staggers them for less", () => {
+    const headOn = (fight: Fight) => {
+      const side = swingSide("lr");
+      Object.assign(fight.world.require(fight.enemies[0]!, WeaponAttack),
+        { guardSide: side, guardFrom: side, guardMoveTime: 0, guardHoldTime: 999 });
+      return fight;
+    };
     for (const strength of [STATS.strength, 20, 1000]) {
-      const fight = newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength });
+      const fight = headOn(newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength }));
       const { events } = play((step) => (step === settled ? { attack: "lr" } : {}), settled + 30, fight);
       const parry = events.find((e) => e.event.type === "parry");
       assert.ok(parry, `strength ${strength}`);
-      const again = newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength });
+      const again = headOn(newFight(GUARD, ENEMY_Z, undefined, { ...STATS, strength }));
       play((step) => (step === settled ? { attack: "lr" } : {}), parry.step, again);
       const hitstun = again.world.require(again.players[0]!, Health).hitstun;
       const expected = PARRY.playerStaggerTime * clampScale(1 / momentumAt(strength));

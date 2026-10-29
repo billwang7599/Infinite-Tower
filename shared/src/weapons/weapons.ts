@@ -5,7 +5,7 @@ import { ITEMS, type ItemId } from "../items/items.js";
 import type { SwingData } from "../battle/components.js";
 
 // Named by their way across the screen as the player sees it ("tlbr": top-left to bottom-right), an enemy's too, so
-// a swing is parried by its reverse ("lr" by "rl"): the blades meet.
+// a swing is parried by its reverse ("lr" by "rl"), or its 45° neighbours: the blades meet.
 export const SWING_DIRS = ["lr", "rl", "tb", "bt", "tlbr", "brtl", "trbl", "bltr"] as const;
 export type SwingDir = (typeof SWING_DIRS)[number];
 export const ATTACK_KINDS = [...SWING_DIRS, "stab"] as const;
@@ -202,7 +202,7 @@ export function stepsUntil(seconds: number): number {
 }
 
 export const PARRY = {
-  /** A swing is parried when the reverse swing's blade went live no more than this long before it lands. */
+  /** An attack is parried when the parrying one's blade went live no more than this long before it lands. */
   window: 0.15,
   /** × the blades' momentum ratio, clamped. Knocked back this far (m), taking this much more damage. */
   stunTime: 1,
@@ -217,6 +217,8 @@ export const PARRY = {
   playerKnockbackSpeed: 6,
   /** Only an attacker within this cosine of where the parrier faces can be parried. */
   minDot: 0.5,
+  /** Met 45° off head-on, a parry's stun, stagger and knockback are scaled by this. */
+  offAngleShare: 0.5,
 } as const;
 
 /** Sides as the player sees them: 0 is the right, then anticlockwise. */
@@ -236,9 +238,15 @@ export function swingSide(dir: SwingDir): number {
   return (Math.round(Math.atan2(-way.y, -way.x) / SIDE_RAD) + GUARD.sides) % GUARD.sides;
 }
 
-export function guardCovers(side: number, dir: SwingDir): boolean {
+export function guardShare(side: number, dir: SwingDir): number {
   const apart = Math.abs(swingSide(dir) - side) % GUARD.sides;
-  return Math.min(apart, GUARD.sides - apart) <= 1;
+  const sides = Math.min(apart, GUARD.sides - apart);
+  return sides === 0 ? 1 : sides === 1 ? PARRY.offAngleShare : 0;
+}
+
+export function parryShare(own: AttackKind, hit: AttackKind): number {
+  if (!isSwing(own) || !isSwing(hit)) return own === hit ? 1 : 0;
+  return guardShare(swingSide(reverseOf(own)), hit);
 }
 
 export const guardBlade = (side: number): Blade => ({

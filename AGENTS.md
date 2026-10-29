@@ -197,16 +197,18 @@ Decided by the user:
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
   three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
   first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, which since
-  the slower swings makes most of its chained turns 0.5-0.6 s). A swing is parried by the reverse swing live within
-  `PARRY.window` before it lands (the Kobold is stunned, knocked back and takes more damage), even while you're briefly
-  invulnerable from the swing before it; a stab can only be blocked or dodged; a blocked swing still chips 20% of its
-  damage. On guard it parries your swings (you're staggered; not right after coming back on guard, nor again for a
-  while) and blocks your stabs. It guards one side (the agent's pick, for the user to review): its blade held toward
-  one of the 8 ways, it parries only swings coming in within 45° of it (3 of 8) and the other 5 land; a swing that
-  lands turns its guard there, and otherwise it changes side every 1.5-3 s (the fight's seed), taking 0.3 s to move,
-  the old side covered until then (`GUARD` in `shared/src/weapons/weapons.ts`). Its landed sword hits only hurt, with
-  no stun or knockback (the boar's still stun). It
-  drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
+  the slower swings makes most of its chained turns 0.5-0.6 s). A swing is parried by the reverse swing, or either of
+  the two 45° from it (3 of 8), live within `PARRY.window` (0.15 s) before it lands (the Kobold is stunned, knocked
+  back and takes more damage), even while you're briefly invulnerable from the swing before it; a parry 45° off stuns
+  and knocks back half as much (`PARRY.offAngleShare`), the extra damage the same. A stab is parried by a stab the
+  same way (in full), and otherwise only blocked or dodged; a blocked swing still chips 20% of its damage. On guard it
+  parries your swings (you're staggered; not right after coming back on guard, nor again for a while) and blocks your
+  stabs. It guards one side (the agent's pick, for the user to review): its blade held toward one of the 8 ways, it
+  parries only swings coming in within 45° of it (3 of 8), one 45° off staggering you and knocking you back half as
+  much as one head-on, and the other 5 land; a swing that lands turns its guard there, and otherwise it changes side
+  every 1.5-3 s (the fight's seed), taking 0.3 s to move, the old side covered until then (`GUARD` in
+  `shared/src/weapons/weapons.ts`). Its landed sword hits only hurt, with no stun or knockback (the boar's still stun).
+  It drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.
   Its attacks are read from its blade alone, with no marker over its head (the user: "remove the attack indicator
