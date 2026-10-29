@@ -8,7 +8,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
-export const ARENA: ArenaDef = { id: "test", radius: 8, look: "grass-field" };
+export const ARENA: ArenaDef = { id: "test", radius: 8, look: "forest-clearing" };
 export const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 
 const ENEMY_BASE: EnemyDef = {

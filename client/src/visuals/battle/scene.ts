@@ -1,6 +1,6 @@
 /** The arena's Babylon scene: the third-person camera, lights, fog, shadows and post-processing. */
 import {
-  Color3, Color4, DefaultRenderingPipeline, DirectionalLight, HemisphericLight,
+  Color4, DefaultRenderingPipeline, DirectionalLight, HemisphericLight,
   ImageProcessingConfiguration, Scene, ShadowGenerator, UniversalCamera, Vector3,
   type AbstractEngine, type Camera, type TransformNode,
 } from "@babylonjs/core";
@@ -15,6 +15,8 @@ export interface ArenaScene {
   camera: UniversalCamera;
   /** The sun's shadow maps (casters are added to it); not the blob shadows under the sprites. */
   sunShadows: ShadowGenerator;
+  sun: DirectionalLight;
+  skyLight: HemisphericLight;
   materials: Materials;
   skills: SkillKit;
   nodes: Map<Entity, TransformNode>;
@@ -34,38 +36,24 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
   camera.minZ = 0.1;
   camera.inputs.clear(); // it follows the battle mode's view
 
-  const sunShadows = setupLook(scene, camera);
+  const { sun, skyLight, sunShadows } = setupLook(scene, camera);
   const materials = createMaterials(scene);
   const floorY = (at: Vec3) =>
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
-    scene, camera, sunShadows, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
+    scene, camera, sunShadows, sun, skyLight, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
     nodes: new Map(), shake: 0, impacts: new Map(), battle,
   };
 }
 
-/** Returns the sun's shadow generator. */
-function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
-  const sky = new Color3(0.42, 0.5, 0.62);
-  scene.clearColor = new Color4(sky.r, sky.g, sky.b, 1);
-  scene.ambientColor = new Color3(0.25, 0.25, 0.3);
-
-  // Fog hides the edge of the world past the trees.
+function setupLook(scene: Scene, camera: Camera) {
   scene.fogMode = Scene.FOGMODE_EXP2;
-  scene.fogDensity = 0.022;
-  scene.fogColor = sky;
+  const skyLight = new HemisphericLight("sky-light", new Vector3(0, 1, 0), scene);
 
-  const hemi = new HemisphericLight("hemi", new Vector3(0, 1, 0), scene);
-  hemi.intensity = 0.6;
-  hemi.diffuse = new Color3(0.8, 0.85, 1);
-  hemi.groundColor = new Color3(0.25, 0.22, 0.18);
-
-  // Low warm sun: long shadows show the boar's 3D shape and where it is.
+  // Low sun: long shadows show the enemy's 3D shape and where it is.
   const sunDir = new Vector3(-0.5, -0.8, 0.45).normalize();
   const sun = new DirectionalLight("sun", sunDir, scene);
   sun.position = sunDir.scale(-40);
-  sun.intensity = 1.6;
-  sun.diffuse = new Color3(1, 0.86, 0.68);
   sun.shadowMinZ = 1;
   sun.shadowMaxZ = 90;
 
@@ -91,5 +79,5 @@ function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
   pipeline.imageProcessing.vignetteWeight = 2;
   pipeline.imageProcessing.vignetteColor = new Color4(0, 0, 0.05, 0);
 
-  return shadows;
+  return { sun, skyLight, sunShadows: shadows };
 }

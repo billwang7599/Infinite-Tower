@@ -6,6 +6,8 @@ export interface SpawnDef {
   at: Vec2;
   /** Seconds before a defeated one comes back. */
   respawnTime: number;
+  /** Fought here rather than in the level's arena. */
+  arenaId?: string;
 }
 
 export interface EncounterTable {

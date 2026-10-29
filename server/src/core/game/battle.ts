@@ -25,12 +25,16 @@ export interface Battle {
 
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
-export function startBattle(session: GameSession, source: Entity | null, enemyId: EnemyId): void {
+/** Held in the arena of the spawn it came from; tall grass has no spawn, so the level's. */
+export function startBattle(
+  session: GameSession, source: Entity | null, enemyId: EnemyId,
+  spawn = source === null ? undefined : session.overworld.spawnOf(source),
+): void {
   session.closeBag();
   const { overworld, vitals } = session;
   const { bag, equipment } = session.gear;
   const setup: FightSetup = {
-    arena: getArena(overworld.level.arenaId),
+    arena: getArena(spawn?.arenaId ?? overworld.level.arenaId),
     players: [{
       at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
       book: session.skillbook, seed: randomSeed(overworld.rng),

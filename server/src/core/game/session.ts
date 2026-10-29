@@ -116,9 +116,10 @@ export class GameSession {
     this.save();
   }
 
-  /** Dev servers only: a battle right now against `enemy`. */
+  /** Dev servers only: a battle right now against `enemy`, in the arena of its spawn on this level. */
   debugEncounter(enemy = "wild-boar"): void {
-    if (this.dev && this.inOverworld && isEnemyId(enemy)) startBattle(this, null, enemy);
+    if (!this.dev || !this.inOverworld || !isEnemyId(enemy)) return;
+    startBattle(this, null, enemy, this.overworld.level.spawns.find((s) => s.enemy === enemy));
   }
 
   /** Only once: a character is kept for good. */

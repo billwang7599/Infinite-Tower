@@ -1,6 +1,6 @@
 /** One player's overworld: their own ECS world, with the level's actors and the player walking it. */
 import { World, type EnemyId, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
-import type { LevelDef } from "../world/level.js";
+import type { LevelDef, SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";
 import { touchSystem } from "./behaviors/touch.js";
@@ -41,6 +41,10 @@ export class Overworld implements OverworldContext {
   startEncounter(source: Entity | null, enemy: EnemyId): void {
     this.encounterStarted = true;
     this.onEncounter(source, enemy);
+  }
+
+  spawnOf(actor: Entity): SpawnDef | undefined {
+    return this.spawner?.spawnOf(actor);
   }
 
   /** Clears the old level's actors, places the player at the spawn, spawns the new actors. */
