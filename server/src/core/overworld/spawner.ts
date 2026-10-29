@@ -13,7 +13,8 @@ interface Slot {
   entity: Entity | null;
   /** Seconds until a defeated actor comes back. */
   timeToRespawn: number;
-  takenBy: Entity | null;
+  /** The actor, while the fight it was taken into is undecided (its fighters may come and go). */
+  taken: Entity | null;
 }
 
 /** Don't pop in closer to a player than this. */
@@ -23,7 +24,7 @@ export class Spawner {
   private readonly slots: Slot[];
 
   constructor(private readonly world: World, spawns: SpawnDef[]) {
-    this.slots = spawns.map((def) => ({ def, entity: this.spawn(def), timeToRespawn: 0, takenBy: null }));
+    this.slots = spawns.map((def) => ({ def, entity: this.spawn(def), timeToRespawn: 0, taken: null }));
   }
 
   readonly system: System = (world, dt) => {
@@ -33,7 +34,7 @@ export class Spawner {
         slot.entity = null;
         slot.timeToRespawn = slot.def.respawnTime;
       }
-      if (slot.takenBy !== null) continue;
+      if (slot.taken !== null) continue;
       slot.timeToRespawn -= dt;
       if (slot.timeToRespawn <= 0) slot.entity = this.spawn(slot.def);
     }
@@ -43,14 +44,14 @@ export class Spawner {
     return this.slots.find((s) => s.entity === e)?.def;
   }
 
-  take(actor: Entity, player: Entity): void {
+  take(actor: Entity): void {
     const slot = this.slots.find((s) => s.entity === actor);
     this.world.destroy(actor);
-    if (slot) slot.takenBy = player;
+    if (slot) slot.taken = actor;
   }
 
-  release(player: Entity): void {
-    for (const slot of this.slots) if (slot.takenBy === player) slot.takenBy = null;
+  release(actor: Entity): void {
+    for (const slot of this.slots) if (slot.taken === actor) slot.taken = null;
   }
 
   private spawn(def: SpawnDef): Entity {

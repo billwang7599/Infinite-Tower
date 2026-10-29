@@ -73,11 +73,11 @@ describe("Spawner", () => {
   test("an actor taken into a fight is gone, and comes back respawnTime after the fight is released", () => {
     const s = spawner();
     const [taken] = actors(s.world);
-    s.spawner.take(taken!, s.player);
+    s.spawner.take(taken!);
     s.world.flush();
     for (let i = 0; i < 40; i++) s.spawner.system(s.world, DT);
     assert.equal(actors(s.world).length, 0, "not while the fight is on");
-    s.spawner.release(s.player);
+    s.spawner.release(taken!);
     for (let i = 0; i < 7; i++) s.spawner.system(s.world, DT);
     assert.equal(actors(s.world).length, 0);
     s.spawner.system(s.world, DT);

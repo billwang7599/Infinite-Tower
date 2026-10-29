@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, type Character,
+  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, type Character, type EnemyId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -12,7 +12,7 @@ import type { Account } from "../../../src/core/ports.js";
 import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
-import { OverworldActor } from "../../../src/core/overworld/components.js";
+import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
 import { ACCOUNT, findBoar } from "./helpers.js";
 
 before(() => initPhysics());
@@ -171,9 +171,96 @@ describe("a battle fought together", () => {
     assert.equal(host!.battle!.over, true);
     play(online, [guest!], Math.ceil(BOAR_SPAWN.respawnTime / FIXED_DT) + 5);
     assert.equal(guest!.battle?.over, false);
-    assert.equal(boars(host!), 0);
+    assert.equal(actors(host!), 0);
   });
 });
 
-const boars = (session: GameSession) =>
-  [...session.overworld.world.query(OverworldActor)].filter(([, a]) => a.kind === "wild-boar").length;
+describe("one of a battle's players leaving it", () => {
+  /** Everyone invulnerable, so only the test ends the fight: the host touched the boar, the guest joined them. */
+  async function boarFight(count = 2) {
+    const all = await players(count);
+    const sessions = all.all.map((p) => p.session);
+    const [host, guest] = sessions as [GameSession, GameSession];
+    for (const s of sessions) s.cheat({ kind: "invulnerable", on: true });
+    place(host, findBoar(host).pos);
+    all.online.tick(FIXED_DT);
+    assert.ok(host.battle);
+    place(guest, nextTo(host, 1));
+    guest.joinBattle();
+    play(all.online, [host, guest], 3);
+    return { ...all, host, guest, fight: host.battle.room.fight };
+  }
+
+  test("the host disconnecting has lost; the guest fights on, the boar stays gone, and others may join", async () => {
+    const { online, store, all, host, guest } = await boarFight(3);
+    online.leave(host);
+    assert.equal(store.saved.get(ACCOUNTS[0]!.id)?.bag.items.length, 0);
+    play(online, [guest], stepsFor(BOAR_SPAWN.respawnTime));
+    assert.equal(guest.battle?.over, false);
+    assert.equal(actors(guest), 0);
+
+    const third = all[2]!.session;
+    place(third, nextTo(guest, 1));
+    play(online, [guest], 3);
+    assert.equal(all[2]!.link.last("state").players.find((p) => p.id === guest.me)?.fighting, true);
+    third.joinBattle();
+    assert.equal(third.battle?.room, guest.battle?.room);
+  });
+
+  test("won after the host disconnected: the boar comes back respawnTime after the win", async () => {
+    const { online, host, guest, fight, all } = await boarFight();
+    online.leave(host);
+    play(online, [guest], stepsFor(BOAR_SPAWN.respawnTime / 2));
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [guest], 2);
+    assert.equal(all[1]!.link.last("battleResult").won, true);
+    guest.leaveBattle();
+    play(online, [], stepsFor(BOAR_SPAWN.respawnTime) - 10);
+    assert.equal(actors(guest), 0);
+    play(online, [], 15);
+    assert.equal(actors(guest), 1);
+  });
+
+  test("a host who fell and walked away: their next fight's enemy stays gone when the first fight is won", async () => {
+    const { online, host, guest, fight } = await boarFight();
+    fight.world.require(fight.players[0]!, Health).hp = 0;
+    play(online, [host, guest], 2);
+    host.leaveBattle();
+    host.overworld.playerData(host.me).safeTime = 0;
+    place(host, actorAt(host, KOBOLD));
+    online.tick(FIXED_DT);
+    assert.equal(host.battle?.enemyId, KOBOLD);
+
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [host, guest], stepsFor(KOBOLD_SPAWN.respawnTime));
+    assert.equal(guest.battle?.over, true);
+    assert.equal(host.battle?.over, false);
+    assert.equal(actors(host, KOBOLD), 0);
+  });
+
+  test("a guest who disconnects: the host fights on, wins, and the boar comes back after", async () => {
+    const { online, host, guest, fight, all } = await boarFight();
+    online.leave(guest);
+    play(online, [host], stepsFor(BOAR_SPAWN.respawnTime));
+    assert.equal(actors(host), 0);
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [host], 2);
+    assert.equal(all[0]!.link.last("battleResult").won, true);
+    host.leaveBattle();
+    play(online, [], stepsFor(BOAR_SPAWN.respawnTime));
+    assert.equal(actors(host), 1);
+  });
+});
+
+const KOBOLD = "kobold-swordsman";
+const KOBOLD_SPAWN = LEVEL.spawns.find((s) => s.enemy === KOBOLD)!;
+const stepsFor = (seconds: number) => Math.ceil(seconds / FIXED_DT) + 5;
+
+const actors = (session: GameSession, kind: EnemyId = "wild-boar") =>
+  [...session.overworld.world.query(OverworldActor)].filter(([, a]) => a.kind === kind).length;
+
+function actorAt(session: GameSession, kind: EnemyId) {
+  const found = [...session.overworld.world.query(OverworldActor, OverworldPos)].find(([, a]) => a.kind === kind);
+  assert.ok(found, `no ${kind} on the overworld`);
+  return { ...found[2] };
+}

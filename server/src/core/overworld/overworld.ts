@@ -37,7 +37,6 @@ export class Overworld implements OverworldContext {
   }
 
   leave(player: Entity): void {
-    this.spawner.release(player);
     this.onEncounter.delete(player);
     this.world.destroy(player);
     this.world.flush();
@@ -47,7 +46,7 @@ export class Overworld implements OverworldContext {
   startEncounter(player: Entity, source: Entity | null, enemy: EnemyId, spawn?: SpawnDef): void {
     if (!this.enterFight(player)) return;
     const from = source === null ? spawn : this.spawner.spawnOf(source);
-    if (source !== null) this.spawner.take(source, player);
+    if (source !== null) this.spawner.take(source);
     this.onEncounter.get(player)?.(source, enemy, from);
   }
 
@@ -64,8 +63,8 @@ export class Overworld implements OverworldContext {
     return true;
   }
 
-  fightDecided(player: Entity): void {
-    this.spawner.release(player);
+  fightDecided(actor: Entity): void {
+    this.spawner.release(actor);
   }
 
   /** Back from the arena: no stale inputs or encounter progress. */
