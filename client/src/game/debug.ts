@@ -6,6 +6,7 @@ import * as shared from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import * as overworldComponents from "../modes/overworld/components.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
+import { setDayClock } from "../visuals/sky/sky.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import type { Mode } from "./transition.js";
@@ -20,6 +21,7 @@ interface DebugHandles {
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {
+  if (import.meta.env.DEV) exposeDayClock();
   if (!import.meta.env.DEV && !new URLSearchParams(location.search).has("debug")) return;
   Object.assign(window, {
     battle: h.battle.ctx, overworld: h.overworld.state, mode: h.mode, ui: h.ui, settings: h.settings,
@@ -27,4 +29,11 @@ export function exposeDebugHandles(h: DebugHandles): void {
     cast: (skill: shared.Skill) => h.battle.ctx.casts.push(skill),
     components: { ...shared, ...overworldComponents },
   });
+}
+
+/** `?time=0.75` freezes the time of day (0 midnight, 0.5 noon); `setTime(f)` sets it, `setDayClock` retimes it. */
+function exposeDayClock(): void {
+  const time = new URLSearchParams(location.search).get("time");
+  if (time !== null && Number.isFinite(Number(time))) setDayClock({ fraction: Number(time), speed: 0 });
+  Object.assign(window, { setDayClock, setTime: (fraction: number) => setDayClock({ fraction }) });
 }

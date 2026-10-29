@@ -28,7 +28,7 @@ export function disposeGoblin(v: GoblinModel): void {
 export function buildGoblin(
   ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number,
 ): GoblinModel {
-  const { scene, sunShadows } = ctx;
+  const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
     const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.04, 0.04, 0.04));
@@ -123,7 +123,7 @@ export function buildGoblin(
   }
   stars.setEnabled(false);
 
-  for (const p of parts) sunShadows.addShadowCaster(p);
+  for (const p of parts) sky.castShadows(p);
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return { root, model, staffArm, offArm, legs, stars, orb, materials, baseEmissive, gait: 0, visualYaw: yaw };
