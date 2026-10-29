@@ -85,7 +85,14 @@ describe("state snapshot", () => {
   test("the player isn't listed among the actors or the players", () => {
     const { overworld, me } = overworldIn(BIG_LEVEL);
     const msg = stateMsg(overworld, me, new Set());
-    assert.deepEqual([msg.actors, msg.players], [[], []]);
+    assert.deepEqual([msg.actors, msg.players, msg.piles], [[], [], []]);
+  });
+
+  test("piles within the view's radius are sent where they lie, ones past it are not", () => {
+    const { overworld, me } = overworldIn(BIG_LEVEL);
+    const near = overworld.dropPile({ x: VIEW_RADIUS_TILES - 0.5, z: 0.123 }, { "boar-meat": 1 })!;
+    overworld.dropPile({ x: 0, z: -VIEW_RADIUS_TILES - 0.5 }, { "boar-meat": 1 });
+    assert.deepEqual(stateMsg(overworld, me, new Set()).piles, [{ id: near, x: VIEW_RADIUS_TILES - 0.5, z: 0.12 }]);
   });
 
   test("another player is sent with their character once, and as fighting while in a battle", () => {

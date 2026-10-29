@@ -107,7 +107,7 @@ describe("rest", () => {
 });
 
 const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
-const spot = (grid: GridName, x: number, y: number) => ({ in: grid, x, y });
+const spot = <G extends GridName>(grid: G, x: number, y: number) => ({ in: grid, x, y });
 const bagSpot = (x: number, y: number) => spot("bag", x, y);
 
 /** A bag holding `items`, each `[item, count, x, y]`, lying flat. */

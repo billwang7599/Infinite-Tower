@@ -8,7 +8,7 @@ import type { Heading } from "./facing.js";
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
 export interface OverworldActorData {
-  kind: ActorSnap["kind"] | "player" | "peer";
+  kind: ActorSnap["kind"] | "player" | "peer" | "pile";
   vx: number;
   vz: number;
   heading: Heading;

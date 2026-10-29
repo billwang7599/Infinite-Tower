@@ -21,6 +21,7 @@ export interface OverworldScene {
     enemies: Record<EnemyId, StandardMaterial>;
     alert: StandardMaterial;
     fighting: StandardMaterial;
+    pile: StandardMaterial;
     blob: StandardMaterial;
   };
   state: OverworldState;
@@ -53,6 +54,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
       enemies: byEnemy(({ sprite: s }, id) => sprite(`overworld-${id}`, s.draw)),
       alert: sprite("overworld-alert", drawAlert),
       fighting: sprite("overworld-fighting", drawCrossedSwords),
+      pile: sprite("overworld-pile", drawPile),
       blob: blobMaterial(scene),
     },
   };
@@ -76,6 +78,27 @@ export function standingQuad(scene: Scene, name: string, width: number, height: 
   m.rotation.x = SPRITE_TILT_RAD;
   return m;
 }
+
+const drawPile: SpriteDraw = (px) => {
+  const outline = "#1b1b2a", sack = "#a07f4f", light = "#c29c62", shade = "#6e5434", cord = "#4a2f1c";
+  const bone = "#efe6cf", glint = "#ffe9a0";
+  px(5, 13, 14, 8, outline);
+  px(6, 11, 12, 11, outline);
+  px(9, 8, 6, 4, outline);
+  px(14, 4, 3, 7, outline);
+  px(15, 5, 1, 6, bone);
+  px(14, 5, 1, 1, bone);
+  px(7, 12, 10, 9, sack);
+  px(6, 14, 12, 6, sack);
+  px(8, 13, 3, 5, light);
+  px(14, 15, 3, 5, shade);
+  px(7, 20, 10, 1, shade);
+  px(10, 9, 4, 3, sack);
+  px(9, 11, 6, 1, cord);
+  px(6, 3, 1, 3, glint);
+  px(5, 4, 3, 1, glint);
+  px(19, 8, 1, 1, glint);
+};
 
 function blobMaterial(scene: Scene): StandardMaterial {
   const m = new StandardMaterial("overworld-blob", scene);

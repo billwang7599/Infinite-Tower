@@ -1,7 +1,7 @@
 /**
- * A grid of the bag screen (the bag or the cloth), with the mouse's states drawn (bagMouse.ts): hovered, selected,
- * and where a dragged item would land (green where it fits, red where it doesn't). It only draws; the panel reads
- * the pointer and decides what that does.
+ * A grid of the bag screen (the bag, the cloth or an open pile), with the mouse's states drawn (bagMouse.ts): hovered,
+ * selected, and where a dragged item would land (green where it fits, red where it doesn't). It only draws; the panel
+ * reads the pointer and decides what that does.
  */
 import {
   footprint, ITEMS, type BagItem, type Cell, type Gear, type GridName, type ItemId,

@@ -1,11 +1,11 @@
 /**
- * The bag screen: what's worn, the cloth (none in a fight) and the bag side by side, the weight against what you
- * can carry, and the selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go to the server (in
- * a fight, as the fight's inputs), which has the last word on all of it.
+ * The bag screen: what's worn, an open pile above the cloth (neither in a fight) and the bag side by side, the weight
+ * against what you can carry, and the selected item. Worked with the mouse (bagMouse.ts) and the bag keys. Moves go
+ * to the server (in a fight, as the fight's inputs), which has the last word on all of it.
  */
 import {
-  carryLimit, gearBurden, gearWeight, itemDef, type BagItem, type Burden, type Cell, type Gear, type GearMove,
-  type GridSpot, type Slot, type Spot, type Stats,
+  carryLimit, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type Cell, type Gear, type GearMove,
+  type GridName, type GridSpot, type Slot, type Spot, type Stats, type UseSpot,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
@@ -33,7 +33,7 @@ interface PanelProps {
   canHeal: boolean;
   input: Actions;
   settingsScreen: Store<SettingsScreenState>;
-  use: (at: GridSpot) => void;
+  use: (at: UseSpot) => void;
   move: (from: Spot, to: Spot, turned: boolean) => void;
   openSkillbook: () => void;
   close: () => void;
@@ -48,6 +48,8 @@ interface View {
 const MIDDLE: Cell = { x: CELL / 2, y: CELL / 2 };
 const START: View = { mouse: NO_MOUSE, grab: MIDDLE };
 
+const isSlot = (key: GridName | Slot): key is Slot => (SLOTS as readonly string[]).includes(key);
+
 const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
@@ -59,8 +61,8 @@ export function InventoryPanel(props: PanelProps) {
   const latest = useRef<View>(START);
   const panel = useRef<HTMLDivElement>(null);
   const pressedAtPx = useRef<Cell>(MIDDLE);
-  const areas = useRef(new Map<GridSpot["in"] | Slot, HTMLDivElement>());
-  const area = (key: GridSpot["in"] | Slot) => (el: HTMLDivElement | null) => {
+  const areas = useRef(new Map<GridName | Slot, HTMLDivElement>());
+  const area = (key: GridName | Slot) => (el: HTMLDivElement | null) => {
     if (el) areas.current.set(key, el);
     else areas.current.delete(key);
   };
@@ -102,7 +104,7 @@ export function InventoryPanel(props: PanelProps) {
       const ix = e.clientX - r.left, iy = e.clientY - r.top;
       if (ix < 0 || iy < 0 || ix >= r.width || iy >= r.height) continue;
       pressedAtPx.current = { x: ix % CELL, y: iy % CELL };
-      if (key !== "bag" && key !== "cloth") return { over: { in: "slot", slot: key }, x, y };
+      if (isSlot(key)) return { over: { in: "slot", slot: key }, x, y };
       return { over: { in: key, x: Math.floor(ix / CELL), y: Math.floor(iy / CELL) }, x, y };
     }
     return { over: null, x, y };
@@ -171,13 +173,23 @@ export function InventoryPanel(props: PanelProps) {
           <Column title="Equipment">
             <EquipmentSlots gear={gear} mouse={mouse} area={area} />
           </Column>
-          {gear.cloth.cols > 0 && (
-            <Column title="Cloth">
-              <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
-              <p className="max-w-48 text-[11px] text-white/40 italic">
-                Left behind when you close the bag. Weighs nothing.
-              </p>
-            </Column>
+          {(gear.pile.cols > 0 || gear.cloth.cols > 0) && (
+            <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>
+              {gear.pile.cols > 0 && (
+                <Column title="Pile">
+                  <BagGrid name="pile" gear={gear} mouse={mouse} fits={fits} area={area("pile")} />
+                  <p className="max-w-48 text-[11px] text-white/40 italic">Anyone nearby can take from it too.</p>
+                </Column>
+              )}
+              {gear.cloth.cols > 0 && (
+                <Column title="Cloth">
+                  <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
+                  <p className="max-w-48 text-[11px] text-white/40 italic">
+                    Left behind when you close the bag. Weighs nothing.
+                  </p>
+                </Column>
+              )}
+            </div>
           )}
           <Column title="Bag">
             <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />

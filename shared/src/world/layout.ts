@@ -24,6 +24,7 @@ export interface LevelLayout {
 /** Center to center. */
 export const REST_RANGE_TILES = 1.6;
 export const JOIN_RANGE_TILES = 1.6;
+export const PILE_RANGE_TILES = REST_RANGE_TILES;
 
 /**
  * Close enough to a campfire to rest. The server adds `slack`: its copy of you trails the client's prediction by

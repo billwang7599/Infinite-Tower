@@ -1,7 +1,7 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
-import { emptyCloth, heldIn, moveGear } from "../../../items/gear.js";
+import { emptyCloth, heldIn, moveGear, NO_PILE, type Spot } from "../../../items/gear.js";
 import {
   Body, Health, Player, Skilled, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData, type StaminaData,
   type WielderData,
@@ -19,6 +19,8 @@ import { imbueOf } from "../skills/cast.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { statusMoveFactor } from "../skills/statuses.js";
 import { bladeLive, endSwing, handsOf, restBlade, startSwing } from "../weapons/swing.js";
+
+const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
 
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   endSwing(world, e);
@@ -247,8 +249,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     player.actionTime += dt;
 
     const move = input.gear;
-    if (gearPressed && move && player.action === "bag" && move.from.in !== "cloth" && move.to.in !== "cloth") {
-      const moved = moveGear({ ...player.gear, cloth: emptyCloth() }, move.from, move.to, move.turned);
+    if (gearPressed && move && player.action === "bag" && carried(move.from) && carried(move.to)) {
+      const moved = moveGear({ ...player.gear, cloth: emptyCloth(), pile: NO_PILE }, move.from, move.to, move.turned);
       if (moved) {
         player.gear = { bag: moved.bag, equipment: moved.equipment };
         wielder.hands = handsOf(moved.equipment);

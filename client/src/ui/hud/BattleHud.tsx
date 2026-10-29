@@ -1,4 +1,4 @@
-import type { Gear, GridSpot, Skill, Spot } from "@infinite-tower/shared";
+import { NO_PILE, type Gear, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
@@ -68,7 +68,7 @@ export function BattleHud(props: BattleHudProps) {
 }
 
 const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
-const NO_USE = (_at: GridSpot) => {};
+const NO_USE = (_at: UseSpot) => {};
 
 type BattleBagProps = BagProps & HudProps & {
   input: Actions;
@@ -83,7 +83,7 @@ function BattleBag(props: BattleBagProps) {
   const carried = useStore(hud, (s) => s.carried);
   const writingPage = useStore(hud, (s) => s.writingPage);
   const stats = useStore(props.overworld, (s) => s.stats);
-  const gear = useMemo(() => ({ ...carried, cloth: NO_CLOTH }), [carried]);
+  const gear = useMemo(() => ({ ...carried, cloth: NO_CLOTH, pile: NO_PILE }), [carried]);
   useAction(input, ["inventory"], (_action, repeat) => {
     if (!repeat && (open || hud.get().result === "fighting")) props.toggle();
   });

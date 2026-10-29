@@ -5,8 +5,8 @@ import { battleResultLines, type BattleOutcome } from "../../../src/ui/notificat
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
 
-const WIN: BattleOutcome = { won: true, loot: {}, leftBehind: {}, lost: {} };
-const LOSS: BattleOutcome = { won: false, loot: {}, leftBehind: {}, lost: {} };
+const WIN: BattleOutcome = { won: true, loot: {}, lost: {} };
+const LOSS: BattleOutcome = { won: false, loot: {}, lost: {} };
 
 const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text);
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
@@ -34,12 +34,12 @@ describe("say", () => {
     assert.equal(banner(to), "The Test Boar attacks!");
   });
 
-  test("a fight's result is notices in the corner, in order, with no banner", () => {
+  test("a fight's result is notices in the corner, with no banner", () => {
     const to = new Notifications();
-    const outcome = { ...WIN, loot: { "boar-meat": 3, "boar-hide": 1 }, leftBehind: { "boar-hide": 1 } };
+    const outcome = { ...WIN, loot: { "boar-meat": 3, "boar-hide": 1 } };
     say(to, { kind: "battleResult", outcome });
     assert.deepEqual(notices(to), battleResultLines(outcome));
-    assert.equal(notices(to).length, 2);
+    assert.equal(notices(to).length, 1);
     assert.equal(banner(to), null);
   });
 

@@ -103,7 +103,7 @@ function settleDuel(
   if (result === "left") return;
   session.link.send({
     t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
-    vitals: session.vitals, loot: {}, leftBehind: {}, lost: {}, gear: session.gear, skillbook: session.skillbook,
+    vitals: session.vitals, loot: {}, lost: {}, gear: session.gear, skillbook: session.skillbook,
     duel: opponent,
   });
 }

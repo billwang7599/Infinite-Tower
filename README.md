@@ -73,11 +73,13 @@ What's built so far:
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag but for your weapons and
-  skillbook. The bag screen (B) shows what
+  (heals), a hide or a tusk. Dying empties the bag but for your weapons and skillbook. The bag screen (B) shows what
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
+- **Drops:** a won fight's loot lands as a pile where the fight began, seen by everyone nearby. E opens the nearest
+  pile next to the bag (E also rests at a campfire or joins a fight, whichever is nearest), and what you drag into
+  the bag is yours: first come, first served. A pile vanishes once it's empty, or after 10 minutes.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it

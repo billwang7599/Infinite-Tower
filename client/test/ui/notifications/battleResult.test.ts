@@ -2,33 +2,17 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 
-const WIN: BattleOutcome = { won: true, loot: {}, leftBehind: {}, lost: {} };
-const LOSS: BattleOutcome = { won: false, loot: {}, leftBehind: {}, lost: {} };
+const WIN: BattleOutcome = { won: true, loot: {}, lost: {} };
+const LOSS: BattleOutcome = { won: false, loot: {}, lost: {} };
 
 describe("battleResultLines", () => {
-  test("a win says what was found", () => {
+  test("a win says what was dropped, and that it lies where the fight began", () => {
     const said = battleResultLines({ ...WIN, loot: { "boar-meat": 2, "boar-hide": 1 } });
-    assert.deepEqual(said, ["You found 2 boar meat, boar hide."]);
+    assert.deepEqual(said, ["Dropped where the fight began: 2 boar meat, boar hide."]);
   });
 
   test("a win that dropped nothing says nothing", () => {
     assert.deepEqual(battleResultLines(WIN), []);
-  });
-
-  test("a win with a full bag: only what fit is found, then what was left behind", () => {
-    const said = battleResultLines({
-      ...WIN, loot: { "boar-meat": 3, "boar-hide": 1, "boar-tusk": 1 }, leftBehind: { "boar-meat": 1, "boar-hide": 1 },
-    });
-    assert.deepEqual(said, [
-      "You found 2 boar meat, boar tusk.",
-      "No room in your bag: you leave boar meat, boar hide behind.",
-    ]);
-  });
-
-  test("a win where nothing fit only says what was left behind", () => {
-    const dropped = { "boar-meat": 2, "boar-tusk": 1 };
-    const said = battleResultLines({ ...WIN, loot: dropped, leftBehind: dropped });
-    assert.deepEqual(said, ["No room in your bag: you leave 2 boar meat, boar tusk behind."]);
   });
 
   test("dying with items says you died and what is gone", () => {

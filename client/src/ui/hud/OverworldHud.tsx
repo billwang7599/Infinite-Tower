@@ -1,4 +1,4 @@
-import type { GridSpot, Skill, Spot } from "@infinite-tower/shared";
+import type { Skill, Spot, UseSpot } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
@@ -31,7 +31,7 @@ interface OverworldHudProps extends HudProps {
   closePanel: () => void;
   openSettings: () => void;
   interact: () => void;
-  useItem: (at: GridSpot) => void;
+  useItem: (at: UseSpot) => void;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
   skills: Store<SkillsState>;
   skillbookScreen: Store<{ open: boolean }>;
@@ -53,7 +53,7 @@ export function OverworldHud(props: OverworldHudProps) {
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
   });
-  useAction(input, ["rest"], (_action, repeat) => {
+  useAction(input, ["interact"], (_action, repeat) => {
     if (!repeat) interact();
   });
   useAction(input, ["challenge"], (_action, repeat) => {
@@ -111,6 +111,7 @@ function PlayerStatus({ hud }: HudProps) {
 const INTERACTIONS = {
   rest: { id: "rest-button", label: "Rest by the fire" },
   joinFight: { id: "join-fight-button", label: "Join the fight" },
+  openPile: { id: "open-pile-button", label: "Open the pile" },
 } as const;
 
 /** Names what it does, not a key: the key is in Settings. */

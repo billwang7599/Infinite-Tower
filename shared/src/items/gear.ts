@@ -14,26 +14,30 @@ export const CLOTH = { cols: 4, rows: 4 } as const;
 export interface Gear {
   bag: Bag;
   cloth: Bag;
+  /** The overworld pile they have open (the server's; NO_PILE for none): things are only taken off it. */
+  pile: Bag;
   equipment: Equipment;
 }
 
-/** What a player carries into a fight: the cloth stays behind. */
-export type Carried = Omit<Gear, "cloth">;
+/** What a player carries into a fight: the cloth and any pile stay behind. */
+export type Carried = Omit<Gear, "cloth" | "pile">;
 
-export type GridName = "bag" | "cloth";
+export type GridName = "bag" | "cloth" | "pile";
 export type Spot = { in: GridName; x: number; y: number } | { in: "slot"; slot: Slot };
 export type GridSpot = Extract<Spot, { in: GridName }>;
+export type UseSpot = GridSpot & { in: "bag" | "cloth" };
 
 export const starterEquipment = (): Equipment =>
   ({ rightHand: "sword", leftHand: "skillbook", head: null, body: null, legs: null, boots: null });
 export const emptyCloth = (): Bag => ({ cols: CLOTH.cols, rows: CLOTH.rows, items: [] });
+export const NO_PILE: Bag = { cols: 0, rows: 0, items: [] };
 
 export const fitsSlot = (item: ItemId, slot: Slot): boolean => itemDef(item).wornOn === SLOT_TAKES[slot];
 export type Hand = "rightHand" | "leftHand";
 export const heldIn = (equipment: Pick<Equipment, Hand>, item: ItemId): Hand | null =>
   equipment.rightHand === item ? "rightHand" : equipment.leftHand === item ? "leftHand" : null;
 
-/** The cloth lies on the ground, so it doesn't count. */
+/** The cloth and a pile lie on the ground, so they don't count. */
 export function gearWeight(gear: Gear): number {
   const worn = SLOTS.map((slot) => gear.equipment[slot]).filter((item) => item !== null);
   return bagWeight(gear.bag) + worn.reduce((sum, item) => sum + ITEMS[item].weight, 0);
@@ -58,7 +62,7 @@ function lift(gear: Gear, spot: GridSpot): Gear {
 
 export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gear | null {
   const moving = stackIn(gear, from);
-  if (!moving) return null;
+  if (!moving || to.in === "pile") return null;
   if (from.in !== "slot" && to.in === from.in) {
     const moved = moveItem(gear[to.in], from, to, turned);
     return moved && withGrid(gear, to.in, moved);

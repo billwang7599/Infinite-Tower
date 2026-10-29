@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, SLOTS, type Bag, type Carried, type EnemyId, type Entity, type ItemCounts,
-  type ItemId, type ServerMsgOf, type Skillbook, type Vitals,
+  bagCounts, SLOTS, type Carried, type EnemyId, type Entity, type ItemCounts, type ItemId, type ServerMsgOf,
+  type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult, type PlayerSetup,
@@ -84,18 +84,6 @@ const seatOf = (session: GameSession): Seat => ({
   onEnd: (result, after, book, gear) => settleBattle(session, result, after, book, gear),
 });
 
-/** `loot` packed into `bag` where it fits; `left` is what there was no room for. */
-export function packLoot(bag: Bag, loot: ItemCounts): { bag: Bag; left: ItemCounts } {
-  let packed = bag;
-  const left: ItemCounts = {};
-  for (const [item, count] of Object.entries(loot) as [ItemId, number][]) {
-    const added = addItem(packed, item, count);
-    packed = added.bag;
-    if (added.left > 0) left[item] = added.left;
-  }
-  return { bag: packed, left };
-}
-
 /** `after`, `book` and `gear`: the HP, stamina, pages and gear the fight left them. */
 function settleBattle(
   session: GameSession, result: PlayerResult, after: Vitals, book: Skillbook, gear: Carried,
@@ -110,11 +98,11 @@ function settleBattle(
   const won = result === "won";
   const { overworld } = session;
   const loot = won && battle.enemyId ? rollDrops(battle.enemyId, overworld.rng) : {};
-  const packed = packLoot(session.bag, loot);
   let lost: ItemCounts = {};
 
   if (won) {
-    session.bag = packed.bag;
+    // Until the arena keeps its drops (plan/drops.md), they land where the fight began, for anyone to take.
+    overworld.dropPile(overworld.playerPos(session.me), loot);
     session.wins++;
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
@@ -136,6 +124,6 @@ function settleBattle(
   session.save();
   session.link.send({
     t: "battleResult", won, me: overworld.playerPos(session.me), wins: session.wins, vitals: session.vitals,
-    loot, leftBehind: packed.left, lost, gear: session.gear, skillbook: session.skillbook,
+    loot, lost, gear: session.gear, skillbook: session.skillbook,
   });
 }

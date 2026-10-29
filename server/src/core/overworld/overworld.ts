@@ -1,12 +1,15 @@
 /** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
-import { World, type Character, type EnemyId, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
+import {
+  distXZ, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type System, type Vec2,
+} from "@infinite-tower/shared";
 import type { LevelDef, SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";
 import { touchSystem } from "./behaviors/touch.js";
 import { wanderSystem } from "./behaviors/wander.js";
-import { OverworldPlayer, OverworldPos, type OverworldPlayerData } from "./components.js";
+import { OverworldPlayer, OverworldPos, Pile, type OverworldPlayerData } from "./components.js";
 import type { OverworldContext } from "./context.js";
+import { packPile, PILE_LIFETIME_MS, pileSystem } from "./piles.js";
 import { newWalk, overworldPlayerSystem, queueInput } from "./player.js";
 import { Spawner } from "./spawner.js";
 
@@ -22,7 +25,7 @@ export class Overworld implements OverworldContext {
   constructor(readonly level: LevelDef) {
     this.systems = [
       overworldPlayerSystem(this), chaseSystem(), wanderSystem(this), moveSystem(this), touchSystem(this),
-      (world, dt) => this.spawner.system(world, dt),
+      (world, dt) => this.spawner.system(world, dt), pileSystem,
     ];
     this.spawner = new Spawner(this.world, level.spawns);
   }
@@ -101,5 +104,35 @@ export class Overworld implements OverworldContext {
 
   playerData(player: Entity): OverworldPlayerData {
     return this.world.require(player, OverworldPlayer);
+  }
+
+  dropPile(at: Vec2, items: ItemCounts): Entity | null {
+    if (!Object.values(items).some((count) => count > 0)) return null;
+    const pile = this.world.spawn();
+    this.world.add(pile, OverworldPos, { x: at.x, z: at.z });
+    this.world.add(pile, Pile, { items: packPile(items), vanishAtMs: Date.now() + PILE_LIFETIME_MS });
+    return pile;
+  }
+
+  nearestPile(at: Vec2, rangeTiles: number): Entity | null {
+    let nearest: { pile: Entity; dist: number } | null = null;
+    for (const [pile, , pos] of this.world.query(Pile, OverworldPos)) {
+      const dist = distXZ(at, pos);
+      if (dist <= rangeTiles && (!nearest || dist < nearest.dist)) nearest = { pile, dist };
+    }
+    return nearest?.pile ?? null;
+  }
+
+  pileItems(pile: Entity): Bag | null {
+    return this.world.isAlive(pile) ? this.world.get(pile, Pile)?.items ?? null : null;
+  }
+
+  setPileItems(pile: Entity, items: Bag): void {
+    if (items.items.length > 0) {
+      this.world.require(pile, Pile).items = items;
+      return;
+    }
+    this.world.destroy(pile);
+    this.world.flush();
   }
 }

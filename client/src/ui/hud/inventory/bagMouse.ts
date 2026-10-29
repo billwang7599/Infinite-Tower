@@ -1,11 +1,11 @@
 /**
- * The bag screen's mouse as plain data, over the bag, the cloth and the equipment slots: hovered, selected and
- * dragged, kept apart. Whether a move is allowed is the shared gear rules' call; a drop here only says what to ask
- * the server for.
+ * The bag screen's mouse as plain data, over the bag, the cloth, an open pile and the equipment slots: hovered,
+ * selected and dragged, kept apart. Whether a move is allowed is the shared gear rules' call; a drop here only says
+ * what to ask the server for.
  */
 import {
   footprint, itemDef, moveGear, stackIn, type BagItem, type Cell, type Gear, type GearMove, type GridSpot, type ItemId,
-  type Spot,
+  type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 
 /** How far a press on an item moves before it's a drag rather than a click. */
@@ -180,10 +180,12 @@ function canUse(stack: BagItem, fullHp: boolean): boolean {
   return !!def.verb && !(def.healHp && fullHp);
 }
 
-export function itemToUse(m: BagMouse, gear: Gear, fullHp: boolean): GridSpot | null {
+/** Not what's worn, nor what's on a pile: that's taken into the bag first. */
+export function itemToUse(m: BagMouse, gear: Gear, fullHp: boolean): UseSpot | null {
   const spot = m.drag ? null : m.selected;
   const s = stackAt(gear, spot);
-  return s && spot && spot.in !== "slot" && canUse(s, fullHp) ? spot : null;
+  if (!s || !spot || (spot.in !== "bag" && spot.in !== "cloth") || !canUse(s, fullHp)) return null;
+  return { in: spot.in, x: spot.x, y: spot.y };
 }
 
 /** A double click selects what's under it (nothing, on empty space); then that's used (`itemToUse`). */

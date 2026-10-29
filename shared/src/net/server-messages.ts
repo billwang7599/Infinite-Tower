@@ -38,6 +38,12 @@ export interface PlayerSnap {
   character?: Character;
 }
 
+export interface PileSnap {
+  id: number;
+  x: number;
+  z: number;
+}
+
 /** `from`: the speaker's character name, stamped by the server. */
 export interface ChatLine {
   from: string;
@@ -67,7 +73,7 @@ export type ServerMsg =
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
   /** 20 times a second, so only what moves. */
-  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; players: PlayerSnap[] }
+  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
   | {
     t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup;
@@ -96,11 +102,11 @@ export type ServerMsg =
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
   | { t: "invulnerable"; on: boolean }
   | { t: "skillbook"; skillbook: Skillbook }
-  /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot` is packed into the bag but
-   * `leftBehind`. `duel`: the opponent's name, after a duel. */
+  /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot`: what dropped, left in a pile
+   * on the overworld where the fight began. `duel`: the opponent's name, after a duel. */
   | {
-    t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; leftBehind: ItemCounts;
-    lost: ItemCounts; gear: Gear; skillbook: Skillbook; duel?: string;
+    t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; lost: ItemCounts;
+    gear: Gear; skillbook: Skillbook; duel?: string;
   }
   | { t: "pong"; id: number };
 

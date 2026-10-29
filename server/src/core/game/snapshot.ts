@@ -1,9 +1,9 @@
 /** Builds the `state` message: what the client may know about the overworld right now. */
 import {
-  distXZ, roundTo, type ActorSnap, type Entity, type PlayerSnap, type ServerMsgOf,
+  distXZ, roundTo, type ActorSnap, type Entity, type PileSnap, type PlayerSnap, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Overworld } from "../overworld/overworld.js";
-import { OverworldActor, OverworldPlayer, OverworldPos } from "../overworld/components.js";
+import { OverworldActor, OverworldPlayer, OverworldPos, Pile } from "../overworld/components.js";
 
 /** 1 cm, far below what can be seen, takes each actor from ~140 to ~90 bytes of JSON. */
 const forWire = (x: number) => roundTo(x, 2);
@@ -37,6 +37,10 @@ export function stateMsg(overworld: Overworld, player: Entity, introduced: Set<E
     players.push(snap);
   }
   for (const id of introduced) if (!players.some((p) => p.id === id)) introduced.delete(id);
+  const piles: PileSnap[] = [];
+  for (const [id, , p] of overworld.world.query(Pile, OverworldPos)) {
+    if (distXZ(p, me) <= VIEW_RADIUS_TILES) piles.push({ id, x: forWire(p.x), z: forWire(p.z) });
+  }
   const ack = overworld.playerData(player).ack;
-  return { t: "state", ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors, players };
+  return { t: "state", ack, me: { x: forWire(me.x), z: forWire(me.z) }, actors, players, piles };
 }

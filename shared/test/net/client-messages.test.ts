@@ -40,6 +40,8 @@ describe("parseClientMsg", () => {
       { t: "useItem", at: { in: "cloth", x: 0, y: 3 } },
       { t: "moveItem", from: { in: "bag", x: 0, y: 0 }, to: { in: "cloth", x: 3, y: 2 }, turned: true },
       { t: "moveItem", from: { in: "slot", slot: "rightHand" }, to: { in: "slot", slot: "leftHand" }, turned: false },
+      { t: "moveItem", from: { in: "pile", x: 1, y: 2 }, to: { in: "bag", x: 0, y: 0 }, turned: false },
+      { t: "openPile" },
       { t: "closeBag" },
       { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
       { t: "cheat", cheat: { kind: "encounter", enemy: "kobold-swordsman" } },
@@ -238,6 +240,10 @@ describe("parseClientMsg", () => {
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: bag(1, 1) }), null);
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "stash", x: 1, y: 1 }, turned: false }), null);
     assert.equal(parse({ t: "moveItem", from: bag(0, 0), to: { in: "slot", slot: "tail" }, turned: false }), null);
+  });
+
+  test("nothing is eaten straight from a pile: it's taken into the bag first", () => {
+    assert.equal(parse({ t: "useItem", at: { in: "pile", x: 0, y: 0 } }), null);
   });
 
   test("saveSkill: a page of the book, and a whole skill", () => {

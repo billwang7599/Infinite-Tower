@@ -139,8 +139,15 @@ Decided by the user:
   up to the limit, nothing; over it, a dodge costs more stamina; over 120% of it, no dodging and you walk at half
   speed (overworld and arena). Stamina recovery isn't affected. Equipped things will count toward it without taking
   bag space.
-- After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
-  drops are packed in where they fit and the rest is left behind.)
+- Drops are piles of items, not packed into the bag ([plan/drops.md](plan/drops.md)). A pile is opened and what you
+  want dragged into the bag; anyone may take from it, first come first served. The overworld's E is Interact: it
+  rests at a campfire, joins a fight or opens a pile, the nearest in reach winning ("e can be our interact button").
+  An unpicked pile vanishes 10 minutes after it lands on the overworld ("we can do like a 10 minutes timer"), monster
+  and death drops alike; time in the arena doesn't count. Not built yet: a won fight's drops landing in the arena
+  for whoever is there (dibs, everyone equal), its leftovers moving to an overworld pile at the fight's spot when
+  the last player leaves, leaving the arena automatically after 5 minutes (Enter earlier, asking first if loot is
+  left), and death drops (all but the starter kit, as a pile where you fell; the others pick first in the arena, the
+  rest to the fight's spot). Until then a won fight's drops land as an overworld pile at the fight's spot.
 - Dying is hardcore: the bag is emptied, all but the starter kit, and so is a slot holding anything else. The
   skillbook's pages are kept (the user: the saved spells survive death). Stats go back to their defaults, but they
   can't change yet, so for now nothing else is reset.
@@ -343,7 +350,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
   cosmetic only: classless, everyone starts the same.
 - Resting: each level has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within 1.6
-  tiles of one, the Rest key (E / Enter) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
+  tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
 - Items: boar meat heals 35 HP (eaten from the bag screen, overworld only, not at full HP) and weighs 0.5; a hide
@@ -357,6 +364,13 @@ them; treat them as changeable, and still ask before deciding new ones):
   weight 4.5, balance 0.3 m, power 11; the Greatsword 1 x 4, 1.9 m, weight 8, balance 0.45 m, power 16 (powers set so
   every sword deals the same damage per second at strength 10); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's power 14. Numbers: `WEAPONS` and `SWING` in `shared/src/weapons/weapons.ts`.
+- Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
+  is opened within the campfire's reach plus the lag slack (`PILE_RANGE_TILES`, `LAG_SLACK_TILES`). It only gives:
+  nothing goes onto it, nothing is moved about on it or eaten straight off it; taken things go into the bag, a hand
+  or the cloth. It shows in the bag screen above the cloth while open, and closes with the bag (B, Esc), on walking,
+  when a fight starts and when it empties or vanishes. Until the arena keeps drops, each winner of a fight (a joined
+  one too) rolls their own and they land where that winner stood, as the fight is decided. On the overworld it's a
+  tied sack with a bone sticking out. Numbers: `server/src/core/overworld/piles.ts`.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).
@@ -396,8 +410,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   HP and stamina they went in with; pages written and gear moved in it are kept. Leaving or disconnecting forfeits:
   the other wins, the leaver loses nothing. The arena banner says VICTORY / DEFEATED.
 - Joining a battle (the user: "another user can join a users' arena if theyre mid battle"; the rest are the agent's
-  picks from plan/multiplayer.md): within 1.6 tiles (`JOIN_RANGE_TILES`) of a player's crossed swords, the Rest key
-  (E, now "Rest at a campfire, or join a fight"; it joins when no campfire is closer) or the HUD's "Join the fight"
+  picks from plan/multiplayer.md): within 1.6 tiles (`JOIN_RANGE_TILES`) of a player's crossed swords, the Interact
+  key (E; it joins when no campfire or pile is closer) or the HUD's "Join the fight"
   button joins their battle; the server checks the reach with the same lag slack as resting (`LAG_SLACK_TILES`). Up
   to 4 players in a battle at once (`MAX_BATTLE_PLAYERS`); duels can't be joined; a refusal is a notice. A joiner
   comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies go for the

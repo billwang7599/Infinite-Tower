@@ -4,8 +4,8 @@
  * `chat` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the other direction.
  */
 import {
-  blankSkillbook, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
-  type GameServer, type Gear, type GridSpot, type Skill, type Skillbook, type Spot, type Stats, type Word,
+  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
+  type GameServer, type Gear, type Skill, type Skillbook, type Spot, type Stats, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -54,7 +54,7 @@ export interface OverworldHudState {
   gear: Gear;
 }
 
-export type Interaction = "rest" | "joinFight";
+export type Interaction = "rest" | "joinFight" | "openPile";
 
 /** A word over the fight for a moment: you parried the enemy, or you're staggered. */
 export type BattleCue = "none" | "parried" | "staggered";
@@ -151,7 +151,7 @@ export interface UiActions {
   interact(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
-  useItem(at: GridSpot): void;
+  useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
@@ -178,7 +178,7 @@ export class UiState {
     levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null,
     interaction: null,
     gear: {
-      bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] },
+      bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
     },
   });

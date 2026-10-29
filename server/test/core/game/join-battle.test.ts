@@ -131,6 +131,20 @@ describe("a battle fought together", () => {
     }
   });
 
+  test("won: each winner's own drops land as a pile where they stood", async (t) => {
+    t.mock.method(Math, "random", () => 0);
+    const { online, host, guest, all } = await hosting();
+    guest.joinBattle();
+    play(online, [host, guest], 3);
+    const fight = host.battle!.room.fight;
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [host, guest], 2);
+    for (const { link, session } of all) {
+      const pile = session.overworld.nearestPile(session.overworld.playerPos(session.me), 0);
+      assert.deepEqual(bagCounts(session.overworld.pileItems(pile!)!), link.last("battleResult").loot);
+    }
+  });
+
   test("a joiner who dies loses their bag and wakes at the start; the host fights on", async () => {
     const { online, host, guest, all } = await hosting();
     guest.joinBattle();

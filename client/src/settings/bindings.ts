@@ -29,7 +29,7 @@ export const ACTIONS = {
   },
   /** Turn acts on what's dragged, or else on the selected item; use on the selected item. */
   overworld: {
-    rest: { label: "Rest at a campfire, or join a fight", keys: ["KeyE"] },
+    interact: { label: "Interact (rest, join a fight, open a pile)", keys: ["KeyE"] },
     turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
     turnCameraLeft: { label: "Turn camera left", keys: ["ArrowLeft"] },
@@ -241,8 +241,8 @@ const prop = (o: unknown, key: string): unknown =>
 
 /**
  * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
- * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, and skills were
- * spells.
+ * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, skills were
+ * spells, and Interact was Rest.
  */
 const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.forward": ["battle.forward", "overworld.up", "field.up"],
@@ -251,7 +251,7 @@ const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.right": ["battle.right", "overworld.right", "field.right"],
   "general.character": ["overworld.character", "field.character"],
   "general.inventory": ["overworld.inventory", "field.inventory"],
-  "overworld.rest": ["field.rest"],
+  "overworld.interact": ["overworld.rest", "field.rest"],
   "overworld.turnItem": ["bag.turn"],
   "overworld.useItem": ["bag.use"],
   "battle.skill1": ["battle.spell1"],

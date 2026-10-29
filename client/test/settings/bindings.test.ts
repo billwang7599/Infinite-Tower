@@ -50,7 +50,7 @@ describe("ACTIONS and helpers", () => {
       const all = [...actionsOf("general"), ...actionsOf(place)].flatMap((ref) => keysOf(map, ref));
       assert.equal(new Set(all).size, all.length, place);
     }
-    assert.deepEqual(map.overworld.rest, ["KeyE"]);
+    assert.deepEqual(map.overworld.interact, ["KeyE"]);
     assert.deepEqual(map.overworld.useItem, ["Enter"]);
     assert.deepEqual(map.battle.leave, ["Enter"]);
   });
@@ -98,9 +98,9 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 
-  test("the overworld's own: rest (E), the bag's turn (R) and use (Enter), camera turns (← →), duels (T, Y, N)", () => {
+  test("the overworld's own: interact (E), the bag's turn (R) and use (Enter), camera turns, duels (T, Y, N)", () => {
     assert.deepEqual(Object.keys(ACTIONS.overworld), [
-      "rest", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "challenge", "acceptChallenge",
+      "interact", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "challenge", "acceptChallenge",
       "declineChallenge",
     ]);
     assert.deepEqual(ACTIONS.overworld.challenge.keys, ["KeyT"]);
@@ -202,7 +202,7 @@ describe("KeyBindings.bind", () => {
     const b = new KeyBindings();
     assert.deepEqual(b.bind(jump, "KeyE", null), unchanged);
     assert.deepEqual(keys(b, jump), ["Space", "KeyE"]);
-    assert.deepEqual(keys(b, { group: "overworld", action: "rest" }), ["KeyE"]);
+    assert.deepEqual(keys(b, { group: "overworld", action: "interact" }), ["KeyE"]);
   });
 
   test("a key the overworld and the arena share, put on a general action, comes off both", () => {
