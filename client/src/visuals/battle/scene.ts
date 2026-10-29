@@ -6,7 +6,7 @@ import type { Entity, Vec3 } from "@infinite-tower/shared";
 import type { BattleContext } from "../../modes/battle/context.js";
 import { createSky, type Sky } from "../sky/sky.js";
 import type { Impact } from "./impact.js";
-import { createMaterials, type Materials } from "./materials.js";
+import { createMaterials, type Materials, type PlayerFrames } from "./materials.js";
 import { createSkillKit, type SkillKit } from "./skills.js";
 
 export interface ArenaScene {
@@ -16,6 +16,8 @@ export interface ArenaScene {
   materials: Materials;
   skills: SkillKit;
   nodes: Map<Entity, TransformNode>;
+  /** Every other player's; you're drawn in `materials.player`. */
+  peerFrames: Map<Entity, PlayerFrames>;
   /** Camera shake amplitude, decaying. Hard hits add to it. */
   shake: number;
   impacts: Map<Entity, Impact>;
@@ -39,7 +41,7 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
     scene, camera, sky, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
-    nodes: new Map(), shake: 0, impacts: new Map(), battle,
+    nodes: new Map(), peerFrames: new Map(), shake: 0, impacts: new Map(), battle,
   };
 }
 
