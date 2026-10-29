@@ -23,7 +23,8 @@ What's built so far:
 - **Overworld:** a 2D top-down grass field with a boar and, each in a corner of its own, a Kobold Swordsman (a Kobold
   Greatsword beside it) and a Goblin Warlock, which wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
-  than 16:9 get side bars.
+  than 16:9 get side bars. `?world=3d` on the page draws the same field as a 3D HD-2D world (cliffs, pixel-art
+  billboards, tilt-shift), to try out.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena.
   A sword with eight swings (one per way across
   the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and

@@ -845,6 +845,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          (the level, the camera following the player within the view's edge rule)
         levels/          Level renderers by LevelLayout.theme: index.ts (registry, buildLevel, any theme's campfires,
                          flickering), grass-field.ts (terrain and its textures)
+      overworld3d/     The opt-in 3D overworld (`?world=3d`, overworldLookFrom in visuals.ts picks it): the same
+                       level, actors and rules drawn HD-2D style
+        scene.ts         Overworld3dScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
+                         tilt-shift blur (GLSL); the sprite materials; standingQuad
+        overworld3d.ts   WALKERS_3D (chibi and enemy billboards, blob shadows, "!"), overworld3dStage (level, camera)
+        scenery.ts       Where the ledges, roads and props go, round where you can walk (no Babylon: tested)
+        terrain.ts       Builds it: cliff blocks, grass tops and fringes, the field's ground texture, instanced props,
+                         the campfire's light
+        props.ts         The pixel-art props (trees, pines, bushes, rocks, grass, flowers, banners, fences); Pen
 ```
 
 ## Adding things
