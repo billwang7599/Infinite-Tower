@@ -6,7 +6,7 @@
     ".": "./src/index.ts",
     "./fight": "./src/battle/fight/index.ts",
     "./net/client-messages": "./src/net/client-messages.ts",
-    "./net/account-requests": "./src/net/account-requests.ts"
+    "./net/api-requests": "./src/net/api-requests.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-deterministic-compat": "^0.21.0",

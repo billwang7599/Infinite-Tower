@@ -1,6 +1,7 @@
-/** The account API. The browser keeps the login cookie itself; failures become sentences for the title screen. */
 import type { AccountInfo, ApiError, Credentials } from "@infinite-tower/shared";
-import { SERVER_UNREACHABLE } from "./connection.js";
+
+export const SERVER_UNREACHABLE =
+  "Can't reach the game server. Start everything with `npm run dev` (server + client).";
 
 /** null when not logged in. Throws if the server can't be reached. */
 export async function currentAccount(): Promise<AccountInfo | null> {

@@ -3,7 +3,7 @@
  * brings them, and every change is sent back.
  */
 import type { SavedSettings } from "@infinite-tower/shared";
-import type { Connection } from "../net/connection.js";
+import type { Net } from "../net/net.js";
 import { KeyBindings } from "./bindings.js";
 import { CameraSettings } from "./camera.js";
 import { HudSettings } from "./hud.js";
@@ -40,7 +40,7 @@ function toSaved(settings: Settings): SavedSettings {
 }
 
 /** The returned stop() sends anything still waiting. */
-export function syncSettings(settings: Settings, net: Connection): () => void {
+export function syncSettings(settings: Settings, net: Pick<Net, "send">): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const send = () => {
     if (timer) clearTimeout(timer);

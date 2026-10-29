@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { PASSWORD_RULES, USERNAME_RULES } from "@infinite-tower/shared";
-import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/account-requests";
+import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/api-requests";
 
 /** The sentence the form would show, or null if the body passes. */
 const problem = (schema: typeof RegisterRequest | typeof LoginRequest, body: unknown) => {

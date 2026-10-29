@@ -23,10 +23,10 @@ export * from "./world/tiles.js";
 export * from "./world/arena.js";
 export * from "./world/day.js";
 export * from "./overworld/view.js";
-export * from "./net/accounts.js";
+export * from "./net/api.js";
 export * from "./net/handlers.js";
 export * from "./net/settings.js";
 export * from "./net/text-rules.js";
-export type * from "./net/server-messages.js";
+export * from "./net/server-messages.js";
 // Types only: the Zod schemas stay out of the client bundle (see net/client-messages.ts).
 export type { Cheat, ClientMsg, SavedSettings } from "./net/client-messages.js";

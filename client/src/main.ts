@@ -6,8 +6,8 @@ import { VIEW, type Credentials } from "@infinite-tower/shared";
 import { Actions } from "./core/actions.js";
 import { Keyboard } from "./core/keyboard.js";
 import { Mouse } from "./core/mouse.js";
-import { currentAccount, logIn, logOut, register } from "./net/account.js";
-import { Connection, NotLoggedInError, SERVER_UNREACHABLE } from "./net/connection.js";
+import { currentAccount, logIn, logOut, register, SERVER_UNREACHABLE } from "./net/api.js";
+import { Net, NotLoggedInError } from "./net/net.js";
 import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
 import { LEAVE_COVERED_MS } from "./ui/screens/title/sequence.js";
@@ -63,7 +63,7 @@ async function play(): Promise<void> {
   if (ui.title.get().phase !== "menu" || !ui.title.get().username) return;
   ui.title.set({ phase: "connecting", error: null });
   // The server owns the overworld, encounters and enemies; nothing starts until it says hello.
-  const joined = await Connection.open().catch((err: unknown) => {
+  const joined = await Net.connect().catch((err: unknown) => {
     // The login expired since the page loaded: back to the form.
     if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", username: null, error: err.message });
     else ui.title.set({ phase: "menu", error: message(err) });

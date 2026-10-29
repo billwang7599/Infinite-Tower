@@ -1,6 +1,6 @@
-/** The account API's request bodies. Apart from accounts.ts so the client never imports Zod. */
+/** The HTTP API's request bodies. Apart from api.ts so the client never imports Zod. */
 import { z } from "zod";
-import { PASSWORD_RULES, USERNAME_RULES, type Credentials } from "./accounts.js";
+import { PASSWORD_RULES, USERNAME_RULES, type Credentials } from "./api.js";
 import { ruledText } from "./text-schema.js";
 
 export const RegisterRequest = z.object({

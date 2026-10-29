@@ -61,3 +61,11 @@ export type ServerMsg =
 
 /** `ServerMsgOf<"state">`. */
 export type ServerMsgOf<T extends ServerMsg["t"]> = MsgOf<ServerMsg, T>;
+
+/** Why the server closed the socket, besides the standard codes. */
+export const CLOSE_CODES = {
+  /** The same account joined from another tab or browser; the newer one plays. */
+  replaced: 4000,
+  /** No (or an expired) login cookie. */
+  notLoggedIn: 4001,
+} as const;

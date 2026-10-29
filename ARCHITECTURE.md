@@ -128,8 +128,8 @@ main.ts
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
   stays the field's); rebinding takes raw keys with `captureKey`.
   Pointer input in the UI stays plain DOM events.
-- **Two modes, one world.** `game/game.ts` routes server messages, runs the frame loop and switches between the
-  overworld (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
+- **Two modes, one world.** `game/game.ts` runs the frame loop and switches between the overworld
+  (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) live in the game's world; only the active mode updates. The fighters live in the
   fight's own world (below), made on encounter and dropped when you return. The fight's result comes while you're
   still in the arena; game.ts holds it and applies it (gear, vitals, wins, notices) as you come back.
@@ -302,7 +302,8 @@ on :8787; in production the server serves the built client itself.
 | `GET /api/me` | 200 `AccountInfo`; 401 if not logged in |
 
 Login and sign-up share 20 tries a minute per IP address (then 429). Bodies must be JSON (415 otherwise), at most
-4 KB, and are checked by the shared Zod schemas in `shared/src/net/account-requests.ts`.
+4 KB, and are checked by the shared Zod schemas in `shared/src/net/api-requests.ts`. The client makes every HTTP
+call through `client/src/net/api.ts`.
 
 **The game socket** (`/ws`). Opening one:
 
@@ -323,6 +324,14 @@ than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` 
 `GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks every
 session 60 times a second; on the overworld every 3rd tick sends a `state`, and in a fight every 15th step of the
 server's fight a `battleHash`. A `ping` never reaches the session: `Connection` answers it with a `pong` itself.
+
+In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect()` resolves with it and the
+`welcome`; `net.send(msg)` sends; each part of the game subscribes to the messages it needs with `net.on(type, fn)`,
+which returns an unsubscribe: the overworld to `level`, `state`, `encounter` and `gear`, the battle to `battleHash`
+and `battleSync` from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens
+(the level, while the game still loads) are held and delivered, in order, once the first listeners are in.
+`net.onLost(fn)` hears a dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and
+`net.close()` hangs up quietly.
 
 | Client -> server | When |
 |---|---|
@@ -357,7 +366,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
-(`CLOSE_CODES` in `shared/src/net/accounts.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
+(`CLOSE_CODES` in `shared/src/net/server-messages.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
 lost". Positions in `state` are rounded to 1 cm, and it only carries actors within `VIEW_RADIUS_TILES` of the
 server's copy of you (a circle, as the camera may look any way), so a hacked client can't see further.
 
@@ -385,9 +394,9 @@ the server's fight decides it, and its final `battleSync` and `battleResult` say
 felt on localhost. A page can ask for another with `?ping=N` (the client passes it on to `/ws`; anything but a whole
 number of ms gets the `.env`'s). Production never delays.
 
-**The HUD's ping.** `client/src/net/ping.ts` sends a `ping` every 2 s and puts the average of the last 4 round
-trips in `ui.ping`; `ui/hud/Ping.tsx` shows it in both HUDs unless Show ping (`settings.hud`) is off. The `pong` is
-delayed like everything else, so `?ping=200` reads about 200.
+**The HUD's ping.** `Net` sends a `ping` every 2 s (`client/src/net/ping.ts`) and reports the average of the last 4
+round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows it in both HUDs unless Show ping
+(`settings.hud`) is off. The `pong` is delayed like everything else, so `?ping=200` reads about 200.
 
 ## Saving
 
@@ -599,10 +608,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    SWING_DIRS, ATTACK_KINDS, SCREEN_DIR, attackShape (arm reach + length); SWING, Blade,
                    planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY; GUARD)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
-                   server-messages.ts (ServerMsg types, ServerMsgOf<t>), handlers.ts (Handlers<Msg> map +
-                   dispatch by `t`),
-                   accounts.ts (the /api routes, username / password rules, AccountInfo, socket CLOSE_CODES),
-                   account-requests.ts (their Zod schemas; server-only import), text-rules.ts (TextRules for the
+                   server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES), handlers.ts
+                   (Handlers<Msg> map + dispatch by `t`, the server's), api.ts (the HTTP API's types: username /
+                   password rules, Credentials, AccountInfo, ApiError), api-requests.ts (its Zod schemas;
+                   server-only import), text-rules.ts (TextRules for the
                    username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
                    settings.ts (MAX_KEYS_PER_ACTION)
 shared/test/      Unit tests, mirroring src/ (npm test)
@@ -680,18 +689,18 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     game/            start.ts (its own lazily loaded chunk with Babylon and Rapier: prepareGame() loads the
                      physics and builds the modes and the drawing (createDrawing: the engine and both scenes) once,
                      behind the title, and returns the Game),
-                     game.ts (Game: join() starts a session on a connection, leave() ends it; routes server
-                     messages, keeps the settings in sync, runs the frame loop (the mode's update, then
-                     `drawing.frame`), overworld <-> battle switching, who has the keys, the character from
-                     `welcome` / `character`, opening creation without one; tells the player what happened with
-                     `say`; the known words and pages from the server; the fight breaking off the chant;
-                     `saveSkill` as the fight's `write` in a battle),
+                     game.ts (Game: join() starts a session on a connection, leave() ends it; subscribes to
+                     the server messages no mode owns, keeps the settings in sync, runs the frame loop (the
+                     mode's update, then `drawing.frame`), overworld <-> battle switching, who has the keys,
+                     the character from `welcome` / `character`, opening creation without one; tells the player
+                     what happened with `say`; the known words and pages from the server; the fight breaking off
+                     the chant; `saveSkill` as the fight's `write` in a battle),
                      transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`, `cast(skill)` among them)
-    net/             connection.ts (WebSocket, passing on the page's `?ping=`; queues messages until the game
-                     `listen`s with one handler per type; a lost connection becomes a sentence for the title),
-                     account.ts (the /api calls: who's
-                     logged in, log in, register, log out), ping.ts (startPinging: the HUD's ping, every 2 s)
+    net/             net.ts (Net, the game socket: connect, send, `on(type)` with an unsubscribe, onLost, onPing,
+                     close; passes on the page's `?ping=`; holds messages until the first listeners), api.ts (every
+                     HTTP call: who's logged in, log in, register, log out), ping.ts (startPinging: Net's ping,
+                     every 2 s)
     core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
                      text fields keep their keys but the arrows, Esc, the digits and Backspace; captureKey for
                      rebinding), mouse.ts (optional,
@@ -904,7 +913,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A message.** Client -> server: a Zod schema in `shared/src/net/client-messages.ts` and the union, a method on
   `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
-  handler in `client/src/game/game.ts`'s `net.listen({...})`.
+  `net.on("<type>", ...)` where it's used (the mode that owns it, or `client/src/game/game.ts`).
 - **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts`, exporting its
   `LevelDef` (its `floor`, and its map as rows of tile characters, north first, centred on 0, 0), and its line in
   `LEVELS` (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the

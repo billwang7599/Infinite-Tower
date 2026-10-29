@@ -9,7 +9,7 @@ function setup(t: TestContext) {
   let nowMs = 5000;
   const net = new FakeNet();
   const reports: number[] = [];
-  const pinging = startPinging(net.asConnection(), (ms) => reports.push(ms), () => nowMs);
+  const pinging = startPinging(net, (ms) => reports.push(ms), () => nowMs);
   /** The next ping goes out: its id. */
   const ping = () => {
     t.mock.timers.tick(2000);

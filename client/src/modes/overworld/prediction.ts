@@ -5,7 +5,7 @@
  * processed yet. Same code + same inputs = same result, so normally nothing visibly corrects.
  */
 import { FIXED_DT, stepWalker, type Entity, type Vec2, type WalkInput, type World } from "@infinite-tower/shared";
-import type { Connection } from "../../net/connection.js";
+import type { Net } from "../../net/net.js";
 import { OverworldActor, OverworldPos, type OverworldState } from "./components.js";
 import { faceToward } from "./facing.js";
 
@@ -19,7 +19,7 @@ export class Prediction {
     private readonly world: World,
     private readonly state: OverworldState,
     private readonly player: Entity,
-    private readonly net: Connection,
+    private readonly net: Pick<Net, "send">,
   ) {}
 
   step(input: WalkInput): void {

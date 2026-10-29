@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import { currentAccount, logIn, logOut, register } from "../../src/net/account.js";
-import { SERVER_UNREACHABLE } from "../../src/net/connection.js";
+import { currentAccount, logIn, logOut, register, SERVER_UNREACHABLE } from "../../src/net/api.js";
 
 const ACCOUNT = { username: "test1" };
 const CREDENTIALS = { username: "test1", password: "test1" };
@@ -15,7 +14,7 @@ function mockFetch(t: TestContext, respond: () => Response | Promise<Response>) 
   return t.mock.method(globalThis, "fetch", async () => respond());
 }
 
-describe("account API", () => {
+describe("the HTTP API", () => {
   test("currentAccount returns the account when logged in", async (t) => {
     const fetch = mockFetch(t, () => json(200, ACCOUNT));
     assert.deepEqual(await currentAccount(), ACCOUNT);
