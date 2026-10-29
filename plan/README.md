@@ -8,7 +8,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 |---|---|
 | [vision.md](vision.md): the game this is growing into (floors of a tower, souls-like fights) | direction |
 | [server-fights.md](server-fights.md): what's left after moving fights to the server (lag, more players) | later |
-| [multiplayer.md](multiplayer.md): other players on the overworld and in fights | direction |
+| [multiplayer.md](multiplayer.md): the server list, a shared overworld, duels (PvP) and joining fights | being built |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
 | [inventory.md](inventory.md): the rest of the grid inventory (loot screen, the bag in a fight, skillbook pages) | being built |

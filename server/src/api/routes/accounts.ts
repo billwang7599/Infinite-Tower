@@ -1,6 +1,6 @@
 /** The account API under /api. Each body is checked against its shared Zod schema before the handler runs. */
 import type { AccountInfo } from "@infinite-tower/shared";
-import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/account-requests";
+import { LoginRequest, RegisterRequest } from "@infinite-tower/shared/net/api-requests";
 import type { FastifyReply } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import type { Accounts } from "../../core/accounts/accounts.js";

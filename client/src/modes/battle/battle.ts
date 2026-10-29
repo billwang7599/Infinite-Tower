@@ -1,9 +1,10 @@
 import {
-  Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSkill, type ClientMsg, type ServerMsgOf, type Skill,
+  Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSkill, type ServerMsgOf, type Skill,
   type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
 import type { Actions } from "../../core/actions.js";
+import type { Net } from "../../net/net.js";
 import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, SkillsState } from "../../ui/state.js";
@@ -22,10 +23,7 @@ const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
 
 export interface Battle {
   ctx: BattleContext;
-  /** Builds the server's fight from `encounter`. Your inputs go out through `send`. */
-  start(encounter: ServerMsgOf<"encounter">, send: (msg: ClientMsg) => void): void;
-  onHash(msg: ServerMsgOf<"battleHash">): void;
-  onSync(msg: ServerMsgOf<"battleSync">): void;
+  start(encounter: ServerMsgOf<"encounter">, net: Pick<Net, "send" | "on">): void;
   /** battleResult: now the result shows. */
   onResult(won: boolean): void;
   /** Leaving the arena: the fight's copy is dropped. */
@@ -62,6 +60,7 @@ export function createBattle(opts: BattleOptions): Battle {
   const hud = hudSystem(ctx, opts.hud);
   /** Syncs land between frames; the next frame's `corrections` are theirs. */
   let corrected: Correction[] = [];
+  let unsubscribe: (() => void)[] = [];
 
   const input = copyInput(IDLE_INPUT);
   let casting: Skill | null = null;
@@ -110,8 +109,9 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start({ setup, seat }, send) {
+    start({ setup, seat }, net) {
       ctx.fight?.dispose();
+      for (const off of unsubscribe) off();
       ctx.casts = [];
       ctx.writes = [];
       ctx.gearMoves = [];
@@ -121,8 +121,20 @@ export function createBattle(opts: BattleOptions): Battle {
       const fight = new Fight(setup);
       fight.world.add(fight.players[seat]!, LocalPlayer, true);
       ctx.fight = fight;
-      ctx.sync = new FightSync(fight, seat, send);
-      ctx.outcome = ctx.sync.outcome;
+      const sync = new FightSync(fight, seat, (msg) => net.send(msg));
+      ctx.sync = sync;
+      unsubscribe = [
+        net.on("battleHash", (msg) => sync.onHash(msg)),
+        net.on("battleSync", (msg) => {
+          const before = positions(fight);
+          sync.onSync(msg);
+          [...fight.players, ...fight.enemies].forEach((e, i) => {
+            const { pos } = fight.world.require(e, Body), was = before[i]!;
+            corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
+          });
+        }),
+      ];
+      ctx.outcome = sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
@@ -131,23 +143,12 @@ export function createBattle(opts: BattleOptions): Battle {
       // The last fight's result off the HUD before it shows again (its systems write it from the next frame on).
       opts.hud.set({ result: "fighting", showResult: false });
     },
-    onHash(msg) {
-      ctx.sync?.onHash(msg);
-    },
-    onSync(msg) {
-      const { fight, sync } = ctx;
-      if (!fight || !sync) return;
-      const before = positions(fight);
-      sync.onSync(msg);
-      [...fight.players, ...fight.enemies].forEach((e, i) => {
-        const { pos } = fight.world.require(e, Body), was = before[i]!;
-        corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
-      });
-    },
     onResult(won) {
       ctx.sync?.onResult(won);
     },
     end() {
+      for (const off of unsubscribe) off();
+      unsubscribe = [];
       ctx.fight?.dispose();
       ctx.fight = null;
       ctx.sync = null;

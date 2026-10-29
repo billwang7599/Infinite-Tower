@@ -3,7 +3,7 @@ import {
   type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
-import type { Connection, Joined } from "../../net/connection.js";
+import type { Joined, Net } from "../../net/net.js";
 import type { CameraSettings } from "../../settings/camera.js";
 import type { OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
@@ -19,10 +19,6 @@ export interface Overworld {
   /** The session ended: forget the level and its actors. */
   leave(): void;
   update(dt: number, frozen: boolean): void;
-  onLevel(msg: ServerMsgOf<"level">): void;
-  onState(msg: ServerMsgOf<"state">): void;
-  /** Walking stops until the player is back from the arena with the battle's result. */
-  onEncounter(msg: ServerMsgOf<"encounter">): void;
   onBattleResult(msg: ServerMsgOf<"battleResult">): void;
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
@@ -48,7 +44,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
 
   /** One per session (its input numbering starts over with the server's). */
   let prediction: Prediction | null = null;
-  let net: Connection | null = null;
+  let net: Net | null = null;
   /** Until back from the arena with the result: no walking, and `state` is ignored. */
   let inBattle = false;
   /** From `welcome`: stats don't change during a session. */
@@ -78,6 +74,23 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       hud.set({ levelName: "…", levelFloor: null, wins: welcome.wins, stats: welcome.stats });
       setGear(welcome.gear);
       setVitals(welcome.vitals);
+      joinedNet.on("level", (msg) => {
+        actors.clear();
+        state.level = msg.level;
+        prediction?.reset(msg.me);
+        hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor });
+      });
+      joinedNet.on("state", (msg) => {
+        if (inBattle) return;
+        prediction?.reconcile(msg.ack, msg.me);
+        actors.apply(msg.actors);
+      });
+      // Walking stops until the player is back from the arena with the battle's result.
+      joinedNet.on("encounter", (msg) => {
+        inBattle = true;
+        prediction?.reset(msg.me);
+      });
+      joinedNet.on("gear", (msg) => setGear(msg.gear));
     },
     leave() {
       prediction = null;
@@ -101,21 +114,6 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       }
       state.cameraTurns = camera.get().overworldTurns;
       hud.set({ nearCampfire: byCampfire() });
-    },
-    onLevel(msg) {
-      actors.clear();
-      state.level = msg.level;
-      prediction?.reset(msg.me);
-      hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor });
-    },
-    onState(msg) {
-      if (inBattle) return;
-      prediction?.reconcile(msg.ack, msg.me);
-      actors.apply(msg.actors);
-    },
-    onEncounter(msg) {
-      inBattle = true;
-      prediction?.reset(msg.me);
     },
     onBattleResult(msg) {
       inBattle = false;

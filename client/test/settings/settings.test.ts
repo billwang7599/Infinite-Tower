@@ -11,7 +11,7 @@ function setup(t: TestContext) {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const settings = createSettings();
   const net = new FakeNet();
-  const stop = syncSettings(settings, net.asConnection());
+  const stop = syncSettings(settings, net);
   return { settings, net, stop };
 }
 

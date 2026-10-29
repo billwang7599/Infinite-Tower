@@ -24,7 +24,7 @@ function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) 
   const actor = world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: "south", alert: false });
   const view = { level } as OverworldState;
   const net = new FakeNet();
-  const prediction = new Prediction(world, view, player, net.asConnection());
+  const prediction = new Prediction(world, view, player, net);
   return { prediction, pos, actor, view, net };
 }
 

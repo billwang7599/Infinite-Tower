@@ -1,5 +1,5 @@
 /** The HUD's ping: a `ping` over the game socket every 2 s, reported as the average of the last 4 round trips. */
-import type { Connection } from "./connection.js";
+import type { Net } from "./net.js";
 
 const PING_EVERY_MS = 2000;
 const SAMPLES = 4;
@@ -13,7 +13,7 @@ export interface Pinging {
 
 /** The first ping goes one interval in: just after joining, the page is busy, so its reply would skew the average. */
 export function startPinging(
-  net: Pick<Connection, "send">, report: (ms: number) => void, now: () => number = () => performance.now(),
+  net: Pick<Net, "send">, report: (ms: number) => void, now: () => number = () => performance.now(),
 ): Pinging {
   let nextId = 0;
   const sentAt = new Map<number, number>();

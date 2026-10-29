@@ -1,7 +1,7 @@
 /**
  * Sessions and switching between the two modes (modes/overworld/, modes/battle/). A session (join -> leave) is one
- * connection; this routes its messages, keeps the settings in sync, and runs the transitions: an encounter flashes
- * into battle, leaving a decided fight fades back to the overworld, where the server's result is applied and told.
+ * connection; this keeps the settings in sync, and runs the transitions: an encounter flashes into battle, leaving a
+ * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
   bagCounts, moveGear, type Character, type Cheat, type DayChange, type EnemyId, type GridSpot, type ServerMsgOf,
@@ -10,8 +10,7 @@ import {
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
-import type { Connection, Joined } from "../net/connection.js";
-import { startPinging, type Pinging } from "../net/ping.js";
+import type { Joined, Net } from "../net/net.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
@@ -54,9 +53,8 @@ interface GameParts {
 
 export function createGame({ drawing, actions, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
-  let net: Connection | null = null;
+  let net: Net | null = null;
   let stopSync = () => {};
-  let pinging: Pinging | null = null;
   let transition: Transition | null = null;
   /** The fight being flashed into or fought. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
@@ -111,10 +109,9 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   };
 
   const enterBattle = (msg: ServerMsgOf<"encounter">) => {
-    const to = net;
-    if (!to) return;
+    if (!net) return;
     result = null;
-    battle.start(msg, (m) => to.send(m));
+    battle.start(msg, net);
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
     say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
     setMode("battle");
@@ -199,47 +196,37 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       net = joined.net;
       restoreSettings(settings, joined.welcome.settings);
       stopSync = syncSettings(settings, net);
-      pinging = startPinging(net, (ms) => ui.ping.set({ ms }));
-      // Before `listen`: the level may already be waiting in the connection's backlog.
+      net.onPing((ms) => ui.ping.set({ ms }));
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
-      net.listen({
-        level: (msg) => overworld.onLevel(msg),
-        state: (msg) => overworld.onState(msg),
-        encounter(msg) {
-          overworld.onEncounter(msg);
-          encounter = msg;
-          transition = startTransition("battle");
-        },
-        character: (msg) => applyCharacter(msg.character),
-        rested(msg) {
-          overworld.setVitals(msg.vitals);
-          say(ui.notifications, { kind: "rested" });
-        },
-        itemUsed(msg) {
-          overworld.setVitals(msg.vitals);
-          overworld.setGear(msg.gear);
-          say(ui.notifications, { kind: "itemUsed", item: msg.item });
-        },
-        healed(msg) {
-          overworld.setVitals(msg.vitals);
-          say(ui.notifications, { kind: "healed" });
-        },
-        given(msg) {
-          overworld.setGear(msg.gear);
-          say(ui.notifications, { kind: "given", item: msg.item, count: msg.count, left: msg.left });
-        },
-        invulnerable: (msg) => ui.admin.set({ invulnerable: msg.on }),
-        gear: (msg) => overworld.setGear(msg.gear),
-        skillbook: (msg) => ui.skills.set({ book: msg.skillbook }),
-        battleHash: (msg) => battle.onHash(msg),
-        battleSync: (msg) => battle.onSync(msg),
-        battleResult(msg) {
-          result = msg;
-          battle.onResult(msg.won);
-        },
-        pong: (msg) => pinging?.pong(msg.id),
+      net.on("encounter", (msg) => {
+        encounter = msg;
+        transition = startTransition("battle");
+      });
+      net.on("character", (msg) => applyCharacter(msg.character));
+      net.on("rested", (msg) => {
+        overworld.setVitals(msg.vitals);
+        say(ui.notifications, { kind: "rested" });
+      });
+      net.on("itemUsed", (msg) => {
+        overworld.setVitals(msg.vitals);
+        overworld.setGear(msg.gear);
+        say(ui.notifications, { kind: "itemUsed", item: msg.item });
+      });
+      net.on("healed", (msg) => {
+        overworld.setVitals(msg.vitals);
+        say(ui.notifications, { kind: "healed" });
+      });
+      net.on("given", (msg) => {
+        overworld.setGear(msg.gear);
+        say(ui.notifications, { kind: "given", item: msg.item, count: msg.count, left: msg.left });
+      });
+      net.on("invulnerable", (msg) => ui.admin.set({ invulnerable: msg.on }));
+      net.on("skillbook", (msg) => ui.skills.set({ book: msg.skillbook }));
+      net.on("battleResult", (msg) => {
+        result = msg;
+        battle.onResult(msg.won);
       });
       setMode("overworld");
       lastFrameMs = performance.now();
@@ -253,8 +240,6 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       if (!net) return;
       stopSync();
       stopSync = () => {};
-      pinging?.stop();
-      pinging = null;
       ui.ping.set({ ms: null });
       cancelAnimationFrame(frameRequest);
       net.close();
