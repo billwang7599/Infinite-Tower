@@ -116,6 +116,7 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
     <div data-action={`${action.group}.${action.action}`} className={SETTING_ROW}>
       <span className={SETTING_LABEL}>{def.label}</span>
       <span className="flex flex-wrap items-center justify-end gap-1.5">
+        {!fixed && keys.length === 0 && waitingFor !== null && <span className="text-xs text-error">Unbound</span>}
         {keys.map((key) =>
           waitingFor === key ? (
             <PressAKey key={key} />

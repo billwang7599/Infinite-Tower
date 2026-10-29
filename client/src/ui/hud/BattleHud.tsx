@@ -154,7 +154,7 @@ function BossBar({ hud }: HudProps) {
 function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   const result = useStore(hud, (s) => s.result);
   const show = useStore(hud, (s) => s.showResult);
-  const leaveKey = useStore(bindings, (s) => s.battle.leave[0]!);
+  const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);
   const duel = useStore(hud, (s) => s.duel);
   const died = result === "lost";
   return (
@@ -166,7 +166,7 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
       <div className={`font-title text-6xl font-normal tracking-[6px] ${died ? "text-died" : "text-victory"}`}>
         {duel ? (died ? "DEFEATED" : "VICTORY") : died ? "YOU DIED" : "PREY SLAUGHTERED"}
       </div>
-      <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>
+      {leaveKey && <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>}
     </div>
   );
 }

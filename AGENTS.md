@@ -263,6 +263,9 @@ Decided by the agent while the user was away (the user asked for these to be dec
 them; treat them as changeable, and still ask before deciding new ones):
 
 - The count of fights won is saved with the player and kept between connections; dying doesn't reset it.
+- Key bindings: a new default key that a player's saved keys already use stays theirs, and the new action is left
+  unbound (Unbound in Settings) until they bind it or free the key. Only saved keys that clash with each other send
+  a group back to its defaults.
 - Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
   spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
   arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's goes by its swing:
