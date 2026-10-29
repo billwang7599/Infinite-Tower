@@ -6,7 +6,7 @@ import { seededRandom, type SkillElement, type Vec3 } from "@infinite-tower/shar
 import { glowTexture, puffTexture } from "../textures.js";
 
 export type LookKey = SkillElement | "none";
-export type ParticleKey = LookKey | "steam" | "sparks";
+export type ParticleKey = LookKey | "steam" | "sparks" | "ash";
 
 export interface ShaderLook {
   // Above 1 so the bloom catches it.
@@ -82,6 +82,10 @@ export const PARTICLE_LOOKS: Record<ParticleKey, ParticleLook> = {
   sparks: {
     colors: [c4(1, 0.95, 0.7, 1), c4(1, 0.6, 0.15, 1), c4(0.6, 0.2, 0, 0)],
     sizeM: [0.03, 0.08], lifeS: [0.12, 0.3], speedMps: [3, 6], gravityMps2: -9,
+  },
+  ash: {
+    colors: [c4(0.78, 0.72, 0.66, 0.95), c4(0.48, 0.44, 0.4, 0.75), c4(0.22, 0.2, 0.19, 0)],
+    sizeM: [0.08, 0.22], lifeS: [0.7, 1.3], speedMps: [0.3, 0.9], gravityMps2: 1.4, smoke: true,
   },
 };
 

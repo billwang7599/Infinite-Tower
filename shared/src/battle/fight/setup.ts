@@ -66,7 +66,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     castQueued: null, writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
-    invulnerable: setup.invulnerable ?? false,
+    invulnerable: setup.invulnerable ?? false, leftArena: false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
   world.add(e, Wielder, wielder(handsOf(setup.gear.equipment), PLAYER.armReachM));

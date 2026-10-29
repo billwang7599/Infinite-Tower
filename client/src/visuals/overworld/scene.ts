@@ -79,7 +79,7 @@ export function standingQuad(scene: Scene, name: string, width: number, height: 
   return m;
 }
 
-const drawPile: SpriteDraw = (px) => {
+export const drawPile: SpriteDraw = (px) => {
   const outline = "#1b1b2a", sack = "#a07f4f", light = "#c29c62", shade = "#6e5434", cord = "#4a2f1c";
   const bone = "#efe6cf", glint = "#ffe9a0";
   px(5, 13, 14, 8, outline);

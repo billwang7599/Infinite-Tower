@@ -30,8 +30,7 @@ export interface Game {
   join(joined: Joined): void;
   /** Sends any unsent settings, hangs up, stops drawing, forgets the level and any fight. */
   leave(): void;
-  /** Once the server's result is in: fade back to the overworld. */
-  leaveBattle(): void;
+  leaveBattle(sure?: boolean): void;
   interact(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
@@ -76,19 +75,30 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   ui.chant.subscribe(updateInput);
   ui.skillbookScreen.subscribe(updateInput);
   ui.battleBag.subscribe(updateInput);
+  ui.leaveArena.subscribe(updateInput);
   ui.chat.subscribe(updateInput);
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
-  // breaks the bag off the same way, and a decided fight closes it.
+  // breaks the bag off the same way, and the fight's result closes it (after a win it opens again on the server's
+  // gear, for the drops).
+  let shownResult = ui.battle.get().result;
   ui.battle.subscribe(() => {
     const { brokenOff, stunned, result } = ui.battle.get();
+    const decided = result !== shownResult && result !== "fighting";
+    shownResult = result;
     if (brokenOff && ui.chant.get().open) ui.chant.set(stunned ? NO_CHANT : { open: false });
-    if ((brokenOff || result !== "fighting") && ui.battleBag.get().open) ui.closeBattleBag();
+    if ((brokenOff || decided) && ui.battleBag.get().open) ui.closeBattleBag();
   });
   let bagOpen = false;
   ui.overworldPanel.subscribe(() => {
     const wasOpen = bagOpen;
     bagOpen = ui.overworldPanel.get().open === "inventory";
     if (wasOpen && !bagOpen) closeBag();
+  });
+  let battleBagOpen = false;
+  ui.battleBag.subscribe(() => {
+    const wasOpen = battleBagOpen;
+    battleBagOpen = ui.battleBag.get().open;
+    if (wasOpen && !battleBagOpen) closeBag();
   });
   ui.title.subscribe(updateInput);
   updateInput();
@@ -106,6 +116,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     // Panels are the overworld's: a fight, or leaving, closes them.
     if (next !== "overworld") ui.closeOverworldPanel();
     ui.closeBattleBag();
+    ui.leaveArena.set({ asking: false });
     ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
     drawing.show(next);
@@ -168,18 +179,29 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   };
 
   const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
+  const afterFight = () => mode === "battle" && !transition && battle.ctx.afterFightMs !== null;
 
   return {
     mode: () => mode,
     cheat,
     setDayClock,
-    leaveBattle() {
+    leaveBattle(sure = false) {
       if (mode !== "battle" || transition || !result) return;
+      if (!sure && battle.ctx.drops.length > 0) {
+        ui.leaveArena.set({ asking: true });
+        return;
+      }
       transition = startTransition("overworld");
     },
     interact() {
-      if (mode !== "overworld" || transition) return;
-      if (overworld.interact() === "openPile" && !bagOpen) ui.toggleOverworldPanel("inventory");
+      if (transition) return;
+      if (mode === "battle") {
+        if (!ui.battle.get().dropInView) return;
+        net?.send({ t: "openPile" });
+        if (!battleBagOpen) ui.toggleBattleBag();
+      } else if (mode === "overworld" && overworld.interact() === "openPile" && !bagOpen) {
+        ui.toggleOverworldPanel("inventory");
+      }
     },
     challenge() {
       if (mode === "overworld" && !transition) net?.send({ t: "challenge" });
@@ -192,8 +214,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       if (mode === "overworld" && !transition) net?.send({ t: "useItem", at });
     },
     moveItem(from, to, turned) {
-      if (mode === "battle" && !transition) battle.ctx.gearMoves.push({ from, to, turned });
-      if (mode !== "overworld" || transition || !net) return;
+      if (mode === "battle" && !transition && !afterFight()) battle.ctx.gearMoves.push({ from, to, turned });
+      if ((mode !== "overworld" && !afterFight()) || transition || !net) return;
       const moved = moveGear(ui.overworld.get().gear, from, to, turned);
       if (!moved) return;
       overworld.setGear(moved);
@@ -203,7 +225,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       if (mode === "battle" && !transition) battle.ctx.casts.push(skill);
     },
     saveSkill(page, skill) {
-      if (mode === "battle") {
+      if (mode === "battle" && !afterFight()) {
         if (!transition) battle.ctx.writes.push({ page, skill });
       } else net?.send({ t: "saveSkill", page, skill });
     },
@@ -262,7 +284,11 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       net.on("skillbook", (msg) => ui.skills.set({ book: msg.skillbook }));
       net.on("battleResult", (msg) => {
         result = msg;
-        battle.onResult(msg.won);
+        overworld.setGear(msg.gear);
+        battle.onResult(msg);
+      });
+      net.on("arenaClosed", () => {
+        if (mode === "battle" && !transition) transition = startTransition("overworld");
       });
       setMode("overworld");
       lastFrameMs = performance.now();

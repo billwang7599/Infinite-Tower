@@ -5,6 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
+import { rollDrops } from "../../../src/core/enemies/index.js";
 import { MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
@@ -131,18 +132,47 @@ describe("a battle fought together", () => {
     }
   });
 
-  test("won: each winner's own drops land as a pile where they stood", async (t) => {
+  test("won: the enemy's drops are rolled once for the fight, in one pile where it fell, for any of them", async (t) => {
     t.mock.method(Math, "random", () => 0);
-    const { online, host, guest, all } = await hosting();
+    const { online, host, guest } = await hosting();
     guest.joinBattle();
     play(online, [host, guest], 3);
     const fight = host.battle!.room.fight;
     fight.world.require(fight.enemies[0]!, Health).hp = 0;
     play(online, [host, guest], 2);
-    for (const { link, session } of all) {
-      const pile = session.overworld.nearestPile(session.overworld.playerPos(session.me), 0);
-      assert.deepEqual(bagCounts(session.overworld.pileItems(pile!)!), link.last("battleResult").loot);
-    }
+    const { drops } = host.battle!;
+    assert.equal(guest.battle!.drops, drops);
+    assert.equal(drops.piles.length, 1);
+    assert.deepEqual(bagCounts(host.overworld.pileItems(drops.piles[0]!.pile)!), rollDrops("wild-boar", () => 0));
+  });
+
+  test("won: the leftovers land on the overworld only when the last winner leaves the arena", async (t) => {
+    t.mock.method(Math, "random", () => 0);
+    const { online, host, guest } = await hosting();
+    const home = { ...host.overworld.playerPos(host.me) };
+    guest.joinBattle();
+    play(online, [host, guest], 3);
+    const fight = host.battle!.room.fight;
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [host, guest], 2);
+    const { pile } = host.battle!.drops.piles[0]!;
+    host.leaveBattle();
+    play(online, [guest], 3);
+    assert.equal(host.overworld.nearestPile(home, 0), null);
+    guest.leaveBattle();
+    assert.equal(host.overworld.nearestPile(home, 0), pile);
+  });
+
+  test("a fight already won can't be joined", async () => {
+    const { online, all, host } = await hosting(3);
+    const fight = host.battle!.room.fight;
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    play(online, [host], 2);
+    const late = all[2]!.session;
+    place(late, nextTo(host, 1));
+    late.joinBattle();
+    assert.equal(late.battle, null);
+    assert.equal(all[2]!.link.last("joinRefused").reason, "nobodyNear");
   });
 
   test("a joiner who dies loses their bag and wakes at the start; the host fights on", async () => {
@@ -243,7 +273,7 @@ describe("one of a battle's players leaving it", () => {
     host.overworld.playerData(host.me).safeTime = 0;
     place(host, actorAt(host, KOBOLD));
     online.tick(FIXED_DT);
-    assert.equal(host.battle?.enemyId, KOBOLD);
+    assert.equal(host.battle?.room.setup.enemies[0]?.def.id, KOBOLD);
 
     fight.world.require(fight.enemies[0]!, Health).hp = 0;
     play(online, [host, guest], stepsFor(KOBOLD_SPAWN.respawnTime));

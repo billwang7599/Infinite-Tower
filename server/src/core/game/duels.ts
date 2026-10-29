@@ -2,7 +2,7 @@ import { FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals
 import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../battle/room.js";
 import { getArena } from "../world/index.js";
-import { fighterOf, seatInBattle } from "./battle.js";
+import { fighterOf, newDrops, seatInBattle } from "./battle.js";
 import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
@@ -86,7 +86,7 @@ function startDuel(a: GameSession, b: GameSession): void {
   }));
   duelists.forEach((s, seat) => {
     s.overworld.enterFight(s.me);
-    seatInBattle(s, room, seat, { source: null, enemyId: null });
+    seatInBattle(s, room, seat, { source: null, drops: newDrops(s.overworld.playerPos(s.me)) });
   });
 }
 
@@ -103,7 +103,7 @@ function settleDuel(
   if (result === "left") return;
   session.link.send({
     t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
-    vitals: session.vitals, loot: {}, lost: {}, gear: session.gear, skillbook: session.skillbook,
+    vitals: session.vitals, lost: {}, gear: session.gear, skillbook: session.skillbook, afterFightMs: null,
     duel: opponent,
   });
 }

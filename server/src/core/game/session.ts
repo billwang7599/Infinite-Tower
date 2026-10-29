@@ -12,7 +12,7 @@ import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
-import { joinBattle, startBattle, type Battle } from "./battle.js";
+import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
@@ -113,7 +113,7 @@ export class GameSession {
   }
 
   battleInput(upTo: number, inputs: readonly StepInput[]): void {
-    const battle = this.liveBattle;
+    const battle = this.arena;
     if (!battle) return;
     const known = new Set(this.knownWords);
     const unknown = (skill: Skill | undefined) => skill !== undefined && validateSkill(skill, known).length > 0;
@@ -131,20 +131,23 @@ export class GameSession {
   }
 
   battleResync(): void {
-    const battle = this.liveBattle;
+    const battle = this.arena;
     if (battle) battle.room.resync(battle.seat);
   }
 
   /** Ignored mid-fight. */
   leaveBattle(): void {
-    if (!this.battle?.over) return;
+    const battle = this.battle;
+    if (!battle?.over) return;
+    battle.room.leave(battle.seat);
+    this.closeBag();
     this.battle = null;
     this.overworld.endFight(this.me, this.overworld.level.safeTime);
   }
 
   /** Closed, lost, or taken over by another tab. Mid-fight, outcome.ts's LEAVING_LOSES says what that costs. */
   disconnect(): void {
-    const battle = this.liveBattle;
+    const battle = this.battle;
     if (battle) battle.room.leave(battle.seat);
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
@@ -208,11 +211,16 @@ export class GameSession {
     this.link.send({ t: "itemUsed", item, vitals: this.vitals, gear: this.gear });
   }
 
-  /** Taking from the pile they have open is first come first served: the overworld's copy is the one taken from. */
+  /**
+   * Taking from the pile they have open is first come first served: the overworld's copy is the one taken from. In
+   * the arena after a win there's no cloth.
+   */
   moveItem(from: Spot, to: Spot, turned: boolean): void {
-    if (!this.inOverworld) return;
+    const inArena = this.afterFight !== null;
+    if (!this.inOverworld && !inArena) return;
     this.followPile();
-    const moved = moveGear(this.gear, from, to, turned);
+    const onCloth = from.in === "cloth" || to.in === "cloth";
+    const moved = inArena && onCloth ? null : moveGear(this.gear, from, to, turned);
     if (moved) {
       this.gear = moved;
       if (from.in === "pile" && this.pileOpen !== null) this.overworld.setPileItems(this.pileOpen, moved.pile);
@@ -223,9 +231,12 @@ export class GameSession {
   }
 
   openPile(): void {
-    if (!this.inOverworld) return;
-    const reach = PILE_RANGE_TILES + LAG_SLACK_TILES;
-    this.pileOpen = this.overworld.nearestPile(this.overworld.playerPos(this.me), reach);
+    const arena = this.afterFight;
+    if (arena) this.pileOpen = arenaPileInView(arena, this.overworld);
+    else if (this.inOverworld) {
+      const reach = PILE_RANGE_TILES + LAG_SLACK_TILES;
+      this.pileOpen = this.overworld.nearestPile(this.overworld.playerPos(this.me), reach);
+    } else return;
     this.followPile();
     this.link.send({ t: "gear", gear: this.gear });
   }
@@ -239,7 +250,8 @@ export class GameSession {
 
   saveSkill(page: number, skill: Skill): void {
     const known = new Set(this.knownWords);
-    if (!this.battle && heldIn(this.gear.equipment, "skillbook") !== null && validateSkill(skill, known).length === 0) {
+    const writable = heldIn(this.gear.equipment, "skillbook") !== null && validateSkill(skill, known).length === 0;
+    if (!this.liveBattle && writable) {
       this.skillbook = this.skillbook.map((written, i) => i === page ? skill : written);
       this.saveSoon();
     }
@@ -266,6 +278,11 @@ export class GameSession {
 
   get liveBattle(): Battle | null { return this.battle && !this.battle.over ? this.battle : null; }
 
+  /** In a battle's arena: fighting, or after a win with its drops. */
+  get arena(): Battle | null { return this.battle?.room.inArena(this.battle.seat) ? this.battle : null; }
+
+  get afterFight(): Battle | null { return this.battle?.over ? this.arena : null; }
+
   get name(): string { return this.character?.name ?? this.account.username; }
 
   get inLevel(): boolean { return this.walking !== null; }
@@ -283,11 +300,27 @@ export class GameSession {
   tick(): void {
     if (this.battle) {
       this.battle.room.tick(this.battle.seat);
+      this.tickAfterFight();
       return;
     }
     if (!this.inOverworld) return;
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
+  }
+
+  private tickAfterFight(): void {
+    const battle = this.afterFight;
+    if (!battle) return;
+    if (Date.now() >= (battle.drops.closesAtMs ?? Infinity)) {
+      this.leaveBattle();
+      this.link.send({ t: "arenaClosed" });
+      return;
+    }
+    if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
+    const piles = arenaPiles(battle.drops, this.overworld);
+    if (piles === battle.shownDrops) return;
+    battle.shownDrops = piles;
+    this.link.send({ t: "arenaDrops", piles: piles.map(({ pile, at }) => ({ id: pile, ...at })) });
   }
 
   /** True if the open pile changed under them (others took from it, or it vanished). */

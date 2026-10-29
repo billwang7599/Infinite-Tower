@@ -48,6 +48,7 @@ export interface PlayerData {
   burden: Burden;
   gear: Carried;
   invulnerable: boolean;
+  leftArena: boolean;
 }
 export const Player = defineComponent<PlayerData>("Player");
 

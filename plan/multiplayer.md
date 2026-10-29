@@ -45,7 +45,7 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
    battle. Up to 4 players in it at once; a joiner comes in at the arena's edge; duels can't be joined. No friendly
    fire; enemies go for the nearest player standing; enemy HP doesn't scale. A player who goes down has lost (the bag
    emptied, waking at the level's start) and the fight goes on for the rest; when it's won, everyone still in it
-   counts a win and rolls their own drops. Not done: every other player is drawn wearing the first one's look (there's
+   counts a win and they share the drops. Not done: every other player is drawn wearing the first one's look (there's
    one set of their pictures), from behind.
 
 ## Where things stand

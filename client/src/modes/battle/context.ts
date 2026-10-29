@@ -1,4 +1,4 @@
-import type { Entity, GearMove, PageWrite, Skill, Vec3 } from "@infinite-tower/shared";
+import type { Entity, GearMove, PageWrite, PileSnap, Skill, Vec3 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -9,6 +9,8 @@ import type { FightSync, StepEvent } from "./sync.js";
 const RESULT_DELAY = 1;
 export const resultShown = (outcome: FightOutcome): boolean =>
   outcome.state !== "fighting" && outcome.stateTime > RESULT_DELAY;
+/** After a win the banner goes this long after the result, so the drops can be seen. */
+export const AFTER_FIGHT_BANNER_TIME = 4;
 
 export interface Correction { e: Entity; moved: Vec3 }
 
@@ -27,6 +29,8 @@ export interface BattleContext {
   sync: FightSync | null;
   /** As the server says (its clock runs here, for when to show the result). */
   outcome: FightOutcome;
+  afterFightMs: number | null;
+  drops: PileSnap[];
   /** This frame's: what the fight's steps reported (a replayed step's again), the bodies a server's fight moved. */
   events: StepEvent[];
   corrections: Correction[];

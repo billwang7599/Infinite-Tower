@@ -156,7 +156,6 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       inBattle = false;
       prediction?.reset(msg.me);
       hud.set({ wins: msg.wins });
-      setGear(msg.gear);
       setVitals(msg.vitals);
     },
     setVitals,

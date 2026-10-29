@@ -77,9 +77,11 @@ What's built so far:
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
-- **Drops:** a won fight's loot lands as a pile where the fight began, seen by everyone nearby. E opens the nearest
-  pile next to the bag (E also rests at a campfire or joins a fight, whichever is nearest), and what you drag into
-  the bag is yours: first come, first served. A pile vanishes once it's empty, or after 10 minutes.
+- **Drops:** a won fight's loot lies in the arena where the enemy crumbled away, shared by the winners. Walk up to it,
+  look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
+  The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
+  pile on the overworld where the fight began, for anyone nearby: E opens the nearest pile there too (or rests at a
+  campfire, or joins a fight, whichever is nearest). A pile vanishes once it's empty, or 10 minutes after it lands.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it

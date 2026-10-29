@@ -1,18 +1,25 @@
-import { Enemy, Health, heldIn, LocalPlayer, Player, roundTo, Stamina, Wielder } from "@infinite-tower/shared";
+import {
+  Body, Enemy, Health, heldIn, LocalPlayer, pileInView, Player, roundTo, Stamina, Wielder,
+} from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { resultShown, type BattleContext } from "./context.js";
+import { AFTER_FIGHT_BANNER_TIME, resultShown, type BattleContext } from "./context.js";
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (fight: Fight) => void {
   return ({ world, duel, players }) => {
+    const { outcome, afterFightMs } = ctx;
+    const afterFight = afterFightMs !== null && resultShown(outcome);
     const patch: Partial<BattleHudState> = {
-      result: ctx.outcome.state,
-      showResult: resultShown(ctx.outcome),
+      result: outcome.state,
+      showResult: resultShown(outcome) && !(afterFight && outcome.stateTime > AFTER_FIGHT_BANNER_TIME),
+      afterFight,
+      arenaSecondsLeft: afterFight ? Math.max(0, Math.ceil(afterFightMs / 1000 - outcome.stateTime)) : 0,
+      dropInView: false,
     };
 
-    const me = world.first(LocalPlayer, Health, Stamina, Player, Wielder);
+    const me = world.first(LocalPlayer, Health, Stamina, Player, Wielder, Body);
     if (me) {
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
@@ -22,6 +29,8 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.brokenOff = me[4].brokenOff;
       patch.writingPage = me[4].writing?.page ?? null;
       patch.carried = me[4].gear;
+      const facing = { x: Math.sin(ctx.view.yaw), z: Math.cos(ctx.view.yaw) };
+      patch.dropInView = afterFight && pileInView(me[6].pos, facing, ctx.drops) !== null;
     }
 
     const enemy = world.first(Enemy, Health);

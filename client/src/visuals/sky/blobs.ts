@@ -13,7 +13,7 @@ export interface Lighting {
 }
 
 export interface Blobs {
-  place(ground: Vec3 | null, centreM: number, scale?: number): void;
+  place(ground: Vec3 | null, centreM: number, scale?: number, alpha?: number): void;
   dispose(): void;
 }
 
@@ -49,7 +49,7 @@ export function createBlobs(
 ): Blobs {
   const meshes: Mesh[] = [];
   return {
-    place(ground, centreM, scale = 1) {
+    place(ground, centreM, scale = 1, alpha = 1) {
       const casts = ground ? blobShadowsAt(ground, centreM, lighting) : [];
       while (meshes.length < casts.length) {
         const m = MeshBuilder.CreateGround("blob-shadow", { width: lengthM, height: widthM }, scene);
@@ -65,7 +65,7 @@ export function createBlobs(
         m.position.set(ground.x + cast.shift.x * shiftM, ground.y + 0.02, ground.z + cast.shift.z * shiftM);
         m.rotation.y = cast.yawRad;
         m.scaling.set(scale * cast.stretch, 1, scale);
-        m.visibility = cast.alpha;
+        m.visibility = cast.alpha * alpha;
       });
     },
     dispose() {
