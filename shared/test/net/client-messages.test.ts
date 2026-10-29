@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, SKILLBOOK_PAGES, type StepInput,
+  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SKILLBOOK_PAGES,
+  type StepInput,
 } from "@infinite-tower/shared";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
@@ -191,6 +192,17 @@ describe("parseClientMsg", () => {
     const mouse = { autoLock: true, swingSensitivity: 1.5 };
     assert.deepEqual(settings(mouse), { t: "settings", settings: { mouse } });
     for (const swingSensitivity of ["1", null]) assert.equal(settings({ swingSensitivity }), null);
+  });
+
+  test("settings: the overworld camera's turns are kept as saved, a whole number of quarter turns", () => {
+    const settings = (camera: object) => parse({ t: "settings", settings: { camera } });
+    for (const overworldTurns of [0, OVERWORLD_CAMERA_ANGLES - 1]) {
+      const camera = { sensitivity: 1, overworldTurns };
+      assert.deepEqual(settings(camera), { t: "settings", settings: { camera } });
+    }
+    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, 1.5, "1", null]) {
+      assert.equal(settings({ overworldTurns }), null, `turns ${overworldTurns}`);
+    }
   });
 
   test("settings: show ping may be left out (on), and must be true or false", () => {

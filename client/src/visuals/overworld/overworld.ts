@@ -1,10 +1,10 @@
 import { MeshBuilder, Vector3, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import {
-  dampFactor, distXZ, type Entity, type LevelLayout, type Vec2, type World,
+  dampFactor, distXZ, wrapAngle, type Entity, type LevelLayout, type Vec2, type World,
 } from "@infinite-tower/shared";
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "../../modes/overworld/components.js";
-import { mirrorFor, type Facing } from "../../modes/overworld/facing.js";
+import { facingOnScreen, mirrorFor, type Facing } from "../../modes/overworld/facing.js";
 import { byEnemy } from "../enemies/index.js";
 import type { Visual } from "../visuals.js";
 import { standingQuad, type OverworldScene } from "./scene.js";
@@ -23,6 +23,8 @@ const FOOT_SHARE = 0.1;
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
 const CAMERA_PITCH_RAD = (50 * Math.PI) / 180;
+const CAMERA_TURN_TIME = 0.25;
+const QUARTER_TURN_RAD = Math.PI / 2;
 
 /** The chibi's picture for each way it walks: the front faces the camera, "down" the screen. */
 const CHIBI_FACING = {
@@ -30,6 +32,7 @@ const CHIBI_FACING = {
 } as const satisfies Record<Facing, ChibiFacing>;
 
 interface Walker {
+  view: OverworldScene;
   mesh: Mesh;
   blob: Mesh;
   facings: Record<ChibiFacing, StandardMaterial> | null;
@@ -38,6 +41,8 @@ interface Walker {
   drawn: Vec2;
   glide: boolean;
   walkPhase: number;
+  /** Side-only pictures keep their last side while walking toward or away from the camera. */
+  mirror: 1 | -1;
 }
 
 function walker(spec: {
@@ -62,7 +67,7 @@ function walker(spec: {
         alert.setEnabled(false);
       }
       return {
-        mesh, blob, alert, facings: spec.facings?.(view) ?? null, sizeTiles: size, drawn: { x: pos.x, z: pos.z },
+        view, mesh, blob, alert, mirror: 1, facings: spec.facings?.(view) ?? null, sizeTiles: size, drawn: { x: pos.x, z: pos.z },
         glide: spec.glide, walkPhase: 0,
       };
     },
@@ -95,33 +100,51 @@ function glideWalker(
 }
 
 function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
-  const { actor, hop } = glideWalker(w, world, e, dt), at = w.drawn;
+  const { actor, hop } = glideWalker(w, world, e, dt), at = w.drawn, yaw = w.view.yawRad;
+  const facing = facingOnScreen(actor.heading, Math.round(yaw / QUARTER_TURN_RAD));
+  if (w.facings || facing === "left" || facing === "right") w.mirror = mirrorFor(facing);
   w.mesh.position.set(at.x, hop, at.z);
-  w.mesh.scaling.x = mirrorFor(actor.facing);
+  w.mesh.rotation.y = w.blob.rotation.y = yaw;
+  w.mesh.scaling.x = w.mirror;
   w.blob.position.set(at.x, 0.02, at.z);
   if (w.facings) {
-    const material = w.facings[CHIBI_FACING[actor.facing]];
+    const material = w.facings[CHIBI_FACING[facing]];
     if (w.mesh.material !== material) w.mesh.material = material;
   }
   if (w.alert) {
     w.alert.setEnabled(actor.alert);
-    if (actor.alert) w.alert.position.set(at.x + 0.2 * mirrorFor(actor.facing), w.sizeTiles * 0.9, at.z);
+    const side = 0.2 * w.mirror;
+    w.alert.rotation.y = yaw;
+    if (actor.alert) w.alert.position.set(at.x + side * Math.cos(yaw), w.sizeTiles * 0.9, at.z - side * Math.sin(yaw));
   }
 }
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
   let level: { layout: LevelLayout; drawing: LevelDrawing } | null = null;
-  const target = new Vector3();
-  const back = new Vector3(0, Math.sin(CAMERA_PITCH_RAD), -Math.cos(CAMERA_PITCH_RAD)).scale(CAMERA_DISTANCE);
+  const target = new Vector3(), back = new Vector3();
+  const turn = { fromRad: 0, toRad: 0, time: CAMERA_TURN_TIME };
+  let facedYaw = NaN;
   return (dt, fresh) => {
     const { state, camera } = view;
     if (state.level !== level?.layout) {
       level?.drawing.root.dispose(false, true);
       level = state.level && { layout: state.level, drawing: buildLevel(view, state.level) };
+      facedYaw = NaN;
       fresh = true;
     }
     if (!level) return;
     level.drawing.flicker(dt);
+    const wantedRad = state.cameraTurns * QUARTER_TURN_RAD;
+    if (fresh) Object.assign(turn, { fromRad: wantedRad, toRad: wantedRad, time: CAMERA_TURN_TIME });
+    else if (Math.abs(wrapAngle(wantedRad - turn.toRad)) > 1e-6) {
+      Object.assign(turn, { fromRad: view.yawRad, toRad: view.yawRad + wrapAngle(wantedRad - view.yawRad), time: 0 });
+    }
+    turn.time = Math.min(turn.time + dt, CAMERA_TURN_TIME);
+    const share = turn.time / CAMERA_TURN_TIME;
+    view.yawRad = turn.fromRad + (turn.toRad - turn.fromRad) * share * share * (3 - 2 * share);
+    if (view.yawRad !== facedYaw) level.drawing.face(facedYaw = view.yawRad);
+    const flat = Math.cos(CAMERA_PITCH_RAD) * CAMERA_DISTANCE;
+    back.set(-Math.sin(view.yawRad) * flat, Math.sin(CAMERA_PITCH_RAD) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat);
     const player = state.world.require(state.player, OverworldPos);
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
     target.x += (player.x - target.x) * k;

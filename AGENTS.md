@@ -249,6 +249,10 @@ Decided by the user:
 - The overworld is drawn in 3D, HD-2D style (the user: "i think 3d view is much cooler actually. can we make that
   default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
+- The overworld camera turns: Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it a quarter turn
+  with a short ease (`CAMERA_TURN_TIME`, 0.25 s), and there are no Up / Down camera keys. Walking is relative to the
+  camera (W away from it, A / D to its left and right), and sprites and the chibi's pictures follow it. The way it
+  looks is saved with the settings (north for a new player).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -311,9 +315,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   weight 4.5, balance 0.3 m, power 11; the Greatsword 1 x 4, 1.9 m, weight 8, balance 0.45 m, power 16 (powers set so
   every sword deals the same damage per second at strength 10); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's power 14. Numbers: `WEAPONS` and `SWING` in `shared/src/weapons/weapons.ts`.
-- The view is 16:9 at most (23 x 13 overworld tiles). Wider windows get bars on the sides; taller ones see a little
-  less width. The server sends only the actors within that view plus 3 tiles (a guess at the screen would be
-  cheatable, so it always assumes the full 16:9).
+- The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
+  only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
+  whichever way it looks (a guess at the screen would be cheatable).
 
 ## Commands
 

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { OVERWORLD_CAMERA_ANGLES } from "@infinite-tower/shared";
 import { CameraSettings, SENSITIVITY } from "../../src/settings/camera.js";
 
 const sensitivity = (c: CameraSettings) => c.get().sensitivity;
@@ -93,5 +94,52 @@ describe("CameraSettings", () => {
     assert.equal(calls, 0);
     c.setSensitivity(1.2);
     assert.equal(calls, 1);
+  });
+
+  test("the overworld camera starts facing north (no turns), which isn't saved", () => {
+    const c = new CameraSettings();
+    assert.equal(c.get().overworldTurns, 0);
+    assert.deepEqual(c.toSaved(), {});
+  });
+
+  test("turning the overworld camera steps a quarter turn each way and wraps round", () => {
+    const c = new CameraSettings();
+    c.turnOverworld(1);
+    assert.equal(c.get().overworldTurns, 1);
+    c.turnOverworld(-1);
+    c.turnOverworld(-1);
+    assert.equal(c.get().overworldTurns, OVERWORLD_CAMERA_ANGLES - 1);
+    for (let i = 0; i < OVERWORLD_CAMERA_ANGLES; i++) c.turnOverworld(1);
+    assert.equal(c.get().overworldTurns, OVERWORLD_CAMERA_ANGLES - 1);
+  });
+
+  test("the overworld turns are saved and restored, apart from the sensitivity", () => {
+    const c = new CameraSettings();
+    c.turnOverworld(-1);
+    assert.deepEqual(c.toSaved(), { overworldTurns: OVERWORLD_CAMERA_ANGLES - 1 });
+    c.setSensitivity(2);
+    const copy = new CameraSettings();
+    copy.restore(c.toSaved());
+    assert.deepEqual(copy.get(), { sensitivity: 2, overworldTurns: OVERWORLD_CAMERA_ANGLES - 1 });
+  });
+
+  test("restoring unreadable turns faces north", () => {
+    for (const overworldTurns of [-1, OVERWORLD_CAMERA_ANGLES, 1.5, NaN]) {
+      const c = new CameraSettings();
+      c.turnOverworld(1);
+      c.restore({ overworldTurns });
+      assert.equal(c.get().overworldTurns, 0, String(overworldTurns));
+    }
+  });
+
+  test("reset brings back the default sensitivity but keeps the way the overworld camera looks", () => {
+    const c = new CameraSettings();
+    c.turnOverworld(1);
+    c.setSensitivity(2);
+    assert.equal(c.sensitivityIsDefault(), false);
+    c.reset();
+    assert.equal(c.sensitivityIsDefault(), true);
+    assert.equal(c.get().overworldTurns, 1);
+    assert.equal(c.isDefault(), false);
   });
 });

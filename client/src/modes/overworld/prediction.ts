@@ -61,6 +61,6 @@ export class Prediction {
     const pos = this.world.require(this.player, OverworldPos);
     const actor = this.world.require(this.player, OverworldActor);
     stepWalker(level, pos, input, FIXED_DT, { vel: actor, pace: this.pace });
-    actor.facing = faceToward(actor.facing, input.moveX, input.moveZ);
+    actor.heading = faceToward(actor.heading, input.moveX, input.moveZ);
   }
 }

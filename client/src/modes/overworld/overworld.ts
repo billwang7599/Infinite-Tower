@@ -1,12 +1,14 @@
 import {
   gearBurden, FIXED_DT, LocalPlayer, nearCampfire, PLAYER, walkPace, type Gear, type ServerMsgOf, type Stats,
-  type Vitals, type WalkInput, type World,
+  type Vitals, type World,
 } from "@infinite-tower/shared";
-import type { Actions, Polled } from "../../core/actions.js";
+import type { Actions } from "../../core/actions.js";
 import type { Connection, Joined } from "../../net/connection.js";
+import type { CameraSettings } from "../../settings/camera.js";
 import type { OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, type OverworldState } from "./components.js";
+import { mapMove } from "./facing.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
 
@@ -33,14 +35,15 @@ interface OverworldOptions {
   world: World;
   actions: Actions;
   hud: Store<OverworldHudState>;
+  camera: CameraSettings;
 }
 
-export function createOverworld({ world, actions, hud }: OverworldOptions): Overworld {
+export function createOverworld({ world, actions, hud, camera }: OverworldOptions): Overworld {
   const player = world.spawn();
   world.add(player, OverworldPos, { x: 0, z: 0 });
-  world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, facing: "down", alert: false });
+  world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: "south", alert: false });
   world.add(player, LocalPlayer, true);
-  const state: OverworldState = { world, player, level: null };
+  const state: OverworldState = { world, player, level: null, cameraTurns: camera.get().overworldTurns };
   const actors = new ActorMirror(world);
 
   /** One per session (its input numbering starts over with the server's). */
@@ -87,9 +90,16 @@ export function createOverworld({ world, actions, hud }: OverworldOptions): Over
       if (frozen || inBattle || !state.level || !prediction) accumulator = 0;
       else accumulator += dt;
       while (prediction && accumulator >= FIXED_DT) {
-        prediction.step(readWalkInput(actions.poll()));
+        const polled = actions.poll();
+        for (const press of polled.pressed) {
+          if (press === "turnCameraLeft") camera.turnOverworld(-1);
+          else if (press === "turnCameraRight") camera.turnOverworld(1);
+        }
+        const move = mapMove(polled.move, camera.get().overworldTurns);
+        prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;
       }
+      state.cameraTurns = camera.get().overworldTurns;
       hud.set({ nearCampfire: byCampfire() });
     },
     onLevel(msg) {
@@ -118,9 +128,4 @@ export function createOverworld({ world, actions, hud }: OverworldOptions): Over
     setGear,
     rest,
   };
-}
-
-/** Screen-aligned: forward is up the map, +z. */
-function readWalkInput(polled: Polled): WalkInput {
-  return { moveX: polled.move.x, moveZ: polled.move.z };
 }

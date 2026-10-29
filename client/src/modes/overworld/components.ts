@@ -2,7 +2,7 @@
 import {
   defineComponent, type ActorSnap, type Entity, type LevelLayout, type Vec2, type World,
 } from "@infinite-tower/shared";
-import type { Facing } from "./facing.js";
+import type { Heading } from "./facing.js";
 
 /** In tiles. */
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
@@ -11,7 +11,7 @@ export interface OverworldActorData {
   kind: ActorSnap["kind"] | "player";
   vx: number;
   vz: number;
-  facing: Facing;
+  heading: Heading;
   /** Noticed you ("!"). */
   alert: boolean;
 }
@@ -22,4 +22,6 @@ export interface OverworldState {
   player: Entity;
   /** null until the server's first `level`. */
   level: LevelLayout | null;
+  /** Quarter turns right from north. */
+  cameraTurns: number;
 }

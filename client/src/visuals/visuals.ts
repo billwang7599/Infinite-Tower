@@ -187,8 +187,8 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const drawOverworld = (dt: number) => {
     const { world } = from.overworld, kinds = new Map<Entity, OverworldActorData["kind"]>();
     for (const [e, actor] of world.query(OverworldActor)) kinds.set(e, actor.kind);
-    drawEntities(WALKERS, overworld, world, walkers, kinds, dt);
     level(dt, fresh);
+    drawEntities(WALKERS, overworld, world, walkers, kinds, dt);
     fresh = false;
     overworld.scene.render();
   };
