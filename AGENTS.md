@@ -70,8 +70,8 @@ Decided by the user:
   too), a block's cost and stagger by the impact's momentum, and a parry's stun by the blades' momentum. Enemies follow
   the same rules. The equations and numbers: [plan/weapons.md](plan/weapons.md) "Built", `planSwing` and `SWING` in
   `shared/src/weapons/weapons.ts`.
-- The skill words a player knows are saved with the player in Postgres. A new player knows none for now; the dev
-  accounts test1-3 know every word.
+- The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
+  starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
   the shared fight like the sword: the client sends the whole skill as an input, the server checks its words
   against what the player knows. Seven elements, each its own damage type with a status (Burning, Wet, Rooted,
@@ -101,10 +101,10 @@ Decided by the user:
   breaks off anyone's chant alike. One cast at a time per fighter for now (maybe ~2 later). The
   skillbook (in hand) has 4 pages of saved skills, quick-cast with 1-4 (rebindable), written outside fights or in one
   (like chanting: standing still, a stagger cancels it, it takes time). The pages are saved with the player and the
-  server checks every page and cast against the words they know. Death blanks the pages; the words are kept.
+  server checks every page and cast against the words they know. Death keeps the pages and the words.
 - The sword and the skillbook are items you equip (slots: left hand, right hand, head, body, legs, boots); a new
-  character starts with both equipped, swinging needs a sword and quick-casting a skillbook. Dying still empties the
-  bag, and you respawn with a fresh equipped sword and skillbook. Equipped things count toward the carry weight but take
+  character starts with both equipped, swinging needs a sword and quick-casting a skillbook. Dying keeps them where
+  they were (the starter kit, below). Equipped things count toward the carry weight but take
   no bag space. The bag screen shows the equipment on its left, a cloth in the middle (a grid to sort things on for a
   while; what's left on it when the screen closes is lost), then the bag.
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
@@ -134,8 +134,15 @@ Decided by the user:
   bag space.
 - After a win, a loot screen: drag what you want into the bag and leave the rest. (Not built yet: for now the
   drops are packed in where they fit and the rest is left behind.)
-- Dying is hardcore: the bag is emptied. Stats go back to their defaults, but they can't change yet, so for now
-  nothing else is reset.
+- Dying is hardcore: the bag is emptied, all but the starter kit, and so is a slot holding anything else. The
+  skillbook's pages are kept (the user: the saved spells survive death). Stats go back to their defaults, but they
+  can't change yet, so for now nothing else is reset.
+- The starter kit (the user: "for the new players give them all the spells for now and weapons. they dont lose them
+  on death"): for now every player knows every skill word and has the sword, the longsword, the greatsword and the
+  skillbook (`STARTER_KIT` in `server/src/core/content/player.ts`; the Kobolds' own blades aren't in it, the agent's
+  pick). Each time a save loads, what's missing is given: every word, and each kit item not carried, packed into the
+  bag where it fits. Dying never takes a kit item: one in a hand stays held, one in the bag keeps its spot, and only
+  what was really lost is listed. A fresh player carries 17 of the 60 carry limit, using 7 of the bag's 24 cells.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   sword and the skillbook.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
@@ -216,7 +223,7 @@ Decided by the user:
   now. it should be purely visual based").
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
-  too"; not hand-played yet): a Longsword and a Greatsword, which the dev seed puts in test1-3's bags. The Kobold
+  too"; not hand-played yet): a Longsword and a Greatsword, which every player has (the starter kit). The Kobold
   Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
   Field), dropping nothing.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
@@ -234,8 +241,8 @@ Decided by the user:
   the arena: a spawn may name its own, else the level's (tall grass uses the level's). On the Grass Field the boar
   fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire (the looks and which
   enemy gets which are the agent's picks).
-- A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
-  time limit ends as a loss, a guard on the server's resources. Both are named constants in
+- A player who disconnects mid-fight has lost it: the bag empties (but for the starter kit) as on a death. A fight
+  still undecided after a time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
   generous value), for the user to change.
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
@@ -370,8 +377,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   to 4 players in a battle at once (`MAX_BATTLE_PLAYERS`); duels can't be joined; a refusal is a notice. A joiner
   comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
-  (the bag emptied, waking at the level's start), and the fight goes on for the rest; won, everyone still in it counts
-  a win and rolls their own drops (one down on the very step it's won still wins, standing at 1 HP). Anyone who
+  (the bag emptied but for the starter kit, waking at the level's start), and the fight goes on for the rest; won,
+  everyone still in it counts a win and rolls their own drops (one down on the very step it's won still wins, standing
+  at 1 HP). Anyone who
   disconnects, the host too, has lost as `LEAVING_LOSES` says, and the rest fight on. With the host gone
   (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for
   everyone in it, and the fight can still be joined: every player in it has the crossed swords, not just the host.
@@ -387,7 +395,7 @@ npm test           # unit tests of shared, server and client (Node's test runner
 npm run build      # client bundle
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
-npm run db:seed    # dev accounts test1, test2, test3, password = username, knowing every skill word (dev runs it; safe to repeat)
+npm run db:seed    # dev accounts test1, test2, test3, password = username (dev runs it; safe to repeat)
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
 docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postgres, on 127.0.0.1:8787 (README "Hosting")
 ```

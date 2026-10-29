@@ -67,7 +67,8 @@ What's built so far:
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag. The bag screen (B) shows what
+  (heals), a hide or a tusk; what doesn't fit is left behind. Dying empties the bag but for your weapons and
+  skillbook. The bag screen (B) shows what
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
@@ -76,10 +77,10 @@ What's built so far:
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it
   needs no book, and anyone chanting shows their words in front of them. The skillbook has four pages, written from the
   bag screen (Open on the book in hand) or in a fight (2 s, standing still), and quick-cast with 1-4 (hold the key to
-  keep a Beam going). Dying blanks the pages; the words you know stay.
-- **Equipment:** you start with a sword in your right hand and a skillbook in your left (and get a fresh pair after
-  dying). Without a sword in hand you can't swing, stab or block; without the skillbook you can't quick-cast. Worn
-  things count toward the weight.
+  keep a Beam going). For now everyone knows every word. Dying keeps the pages and the words.
+- **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
+  a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't swing, stab or
+  block; without the skillbook you can't quick-cast. Worn things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
   and fade; only a fight starting gets the big banner in the middle.
@@ -112,7 +113,7 @@ npm run typecheck  # shared, server, client and their tests, then the server's l
 npm run build      # the client bundle
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
-npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username, all skill words)
+npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username)
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```

@@ -97,8 +97,8 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   A stage's elements are a set: all its statuses go on first, then the reactions are checked against the result
   (so Nova · Water + Lightning conducts in one stage). If one hit could trigger two, they resolve in the order
   Conduct, Doused, Fanned, Eclipse. Any other pair just applies both statuses.
-- **Words** are learned per player and saved in the database. A new player knows none for now; the dev accounts
-  test1-3 know every word. Chaining unlocks when a player learns a second Form. How words are learned: later.
+- **Words** are learned per player and saved in the database. For now every player knows every word (the starter
+  kit in AGENTS.md). Chaining unlocks when a player learns a second Form. How words are learned: later.
 - **The skillbook** is an item, equipped in a hand (see [inventory.md](inventory.md)). It only saves and quick-casts:
   "book purely to save and quickcast"; chanting works the same without it. Saved skills are written in it: 4 for now,
   cast with one key each (quick casting). Building and saving a skill happens at a campfire, by typing words into boxes
@@ -192,7 +192,7 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
 
 1. **A** the plan. **B** the grammar. **C** casting in the shared `Fight` (built, above).
 2. **D** the skillbook's 4 saved skills, quick-cast keys 1-4, the builder and chanting in fights (built); learning
-   words (not built: new players know none).
+   words (not built: for now everyone knows every word).
 3. **E** the remaining Forms (Beam, Imbue) and modifiers, objects and their caps (built).
 4. **F** the effects (built, in code: shaders, particles and meshes, one look per element and Form, the chant's
    circle, the Imbue glow on the sword's trail, the four reactions). Not built: statuses shown on their targets

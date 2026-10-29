@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, type Character, type EnemyId,
+  addItem, bagCounts, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, type Character, type EnemyId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -140,7 +140,7 @@ describe("a battle fought together", () => {
     play(online, [host, guest], 2);
     const result = all[1]!.link.last("battleResult");
     assert.equal(result.won, false);
-    assert.equal(guest.bag.items.length, 0);
+    assert.equal(bagCounts(guest.bag)["boar-meat"], undefined);
     assert.deepEqual(result.me, { x: LEVEL.spawn.x, z: LEVEL.spawn.z });
     assert.equal(host.battle?.over, false);
     assert.equal(all[0]!.link.all("battleResult").length, 0);
@@ -153,7 +153,7 @@ describe("a battle fought together", () => {
     online.leave(guest);
     play(online, [host], 3);
     assert.equal(host.battle?.over, false);
-    assert.equal(store.saved.get(ACCOUNTS[1]!.id)?.bag.items.length, 0);
+    assert.equal(bagCounts(store.saved.get(ACCOUNTS[1]!.id)!.bag)["boar-meat"], undefined);
   });
 
   test("the enemy stays gone while anyone still fights it, though its first fighter fell", async () => {
@@ -194,7 +194,7 @@ describe("one of a battle's players leaving it", () => {
   test("the host disconnecting has lost; the guest fights on, the boar stays gone, and others may join", async () => {
     const { online, store, all, host, guest } = await boarFight(3);
     online.leave(host);
-    assert.equal(store.saved.get(ACCOUNTS[0]!.id)?.bag.items.length, 0);
+    assert.equal(bagCounts(store.saved.get(ACCOUNTS[0]!.id)!.bag)["boar-meat"], undefined);
     play(online, [guest], stepsFor(BOAR_SPAWN.respawnTime));
     assert.equal(guest.battle?.over, false);
     assert.equal(actors(guest), 0);

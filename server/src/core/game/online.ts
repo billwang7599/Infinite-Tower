@@ -3,7 +3,7 @@
  * the old session is saved first, so the new one loads what it had.
  */
 import { CLOSE_CODES } from "@infinite-tower/shared";
-import { newPlayer } from "../content/player.js";
+import { newPlayer, withStarterKit } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
@@ -54,7 +54,7 @@ export class OnlinePlayers {
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
     const id = account.id;
     // Loads and saves for one player land in order, so this load comes after the replaced session's save.
-    const saved = (await this.store.load(id)) ?? newPlayer();
+    const saved = withStarterKit((await this.store.load(id)) ?? newPlayer());
     if (!link.open || this.refusedAsFull(link, id)) return null;
     this.replace(id); // another tab may have joined while this one was loading
     const session = new GameSession(account, link, this.dev, saved, (data) => {

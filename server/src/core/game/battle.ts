@@ -1,13 +1,13 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  addItem, bagCounts, blankSkillbook, starterEquipment, type Bag, type Carried, type EnemyId, type Entity,
-  type ItemCounts, type ItemId, type ServerMsgOf, type Skillbook, type Vitals,
+  addItem, bagCounts, SLOTS, type Bag, type Carried, type EnemyId, type Entity, type ItemCounts,
+  type ItemId, type ServerMsgOf, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult, type PlayerSetup,
 } from "@infinite-tower/shared/fight";
 import { BattleRoom, type Seat } from "../battle/room.js";
-import { fullVitals } from "../content/player.js";
+import { fullVitals, STARTER_KIT } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
@@ -119,10 +119,17 @@ function settleBattle(
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    // Dying is hardcore: everything carried is gone. You wake at the start, rested, with a fresh sword and blank book.
-    lost = bagCounts(session.bag);
-    session.gear = { ...session.gear, bag: { ...session.bag, items: [] }, equipment: starterEquipment() };
-    session.skillbook = blankSkillbook();
+    // Dying is hardcore: all that's carried is gone but the starter kit, which stays put.
+    const kept = (item: ItemId) => STARTER_KIT.includes(item);
+    const { bag } = session, equipment = { ...session.gear.equipment };
+    lost = bagCounts({ ...bag, items: bag.items.filter((s) => !kept(s.item)) });
+    for (const slot of SLOTS) {
+      const item = equipment[slot];
+      if (item === null || kept(item)) continue;
+      lost[item] = (lost[item] ?? 0) + 1;
+      equipment[slot] = null;
+    }
+    session.gear = { ...session.gear, bag: { ...bag, items: bag.items.filter((s) => kept(s.item)) }, equipment };
     overworld.place(session.me, overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }

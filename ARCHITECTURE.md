@@ -52,7 +52,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    enter sequence (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has
    joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
-   screens over it, take keys. The server finds the account, loads the save and sends
+   screens over it, take keys. The server finds the account, loads the save, tops it up with the starter kit
+   (`withStarterKit`: every word, and each kit item not carried) and sends
    `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
@@ -70,11 +71,11 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
-   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and hands you a
-   fresh sword and a blank skillbook), saves and sends
+   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and slots of all
+   but the starter kit), saves and sends
    `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
-   Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death.
+   Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death, all but the starter kit.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
 ## Server: core plus outlets
@@ -508,8 +509,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   tuned, beaten by a player who reads its wind-ups whatever its seed; a cast or a page written with a word the player
   doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant, chanting without the
   book; the skillbook (pages written, refused for
-  an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, blanked
-  by a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
+  an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
+  through a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
   silent player stopping, lateness, the latest of late chant words kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
   client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
@@ -711,8 +712,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
                        a player as the fight takes them; seatInBattle: a session put in a room and sent its
                        `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, loot packed into the bag, a loss emptying it and handing a fresh sword and
-                       skillbook, vitals), snapshot.ts (the state message: only
+                       it, wins, loot packed into the bag, a loss emptying the bag and slots of all but
+                       STARTER_KIT, vitals), snapshot.ts (the state message: only
                        actors and other players within VIEW_RADIUS_TILES, each player's character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
@@ -739,7 +740,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
-      content/         player.ts (PLAYER_STATS, fullVitals, newPlayer, giveIfMissing)
+      content/         player.ts (PLAYER_STATS, STARTER_KIT, fullVitals, newPlayer, withStarterKit)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -759,8 +760,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      DATABASE_URL, applies new migrations at startup), player-store.ts / account-store.ts (the
                      two stores core asks for; one query at a time per player), migrations/ (SQL written by
                      `npm run db:generate`, plus drizzle-kit's meta/), seed.ts (dev data: accounts test1-3,
-                     password = username, knowing every skill word, a longsword and a greatsword; refuses to run
-                     in production)
+                     password = username; refuses to run in production)
 
 client/          Browser game: the two modes, their drawing (Babylon), input, React UI.
   index.html       The page: the 16:9 stage frame, the canvas, #ui

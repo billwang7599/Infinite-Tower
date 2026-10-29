@@ -7,7 +7,7 @@ export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "loot" | "
 export function battleResultLines(outcome: BattleOutcome): string[] {
   if (outcome.duel) return [`You ${outcome.won ? "won" : "lost"} the duel against ${outcome.duel}.`];
   const lost = describeItems(outcome.lost);
-  if (!outcome.won) return [lost ? `You died. Everything you carried is gone: ${lost}.` : "You died."];
+  if (!outcome.won) return [lost ? `You died. Lost for good: ${lost}.` : "You died."];
   const lines: string[] = [];
   // `loot` is everything the enemy dropped, `leftBehind` included.
   const packed = describeItems(subtractItems(outcome.loot, outcome.leftBehind));

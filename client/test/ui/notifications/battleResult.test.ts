@@ -33,7 +33,7 @@ describe("battleResultLines", () => {
 
   test("dying with items says you died and what is gone", () => {
     const said = battleResultLines({ ...LOSS, lost: { "boar-meat": 4, "boar-tusk": 1 } });
-    assert.deepEqual(said, ["You died. Everything you carried is gone: 4 boar meat, boar tusk."]);
+    assert.deepEqual(said, ["You died. Lost for good: 4 boar meat, boar tusk."]);
   });
 
   test("dying with an empty bag still says you died", () => {
