@@ -1,18 +1,38 @@
+import { Color3 } from "@babylonjs/core";
 import type { LevelLayout } from "@infinite-tower/shared";
 import type { Scenery } from "../overworld/scenery.js";
+import type { MapLight, SkyLook } from "../sky/sky.js";
 import type { SpriteDraw } from "../sprites.js";
 import { GRASS_FIELD_TILES } from "./grass-field/tiles.js";
 import { grassFieldScenery } from "./grass-field/scenery.js";
 import type { TileLooks } from "./tiles.js";
 
 interface LevelLook {
+  env: SkyLook;
   tiles: TileLooks;
   scenery(level: LevelLayout): Scenery;
 }
 
 export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
-  "grass-field": { tiles: GRASS_FIELD_TILES, scenery: grassFieldScenery },
+  "grass-field": {
+    env: {
+      sky: new Color3(0.27, 0.25, 0.29),
+      fogDensity: 0.016,
+      ambient: new Color3(0.26, 0.24, 0.3),
+      skyLight: { color: new Color3(0.55, 0.58, 0.82), ground: new Color3(0.32, 0.26, 0.22), intensity: 0.5 },
+      sun: { color: new Color3(1, 0.68, 0.46), intensity: 1.5 },
+    },
+    tiles: GRASS_FIELD_TILES,
+    scenery: grassFieldScenery,
+  },
 };
+
+const CAMPFIRE_LIGHT = { heightTiles: 1.2, color: new Color3(1, 0.55, 0.22), intensity: 3, rangeM: 10, flicker: 0.12 };
+
+export function campfireLights(level: LevelLayout): MapLight[] {
+  const { heightTiles, color, intensity, rangeM, flicker } = CAMPFIRE_LIGHT;
+  return level.campfires.map((c) => ({ at: { x: c.x, y: heightTiles, z: c.z }, color, intensity, rangeM, flicker }));
+}
 
 export const FLICKER_TIME = 0.14;
 

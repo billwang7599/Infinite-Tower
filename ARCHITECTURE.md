@@ -854,25 +854,32 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
-        scene.ts         OverworldScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
+        scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
-        overworld.ts     WALKERS (chibi and enemy billboards: glide, hop, facing, blob shadows, "!"), overworldStage
-                         (the level, the camera following the player and easing through its quarter turns)
+        overworld.ts     WALKERS (chibi and enemy billboards: glide, hop, facing, the sky's tint and blob shadows, "!"),
+                         overworldStage (the level, the camera following the player and easing through its quarter
+                         turns, the sky's frame)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
-        terrain.ts       Builds it: cliff blocks, grass tops and fringes, the map's ground (paintGround), instanced
-                         props (the tiles' and the scenery's), the campfire's light; face turns them to the camera
+        terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
+                         grass tops and fringes, the map's ground (paintGround), instanced props (the tiles' and the
+                         scenery's, each tinted by the light where it stands; a tall one's shadows come from upright
+                         cards only shadow maps see, one kept turned to the sun or moon and one turned to each campfire
+                         in reach, each cast by its own light), the campfires; face turns the props to the camera
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up;
                          Pen
-      levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS, one line each:
-                       its tile looks and the 3D surroundings; the campfire's picture), tiles.ts (paintGround and
-                       tileProps: a map's ground picture and props from its tile looks)
+      levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
+                       colours and fog), tile looks and the 3D surroundings; the campfire's picture and light,
+                       campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and props from its
+                       tile looks)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
-      sky/             sky.ts: the one owner of the arena's lights and shadows (nothing else makes a light or a shadow
-                       generator): the time of day's sun or moon (one shadow-casting light, cross-faded at the horizon)
-                       and their discs, the sky light, sky colour and fog over a look's colours (SkyLook), the map's
-                       flickering point lights (the nearest the camera cast shadows), a sprite's tint and blob shadow;
-                       setDayClock (dev: `?time=`, `window.setTime`)
+      sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
+                       light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
+                       cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
+                       colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows), a
+                       sprite's tint and blob shadows (Blobs: a round one from the sky light, and one away from each
+                       light that reaches it, as dark as that light's share there; blobShadowsAt, tested), the yaw
+                       that turns a shadow card to a light; setDayClock (dev: `?time=`, `window.setTime`)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
                          env (its daylight colours and fog), its map lights and build; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
@@ -988,7 +995,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's sun, fog, colour grade and camera (its turn time) | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
+| How each tile looks; the overworld's colour grade and camera (its turn time), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
+| A level's daylight sky, fog and light; a campfire's light | `env` in `LEVEL_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/levels/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height, moonlight, fades, map-light shadows, sprite tint, blob shadows, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |

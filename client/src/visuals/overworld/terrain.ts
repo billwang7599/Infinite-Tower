@@ -1,29 +1,35 @@
 import {
-  Color3, MeshBuilder, PointLight, StandardMaterial, Texture, TransformNode, Vector3, Vector4, VertexBuffer, type DynamicTexture,
-  type AbstractMesh, type Mesh, type Scene,
+  Color3, Color4, MeshBuilder, StandardMaterial, Texture, TransformNode, Vector4, VertexBuffer, type DynamicTexture,
+  type InstancedMesh, type Mesh, type Scene,
 } from "@babylonjs/core";
-import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
-import { drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
+import { mapHalfSize, seededRandom, wrapAngle, type LevelLayout, type Vec3 } from "@infinite-tower/shared";
+import { campfireLights, drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { paintGround, tileProps } from "../levels/tiles.js";
+import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
 import { spriteMaterial } from "../sprites.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
-import { cutoutMaterial, spriteLook, standingQuad, type OverworldScene } from "./scene.js";
+import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
 import { isTall, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
 const FRINGE_TILES = 0.4;
 const CAMPFIRE_TILES = 1.4;
+/** Seen only by shadow maps: the camera's layer mask leaves this bit out. */
+const SHADOW_ONLY_LAYER = 0x10000000;
+const CARD_TURN_STEP_RAD = 0.02;
 
 export interface LevelDrawing {
   root: TransformNode;
-  flicker(dt: number): void;
+  frame(dt: number): void;
   face(yawRad: number): void;
 }
 
 export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawing {
-  const { scene, sunShadows } = view, root = new TransformNode(`level-${level.id}`, scene);
+  const { scene, sky } = view, root = new TransformNode(`level-${level.id}`, scene);
   const look = LEVEL_LOOKS[level.theme], scenery = look.scenery(level);
+  const lights = campfireLights(level);
+  sky.look(look.env, lights);
   const lit = (name: string, tex: DynamicTexture) => {
     const m = new StandardMaterial(name, scene);
     m.diffuseTexture = tex;
@@ -46,12 +52,17 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
       m.receiveShadows = true;
       m.freezeWorldMatrix();
     }
+    sky.castShadows(parts[0]!);
   });
-  const upright = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], root);
-  const campfires = buildCampfires(view, level, root, sunShadows);
-  upright.push(...campfires.meshes);
+  const props = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], lights, root);
+  const campfires = buildCampfires(view, level, root);
+  const upright = [...props.upright, ...campfires.meshes];
   return {
-    root, flicker: campfires.flicker,
+    root,
+    frame(dt) {
+      campfires.flicker(dt);
+      props.light(sky);
+    },
     face(yawRad) {
       for (const m of upright) {
         m.rotation.y = yawRad;
@@ -95,33 +106,102 @@ function buildLedge(
   return [block, ground, ...fringes];
 }
 
+/** Mirrors the picture without a negative scale, which would draw each instance on its own. */
+function mirrorUVs(mesh: Mesh): void {
+  const uvs = mesh.getVerticesData(VertexBuffer.UVKind)!;
+  for (let k = 0; k < uvs.length; k += 2) uvs[k] = 1 - uvs[k]!;
+  mesh.setVerticesData(VertexBuffer.UVKind, uvs);
+}
+
 function scaleUVs(mesh: Mesh, u: number, v: number): void {
   const uvs = mesh.getVerticesData(VertexBuffer.UVKind)!;
   for (let k = 0; k < uvs.length; k += 2) { uvs[k] = uvs[k]! * u; uvs[k + 1] = uvs[k + 1]! * v; }
   mesh.setVerticesData(VertexBuffer.UVKind, uvs);
 }
 
-/** One template quad per kind, every prop an instance of it (one draw call a kind). */
-function placeProps({ scene, sunShadows }: OverworldScene, props: Prop[], root: TransformNode): AbstractMesh[] {
-  const templates = new Map<PropKind, Mesh>();
-  return props.map((p, i) => {
-    let tpl = templates.get(p.kind);
+interface PlacedProps { upright: InstancedMesh[]; light(sky: Sky): void }
+
+function placeProps(
+  { scene, sky }: OverworldScene, props: Prop[], lights: MapLight[], root: TransformNode,
+): PlacedProps {
+  const materials = new Map<PropKind, StandardMaterial>();
+  const templates = new Map<string, { quad: Mesh; card: Mesh | null }>();
+  const tinted: { inst: InstancedMesh; at: Vec3 }[] = [], cards: InstancedMesh[] = [];
+  const upright = props.map((p, i) => {
+    const mirrored = i % 2 === 1, key = `${p.kind}${mirrored ? "-mirrored" : ""}`;
+    const art = PROP_ART[p.kind], width = art.widthPx / PX_PER_TILE, height = art.heightPx / PX_PER_TILE;
+    let tpl = templates.get(key);
     if (!tpl) {
-      const art = PROP_ART[p.kind];
-      tpl = standingQuad(scene, `prop-${p.kind}`, art.widthPx / PX_PER_TILE, art.heightPx / PX_PER_TILE);
-      tpl.material = cutoutMaterial(scene, `prop-${p.kind}`, propTexture(scene, p.kind, 31));
-      tpl.isVisible = false;
-      tpl.parent = root;
-      if (isTall(p.kind)) sunShadows.addShadowCaster(tpl);
-      templates.set(p.kind, tpl);
+      let material = materials.get(p.kind);
+      if (!material) {
+        materials.set(p.kind, material = cutoutMaterial(scene, `prop-${p.kind}`, propTexture(scene, p.kind, 31)));
+      }
+      const quad = standingQuad(scene, `prop-${key}`, width, height);
+      quad.material = material;
+      quad.registerInstancedBuffer(VertexBuffer.ColorKind, 4);
+      quad.instancedBuffers.color = new Color4(1, 1, 1, 1);
+      let card: Mesh | null = null;
+      if (isTall(p.kind)) {
+        // Its shadow comes from an upright card turned to the light, never edge-on as the quad turns to the camera.
+        card = standingQuad(scene, `prop-card-${key}`, width, height);
+        card.rotation.x = 0;
+        card.material = material;
+        card.layerMask = SHADOW_ONLY_LAYER;
+        card.isVisible = false;
+        card.parent = root;
+      }
+      for (const m of [quad, card]) if (m && mirrored) mirrorUVs(m);
+      quad.isVisible = false;
+      quad.parent = root;
+      templates.set(key, tpl = { quad, card });
     }
-    const inst = tpl.createInstance(`prop-${p.kind}-${i}`);
+    const inst = tpl.quad.createInstance(`prop-${p.kind}-${i}`);
     inst.parent = root;
     inst.position.set(p.x, p.y, p.z);
     inst.scaling.setAll(p.scale);
-    if (i % 2 === 1) inst.scaling.x = -p.scale;
+    inst.instancedBuffers.color = new Color4(1, 1, 1, 1);
+    tinted.push({ inst, at: { x: p.x, y: p.y + (height * p.scale) / 2, z: p.z } });
+    if (tpl.card) {
+      const shadowCard = (name: string) => {
+        const card = tpl.card!.createInstance(name);
+        card.parent = root;
+        card.layerMask = SHADOW_ONLY_LAYER;
+        card.position.copyFrom(inst.position);
+        card.scaling.copyFrom(inst.scaling);
+        return card;
+      };
+      const card = shadowCard(`prop-card-${p.kind}-${i}`);
+      sky.castShadows(card, "direct");
+      cards.push(card);
+      lights.forEach((light, k) => {
+        if (Math.hypot(light.at.x - p.x, light.at.z - p.z) >= light.rangeM) return;
+        const lampCard = shadowCard(`prop-card-${p.kind}-${i}-light-${k}`);
+        lampCard.rotation.y = cardYawRad({ x: light.at.x - p.x, y: 0, z: light.at.z - p.z });
+        lampCard.freezeWorldMatrix();
+        sky.castShadows(lampCard, light);
+      });
+    }
     return inst;
   });
+  const tint = new Color3();
+  let cardYaw = NaN;
+  return {
+    upright,
+    light(sky) {
+      for (const { inst, at } of tinted) {
+        sky.tintAt(at, tint);
+        const color = inst.instancedBuffers.color as Color4;
+        color.set(tint.r, tint.g, tint.b, 1);
+      }
+      const yaw = sky.cardYaw();
+      if (Math.abs(wrapAngle(yaw - cardYaw)) < CARD_TURN_STEP_RAD) return;
+      cardYaw = yaw;
+      for (const card of cards) {
+        card.rotation.y = yaw;
+        card.freezeWorldMatrix();
+      }
+    },
+  };
 }
 
 function drawGrass(pen: Pen, w: number, h: number, seed: number): void {
@@ -165,35 +245,22 @@ function drawFringe(pen: Pen): void {
 }
 
 function buildCampfires(
-  { scene }: OverworldScene, level: LevelLayout, root: TransformNode, shadows: OverworldScene["sunShadows"],
+  { scene }: OverworldScene, level: LevelLayout, root: TransformNode,
 ): { meshes: Mesh[]; flicker: (dt: number) => void } {
   if (level.campfires.length === 0) return { meshes: [], flicker: () => {} };
-  const frames = ([0, 1] as const).map((f) => {
-    const m = spriteLook(spriteMaterial(scene, `campfire-${f}`, drawCampfire(f)));
-    m.emissiveColor = Color3.White();
-    return m;
-  });
+  const frames = ([0, 1] as const).map((f) => spriteMaterial(scene, `campfire-${f}`, drawCampfire(f)));
   const fires = level.campfires.map((c, i) => {
     const m = standingQuad(scene, `campfire-${i}`, CAMPFIRE_TILES, CAMPFIRE_TILES, 0.1);
     m.position.set(c.x, 0, c.z);
     m.material = frames[0]!;
     m.parent = root;
-    shadows.addShadowCaster(m);
-    const light = new PointLight(`campfire-light-${i}`, m.position.add(new Vector3(0, 1.2, -0.3)), scene);
-    light.diffuse = new Color3(1, 0.55, 0.22);
-    light.specular = Color3.Black();
-    light.range = 10;
-    light.parent = root;
-    return { m, light };
+    return m;
   });
   let time = 0;
   const flicker = (dt: number) => {
     time += dt;
     const frame = frames[Math.floor(time / FLICKER_TIME) % 2]!;
-    for (const { m, light } of fires) {
-      m.material = frame;
-      light.intensity = 3 + Math.sin(time * 13) * 0.15 + Math.sin(time * 7.3) * 0.2;
-    }
+    for (const m of fires) m.material = frame;
   };
-  return { meshes: fires.map((f) => f.m), flicker };
+  return { meshes: fires, flicker };
 }
