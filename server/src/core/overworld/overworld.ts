@@ -45,11 +45,7 @@ export class Overworld implements OverworldContext {
 
   /** A touched `source` leaves the overworld for the fight; `spawn` defaults to the one it came from. */
   startEncounter(player: Entity, source: Entity | null, enemy: EnemyId, spawn?: SpawnDef): void {
-    const walk = this.playerData(player);
-    if (walk.fighting) return;
-    walk.fighting = true;
-    walk.queue.length = 0;
-    walk.vx = walk.vz = 0;
+    if (!this.enterFight(player)) return;
     const from = source === null ? spawn : this.spawner.spawnOf(source);
     if (source !== null) this.spawner.take(source, player);
     this.onEncounter.get(player)?.(source, enemy, from);
@@ -57,6 +53,15 @@ export class Overworld implements OverworldContext {
 
   get empty(): boolean {
     return this.onEncounter.size === 0;
+  }
+
+  enterFight(player: Entity): boolean {
+    const walk = this.playerData(player);
+    if (walk.fighting) return false;
+    walk.fighting = true;
+    walk.queue.length = 0;
+    walk.vx = walk.vz = 0;
+    return true;
   }
 
   fightDecided(player: Entity): void {

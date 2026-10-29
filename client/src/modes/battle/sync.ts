@@ -1,13 +1,15 @@
 /**
  * The client's own copy of the fight, run whole and at once so it answers your keys on the next step. It sends each
  * change of input with its step, checks the server's hashes against its own, and on a mismatch loads the server's
- * fight and replays its inputs since. The result is only ever the server's: `outcome` waits for battleResult.
+ * fight and replays its inputs since. Another player is shown doing what they last did until the server passes on
+ * what they really did; then the fight goes back to that step and replays. The result is only ever the server's:
+ * `outcome` waits for battleResult.
  */
 import {
   copyInput, FIXED_DT, HASH_EVERY_STEPS, Health, MAX_INPUT_DELAY_STEPS, MAX_INPUTS_PER_MESSAGE, Player, PlayerInput,
   quantizeInput, sameInput, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf, type StepInput,
 } from "@infinite-tower/shared";
-import type { Fight, FightEvent, FightOutcome } from "@infinite-tower/shared/fight";
+import type { Fight, FightEvent, FightOutcome, FightSnapshot } from "@infinite-tower/shared/fight";
 import { Pace } from "./pace.js";
 
 /** With nothing new to send, the client still says how far it has got this often (steps). */
@@ -48,6 +50,9 @@ export class FightSync {
   private readonly hashes = new Map<number, number>();
   /** The server's hashes for steps this copy hasn't run yet. */
   private readonly ahead = new Map<number, number>();
+  private readonly theirs = new Map<number, PlayerInputData[]>();
+  /** With other players: this copy after each recent step, to go back to when their inputs come. */
+  private readonly states = new Map<number, FightSnapshot>();
   private outbox: StepInput[] = [];
   /** The last change queued, and the last one sent. */
   private queued: PlayerInputData | null = null;
@@ -67,6 +72,7 @@ export class FightSync {
     now: () => number = () => performance.now(),
   ) {
     this.pace = new Pace(now);
+    if (fight.players.length > 1) this.states.set(fight.steps, fight.save());
   }
 
   private get me(): Entity {
@@ -126,6 +132,10 @@ export class FightSync {
     const hashBefore = this.fight.hash(), hpBefore = this.hp();
     this.fight.load(fight);
     this.hashes.clear();
+    if (this.states.size > 0) {
+      this.states.clear();
+      this.states.set(step, this.fight.save());
+    }
     for (const at of this.ahead.keys()) if (at <= step) this.ahead.delete(at);
     if (step % HASH_EVERY_STEPS === 0) this.hashes.set(step, this.fight.hash());
     if (step >= present) {
@@ -144,6 +154,29 @@ export class FightSync {
     if (this.hp() >= hpBefore) return;
     this.stats.hiddenHits++;
     if (this.lastDodgeStep >= present - DODGE_LOOKBACK_STEPS) this.stats.hiddenDodgeHits++;
+  }
+
+  onInputs({ inputs }: ServerMsgOf<"battleInputs">): void {
+    if (this.decided) return;
+    let from = Infinity;
+    for (const { seat, changes } of inputs) {
+      if (seat === this.seat) continue;
+      for (const { step, ...change } of changes) {
+        let known = this.theirs.get(step);
+        if (!known) this.theirs.set(step, known = []);
+        known[seat] = change;
+        from = Math.min(from, step);
+      }
+    }
+    if (from > this.fight.steps) return;
+    const before = this.states.get(from - 1);
+    if (!before) {
+      this.ask();
+      return;
+    }
+    const present = this.fight.steps;
+    this.fight.load(before);
+    this.replay(from, present);
   }
 
   /** battleResult: the fight is over, and the banner may show. */
@@ -166,12 +199,17 @@ export class FightSync {
     }
   }
 
-  /** Your input, everyone else's last; the hash taken if it's a step the server checks. */
+  /** Your input, the others' as the server ran them or else their last; the hash taken if the server checks it. */
   private run(input: PlayerInputData): void {
-    const inputs: PlayerInputData[] = [];
+    const inputs = [...this.theirs.get(this.fight.steps + 1) ?? []];
     inputs[this.seat] = input;
     this.fight.step(inputs);
     const step = this.fight.steps;
+    if (this.states.size > 0) {
+      this.states.set(step, this.fight.save());
+      this.states.delete(step - HISTORY_STEPS - 1);
+      this.theirs.delete(step - HISTORY_STEPS - 1);
+    }
     for (const event of this.fight.events) this.events.push({ step, event });
     if (step % HASH_EVERY_STEPS !== 0) return;
     const hash = this.fight.hash();

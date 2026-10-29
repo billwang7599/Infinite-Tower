@@ -47,6 +47,7 @@ export function createBattle(opts: BattleOptions): Battle {
     polled: actions.poll(), actions, settings,
     view: { ...START_VIEW, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
+    opponent: null,
     fight: null,
     sync: null,
     outcome: { state: "fighting", stateTime: 0 },
@@ -89,7 +90,7 @@ export function createBattle(opts: BattleOptions): Battle {
     });
     input.cast = last ? null : ctx.casts.shift() ?? null;
     casting = input.castHeld ? last : input.cast;
-    input.locked = ctx.lock === null ? null : fight.enemies.indexOf(ctx.lock);
+    input.locked = ctx.lock === null ? null : fight.targets.indexOf(ctx.lock);
     input.write = input.write ? null : ctx.writes.shift() ?? null;
     const { open, words } = opts.chant.get();
     input.chant = open;
@@ -109,7 +110,7 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start({ setup, seat }, net) {
+    start({ setup, seat, opponent }, net) {
       ctx.fight?.dispose();
       for (const off of unsubscribe) off();
       ctx.casts = [];
@@ -123,17 +124,20 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.fight = fight;
       const sync = new FightSync(fight, seat, (msg) => net.send(msg));
       ctx.sync = sync;
+      const correcting = (load: () => void) => {
+        const before = positions(fight);
+        load();
+        [...fight.players, ...fight.enemies].forEach((e, i) => {
+          const { pos } = fight.world.require(e, Body), was = before[i]!;
+          corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
+        });
+      };
       unsubscribe = [
         net.on("battleHash", (msg) => sync.onHash(msg)),
-        net.on("battleSync", (msg) => {
-          const before = positions(fight);
-          sync.onSync(msg);
-          [...fight.players, ...fight.enemies].forEach((e, i) => {
-            const { pos } = fight.world.require(e, Body), was = before[i]!;
-            corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
-          });
-        }),
+        net.on("battleSync", (msg) => correcting(() => sync.onSync(msg))),
+        net.on("battleInputs", (msg) => correcting(() => sync.onInputs(msg))),
       ];
+      ctx.opponent = opponent ?? null;
       ctx.outcome = sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);

@@ -91,15 +91,15 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
  * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks and the block go where the
  * player aims (the camera's facing, or the locked enemy); a dodge goes where they move, or backwards standing still.
  */
-export function playerControllerSystem(enemies: readonly Entity[]): System {
+export function playerControllerSystem(targets: readonly Entity[]): System {
   return (world, dt) => {
     for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats, Wielder, Skilled)) {
-      controlPlayer(world, e, dt, enemies);
+      controlPlayer(world, e, dt, targets);
     }
   };
 }
 
-function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly Entity[]): void {
+function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[]): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
   const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
@@ -134,7 +134,8 @@ function controlPlayer(world: World, e: Entity, dt: number, enemies: readonly En
   player.gearHeld = input.gear !== null;
   player.wordsHeld = input.chantWords !== null;
   skilled.aim = { x: input.aimX, z: input.aimZ };
-  skilled.target = input.locked === null ? null : enemies[input.locked] ?? null;
+  const lockedOn = input.locked === null ? null : targets[input.locked] ?? null;
+  skilled.target = lockedOn === e ? null : lockedOn;
   if (!input.chant && !input.bag) player.brokenOff = false;
 
   if (!alive || health.hitstun > 0) {

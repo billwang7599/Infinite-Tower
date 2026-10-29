@@ -2,6 +2,7 @@
 import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/player.js";
 import type { EnemyId } from "../battle/defs.js";
+import type { StepInput } from "../battle/input.js";
 import type { FightSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Stats } from "../battle/stats.js";
@@ -37,6 +38,16 @@ export interface PlayerSnap {
   character?: Character;
 }
 
+/** `busy`: `who` (null: you) is in another challenge already. */
+export type ChallengeNews =
+  | { kind: "sent"; to: string }
+  | { kind: "received"; from: string }
+  | { kind: "declined"; by: string }
+  | { kind: "expired"; with: string }
+  | { kind: "cancelled"; with: string }
+  | { kind: "nobodyNear" }
+  | { kind: "busy"; who: string | null };
+
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. */
   | {
@@ -48,12 +59,18 @@ export type ServerMsg =
   /** 20 times a second, so only what moves. */
   | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; players: PlayerSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
-  | { t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup }
+  | {
+    t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup;
+    opponent?: { name: string; character: Character };
+  }
   /** `lateSteps`: how late your inputs reach the server (the best since the last hash; negative: early), measured
    * on your input up to `heardStep` (client/src/modes/battle/pace.ts). */
   | { t: "battleHash"; step: number; hash: number; lateSteps: number; heardStep: number }
   /** The answer to `battleResync`, and once more as the fight is decided. */
   | { t: "battleSync"; step: number; fight: FightSnapshot; lateSteps: number; heardStep: number }
+  /** The other players' changes of input, as the server ran them, since the last of these. */
+  | { t: "battleInputs"; inputs: { seat: number; changes: StepInput[] }[] }
+  | { t: "challengeNews"; news: ChallengeNews }
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
@@ -63,10 +80,10 @@ export type ServerMsg =
   | { t: "invulnerable"; on: boolean }
   | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot` is packed into the bag but
-   * `leftBehind`. */
+   * `leftBehind`. `duel`: the opponent's name, after a duel. */
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; leftBehind: ItemCounts;
-    lost: ItemCounts; gear: Gear; skillbook: Skillbook;
+    lost: ItemCounts; gear: Gear; skillbook: Skillbook; duel?: string;
   }
   | { t: "pong"; id: number };
 

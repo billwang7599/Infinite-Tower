@@ -95,6 +95,8 @@ export class FiredEffects {
   }
 }
 
+type Painted = { fight: Fight; held: Held | null } | null;
+
 type Drawn<K extends string> = Map<Entity, { kind: K; state: unknown }>;
 
 function drawEntities<K extends string, Scene>(
@@ -132,28 +134,42 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const level = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
+  const rivalLook = new PlayerLook({ battle: arena.materials.rival }, redrawSprite);
   const fighters: Drawn<VisualKind> = new Map();
   const walkers: Drawn<OverworldActorData["kind"]> = new Map();
   let fired = new FiredEffects();
   let shown: Mode | null = null;
   let fresh = false;
   let worn: Look | null = null;
-  let painted: { fight: Fight; held: Held | null } | null = null;
+  let painted: Painted = null;
+  let rivalPainted: Painted = null;
   let drawnFight: Fight | null = null;
+
+  const heldBy = (world: World, e: Entity): Held | null => {
+    const { hands } = world.require(e, Wielder);
+    const item = weaponItemIn(hands), hand = item && heldIn(hands, item);
+    return (item && hand && { hand, art: WEAPON_LOOKS[item].sprite }) || null;
+  };
+  const paintHeld = (look: Pick<PlayerLook<unknown>, "hold" | "finish">, was: Painted, fight: Fight, e: Entity) => {
+    const held = heldBy(fight.world, e);
+    if (fight === was?.fight && held?.hand === was.held?.hand && held?.art === was.held?.art) return was;
+    look.hold(held);
+    look.finish();
+    return { fight, held } as Painted;
+  };
 
   /** The chibi is painted at once, the arena's frames bit by bit, and all of them before a fight shows. */
   const paintPlayer = () => {
     const look = from.look();
     if (look && look !== worn) playerLook.wear(worn = look);
     const fight = from.battle.fight;
-    const me = fight?.world.first(LocalPlayer, Wielder);
-    if (!fight || !me) return;
-    const item = weaponItemIn(me[2].hands), hand = item && heldIn(me[2].hands, item);
-    const held = item && hand && { hand, art: WEAPON_LOOKS[item].sprite };
-    if (fight === painted?.fight && held?.hand === painted.held?.hand && held?.art === painted.held?.art) return;
-    painted = { fight, held };
-    playerLook.hold(held);
-    playerLook.finish();
+    const me = fight?.players.find((e) => fight.world.has(e, LocalPlayer));
+    if (!fight || me === undefined) return;
+    painted = paintHeld(playerLook, painted, fight, me);
+    const rival = from.battle.opponent && fight.players.find((e) => e !== me);
+    if (rival === null || rival === undefined) return;
+    rivalLook.wear(from.battle.opponent!.character.look);
+    rivalPainted = paintHeld(rivalLook, rivalPainted, fight, rival);
   };
 
   const drawArena = (dt: number) => {

@@ -286,3 +286,80 @@ describe("the fight's result", () => {
     assert.deepEqual(net.sent, []);
   });
 });
+
+describe("a duel: the other player's inputs come from the server", () => {
+  const DUEL: FightSetup = {
+    arena: SETUP.arena, duel: true, enemies: [],
+    players: [SETUP.players[0]!, { ...SETUP.players[0]!, at: { x: 0, y: 0.05, z: 4 } }],
+  };
+  const theirs = (step: number): PlayerInputData => input({
+    moveX: step % 30 < 15 ? -1 : 1, moveZ: step % 36 < 18 ? -0.5 : 0.5, aimZ: -1,
+    attack: step % 17 === 0 ? "rl" : null, block: step % 60 > 52,
+  });
+  const changesUpTo = (to: number): StepInput[] => {
+    const changes: StepInput[] = [];
+    for (let step = 1; step <= to; step++) {
+      if (step === 1 || JSON.stringify(theirs(step)) !== JSON.stringify(theirs(step - 1))) {
+        changes.push({ step, ...theirs(step) });
+      }
+    }
+    return changes;
+  };
+  const relay = (changes: StepInput[]): ServerMsgOf<"battleInputs"> =>
+    ({ t: "battleInputs", inputs: [{ seat: 1, changes }] });
+
+  function duel() {
+    const fight = new Fight(DUEL);
+    const net = new FakeNet();
+    const sync = new FightSync(fight, 0, (msg) => net.send(msg));
+    const truth = new Fight(DUEL);
+    return { fight, net, sync, truth };
+  }
+
+  test("until their input comes, they're shown doing what they last did", () => {
+    const { fight, sync } = duel();
+    sync.onInputs(relay([{ step: 1, ...input({ moveX: 1 }) }]));
+    for (let i = 0; i < 30; i++) sync.advance(IDLE_INPUT);
+    assert.ok(fight.world.require(fight.players[1]!, Body).pos.x > 1);
+  });
+
+  test("their inputs arriving late roll the fight back and replay it: it ends as if known all along", () => {
+    const { fight, net, sync, truth } = duel();
+    const LAG = 9;
+    let relayed = 0;
+    for (let step = 1; step <= 150; step++) {
+      sync.advance(script(step));
+      truth.step([quantizeInput(script(step)), theirs(step)]);
+      const known = step - LAG;
+      if (known > relayed) {
+        sync.onInputs(relay(changesUpTo(known).filter((c) => c.step > relayed)));
+        relayed = known;
+      }
+    }
+    sync.onInputs(relay(changesUpTo(150).filter((c) => c.step > relayed)));
+    assert.equal(fight.hash(), truth.hash());
+    assert.deepEqual(fight.save(), truth.save());
+    assert.equal(resyncsSent(net.sent), 0);
+  });
+
+  test("their inputs for steps not run yet wait for those steps", () => {
+    const { fight, sync, truth } = duel();
+    sync.onInputs(relay(changesUpTo(40)));
+    for (let step = 1; step <= 40; step++) {
+      sync.advance(IDLE_INPUT);
+      truth.step([IDLE_INPUT, theirs(step)]);
+    }
+    assert.deepEqual(fight.save(), truth.save());
+  });
+
+  test("after the server's fight is loaded, the replay uses their inputs too", () => {
+    const { fight, sync, truth } = duel();
+    for (let step = 1; step <= 20; step++) truth.step([IDLE_INPUT, theirs(step)]);
+    const snapshot = JSON.parse(JSON.stringify(truth.save()));
+    sync.onInputs(relay(changesUpTo(40)));
+    for (let step = 1; step <= 40; step++) sync.advance(IDLE_INPUT);
+    sync.onSync({ t: "battleSync", step: 20, fight: snapshot, lateSteps: 0, heardStep: 20 });
+    for (let step = 21; step <= 40; step++) truth.step([IDLE_INPUT, theirs(step)]);
+    assert.deepEqual(fight.save(), truth.save());
+  });
+});

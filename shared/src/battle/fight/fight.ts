@@ -71,6 +71,9 @@ export class Fight {
   /** In the order of the setup; `step` takes their inputs in the same order. */
   readonly players: readonly Entity[];
   readonly enemies: readonly Entity[];
+  readonly duel: boolean;
+  /** What an input's `locked` indexes: the enemies, or in a duel the players. */
+  readonly targets: readonly Entity[];
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
   /** What happened in the last step. */
   readonly events: FightEvent[] = [];
@@ -83,20 +86,22 @@ export class Fight {
   constructor(setup: FightSetup) {
     this.arena = { ...setup.arena };
     this.physics = new ArenaPhysics(this.arena.radius);
-    this.players = setup.players.map((p) => spawnPlayer(this.world, this.physics, p));
+    this.duel = setup.duel ?? false;
+    this.players = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
     this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
+    this.targets = this.duel ? this.players : this.enemies;
     const ctx: FightContext = {
       world: this.world, physics: this.physics, arena: this.arena, enemies: this.enemies, events: this.events,
       outcome: this.outcome,
     };
     this.systems = [
-      playerControllerSystem(this.enemies),
+      playerControllerSystem(this.targets),
       enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(), skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),
-      outcomeSystem(this.outcome),
+      outcomeSystem(this.outcome, this.duel),
     ];
   }
 

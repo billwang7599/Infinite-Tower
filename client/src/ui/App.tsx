@@ -45,6 +45,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
               skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
+              challenge={ui.challenge} challengeNearest={actions.challenge} answerChallenge={actions.answerChallenge}
             />
           )}
           {mode === "battle" && (

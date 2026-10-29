@@ -97,10 +97,14 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 
-  test("the overworld's own: rest (E), in the bag turn (R) and use (Enter), and the camera turns (← →)", () => {
-    assert.deepEqual(
-      Object.keys(ACTIONS.overworld), ["rest", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight"],
-    );
+  test("the overworld's own: rest (E), the bag's turn (R) and use (Enter), camera turns (← →), duels (T, Y, N)", () => {
+    assert.deepEqual(Object.keys(ACTIONS.overworld), [
+      "rest", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "challenge", "acceptChallenge",
+      "declineChallenge",
+    ]);
+    assert.deepEqual(ACTIONS.overworld.challenge.keys, ["KeyT"]);
+    assert.deepEqual(ACTIONS.overworld.acceptChallenge.keys, ["KeyY"]);
+    assert.deepEqual(ACTIONS.overworld.declineChallenge.keys, ["KeyN"]);
     assert.deepEqual(ACTIONS.overworld.turnItem.keys, ["KeyR"]);
     assert.deepEqual(ACTIONS.overworld.useItem.keys, ["Enter"]);
     assert.deepEqual(ACTIONS.overworld.turnCameraLeft.keys, ["ArrowLeft"]);
@@ -151,7 +155,7 @@ describe("KeyBindings.bind", () => {
     b.bind(dodge, "KeyX", null);
     const before = b.get();
     assert.equal(keys(b, dodge).length, MAX_KEYS_PER_ACTION);
-    assert.deepEqual(b.bind(dodge, "KeyY", null), { ok: false, full: true });
+    assert.deepEqual(b.bind(dodge, "KeyU", null), { ok: false, full: true });
     assert.equal(b.get(), before);
   });
 
@@ -159,8 +163,8 @@ describe("KeyBindings.bind", () => {
     const b = new KeyBindings();
     b.bind(dodge, "KeyZ", null);
     b.bind(dodge, "KeyX", null);
-    assert.deepEqual(b.bind(dodge, "KeyY", "KeyZ"), unchanged);
-    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyY", "KeyX"]);
+    assert.deepEqual(b.bind(dodge, "KeyU", "KeyZ"), unchanged);
+    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyU", "KeyX"]);
   });
 
   test("a key held by another action with spare keys moves over", () => {
@@ -265,7 +269,7 @@ describe("KeyBindings.bind", () => {
   test("adding another action's key to a full action is refused and leaves the key where it was", () => {
     const b = withSpareKey();
     b.bind(dodge, "KeyX", null);
-    b.bind(dodge, "KeyY", null);
+    b.bind(dodge, "KeyU", null);
     const before = b.get();
     assert.deepEqual(b.bind(dodge, "KeyZ", null), { ok: false, full: true });
     assert.equal(b.get(), before);

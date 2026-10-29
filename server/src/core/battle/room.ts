@@ -4,8 +4,8 @@
  * a late one at most MAX_INPUT_DELAY_STEPS, and never runs ahead of the clock. Built for any number of players.
  */
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Carried, type Entity,
-  type Skillbook, type StepInput, type Vitals, type World,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Carried, type Entity,
+  type PlayerInputData, type Skillbook, type StepInput, type Vitals, type World,
 } from "@infinite-tower/shared";
 import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import type { PlayerLink } from "../ports.js";
@@ -29,6 +29,8 @@ interface SeatState {
   gone: boolean;
   /** The step of the last `battleSync` sent them. */
   syncedAt: number | null;
+  ran: PlayerInputData;
+  unrelayed: StepInput[];
 }
 
 export class BattleRoom {
@@ -43,7 +45,9 @@ export class BattleRoom {
   /** `seats[i]` plays `setup.players[i]`. Needs initPhysics() to have finished. */
   constructor(setup: FightSetup, seats: Seat[]) {
     this.fight = new Fight(setup);
-    this.seats = seats.map((seat) => ({ seat, inputs: new InputTimeline(), gone: false, syncedAt: null }));
+    this.seats = seats.map((seat) => ({
+      seat, inputs: new InputTimeline(), gone: false, syncedAt: null, ran: IDLE_INPUT, unrelayed: [],
+    }));
   }
 
   /** Over for everyone, and freed. */
@@ -81,12 +85,16 @@ export class BattleRoom {
     const vitals = this.vitalsOf(e);
     this.fight.leave(e);
     const { book, gear } = this.fight.world.require(e, Player);
-    s.seat.onEnd(playerResult(this.fight.outcome, true), vitals, book, gear);
+    s.seat.onEnd(this.resultOf(e, true), vitals, book, gear);
     if (this.seats.every((other) => other.gone)) this.close();
   }
 
-  /** One tick of the clock, once everyone is in: the fight runs as far as it can. */
-  tick(): void {
+  /**
+   * One tick of the clock, once everyone is in: the fight runs as far as it can. Each player's session calls it with
+   * their seat; only the first seat still here moves the clock.
+   */
+  tick(by?: number): void {
+    if (by !== undefined && by !== this.seats.findIndex((s) => !s.gone)) return;
     if (this.ended || !this.ready()) return;
     this.now++;
     while (!this.ended && this.fight.steps < this.now) {
@@ -95,12 +103,33 @@ export class BattleRoom {
       if (!overdue && !this.seats.every((s) => s.gone || s.inputs.known(next))) break;
       this.runStep(next);
     }
+    this.relay();
   }
 
   private runStep(step: number): void {
-    this.fight.step(this.seats.map((s) => (s.gone ? IDLE_INPUT : s.inputs.take(step))));
+    this.fight.step(this.seats.map((s) => {
+      const input = s.gone ? IDLE_INPUT : s.inputs.take(step);
+      if (!sameInput(input, s.ran)) s.unrelayed.push({ step, ...input });
+      s.ran = input;
+      return input;
+    }));
     if (this.fight.outcome.state !== "fighting") this.finish();
-    else if (step % HASH_EVERY_STEPS === 0) this.sendHash();
+    else if (step % HASH_EVERY_STEPS === 0) {
+      this.relay();
+      this.sendHash();
+    }
+  }
+
+  /** Each player gets the others' inputs as they ran (before any hash of the steps they ran on). */
+  private relay(): void {
+    if (this.ended || this.seats.length < 2) return;
+    this.seats.forEach((to, i) => {
+      if (to.gone) return;
+      const inputs = this.seats.flatMap((from, seat) =>
+        seat !== i && from.unrelayed.length > 0 ? [{ seat, changes: from.unrelayed }] : []);
+      if (inputs.length > 0) to.seat.link.send({ t: "battleInputs", inputs });
+    });
+    for (const s of this.seats) s.unrelayed = [];
   }
 
   private ready(): boolean {
@@ -131,9 +160,14 @@ export class BattleRoom {
       this.sendSync(s);
       const e = this.fight.players[i]!;
       const { book, gear } = this.fight.world.require(e, Player);
-      s.seat.onEnd(playerResult(this.fight.outcome, false), this.vitalsOf(e), book, gear);
+      s.seat.onEnd(this.resultOf(e, false), this.vitalsOf(e), book, gear);
     });
     this.close();
+  }
+
+  private resultOf(e: Entity, left: boolean): PlayerResult {
+    const standing = this.fight.world.require(e, Health).hp > 0;
+    return playerResult(this.fight.outcome, left, this.fight.duel ? { standing } : undefined);
   }
 
   private vitalsOf(e: Entity): Vitals {

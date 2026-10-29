@@ -33,6 +33,8 @@ export interface Game {
   /** Once the server's result is in: fade back to the overworld. */
   leaveBattle(): void;
   rest(): void;
+  challenge(): void;
+  answerChallenge(accept: boolean): void;
   useItem(at: GridSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
@@ -113,7 +115,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     result = null;
     battle.start(msg, net);
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
-    say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
+    if (msg.opponent) say(ui.notifications, { kind: "duel", with: msg.opponent.name });
+    else say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
     setMode("battle");
   };
 
@@ -170,6 +173,13 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     rest() {
       if (mode === "overworld" && !transition) overworld.rest();
     },
+    challenge() {
+      if (mode === "overworld" && !transition) net?.send({ t: "challenge" });
+    },
+    answerChallenge(accept) {
+      ui.challenge.set({ from: null });
+      net?.send({ t: "answerChallenge", accept });
+    },
     useItem(at) {
       if (mode === "overworld" && !transition) net?.send({ t: "useItem", at });
     },
@@ -200,7 +210,13 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
+      net.on("challengeNews", ({ news }) => {
+        if (news.kind === "received") ui.challenge.set({ from: news.from });
+        else if (news.kind === "expired" || news.kind === "cancelled") ui.challenge.set({ from: null });
+        say(ui.notifications, { kind: "challenge", news });
+      });
       net.on("encounter", (msg) => {
+        ui.challenge.set({ from: null });
         encounter = msg;
         transition = startTransition("battle");
       });
@@ -250,6 +266,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       ui.settingsScreen.set({ open: false });
       ui.admin.set({ open: false, invulnerable: false });
       ui.creation.set({ open: false });
+      ui.challenge.set({ from: null });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

@@ -16,10 +16,10 @@ export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
     for (const [e, sidestep, enemy, body] of world.query(Sidestep, Enemy, Body)) {
       const def = sidestep.def, move = enemy.move;
       if (enemy.state === "sidestep" && enemy.stateTime >= def.stepTime) enter(world, e, enemy, "approach");
-      const team = world.require(e, Fighter).team;
-      for (const [, caster, from, { team: casterTeam }] of world.query(Skilled, Body, Fighter)) {
+      const ownSide = world.require(e, Fighter).side;
+      for (const [, caster, from, { side: casterSide }] of world.query(Skilled, Body, Fighter)) {
         const skill = caster.casting;
-        if (enemy.state !== "approach" || casterTeam === team || skill?.segments[0].form !== "bolt") continue;
+        if (enemy.state !== "approach" || casterSide === ownSide || skill?.segments[0].form !== "bolt") continue;
         if (stepsOf(caster.castTime) !== stepsOf(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
         const dx = body.pos.x - from.pos.x, dz = body.pos.z - from.pos.z, dist = Math.hypot(dx, dz);
         if (dist === 0 || (dx * caster.aim.x + dz * caster.aim.z) / dist < AIM_MIN_DOT) continue;

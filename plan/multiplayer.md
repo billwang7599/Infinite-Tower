@@ -28,15 +28,18 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
    decided). Tall-grass encounters stay per player. Players pass through each other. A player in a battle stays on
    the overworld where they were, shown with a crossed-swords marker, and enemies pass them over. Server view rules
    (view radius) apply to players too.
-4. `duels` (PvP): stand within 2 tiles of another player and press Challenge (`T`, overworld group, rebindable).
-   They get a notice with Accept / Decline (buttons, and `Y` / `N`, rebindable); it expires after 15 s; one open
-   challenge per player. On accept both go to their own isolated arena (stone ruins look), facing each other.
-   Everything that hits enemies hits players: swings, stabs, blocks, parries (the same `PARRY` rules, both ways),
-   skills. A duel is a spar: it ends when one reaches 0 HP (no death), nothing is lost or gained, no wins counted,
-   and both come back with the HP and stamina they had before it. Leaving or disconnecting forfeits, with no loss.
-   Netcode: the server relays each player's confirmed inputs to the others; a client predicts another player as
+4. `duels` (built; not yet played by hand) (PvP): stand within 2 tiles of another player and press Challenge (`T`,
+   overworld group, rebindable). They get a notice with Accept / Decline (buttons, and `Y` / `N`, rebindable); it
+   expires after 15 s; one open challenge per player. On accept both go to their own isolated arena (stone ruins look),
+   facing each other. Everything that hits enemies hits players: swings, stabs, blocks, parries (the same `PARRY` rules,
+   both ways), skills. A duel is a spar: it ends when one reaches 0 HP (no death), nothing is lost or gained, no wins
+   counted, and both come back with the HP and stamina they had before it. Leaving or disconnecting forfeits, with no
+   loss. Netcode: the server relays each player's confirmed inputs to the others; a client predicts another player as
    repeating their last input and rolls back and replays when the real one arrives (another player may lag on your
    screen, your own character never does). The hash/resync check stays as the safety net.
+   Not done: the other player is drawn with the battle sprite from behind (there's no front view yet), and in a
+   duel's first seconds each client loads the server's fight a few times while the two clocks settle (no hash ever
+   differed in the headless check; none after that).
 5. `join-battle` (if time): near (1.6 tiles) a player's crossed-swords marker, press the interact key (E, the Rest
    key, which joins when there's no campfire closer; also a HUD "Join the fight" button) to join their battle. Up
    to 4 players a battle; a joiner appears at the arena's edge; duels can't be joined. No friendly fire in a shared

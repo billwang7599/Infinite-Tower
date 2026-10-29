@@ -39,4 +39,9 @@ describe("battleResultLines", () => {
   test("dying with an empty bag still says you died", () => {
     assert.deepEqual(battleResultLines(LOSS), ["You died."]);
   });
+
+  test("a duel says who won, and nothing about dying or items", () => {
+    assert.deepEqual(battleResultLines({ ...WIN, duel: "Bee" }), ["You won the duel against Bee."]);
+    assert.deepEqual(battleResultLines({ ...LOSS, duel: "Bee" }), ["You lost the duel against Bee."]);
+  });
 });

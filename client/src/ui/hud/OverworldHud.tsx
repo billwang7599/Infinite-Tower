@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
+import { BUTTON } from "../components/styles.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { useAction } from "../components/useAction.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
@@ -35,6 +36,9 @@ interface OverworldHudProps extends HudProps {
   skills: Store<SkillsState>;
   skillbookScreen: Store<{ open: boolean }>;
   saveSkill: (page: number, skill: Skill) => void;
+  challenge: Store<{ from: string | null }>;
+  challengeNearest: () => void;
+  answerChallenge: (accept: boolean) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -51,6 +55,9 @@ export function OverworldHud(props: OverworldHudProps) {
   });
   useAction(input, ["rest"], (_action, repeat) => {
     if (!repeat) rest();
+  });
+  useAction(input, ["challenge"], (_action, repeat) => {
+    if (!repeat) props.challengeNearest();
   });
 
   return (
@@ -70,6 +77,7 @@ export function OverworldHud(props: OverworldHudProps) {
         </HudButton>
       </div>
       <RestButton hud={hud} rest={rest} />
+      <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
         <InventoryPanel
@@ -116,6 +124,40 @@ function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
     >
       Rest by the fire
     </button>
+  );
+}
+
+interface ChallengeNoticeProps {
+  challenge: Store<{ from: string | null }>;
+  input: Actions;
+  answer: (accept: boolean) => void;
+}
+
+function ChallengeNotice(props: ChallengeNoticeProps) {
+  const from = useStore(props.challenge, (s) => s.from);
+  useAction(props.input, ["acceptChallenge", "declineChallenge"], (action, repeat) => {
+    if (repeat || from === null) return false;
+    props.answer(action === "acceptChallenge");
+  });
+  if (from === null) return null;
+  return (
+    <div
+      id="challenge-notice"
+      className={
+        "pointer-events-auto absolute top-24 left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
+        + "bg-black/75 px-5 py-3 text-center"
+      }
+    >
+      <div className="mb-2 font-title text-lg tracking-wide">{from} challenges you to a duel</div>
+      <div className="flex justify-center gap-3">
+        <button type="button" {...NO_FOCUS} className={BUTTON.primary} onClick={() => props.answer(true)}>
+          Accept
+        </button>
+        <button type="button" {...NO_FOCUS} className={BUTTON.plain} onClick={() => props.answer(false)}>
+          Decline
+        </button>
+      </div>
+    </div>
   );
 }
 

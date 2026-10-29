@@ -29,7 +29,7 @@ export function imbueOf(world: World, caster: Entity): [Entity, SkillObjectData]
 export function skillSystem(ctx: FightContext): System {
   return (world, dt) => {
     for (const event of ctx.events.slice()) {
-      if (event.type === "hit" && event.weapon && event.team === "enemy") imbueHit(ctx, event.by, event.target);
+      if (event.type === "hit" && event.weapon) imbueHit(ctx, event.by, event.target);
     }
     for (const [e, player] of world.query(Player)) {
       const { writing } = player;
@@ -305,10 +305,10 @@ function tickBeam(ctx: FightContext, o: SkillObjectData): Entity[] {
   const radiusM = SKILL_EFFECTS.beam.radiusM * shot.widenFactor;
   const maxHits = 1 + shot.pierceTargets;
   const rangeM = Math.min(SKILL_EFFECTS.beam.rangeM, toWall(ctx, o.pos, o.dir));
-  const team = world.require(o.caster, Fighter).team;
+  const casterSide = world.require(o.caster, Fighter).side;
   const onLine: { e: Entity; t: number }[] = [];
   for (const [target, fighter, health, body] of world.query(Fighter, Health, Body)) {
-    if (fighter.team === team || health.hp <= 0) continue;
+    if (fighter.side === casterSide || health.hp <= 0) continue;
     const fx = body.pos.x - o.pos.x, fz = body.pos.z - o.pos.z, reach = fighter.radius + radiusM;
     const along = fx * o.dir.x + fz * o.dir.z, side = fx * o.dir.z - fz * o.dir.x;
     if (Math.abs(side) > reach || along < -fighter.radius) continue;
@@ -351,9 +351,9 @@ function fly(ctx: FightContext, e: Entity, o: SkillObjectData): void {
   if (wallM <= travel) { travel = Math.max(0, wallM); done = true; }
 
   let hit: Entity | null = null;
-  const team = world.require(o.caster, Fighter).team;
+  const casterSide = world.require(o.caster, Fighter).side;
   for (const [target, fighter, health, body] of world.query(Fighter, Health, Body)) {
-    if (fighter.team === team || health.hp <= 0 || target === o.ignore) continue;
+    if (fighter.side === casterSide || health.hp <= 0 || target === o.ignore) continue;
     const fx = pos.x - body.pos.x, fz = pos.z - body.pos.z, reach = fighter.radius + o.reachM;
     const b = fx * dir.x + fz * dir.z, c = fx * fx + fz * fz - reach * reach;
     const disc = b * b - c;

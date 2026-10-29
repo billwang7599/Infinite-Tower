@@ -68,6 +68,7 @@ export interface BattleHudState {
   enemyHpFraction: number;
   enemyAlive: boolean;
   result: FightState;
+  duel: boolean;
   /** Turns on a moment after `result` is decided. */
   showResult: boolean;
   stunned: boolean;
@@ -139,6 +140,8 @@ export interface UiActions {
   logOut(): void;
   play(): void;
   rest(): void;
+  challenge(): void;
+  answerChallenge(accept: boolean): void;
   useItem(at: GridSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
@@ -172,7 +175,7 @@ export class UiState {
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
-    result: "fighting", showResult: false, stunned: false, skillbookInHand: false, brokenOff: false,
+    result: "fighting", duel: false, showResult: false, stunned: false, skillbookInHand: false, brokenOff: false,
     writingPage: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
@@ -183,6 +186,7 @@ export class UiState {
   readonly chant = new Store<ChantState>(NO_CHANT);
   readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
   readonly battleBag = new Store<{ open: boolean }>({ open: false });
+  readonly challenge = new Store<{ from: string | null }>({ from: null });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });

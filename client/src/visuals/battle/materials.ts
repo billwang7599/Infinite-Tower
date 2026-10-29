@@ -8,8 +8,8 @@ import { blobTexture, telegraphTexture } from "../textures.js";
 export interface Materials {
   /** The soft round shadow under the player's sprite. */
   blobShadow: StandardMaterial;
-  /** The player's sprite: every pose's frames, blank until their look is painted. */
   player: Record<Pose | SwordPose, StandardMaterial[]>;
+  rival: Record<Pose | SwordPose, StandardMaterial[]>;
   slashFx: StandardMaterial;
   /** The block's guard in front of the player. */
   guardFx: StandardMaterial;
@@ -43,10 +43,13 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.disableLighting = true;
   telegraph.zOffset = -3;
 
-  const player = {} as Materials["player"];
-  for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
-    player[pose] = Array.from({ length: count }, (_, i) => spriteMaterial(scene, `player-${pose}-${i}`, () => {}));
-  }
+  const frames = (who: string) => {
+    const all = {} as Materials["player"];
+    for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
+      all[pose] = Array.from({ length: count }, (_, i) => spriteMaterial(scene, `${who}-${pose}-${i}`, () => {}));
+    }
+    return all;
+  };
 
-  return { blobShadow, player, slashFx, guardFx, telegraph };
+  return { blobShadow, player: frames("player"), rival: frames("rival"), slashFx, guardFx, telegraph };
 }

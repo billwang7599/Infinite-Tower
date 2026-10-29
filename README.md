@@ -29,7 +29,8 @@ What's built so far:
   tilt-shift blur, lit by the same 24-minute day as the fights (the sun and moon cast the shadows, the campfire
   flickers and lights what's near it). The arrow keys turn the camera a quarter turn; walking follows it. Everyone
   on a level shares it: you see other players (their chibi and name, crossed swords while they fight), and an enemy
-  someone touches is gone for everyone until it respawns.
+  someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
+  stone ruins of your own, everything working player against player, that costs and wins nothing.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.

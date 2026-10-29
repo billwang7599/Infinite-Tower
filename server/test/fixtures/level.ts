@@ -15,6 +15,7 @@ export const TEST_LEVEL: LevelDef = {
   },
   spawn: { x: -15, z: 0 },
   arenaId: "grass-field",
+  duelArenaId: "kobold-ruins",
   spawns: [{ enemy: "wild-boar", at: { x: 14, z: 5 }, respawnTime: 3 }],
   grass: { stepDist: 1, chance: 0.5, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   safeTime: 2,
