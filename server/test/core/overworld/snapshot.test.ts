@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FIXED_DT, VIEW, viewHalfWidth } from "@infinite-tower/shared";
+import { FIXED_DT, mapHalfSize, VIEW, viewHalfWidth, WALKER_RADIUS } from "@infinite-tower/shared";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
@@ -11,7 +11,7 @@ import { TEST_LEVEL } from "../../fixtures/level.js";
 /** Wide enough that the camera follows the player freely around the middle. */
 const BIG_LEVEL: LevelDef = {
   ...TEST_LEVEL,
-  layout: { ...TEST_LEVEL.layout, halfWidth: 100, halfDepth: 100, grass: [] },
+  layout: { ...TEST_LEVEL.layout, tiles: Array.from({ length: 200 }, () => ".".repeat(200)) },
   spawn: { x: 0, z: 0 },
   spawns: [],
 };
@@ -69,10 +69,10 @@ describe("state snapshot", () => {
   test("near a level's edge the window stops with the camera, so actors further in still show", () => {
     const overworld = new Overworld(() => {});
     overworld.enter({ ...TEST_LEVEL, spawns: [] });
-    const { halfWidth } = TEST_LEVEL.layout;
+    const { halfWidth } = mapHalfSize(TEST_LEVEL.layout);
     const cameraStopX = halfWidth + VIEW.overscan - HALF_WIDTH;
     // The player hugs the left edge; the camera stops at -cameraStopX, so the screen reaches further right.
-    overworld.place({ x: -(halfWidth - TEST_LEVEL.layout.border), z: 0 });
+    overworld.place({ x: -(halfWidth - WALKER_RADIUS), z: 0 });
     const inside = spawnActor(overworld.world, "wild-boar", { x: -cameraStopX + HALF_WIDTH + 0.5, z: 0 }, []);
     assert.deepEqual(ids(overworld), [inside]);
   });

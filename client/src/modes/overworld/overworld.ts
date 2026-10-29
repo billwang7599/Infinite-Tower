@@ -72,7 +72,7 @@ export function createOverworld({ world, actions, hud }: OverworldOptions): Over
       prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
       stats = welcome.stats;
-      hud.set({ levelName: "…", wins: welcome.wins, stats: welcome.stats });
+      hud.set({ levelName: "…", levelFloor: null, wins: welcome.wins, stats: welcome.stats });
       setGear(welcome.gear);
       setVitals(welcome.vitals);
     },
@@ -96,7 +96,7 @@ export function createOverworld({ world, actions, hud }: OverworldOptions): Over
       actors.clear();
       state.level = msg.level;
       prediction?.reset(msg.me);
-      hud.set({ levelName: msg.level.name });
+      hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor });
     },
     onState(msg) {
       if (inBattle) return;

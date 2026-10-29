@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import type { EnemyId } from "@infinite-tower/shared";
+import { mapHalfSize, WALKER_RADIUS, type EnemyId } from "@infinite-tower/shared";
 import { moveSystem } from "../../../src/core/overworld/behaviors/move.js";
 import { encounterOnTouch, touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { OverworldActor, OverworldPlayer } from "../../../src/core/overworld/components.js";
@@ -19,13 +19,14 @@ describe("move", () => {
     assert.deepEqual(pos(f.world, e), { x: 2, z: -1 });
   });
 
-  test("keeps actors inside the level's walkable area", () => {
+  test("walks by the player's rule: solid tiles and the map's edge stop it", () => {
     const f = testOverworld();
-    const { halfWidth, halfDepth, border } = f.ctx.level.layout;
+    const { halfWidth, halfDepth } = mapHalfSize(f.ctx.level.layout);
     const e = spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, []);
     Object.assign(f.world.require(e, OverworldActor), { vx: 1000, vz: -1000 });
     moveSystem(f.ctx)(f.world, 1);
-    assert.deepEqual(pos(f.world, e), { x: halfWidth - border, z: -(halfDepth - border) });
+    const at = pos(f.world, e);
+    assert.ok(Math.abs(at.x - (halfWidth - WALKER_RADIUS)) < 1e-9 && Math.abs(at.z + halfDepth - WALKER_RADIUS) < 1e-9);
   });
 
   test("turns the sprite the way it walks, and keeps it when barely moving sideways", () => {

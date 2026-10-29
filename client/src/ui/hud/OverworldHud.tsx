@@ -120,8 +120,13 @@ function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
 }
 
 function LevelName({ hud }: HudProps) {
-  const name = useStore(hud, (s) => s.levelName);
-  return <div id="overworld-level" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
+  const name = useStore(hud, (s) => s.levelName), floor = useStore(hud, (s) => s.levelFloor);
+  return (
+    <div id="overworld-level" className="font-title text-[17px] font-medium tracking-wide">
+      {floor !== null && <span className="mr-2 text-[14px] opacity-70">Floor {floor}</span>}
+      {name}
+    </div>
+  );
 }
 
 interface HudButtonProps {

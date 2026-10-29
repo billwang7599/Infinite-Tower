@@ -2,12 +2,13 @@ import {
   Color3, MeshBuilder, PointLight, StandardMaterial, Texture, TransformNode, Vector3, Vector4, VertexBuffer, type DynamicTexture,
   type Mesh, type Scene,
 } from "@babylonjs/core";
-import { inRect, seededRandom, type LevelLayout } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
 import { drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
+import { paintGround, tileProps } from "../levels/tiles.js";
 import { spriteMaterial } from "../sprites.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, spriteLook, standingQuad, type Overworld3dScene } from "./scene.js";
-import { isTall, type Ledge, type PropKind, type Scenery } from "./scenery.js";
+import { isTall, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -21,7 +22,7 @@ export interface Level3d {
 
 export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3d {
   const { scene, sunShadows } = view, root = new TransformNode(`level3d-${level.id}`, scene);
-  const scenery = LEVEL_LOOKS[level.theme].scenery(level);
+  const look = LEVEL_LOOKS[level.theme], scenery = look.scenery(level);
   const lit = (name: string, tex: DynamicTexture) => {
     const m = new StandardMaterial(name, scene);
     m.diffuseTexture = tex;
@@ -30,7 +31,9 @@ export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3
   };
   const brick = lit("overworld3d-brick", tiled(pixelCanvas(scene, "brick", 32, 32, drawBricks, false)));
   const grass = lit("overworld3d-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
-  const field = lit("overworld3d-field", fieldTexture(scene, level, scenery));
+  const { halfWidth, halfDepth } = mapHalfSize(level);
+  const field = lit("overworld3d-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
+    halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles, look.outside, 0), false));
   const fringe = cutoutMaterial(scene, "overworld3d-fringe", tiled(pixelCanvas(scene, "fringe", 16, 8, drawFringe)));
   fringe.disableLighting = false;
   fringe.emissiveColor = Color3.Black();
@@ -43,7 +46,7 @@ export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3
       m.freezeWorldMatrix();
     }
   });
-  placeProps(view, scenery, root);
+  placeProps(view, [...scenery.props, ...tileProps(level, look.tiles, look.outside, 0)], root);
   return { root, flicker: buildCampfires(view, level, root, sunShadows) };
 }
 
@@ -88,9 +91,9 @@ function scaleUVs(mesh: Mesh, u: number, v: number): void {
 }
 
 /** One template quad per kind, every prop an instance of it (one draw call a kind). */
-function placeProps({ scene, sunShadows }: Overworld3dScene, scenery: Scenery, root: TransformNode): void {
+function placeProps({ scene, sunShadows }: Overworld3dScene, props: Prop[], root: TransformNode): void {
   const templates = new Map<PropKind, Mesh>();
-  scenery.props.forEach((p, i) => {
+  props.forEach((p, i) => {
     let tpl = templates.get(p.kind);
     if (!tpl) {
       const art = PROP_ART[p.kind];
@@ -105,45 +108,9 @@ function placeProps({ scene, sunShadows }: Overworld3dScene, scenery: Scenery, r
     inst.parent = root;
     inst.position.set(p.x, p.y, p.z);
     inst.scaling.setAll(p.scale);
-    if (i % 2 === 1 && p.kind !== "fence" && p.kind !== "banner") inst.scaling.x = -p.scale;
+    if (i % 2 === 1) inst.scaling.x = -p.scale;
     inst.freezeWorldMatrix();
   });
-}
-
-function fieldTexture(scene: Scene, level: LevelLayout, scenery: Scenery): DynamicTexture {
-  const L = level.halfWidth, D = level.halfDepth, w = L * 2 * PX_PER_TILE, h = D * 2 * PX_PER_TILE;
-  const toPx = (x: number, z: number) => [(x + L) * PX_PER_TILE, (D - z) * PX_PER_TILE] as const;
-  return pixelCanvas(scene, "field", w, h, (pen) => {
-    const rand = seededRandom(5);
-    drawGrass(pen, w, h, 9);
-    for (const g of level.grass) {
-      const [x, y] = toPx(g.x, g.z + g.h);
-      pen.rect(x - 2, y - 2, g.w * PX_PER_TILE + 4, g.h * PX_PER_TILE + 4, "#3b6a30");
-    }
-    const plazas = level.campfires.map((c) => ({ ...c, r: 2.4 }));
-    const onDirt = (px: number, py: number) => {
-      const x = px / PX_PER_TILE - L, z = D - py / PX_PER_TILE;
-      const wobble = 0.18 * Math.sin(x * 1.7 + z) + 0.1 * Math.sin(x * 4.3) + 0.08 * Math.sin(z * 5.1 + x * 2);
-      return scenery.paths.some((p) => inRect(p, x + wobble, z + wobble))
-        || plazas.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + wobble);
-    };
-    for (let py = 0; py < h; py++) {
-      for (let px = 0; px < w; px++) {
-        if (!onDirt(px, py)) continue;
-        const edge = !onDirt(px - 1, py) || !onDirt(px + 1, py) || !onDirt(px, py - 1) || !onDirt(px, py + 1);
-        const r = rand();
-        pen.rect(px, py, 1, 1, edge ? "#5e4630" : r < 0.06 ? "#6e5236" : r < 0.14 ? "#b0915f" : "#957650");
-      }
-    }
-    for (const c of plazas) {
-      for (let i = 0; i < 70; i++) {
-        const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * (c.r - 0.3), [x, y] = toPx(c.x + Math.cos(a) * d, c.z + Math.sin(a) * d);
-        pen.rect(x, y, 3, 2, "#9a948c");
-        pen.rect(x, y + 2, 3, 1, "#5f5a55");
-        pen.rect(x, y, 2, 1, "#c2bbb0");
-      }
-    }
-  }, false);
 }
 
 function drawGrass(pen: Pen, w: number, h: number, seed: number): void {
@@ -204,7 +171,7 @@ function buildCampfires(
     const light = new PointLight(`campfire3d-light-${i}`, m.position.add(new Vector3(0, 1.2, -0.3)), scene);
     light.diffuse = new Color3(1, 0.55, 0.22);
     light.specular = Color3.Black();
-    light.range = 7;
+    light.range = 10;
     light.parent = root;
     return { m, light };
   });
@@ -214,7 +181,7 @@ function buildCampfires(
     const frame = frames[Math.floor(time / FLICKER_TIME) % 2]!;
     for (const { m, light } of fires) {
       m.material = frame;
-      light.intensity = 1.6 + Math.sin(time * 13) * 0.15 + Math.sin(time * 7.3) * 0.2;
+      light.intensity = 3 + Math.sin(time * 13) * 0.15 + Math.sin(time * 7.3) * 0.2;
     }
   };
 }

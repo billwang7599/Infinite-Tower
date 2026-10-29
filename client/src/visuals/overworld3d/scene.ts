@@ -27,7 +27,7 @@ export interface Overworld3dScene {
 /** Radians every upright picture leans back from vertical, toward facing the camera. */
 export const SPRITE_TILT_RAD = 0.3;
 /** Sprites aren't lit by the sun (unlit, a StandardMaterial shows texture × emissive); this warms them. */
-const SPRITE_TINT = new Color3(1, 0.94, 0.84);
+const SPRITE_TINT = new Color3(0.9, 0.82, 0.78);
 
 export function createOverworld3dScene(engine: AbstractEngine, state: OverworldState): Overworld3dScene {
   const scene = new Scene(engine);
@@ -89,25 +89,25 @@ function blobMaterial(scene: Scene): StandardMaterial {
 }
 
 function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
-  const haze = new Color3(0.42, 0.4, 0.36);
+  const haze = new Color3(0.27, 0.25, 0.29);
   scene.clearColor = new Color4(haze.r, haze.g, haze.b, 1);
-  scene.ambientColor = new Color3(0.3, 0.28, 0.3);
+  scene.ambientColor = new Color3(0.26, 0.24, 0.3);
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogStart = 26;
   scene.fogEnd = 60;
   scene.fogColor = haze;
 
   const sky = new HemisphericLight("overworld3d-sky", new Vector3(0, 1, 0), scene);
-  sky.intensity = 0.45;
-  sky.diffuse = new Color3(0.72, 0.78, 0.95);
+  sky.intensity = 0.5;
+  sky.diffuse = new Color3(0.55, 0.58, 0.82);
   sky.groundColor = new Color3(0.32, 0.26, 0.22);
 
   // Low from the south-east, so the cliff faces toward the camera are lit and shadows fall up and left.
   const sunDir = new Vector3(-0.55, -0.7, 0.45).normalize();
   const sun = new DirectionalLight("overworld3d-sun", sunDir, scene);
   sun.position = sunDir.scale(-50);
-  sun.intensity = 1.55;
-  sun.diffuse = new Color3(1, 0.84, 0.62);
+  sun.intensity = 1.5;
+  sun.diffuse = new Color3(1, 0.68, 0.46);
   const shadows = new ShadowGenerator(2048, sun);
   shadows.usePercentageCloserFiltering = true;
   shadows.filteringQuality = ShadowGenerator.QUALITY_MEDIUM;

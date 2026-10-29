@@ -1,5 +1,5 @@
-/** Applies each actor's velocity, keeps it inside the level, and turns it the way it's walking. */
-import { clampToLevel, type System } from "@infinite-tower/shared";
+/** Applies each actor's velocity by the shared walking rule, and turns it the way it's walking. */
+import { moveWalker, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "../components.js";
 import type { OverworldContext } from "../context.js";
 
@@ -17,9 +17,7 @@ export function faceToward(actor: OverworldActorData, dx: number): void {
 export function moveSystem(ctx: OverworldContext): System {
   return (world, dt) => {
     for (const [, pos, actor] of world.query(OverworldPos, OverworldActor)) {
-      pos.x += actor.vx * dt;
-      pos.z += actor.vz * dt;
-      clampToLevel(ctx.level.layout, pos);
+      moveWalker(ctx.level.layout, pos, actor.vx * dt, actor.vz * dt);
       faceToward(actor, actor.vx);
     }
   };
