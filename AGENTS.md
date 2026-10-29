@@ -95,9 +95,14 @@ Decided by the user:
 - Skills are chanted in a fight: a key opens a big popup in the middle, a carousel of squares filled one word at a
   time (a Form, then an element, then elements, modifiers or a Form; after a modifier only modifiers or a Form; a
   Form starts the next segment, and the filled squares slide left with a mark where each segment starts). Words are
-  clicked, searched for, or picked by number from the list, and Backspace undoes; its keys are a layer of their own,
-  so 1-4 don't cast there. The fight goes on and you can't move; a hit cancels it only if it staggers you; a dodge
-  closes it and keeps the squares. A chanted skill costs the same as a saved one and is for that one cast. Chanting
+  clicked, searched for (Tab; across every kind that can come next, the matches numbered), or picked in two steps
+  (the user: "categorized by the type of word (so we can choose 1, 2, 3) then choose the word"): 1 Form, 2 Element,
+  3 Modifier, always those numbers (a kind that can't come next is greyed and its key does nothing, and there's no
+  skipping to the only one), then that kind's known words, numbered 1-9 (one that doesn't fit is greyed with why, and
+  its key does nothing); a word picked goes back to the kinds. Backspace in a kind goes back to the kinds, and among
+  the kinds takes off the last word. Its keys are a layer of their own, so 1-4 don't cast there. The fight goes on
+  and you can't move; a hit cancels it only if it staggers you; a dodge closes it and keeps the squares. A chanted
+  skill costs the same as a saved one and is for that one cast. Chanting
   needs no book. Anyone may chant and quick-cast (enemies too, later other players), and the words being chanted are
   the shared fight's, shown in a small popup in front of every other chanter, always there while they chant; a stun
   breaks off anyone's chant alike. One cast at a time per fighter for now (maybe ~2 later). The

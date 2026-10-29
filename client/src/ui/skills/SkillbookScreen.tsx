@@ -7,7 +7,7 @@ import { useAction } from "../components/useAction.js";
 import type { SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
-import { addWord, NO_CHANT, skillText, undoWord, type ChantState } from "./chant.js";
+import { NO_CHANT, skillText, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
 interface BookProps {
@@ -28,7 +28,7 @@ export function SkillbookScreen({ skills, input, save, close, writingPage = null
   const write = () => { if (skill && writingPage === null) save(page, skill); };
   const turnTo = (to: number) => {
     setPage(to);
-    setChant({ ...chant, words: book[to] ? wordsOf(book[to]) : [] });
+    setChant({ ...NO_CHANT, words: book[to] ? wordsOf(book[to]) : [] });
   };
 
   useAction(input, ["writePage", "closeSkillbook"], (action) => {
@@ -71,10 +71,7 @@ export function SkillbookScreen({ skills, input, save, close, writingPage = null
       {known.size === 0
         ? <p className="text-center text-sm text-white/60">You don't know any words yet.</p>
         : (
-          <SkillBuilder
-            words={chant.words} known={known} input={input}
-            pick={(word) => setChant(addWord(chant, word, known))} undo={() => setChant(undoWord(chant))}
-          />
+          <SkillBuilder chant={chant} known={known} input={input} change={setChant} />
         )}
       <div className="mt-4 flex justify-center">
         <button
