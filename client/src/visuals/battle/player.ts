@@ -108,7 +108,7 @@ function dispose(sprite: PlayerSprite): void {
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
   const { ctx } = sprite;
   const body = world.require(e, Body), player = world.require(e, Player), health = world.require(e, Health);
-  const { swing, hands, armReachM } = world.require(e, Wielder), weapon = weaponIn(hands);
+  const wielder = world.require(e, Wielder), { swing, hands, armReachM } = wielder, weapon = weaponIn(hands);
   const motion = weapon && MOTIONS[weapon.kind];
   const p = sprite.node.position, vel = body.vel;
   const alive = health.hp > 0;
@@ -124,7 +124,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = player.action === "stagger" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
-  const pose = spritePose(player, swing, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
+  const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
   const picture = ctx.materials.player[pose.pose][pose.frame]!;
   if (sprite.plane.material !== picture) sprite.plane.material = picture;
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);

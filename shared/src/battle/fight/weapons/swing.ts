@@ -42,7 +42,7 @@ export function weaponSystem(): System {
       if (!swing) {
         if (wielder.restTime > 0) {
           wielder.restTime -= dt;
-          if (wielder.restTime <= 0) restBlade(wielder);
+          if (wielder.restTime <= 0) wielder.blade = { ...wielder.blade, vx: 0, vy: 0 };
         }
         continue;
       }

@@ -1,6 +1,6 @@
 import {
-  isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type SwingData, type SwingDir, type Vec3, type WeaponId,
-  type WeaponKind,
+  isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type Blade, type SwingData, type SwingDir, type Vec3,
+  type WeaponId, type WeaponKind,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
 import { SWORD, swordArt } from "../../gfx/look/sword.js";
@@ -73,6 +73,17 @@ const GUARD_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), hand
 const STAB_DIR = norm({ x: 0, y: 0.08, z: 1 });
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;
+const STROKE_LEAN = 0.15;
+
+const lerp = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
+  x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k,
+});
+
+/** Where the blade is held at rest: the guard at the fight's blade 0, where a stroke ends at its ends. */
+function heldBlade(at: Blade): BladePose {
+  const out = Math.min(1, Math.hypot(at.x, at.y));
+  return { blade: lerp(GUARD_BLADE.blade, norm({ x: -at.x, y: at.y, z: STROKE_LEAN }), out), handZ: GUARD_BLADE.handZ };
+}
 
 /** Seen from in front, so the wielder's x is the screen's mirrored. */
 function swingStart(attack: AttackKind): Vec3 {
@@ -81,15 +92,10 @@ function swingStart(attack: AttackKind): Vec3 {
   return { x, y: -y, z: 0 };
 }
 
-function windupBlade(attack: AttackKind, k: number): BladePose {
-  const start = swingStart(attack), guard = GUARD_BLADE.blade;
+function windupBlade(attack: AttackKind, k: number, from: BladePose): BladePose {
+  const start = swingStart(attack);
   const to = isSwing(attack) ? { x: start.x, y: start.y, z: WINDUP_LEAN } : STAB_DIR;
-  return {
-    blade: norm({
-      x: guard.x + (to.x - guard.x) * k, y: guard.y + (to.y - guard.y) * k, z: guard.z + (to.z - guard.z) * k,
-    }),
-    handZ: isSwing(attack) ? GUARD_BLADE.handZ : GUARD_BLADE.handZ - 0.3 * k,
-  };
+  return { blade: lerp(from.blade, to, k), handZ: isSwing(attack) ? from.handZ : from.handZ - 0.3 * k };
 }
 
 /** `turn` as in strokeOf; past 1 it runs on. */
@@ -99,21 +105,21 @@ function strokeBlade(attack: AttackKind, turn: number): BladePose {
     return { blade: STAB_DIR, handZ: GUARD_BLADE.handZ + (turn < 0.5 ? 0.75 * Math.sin(a) - 0.3 : 0.45 * Math.sin(a)) };
   }
   const start = swingStart(attack), a = Math.PI * turn;
-  const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + 0.15 });
+  const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + STROKE_LEAN });
   return { blade, handZ: GUARD_BLADE.handZ };
 }
 
 export interface WeaponMotion {
   trail(swing: SwingData | null): TrailPose | null;
   thrust(swing: SwingData | null, stabRangeM: number): ThrustPose | null;
-  guard: BladePose;
-  windup(attack: AttackKind, k: number): BladePose;
+  held(at: Blade): BladePose;
+  windup(attack: AttackKind, k: number, from: BladePose): BladePose;
   stroke(attack: AttackKind, turn: number): BladePose;
 }
 
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
   sword: {
-    trail: trailPose, thrust: thrustPose, guard: GUARD_BLADE, windup: windupBlade, stroke: strokeBlade,
+    trail: trailPose, thrust: thrustPose, held: heldBlade, windup: windupBlade, stroke: strokeBlade,
   },
 };
 

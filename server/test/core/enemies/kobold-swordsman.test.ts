@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, isSwing, liveStep, SWING, Player, PLAYER, reverseOf, Wielder,
-  type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, FighterStats, Health, IDLE_INPUT, isSwing, liveStep, planSwing, Player, PLAYER, reverseOf,
+  weaponIn, Wielder, type AttackKind, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
@@ -12,18 +12,17 @@ import { fightWith } from "../../fixtures/fight.js";
 before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
-const LIVE_AFTER = liveStep(SWING.setTime + SWING.driveTime);
 
 /**
- * Keeps about a sword's length away, facing it. Parries each swing (the reverse, its blade live two steps before
- * the Kobold's lands), blocks its stabs, and swings back, left and right, only while it's open: recovering,
- * stunned or staggered.
+ * Keeps about a sword's length away, facing it. Parries each swing (the reverse, from wherever its own blade is, live
+ * two steps before the Kobold's lands), blocks its stabs, and swings back, left and right, only while it's open:
+ * recovering, stunned or staggered.
  */
 const lastAttacks = new WeakMap<Fight, AttackKind>();
 function watchful(fight: Fight): PlayerInputData {
   const me = fight.world.require(fight.players[0]!, Player), at = fight.world.require(fight.players[0]!, Body).pos;
   const kobold = fight.world.require(fight.enemies[0]!, Enemy), it = fight.world.require(fight.enemies[0]!, Body).pos;
-  const mine = fight.world.require(fight.players[0]!, Wielder).swing;
+  const wielder = fight.world.require(fight.players[0]!, Wielder), mine = wielder.swing;
   const its = fight.world.require(fight.enemies[0]!, Wielder).swing;
   if (mine) lastAttacks.set(fight, mine.attack);
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
@@ -35,7 +34,9 @@ function watchful(fight: Fight): PlayerInputData {
   if (winding && its && !isSwing(its.attack)) return { ...input, moveX: 0, moveZ: 0, block: true };
   if (kobold.state === "weaponWindup" && its && isSwing(its.attack)) {
     const landsIn = Math.ceil((kobold.duration - kobold.stateTime) / FIXED_DT - 1e-6);
-    if (landsIn === LIVE_AFTER + 2) input.attack = reverseOf(its.attack);
+    const strength = fight.world.require(fight.players[0]!, FighterStats).strength, reverse = reverseOf(its.attack);
+    const liveAfter = liveStep(planSwing(weaponIn(wielder.hands)!, strength, wielder.blade, reverse).windupTime);
+    if (landsIn === liveAfter + 2) input.attack = reverse;
     return input;
   }
   const open = kobold.state === "weaponRecover" || kobold.state === "parried" || kobold.state === "staggered";

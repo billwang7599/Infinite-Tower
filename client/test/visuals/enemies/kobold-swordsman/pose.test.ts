@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import type { AttackKind, EnemyState } from "@infinite-tower/shared";
+import { followingBlade, restingBlade, type AttackKind, type Blade, type EnemyState } from "@infinite-tower/shared";
 import { koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
 
-const poseOf = (state: EnemyState, t: number, k: number, attack: AttackKind, stroke = { set: k, turn: 0 }) =>
-  koboldPose(state, t, k, attack, MOTIONS.sword, stroke);
+const poseOf = (
+  state: EnemyState, t: number, k: number, attack: AttackKind, stroke: { set: number; turn: number } | null = {
+    set: k, turn: 0,
+  }, blade: Blade = restingBlade(),
+) => koboldPose(state, t, k, attack, MOTIONS.sword, stroke, blade);
 
 describe("the kobold's pose", () => {
   test("a swing's wind-up turns the blade to where the swing starts: its only tell", () => {
@@ -28,7 +31,15 @@ describe("the kobold's pose", () => {
     const following = poseOf("weaponRecover", 0.1, 0.1, "lr", { set: 1, turn: 0.9 });
     assert.equal(following.bladeExact, true);
     assert.ok(following.blade.x < -0.5, "on the swing's far side");
-    assert.equal(koboldPose("weaponRecover", 0.5, 0.5, "lr", MOTIONS.sword, null).bladeExact, false);
+    assert.equal(poseOf("weaponRecover", 0.5, 0.5, "lr", null).bladeExact, false);
+  });
+
+  test("between swings its blade stays where the last one left it, until its next wind-up turns it away", () => {
+    const stopped = followingBlade("lr", 0), out = MOTIONS.sword.held(stopped).blade;
+    for (const state of ["approach", "weaponRecover"] as const) {
+      assert.deepEqual(poseOf(state, 0.5, 0.5, "lr", null, stopped).blade, out, state);
+    }
+    assert.deepEqual(poseOf("weaponWindup", 0, 0, "tb", { set: 0, turn: 0 }, stopped).blade, out, "not yet moved");
   });
 
   test("the sword hand goes with the blade: out to the side wound up, ahead mid-cut", () => {

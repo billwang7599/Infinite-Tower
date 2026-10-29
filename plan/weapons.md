@@ -63,9 +63,12 @@ for the user to review; all of it is `planSwing` and `SWING` in `weapons.ts`, de
   Kobold's blow cost before inertia) × the hit's momentum; a body blow still by its damage.
 - A parry's window stays 0.15 s. The parried side's stun (or stagger) is scaled by the parrier's blade momentum over
   theirs, clamped to 0.5–2× (the agent's pick); a swordsman parrying from guard counts an opening swing's momentum.
-- The blade stays where its swing left it for `SWING.gapTime` (0.25 s) after an attack ends, then rests at the guard;
-  a block, a dodge, a hit taken,
-  being parried, a chant, a cast or the bag rest it at once. From rest, a swing is an opening.
+- The blade stays where its swing left it (the user: "sword stays where last swung. and from there its inertia"),
+  still moving for `SWING.gapTime` (0.25 s) after an attack ends, then stopped there; it doesn't drift back. A block, a
+  dodge, a hit taken, being parried, a chant, a cast or the bag rest it at the guard at once. From the guard, a swing
+  is an opening; from a stopped blade, the set is the distance to the swing's start (with the starter sword after
+  `lr`: `rl` 0.2 s, `brtl` / `trbl` 0.33 s, `tb` / `bt` 0.38 s, `lr` again 0.41 s; the greatsword 2.87× that). A stab
+  doesn't depend on where the blade is, only how fast it moves.
 - A buffered dodge or attack waits until the swing lets go (its wind-up and live time), so a heavier blade lets go
   later; it's never cut short.
 - The Kobold's 1.1 s and 0.45 s wind-ups stay as telegraphs; the blade's own wind-up is only a floor. It never swings

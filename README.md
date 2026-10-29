@@ -41,8 +41,8 @@ What's built so far:
   Kobold Greatsword fights the same with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
-  sprite winds up, strikes and follows through on every swing and the stab, raises its guard to block, and reels when
-  staggered.
+  sprite winds up, strikes and follows through on every swing and the stab, holds the sword out where a swing left it,
+  raises its guard to block, and reels when staggered.
 - **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
