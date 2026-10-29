@@ -1,7 +1,6 @@
 /**
- * Who's playing: one session per account, loaded on join and saved on leave, and the levels' overworlds they share.
- * Joining from another tab takes over: the old session is saved first, so the new one loads what it had. Past
- * `maxPlayers`, a new player is refused.
+ * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
+ * the old session is saved first, so the new one loads what it had.
  */
 import { CLOSE_CODES } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
@@ -14,10 +13,8 @@ import { GameSession, type Others } from "./session.js";
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
   private readonly overworlds = new Map<string, Overworld>();
-  private readonly others: Others = {
-    online: () => this.byAccount.values(),
-    duels: new Duels(() => this.byAccount.values()),
-  };
+  private readonly online = () => this.byAccount.values();
+  private readonly others: Others = { online: this.online, duels: new Duels(this.online) };
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {}
 

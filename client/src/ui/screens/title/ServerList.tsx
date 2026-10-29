@@ -22,7 +22,9 @@ export function ServerList({ servers, picked, disabled, pick }: ServerListProps)
               className={
                 "flex w-full cursor-pointer items-center justify-between border px-3 py-1.5 text-sm transition-colors "
                 + "disabled:cursor-default "
-                + (chosen ? "border-victory/70 bg-black/40 text-white" : "border-white/15 text-white/60 hover:text-white")
+                + (chosen
+                  ? "border-victory/70 bg-black/40 text-white"
+                  : "border-white/15 text-white/60 hover:text-white")
               }
             >
               <span>{server.name}</span>

@@ -3,7 +3,7 @@ import { fullVitals } from "../content/player.js";
 import type { GameSession } from "./session.js";
 
 export function runCheat(session: GameSession, cheat: Cheat): void {
-  const battle = session.battle && !session.battle.over ? session.battle : null;
+  const battle = session.liveBattle;
   switch (cheat.kind) {
     case "encounter":
       if (session.inOverworld) {

@@ -29,11 +29,10 @@ export function chaseSystem(): System {
       c.stateTime += dt;
       const player = nearestPlayer(world, pos);
       const dx = player ? player.pos.x - pos.x : 0, dz = player ? player.pos.z - pos.z : 0;
-      const dist = player ? player.dist : Infinity;
-      const safe = !player;
+      const dist = player?.dist ?? Infinity;
 
-      if (c.state === "calm" && !safe && dist < c.range) { c.state = "notice"; c.stateTime = 0; }
-      else if (c.state === "chase" && (safe || dist > c.giveUpDist)) {
+      if (c.state === "calm" && player && dist < c.range) { c.state = "notice"; c.stateTime = 0; }
+      else if (c.state === "chase" && (!player || dist > c.giveUpDist)) {
         c.state = "calm";
         c.stateTime = 0;
         actor.vx = actor.vz = 0;

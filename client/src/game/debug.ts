@@ -21,19 +21,18 @@ interface DebugHandles {
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {
-  if (import.meta.env.DEV) exposeDayClock();
-  if (!import.meta.env.DEV && !new URLSearchParams(location.search).has("debug")) return;
+  const params = new URLSearchParams(location.search);
+  if (import.meta.env.DEV) {
+    // `?time=0.75` freezes the time of day there (0 midnight, 0.5 noon).
+    const time = params.get("time");
+    if (time !== null && Number.isFinite(Number(time))) setDayClock({ fraction: Number(time), speed: 0 });
+    Object.assign(window, { setDayClock, setTime: (fraction: number) => setDayClock({ fraction }) });
+  }
+  if (!import.meta.env.DEV && !params.has("debug")) return;
   Object.assign(window, {
     battle: h.battle.ctx, overworld: h.overworld.state, mode: h.mode, ui: h.ui, settings: h.settings,
     encounter: h.encounter,
     cast: (skill: shared.Skill) => h.battle.ctx.casts.push(skill),
     components: { ...shared, ...overworldComponents },
   });
-}
-
-/** `?time=0.75` freezes the time of day (0 midnight, 0.5 noon); `setTime(f)` sets it, `setDayClock` retimes it. */
-function exposeDayClock(): void {
-  const time = new URLSearchParams(location.search).get("time");
-  if (time !== null && Number.isFinite(Number(time))) setDayClock({ fraction: Number(time), speed: 0 });
-  Object.assign(window, { setDayClock, setTime: (fraction: number) => setDayClock({ fraction }) });
 }

@@ -20,10 +20,9 @@ export type PlayerResult = FightState | "left";
 
 /** Down while others fight on: lost. Still in a won fight: won, standing or not. A left duel: forfeit, nothing lost. */
 export function playerResult(
-  outcome: FightOutcome, left: boolean, me?: { standing: boolean; duel: boolean },
+  outcome: FightOutcome, left: boolean, me: { standing: boolean; duel: boolean },
 ): PlayerResult {
-  if (left) return LEAVING_LOSES && !me?.duel ? "lost" : "left";
-  if (!me) return outcome.state;
+  if (left) return LEAVING_LOSES && !me.duel ? "lost" : "left";
   if (outcome.state === "fighting") return me.standing || me.duel ? "fighting" : "lost";
   return outcome.state === "won" && (me.standing || !me.duel) ? "won" : "lost";
 }

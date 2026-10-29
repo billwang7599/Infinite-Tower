@@ -9,7 +9,6 @@ import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.
 const STUMPS = 34;
 /** Above 1 so the bloom catches the mushrooms' glow. */
 const GLOW = new Color3(0.45, 1.5, 1.15);
-/** Angles (radians) round the wall of the mushroom clumps that light the mire. */
 const CLUMPS_RAD = [0.5, 2.1, 3.6, 5.2];
 const CLUMP_CAPS = 7;
 

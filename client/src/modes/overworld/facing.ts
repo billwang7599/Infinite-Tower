@@ -1,7 +1,6 @@
 /**
  * Ways in the overworld: on the map (a Heading: +z is north, +x east) and on the screen (a Facing), which the
- * camera's quarter turns right from north tie together. The player's chibi has a picture for each Facing: its
- * ChibiFacing (gfx/look/) is front for down, back for up, and side for either side, mirrored for left (mirrorFor).
+ * camera's quarter turns right from north tie together.
  */
 import { OVERWORLD_CAMERA_ANGLES } from "@infinite-tower/shared";
 
@@ -33,7 +32,8 @@ export function faceToward(current: Heading, moveX: number, moveZ: number): Head
 /** The server sends actors' facing as a side, 1 (east) or -1 (west): boars are only ever drawn side-on. */
 export const headingFromSide = (side: 1 | -1): Heading => (side === 1 ? "east" : "west");
 
-const quarter = (turns: number) => ((turns % OVERWORLD_CAMERA_ANGLES) + OVERWORLD_CAMERA_ANGLES) % OVERWORLD_CAMERA_ANGLES;
+const quarter = (turns: number) =>
+  ((turns % OVERWORLD_CAMERA_ANGLES) + OVERWORLD_CAMERA_ANGLES) % OVERWORLD_CAMERA_ANGLES;
 
 /** The walk keys (x right, z forward: away from the camera) as a move on the map. `0 - v` keeps -0 off the wire. */
 export function mapMove(keys: { x: number; z: number }, turns: number): { x: number; z: number } {

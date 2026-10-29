@@ -1,7 +1,7 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
  * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `skillbookScreen` and
- * the title's picked `server` too, and the game watches them. `UiActions` is the other direction.
+ * the title's `pickedSocket` too, and the game watches them. `UiActions` is the other direction.
  */
 import {
   blankSkillbook, type Carried, type Character, type Cheat, type Credentials, type DayChange, type GameServer,
@@ -32,9 +32,8 @@ export interface TitleState {
     | "returning";
   error: string | null;
   username: string | null;
-  /** Logged in, the game servers to pick from (empty until the list comes), and the picked one's socket. */
   servers: GameServer[];
-  server: string | null;
+  pickedSocket: string | null;
 }
 
 /** A game is running and the title has cleared off it: only then do the HUDs show and anything take keys. */
@@ -51,7 +50,6 @@ export interface OverworldHudState {
   stats: Stats | null;
   /** null until they've made one. */
   character: Character | null;
-  /** What the Rest key and the button over it do where you stand. */
   interaction: Interaction | null;
   gear: Gear;
 }
@@ -156,7 +154,7 @@ export interface UiActions {
 
 export class UiState {
   readonly title = new Store<TitleState>({
-    phase: "checking", error: null, username: null, servers: [], server: null,
+    phase: "checking", error: null, username: null, servers: [], pickedSocket: null,
   });
   readonly screen = new Store<ScreenState>({ mode: null, fadeColor: "#000", fadeOpacity: 0 });
   /** The notices in the corner and the banner in the centre; game code reaches them through `say`. */

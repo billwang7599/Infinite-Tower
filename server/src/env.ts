@@ -46,7 +46,9 @@ export function parseServerName(raw: string | undefined): string {
 export function parseMaxPlayers(raw: string | undefined): number {
   if (raw === undefined || raw === "") return DEFAULT_MAX_PLAYERS;
   const parsed = WholeNumber.safeParse(raw);
-  if (!parsed.success || parsed.data < 1) throw new Error(`MAX_PLAYERS must be a whole number, 1 or more (got "${raw}")`);
+  if (!parsed.success || parsed.data < 1) {
+    throw new Error(`MAX_PLAYERS must be a whole number, 1 or more (got "${raw}")`);
+  }
   return parsed.data;
 }
 

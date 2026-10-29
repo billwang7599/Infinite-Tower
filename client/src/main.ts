@@ -41,10 +41,11 @@ function settle(state: { username: string | null; error?: string }): void {
 async function loadServers(): Promise<void> {
   try {
     const servers = await listServers();
-    const picked = ui.title.get().server;
-    ui.title.set({ servers, server: servers.some((s) => s.socket === picked) ? picked : servers[0]?.socket ?? null });
+    const picked = ui.title.get().pickedSocket;
+    const pickedSocket = servers.some((s) => s.socket === picked) ? picked : servers[0]?.socket ?? null;
+    ui.title.set({ servers, pickedSocket });
   } catch (err) {
-    ui.title.set({ servers: [], server: null, error: message(err) });
+    ui.title.set({ servers: [], pickedSocket: null, error: message(err) });
   }
 }
 
@@ -65,7 +66,7 @@ async function signOut(): Promise<void> {
   if (ui.title.get().phase !== "menu") return;
   try {
     await logOut();
-    ui.title.set({ username: null, error: null, servers: [], server: null });
+    ui.title.set({ username: null, error: null, servers: [], pickedSocket: null });
   } catch (err) {
     ui.title.set({ error: message(err) });
   }
@@ -73,7 +74,6 @@ async function signOut(): Promise<void> {
 
 async function play(): Promise<void> {
   if (ui.title.get().phase !== "menu" || !ui.title.get().username) return;
-  // Retry after the list failed to come: ask for it again first.
   if (!pickedServer()) {
     ui.title.set({ error: null });
     await loadServers();
@@ -117,8 +117,8 @@ async function backToTitle(error: string | null = null): Promise<void> {
 }
 
 function pickedServer() {
-  const { servers, server } = ui.title.get();
-  return servers.find((s) => s.socket === server) ?? null;
+  const { servers, pickedSocket } = ui.title.get();
+  return servers.find((s) => s.socket === pickedSocket) ?? null;
 }
 
 /** The details ("Failed to fetch", a WebGL error…) go to the console; the title gets a sentence. */

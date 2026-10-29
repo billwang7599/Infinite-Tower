@@ -1,7 +1,4 @@
-/**
- * The sensitivity: one multiplier on how fast the arena camera turns and tilts, from the mouse and keys alike; and
- * the overworld camera's quarter turns.
- */
+/** The arena camera's sensitivity (one multiplier, for the mouse and keys alike) and the overworld camera's turns. */
 import { clamp, OVERWORLD_CAMERA_ANGLES, roundTo, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 

@@ -1,5 +1,5 @@
 import {
-  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PLAYER, REST_RANGE, walkPace, type Gear,
+  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PLAYER, REST_RANGE_TILES, walkPace, type Gear,
   type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
@@ -31,7 +31,7 @@ export function interactionAt(level: LevelLayout, at: Vec2, fights: readonly Vec
   const nearest = (spots: readonly Vec2[]) => Math.min(...spots.map((s) => distXZ(s, at)));
   const fire = nearest(level.campfires), fight = nearest(fights);
   if (fight <= JOIN_RANGE_TILES && fight < fire) return "joinFight";
-  return fire <= REST_RANGE ? "rest" : null;
+  return fire <= REST_RANGE_TILES ? "rest" : null;
 }
 
 interface OverworldOptions {
@@ -96,7 +96,6 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         prediction?.reconcile(msg.ack, msg.me);
         actors.apply(msg.actors, msg.players);
       });
-      // Walking stops until the player is back from the arena with the battle's result.
       joinedNet.on("encounter", (msg) => {
         inBattle = true;
         prediction?.reset(msg.me);

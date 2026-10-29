@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  DAY_LENGTH_MS, dayFraction, moonAt, retimeDay, sunAt, timeOfDay, WALL_CLOCK, type Vec3,
+  DAY_LENGTH_MS, dayFraction, moonAt, retimeDay, sunAt, WALL_CLOCK, type Vec3,
 } from "@infinite-tower/shared";
 
 const SAMPLES = 2880;
@@ -18,12 +18,14 @@ function crossing(body: (f: number) => Vec3, up: boolean): number {
   throw new Error("never crosses");
 }
 
+const timeOfDay = (nowMs: number) => dayFraction(WALL_CLOCK, nowMs);
+
 describe("the day clock", () => {
   test("the wall clock runs one day per DAY_LENGTH_MS, wrapping to 0..1", () => {
     assert.equal(timeOfDay(0), 0);
     assert.equal(timeOfDay(DAY_LENGTH_MS / 2), 0.5);
     assert.equal(timeOfDay(DAY_LENGTH_MS * 3 + DAY_LENGTH_MS / 4), 0.25);
-    assert.ok(Math.abs(dayFraction(WALL_CLOCK, 7 * DAY_LENGTH_MS + 1000) - timeOfDay(1000)) < 1e-9);
+    assert.ok(Math.abs(timeOfDay(7 * DAY_LENGTH_MS + 1000) - timeOfDay(1000)) < 1e-9);
   });
 
   test("speed changes how fast it runs from now, with no jump", () => {

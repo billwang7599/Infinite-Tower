@@ -21,7 +21,6 @@ export interface QueuedInput { seq: number; moveX: number; moveZ: number }
 export interface OverworldPlayerData {
   character: Character;
   queue: QueuedInput[];
-  /** Highest input seq accepted. */
   lastSeq: number;
   /** Inputs the player may still simulate: +1 per tick, capped, so a client can't move faster by sending more. */
   credits: number;

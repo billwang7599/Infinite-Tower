@@ -1,6 +1,6 @@
 /** The overworld player: replays the client's inputs with the shared walking rules, and rolls for encounters. */
 import {
-  distXZ, FIXED_DT, inTallGrass, stepWalker, type Character, type Entity, type System, type Vec2, type World,
+  distXZ, FIXED_DT, inTallGrass, stepWalker, type Character, type System, type Vec2, type World,
 } from "@infinite-tower/shared";
 import { rollEnemy } from "../world/level.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData, type QueuedInput } from "./components.js";
@@ -22,13 +22,14 @@ export function newWalk(character: Character): OverworldPlayerData {
   };
 }
 
-/** The player nearest `at` that enemies may go for: not in a battle, and not safe (just after one). */
-export function nearestPlayer(world: World, at: Vec2): { player: Entity; pos: Vec2; dist: number } | null {
-  let nearest: { player: Entity; pos: Vec2; dist: number } | null = null;
-  for (const [player, walk, pos] of world.query(OverworldPlayer, OverworldPos)) {
-    if (walk.fighting || walk.safeTime > 0) continue;
+export const huntable = (walk: OverworldPlayerData): boolean => !walk.fighting && walk.safeTime <= 0;
+
+export function nearestPlayer(world: World, at: Vec2): { pos: Vec2; dist: number } | null {
+  let nearest: { pos: Vec2; dist: number } | null = null;
+  for (const [, walk, pos] of world.query(OverworldPlayer, OverworldPos)) {
+    if (!huntable(walk)) continue;
     const dist = distXZ(at, pos);
-    if (!nearest || dist < nearest.dist) nearest = { player, pos, dist };
+    if (!nearest || dist < nearest.dist) nearest = { pos, dist };
   }
   return nearest;
 }

@@ -14,22 +14,20 @@ export interface SkyLook {
   sun: { color: Color3; intensity: number };
 }
 
-/** A light standing in the map: `flicker` is how far its brightness wavers, as a share. */
+/** `flicker`: how far its brightness wavers, as a share. */
 export interface MapLight { at: Vec3; color: Color3; intensity: number; rangeM: number; flicker: number }
 
-export interface DirectLight { body: "sun" | "moon"; toLight: Vec3; strength: number }
+interface DirectLight { body: "sun" | "moon"; toLight: Vec3; strength: number }
 
 export const MOONLIGHT = { color: new Color3(0.6, 0.7, 1), intensity: 0.6 };
 export const MAX_MAP_LIGHTS = 4;
 export const SHADOW_MAP_LIGHTS = 2;
 /** A map light keeps its shadows until another is this much nearer the camera, so shaders don't swap back and forth. */
 export const SHADOW_SWAP_MARGIN_M = 2;
-/** Degrees of the sun's altitude over which it fades in; the moon takes over below it, after the dusk. */
 const SUN_FADE_DEG = [-1, 5] as const;
 const DUSK_FADE_DEG = [-8, -1] as const;
 const MOON_FADE_DEG = [0, 6] as const;
 
-/** By the sun's altitude: tints over a look's colours. Interpolated, held past the ends. */
 const DAYLIGHT = [
   { altDeg: -12, sky: [0.32, 0.38, 0.62], skyLight: [0.62, 0.72, 1], skyLightScale: 1, sunTint: [1, 0.6, 0.4] },
   { altDeg: -4, sky: [0.7, 0.55, 0.66], skyLight: [0.85, 0.75, 0.92], skyLightScale: 1.5, sunTint: [1, 0.6, 0.4] },
@@ -38,16 +36,14 @@ const DAYLIGHT = [
   { altDeg: 45, sky: [1, 1, 1], skyLight: [1, 1, 1], skyLightScale: 1, sunTint: [1, 1.12, 1.3] },
 ] as const;
 
-/** `contactAlpha`: the sky light's, round under the feet; each light's shadow goes by its share of the light there. */
 const BLOB = { contactAlpha: 0.45, alphaPerShare: 1.6, minAlpha: 0.05, stretchPerCot: 0.5, maxStretch: 2.6 };
-/** How much of each light a sprite (unlit, its colour × this tint) takes. */
 const SPRITE_LIGHT = { sky: 1.3, direct: 0.7, map: 0.6 };
 const SUN_DISC = { color: new Color3(3, 2.6, 2), radiusM: 5 };
 const MOON_DISC = { color: new Color3(1.2, 1.3, 1.5), radiusM: 3.5 };
 const DISC_DISTANCE_M = 400;
 const BODY_DISTANCE_M = 40;
 const POINT_SHADOW_MAP_PX = 512;
-const FLICKER_RATE = [7.3, 13.1] as const;
+const FLICKER_RAD_PER_SEC = [7.3, 13.1] as const;
 
 let clock: DayClock = WALL_CLOCK;
 
@@ -255,8 +251,8 @@ export function createSky(scene: Scene): Sky {
 
       const seconds = nowMs / 1000;
       lamps.forEach(({ def, light }, i) => {
-        const waver = 0.6 * Math.sin(seconds * FLICKER_RATE[0] + i * 2.1)
-          + 0.4 * Math.sin(seconds * FLICKER_RATE[1] + i);
+        const waver = 0.6 * Math.sin(seconds * FLICKER_RAD_PER_SEC[0] + i * 2.1)
+          + 0.4 * Math.sin(seconds * FLICKER_RAD_PER_SEC[1] + i);
         light.intensity = def.intensity * (1 + def.flicker * waver);
       });
       shadowed = nearestLights(lamps.map((l) => l.def.at), camera, SHADOW_MAP_LIGHTS, shadowed);

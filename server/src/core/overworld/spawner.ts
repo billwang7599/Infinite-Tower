@@ -1,7 +1,4 @@
-/**
- * Spawns a level's actors and replaces defeated ones after `respawnTime`, away from players if they're near. An actor
- * taken into a fight is gone for everyone, and its time to come back starts only once that fight is over.
- */
+/** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from players if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { ENEMIES } from "../enemies/index.js";
 import type { SpawnDef } from "../world/level.js";

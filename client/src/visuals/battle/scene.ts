@@ -60,5 +60,4 @@ function postProcess(scene: Scene, camera: Camera): void {
   pipeline.imageProcessing.vignetteEnabled = true;
   pipeline.imageProcessing.vignetteWeight = 2;
   pipeline.imageProcessing.vignetteColor = new Color4(0, 0, 0.05, 0);
-
 }
