@@ -1,10 +1,10 @@
 /**
  * A look (shared/src/character/character.ts: the choices made at character creation) drawn as pictures: the
- * portrait, the chibi facing each way, and the battle sprite in each pose. Each option id indexes its art or
- * colors here, so an option shared/ lists without art doesn't compile.
+ * portrait, the chibi facing each way, and the battle sprite in each pose from behind and the front. Each option id
+ * indexes its art or colors here, so an option shared/ lists without art doesn't compile.
  */
 import type { Hand, Look } from "@infinite-tower/shared";
-import { render, type Art, type ChibiFacing, type Colors, type Picture } from "./art.js";
+import { render, type Art, type BattleFacing, type ChibiFacing, type Colors, type Picture } from "./art.js";
 import { leftHanded, type Pose, type SwordPose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
@@ -15,7 +15,7 @@ import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN } from "./palette.js";
 import { SWORD } from "./sword.js";
 
 export type { Look };
-export { CHIBI_FACINGS, type ChibiFacing } from "./art.js";
+export { BATTLE_FACINGS, CHIBI_FACINGS, type BattleFacing, type ChibiFacing } from "./art.js";
 
 /** Everything drawn for a look: the body and head, its features, then what it wears. */
 function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Art[] {
@@ -33,15 +33,14 @@ export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
-/** The battle sprite in `pose` (its `frame`th frame), `weapon` in `swordHand` (null: none). */
 export function drawBattle(
-  look: Look, pose: Pose | SwordPose, frame = 0, wear: readonly Art[] = STARTER_CLOTHES,
+  look: Look, pose: Pose | SwordPose, frame = 0, facing: BattleFacing = "back", wear: readonly Art[] = STARTER_CLOTHES,
   swordHand: Hand | null = "rightHand", weapon: Art = SWORD,
 ): Picture {
-  const frames = BODY_TYPES[look.body].battle;
+  const frames = BODY_TYPES[look.body].battle[facing];
   const body = swordHand === "leftHand" ? leftHanded(frames, pose, frame) : frames[pose][frame];
   if (!body) throw new RangeError(`${pose} has no frame ${frame}`);
-  const pieces = lookArts(look, swordHand ? [...wear, weapon] : wear).map((art) => art.battle);
+  const pieces = lookArts(look, swordHand ? [...wear, weapon] : wear).map((art) => art.battle?.[facing]);
   return render("battle", body, pieces, colorsOf(look), FIXED);
 }
 

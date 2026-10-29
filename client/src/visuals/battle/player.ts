@@ -1,10 +1,12 @@
 import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from "@babylonjs/core";
 import {
-  attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
+  attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponIn, Wielder, type Entity,
+  type World,
 } from "@infinite-tower/shared";
+import type { BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
-import { spritePose } from "./pose.js";
+import { facingSeen, spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
 import { MOTIONS } from "./weapons.js";
@@ -36,6 +38,7 @@ interface PlayerSprite {
   stretch: number;
   /** The hitstun the current stagger began with (0: not staggered). */
   staggerTime: number;
+  facing: BattleFacing;
   sword: StandardMaterial;
 }
 
@@ -48,7 +51,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   plane.parent = node;
   plane.position.y = spriteY(1, 0);
   plane.billboardMode = Mesh.BILLBOARDMODE_Y;
-  plane.material = materials.player.stand[0]!;
+  plane.material = materials.player.back.stand[0]!;
 
   const shadows = ctx.sky.blobs(materials.blobShadow, SHADOW_LENGTH_M, 0.7);
 
@@ -94,7 +97,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   guard.setEnabled(false);
 
   return {
-    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0,
+    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0, facing: "back",
     sword: materials.slashFx,
   };
 }
@@ -125,7 +128,10 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = player.action === "stagger" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
-  const picture = (ctx.peerFrames.get(e) ?? ctx.materials.player)[pose.pose][pose.frame]!;
+  sprite.facing = facingSeen(ctx.battle.view.eye, p, world.require(e, Skilled).aim, sprite.facing);
+  const look = ctx.looks.get(e);
+  const picture = look?.battleSprite(sprite.facing, pose.pose, pose.frame)
+    ?? ctx.materials.player.back[pose.pose][pose.frame]!;
   if (sprite.plane.material !== picture) sprite.plane.material = picture;
   ctx.sky.tintAt(p, picture.emissiveColor);
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);

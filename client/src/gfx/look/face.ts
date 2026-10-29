@@ -3,11 +3,13 @@
  * (head.ts), so each eye type is two grids: the near eye (on the right, the full width) and the far eye
  * (narrower, its outer corner on the face's left edge). Both look at us, so the irises sit toward the right.
  * Chibi eyes are one grid, the left eye; the right is its mirror image. Facing side (to the left) only the near
- * eye shows, its front two columns; facing back, no face at all.
+ * eye shows, its front two columns; facing back, no face at all. The battle sprite's front has the chibi's eyes
+ * and mouth where its scaled-up head (frontHead, battle.ts) puts them.
  * Letters: K/k lash and lower lash, w/v eye white, H highlight, p pupil, D/d/I/L/S iris dark to light,
  * o/N/n skin lines, M/q inside the mouth, T teeth, m/b chibi mouth and brow.
  */
 import { ink, type Art } from "./art.js";
+import { onFrontHead } from "./battle.js";
 import { BASE, DEEP, LIGHT, OUTLINE, SHADOW, SHINE, type Ink } from "./pixels.js";
 
 const LEGEND: Record<string, Ink> = {
@@ -55,6 +57,17 @@ function eyes({ near, far, chibi }: EyeType): Art {
       },
       side: { face: (pen) => pen.grid(SIDE_EYE.x, SIDE_EYE.y, front(chibi, 2), LEGEND) },
     },
+    battle: {
+      front: {
+        face: (pen, { head: [dx, dy] }) => {
+          const { x, y, width } = CHIBI_EYE, size = chibi.length;
+          const [cx, cy] = onFrontHead([x + width / 2, y + size / 2], [0, dy]);
+          const left = Math.round(cx - width / 2), top = Math.round(cy - size / 2);
+          pen.grid(left + dx, top, chibi, LEGEND);
+          pen.grid(64 - left - width + dx, top, chibi, LEGEND, true);
+        },
+      },
+    },
   };
 }
 
@@ -91,6 +104,14 @@ function mouth(portrait: readonly string[], chibi: readonly string[]): Art {
     chibi: {
       front: { face: (pen) => pen.grid(16 - Math.floor(chibi[0]!.length / 2), CHIBI_MOUTH_Y, chibi, LEGEND) },
       side: { face: (pen) => pen.grid(SIDE_LIPS.x, SIDE_LIPS.y, front(chibi, 1), LEGEND) },
+    },
+    battle: {
+      front: {
+        face: (pen, { head }) => {
+          const [, y] = onFrontHead([16, CHIBI_MOUTH_Y + 0.5], head);
+          pen.grid(32 + head[0] - Math.floor(chibi[0]!.length / 2), Math.floor(y), chibi, LEGEND);
+        },
+      },
     },
   };
 }

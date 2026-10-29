@@ -1,13 +1,16 @@
 /**
- * The battle sprite's body, from behind, in each pose. A pose is a `BattleFrame` (art.ts): the standing body's
- * shapes, moved. Hair, clothes and the sword are drawn against the frame, so they follow every pose and fit
- * every body type, as in the other views.
+ * The battle sprite's body, from behind and from the front, in each pose. A pose is a `BattleFrame` (art.ts): the
+ * standing body's shapes, moved. Hair, clothes and the sword are drawn against the frame, so they follow every pose
+ * and fit every body type, as in the other views.
  * 64x64: the figure is 48 wide around x = 32, its feet on the bottom row; the 8 columns each side are for the
- * sword. We see the player from behind, so their right hand is on our right. Light from the top left.
+ * sword. From behind their right hand is on our right; from the front the body is the same pose turned round,
+ * mirrored, so it's on our left. Light from the top left.
  */
-import type { BattleFrame } from "./art.js";
+import type { BattleFacing, BattleFrame } from "./art.js";
 import { swordPoses } from "./moves.js";
-import { ellipse, flip, limb, mirror, polygon, shift, symmetric, union, type Mask, type Point } from "./pixels.js";
+import {
+  ellipse, flip, limb, mirror, polygon, scale, shift, symmetric, union, type Mask, type Point,
+} from "./pixels.js";
 
 /**
  * A picture each. stand: arms down, the sword held up and out. slash: the sword arm swung out to our right, the
@@ -49,8 +52,16 @@ export interface BattleBuild {
   neck: number;
 }
 
-/** Every pose's frames: one each for the arena's, a few for the sword fight's. */
-export function battleFrames(b: BattleBuild): Record<Pose | SwordPose, readonly BattleFrame[]> {
+export type BattleFrames = Record<Pose | SwordPose, readonly BattleFrame[]>;
+
+// The chibi's front head, crown at (16, 10.6), scaled to fill the hair seen from behind.
+const FRONT_HEAD_SCALE = 1.38;
+export const frontHead = (chibi: Mask, [dx, dy]: Point): Mask =>
+  scale(chibi, FRONT_HEAD_SCALE, [16, 10.6], [M + dx, 19.4 + dy]);
+export const onFrontHead = ([x, y]: Point, [dx, dy]: Point): Point =>
+  [M + dx + (x - 16) * FRONT_HEAD_SCALE, 19.4 + dy + (y - 10.6) * FRONT_HEAD_SCALE];
+
+export function battleFrames(b: BattleBuild): Record<BattleFacing, BattleFrames> {
   const s = b.shoulder, wrist = M - s - 2.3;
   /** The left hand's middle; the right hand's is its mirror image, W - handX. */
   const handX = wrist + (b.arm - 0.7) / 2;
@@ -107,21 +118,25 @@ export function battleFrames(b: BattleBuild): Record<Pose | SwordPose, readonly 
     head: [0, 14],
     sword: [[M + 13, 61.5], [M + 29, 57.5]],
   };
-  return { stand: [stand], slash: [slash], down: [down], ...swordPoses(b, stand) };
+  const front: BattleFrames = { stand: [stand], slash: [slash], down: [down], ...swordPoses(b, stand, "front") };
+  const turned = {} as Record<Pose | SwordPose, readonly BattleFrame[]>;
+  for (const pose of Object.keys(front) as (Pose | SwordPose)[]) turned[pose] = front[pose].map(flipped);
+  return { back: { stand: [stand], slash: [slash], down: [down], ...swordPoses(b, stand, "back") }, front: turned };
 }
 
 /** The body flipped, so the sword is in the left hand; what's drawn on it (the hair, the light) isn't. */
-export function leftHanded(
-  frames: Record<Pose | SwordPose, readonly BattleFrame[]>, pose: Pose | SwordPose, frame: number,
-): BattleFrame | undefined {
+export function leftHanded(frames: BattleFrames, pose: Pose | SwordPose, frame: number): BattleFrame | undefined {
   const f = frames[MIRRORED_POSE[pose]][frame];
-  if (!f) return undefined;
-  const flipped = (mask: Mask) => flip(mask, W);
+  return f && flipped(f);
+}
+
+function flipped(f: BattleFrame): BattleFrame {
+  const turned = (mask: Mask) => flip(mask, W);
   const at = ([x, y]: Point): Point => [W - x, y];
   return {
     ...f,
-    neck: flipped(f.neck), torso: flipped(f.torso), arms: flipped(f.arms), legs: flipped(f.legs),
-    hands: flipped(f.hands), feet: flipped(f.feet), shins: flipped(f.shins),
+    neck: turned(f.neck), torso: turned(f.torso), arms: turned(f.arms), legs: turned(f.legs),
+    hands: turned(f.hands), feet: turned(f.feet), shins: turned(f.shins),
     middle: W - f.middle,
     shoulders: [at(f.shoulders[1]), at(f.shoulders[0])],
     head: [-f.head[0], f.head[1]],

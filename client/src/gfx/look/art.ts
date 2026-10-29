@@ -15,8 +15,8 @@ export const VIEWS = {
   /** The small chibi in the world, drawn facing each way it walks (CHIBI_FACINGS). */
   chibi: { width: 32, height: 32 },
   /**
-   * The arena, full body and sword in hand, from behind: the arena camera always sits behind the player, who
-   * faces where they attack. The figure is 48 wide in the middle, leaving room each side for the sword.
+   * The arena, full body and sword in hand, seen from each of BATTLE_FACINGS. The figure is 48 wide in the middle,
+   * leaving room each side for the sword.
    */
   battle: { width: 64, height: 64 },
 } as const;
@@ -28,6 +28,9 @@ export type View = keyof typeof VIEWS;
  */
 export const CHIBI_FACINGS = ["front", "back", "side"] as const;
 export type ChibiFacing = (typeof CHIBI_FACINGS)[number];
+
+export const BATTLE_FACINGS = ["back", "front"] as const;
+export type BattleFacing = (typeof BATTLE_FACINGS)[number];
 
 /** Bottom to top. Wear goes between the body parts it covers. */
 const LAYERS = [
@@ -88,7 +91,7 @@ export interface Frames {
    * is the torso's middle column, and both `shoulders` are the near one.
    */
   chibi: Record<ChibiFacing, Frame>;
-  battle: BattleFrame;
+  battle: Record<BattleFacing, BattleFrame>;
 }
 
 export type Draw<F extends Frame = Frame> = (pen: Pen, frame: F) => void;
@@ -97,7 +100,7 @@ export type Piece<F extends Frame = Frame> = Partial<Record<Layer, Draw<F>>>;
 export interface Art {
   portrait?: Piece;
   chibi?: Partial<Record<ChibiFacing, Piece>>;
-  battle?: Piece<BattleFrame>;
+  battle?: Partial<Record<BattleFacing, Piece<BattleFrame>>>;
 }
 
 /** The ramps the picked colors fill in; everything else comes from palette.ts's FIXED. */

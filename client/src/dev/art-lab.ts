@@ -4,10 +4,10 @@
  */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "../gfx/look/art.js";
-import { POSES, SWORD_POSES, type SwordPose } from "../gfx/look/battle.js";
+import { POSES, SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
 import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
 import {
-  CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type ChibiFacing, type Look,
+  BATTLE_FACINGS, CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type BattleFacing, type ChibiFacing, type Look,
 } from "../gfx/look/look.js";
 import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
 
@@ -18,6 +18,7 @@ const LABELS: Record<keyof Look, string> = {
 
 let look: Look = { ...DEFAULT_LOOK };
 let jerkin = false;
+let leftHanded = false;
 
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;
 const randomLook = (): Look =>
@@ -35,6 +36,8 @@ function canvas(pic: Picture, scale: number, style = ""): HTMLCanvasElement {
 const wear = () => (jerkin ? [...STARTER_CLOTHES, LEATHER_JERKIN] : STARTER_CLOTHES);
 const portrait = (l: Look) => drawPortrait(l, wear());
 const chibi = (l: Look, facing: ChibiFacing) => drawChibi(l, facing, wear());
+const battle = (pose: Pose | SwordPose, frame: number, facing: BattleFacing) =>
+  drawBattle(look, pose, frame, facing, wear(), leftHanded ? "leftHand" : "rightHand");
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, style = "", text = ""): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -68,7 +71,13 @@ function render(): void {
   box.checked = jerkin;
   box.onchange = () => { jerkin = box.checked; render(); };
   gear.append(box, "Try on: leather jerkin");
-  controls.append(random, gear);
+  const hand = el("label", "display:flex;gap:6px;align-items:center");
+  const handBox = el("input");
+  handBox.type = "checkbox";
+  handBox.checked = leftHanded;
+  handBox.onchange = () => { leftHanded = handBox.checked; render(); };
+  hand.append(handBox, "Sword in the left hand");
+  controls.append(random, gear, hand);
   root.append(controls);
 
   // The portrait and the chibi facing front, at a few sizes
@@ -94,20 +103,26 @@ function render(): void {
   for (const facing of CHIBI_FACINGS) facings.append(caption(canvas(chibi(look, facing), 3), "3x"));
   root.append(facings);
 
-  // The battle sprite: from behind, in each pose, and at about arena size.
-  const battle = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  // The battle sprite in each pose, from behind and from the front, and at about arena size.
+  const poses = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
   for (const pose of POSES) {
-    battle.append(caption(canvas(drawBattle(look, pose, 0, wear()), 5), `battle: ${pose} at 5x`));
+    const sides = el("div", "display:flex;gap:4px");
+    for (const facing of BATTLE_FACINGS) sides.append(canvas(battle(pose, 0, facing), 4));
+    poses.append(caption(sides, `battle: ${pose}, back and front, at 4x`));
   }
-  battle.append(caption(canvas(drawBattle(look, "stand", 0, wear()), 2), "at 2x"));
-  root.append(battle);
+  for (const facing of BATTLE_FACINGS) poses.append(caption(canvas(battle("stand", 0, facing), 2), "at 2x"));
+  root.append(poses);
 
-  // The sword fight's poses, not in the arena yet: every frame, in order, at 3x.
+  // The sword fight's poses: every frame in order, from behind over from the front, at 3x.
   const moves = el("div", "display:flex;gap:20px 28px;flex-wrap:wrap");
   for (const [pose, count] of Object.entries(SWORD_POSES) as [SwordPose, number][]) {
-    const frames = el("div", "display:flex;gap:2px");
-    for (let frame = 0; frame < count; frame++) frames.append(canvas(drawBattle(look, pose, frame, wear()), 3));
-    moves.append(caption(frames, `${pose}: ${count} frames`));
+    const sides = el("div", "display:flex;flex-direction:column;gap:2px");
+    for (const facing of BATTLE_FACINGS) {
+      const frames = el("div", "display:flex;gap:2px");
+      for (let frame = 0; frame < count; frame++) frames.append(canvas(battle(pose, frame, facing), 3));
+      sides.append(frames);
+    }
+    moves.append(caption(sides, `${pose}: ${count} frames, back over front`));
   }
   root.append(caption(moves, "battle: the sword fight's poses, frame by frame"));
 
