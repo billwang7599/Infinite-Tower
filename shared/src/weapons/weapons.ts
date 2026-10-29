@@ -172,7 +172,8 @@ export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack
 
 /** `turn`: share of the half-turn from start to far side (from rest: a third driven, live, follow-through each). */
 export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
-  const { step, driveAt, liveAt, liveUntil, endAt, startSpeed: u, flow: v } = swing;
+  const step = Math.min(swing.step, swing.stoppedAt ?? Infinity);
+  const { driveAt, liveAt, liveUntil, endAt, startSpeed: u, flow: v } = swing;
   const driveSteps = Math.max(1, liveAt - driveAt), stroke = ((u + v) / 2) * driveSteps;
   if (step < driveAt) return { set: step / driveAt, turn: 0, follow: 0 };
   const s = Math.min(1, (step - driveAt) / driveSteps);
@@ -182,6 +183,12 @@ export function strokeOf(swing: SwingData): { set: number; turn: number; follow:
   const followSteps = Math.max(1, endAt - liveUntil), f = clamp((step - liveUntil) / followSteps, 0, 1);
   if (f > 0) gone += v * followSteps * (f - (f * f) / 2);
   return { set: 1, turn: gone / stroke / 3, follow: f };
+}
+
+export function stoppedBlade(swing: SwingData): Blade {
+  if (!isSwing(swing.attack)) return restingBlade();
+  const way = SCREEN_DIR[swing.attack], along = -Math.cos(Math.PI * strokeOf(swing).turn);
+  return { x: way.x * along, y: way.y * along, vx: 0, vy: 0 };
 }
 
 /** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */

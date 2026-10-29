@@ -188,6 +188,9 @@ Decided by the user:
   swing again in 0.41 s. A block, a dodge or a hit taken brings it back to the guard. A block stops a hit from in front
   for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're staggered.
   Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
+- A blade that meets a guard (blocked or parried) stops dead there and the next wind-up starts from there; its swing
+  still runs its time out (the agent's pick). Hit-stop, the hit's jolt and the sparks are drawing only, to tune:
+  `hitStopMs` in `WEAPON_LOOKS` and the top of `client/src/visuals/battle/impact.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
   three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
   first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, which since

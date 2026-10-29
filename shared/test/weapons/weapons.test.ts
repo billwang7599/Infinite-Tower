@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ATTACK_KINDS, attackShape, followingBlade, isSwing, ITEMS, lineOf, liveStep, planSwing, PLAYER, restingBlade,
-  reverseOf, SCREEN_DIR, strokeOf, SWING, SWING_DIRS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS, type AttackKind,
-  type SwingData, type SwingDir, type SwingPlan, type Weapon,
+  reverseOf, SCREEN_DIR, stoppedBlade, strokeOf, SWING, SWING_DIRS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS,
+  type AttackKind, type SwingData, type SwingDir, type SwingPlan, type Weapon,
 } from "@infinite-tower/shared";
 
 describe("the ten things a sword does", () => {
@@ -149,7 +149,7 @@ describe("a swing's stroke: what the fight runs is what's drawn", () => {
     return {
       attack: "lr", dir: { x: 0, z: 1 }, step, driveAt: liveAt - liveStep(plan.driveTime), liveAt, liveUntil,
       letGoAt: liveUntil, endAt: liveUntil + liveStep(plan.followTime), startSpeed: plan.startSpeed,
-      flow: plan.flow, damage: 9, knockback: 0, lift: 0, poiseDamage: 0, momentum: plan.momentum,
+      flow: plan.flow, damage: 9, knockback: 0, lift: 0, poiseDamage: 0, momentum: plan.momentum, stoppedAt: null,
     };
   };
   const plan = planSwing(WEAPONS.sword, 10, restingBlade(), "lr");
@@ -180,6 +180,47 @@ describe("a swing's stroke: what the fight runs is what's drawn", () => {
     const flowing = planSwing(WEAPONS.sword, 10, followingBlade("lr", 1), "lr");
     const s = swingOf(flowing, 0), quarter = s.driveAt + (s.liveAt - s.driveAt) / 4;
     assert.ok(at(quarter, flowing).turn / at(s.liveAt, flowing).turn > 0.2, "not the slow start from rest");
+  });
+});
+
+describe("a blade stopped mid-swing", () => {
+  const plan = planSwing(WEAPONS.sword, 10, restingBlade(), "lr");
+  const liveAt = liveStep(plan.windupTime), liveUntil = liveAt + liveStep(SWING.activeTime * plan.timeFactor);
+  const swingOf = (attack: AttackKind, step: number, stoppedAt: number | null = null): SwingData => ({
+    attack, dir: { x: 0, z: 1 }, step, driveAt: liveAt - liveStep(plan.driveTime), liveAt, liveUntil,
+    letGoAt: liveUntil, endAt: liveUntil + liveStep(plan.followTime), startSpeed: plan.startSpeed, flow: plan.flow,
+    damage: 9, knockback: 0, lift: 0, poiseDamage: 0, momentum: plan.momentum, stoppedAt,
+  });
+  const close = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} vs ${b}`);
+
+  test("is held still on its swing's line: at its start before it turns, through the guard, to its far end", () => {
+    for (const dir of SWING_DIRS) {
+      const way = SCREEN_DIR[dir], { endAt } = swingOf(dir, 0);
+      const start = stoppedBlade(swingOf(dir, 0)), end = stoppedBlade(swingOf(dir, endAt));
+      close(start.x, -way.x, `${dir} start x`);
+      close(start.y, -way.y, `${dir} start y`);
+      close(end.x, way.x, `${dir} end x`);
+      close(end.y, way.y, `${dir} end y`);
+      for (let step = 0; step <= endAt; step++) {
+        const blade = stoppedBlade(swingOf(dir, step)), along = blade.x * way.x + blade.y * way.y;
+        assert.equal(blade.vx === 0 && blade.vy === 0, true, `${dir} still`);
+        close(blade.x, along * way.x, `${dir} on its line`);
+        close(blade.y, along * way.y, `${dir} on its line`);
+      }
+    }
+  });
+
+  test("halfway round, it's at the guard; a stab's always is", () => {
+    const half = Array.from({ length: 200 }, (_, step) => swingOf("lr", step))
+      .find((swing) => strokeOf(swing).turn >= 0.5)!;
+    assert.ok(Math.abs(stoppedBlade(half).x) < 0.1, `${stoppedBlade(half).x}`);
+    assert.deepEqual(stoppedBlade(swingOf("stab", liveAt)), restingBlade());
+  });
+
+  test("stopped on a step, its stroke goes no further while the swing runs on", () => {
+    const stoppedAt = liveAt + 1, later = swingOf("lr", liveUntil + 3, stoppedAt);
+    assert.deepEqual(strokeOf(later), strokeOf(swingOf("lr", stoppedAt)));
+    assert.deepEqual(stoppedBlade(later), stoppedBlade(swingOf("lr", stoppedAt)));
   });
 });
 

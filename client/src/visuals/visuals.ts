@@ -9,6 +9,7 @@ import type { BattleContext } from "../modes/battle/context.js";
 import type { StepEvent } from "../modes/battle/sync.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
+import { clash, PARRY_HIT_STOP_MS, strike } from "./battle/impact.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
@@ -49,12 +50,23 @@ const shake = (scene: ArenaScene, amount: number) => {
   scene.shake = Math.max(scene.shake, amount);
 };
 
-type Effects = { [T in FightEvent["type"]]?: (scene: ArenaScene, ev: Extract<FightEvent, { type: T }>) => void };
+type Effects = {
+  [T in FightEvent["type"]]?: (scene: ArenaScene, ev: Extract<FightEvent, { type: T }>, world: World) => void
+};
 export const EFFECTS: Effects = {
   slam: (scene) => shake(scene, 0.35),
-  hit: (scene, ev) => shake(scene, ev.team === "player" ? 0.15 + ev.damage * 0.008 : 0.06),
-  parry: (scene) => shake(scene, 0.2),
-  block: (scene, ev) => shake(scene, ev.guardBreak ? 0.2 : 0.08),
+  hit(scene, ev, world) {
+    shake(scene, ev.team === "player" ? 0.15 + ev.damage * 0.008 : 0.06);
+    if (ev.weapon) strike(scene, world, ev.by, ev.target);
+  },
+  parry(scene, ev, world) {
+    shake(scene, 0.2);
+    clash(scene, world, ev.target, ev.by, PARRY_HIT_STOP_MS);
+  },
+  block(scene, ev, world) {
+    shake(scene, ev.guardBreak ? 0.2 : 0.08);
+    clash(scene, world, ev.by, ev.target, 0);
+  },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);
     else if (ev.form === "self") bursts.self(ev.elements, ev.at);
@@ -161,10 +173,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
           if (kind) kinds.set(e, kind);
         }
       }
-      drawEntities(VISUALS, arena, world, fighters, kinds, dt);
       for (const { event } of fired.take(from.battle.events)) {
-        (EFFECTS[event.type] as ((scene: ArenaScene, ev: FightEvent) => void) | undefined)?.(arena, event);
+        (EFFECTS[event.type] as ((scene: ArenaScene, ev: FightEvent, world: World) => void) | undefined)
+          ?.(arena, event, world);
       }
+      drawEntities(VISUALS, arena, world, fighters, kinds, dt);
       stage.frame(world, dt);
       arena.skills.tick(dt);
     }

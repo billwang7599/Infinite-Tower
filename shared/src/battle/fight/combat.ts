@@ -17,7 +17,7 @@ import { FighterStats } from "../stats.js";
 import type { FightEvent } from "./context.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
-import { endSwing, restBlade } from "./weapons/swing.js";
+import { endSwing, restBlade, stopBlade } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
@@ -103,7 +103,7 @@ export function combatSystem(events: FightEvent[]): System {
         const resolved = player
           ? hitPlayer(world, events, attacker, hit, target, player)
           : hitEnemy(world, events, attacker, hit, target);
-        if (resolved === "parried") break; // the attacker's hitbox is gone
+        if (resolved !== "landed" && !world.has(attacker, ActiveHit)) break; // a stopped blade's hitbox is gone
       }
     }
   };
@@ -147,7 +147,8 @@ function hitPlayer(
       player.action = "stagger";
       health.hitstun = block.guardBreakTime;
     }
-    events.push({ type: "block", target, guardBreak });
+    if (hit.attack !== null) stopBlade(world, attacker);
+    events.push({ type: "block", by: attacker, target, guardBreak });
     return "blocked";
   }
 
@@ -179,6 +180,7 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
 function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number): void {
   const enemy = world.require(e, Enemy), body = world.require(e, Body);
   Object.assign(enemy, { state: "parried", stateTime: 0, duration: stunTime });
+  stopBlade(world, e);
   endSwing(world, e);
   // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
   knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
@@ -195,7 +197,8 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
     && faces(at, { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) }, from.pos, PARRY.minDot);
   if (onGuard && hit.attack !== null) {
     if (!isSwing(hit.attack)) {
-      events.push({ type: "block", target, guardBreak: false });
+      stopBlade(world, attacker);
+      events.push({ type: "block", by: attacker, target, guardBreak: false });
       return "blocked";
     }
     const player = world.get(attacker, Player);
@@ -208,9 +211,9 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
       const guardMomentum = weapon ? planSwing(weapon, strength, restingBlade(), reverseOf(hit.attack)).momentum
         : hit.momentum;
       world.require(attacker, Health).hitstun = stunFor(PARRY.playerStaggerTime, guardMomentum, hit);
+      stopBlade(world, attacker);
       endSwing(world, attacker);
       knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed);
-      restBlade(world.require(attacker, Wielder));
       events.push({ type: "parry", by: target, target: attacker });
       return "parried";
     }

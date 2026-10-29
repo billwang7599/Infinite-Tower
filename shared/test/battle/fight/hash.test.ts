@@ -15,7 +15,7 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
-  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, startSpeed: 0, flow: 1,
+  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, startSpeed: 0, flow: 1, stoppedAt: null,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -119,6 +119,7 @@ describe("a fight's hash", () => {
       ["its knockback", (s) => { s.knockback += 1; }],
       ["its lift", (s) => { s.lift += 1; }],
       ["its poise damage", (s) => { s.poiseDamage += 1; }],
+      ["where a guard stopped its blade", (s) => { s.stoppedAt = 7; }],
     ];
     for (const [who, newFight] of [["the player's", busyFight], ["the swordsman's", swordFight]] as const) {
       for (const [what, change] of swingChanges) {

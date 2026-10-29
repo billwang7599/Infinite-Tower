@@ -37,7 +37,7 @@ function trailLine(dir: SwingDir): { rollRad: number; from: 1 | -1 } {
 }
 
 function trailPose(swing: SwingData | null): TrailPose | null {
-  if (!swing || !isSwing(swing.attack)) return null;
+  if (!swing || !isSwing(swing.attack) || swing.stoppedAt !== null) return null;
   const { turn, follow } = strokeOf(swing);
   if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
   return {
@@ -128,6 +128,7 @@ export interface WeaponLook {
   sprite: Art;
   blade: { lengthM: number; widthM: number; color: string };
   twoHanded: boolean;
+  hitStopMs: number;
 }
 
 // Lengths are the sword's own share: the models' and the sprite's sword is drawn 1 long.
@@ -136,16 +137,20 @@ const LONGSWORD = swordArt({ lengthScale: lengthOf("longsword"), bladeHalfPx: 1.
 const GREATSWORD = swordArt({ lengthScale: lengthOf("greatsword"), bladeHalfPx: 2.3 });
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
-  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false },
-  "kobold-blade": { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false },
+  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
+  "kobold-blade": {
+    sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60,
+  },
   longsword: {
     sprite: LONGSWORD, blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" }, twoHanded: false,
+    hitStopMs: 90,
   },
   greatsword: {
     sprite: GREATSWORD, blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" }, twoHanded: true,
+    hitStopMs: 130,
   },
   "kobold-greatsword": {
     sprite: GREATSWORD, blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" },
-    twoHanded: true,
+    twoHanded: true, hitStopMs: 130,
   },
 };

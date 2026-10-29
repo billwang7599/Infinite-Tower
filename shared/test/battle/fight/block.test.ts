@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Health, planSwing, Player, PLAYER, restingBlade, Stamina, WEAPONS, type EnemyDef, type PlayerInputData,
+  ActiveHit, Body, Health, planSwing, Player, PLAYER, restingBlade, Stamina, stoppedBlade, strokeOf, WEAPONS, Wielder,
+  type EnemyDef, type PlayerInputData, type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, BOAR, enemy, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
@@ -104,5 +105,30 @@ describe("blocking", () => {
     };
     assert.equal(walk(true).action, "block");
     assert.ok(distance(true) < distance(false) * (PLAYER.block.moveFactor + 0.1));
+  });
+});
+
+describe("a blocked blade", () => {
+  test("stops dead where it met the guard, hits nothing more, and the next swing starts from there", () => {
+    const fight = new Fight({
+      arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 })], enemies: [enemy(SWORDSMAN, { x: 0, y: 0.05, z: 2 })],
+    });
+    const kobold = fight.enemies[0]!, wielder = fight.world.require(kobold, Wielder);
+    let blocked: SwingData | null = null;
+    while (!blocked && fight.steps < 300) {
+      const swing = wielder.swing;
+      fight.step([input({ block: true })]);
+      if (fight.events.some((e) => e.type === "block")) blocked = swing;
+    }
+    assert.ok(blocked, "a swing was blocked");
+    const turn = strokeOf(blocked).turn;
+    while (wielder.swing === blocked) {
+      assert.equal(fight.world.has(kobold, ActiveHit), false, `step ${blocked.step}: its hitbox is gone`);
+      assert.equal(strokeOf(blocked).turn, turn, `step ${blocked.step}: the blade hasn't moved`);
+      fight.step([input({ block: true })]);
+    }
+    assert.ok(blocked.step >= blocked.letGoAt, "the swing still takes its time");
+    assert.deepEqual(wielder.blade, stoppedBlade(blocked));
+    assert.ok(wielder.blade.x !== 0 || wielder.blade.y !== 0, "not back at the guard");
   });
 });

@@ -6,6 +6,7 @@ import type { Fight } from "@infinite-tower/shared/fight";
 import type { Visual } from "../visuals.js";
 import { buildArena } from "./arena.js";
 import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
+import { impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 
@@ -56,7 +57,17 @@ export function fighter<S>(name: string, own: {
       offset.x *= k;
       offset.y *= k;
       offset.z *= k;
-      f.node.position.set(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
+      const impact = f.ctx.impacts.get(e), hit = impact && impactPose(impact);
+      if (impact) impact.ageMs += dt * 1000;
+      if (hit?.done) f.ctx.impacts.delete(e);
+      if (hit?.frozen) {
+        // Held where it is: it eases after its body once the stop is over.
+        const at = f.node.position;
+        Object.assign(offset, { x: at.x - pos.x, y: at.y - pos.y, z: at.z - pos.z });
+        return;
+      }
+      const jolt = hit?.offset ?? { x: 0, y: 0, z: 0 };
+      f.node.position.set(pos.x + offset.x + jolt.x, pos.y + offset.y + jolt.y, pos.z + offset.z + jolt.z);
       own.frame(f.drawing, world, e, dt);
       const skilled = world.require(e, Skilled);
       f.chant = drawChantCircle(f.ctx.skills, f.chant, skilled, body, f.node);
@@ -76,6 +87,7 @@ export function fighter<S>(name: string, own: {
       dropChantWords(f.words);
       f.node.dispose();
       f.ctx.nodes.delete(f.e);
+      f.ctx.impacts.delete(f.e);
     },
   };
 }
@@ -105,6 +117,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
         arena = { radius: fight.arena.radius, meshes: buildArena(ctx, fight.arena.radius) };
       }
       ctx.shake = 0;
+      ctx.impacts.clear();
     },
     frame(world, dt) {
       ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
