@@ -23,7 +23,7 @@ const FOOT_OFFSET = 0.4;
 /** How fast the camera follows the player (1/s, for dampFactor). */
 const CAMERA_FOLLOW_RATE = 10;
 /** The chibi's picture for each way it walks: the front faces the camera, "down" the screen. */
-const CHIBI_FACING = {
+export const CHIBI_FACING = {
   down: "front", up: "back", left: "side", right: "side",
 } as const satisfies Record<Facing, ChibiFacing>;
 
@@ -89,15 +89,21 @@ function hidden(mesh: Mesh): Mesh {
   return mesh;
 }
 
-function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
+export function glideWalker(
+  w: { drawn: Vec2; glide: boolean; walkPhase: number }, world: World, e: Entity, dt: number,
+): { actor: OverworldActorData; moving: boolean; hop: number } {
   const pos = world.require(e, OverworldPos), actor = world.require(e, OverworldActor), at = w.drawn;
-  const { level } = w.view.state;
   const k = !w.glide || distXZ(at, pos) > SNAP_DIST_TILES ? 1 : dampFactor(GLIDE_RATE, dt);
   at.x += (pos.x - at.x) * k;
   at.z += (pos.z - at.z) * k;
   const moving = Math.hypot(actor.vx, actor.vz) > MOVING_SPEED;
   w.walkPhase = moving ? w.walkPhase + dt * WALK_CYCLE_RAD_PER_SEC : 0;
-  const hop = Math.abs(Math.sin(w.walkPhase)) * HOP_TILES;
+  return { actor, moving, hop: Math.abs(Math.sin(w.walkPhase)) * HOP_TILES };
+}
+
+function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
+  const { actor, moving, hop } = glideWalker(w, world, e, dt), at = w.drawn;
+  const { level } = w.view.state;
 
   w.mesh.position.set(at.x, layerY(at.z, 0.3), at.z + w.size * FOOT_OFFSET + hop);
   w.mesh.scaling.x = mirrorFor(actor.facing);

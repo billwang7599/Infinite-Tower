@@ -24,7 +24,7 @@ export function buildLevel(scene: Scene, level: LevelLayout): LevelDrawing {
   return { root, flicker: buildCampfires(scene, level, root) };
 }
 
-const FLICKER_TIME = 0.14;
+export const FLICKER_TIME = 0.14;
 const CAMPFIRE_TILES = 1.8;
 
 /** Any theme's campfires, the flames flickering between two frames. */
@@ -48,7 +48,7 @@ function buildCampfires(scene: Scene, level: LevelLayout, root: TransformNode): 
 const LOG = "#5a3a1e", LOG_HI = "#7a5230", STONE = "#7c7f86", STONE_DARK = "#5d6067";
 
 /** A ring of stones, two crossed logs and a fire (24x24 pixels, sprites.ts). */
-function drawCampfire(frame: 0 | 1): SpriteDraw {
+export function drawCampfire(frame: 0 | 1): SpriteDraw {
   return (px) => {
     for (const [x, y] of [[4, 17], [8, 19], [13, 19], [17, 17], [3, 13], [18, 13]] as const) {
       px(x, y, 3, 2, STONE); px(x, y + 1, 3, 1, STONE_DARK);
