@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FIXED_DT } from "@infinite-tower/shared";
-import { MAX_BACKLOG_STEPS, MAX_STEPS_PER_FRAME, Pace, PACE_SLACK_STEPS } from "../../../src/modes/battle/pace.js";
+import { FIXED_DT, HASH_EVERY_STEPS } from "@infinite-tower/shared";
+import {
+  MAX_BACKLOG_STEPS, MAX_STEPS_PER_FRAME, Pace, PACE_SLACK_STEPS, STALL_STEPS,
+} from "../../../src/modes/battle/pace.js";
 
 const STEP_MS = FIXED_DT * 1000;
 
@@ -89,6 +91,26 @@ describe("the client's fight clock", () => {
     assert.ok(behind > PACE_SLACK_STEPS);
     c.pace.report(behind, heard, c.step());
     assert.deepEqual(c.frames(10), twin.frames(10), "the same as with no news");
+  });
+
+  test("a stall's silence isn't lateness: the server's word on inputs sent before it doesn't move the clock", () => {
+    const silentSteps = HASH_EVERY_STEPS;
+    assert.ok(silentSteps > STALL_STEPS);
+    for (const heardAfterStall of [false, true]) {
+      const c = client(), twin = client();
+      for (const x of [c, twin]) {
+        x.frames(30);
+        x.stall(STEP_MS * silentSteps);
+      }
+      const heard = c.step();
+      if (heardAfterStall) {
+        c.frames(1);
+        twin.frames(1);
+      }
+      // Heard nothing since `heard`, the server reports it late by the whole silence.
+      c.pace.report(silentSteps, heard, c.step());
+      assert.deepEqual(c.frames(10), twin.frames(10), `the same as with no news (heard after: ${heardAfterStall})`);
+    }
   });
 
   test("ignores news about inputs sent before its last correction took effect", () => {

@@ -12,6 +12,8 @@ export const PACE_SLACK_STEPS = 3;
 export const MAX_STEPS_PER_FRAME = 8;
 /** Behind its own clock by more than this (a hidden tab), the rest is dropped; the server's fight is loaded then. */
 export const MAX_BACKLOG_STEPS = 30;
+/** A frame this many steps after the last is a stall: the server may have heard nothing for a whole hash. */
+export const STALL_STEPS = 10;
 /** How many sent inputs' lag is remembered: more than a round trip's worth. */
 const KEPT_SENDS = 120;
 
@@ -28,12 +30,15 @@ export class Pace {
   private settledAt = 0;
   /** For each input sent (by its last step), how far behind its own clock the client was. */
   private readonly lagAt = new Map<number, number>();
+  private lastFrameMs: number | null = null;
 
   /** `now`: as performance.now(). */
   constructor(private readonly now: () => number = () => performance.now()) {}
 
   /** Steps to run this frame, the fight having run `step`. */
   stepsDue(step: number): number {
+    this.noteStall(step);
+    this.lastFrameMs = this.now();
     const due = this.due();
     if (due - step > MAX_BACKLOG_STEPS) this.startMs! += (due - step - MAX_BACKLOG_STEPS) * STEP_MS;
     return Math.max(0, Math.min(this.due() - step, MAX_STEPS_PER_FRAME));
@@ -47,6 +52,7 @@ export class Pace {
 
   /** The server says the input up to `heardStep` came `lateSteps` late; the fight has run `step`. */
   report(lateSteps: number, heardStep: number, step: number): void {
+    this.noteStall(step);
     if (heardStep < this.settledAt) return;
     const off = lateSteps - (this.lagAt.get(heardStep) ?? 0);
     if (Math.abs(off) <= PACE_SLACK_STEPS) return;
@@ -59,6 +65,12 @@ export class Pace {
     const due = this.due();
     if (due < step) this.offset += step - due;
     this.settledAt = Math.max(this.settledAt, step + 1);
+  }
+
+  private noteStall(step: number): void {
+    if (this.lastFrameMs !== null && this.now() - this.lastFrameMs > STALL_STEPS * STEP_MS) {
+      this.settledAt = Math.max(this.settledAt, step + 1);
+    }
   }
 
   private due(): number {

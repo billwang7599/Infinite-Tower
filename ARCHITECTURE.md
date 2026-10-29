@@ -524,9 +524,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   nor dropped; another player's inputs coming late rolled back and replayed; every step's events reported, a
   replayed step's again; the result and its banner waiting for the
   server) and pace (real time's steps, catching up after a stall,
-  a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, old news
-  ignored), the title's sequence timing, the ping (its average, stale pongs) and its readout, character creation's steps
-  and rows, the chant's carousel (what the next square takes, known words only, why one doesn't fit, the search,
+  a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, a stall's
+  silence not taken for lateness, old news ignored), the title's sequence timing, the ping (its average, stale
+  pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes,
+  known words only, why one doesn't fit, the search,
   number picks, Backspace, words into a skill and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose; the
