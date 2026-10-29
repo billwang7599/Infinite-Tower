@@ -267,6 +267,15 @@ Decided by the user:
   looks is saved with the settings (north for a new player).
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
+- Chat is the whole server's: everyone online hears every line, on any level and in fights. A line shows in the
+  chat log and, in the overworld, as a bubble over the speaker's head (in a fight, the log only). / opens it (a
+  binding, in the overworld and the arena), and while it's open it's its own input layer, `chat`, owning only Enter
+  (send) and Esc (close): nothing else fires (no walking, challenges or attacks; you stand still), and the text is
+  typed by the browser into a plain `<input>`. The client sends only the text (trimmed, not empty); the server
+  stamps the character's name. It keeps the last 1000 lines in memory only (lost on a restart) and sends a player
+  who joins the last 50. A line is at most 500 characters, and a player at most 10 lines in 5 s; past either, the
+  line is dropped and the sender told with a small notice (`MAX_CHAT_CHARS` in `shared/src/net/server-messages.ts`;
+  the rest in `server/src/core/game/chat.ts`).
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):

@@ -26,6 +26,7 @@ interface LayerActions {
   chant: MenuAction<"chant"> | (typeof CHANT_ACTIONS)[number];
   battleBag: MenuAction<"battleBag"> | (typeof BATTLE_BAG_ACTIONS)[number];
   skillbook: MenuAction<"skillbook">;
+  chat: MenuAction<"chat">;
   overworld: OverworldAction;
   battle: Action<"general" | "battle">;
 }

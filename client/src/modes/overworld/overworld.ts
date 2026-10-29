@@ -7,7 +7,7 @@ import type { Joined, Net } from "../../net/net.js";
 import type { CameraSettings } from "../../settings/camera.js";
 import type { Interaction, OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { OverworldActor, OverworldPos, Peer, type OverworldState } from "./components.js";
+import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
 import { mapMove } from "./facing.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
@@ -33,6 +33,8 @@ export function interactionAt(level: LevelLayout, at: Vec2, fights: readonly Vec
   if (fight <= JOIN_RANGE_TILES && fight < fire) return "joinFight";
   return fire <= REST_RANGE_TILES ? "rest" : null;
 }
+
+const SPEECH_TIME = 6;
 
 interface OverworldOptions {
   world: World;
@@ -67,6 +69,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
     const what = interaction();
     if (what) net?.send({ t: what === "rest" ? "rest" : "joinBattle" });
   };
+  const hush = () => { for (const [e] of world.query(Speech)) world.remove(e, Speech); };
   const setVitals = (v: Vitals) =>
     hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / (stats?.stamina ?? 1) });
   const setGear = (gear: Gear) => {
@@ -99,10 +102,17 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       joinedNet.on("encounter", (msg) => {
         inBattle = true;
         prediction?.reset(msg.me);
+        hush();
+      });
+      joinedNet.on("chat", ({ line, speaker }) => {
+        if (inBattle || speaker === null) return;
+        const e = speaker === "you" ? player : actors.entityOf(speaker);
+        if (e !== undefined) world.add(e, Speech, { text: line.text, remainingTime: SPEECH_TIME });
       });
       joinedNet.on("gear", (msg) => setGear(msg.gear));
     },
     leave() {
+      hush();
       prediction = null;
       net = null;
       inBattle = false;
@@ -122,6 +132,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;
       }
+      for (const [e, speech] of world.query(Speech)) if ((speech.remainingTime -= dt) <= 0) world.remove(e, Speech);
       state.cameraTurns = camera.get().overworldTurns;
       hud.set({ interaction: interaction() });
     },

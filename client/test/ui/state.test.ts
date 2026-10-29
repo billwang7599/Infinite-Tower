@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { Mode } from "../../src/game/transition.js";
-import { inWorld, UiState, whoHasTheKeys, type TitleState } from "../../src/ui/state.js";
+import { CHAT_LOG_LINES, inWorld, UiState, whoHasTheKeys, type TitleState } from "../../src/ui/state.js";
 
 describe("UiState screens", () => {
   test("settings open and close", () => {
@@ -37,6 +37,20 @@ describe("UiState overworld panels", () => {
     ui.toggleOverworldPanel("inventory");
     ui.closeOverworldPanel();
     assert.equal(ui.overworldPanel.get().open, null);
+  });
+});
+
+describe("UiState chat", () => {
+  const line = (i: number) => ({ from: "Tester", text: `line ${i}` });
+
+  test("lines heard go to the end of the log, which keeps the last CHAT_LOG_LINES", () => {
+    const ui = new UiState();
+    ui.hearChat([line(0), line(1)]);
+    ui.hearChat([line(2)]);
+    assert.deepEqual(ui.chat.get().lines, [line(0), line(1), line(2)]);
+    ui.hearChat(Array.from({ length: CHAT_LOG_LINES }, (_, i) => line(i + 3)));
+    assert.equal(ui.chat.get().lines.length, CHAT_LOG_LINES);
+    assert.deepEqual(ui.chat.get().lines[0], line(3));
   });
 });
 
@@ -125,6 +139,16 @@ describe("whoHasTheKeys", () => {
     ui.toggleOverworldPanel("inventory");
     assert.equal(ui.skillbookScreen.get().open, false);
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
+  });
+
+  test("the chat goes over the overworld or the arena while it's open; Settings goes over it", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { ui } = playing(mode);
+      ui.chat.set({ open: true });
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "chat"]);
+      ui.openSettings();
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "chat", "settings"]);
+    }
   });
 
   test("character creation is over everything once the title has cleared onto it", () => {

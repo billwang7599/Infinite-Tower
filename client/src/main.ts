@@ -143,6 +143,7 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   moveItem: (from, to, turned) => void preparing.then((game) => game.moveItem(from, to, turned)),
   castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
   saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),
+  sendChat: (text) => void preparing.then((game) => game.sendChat(text)),
   returnToTitle: () => void backToTitle(),
   cheat: (cheat) => void preparing.then((game) => game.cheat(cheat)),
   setDayClock: (change) => void preparing.then((game) => game.setDayClock(change)),

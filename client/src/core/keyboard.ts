@@ -3,11 +3,15 @@ import { Buttons } from "./buttons.js";
 // Returning true keeps the key from the page.
 type KeyListener = (key: string, repeat: boolean) => boolean;
 
-const inTextField = (target: EventTarget | null): boolean =>
-  ["INPUT", "TEXTAREA"].includes((target as Partial<Element> | null)?.tagName ?? "");
-
-// In a text field: the arrows, Esc, and the digits and Backspace (a skill's word search picks and undoes with them).
+// A text field keeps its keys but the arrows, Esc, the digits and Backspace (a skill's word search picks and undoes
+// with them), and Enter where it sends (the chat's).
 const TEXT_FIELD_KEYS = /^(Arrow|Escape$|Digit\d$|Backspace$)/;
+
+function fieldKeeps(target: EventTarget | null, code: string): boolean {
+  const field = target as Partial<HTMLInputElement> | null;
+  if (!["INPUT", "TEXTAREA"].includes(field?.tagName ?? "")) return false;
+  return !TEXT_FIELD_KEYS.test(code) && !(code === "Enter" && field?.enterKeyHint === "send");
+}
 
 export class Keyboard extends Buttons {
   private listener: KeyListener = () => false;
@@ -39,7 +43,7 @@ export class Keyboard extends Buttons {
       if (!e.repeat && take(e.code) && this.capture === take) this.capture = null;
       return;
     }
-    if (inTextField(e.target) && !TEXT_FIELD_KEYS.test(e.code)) return;
+    if (fieldKeeps(e.target, e.code)) return;
     this.press(e.code, e.repeat);
     if (this.listener(e.code, e.repeat)) e.preventDefault();
   }

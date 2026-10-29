@@ -30,6 +30,10 @@ export class ActorMirror {
     this.world.flush();
   }
 
+  entityOf(id: number): Entity | undefined {
+    return this.local.get(id);
+  }
+
   /** Entering another level. */
   clear(): void {
     for (const [id, e] of this.local) this.remove(id, e);

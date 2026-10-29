@@ -25,6 +25,7 @@ export const ACTIONS = {
     character: { label: "Character panel", keys: ["KeyC"] },
     inventory: { label: "Inventory", keys: ["KeyB"] },
     adminPanel: { label: "Admin panel (dev servers only)", keys: ["F1"] },
+    openChat: { label: "Open the chat", keys: ["Slash"] },
   },
   /** Turn acts on what's dragged, or else on the selected item; use on the selected item. */
   overworld: {
@@ -80,6 +81,7 @@ export const MENUS = {
   battleBag: { closeBag: ["Escape"] },
   chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },
   skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
+  chat: { sendChat: ["Enter"], closeChat: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;
 
 export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;

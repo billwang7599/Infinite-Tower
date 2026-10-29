@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { itemDef } from "@infinite-tower/shared";
+import { itemDef, MAX_CHAT_CHARS } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
@@ -40,6 +40,16 @@ describe("say", () => {
     say(to, { kind: "battleResult", outcome });
     assert.deepEqual(notices(to), battleResultLines(outcome));
     assert.equal(notices(to).length, 2);
+    assert.equal(banner(to), null);
+  });
+
+  test("a chat line the server turned down is a notice saying why", () => {
+    const to = new Notifications();
+    say(to, { kind: "chatRefused", reason: "tooFast" });
+    say(to, { kind: "chatRefused", reason: "tooLong" });
+    assert.equal(notices(to).length, 2);
+    assert.match(notices(to)[0]!, /too fast/);
+    assert.match(notices(to)[1]!, new RegExp(`${MAX_CHAT_CHARS} characters`));
     assert.equal(banner(to), null);
   });
 

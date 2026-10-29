@@ -23,6 +23,8 @@ interface PeerData {
 }
 export const Peer = defineComponent<PeerData>("Peer");
 
+export const Speech = defineComponent<{ text: string; remainingTime: number }>("Speech");
+
 export interface OverworldState {
   world: World;
   player: Entity;

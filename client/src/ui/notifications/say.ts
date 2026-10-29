@@ -3,7 +3,7 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  itemDef, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf,
+  itemDef, MAX_CHAT_CHARS, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -21,6 +21,7 @@ export type GameEvent =
   | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "given"; item: ItemId; count: number; left: number }
   | { kind: "healed" }
+  | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
   | { kind: "battleResult"; outcome: BattleOutcome };
 
 type EventKind = GameEvent["kind"];
@@ -46,6 +47,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
   given:        { where: "corner", lines: givenLines },
   healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
+  chatRefused:  { where: "corner", lines: ({ reason }) => [CHAT_REFUSED[reason]] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
 };
 
@@ -63,6 +65,11 @@ const JOIN_REFUSED: Record<ServerMsgOf<"joinRefused">["reason"], string> = {
   nobodyNear: "Nobody close by is fighting.",
   full: "That fight is full.",
   duel: "A duel can't be joined.",
+};
+
+const CHAT_REFUSED: Record<ServerMsgOf<"chatRefused">["reason"], string> = {
+  tooFast: "You're sending messages too fast. Wait a moment.",
+  tooLong: `A message is ${MAX_CHAT_CHARS} characters at most.`,
 };
 
 function encounterLine({ source, enemy }: EventOf<"encounter">): string {

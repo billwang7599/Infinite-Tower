@@ -13,6 +13,7 @@ import type { Overworld } from "../overworld/overworld.js";
 import { START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { joinBattle, startBattle, type Battle } from "./battle.js";
+import type { Chat } from "./chat.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
 import { stateMsg } from "./snapshot.js";
@@ -29,6 +30,7 @@ interface Walking { overworld: Overworld; me: Entity }
 export interface Others {
   online(): Iterable<GameSession>;
   duels: Duels;
+  chat: Chat;
 }
 
 export function nearestOtherSession(
@@ -97,7 +99,8 @@ export class GameSession {
   start(): void {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
-      character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook, dev: this.dev,
+      character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
+      chat: this.others.chat.recent(), dev: this.dev,
     });
     if (this.character) this.enterLevel(START_LEVEL);
   }
@@ -153,6 +156,10 @@ export class GameSession {
 
   answerChallenge(accept: boolean): void {
     this.others.duels.answer(this, accept);
+  }
+
+  chat(text: string): void {
+    this.others.chat.say(this, text);
   }
 
   joinBattle(): void {

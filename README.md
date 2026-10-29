@@ -62,6 +62,10 @@ What's built so far:
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
   the camera), Space jumps, F dodges, Left Shift blocks; a quick flick of the mouse swings the way it moves (one of
   eight), and a left click stabs. R opens the chant, and 1-4 quick-cast the skillbook's pages.
+- **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
+  type), Enter sends, Esc closes. Lines show in a log at the bottom left and, in the overworld, in a bubble over the
+  speaker's head. The server keeps the last 1000 lines in memory, sends the last 50 to whoever joins, and takes up to
+  500 characters a line and 10 lines in 5 seconds from each player.
 - **Stats:** strength, agility, stamina and skillpower on every fighter (skillpower scales skill damage).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them.

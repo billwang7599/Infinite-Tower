@@ -140,6 +140,9 @@ const ChallengeMsg = z.object({ t: z.literal("challenge") });
 const JoinBattleMsg = z.object({ t: z.literal("joinBattle") });
 const AnswerChallengeMsg = z.object({ t: z.literal("answerChallenge"), accept: z.boolean() });
 
+/** No length cap here: the server checks it and tells the sender. */
+const ChatMsg = z.object({ t: z.literal("chat"), text: z.string().trim().min(1) });
+
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
@@ -161,7 +164,7 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg,
+  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

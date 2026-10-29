@@ -3,6 +3,7 @@ import { FIXED_DT } from "@infinite-tower/shared";
 import { OverworldPos } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { newPlayer } from "../../../src/core/content/player.js";
+import { Chat } from "../../../src/core/game/chat.js";
 import { Duels } from "../../../src/core/game/duels.js";
 import { GameSession } from "../../../src/core/game/session.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
@@ -22,7 +23,8 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const persist = (data: PlayerSave) => saves.push(structuredClone(data));
   const online = () => [session];
   const session = new GameSession(
-    ACCOUNT, link, opts.dev ?? false, saved, persist, () => overworld, { online, duels: new Duels(online) },
+    ACCOUNT, link, opts.dev ?? false, saved, persist, () => overworld,
+    { online, duels: new Duels(online), chat: new Chat(online) },
   );
   session.start();
   return { session, link, saves };

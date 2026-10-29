@@ -62,6 +62,14 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
     move: (movementX: number, movementY: number, afterMs = 10) =>
       send(doc, "mousemove", { movementX, movementY }, clockMs += afterMs),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
+    /** A key typed in the chat's text field, whose Enter sends. */
+    type: (code: string) => {
+      const event = new Event("keydown", { cancelable: true });
+      Object.assign(event, { code, repeat: false });
+      Object.defineProperty(event, "target", { value: { tagName: "INPUT", enterKeyHint: "send" } });
+      win.dispatchEvent(event);
+      return event;
+    },
     release: (code: string) => send(win, "keyup", { code }),
     click: (button: number) => send(canvas, "mousedown", { button }),
     unclick: (button: number) => send(win, "mouseup", { button }),
@@ -493,6 +501,76 @@ describe("Actions: skills", () => {
       assert.equal(got.length, 1, `${code} in the skillbook`);
       assert.equal(bag.got.length, 0);
     }
+  });
+});
+
+describe("Actions: chat", () => {
+  test("/ opens the chat in the overworld and the arena, kept from the page so it isn't typed", () => {
+    for (const layer of ["overworld", "battle"] as const) {
+      const { press, listen } = setup(layer);
+      const chat = listen("openChat");
+      assert.equal(press("Slash").defaultPrevented, true, layer);
+      assert.equal(chat.got.length, 1, layer);
+    }
+  });
+
+  test("/ opens nothing from a screen, the bag or the chant", () => {
+    const cases: Layer[][] = [
+      ["title"], ["overworld", "bag"], ["overworld", "settings"], ["battle", "chant"], ["battle", "battleBag"],
+      ["overworld", "creation"], ["overworld", "chat"],
+    ];
+    for (const layers of cases) {
+      const { press, listen } = setup(...layers);
+      const chat = listen("openChat");
+      press("Slash");
+      assert.equal(chat.got.length, 0, layers.join());
+    }
+  });
+
+  test("the chat has only Enter (send) and Esc (close): not Settings, eating, a challenge, resting or the bag", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { press, listen } = setup(mode, "chat");
+      const send = listen("sendChat"), close = listen("closeChat");
+      const others = (["menu", "useItem", "leave", "challenge", "rest", "inventory", "chant"] as const)
+        .map((action) => listen(action).got);
+      for (const code of ["Enter", "Escape", "KeyT", "KeyE", "KeyB", "KeyR"]) press(code);
+      assert.equal(send.got.length, 1, mode);
+      assert.equal(close.got.length, 1, mode);
+      assert.deepEqual(others.map((got) => got.length), [0, 0, 0, 0, 0, 0, 0], mode);
+    }
+  });
+
+  test("while chatting you stand still: the world reads nothing held or pressed, and the mouse swings nothing", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { actions, press, click, move } = setup(mode, "chat");
+      press("KeyW");
+      press("KeyF");
+      press("Space");
+      press("Digit1");
+      click(0);
+      move(SWIPE.distancePx * 2, 0);
+      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, mode);
+      assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, mode);
+    }
+  });
+
+  test("in its text field Enter sends; letters, /, digits and Backspace are typed, heard by nobody", () => {
+    const { type, listen } = setup("battle", "chat");
+    const send = listen("sendChat");
+    const others = (["challenge", "skill1", "openChat", "undoWord"] as const).map((action) => listen(action).got);
+    for (const code of ["KeyT", "KeyW", "Slash", "Digit1", "Backspace", "Space"]) {
+      assert.equal(type(code).defaultPrevented, false, code);
+    }
+    assert.equal(type("Enter").defaultPrevented, true);
+    assert.equal(send.got.length, 1);
+    assert.deepEqual(others.map((got) => got.length), [0, 0, 0, 0]);
+  });
+
+  test("keys held as the chat closes count again", () => {
+    const { actions, press } = setup("overworld", "chat");
+    press("KeyW");
+    actions.setLayers(["overworld"]);
+    assert.equal(actions.poll().held.has("forward"), true);
   });
 });
 
