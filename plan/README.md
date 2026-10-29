@@ -7,6 +7,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | Plan | Status |
 |---|---|
 | [vision.md](vision.md): the game this is growing into (floors of a tower, souls-like fights) | direction |
+| [core.md](core.md): progression through a cultivation core (realms, steps, monster essence) instead of levels | next big step |
 | [server-fights.md](server-fights.md): what's left after moving fights to the server (lag, more players) | later |
 | [multiplayer.md](multiplayer.md): the server list, a shared overworld, duels (PvP) and joining fights | being built |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
