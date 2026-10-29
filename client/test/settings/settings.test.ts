@@ -19,8 +19,8 @@ describe("createSettings / restoreSettings", () => {
   test("new settings are the defaults", () => {
     const settings = createSettings();
     assert.equal(settings.bindings.isDefault(), true);
-    assert.equal(settings.camera.isDefault(), true);
-    assert.equal(settings.mouse.isDefault(), true);
+    assert.deepEqual(settings.camera.toSaved(), {});
+    assert.deepEqual(settings.mouse.toSaved(), {});
     assert.equal(settings.hud.isDefault(), true);
   });
 
@@ -51,7 +51,7 @@ describe("createSettings / restoreSettings", () => {
     settings.hud.setShowPing(false);
     restoreSettings(settings, {});
     assert.equal(settings.bindings.isDefault(), true);
-    assert.equal(settings.camera.isDefault(), true);
+    assert.deepEqual(settings.camera.toSaved(), {});
     assert.equal(settings.mouse.get().autoLock, true);
     assert.equal(settings.hud.get().showPing, true);
   });

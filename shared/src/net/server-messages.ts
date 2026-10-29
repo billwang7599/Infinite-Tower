@@ -61,7 +61,7 @@ export type ServerMsg =
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
   | {
     t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup;
-    opponent?: { name: string; character: Character }; joined?: { host: string; step: number; fight: FightSnapshot };
+    joined?: { host: string; step: number; fight: FightSnapshot };
   }
   /** `lateSteps`: how late your inputs reach the server (the best since the last hash; negative: early), measured
    * on your input up to `heardStep` (client/src/modes/battle/pace.ts). */

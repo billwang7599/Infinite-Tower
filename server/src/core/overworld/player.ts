@@ -24,7 +24,7 @@ export function newWalk(character: Character): OverworldPlayerData {
 
 export const huntable = (walk: OverworldPlayerData): boolean => !walk.fighting && walk.safeTime <= 0;
 
-export function nearestPlayer(world: World, at: Vec2): { pos: Vec2; dist: number } | null {
+export function nearestHuntablePlayer(world: World, at: Vec2): { pos: Vec2; dist: number } | null {
   let nearest: { pos: Vec2; dist: number } | null = null;
   for (const [, walk, pos] of world.query(OverworldPlayer, OverworldPos)) {
     if (!huntable(walk)) continue;

@@ -44,8 +44,4 @@ export class MouseSettings extends Store<MousePrefs> {
     const snapped = roundTo(Math.round(value / SWING_SENSITIVITY.step) * SWING_SENSITIVITY.step, 2);
     this.set({ swingSensitivity: clamp(snapped, SWING_SENSITIVITY.min, SWING_SENSITIVITY.max) });
   }
-
-  isDefault(): boolean {
-    return Object.keys(this.toSaved()).length === 0;
-  }
 }

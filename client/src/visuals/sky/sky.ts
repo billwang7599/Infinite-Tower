@@ -2,9 +2,9 @@ import {
   Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, ShadowGenerator,
   Scene, StandardMaterial, Vector3, type AbstractMesh, type Material,
 } from "@babylonjs/core";
-import {
-  clamp, dayFraction, moonAt, retimeDay, sunAt, WALL_CLOCK, type DayChange, type DayClock, type Vec3,
-} from "@infinite-tower/shared";
+import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
+import { createBlobs, type Blobs, type Lighting } from "./blobs.js";
+import { dayFractionAt, daylightAt, directLightAt, MOONLIGHT } from "./daylight.js";
 
 export interface SkyLook {
   sky: Color3;
@@ -17,26 +17,10 @@ export interface SkyLook {
 /** `flicker`: how far its brightness wavers, as a share. */
 export interface MapLight { at: Vec3; color: Color3; intensity: number; rangeM: number; flicker: number }
 
-interface DirectLight { body: "sun" | "moon"; toLight: Vec3; strength: number }
-
-export const MOONLIGHT = { color: new Color3(0.6, 0.7, 1), intensity: 0.6 };
 export const MAX_MAP_LIGHTS = 4;
 export const SHADOW_MAP_LIGHTS = 2;
 /** A map light keeps its shadows until another is this much nearer the camera, so shaders don't swap back and forth. */
 export const SHADOW_SWAP_MARGIN_M = 2;
-const SUN_FADE_DEG = [-1, 5] as const;
-const DUSK_FADE_DEG = [-8, -1] as const;
-const MOON_FADE_DEG = [0, 6] as const;
-
-const DAYLIGHT = [
-  { altDeg: -12, sky: [0.32, 0.38, 0.62], skyLight: [0.62, 0.72, 1], skyLightScale: 1, sunTint: [1, 0.6, 0.4] },
-  { altDeg: -4, sky: [0.7, 0.55, 0.66], skyLight: [0.85, 0.75, 0.92], skyLightScale: 1.5, sunTint: [1, 0.6, 0.4] },
-  { altDeg: 4, sky: [1.1, 0.88, 0.75], skyLight: [1, 0.9, 0.82], skyLightScale: 2, sunTint: [1.05, 0.82, 0.64] },
-  { altDeg: 20, sky: [1, 1, 1], skyLight: [1, 1, 1], skyLightScale: 1.3, sunTint: [1, 1.06, 1.15] },
-  { altDeg: 45, sky: [1, 1, 1], skyLight: [1, 1, 1], skyLightScale: 1, sunTint: [1, 1.12, 1.3] },
-] as const;
-
-const BLOB = { contactAlpha: 0.45, alphaPerShare: 1.6, minAlpha: 0.05, stretchPerCot: 0.5, maxStretch: 2.6 };
 const SPRITE_LIGHT = { sky: 1.3, direct: 0.7, map: 0.6 };
 const SUN_DISC = { color: new Color3(3, 2.6, 2), radiusM: 5 };
 const MOON_DISC = { color: new Color3(1.2, 1.3, 1.5), radiusM: 3.5 };
@@ -44,76 +28,6 @@ const DISC_DISTANCE_M = 400;
 const BODY_DISTANCE_M = 40;
 const POINT_SHADOW_MAP_PX = 512;
 const FLICKER_RAD_PER_SEC = [7.3, 13.1] as const;
-
-let clock: DayClock = WALL_CLOCK;
-
-export function setDayClock(change: DayChange): void {
-  clock = retimeDay(clock, Date.now(), change);
-}
-
-const altitudeDeg = (v: Vec3) => (Math.asin(clamp(v.y, -1, 1)) * 180) / Math.PI;
-const smoothstep = ([lo, hi]: readonly [number, number], x: number) => {
-  const t = clamp((x - lo) / (hi - lo), 0, 1);
-  return t * t * (3 - 2 * t);
-};
-
-export function directLightAt(fraction: number): DirectLight {
-  const sun = sunAt(fraction), sunAlt = altitudeDeg(sun);
-  const sunUp = smoothstep(SUN_FADE_DEG, sunAlt);
-  if (sunUp > 0) return { body: "sun", toLight: sun, strength: sunUp };
-  const moon = moonAt(fraction);
-  return { body: "moon", toLight: moon, strength: (1 - smoothstep(DUSK_FADE_DEG, sunAlt)) * smoothstep(MOON_FADE_DEG,
-    altitudeDeg(moon)) };
-}
-
-export function daylightAt(fraction: number) {
-  const alt = altitudeDeg(sunAt(fraction));
-  const i = DAYLIGHT.findIndex((k) => k.altDeg > alt);
-  const a = DAYLIGHT[i <= 0 ? 0 : i - 1]!, b = DAYLIGHT[i < 0 ? DAYLIGHT.length - 1 : i]!;
-  const t = a === b ? 0 : (alt - a.altDeg) / (b.altDeg - a.altDeg);
-  const mix = (x: readonly number[], y: readonly number[]) =>
-    new Color3(x[0]! + (y[0]! - x[0]!) * t, x[1]! + (y[1]! - x[1]!) * t, x[2]! + (y[2]! - x[2]!) * t);
-  return {
-    sky: mix(a.sky, b.sky), skyLight: mix(a.skyLight, b.skyLight), sunTint: mix(a.sunTint, b.sunTint),
-    skyLightScale: a.skyLightScale + (b.skyLightScale - a.skyLightScale) * t,
-  };
-}
-
-export interface BlobShadow { yawRad: number; stretch: number; shift: { x: number; z: number }; alpha: number }
-
-/** Brightness is a light's intensity × its colour's luminance. */
-export interface Lighting {
-  skyBrightness: number;
-  direct: { toLight: Vec3; brightness: number };
-  lamps: { at: Vec3; brightness: number; rangeM: number }[];
-}
-
-const CONTACT: BlobShadow = { yawRad: 0, stretch: 1, shift: { x: 0, z: 0 }, alpha: BLOB.contactAlpha };
-
-function castAway(toLight: Vec3, alpha: number): BlobShadow {
-  const flat = Math.hypot(toLight.x, toLight.z);
-  if (flat < 1e-6) return { ...CONTACT, alpha };
-  const away = { x: -toLight.x / flat, z: -toLight.z / flat };
-  const stretch = 1 + Math.min(BLOB.maxStretch - 1, (flat / Math.max(toLight.y, 1e-3)) * BLOB.stretchPerCot);
-  const half = (stretch - 1) / 2;
-  return { yawRad: Math.atan2(-away.z, away.x), stretch, shift: { x: away.x * half, z: away.z * half }, alpha };
-}
-
-export function blobShadowsAt(ground: Vec3, centreM: number, { skyBrightness, direct, lamps }: Lighting): BlobShadow[] {
-  const casts = [{ toLight: direct.toLight, lit: direct.brightness * Math.max(0, direct.toLight.y) }];
-  for (const { at, brightness, rangeM } of lamps) {
-    const up = at.y - ground.y, d = Math.max(Math.hypot(at.x - ground.x, up, at.z - ground.z), 1e-3);
-    const lit = brightness * Math.max(0, 1 - d / rangeM) * Math.max(0, up / d);
-    if (lit > 0) casts.push({ toLight: { x: at.x - ground.x, y: up - centreM, z: at.z - ground.z }, lit });
-  }
-  const total = casts.reduce((sum, c) => sum + c.lit, skyBrightness);
-  const shadows = [CONTACT];
-  for (const { toLight, lit } of casts) {
-    const alpha = total > 0 ? Math.min(1, (lit / total) * BLOB.alphaPerShare) : 0;
-    if (alpha >= BLOB.minAlpha) shadows.push(castAway(toLight, alpha));
-  }
-  return shadows;
-}
 
 export function cardYawRad(toLight: Vec3): number {
   return Math.atan2(toLight.x, toLight.z);
@@ -126,11 +40,6 @@ export function nearestLights(spots: Vec3[], camera: Vec3, count: number, curren
 }
 
 interface Lamp { def: MapLight; light: PointLight; shadows: ShadowGenerator }
-
-export interface Blobs {
-  place(ground: Vec3 | null, centreM: number, scale?: number): void;
-  dispose(): void;
-}
 
 export interface Sky {
   look(look: SkyLook, lights: MapLight[]): void;
@@ -221,7 +130,7 @@ export function createSky(scene: Scene): Sky {
           if (m instanceof StandardMaterial && m.maxSimultaneousLights < maxLights) m.maxSimultaneousLights = maxLights;
         }
       }
-      const fraction = dayFraction(clock, nowMs);
+      const fraction = dayFractionAt(nowMs);
       direct = directLightAt(fraction);
       const day = daylightAt(fraction);
       const { toLight } = direct;
@@ -243,11 +152,10 @@ export function createSky(scene: Scene): Sky {
 
       const sun = sunAt(fraction), moon = moonAt(fraction);
       sunDisc.mesh.position.set(sun.x * DISC_DISTANCE_M, sun.y * DISC_DISTANCE_M, sun.z * DISC_DISTANCE_M);
-      sunDisc.mesh.visibility = smoothstep([-3, 1], altitudeDeg(sun));
+      sunDisc.mesh.visibility = day.sunDiscAlpha;
       SUN_DISC.color.multiplyToRef(day.sunTint, sunDisc.m.emissiveColor);
       moonDisc.mesh.position.set(moon.x * DISC_DISTANCE_M, moon.y * DISC_DISTANCE_M, moon.z * DISC_DISTANCE_M);
-      moonDisc.mesh.visibility = smoothstep([-3, 1], altitudeDeg(moon)) * (1 - 0.6 * smoothstep(SUN_FADE_DEG,
-        altitudeDeg(sun)));
+      moonDisc.mesh.visibility = day.moonDiscAlpha;
 
       const seconds = nowMs / 1000;
       lamps.forEach(({ def, light }, i) => {
@@ -276,33 +184,7 @@ export function createSky(scene: Scene): Sky {
       return out.clampToRef(0, 1, out);
     },
 
-    blobs(material, lengthM, widthM) {
-      const meshes: Mesh[] = [];
-      return {
-        place(ground, centreM, scale = 1) {
-          const casts = ground ? blobShadowsAt(ground, centreM, lighting) : [];
-          while (meshes.length < casts.length) {
-            const m = MeshBuilder.CreateGround("blob-shadow", { width: lengthM, height: widthM }, scene);
-            m.material = material;
-            m.isPickable = false;
-            meshes.push(m);
-          }
-          meshes.forEach((m, i) => {
-            const cast = casts[i];
-            m.setEnabled(cast !== undefined);
-            if (!cast || !ground) return;
-            const shiftM = lengthM * scale;
-            m.position.set(ground.x + cast.shift.x * shiftM, ground.y + 0.02, ground.z + cast.shift.z * shiftM);
-            m.rotation.y = cast.yawRad;
-            m.scaling.set(scale * cast.stretch, 1, scale);
-            m.visibility = cast.alpha;
-          });
-        },
-        dispose() {
-          for (const m of meshes) m.dispose();
-        },
-      };
-    },
+    blobs: (material, lengthM, widthM) => createBlobs(scene, lighting, material, lengthM, widthM),
     cardYaw: () => cardYawRad(direct.toLight),
   };
 }

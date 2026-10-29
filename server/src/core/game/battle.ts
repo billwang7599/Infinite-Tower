@@ -59,7 +59,7 @@ export function joinBattle(joiner: GameSession, host: GameSession): void {
 
 export function seatInBattle(
   session: GameSession, room: BattleRoom, seat: number, from: Pick<Battle, "source" | "enemyId">,
-  extra: Pick<ServerMsgOf<"encounter">, "opponent" | "joined"> = {},
+  extra: Pick<ServerMsgOf<"encounter">, "joined"> = {},
 ): void {
   session.battle = { ...from, room, seat, over: false };
   session.link.send({

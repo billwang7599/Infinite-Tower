@@ -2,7 +2,7 @@ import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from
 import {
   attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
-import type { Blobs } from "../sky/sky.js";
+import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
