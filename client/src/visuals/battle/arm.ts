@@ -82,7 +82,7 @@ export function buildArm(
 
 const chestTurn = new Matrix(), shoulderAt = new Vector3(), up = new Vector3(0, 1, 0), dir = new Vector3();
 
-function placeBone(bone: Mesh, from: Vec3, to: Vec3): void {
+export function placeBetween(bone: Mesh, from: Vec3, to: Vec3): void {
   bone.position.set((from.x + to.x) / 2, (from.y + to.y) / 2, (from.z + to.z) / 2);
   dir.set(to.x - from.x, to.y - from.y, to.z - from.z).normalize();
   bone.rotationQuaternion ??= new Quaternion();
@@ -99,8 +99,8 @@ export function poseArm(arm: Arm, target: Vec3): void {
     shoulderAt.copyFrom(arm.shoulder);
   }
   const { elbow, hand } = reachArm(shoulderAt, target, arm.bones, arm.pole);
-  placeBone(arm.upper, shoulderAt, elbow);
-  placeBone(arm.fore, elbow, hand);
+  placeBetween(arm.upper, shoulderAt, elbow);
+  placeBetween(arm.fore, elbow, hand);
   arm.elbow.position.set(elbow.x, elbow.y, elbow.z);
   arm.hand.position.set(hand.x, hand.y, hand.z);
 }
