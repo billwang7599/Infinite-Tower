@@ -2,6 +2,7 @@ import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from
 import {
   attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
+import type { Blobs } from "../sky/sky.js";
 import { fighter } from "./battle.js";
 import { spritePose } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
@@ -13,6 +14,7 @@ const SPRITE_SIZE = 1.8;
 const TRAIL_WIDTH = 2.2;
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
+const SHADOW_LENGTH_M = 1.1;
 
 /** Where the sprite's center sits above the body's, so its bottom edge stays on the feet. */
 const spriteY = (stretch: number, bob: number): number => -PLAYER.height / 2 + (SPRITE_SIZE / 2) * stretch + bob;
@@ -21,7 +23,7 @@ interface PlayerSprite {
   ctx: ArenaScene;
   node: TransformNode;
   plane: Mesh;
-  shadow: Mesh;
+  shadows: Blobs;
   /** Turned to the aim and the swing's line; the crescent under it sweeps along that line. */
   trail: TransformNode;
   slash: Mesh;
@@ -48,9 +50,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   plane.billboardMode = Mesh.BILLBOARDMODE_Y;
   plane.material = materials.player.stand[0]!;
 
-  const shadow = MeshBuilder.CreateGround(`shadow-${e}`, { width: 1.1, height: 0.7 }, scene);
-  shadow.material = materials.blobShadow;
-  shadow.isPickable = false;
+  const shadows = ctx.sky.blobs(materials.blobShadow, SHADOW_LENGTH_M, 0.7);
 
   // Sword trail: a cut across the view in front of the player, a shallow arc from x = 0 to TRAIL_WIDTH (pointed at
   // both ends), turned to the swing's line and grown from its start. Drawn over the sprite.
@@ -94,14 +94,14 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   guard.setEnabled(false);
 
   return {
-    ctx, node, plane, shadow, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0,
+    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0,
     sword: materials.slashFx,
   };
 }
 
 // The plane goes with the body's node; the shadow and sword effects aren't under it.
 function dispose(sprite: PlayerSprite): void {
-  sprite.shadow.dispose();
+  sprite.shadows.dispose();
   for (const node of [sprite.trail, sprite.thrust, sprite.guard]) node.dispose();
 }
 
@@ -161,15 +161,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   if (below !== null) {
     const floorY = p.y - below;
     const height = p.y - body.centerHeight - floorY;
-    const scale = Math.max(0.3, 1 - height * 0.12);
-    const cast = ctx.sky.blobShadow();
-    sprite.shadow.isVisible = true;
-    sprite.shadow.position.set(p.x + cast.offsetM.x * scale, floorY + 0.02, p.z + cast.offsetM.z * scale);
-    sprite.shadow.rotation.y = cast.yawRad;
-    sprite.shadow.scaling.set(scale * cast.stretch, 1, scale);
-    sprite.shadow.visibility = cast.alpha;
+    sprite.shadows.place({ x: p.x, y: floorY, z: p.z }, below, Math.max(0.3, 1 - height * 0.12));
   } else {
-    sprite.shadow.isVisible = false;
+    sprite.shadows.place(null, 0);
   }
 
   let imbued = null;

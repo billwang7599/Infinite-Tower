@@ -1,20 +1,21 @@
 import {
-  Color3, Color4, ColorCurves, Constants, DefaultRenderingPipeline, DirectionalLight, Effect, HemisphericLight,
-  ImageProcessingConfiguration, Material, MeshBuilder, Matrix, PostProcess, Scene, ShadowGenerator, StandardMaterial,
-  UniversalCamera, Vector3, type AbstractEngine, type Camera, type DynamicTexture, type Mesh,
+  Color3, Color4, ColorCurves, Constants, DefaultRenderingPipeline, Effect, ImageProcessingConfiguration, Material,
+  MeshBuilder, Matrix, PostProcess, Scene, StandardMaterial, UniversalCamera, Vector3, type AbstractEngine, type Camera,
+  type DynamicTexture, type Mesh,
 } from "@babylonjs/core";
 import type { EnemyId } from "@infinite-tower/shared";
 import type { ChibiFacing } from "../../gfx/look/look.js";
 import type { OverworldState } from "../../modes/overworld/components.js";
 import { drawAlert } from "../characters.js";
 import { byEnemy } from "../enemies/index.js";
+import { createSky, type Sky } from "../sky/sky.js";
 import { spriteMaterial, type SpriteDraw } from "../sprites.js";
 import { blobTexture } from "../textures.js";
 
 export interface OverworldScene {
   scene: Scene;
   camera: UniversalCamera;
-  sunShadows: ShadowGenerator;
+  sky: Sky;
   materials: {
     player: Record<ChibiFacing, StandardMaterial>;
     enemies: Record<EnemyId, StandardMaterial>;
@@ -28,8 +29,6 @@ export interface OverworldScene {
 
 /** Radians every upright picture leans back from vertical, toward facing the camera. */
 export const SPRITE_TILT_RAD = 0.3;
-/** Sprites aren't lit by the sun (unlit, a StandardMaterial shows texture × emissive); this warms them. */
-const SPRITE_TINT = new Color3(0.9, 0.82, 0.78);
 
 export function createOverworldScene(engine: AbstractEngine, state: OverworldState): OverworldScene {
   const scene = new Scene(engine);
@@ -39,10 +38,11 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
   camera.minZ = 0.5;
   camera.maxZ = 120;
   camera.inputs.clear();
-  const sunShadows = setupLook(scene, camera);
-  const sprite = (name: string, draw: SpriteDraw) => spriteLook(spriteMaterial(scene, name, draw));
+  const sky = createSky(scene);
+  postProcess(camera);
+  const sprite = (name: string, draw: SpriteDraw) => spriteMaterial(scene, name, draw);
   return {
-    scene, camera, sunShadows, state, yawRad: 0,
+    scene, camera, sky, state, yawRad: 0,
     materials: {
       player: {
         front: sprite("overworld-player-front", () => {}),
@@ -56,13 +56,6 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
   };
 }
 
-export function spriteLook(m: StandardMaterial): StandardMaterial {
-  m.emissiveTexture = null;
-  m.disableLighting = true;
-  m.emissiveColor = SPRITE_TINT;
-  return m;
-}
-
 export function cutoutMaterial(scene: Scene, name: string, tex: DynamicTexture): StandardMaterial {
   const m = new StandardMaterial(name, scene);
   m.diffuseTexture = tex;
@@ -70,7 +63,9 @@ export function cutoutMaterial(scene: Scene, name: string, tex: DynamicTexture):
   m.transparencyMode = Material.MATERIAL_ALPHATEST;
   m.backFaceCulling = false;
   m.specularColor = Color3.Black();
-  return spriteLook(m);
+  m.disableLighting = true;
+  m.emissiveColor = Color3.White();
+  return m;
 }
 
 export function standingQuad(scene: Scene, name: string, width: number, height: number, footShare = 0): Mesh {
@@ -90,32 +85,8 @@ function blobMaterial(scene: Scene): StandardMaterial {
   return m;
 }
 
-function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
-  const haze = new Color3(0.27, 0.25, 0.29);
-  scene.clearColor = new Color4(haze.r, haze.g, haze.b, 1);
-  scene.ambientColor = new Color3(0.26, 0.24, 0.3);
-  scene.fogMode = Scene.FOGMODE_LINEAR;
-  scene.fogStart = 26;
-  scene.fogEnd = 60;
-  scene.fogColor = haze;
-
-  const sky = new HemisphericLight("overworld-sky", new Vector3(0, 1, 0), scene);
-  sky.intensity = 0.5;
-  sky.diffuse = new Color3(0.55, 0.58, 0.82);
-  sky.groundColor = new Color3(0.32, 0.26, 0.22);
-
-  // Low from the south-east, so the cliff faces toward the camera are lit and shadows fall up and left.
-  const sunDir = new Vector3(-0.55, -0.7, 0.45).normalize();
-  const sun = new DirectionalLight("overworld-sun", sunDir, scene);
-  sun.position = sunDir.scale(-50);
-  sun.intensity = 1.5;
-  sun.diffuse = new Color3(1, 0.68, 0.46);
-  const shadows = new ShadowGenerator(2048, sun);
-  shadows.usePercentageCloserFiltering = true;
-  shadows.filteringQuality = ShadowGenerator.QUALITY_MEDIUM;
-  shadows.bias = 0.004;
-  shadows.darkness = 0.4;
-
+function postProcess(camera: Camera): void {
+  const scene = camera.getScene();
   const post = new DefaultRenderingPipeline("overworld-post", true, scene, [camera]);
   post.fxaaEnabled = false;
   post.bloomEnabled = true;
@@ -142,7 +113,6 @@ function setupLook(scene: Scene, camera: Camera): ShadowGenerator {
   post.imageProcessing.vignetteWeight = 1.8;
   post.imageProcessing.vignetteColor = new Color4(0.05, 0.02, 0, 0);
   tiltShift(camera);
-  return shadows;
 }
 
 Effect.ShadersStore["tiltShiftFragmentShader"] = `

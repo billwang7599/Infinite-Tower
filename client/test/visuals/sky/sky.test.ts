@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Color3, NullEngine, PointLight, Scene, StandardMaterial } from "@babylonjs/core";
+import { Color3, MeshBuilder, NullEngine, PointLight, Scene, ShadowGenerator, StandardMaterial } from "@babylonjs/core";
 import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
 import {
-  blobShadowOf, createSky, directLightAt, daylightAt, MAX_MAP_LIGHTS, MOONLIGHT, nearestLights, SHADOW_MAP_LIGHTS,
-  SHADOW_SWAP_MARGIN_M, type MapLight,
+  blobShadowsAt, cardYawRad, createSky, directLightAt, daylightAt, MAX_MAP_LIGHTS, MOONLIGHT, nearestLights,
+  setDayClock, SHADOW_MAP_LIGHTS, SHADOW_SWAP_MARGIN_M, type BlobShadow, type Lighting, type MapLight,
 } from "../../../src/visuals/sky/sky.js";
 import { ARENA_LOOKS } from "../../../src/visuals/arenas/index.js";
 
@@ -49,21 +49,67 @@ describe("the sky's direct light", () => {
   });
 });
 
-describe("a sprite's blob shadow", () => {
-  test("falls away from the light, longer when the light is low", () => {
-    const noon = blobShadowOf(directLightAt(0.5));
-    const low = blobShadowOf(directLightAt(fractions.find((f) => f > 0.5 && altitudeDeg(sunAt(f)) < 12)!));
-    assert.ok(low.stretch > noon.stretch && noon.stretch >= 1);
-    const light = directLightAt(0.7);
-    const { offsetM } = blobShadowOf(light);
-    assert.ok(offsetM.x * light.toLight.x + offsetM.z * light.toLight.z < 0);
+describe("a sprite's blob shadows", () => {
+  const ground = { x: 0, y: 0, z: 0 }, centreM = 0.8;
+  const noonSun = { toLight: sunAt(0.5), brightness: 1 };
+  const fire = (x: number, brightness = 1.5) => ({ at: { x, y: 1.2, z: 0 }, brightness, rangeM: 10 });
+  const lit = (direct: Lighting["direct"], lamps: Lighting["lamps"] = []): Lighting =>
+    ({ skyBrightness: 0.4, direct, lamps });
+  const away = (s: BlobShadow) => ({ x: s.shift.x, z: s.shift.z });
+  const [contactUnderSun, sunCast] = blobShadowsAt(ground, centreM, lit(noonSun));
+
+  test("under the sky alone it's one round contact shadow, centred", () => {
+    const only = blobShadowsAt(ground, centreM, lit({ toLight: sunAt(0.5), brightness: 0 }));
+    assert.equal(only.length, 1);
+    assert.equal(only[0]!.stretch, 1);
+    assert.deepEqual(only[0]!.shift, { x: 0, z: 0 });
+    assert.deepEqual(contactUnderSun, only[0]);
   });
 
-  test("with no direct light it's a plain round one, faint", () => {
-    const dark = blobShadowOf({ body: "sun", toLight: { x: 1, y: 0.01, z: 0 }, strength: 0 });
-    assert.equal(dark.stretch, 1);
-    assert.deepEqual(dark.offsetM, { x: 0, z: 0 });
-    assert.ok(dark.alpha < blobShadowOf(directLightAt(0.5)).alpha);
+  test("each light that reaches the ground there casts its own, away from it", () => {
+    const casts = blobShadowsAt(ground, centreM, lit(noonSun, [fire(2)]));
+    assert.equal(casts.length, 3);
+    const sun = sunAt(0.5), fromFire = away(casts[2]!);
+    assert.ok(away(casts[1]!).x * sun.x + away(casts[1]!).z * sun.z < 0);
+    assert.ok(fromFire.x < 0 && Math.abs(fromFire.z) < 1e-9);
+    assert.equal(blobShadowsAt(ground, centreM, lit(noonSun, [fire(12)])).length, 2);
+  });
+
+  test("its near end stays under the sprite: it shifts away by half the extra length", () => {
+    for (const cast of blobShadowsAt(ground, centreM, lit(noonSun, [fire(3)])).slice(1)) {
+      assert.ok(Math.abs(Math.hypot(cast.shift.x, cast.shift.z) - (cast.stretch - 1) / 2) < 1e-9);
+    }
+  });
+
+  test("a lower light casts a longer one", () => {
+    const low = fractions.find((f) => f > 0.5 && altitudeDeg(sunAt(f)) < 12)!;
+    const lowCast = blobShadowsAt(ground, centreM, lit({ toLight: sunAt(low), brightness: 1 }))[1]!;
+    assert.ok(lowCast.stretch > sunCast!.stretch && sunCast!.stretch >= 1);
+  });
+
+  test("each is as dark as its light's share of the light there", () => {
+    const fireAt = (x: number, b?: number, direct = noonSun) =>
+      blobShadowsAt(ground, centreM, lit(direct, [fire(x, b)])).at(-1)!.alpha;
+    assert.ok(fireAt(1.5) > fireAt(4));
+    assert.ok(fireAt(2, 1.8) > fireAt(2, 1.2), "a flicker up darkens it");
+    const moon = { toLight: sunAt(0.5), brightness: 0.2 };
+    assert.ok(fireAt(2, 1.5, moon) > fireAt(2), "a fire's shadow is stronger at night");
+    const moonCast = blobShadowsAt(ground, centreM, lit(moon, [fire(2)]))[1]!;
+    assert.ok(moonCast.alpha < fireAt(2, 1.5, moon), "by a fire the moon's is the fainter");
+    assert.ok(moonCast.alpha < sunCast!.alpha);
+    const all = blobShadowsAt(ground, centreM, { skyBrightness: 0, direct: noonSun, lamps: [fire(0.5, 99)] });
+    for (const s of all) assert.ok(s.alpha > 0 && s.alpha <= 1);
+  });
+});
+
+describe("a flat shadow card", () => {
+  test("turned by cardYawRad, it faces its light square on, so its whole outline falls", () => {
+    for (const toLight of [...[0, 0.25, 0.3, 0.5, 0.7, 0.8, 0.95].map((f) => directLightAt(f).toLight),
+      { x: -3, y: 1, z: 2 }]) {
+      const yaw = cardYawRad(toLight);
+      const facing = (Math.sin(yaw) * toLight.x + Math.cos(yaw) * toLight.z) / Math.hypot(toLight.x, toLight.z);
+      assert.ok(Math.abs(facing) > 0.9999, JSON.stringify(toLight));
+    }
   });
 });
 
@@ -94,6 +140,55 @@ describe("map lights", () => {
     assert.deepEqual(shadowed, nearest);
     sky.look(ARENA_LOOKS.mire.env, []);
     assert.equal(scene.lights.filter((l) => l instanceof PointLight).length, 0);
+    scene.dispose();
+  });
+
+  test("a caster can be cast by one light only: its card turned to that light", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    const fires: MapLight[] = [0, 10].map((x) => ({ at: { x, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
+      rangeM: 8, flicker: 0 }));
+    sky.look(ARENA_LOOKS.mire.env, fires);
+    const [sunCard, fireCard, rock] = ["sun-card", "fire-card", "rock"].map((n) => MeshBuilder.CreateBox(n, {}, scene));
+    sky.castShadows(sunCard!, "direct");
+    sky.castShadows(fireCard!, fires[1]!);
+    sky.castShadows(rock!);
+    const casting = (light: string) => (scene.getLightByName(light)!.getShadowGenerator() as ShadowGenerator)
+      .getShadowMap()!.renderList!.map((m) => m.name);
+    assert.deepEqual(casting("sky-body").sort(), ["rock", "sun-card"]);
+    assert.deepEqual(casting("map-light-0"), ["rock"]);
+    assert.deepEqual(casting("map-light-1").sort(), ["fire-card", "rock"]);
+    scene.dispose();
+  });
+
+  test("blob shadows are drawn one per light, and drop when the light goes", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    sky.look(ARENA_LOOKS.mire.env, [{ at: { x: 2, y: 1.2, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
+      rangeM: 8, flicker: 0 }]);
+    setDayClock({ fraction: 0.5, speed: 0 });
+    sky.frame(0, { x: 0, y: 5, z: -5 });
+    const blobs = sky.blobs(new StandardMaterial("blob", scene), 1, 0.6);
+    const shown = () => scene.meshes.filter((m) => m.name === "blob-shadow" && m.isEnabled()).length;
+    blobs.place({ x: 0, y: 0, z: 0 }, 0.8);
+    assert.equal(shown(), 3);
+    blobs.place({ x: 20, y: 0, z: 0 }, 0.8);
+    assert.equal(shown(), 2);
+    blobs.place(null, 0.8);
+    assert.equal(shown(), 0);
+    blobs.dispose();
+    setDayClock({ speed: 1 });
+    scene.dispose();
+  });
+
+  test("a sprite's tint stops at its picture's own colours, however much light falls on it", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    sky.look(ARENA_LOOKS.mire.env, [{ at: { x: 0, y: 1, z: 0 }, color: new Color3(1, 1, 1), intensity: 50, rangeM: 6,
+      flicker: 0 }]);
+    sky.frame(0, { x: 0, y: 2, z: 0 });
+    const tint = sky.tintAt({ x: 0, y: 1, z: 0 }, new Color3());
+    for (const c of [tint.r, tint.g, tint.b]) assert.ok(c > 0.99 && c <= 1);
     scene.dispose();
   });
 
