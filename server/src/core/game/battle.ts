@@ -9,11 +9,12 @@ import {
 import { BattleRoom } from "../battle/room.js";
 import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
+import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
 
 export interface Battle {
-  /** The actor that started it (removed if you win), or null for tall grass. */
+  /** The actor that started it, or null for tall grass. */
   source: Entity | null;
   enemyId: EnemyId;
   room: BattleRoom;
@@ -27,8 +28,7 @@ const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 /** Held in the arena of the spawn it came from; tall grass has no spawn, so the level's. */
 export function startBattle(
-  session: GameSession, source: Entity | null, enemyId: EnemyId,
-  spawn = source === null ? undefined : session.overworld.spawnOf(source),
+  session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
   session.closeBag();
   const { overworld, vitals } = session;
@@ -47,8 +47,7 @@ export function startBattle(
     onEnd: (result, after, book, gear) => settleBattle(session, result, after, book, gear),
   }]);
   session.battle = { source, enemyId, room, seat: 0, over: false };
-  overworld.resetWalk(0);
-  session.link.send({ t: "encounter", source, me: overworld.playerPos(), seat: 0, setup });
+  session.link.send({ t: "encounter", source, me: overworld.playerPos(session.me), seat: 0, setup });
 }
 
 /** `loot` packed into `bag` where it fits; `left` is what there was no room for. */
@@ -70,6 +69,7 @@ function settleBattle(
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
+  session.overworld.fightDecided(session.me);
   session.skillbook = book;
   // Gone with nothing won or lost: the save keeps what they came in with.
   if (result === "left" || result === "fighting") return;
@@ -83,9 +83,6 @@ function settleBattle(
   if (won) {
     session.bag = packed.bag;
     session.wins++;
-    // The spawner replaces it.
-    if (battle.source !== null && overworld.world.isAlive(battle.source)) overworld.world.destroy(battle.source);
-    overworld.world.flush();
     // A winner is standing (a teammate's win, later, could leave them down).
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
@@ -93,13 +90,12 @@ function settleBattle(
     lost = bagCounts(session.bag);
     session.gear = { ...session.gear, bag: { ...session.bag, items: [] }, equipment: starterEquipment() };
     session.skillbook = blankSkillbook();
-    overworld.place(overworld.level.spawn);
+    overworld.place(session.me, overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
-  overworld.resetWalk(overworld.level.safeTime);
   session.save();
   session.link.send({
-    t: "battleResult", won, me: overworld.playerPos(), wins: session.wins, vitals: session.vitals,
+    t: "battleResult", won, me: overworld.playerPos(session.me), wins: session.wins, vitals: session.vitals,
     loot, leftBehind: packed.left, lost, gear: session.gear, skillbook: session.skillbook,
   });
 }

@@ -38,10 +38,7 @@ export class PlayerLook<Sprite> {
     if (key === this.worn) return;
     this.worn = key;
     this.look = look;
-    for (const facing of CHIBI_FACINGS) {
-      const pic = drawChibi(look, facing);
-      this.redraw(this.sprites.chibi[facing], (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side"));
-    }
+    for (const facing of CHIBI_FACINGS) this.redraw(this.sprites.chibi[facing], chibiDraw(look, facing));
     this.paintBattle(look);
   }
 
@@ -77,6 +74,11 @@ export class PlayerLook<Sprite> {
   }
 }
 
+export function chibiDraw(look: Look, facing: ChibiFacing): SpriteDraw {
+  const pic = drawChibi(look, facing);
+  return (px) => paint(px, pic, SPRITE_PX / VIEWS.chibi.width, facing === "side");
+}
+
 /** `pic`, each of its pixels `scale` sprite pixels square; `mirrored` flips it left to right. */
 function paint(px: Px, pic: Picture, scale: number, mirrored = false): void {
   for (let y = 0; y < pic.height; y++) {
@@ -97,4 +99,15 @@ export const drawAlert: SpriteDraw = (px) => {
   px(10, 13, 4, 2, "#d23a2c");
   px(10, 18, 4, 2, "#1b1b2a");         // bubble tail
   px(11, 17, 2, 2, "#ffffff");
+};
+
+export const drawCrossedSwords: SpriteDraw = (px) => {
+  const steel = "#e8e8f0", gold = "#d9a441", grip = "#6b4226";
+  const dots: [number, number, number, string][] = [];
+  for (let i = 0; i <= 10; i++) dots.push([3 + i, 2 + i, 2, steel], [19 - i, 2 + i, 2, steel]);
+  for (let i = -2; i <= 2; i++) dots.push([14 - i, 13 + i, 2, gold], [9 + i, 13 + i, 2, gold]);
+  dots.push([15, 15, 2, grip], [16, 16, 2, grip], [7, 15, 2, grip], [6, 16, 2, grip]);
+  dots.push([17, 17, 3, gold], [4, 17, 3, gold]);
+  for (const [x, y, size] of dots) px(x - 1, y - 1, size + 2, size + 2, "#1b1b2a");
+  for (const [x, y, size, color] of dots) px(x, y, size, size, color);
 };

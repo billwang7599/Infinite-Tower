@@ -1,5 +1,5 @@
 /** Overworld entities on the server. The client sees them through `state` (ActorSnap). */
-import { defineComponent, type ActorSnap, type Vec2 } from "@infinite-tower/shared";
+import { defineComponent, type ActorSnap, type Character, type Vec2 } from "@infinite-tower/shared";
 
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
@@ -19,7 +19,10 @@ export const OverworldActor = defineComponent<OverworldActorData>("OverworldActo
 export interface QueuedInput { seq: number; moveX: number; moveZ: number }
 
 export interface OverworldPlayerData {
+  character: Character;
   queue: QueuedInput[];
+  /** Highest input seq accepted. */
+  lastSeq: number;
   /** Inputs the player may still simulate: +1 per tick, capped, so a client can't move faster by sending more. */
   credits: number;
   /** The last input simulated. */
@@ -30,5 +33,9 @@ export interface OverworldPlayerData {
   safeTime: number;
   /** Share of normal walking speed, from the bag's weight. */
   pace: number;
+  vx: number;
+  vz: number;
+  /** In a battle: still here for the others to see, but out of the overworld's play. */
+  fighting: boolean;
 }
 export const OverworldPlayer = defineComponent<OverworldPlayerData>("OverworldPlayer");

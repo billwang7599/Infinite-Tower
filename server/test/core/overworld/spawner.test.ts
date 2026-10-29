@@ -70,10 +70,17 @@ describe("Spawner", () => {
     assert.deepEqual({ ...pos(s.world, again!) }, { x: -DEF.at.x, z: DEF.at.z });
   });
 
-  test("clear() removes everything it spawned, and leaves the player", () => {
-    const s = spawner([DEF, { ...DEF, at: { x: 0, z: 0 } }]);
-    s.spawner.clear();
+  test("an actor taken into a fight is gone, and comes back respawnTime after the fight is released", () => {
+    const s = spawner();
+    const [taken] = actors(s.world);
+    s.spawner.take(taken!, s.player);
+    s.world.flush();
+    for (let i = 0; i < 40; i++) s.spawner.system(s.world, DT);
+    assert.equal(actors(s.world).length, 0, "not while the fight is on");
+    s.spawner.release(s.player);
+    for (let i = 0; i < 7; i++) s.spawner.system(s.world, DT);
     assert.equal(actors(s.world).length, 0);
-    assert.equal(s.world.isAlive(s.player), true);
+    s.spawner.system(s.world, DT);
+    assert.equal(actors(s.world).length, 1);
   });
 });

@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { before, describe, test } from "node:test";
 import {
   blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, skillCost, starterEquipment, type Modifier,
   type Skill, type StepInput,
 } from "@infinite-tower/shared";
+import { initPhysics } from "@infinite-tower/shared/fight";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 import { PLAYER_STATS } from "../../src/core/content/player.js";
 import { OnlinePlayers } from "../../src/core/game/online.js";
@@ -12,6 +13,8 @@ import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/so
 import { MemoryPlayerStore } from "../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../fixtures/level.js";
 import { FakeSocket } from "./fake-socket.js";
+
+before(() => initPhysics());
 
 const ACCOUNT: Account = { id: "account-1", username: "tester" };
 
@@ -24,9 +27,9 @@ const SAVED: PlayerSave = {
 /** Lets a pending store load (and what follows it) finish. */
 const settle = () => new Promise(setImmediate);
 
-function setup(ping: PingOptions = { dev: false, pingMs: 0 }) {
+function setup(ping: PingOptions = { dev: false, pingMs: 0 }, dev = false) {
   const store = new MemoryPlayerStore();
-  const sockets = gameSockets(new OnlinePlayers(store, false, 50), ping);
+  const sockets = gameSockets(new OnlinePlayers(store, dev, 50), ping);
   const connect = async (account: Account | null = ACCOUNT, requestedPing?: string) => {
     const socket = new FakeSocket();
     sockets.accept(socket.ws, account, requestedPing);
@@ -121,6 +124,29 @@ describe("game sockets", () => {
     assert.ok(welcome?.t === "welcome");
     assert.deepEqual(welcome.character, TEST_CHARACTER);
     assert.equal(second.closed, null);
+  });
+
+  test("a taken-over tab's late messages are dropped: leaving a fight it was in doesn't throw", async () => {
+    const { store, connect } = setup(undefined, true);
+    store.saved.set(ACCOUNT.id, structuredClone(SAVED));
+    const first = await connect();
+    first.receive({ t: "cheat", cheat: { kind: "encounter", enemy: "wild-boar" } });
+    assert.ok(first.kinds().includes("encounter"));
+    await connect();
+    assert.doesNotThrow(() => first.receive({ t: "leaveBattle" }));
+  });
+
+  test("a taken-over tab's late messages save nothing over the new tab's", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const { store, connect } = setup();
+    store.saved.set(ACCOUNT.id, structuredClone(SAVED));
+    const first = await connect();
+    await connect();
+    const savesBefore = store.saves.length;
+    first.receive({ t: "settings", settings: { camera: { sensitivity: 2 } } });
+    t.mock.timers.tick(60_000);
+    assert.equal(store.saves.length, savesBefore);
+    assert.deepEqual(store.saved.get(ACCOUNT.id)?.settings, SAVED.settings);
   });
 
   test("a socket that closes while its save loads gets nothing and saves nothing", async () => {

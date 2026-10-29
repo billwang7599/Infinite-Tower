@@ -334,6 +334,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   needed), and anyone may pick a full server and try (the server decides). Logging in no longer goes straight in:
   it shows the list with the first server picked, and Play joins the picked one. The list is fetched again on the
   title (after logging in, a failed join, and Return to title), not live.
+- The shared overworld: one per level, made when its first player arrives, for everyone on it. Other players show as
+  their own chibi with their name above (a character is sent each time they come into view), gliding toward the
+  server's positions as enemies do, and pass through each other. An enemy a player touches leaves the overworld for
+  everyone at once; it comes back `respawnTime` after that fight is decided (even while its fighter is still on the
+  result screen), whether they won or lost (a loss used to leave it standing). Two players touching one on the same
+  tick: the first in the server's order gets it. A player in a battle stays where they were, with crossed swords over
+  their name, and enemies pass them over: they don't notice, chase or touch them, and the safe time after a fight
+  starts only once they're back.
+  Enemies go for the nearest player they may. Tall grass rolls per player. Other players are sent within the same
+  `VIEW_RADIUS_TILES` as actors.
 
 ## Commands
 

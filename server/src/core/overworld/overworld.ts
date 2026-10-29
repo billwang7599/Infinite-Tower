@@ -1,5 +1,5 @@
-/** One player's overworld: their own ECS world, with the level's actors and the player walking it. */
-import { World, type EnemyId, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
+/** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
+import { World, type Character, type EnemyId, type Entity, type System, type Vec2 } from "@infinite-tower/shared";
 import type { LevelDef, SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";
@@ -7,92 +7,97 @@ import { touchSystem } from "./behaviors/touch.js";
 import { wanderSystem } from "./behaviors/wander.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData } from "./components.js";
 import type { OverworldContext } from "./context.js";
-import { overworldPlayerSystem, queueInput } from "./player.js";
+import { newWalk, overworldPlayerSystem, queueInput } from "./player.js";
 import { Spawner } from "./spawner.js";
+
+/** `spawn`: the level's spawn the actor came from, or none (tall grass). */
+type OnEncounter = (source: Entity | null, enemy: EnemyId, spawn: SpawnDef | undefined) => void;
 
 export class Overworld implements OverworldContext {
   readonly world = new World();
-  readonly player: Entity;
   readonly rng = Math.random;
-  private current: LevelDef | null = null;
-  private spawner: Spawner | null = null;
+  private readonly spawner: Spawner;
   private readonly systems: System[];
-  /** Highest input seq accepted. */
-  private lastSeq = 0;
-  private encounterStarted = false;
+  private readonly onEncounter = new Map<Entity, OnEncounter>();
 
-  constructor(private readonly onEncounter: (source: Entity | null, enemy: EnemyId) => void) {
+  constructor(readonly level: LevelDef) {
     this.systems = [
       overworldPlayerSystem(this), chaseSystem(), wanderSystem(this), moveSystem(this), touchSystem(this),
-      (world, dt) => this.spawner?.system(world, dt),
+      (world, dt) => this.spawner.system(world, dt),
     ];
-    this.player = this.world.spawn();
-    this.world.add(this.player, OverworldPos, { x: 0, z: 0 });
-    this.world.add(this.player, OverworldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1 });
-  }
-
-  get level(): LevelDef {
-    if (!this.current) throw new Error("not in a level yet");
-    return this.current;
-  }
-  /** false until the player has a character and has been put in a level. */
-  get hasLevel(): boolean { return this.current !== null; }
-
-  startEncounter(source: Entity | null, enemy: EnemyId): void {
-    this.encounterStarted = true;
-    this.onEncounter(source, enemy);
-  }
-
-  spawnOf(actor: Entity): SpawnDef | undefined {
-    return this.spawner?.spawnOf(actor);
-  }
-
-  /** Clears the old level's actors, places the player at the spawn, spawns the new actors. */
-  enter(level: LevelDef): void {
-    this.spawner?.clear();
-    this.current = level;
-    this.place(level.spawn);
     this.spawner = new Spawner(this.world, level.spawns);
   }
 
-  /** Runs every overworld system once, stopping early if one starts a battle. */
-  step(dt: number): void {
-    this.encounterStarted = false;
-    for (const system of this.systems) {
-      system(this.world, dt);
-      if (this.encounterStarted) break;
-    }
+  join(character: Character, onEncounter: OnEncounter): Entity {
+    const player = this.world.spawn();
+    this.world.add(player, OverworldPos, { ...this.level.spawn });
+    this.world.add(player, OverworldPlayer, newWalk(character));
+    this.onEncounter.set(player, onEncounter);
+    return player;
+  }
+
+  leave(player: Entity): void {
+    this.spawner.release(player);
+    this.onEncounter.delete(player);
+    this.world.destroy(player);
     this.world.flush();
   }
 
-  /** Older or repeated inputs are ignored. */
-  input(seq: number, moveX: number, moveZ: number): void {
-    if (seq <= this.lastSeq) return;
-    this.lastSeq = seq;
-    queueInput(this.playerData(), { seq, moveX, moveZ });
+  /** A touched `source` leaves the overworld for the fight; `spawn` defaults to the one it came from. */
+  startEncounter(player: Entity, source: Entity | null, enemy: EnemyId, spawn?: SpawnDef): void {
+    const walk = this.playerData(player);
+    if (walk.fighting) return;
+    walk.fighting = true;
+    walk.queue.length = 0;
+    walk.vx = walk.vz = 0;
+    const from = source === null ? spawn : this.spawner.spawnOf(source);
+    if (source !== null) this.spawner.take(source, player);
+    this.onEncounter.get(player)?.(source, enemy, from);
   }
 
-  /** After a battle or teleport: no stale inputs or encounter progress. */
-  resetWalk(safeTime: number): void {
-    const walk = this.playerData();
+  get empty(): boolean {
+    return this.onEncounter.size === 0;
+  }
+
+  fightDecided(player: Entity): void {
+    this.spawner.release(player);
+  }
+
+  /** Back from the arena: no stale inputs or encounter progress. */
+  endFight(player: Entity, safeTime: number): void {
+    const walk = this.playerData(player);
+    walk.fighting = false;
     walk.queue.length = 0;
     walk.credits = 0;
     walk.grassDist = 0;
     walk.safeTime = safeTime;
   }
 
-  place(at: Vec2): void {
-    const pos = this.world.require(this.player, OverworldPos);
+  step(dt: number): void {
+    for (const system of this.systems) system(this.world, dt);
+    this.world.flush();
+  }
+
+  /** Older or repeated inputs are ignored. */
+  input(player: Entity, seq: number, moveX: number, moveZ: number): void {
+    const walk = this.playerData(player);
+    if (seq <= walk.lastSeq) return;
+    walk.lastSeq = seq;
+    queueInput(walk, { seq, moveX, moveZ });
+  }
+
+  place(player: Entity, at: Vec2): void {
+    const pos = this.world.require(player, OverworldPos);
     pos.x = at.x;
     pos.z = at.z;
   }
 
-  playerPos(): Vec2 {
-    const pos = this.world.require(this.player, OverworldPos);
+  playerPos(player: Entity): Vec2 {
+    const pos = this.world.require(player, OverworldPos);
     return { x: pos.x, z: pos.z };
   }
 
-  playerData(): OverworldPlayerData {
-    return this.world.require(this.player, OverworldPlayer);
+  playerData(player: Entity): OverworldPlayerData {
+    return this.world.require(player, OverworldPlayer);
   }
 }

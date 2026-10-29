@@ -1,8 +1,8 @@
-/** Chase on sight: notice the player nearby ("!"), pause, run at them; give up if they get away. */
+/** Chase on sight: notice the nearest player ("!"), pause, run at them; give up if they get away. */
 import { defineComponent, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos } from "../components.js";
 import { part } from "../parts.js";
-import { findPlayer } from "../player.js";
+import { nearestPlayer } from "../player.js";
 import { faceToward, steerToward } from "./move.js";
 
 export interface ChaseOnSightData {
@@ -25,12 +25,12 @@ export const chaseOnSight = (o: { range: number; noticeTime: number; speed: numb
 
 export function chaseSystem(): System {
   return (world, dt) => {
-    const player = findPlayer(world);
     for (const [, c, pos, actor] of world.query(ChaseOnSight, OverworldPos, OverworldActor)) {
       c.stateTime += dt;
+      const player = nearestPlayer(world, pos);
       const dx = player ? player.pos.x - pos.x : 0, dz = player ? player.pos.z - pos.z : 0;
-      const dist = player ? Math.hypot(dx, dz) : Infinity;
-      const safe = !player || player.safe;
+      const dist = player ? player.dist : Infinity;
+      const safe = !player;
 
       if (c.state === "calm" && !safe && dist < c.range) { c.state = "notice"; c.stateTime = 0; }
       else if (c.state === "chase" && (safe || dist > c.giveUpDist)) {

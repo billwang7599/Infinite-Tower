@@ -1,11 +1,12 @@
 /** A bare overworld ECS world for behavior tests: a player entity and an OverworldContext that records encounters. */
 import { World, type EnemyId, type Entity, type Vec2 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
+import { newWalk } from "../../../src/core/overworld/player.js";
 import type { OverworldContext } from "../../../src/core/overworld/context.js";
 import type { LevelDef } from "../../../src/core/world/level.js";
-import { TEST_LEVEL } from "../../fixtures/level.js";
+import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
 
-interface Encounter { source: Entity | null; enemy: EnemyId }
+interface Encounter { player: Entity; source: Entity | null; enemy: EnemyId }
 
 export interface TestOverworld {
   world: World;
@@ -20,11 +21,14 @@ export function testOverworld(o: { playerAt?: Vec2; rng?: () => number; level?: 
   const player = world.spawn();
   const at = o.playerAt ?? { x: 0, z: 0 };
   world.add(player, OverworldPos, { x: at.x, z: at.z });
-  world.add(player, OverworldPlayer, { queue: [], credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1 });
+  world.add(player, OverworldPlayer, newWalk(TEST_CHARACTER));
   const ctx: OverworldContext = {
     level: o.level ?? TEST_LEVEL,
     rng: o.rng ?? (() => 0),
-    startEncounter: (source, enemy) => { encounters.push({ source, enemy }); },
+    startEncounter: (p, source, enemy) => {
+      world.require(p, OverworldPlayer).fighting = true;
+      encounters.push({ player: p, source, enemy });
+    },
   };
   return { world, player, ctx, encounters };
 }

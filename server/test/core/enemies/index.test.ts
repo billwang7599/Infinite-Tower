@@ -33,7 +33,7 @@ describe("ENEMIES", () => {
       const f = testOverworld({ playerAt: { x: 0.5, z: 0 } });
       const e = spawnActor(f.world, enemy.def.id, { x: 0, z: 0 }, enemy.overworld());
       touchSystem(f.ctx)(f.world, 0.1);
-      assert.deepEqual(f.encounters, [{ source: e, enemy: id }]);
+      assert.deepEqual(f.encounters, [{ player: f.player, source: e, enemy: id }]);
     }
   });
 });

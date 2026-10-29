@@ -1,25 +1,29 @@
-/** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from the player if they're near. */
+/**
+ * Spawns a level's actors and replaces defeated ones after `respawnTime`, away from players if they're near. An actor
+ * taken into a fight is gone for everyone, and its time to come back starts only once that fight is over.
+ */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { ENEMIES } from "../enemies/index.js";
 import type { SpawnDef } from "../world/level.js";
+import { OverworldPlayer, OverworldPos } from "./components.js";
 import { spawnActor } from "./parts.js";
-import { findPlayer } from "./player.js";
 
 interface Slot {
   def: SpawnDef;
   entity: Entity | null;
   /** Seconds until a defeated actor comes back. */
   timeToRespawn: number;
+  takenBy: Entity | null;
 }
 
-/** Don't pop in closer to the player than this. */
+/** Don't pop in closer to a player than this. */
 const MIN_PLAYER_DIST = 6;
 
 export class Spawner {
   private readonly slots: Slot[];
 
   constructor(private readonly world: World, spawns: SpawnDef[]) {
-    this.slots = spawns.map((def) => ({ def, entity: this.spawn(def), timeToRespawn: 0 }));
+    this.slots = spawns.map((def) => ({ def, entity: this.spawn(def), timeToRespawn: 0, takenBy: null }));
   }
 
   readonly system: System = (world, dt) => {
@@ -29,6 +33,7 @@ export class Spawner {
         slot.entity = null;
         slot.timeToRespawn = slot.def.respawnTime;
       }
+      if (slot.takenBy !== null) continue;
       slot.timeToRespawn -= dt;
       if (slot.timeToRespawn <= 0) slot.entity = this.spawn(slot.def);
     }
@@ -38,10 +43,14 @@ export class Spawner {
     return this.slots.find((s) => s.entity === e)?.def;
   }
 
-  /** Leaving the level. */
-  clear(): void {
-    for (const slot of this.slots) if (slot.entity !== null) this.world.destroy(slot.entity);
-    this.world.flush();
+  take(actor: Entity, player: Entity): void {
+    const slot = this.slots.find((s) => s.entity === actor);
+    this.world.destroy(actor);
+    if (slot) slot.takenBy = player;
+  }
+
+  release(player: Entity): void {
+    for (const slot of this.slots) if (slot.takenBy === player) slot.takenBy = null;
   }
 
   private spawn(def: SpawnDef): Entity {
@@ -49,8 +58,9 @@ export class Spawner {
   }
 
   private placeAway(at: Vec2): Vec2 {
-    const player = findPlayer(this.world);
-    if (player && distXZ(player.pos, at) < MIN_PLAYER_DIST) return { x: -at.x, z: at.z };
+    for (const [, , pos] of this.world.query(OverworldPlayer, OverworldPos)) {
+      if (distXZ(pos, at) < MIN_PLAYER_DIST) return { x: -at.x, z: at.z };
+    }
     return at;
   }
 }
