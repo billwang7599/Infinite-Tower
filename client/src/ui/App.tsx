@@ -1,3 +1,4 @@
+import { Chat } from "./chat/Chat.js";
 import { BattleHud } from "./hud/BattleHud.js";
 import { OverworldHud } from "./hud/OverworldHud.js";
 import { panelWidthPx } from "./hud/layout.js";
@@ -59,6 +60,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               }}
             />
           )}
+          <Chat chat={ui.chat} input={input} send={actions.sendChat} />
         </>
       )}
       <Notices

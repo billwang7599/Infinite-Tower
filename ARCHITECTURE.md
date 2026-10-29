@@ -132,7 +132,9 @@ main.ts
   the swing sensitivity) is pressed as the swing named by its way across the screen, in order with the keys and
   clicks, so the fight sees it like any attack; not while blocking or dragging the camera. In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
-  stays the field's); rebinding takes raw keys with `captureKey`.
+  stays the field's), and Enter in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw keys
+  with `captureKey`. The chat open is a layer of its own, `chat`, over the overworld or the arena, with only Enter
+  (`sendChat`) and Esc (`closeChat`): the browser types the text into its field, and nothing else fires.
   Pointer input in the UI stays plain DOM events.
 - **Two modes, one world.** `game/game.ts` runs the frame loop and switches between the overworld
   (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
@@ -388,11 +390,12 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `challenge` | the Challenge key: duel the nearest player in reach |
 | `answerChallenge {accept}` | Accept / Decline on a challenge to you |
 | `joinBattle` | the interact key (Rest) or the HUD's "Join the fight" by a player in a battle |
+| `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal` |
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors and other players (a player's character only the first time) |
@@ -408,6 +411,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
 | `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
+| `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
+| `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
@@ -449,6 +454,15 @@ may jump a little on your screen (the drawings ease over it, as after a `battleS
 (`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so the netcode can be
 felt on localhost. A page can ask for another with `?ping=N` (the client passes it on to `/ws`; anything but a whole
 number of ms gets the `.env`'s). Production never delays.
+
+**Chat.** One chat for the whole server (`core/game/chat.ts`, one `Chat` in `OnlinePlayers`, in memory only): a
+`chat` from a player with a character is checked against `MAX_CHAT_CHARS` and their rate (`MAX_CHAT_LINES_PER_WINDOW`
+in `CHAT_WINDOW_MS`), stamped with their character's name, kept in the last `CHAT_HISTORY_LINES` and sent to every
+session online, each told who the speaker is to them (`speaker`). A line dropped is a `chatRefused` to its sender
+only. `welcome` carries the last `CHAT_LINES_ON_JOIN`. In the browser, `game.ts` keeps the log (`ui.chat`, the last
+`CHAT_LOG_LINES`) and `ui/chat/Chat.tsx` shows it; the overworld mode puts a `Speech` on the speaker's walker (you,
+or the peer by `speaker`) for `SPEECH_TIME`, which `visuals/overworld/walker.ts` draws as a bubble over the head (and
+name). In a fight it's the log only.
 
 **The HUD's ping.** `Net` sends a `ping` every 2 s (`client/src/net/ping.ts`) and reports the average of the last 4
 round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows it in both HUDs unless Show ping
@@ -516,7 +530,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
   step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving. Joining a battle:
   reach and its slack, duels and full rooms refused, each player's own result (one down settled at once, a win for
-  everyone still in it), a joiner leaving, the enemy kept until the room is over.
+  everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to everyone online
+  (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
+  none from a player without a character, the history kept to its cap, the last lines in `welcome`, the length and
+  rate limits (each player's own) told to the sender only, nothing kept past a restart.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -524,8 +541,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `MAX_PLAYERS` and `BEHIND_CLOUDFLARE`; `/api/servers`; a full server refusing a new player; a `ping`
   answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a saved key keeps a new default off
-  it), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
-  layer on top, each with its own keys; held keys read only there) and who has them, what the keys and buttons ask
+  it), the keyboard (held, latched, text fields, the chat field's Enter, rebinding's raw key), where each key goes
+  (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
+  the chat holding everything but Enter and Esc) and who has them, the chat log's cap, what the keys and buttons ask
   for (actions; the attack pressed last; swipes into swings), the player's pose, sword trail and thrust, the boar's
   and the Kobold's poses, effects fired once per step and event, camera, mouse and HUD settings, settings sync, when
   the mouse is captured, overworld prediction, the fight's sync (only changes sent,
@@ -675,7 +693,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    SWING_DIRS, ATTACK_KINDS, SCREEN_DIR, attackShape (arm reach + length); SWING, Blade,
                    planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY; GUARD)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
-                   server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES), handlers.ts
+                   server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
+                   MAX_CHAT_CHARS), handlers.ts
                    (Handlers<Msg> map + dispatch by `t`, the server's), api.ts (the HTTP API's types: username /
                    password rules, Credentials, AccountInfo, GameServer, ApiError), api-requests.ts (its Zod schemas;
                    server-only import), text-rules.ts (TextRules for the
@@ -707,6 +726,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
                        rest; LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
+                       chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
+                       everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
+                       CHAT_WINDOW_MS),
                        duels.ts (Duels: challenges, their reach, expiry and news; starting a duel; settling a
                        spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
@@ -778,7 +800,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      mode's update, then `drawing.frame`), overworld <-> battle switching, who has the keys,
                      the character from `welcome` / `character`, opening creation without one; tells the player
                      what happened with `say`; the known words and pages from the server; the fight breaking off
-                     the chant; `saveSkill` as the fight's `write` in a battle),
+                     the chant; `saveSkill` as the fight's `write` in a battle; the chat log and `sendChat`),
                      transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`, `cast(skill)` among them)
     net/             net.ts (Net, the game socket: connect, send, `on(type)` with an unsubscribe, onLost, onPing,
@@ -786,8 +808,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      HTTP call: who's logged in, log in, register, log out, the server list), ping.ts
                      (startPinging: Net's ping, every 2 s)
     core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
-                     text fields keep their keys but the arrows, Esc, the digits and Backspace; captureKey for
-                     rebinding), mouse.ts (optional,
+                     text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
+                     it sends; captureKey for rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
                      auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
@@ -797,8 +819,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
-                     keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's and the
-                     skillbook's fixed keys; KeyBindings:
+                     keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's, the
+                     skillbook's and the chat's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now; a new default on
                      a saved key is left unbound), camera.ts (CameraSettings: sensitivity, the
@@ -819,17 +841,18 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
                      the chibi facing each way and the battle sprite in each pose and frame, to check art
     ui/              React: everything drawn over the canvas
-      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then notices, banner, the fade between
-                       modes (game/transition.ts sets it), Settings, character creation, title screen (the HUD and
-                       Settings only once `inWorld` and not creating; creation as soon as a game runs without a
-                       character, under the title)
+      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, notices, banner, the
+                       fade between modes (game/transition.ts sets it), Settings, character creation, title screen
+                       (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as a
+                       game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant`, `battleBag`, `skillbookScreen`, `admin` and `challenge` (the UI writes them too, the
-                       game watches them; `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions
-                       (what the UI asks of the game: signIn, logOut, play, interact, challenge, answerChallenge,
-                       useItem, moveItem, castSkill, saveSkill, saveCharacter, returnToTitle, cheat, setDayClock).
+                       `chant`, `battleBag`, `skillbookScreen`, `admin`, `challenge` and `chat` (open, and the log:
+                       hearChat keeps the last CHAT_LOG_LINES) (the UI writes them too, the game watches them;
+                       `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
+                       of the game: signIn, logOut, play, interact, challenge, answerChallenge, useItem, moveItem,
+                       castSkill, saveSkill, sendChat, saveCharacter, returnToTitle, cheat, setDayClock).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -852,6 +875,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        PanelFrame.tsx (the side panels'
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
+      chat/            Chat.tsx (the chat, bottom left in both modes: the log's last lines, or, open, all of it and
+                       the field it's typed in; / opens it, Enter sends, Esc closes)
       skills/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
                        a known word doesn't fit, `quickPick`, addWord / undoWord, skillText),
                        SkillBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
@@ -890,13 +915,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
-                         interactionAt: the Rest key rests, or joins a fight beside you if no campfire is closer
+                         interactionAt: the Rest key rests, or joins a fight beside you if no campfire is closer;
+                         a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
                          screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
-        mirror.ts        Mirror the server's actors, each with its kind, and other players (peers)
+        mirror.ts        Mirror the server's actors, each with its kind, and other players (peers); entityOf
         components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin),
-                         Peer (another player's character, fighting), OverworldState
+                         Peer (another player's character, fighting), Speech (a chat line over a walker's head, and
+                         how long it has left), OverworldState
       battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
         battle.ts        The mode: start / end a fight (the fight's copy from the encounter's setup), per frame the
                          fight's steps (as many as pace.ts says) and the inputs out (1-4 quick-cast the fight's pages, the
@@ -967,7 +994,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
         walker.ts        WALKERS (chibi, other players' and enemy billboards: glide, hop, facing, the sky's tint and
-                         blob shadows, "!", another player's own chibi, name and crossed swords)
+                         blob shadows, "!", another player's own chibi, name and crossed swords, a Speech's bubble
+                         over the head)
+        bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
@@ -1125,6 +1154,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |
 | Where a fight starts (and a duel) | `shared/src/battle/fight/setup.ts` |
 | A duel challenge's reach and how long it stays open | `server/src/core/game/duels.ts` |
+| Chat: lines kept, lines sent on joining, the rate limit; the longest line; the log's length; a bubble's time | top of `server/src/core/game/chat.ts`; `MAX_CHAT_CHARS` in `shared/src/net/server-messages.ts`; `CHAT_LOG_LINES` in `client/src/ui/state.ts`; `SPEECH_TIME` in `client/src/modes/overworld/overworld.ts` |
 | The arena's wall and floor | `shared/src/battle/fight/physics/arena-physics.ts` |
 | How a fight ends: time limit, leaving mid-fight | `shared/src/battle/fight/outcome.ts` |
 | Fight netcode: hash rate, how late an input may be, how far ahead | `shared/src/battle/netcode.ts` |

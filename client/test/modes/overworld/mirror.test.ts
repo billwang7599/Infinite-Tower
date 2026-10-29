@@ -23,6 +23,14 @@ describe("ActorMirror: other players", () => {
     assert.equal(only!.pos.x, 3);
   });
 
+  test("a mirrored player's entity is found by their server id; anyone not mirrored isn't", () => {
+    const world = new World(), mirror = new ActorMirror(world);
+    mirror.apply([], [snap({ character: ALICE })]);
+    assert.equal(mirror.entityOf(7), world.first(Peer)?.[0]);
+    assert.notEqual(mirror.entityOf(7), undefined);
+    assert.equal(mirror.entityOf(8), undefined);
+  });
+
   test("faces the way they walk", () => {
     const world = new World(), mirror = new ActorMirror(world);
     mirror.apply([], [snap({ character: ALICE, vx: 0, vz: 4 })]);

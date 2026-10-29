@@ -38,6 +38,15 @@ export interface PlayerSnap {
   character?: Character;
 }
 
+/** `from`: the speaker's character name, stamped by the server. */
+export interface ChatLine {
+  from: string;
+  text: string;
+}
+
+/** After trimming. */
+export const MAX_CHAT_CHARS = 500;
+
 /** `busy`: `who` (null: you) is in another challenge already. */
 export type ChallengeNews =
   | { kind: "sent"; to: string }
@@ -49,10 +58,11 @@ export type ChallengeNews =
   | { kind: "busy"; who: string | null };
 
 export type ServerMsg =
-  /** `character` is null until the player has made one; the level comes only after that. */
+  /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines
+   * said, oldest first. */
   | {
     t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
-    gear: Gear; knownWords: Word[]; skillbook: Skillbook; dev: boolean;
+    gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; dev: boolean;
   }
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
@@ -73,6 +83,10 @@ export type ServerMsg =
   /** The other players' changes of input, as the server ran them, since the last of these. */
   | { t: "battleInputs"; inputs: { seat: number; changes: StepInput[] }[] }
   | { t: "challengeNews"; news: ChallengeNews }
+  /** A line said anywhere on the server. `speaker`: you, their id among `state`'s players if they're on your level
+   * (whether or not in view), or null. */
+  | { t: "chat"; line: ChatLine; speaker: number | "you" | null }
+  | { t: "chatRefused"; reason: "tooFast" | "tooLong" }
   | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" }
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }

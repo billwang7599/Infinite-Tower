@@ -1,11 +1,11 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
- * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `skillbookScreen` and
- * the title's `pickedSocket` too, and the game watches them. `UiActions` is the other direction.
+ * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `skillbookScreen`,
+ * `chat` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the other direction.
  */
 import {
-  blankSkillbook, type Carried, type Character, type Cheat, type Credentials, type DayChange, type GameServer,
-  type Gear, type GridSpot, type Skill, type Skillbook, type Spot, type Stats, type Word,
+  blankSkillbook, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
+  type GameServer, type Gear, type GridSpot, type Skill, type Skillbook, type Spot, type Stats, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -98,6 +98,13 @@ export interface PingState {
   ms: number | null;
 }
 
+export const CHAT_LOG_LINES = 100;
+
+export interface ChatState {
+  open: boolean;
+  lines: readonly ChatLine[];
+}
+
 /** The overworld's side panels; one is open at a time. Neither pauses the world. */
 export type OverworldPanel = "character" | "inventory";
 
@@ -121,6 +128,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
     layers.push("battleBag");
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
+  if (ui.chat.get().open) layers.push("chat");
   if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
   if (ui.creation.get().open) layers.push("creation");
@@ -146,6 +154,7 @@ export interface UiActions {
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
+  sendChat(text: string): void;
   saveCharacter(character: Character): void;
   returnToTitle(): void;
   cheat(cheat: Cheat): void;
@@ -187,6 +196,7 @@ export class UiState {
   readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
   readonly battleBag = new Store<{ open: boolean }>({ open: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
+  readonly chat = new Store<ChatState>({ open: false, lines: [] });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
@@ -203,6 +213,8 @@ export class UiState {
     this.battleBag.set({ open: false });
     this.skillbookScreen.set({ open: false });
   };
+  readonly hearChat = (lines: readonly ChatLine[]): void =>
+    this.chat.set({ lines: [...this.chat.get().lines, ...lines].slice(-CHAT_LOG_LINES) });
   readonly closeOverworldPanel = (): void => {
     this.overworldPanel.set({ open: null });
     this.skillbookScreen.set({ open: false });

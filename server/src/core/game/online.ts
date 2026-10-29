@@ -7,6 +7,7 @@ import { newPlayer, withStarterKit } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
+import { Chat } from "./chat.js";
 import { Duels } from "./duels.js";
 import { GameSession, type Others } from "./session.js";
 
@@ -14,7 +15,7 @@ export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
   private readonly overworlds = new Map<string, Overworld>();
   private readonly online = () => this.byAccount.values();
-  private readonly others: Others = { online: this.online, duels: new Duels(this.online) };
+  private readonly others: Others = { online: this.online, duels: new Duels(this.online), chat: new Chat(this.online) };
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {}
 

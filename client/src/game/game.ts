@@ -39,6 +39,7 @@ export interface Game {
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
+  sendChat(text: string): void;
   saveCharacter(character: Character): void;
   cheat(cheat: Cheat): void;
   setDayClock(change: DayChange): void;
@@ -75,6 +76,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   ui.chant.subscribe(updateInput);
   ui.skillbookScreen.subscribe(updateInput);
   ui.battleBag.subscribe(updateInput);
+  ui.chat.subscribe(updateInput);
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
   // breaks the bag off the same way, and a decided fight closes it.
   ui.battle.subscribe(() => {
@@ -204,6 +206,9 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
         if (!transition) battle.ctx.writes.push({ page, skill });
       } else net?.send({ t: "saveSkill", page, skill });
     },
+    sendChat(text) {
+      net?.send({ t: "chat", text });
+    },
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
@@ -215,6 +220,9 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
+      ui.chat.set({ open: false, lines: joined.welcome.chat });
+      net.on("chat", ({ line }) => ui.hearChat([line]));
+      net.on("chatRefused", ({ reason }) => say(ui.notifications, { kind: "chatRefused", reason }));
       net.on("challengeNews", ({ news }) => {
         if (news.kind === "received") ui.challenge.set({ from: news.from });
         else if (news.kind === "expired" || news.kind === "cancelled") ui.challenge.set({ from: null });
@@ -278,6 +286,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       ui.admin.set({ open: false, invulnerable: false });
       ui.creation.set({ open: false });
       ui.challenge.set({ from: null });
+      ui.chat.set({ open: false, lines: [] });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

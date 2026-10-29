@@ -47,6 +47,7 @@ describe("parseClientMsg", () => {
       { t: "cheat", cheat: { kind: "give", item: "boar-meat", count: 5 } },
       { t: "cheat", cheat: { kind: "heal" } },
       { t: "ping", id: 0 },
+      { t: "chat", text: "hello there" },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));
   });
@@ -211,6 +212,13 @@ describe("parseClientMsg", () => {
     const settings = (hud: object) => parse({ t: "settings", settings: { hud } });
     for (const hud of [{ showPing: false }, {}]) assert.deepEqual(settings(hud), { t: "settings", settings: { hud } });
     for (const showPing of ["true", 1, null]) assert.equal(settings({ showPing }), null);
+  });
+
+  test("chat: only the text, trimmed; nothing but spaces is dropped", () => {
+    assert.deepEqual(parse({ t: "chat", text: "  hi all " }), { t: "chat", text: "hi all" });
+    for (const text of ["", "   ", 5, null]) assert.equal(parse({ t: "chat", text }), null, JSON.stringify(text));
+    assert.equal(parse({ t: "chat" }), null);
+    assert.deepEqual(parse({ t: "chat", text: "hi", from: "Admin" }), { t: "chat", text: "hi" }, "no name of its own");
   });
 
   test("ping: its id is a whole number from 0", () => {

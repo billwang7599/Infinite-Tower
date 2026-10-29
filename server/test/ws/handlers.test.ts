@@ -26,6 +26,7 @@ function fakeSession() {
     cheat: record("cheat"),
     challenge: record("challenge"),
     answerChallenge: record("answerChallenge"),
+    chat: record("chat"),
   };
   return { calls, session: session as unknown as GameSession };
 }
@@ -95,10 +96,14 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "answerChallenge", accept: true }), [["answerChallenge", true]]);
   });
 
+  test("chat passes on only the text: the session stamps the name", () => {
+    assert.deepEqual(handle({ t: "chat", text: "hello" }), [["chat", "hello"]]);
+  });
+
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "saveSkill", "cheat", "challenge", "answerChallenge", "joinBattle",
+      "closeBag", "saveSkill", "cheat", "challenge", "answerChallenge", "joinBattle", "chat",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

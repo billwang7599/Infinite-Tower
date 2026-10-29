@@ -55,8 +55,9 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(map.battle.leave, ["Enter"]);
   });
 
-  test("general: Esc, WASD to move, C the character panel, B the inventory", () => {
+  test("general: Esc, WASD to move, C the character panel, B the inventory, / the chat", () => {
     const general = new KeyBindings().get().general;
+    assert.deepEqual(general.openChat, ["Slash"]);
     assert.deepEqual(general.menu, ["Escape"]);
     const { forward, left, back, right } = general;
     assert.deepEqual([forward, left, back, right], [["KeyW"], ["KeyA"], ["KeyS"], ["KeyD"]]);

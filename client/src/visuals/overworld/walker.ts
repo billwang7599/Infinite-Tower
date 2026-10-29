@@ -1,13 +1,16 @@
 import { Color3, DynamicTexture, StandardMaterial, VertexBuffer, type Mesh } from "@babylonjs/core";
 import { dampFactor, distXZ, type Entity, type Look, type Vec2, type World } from "@infinite-tower/shared";
 import { CHIBI_FACINGS, type ChibiFacing } from "../../gfx/look/look.js";
-import { OverworldActor, OverworldPos, Peer, type OverworldActorData } from "../../modes/overworld/components.js";
+import {
+  OverworldActor, OverworldPos, Peer, Speech, type OverworldActorData,
+} from "../../modes/overworld/components.js";
 import { facingOnScreen, mirrorFor, type Facing } from "../../modes/overworld/facing.js";
 import { chibiDraw } from "../characters.js";
 import { byEnemy } from "../enemies/index.js";
 import type { Blobs } from "../sky/blobs.js";
 import { spriteMaterial } from "../sprites.js";
 import type { Visual } from "../visuals.js";
+import { speechBubble, type Bubble } from "./bubble.js";
 import { standingQuad, type OverworldScene } from "./scene.js";
 
 /** Server snapshots arrive ~20x/s: glide toward them (1/s, for dampFactor); snap if far off (respawn, teleport). */
@@ -48,6 +51,7 @@ interface Walker {
   facings: Record<ChibiFacing, StandardMaterial> | null;
   alert: Mesh | null;
   peer: PeerExtras | null;
+  bubble: Bubble | null;
   sizeTiles: number;
   drawn: Vec2;
   glide: boolean;
@@ -81,7 +85,7 @@ function walker(spec: {
       const facings = peer ? peerFacings(view, peer.character.look, extras!) : spec.facings?.(view) ?? null;
       mesh.material = facings?.front ?? spec.material(view);
       return {
-        view, mesh, blobs, tint, alert, peer: extras, mirror: 1, facings, sizeTiles: size,
+        view, mesh, blobs, tint, alert, peer: extras, bubble: null, mirror: 1, facings, sizeTiles: size,
         drawn: { x: pos.x, z: pos.z }, glide: spec.glide, walkPhase: 0,
       };
     },
@@ -90,6 +94,7 @@ function walker(spec: {
       w.mesh.dispose();
       w.blobs.dispose();
       w.alert?.dispose();
+      w.bubble?.dispose();
       if (!w.peer) return;
       w.peer.name.dispose();
       w.peer.fighting.dispose();
@@ -181,12 +186,21 @@ function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
     w.alert.rotation.y = yaw;
     if (actor.alert) w.alert.position.set(at.x + side * Math.cos(yaw), w.sizeTiles * 0.9, at.z - side * Math.sin(yaw));
   }
+  let overHeadY = w.sizeTiles * 0.95;
   if (w.peer) {
     const fighting = world.require(e, Peer).fighting;
-    w.peer.name.position.set(at.x, w.sizeTiles * 0.95, at.z);
+    w.peer.name.position.set(at.x, overHeadY, at.z);
     w.peer.name.rotation.y = yaw;
     w.peer.fighting.setEnabled(fighting);
-    w.peer.fighting.position.set(at.x, w.sizeTiles * 0.95 + NAME_HEIGHT_TILES, at.z);
+    w.peer.fighting.position.set(at.x, overHeadY + NAME_HEIGHT_TILES, at.z);
     w.peer.fighting.rotation.y = yaw;
+    overHeadY += NAME_HEIGHT_TILES + (fighting ? MARKER_TILES : 0);
   }
+  const said = world.get(e, Speech)?.text ?? null;
+  if (said !== (w.bubble?.text ?? null)) {
+    w.bubble?.dispose();
+    w.bubble = said === null ? null : speechBubble(w.view.scene, said);
+  }
+  w.bubble?.mesh.position.set(at.x, overHeadY, at.z);
+  if (w.bubble) w.bubble.mesh.rotation.y = yaw;
 }

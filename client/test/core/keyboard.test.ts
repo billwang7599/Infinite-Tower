@@ -5,6 +5,7 @@ import { Keyboard } from "../../src/core/keyboard.js";
 interface Sent {
   repeat?: boolean;
   tagName?: string;
+  enterKeyHint?: string;
 }
 
 /** A stand-in for window: Node's EventTarget, fed plain Events carrying the KeyboardEvent fields we read. */
@@ -16,9 +17,9 @@ function setup(use: (key: string) => boolean = () => false) {
     heard.push([key, repeat]);
     return use(key);
   });
-  const send = (type: string, code = "", { repeat = false, tagName }: Sent = {}) => {
+  const send = (type: string, code = "", { repeat = false, tagName, enterKeyHint }: Sent = {}) => {
     const event = Object.assign(new Event(type, { cancelable: true }), { code, repeat });
-    if (tagName) Object.defineProperty(event, "target", { value: { tagName } });
+    if (tagName) Object.defineProperty(event, "target", { value: { tagName, enterKeyHint } });
     target.dispatchEvent(event);
     return event;
   };
@@ -133,6 +134,15 @@ describe("Keyboard: typing in a text field", () => {
     assert.equal(send("keydown", "Digit5", { tagName: "INPUT" }).defaultPrevented, false);
     assert.equal(send("keydown", "Backspace", { tagName: "INPUT" }).defaultPrevented, false);
     assert.deepEqual(heard.map(([key]) => key), ["Digit3", "Digit5", "Backspace"]);
+  });
+
+  test("Enter counts in a field whose Enter sends (the chat's); its letters and Space stay the field's", () => {
+    const { send, heard } = setup((key) => key === "Enter");
+    const chat = { tagName: "INPUT", enterKeyHint: "send" };
+    assert.equal(send("keydown", "Enter", chat).defaultPrevented, true);
+    assert.equal(send("keydown", "KeyW", chat).defaultPrevented, false);
+    assert.equal(send("keydown", "Space", chat).defaultPrevented, false);
+    assert.deepEqual(heard.map(([key]) => key), ["Enter"]);
   });
 
   test("keys pressed anywhere else count as usual", () => {
