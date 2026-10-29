@@ -257,10 +257,11 @@ main.ts
   (`fight/behaviors/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
   call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its drive starts, its blade goes live, is
   done, lets go and is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
-  while it's live, and stops the blade `SWING.gapTime` after a swing ends, leaving it where it is, so the next wind-up
-  starts from there. Ending an action or an enemy state (`enter`) ends its swing (`endSwing`, which rests the blade at
-  the guard if the swing hadn't let go yet, else leaves it following through); a block, a dodge or a hit taken rests
-  it too (`restBlade`). A blade that meets a guard (blocked, or parried) stops dead there (`stopBlade`): its hitbox
+  while it's live. A swing that runs its course leaves the blade at its far end, its speed down to 0, and the next
+  wind-up starts from there. Ending an action or an enemy state (`enter`) ends its swing (`endSwing`, which rests the
+  blade at the guard if the swing hadn't let go yet, else leaves it moving at the speed it had, stopped where it is
+  `SWING.gapTime` later); a block, a dodge or a hit taken rests it too (`restBlade`, which a swing still under way
+  overrides when it ends). A blade that meets a guard (blocked, or parried) stops dead there (`stopBlade`): its hitbox
   goes, `stoppedAt` holds its stroke still while the swing runs its time out, and it ends still at that point
   (`stoppedBlade`). Between swings the visuals draw the blade held where the fight has it. A parry reads the
   target's swing.
@@ -615,6 +616,7 @@ name (`MAX_BODY_BYTES`).
 |---|---|
 | `README.md` | a short description, the finished features, how to run it, the top-level folders |
 | `ARCHITECTURE.md` | this file |
+| `FORMULAS.md` | every calculation that decides how the game plays, with where its numbers live and worked examples |
 | `AGENTS.md` | how to work in this repo: ask before game mechanics, decisions so far, checks, git and PRs |
 | `plan/` | future plans and parked ideas, one file each |
 | `package.json` | the workspaces and every `npm run` script (the workspaces have only their own dev / build) |
@@ -1134,6 +1136,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `client/test/ui/notifications/say.test.ts`; its placement test lists the events allowed in the centre.
 
 ## Where to tune things
+
+What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORMULAS.md).
 
 | What | Where |
 |---|---|

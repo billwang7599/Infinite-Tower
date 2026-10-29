@@ -189,5 +189,6 @@ The character art can be previewed at http://localhost:5173/art.html while `npm 
 | Doc | What's in it |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | how the code fits together, every file, how to add things, where to tune |
+| [FORMULAS.md](FORMULAS.md) | every calculation that decides how the game plays, with worked examples |
 | [AGENTS.md](AGENTS.md) | how to work in this repo: ask before game mechanics, decisions so far, checks, git and PRs |
 | [plan/](plan/README.md) | where it's headed |
