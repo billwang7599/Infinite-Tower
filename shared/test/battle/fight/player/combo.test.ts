@@ -113,6 +113,11 @@ describe("when the next swing starts", () => {
       assert.equal(live.at(-1)! - starts.at(-1)!, liveStep(planOf(kinds).windupTime), kinds.join(" "));
     }
   });
+  test("a stab ends with the blade back at the guard, wherever it started from", () => {
+    const { blades } = play(chainOf(["lr", "stab"]), 150, newFight(FAR));
+    assert.ok(blades.some((b) => b.x !== 0 || b.y !== 0), "the swing left it on its far side");
+    assert.deepEqual(blades.at(-1), restingBlade());
+  });
 });
 
 describe("how hard it hits and what it costs", () => {

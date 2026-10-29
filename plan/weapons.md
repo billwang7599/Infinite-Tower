@@ -46,8 +46,9 @@ for the user to review; all of it is `planSwing` and `SWING` in `weapons.ts`, de
   up to 1.25× (the same swing again; its 45° neighbour 1.22×; across or reversed, none).
 - With the starter sword, from rest 0.35 s to impact; the same swing again as the last lets go 0.19 s, its neighbour
   0.39 s, a reverse 0.4 s (brake 0.2 + drive 0.2; once the follow-through has stopped the blade, the drive alone),
-  across 0.58 s. A stab brakes the blade, draws back 0.2 s, thrusts in a drive, and leaves the blade at rest (0.4 s
-  from rest).
+  across 0.58 s. A stab brakes the blade, sets it back at the guard as a swing sets it to its start (0.15 s × √ the
+  distance), draws back 0.2 s, thrusts in a drive, and follows through back to the guard (0.4 s from the guard, 0.55 s
+  from a swing's far side, 0.75 s straight after a swing lets go; the greatsword 1.15 s and 1.58 s).
 - Every time × √((I / I0) / (strength / 10)), clamped to 0.5–3×: the longsword 1.53× (0.53 s from rest), the greatsword
   2.87× (1.0 s from rest, the same again 0.54 s, a reverse 1.15 s, a follow-through 0.57 s).
 - Impact speed v = (strength / 10)^0.25 / √(m / m0) × flow, flow the drive's end speed.

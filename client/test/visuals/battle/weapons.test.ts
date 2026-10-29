@@ -119,6 +119,15 @@ describe("a held blade", () => {
     const drawn = windupBlade("stab", 1).handZ;
     assert.ok(Math.abs(strokeBlade("stab", 0).handZ - drawn) < 1e-9, "on from where it drew back");
   });
+
+  test("a stab thrusts straight ahead, then follows through back to the guard", () => {
+    const ahead = windupBlade("stab", 1).blade;
+    for (const turn of [0, 1 / 3, 2 / 3]) near(strokeBlade("stab", turn).blade, ahead, `ahead at ${turn}`);
+    near(strokeBlade("stab", 1).blade, GUARD.blade, "the guard");
+    assert.ok(Math.abs(strokeBlade("stab", 1).handZ - GUARD.handZ) < 1e-9);
+    const back = strokeBlade("stab", 5 / 6).blade;
+    assert.ok(back.z < ahead.z && back.z > GUARD.blade.z, "on its way back");
+  });
 });
 
 describe("weapon looks", () => {
