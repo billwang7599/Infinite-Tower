@@ -64,6 +64,7 @@ for the user to review; all of it is `planSwing` and `SWING` in `weapons.ts`, de
   Kobold's blow cost before inertia) × the hit's momentum; a body blow still by its damage.
 - A parry's window stays 0.15 s. The parried side's stun (or stagger) is scaled by the parrier's blade momentum over
   theirs, clamped to 0.5–2× (the agent's pick); a swordsman parrying from guard counts an opening swing's momentum.
+  A parry 45° off head-on (the user's) scales the stun, stagger and knockback by `PARRY.offAngleShare` (0.5).
 - The blade stays where its swing left it (the user: "sword stays where last swung. and from there its inertia"),
   still moving for `SWING.gapTime` (0.25 s) after an attack ends, then stopped there; it doesn't drift back. A block, a
   dodge, a hit taken, being parried, a chant, a cast or the bag rest it at the guard at once. From the guard, a swing

@@ -196,11 +196,13 @@ main.ts
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range +
   width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player may
-  parry an enemy's swing (the reverse swing, live within `PARRY.window` before it lands: the enemy is stunned; hurt
-  invulnerability doesn't stop a parry) or block it (held, facing it: stopped for stamina); a swordsman on guard parries
-  a player's swing coming in near the side its blade is held toward (`GUARD`, `guardCovers`; the player is staggered)
-  and blocks a stab; anything else lands, and a swing that lands turns its guard that way (`turnGuard`). An enemy's
-  swing is named as the player facing it sees it.
+  parry an enemy's swing (the reverse swing or a neighbour 45° off it, or a stab with a stab, live within
+  `PARRY.window` before it lands: the enemy is stunned; hurt invulnerability doesn't stop a parry) or block it (held,
+  facing it: stopped for stamina); a swordsman on guard parries a player's swing coming in near the side its blade is
+  held toward (`GUARD`; the player is staggered) and blocks a stab; anything else lands, and a swing that lands turns
+  its guard that way (`turnGuard`). How much of a parry each makes is `parryShare` / `guardShare`: 1 head-on,
+  `PARRY.offAngleShare` 45° off (the stun or stagger and the knockback scale by it), 0 for none. An enemy's swing is
+  named as the player facing it sees it.
 - **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
   `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, and its length, mass,
   balance and power), eight swings named by their way across the screen (`lr`: left to right, `SCREEN_DIR`) and a

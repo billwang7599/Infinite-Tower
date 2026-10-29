@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, GUARD, Health, liveStep, SCREEN_DIR, SWING, SWING_DIRS, WeaponAttack, Wielder, type AttackKind,
+  Body, FIXED_DT, GUARD, Health, liveStep, PARRY, SCREEN_DIR, SWING, SWING_DIRS, WeaponAttack, Wielder, type AttackKind,
   type SwingDir, type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -52,6 +52,26 @@ describe("a swordsman's guard", () => {
         assert.equal(hurtBy(fight) === 0, near, `side ${side}, ${dir}`);
       }
       assert.equal(parried.length, 3, `side ${side}: ${parried.join(", ")}`);
+    }
+  });
+
+  test("a swing 45\u00b0 off its side staggers and knocks the player back for part of a head-on one", () => {
+    const parried = (dir: SwingDir) => {
+      const fight = holding(newFight(), 0), me = fight.players[0]!;
+      while (fight.steps < SETTLED + LIVE_AFTER + 10) {
+        fight.step([input({ attack: fight.steps + 1 === SETTLED ? dir : null })]);
+        if (fight.events.some((e) => e.type === "parry")) {
+          const vel = fight.world.require(me, Body).vel;
+          return { stagger: fight.world.require(me, Health).hitstun, speed: Math.hypot(vel.x, vel.z) };
+        }
+      }
+      assert.fail(`${dir} not parried`);
+    };
+    const direct = parried(comingFrom(0));
+    for (const side of [1, GUARD.sides - 1]) {
+      const off = parried(comingFrom(side));
+      assert.ok(Math.abs(off.stagger - direct.stagger * PARRY.offAngleShare) < 1e-9, `side ${side}: ${off.stagger}`);
+      assert.ok(Math.abs(off.speed - direct.speed * PARRY.offAngleShare) < 1e-9, `side ${side}: ${off.speed}`);
     }
   });
 

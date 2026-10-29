@@ -1,13 +1,13 @@
 /**
  * Hits, checked after each physics step with plain math, not physics triggers. A player may parry a hit (the
- * reverse swing, in time) or block it; a swordsman on guard parries a swing from the side it guards and blocks a
- * stab.
+ * reverse swing or a neighbour of it, or a stab with a stab, in time) or block it; a swordsman on guard parries a
+ * swing from near the side it guards and blocks a stab.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import {
-  guardCovers, isSwing, PARRY, planSwing, restingBlade, reverseOf, swingSide, weaponIn, type AttackKind,
+  guardShare, isSwing, PARRY, parryShare, planSwing, restingBlade, reverseOf, swingSide, weaponIn, type AttackKind,
   type HitShape,
 } from "../../weapons/weapons.js";
 import {
@@ -100,7 +100,7 @@ export function combatSystem(events: FightEvent[]): System {
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
-        if (targetHealth.invuln > 0 && !(player && parries(world, attacker, hit, target))) continue;
+        if (targetHealth.invuln > 0 && !(player && parryShareFor(world, attacker, hit, target) > 0)) continue;
 
         hit.alreadyHit.add(target);
         const resolved = player
@@ -112,25 +112,28 @@ export function combatSystem(events: FightEvent[]): System {
   };
 }
 
-function parries(world: World, attacker: Entity, hit: ActiveHitData, target: Entity): boolean {
+function parryShareFor(world: World, attacker: Entity, hit: ActiveHitData, target: Entity): number {
   const own = world.get(target, Wielder)?.swing;
-  if (!own || hit.attack === null || !isSwing(hit.attack) || own.attack !== reverseOf(hit.attack)) return false;
+  if (!own || hit.attack === null) return 0;
+  const share = parryShare(own.attack, hit.attack);
   const at = world.require(target, Body).pos, from = world.require(attacker, Body).pos;
-  if (!faces(at, own.dir, from, PARRY.minDot)) return false;
+  if (share === 0 || !faces(at, own.dir, from, PARRY.minDot)) return 0;
   // The weapon system ran this step: the swing's clock is one step on.
   const sinceLive = own.step - 1 - own.liveAt;
-  return sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT);
+  return sinceLive >= 0 && sinceLive <= Math.round(PARRY.window / FIXED_DT) ? share : 0;
 }
 
-/** A hit reaching a player: parried by the reverse swing in time, blocked, or landing. */
+/** A hit reaching a player: parried in time, blocked, or landing. */
 function hitPlayer(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, player: PlayerData,
 ): Resolved {
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health), stamina = world.require(target, Stamina);
 
-  if (parries(world, attacker, hit, target)) {
-    parryEnemy(world, attacker, body.pos, stunFor(PARRY.stunTime, world.require(target, Wielder).swing!.momentum, hit));
+  const share = parryShareFor(world, attacker, hit, target);
+  if (share > 0) {
+    const momentum = world.require(target, Wielder).swing!.momentum;
+    parryEnemy(world, attacker, body.pos, stunFor(PARRY.stunTime * share, momentum, hit), share);
     events.push({ type: "parry", by: target, target: attacker });
     return "parried";
   }
@@ -180,13 +183,13 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
   player.writing = null;
 }
 
-function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number): void {
+function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number, share: number): void {
   const enemy = world.require(e, Enemy), body = world.require(e, Body);
   Object.assign(enemy, { state: "parried", stateTime: 0, duration: stunTime });
   stopBlade(world, e);
   endSwing(world, e);
-  // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` away.
-  knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist));
+  // Sliding to a stop at the brain's "parried" slowdown, it ends up `knockbackDist` × `share` away.
+  knock(body.pos, by, body.vel, Math.sqrt(2 * PARRY.slideDecel * PARRY.knockbackDist * share));
   const attack = world.get(e, WeaponAttack);
   if (attack) attack.cooldown = Math.max(attack.cooldown, stunTime + attack.def.cooldown);
 }
@@ -205,7 +208,8 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
     }
     const player = world.get(attacker, Player);
     const covered = guard.guardMoveTime > 0 ? guard.guardFrom : guard.guardSide;
-    if (guardCovers(covered, hit.attack) && guard.parryCooldown <= 0 && player) {
+    const share = guardShare(covered, hit.attack);
+    if (share > 0 && guard.parryCooldown <= 0 && player) {
       guard.parryCooldown = guard.def.parryCooldown;
       player.action = "stagger";
       // On guard, its blade isn't swinging: it meets the hit with what an opening swing of its own would carry.
@@ -213,10 +217,10 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
       const strength = world.require(target, FighterStats).strength;
       const guardMomentum = weapon ? planSwing(weapon, strength, restingBlade(), reverseOf(hit.attack)).momentum
         : hit.momentum;
-      world.require(attacker, Health).hitstun = stunFor(PARRY.playerStaggerTime, guardMomentum, hit);
+      world.require(attacker, Health).hitstun = stunFor(PARRY.playerStaggerTime * share, guardMomentum, hit);
       stopBlade(world, attacker);
       endSwing(world, attacker);
-      knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed);
+      knock(from.pos, at, from.vel, PARRY.playerKnockbackSpeed * share);
       events.push({ type: "parry", by: target, target: attacker });
       return "parried";
     }

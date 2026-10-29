@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, attackShape, followingBlade, isSwing, ITEMS, lineOf, liveStep, planSwing, PLAYER, restingBlade,
-  reverseOf, SCREEN_DIR, stoppedBlade, strokeOf, SWING, SWING_DIRS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS,
+  ATTACK_KINDS, attackShape, followingBlade, isSwing, ITEMS, lineOf, liveStep, PARRY, parryShare, planSwing, PLAYER,
+  restingBlade, reverseOf, SCREEN_DIR, stoppedBlade, strokeOf, SWING, SWING_DIRS, WEAPON_KINDS, weaponIn, weaponItemIn,
+  WEAPONS,
   type AttackKind, type SwingData, type SwingDir, type SwingPlan, type Weapon,
 } from "@infinite-tower/shared";
 
@@ -24,6 +25,22 @@ describe("the ten things a sword does", () => {
     assert.equal(reverseOf("tb"), "bt");
     assert.equal(reverseOf("tlbr"), "brtl");
     assert.equal(reverseOf("trbl"), "bltr");
+  });
+
+  test("a swing is parried in full by its reverse, by part by the reverse's 45° neighbours, not by the rest", () => {
+    const dot = (a: SwingDir, b: SwingDir) => SCREEN_DIR[a].x * SCREEN_DIR[b].x + SCREEN_DIR[a].y * SCREEN_DIR[b].y;
+    for (const dir of SWING_DIRS) {
+      for (const own of SWING_DIRS) {
+        const against = -dot(own, dir);
+        const want = against > 0.99 ? 1 : against > 0.7 ? PARRY.offAngleShare : 0;
+        assert.equal(parryShare(own, dir), want, `${own} against ${dir}`);
+      }
+      assert.equal(parryShare("stab", dir), 0);
+      assert.equal(parryShare(dir, "stab"), 0);
+    }
+    assert.equal(parryShare("rl", "lr"), 1);
+    assert.equal(parryShare("brtl", "lr"), PARRY.offAngleShare);
+    assert.equal(parryShare("stab", "stab"), 1);
   });
 });
 

@@ -41,7 +41,8 @@ What's built so far:
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
   Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing
-  just before one lands parries it (the Kobold is stunned and takes more damage); a stab can only be blocked or dodged.
+  just before one lands parries it (the Kobold is stunned and takes more damage; a swing 45° off the reverse parries
+  for half the stun), and a stab just before its stab lands parries that.
   On guard it parries your swings and blocks your stabs, so hit it while it recovers from a chain or is stunned. The
   Kobold Greatsword fights the same with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
