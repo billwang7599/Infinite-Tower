@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { bagCounts, emptyBag, PLAYER, starterEquipment } from "@infinite-tower/shared";
-import { fullVitals, giveIfMissing, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { bagCounts, emptyBag, PLAYER, SLOTS, starterEquipment, WORDS } from "@infinite-tower/shared";
+import {
+  fullVitals, newPlayer, PLAYER_STATS, STARTER_KIT, withStarterKit,
+} from "../../../src/core/content/player.js";
 
 describe("player content", () => {
   test("full vitals are max HP and the stats' stamina", () => {
@@ -24,12 +26,27 @@ describe("player content", () => {
     assert.deepEqual(b.bag, emptyBag());
   });
 
-  test("giveIfMissing packs each item the player doesn't carry yet, and keeps everything else", () => {
-    const start = newPlayer();
+  test("withStarterKit teaches every word and packs each kit item the player doesn't carry yet", () => {
+    const start = { ...newPlayer(), knownWords: ["nova" as const] };
     start.bag.items.push({ item: "boar-meat", count: 3, x: 5, y: 3, turned: false });
-    const given = giveIfMissing(start, ["longsword", "greatsword", "sword"]);
-    assert.deepEqual(bagCounts(given.bag), { "boar-meat": 3, longsword: 1, greatsword: 1 }, "the sword is in hand");
+    const given = withStarterKit(start);
+    assert.deepEqual(given.knownWords, [...WORDS]);
+    assert.deepEqual(bagCounts(given.bag), { "boar-meat": 3, longsword: 1, greatsword: 1 }, "sword and book in hand");
     assert.deepEqual(given.equipment, start.equipment);
-    assert.deepEqual(giveIfMissing(given, ["longsword", "greatsword"]), given, "a second time adds nothing");
+    assert.deepEqual(withStarterKit(given), given, "a second time adds nothing");
+  });
+
+  test("a new player gets every kit item, in hand or in the bag", () => {
+    const kitted = withStarterKit(newPlayer());
+    const carried = [...kitted.bag.items.map((s) => s.item), ...SLOTS.map((slot) => kitted.equipment[slot])];
+    for (const item of STARTER_KIT) assert.ok(carried.includes(item), `${item} is carried`);
+  });
+
+  test("kit items already carried stay where they are", () => {
+    const start = { ...newPlayer(), equipment: { ...starterEquipment(), rightHand: null } };
+    start.bag.items.push({ item: "sword", count: 1, x: 5, y: 1, turned: false });
+    const given = withStarterKit(start);
+    assert.deepEqual(given.equipment, start.equipment);
+    assert.deepEqual(given.bag.items.filter((s) => s.item === "sword"), [start.bag.items[0]]);
   });
 });

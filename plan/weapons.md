@@ -15,8 +15,8 @@ stats)."
   power 11) and the greatsword (1.9 m, 8, 0.45 m, power 16), and the Kobolds' own blades, which never drop: the Kobold
   blade (the sword's length, mass and balance, 14 power) and the Kobold greatsword (the greatsword's, 14 power). The
   longsword's and greatsword's power is the agent's pick so their damage per second matches the sword's at strength 10
-  (their balance is further out, so they swing slower than their mass alone would make them). The dev accounts get a
-  longsword and a greatsword in the bag from the seed.
+  (their balance is further out, so they swing slower than their mass alone would make them). Every player gets a
+  longsword and a greatsword in the bag (the starter kit), and dying never takes them.
 - The client picks a weapon's look by item (`WEAPON_LOOKS`) and its motion by kind (`MOTIONS`), both in
   `client/src/visuals/battle/weapons.ts`. The trail and the thrust are timed by each swing's own live time.
 

@@ -1,7 +1,8 @@
 # Inventory
 
 Status: **being built**. Built: the bag (a grid with weights), what carrying too much does, dying (or leaving a
-fight) emptying the bag, the bag screen (in fights too), and the equipment and the cloth (see `shared/src/items/` and
+fight) emptying the bag but for the starter kit, the bag screen (in fights too), and the equipment and the cloth
+(see `shared/src/items/` and
 `ui/hud/inventory/` in [ARCHITECTURE.md](../ARCHITECTURE.md)); what's left is below. The user's decisions are in
 [AGENTS.md](../AGENTS.md), and so are the agent's picks for what's built.
 

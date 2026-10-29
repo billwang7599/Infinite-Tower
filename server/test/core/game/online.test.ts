@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { MODIFIERS, CLOSE_CODES, ELEMENTS, FIXED_DT, FORMS } from "@infinite-tower/shared";
+import {
+  bagCounts, MODIFIERS, CLOSE_CODES, ELEMENTS, FIXED_DT, FORMS, starterEquipment, WORDS,
+} from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
-import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { fullVitals, newPlayer, PLAYER_STATS, withStarterKit } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
@@ -25,7 +27,7 @@ async function joinNew(online: OnlinePlayers) {
 }
 
 describe("joining", () => {
-  test("a new player gets welcome with a new player's save, and no level until they make a character", async () => {
+  test("a new player gets welcome with a new save and the starter kit, and no level before a character", async () => {
     const { online } = setup();
     const { link } = await joinNew(online);
     assert.deepEqual(link.sent.map((m) => m.t), ["welcome"]);
@@ -34,7 +36,7 @@ describe("joining", () => {
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
         skillbook: welcome.skillbook },
-      newPlayer(),
+      withStarterKit(newPlayer()),
     );
     assert.equal(welcome.dev, false);
   });
@@ -75,6 +77,24 @@ describe("joining", () => {
     assert.deepEqual(second.session.vitals, { hp: 40, stamina: 12 });
     assert.deepEqual(second.link.last("welcome").vitals, { hp: 40, stamina: 12 });
     assert.equal(second.link.open, true);
+  });
+
+  test("a save from before the starter kit gets every word and the weapons it lacks, the rest as it was", async () => {
+    const { online, store } = setup();
+    const swordInBag = { item: "sword", count: 1, x: 0, y: 0, turned: false } as const;
+    const meat = { item: "boar-meat", count: 2, x: 1, y: 0, turned: false } as const;
+    const equipment = { ...starterEquipment(), rightHand: null };
+    const bag = { ...newPlayer().bag, items: [swordInBag, meat] };
+    store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, knownWords: ["nova"], bag, equipment });
+    const { link, session } = await joinNew(online);
+    const welcome = link.last("welcome");
+    assert.deepEqual(welcome.knownWords, [...WORDS]);
+    assert.deepEqual(welcome.gear.equipment, equipment);
+    assert.deepEqual(welcome.gear.bag.items.slice(0, 2), [swordInBag, meat]);
+    assert.deepEqual(bagCounts(welcome.gear.bag), { sword: 1, "boar-meat": 2, longsword: 1, greatsword: 1 });
+    session.save();
+    assert.deepEqual(store.saves.at(-1)?.data.knownWords, [...WORDS]);
+    assert.deepEqual(store.saves.at(-1)?.data.bag, welcome.gear.bag);
   });
 
   test("the skill words a player knows come back from the store and are saved again", async () => {
@@ -176,7 +196,7 @@ describe("leaving", () => {
     assert.equal(store.saves.length, 1);
   });
 
-  test("mid-fight, it loses the fight: the bag is emptied and saved like that", async () => {
+  test("mid-fight, it loses the fight: the bag is emptied but for the starter kit, and saved like that", async () => {
     const { online, store } = setup({ withCharacter: true, dev: true });
     const meat = { item: "boar-meat", count: 3, x: 0, y: 0, turned: false } as const;
     const bag: PlayerSave["bag"] = { ...newPlayer().bag, items: [meat] };
@@ -185,7 +205,8 @@ describe("leaving", () => {
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     for (let i = 0; i < 30; i++) online.tick(FIXED_DT);
     online.leave(session);
-    assert.deepEqual(store.saved.get(ACCOUNT.id)?.bag.items, []);
+    assert.equal(bagCounts(store.saved.get(ACCOUNT.id)!.bag)["boar-meat"], undefined);
+    assert.equal(bagCounts(store.saved.get(ACCOUNT.id)!.bag).greatsword, 1);
   });
 
   test("a second tab taking over mid-fight is leaving it: the fight is lost", async () => {
