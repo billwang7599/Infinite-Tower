@@ -5,7 +5,7 @@ import { ItemPicture } from "./BagGrid.js";
 import { SCALE, SLOT_COLUMNS, SLOT_GAP_PX, SLOT_PX } from "./grid.js";
 
 const LAYOUT: { slot: Slot; label: string }[] = [
-  { slot: "rightHand", label: "Right hand" }, { slot: "head", label: "Head" }, { slot: "leftHand", label: "Left hand" },
+  { slot: "leftHand", label: "Left hand" }, { slot: "head", label: "Head" }, { slot: "rightHand", label: "Right hand" },
   { slot: "body", label: "Body" }, { slot: "legs", label: "Legs" }, { slot: "boots", label: "Boots" },
 ];
 
