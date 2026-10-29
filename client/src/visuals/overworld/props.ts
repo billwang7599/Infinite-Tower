@@ -2,7 +2,7 @@ import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 import type { PropKind } from "./scenery.js";
 
-/** Texels per tile, for every pixel-art picture in the 3D overworld. */
+/** Texels per tile, for every pixel-art picture in the overworld. */
 export const PX_PER_TILE = 16;
 
 type Draw = (pen: Pen, rand: () => number) => void;

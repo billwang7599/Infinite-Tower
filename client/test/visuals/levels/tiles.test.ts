@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { isSolid, tileAt, TILES, type LevelLayout } from "@infinite-tower/shared";
 import { GRASS_FIELD_TILES } from "../../../src/visuals/levels/grass-field/tiles.js";
 import { tileProps } from "../../../src/visuals/levels/tiles.js";
-import { isTall } from "../../../src/visuals/overworld3d/scenery.js";
+import { isTall } from "../../../src/visuals/overworld/scenery.js";
 
 const LEVEL: LevelLayout = {
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [],
@@ -13,7 +13,7 @@ const LEVEL: LevelLayout = {
 const cell = (x: number, z: number) => `${Math.floor(x + 2)},${Math.floor(1.5 - z)}`;
 
 describe("tileProps", () => {
-  const props = tileProps(LEVEL, GRASS_FIELD_TILES, "tree", 0);
+  const props = tileProps(LEVEL, GRASS_FIELD_TILES);
 
   test("each prop stands in a tile whose look has it", () => {
     for (const p of props) {
@@ -34,15 +34,8 @@ describe("tileProps", () => {
     assert.equal(tufts.length, 2 * GRASS_FIELD_TILES.tallGrass.props!.count);
   });
 
-  test("past the map's edge, a margin is filled with the outside kind", () => {
-    const withMargin = tileProps(LEVEL, GRASS_FIELD_TILES, "tree", 2);
-    assert.ok(withMargin.some((p) => p.x < -2 && (p.kind === "tree" || p.kind === "pine")));
-  });
-
-  test("the same map always gets the same props, wherever the margin ends", () => {
-    assert.deepEqual(tileProps(LEVEL, GRASS_FIELD_TILES, "tree", 0), props);
-    const inside = tileProps(LEVEL, GRASS_FIELD_TILES, "tree", 2).filter((p) => tileAt(LEVEL, p.x, p.z) !== null);
-    assert.deepEqual(inside, props);
+  test("the same map always gets the same props", () => {
+    assert.deepEqual(tileProps(LEVEL, GRASS_FIELD_TILES), props);
   });
 
   test("every tile kind has a look", () => {

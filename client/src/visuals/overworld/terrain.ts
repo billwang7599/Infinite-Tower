@@ -7,7 +7,7 @@ import { drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { paintGround, tileProps } from "../levels/tiles.js";
 import { spriteMaterial } from "../sprites.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
-import { cutoutMaterial, spriteLook, standingQuad, type Overworld3dScene } from "./scene.js";
+import { cutoutMaterial, spriteLook, standingQuad, type OverworldScene } from "./scene.js";
 import { isTall, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
@@ -15,13 +15,13 @@ const BLOCK_DEPTH = 8;
 const FRINGE_TILES = 0.4;
 const CAMPFIRE_TILES = 1.4;
 
-export interface Level3d {
+export interface LevelDrawing {
   root: TransformNode;
   flicker(dt: number): void;
 }
 
-export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3d {
-  const { scene, sunShadows } = view, root = new TransformNode(`level3d-${level.id}`, scene);
+export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawing {
+  const { scene, sunShadows } = view, root = new TransformNode(`level-${level.id}`, scene);
   const look = LEVEL_LOOKS[level.theme], scenery = look.scenery(level);
   const lit = (name: string, tex: DynamicTexture) => {
     const m = new StandardMaterial(name, scene);
@@ -29,12 +29,12 @@ export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3
     m.specularColor = Color3.Black();
     return m;
   };
-  const brick = lit("overworld3d-brick", tiled(pixelCanvas(scene, "brick", 32, 32, drawBricks, false)));
-  const grass = lit("overworld3d-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
+  const brick = lit("overworld-brick", tiled(pixelCanvas(scene, "brick", 32, 32, drawBricks, false)));
+  const grass = lit("overworld-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
   const { halfWidth, halfDepth } = mapHalfSize(level);
-  const field = lit("overworld3d-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
-    halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles, look.outside, 0), false));
-  const fringe = cutoutMaterial(scene, "overworld3d-fringe", tiled(pixelCanvas(scene, "fringe", 16, 8, drawFringe)));
+  const field = lit("overworld-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
+    halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles), false));
+  const fringe = cutoutMaterial(scene, "overworld-fringe", tiled(pixelCanvas(scene, "fringe", 16, 8, drawFringe)));
   fringe.disableLighting = false;
   fringe.emissiveColor = Color3.Black();
 
@@ -46,7 +46,7 @@ export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3
       m.freezeWorldMatrix();
     }
   });
-  placeProps(view, [...scenery.props, ...tileProps(level, look.tiles, look.outside, 0)], root);
+  placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], root);
   return { root, flicker: buildCampfires(view, level, root, sunShadows) };
 }
 
@@ -91,7 +91,7 @@ function scaleUVs(mesh: Mesh, u: number, v: number): void {
 }
 
 /** One template quad per kind, every prop an instance of it (one draw call a kind). */
-function placeProps({ scene, sunShadows }: Overworld3dScene, props: Prop[], root: TransformNode): void {
+function placeProps({ scene, sunShadows }: OverworldScene, props: Prop[], root: TransformNode): void {
   const templates = new Map<PropKind, Mesh>();
   props.forEach((p, i) => {
     let tpl = templates.get(p.kind);
@@ -154,21 +154,21 @@ function drawFringe(pen: Pen): void {
 }
 
 function buildCampfires(
-  { scene }: Overworld3dScene, level: LevelLayout, root: TransformNode, shadows: Overworld3dScene["sunShadows"],
+  { scene }: OverworldScene, level: LevelLayout, root: TransformNode, shadows: OverworldScene["sunShadows"],
 ): (dt: number) => void {
   if (level.campfires.length === 0) return () => {};
   const frames = ([0, 1] as const).map((f) => {
-    const m = spriteLook(spriteMaterial(scene, `campfire3d-${f}`, drawCampfire(f)));
+    const m = spriteLook(spriteMaterial(scene, `campfire-${f}`, drawCampfire(f)));
     m.emissiveColor = Color3.White();
     return m;
   });
   const fires = level.campfires.map((c, i) => {
-    const m = standingQuad(scene, `campfire3d-${i}`, CAMPFIRE_TILES, CAMPFIRE_TILES, 0.1);
+    const m = standingQuad(scene, `campfire-${i}`, CAMPFIRE_TILES, CAMPFIRE_TILES, 0.1);
     m.position.set(c.x, 0, c.z);
     m.material = frames[0]!;
     m.parent = root;
     shadows.addShadowCaster(m);
-    const light = new PointLight(`campfire3d-light-${i}`, m.position.add(new Vector3(0, 1.2, -0.3)), scene);
+    const light = new PointLight(`campfire-light-${i}`, m.position.add(new Vector3(0, 1.2, -0.3)), scene);
     light.diffuse = new Color3(1, 0.55, 0.22);
     light.specular = Color3.Black();
     light.range = 10;

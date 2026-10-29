@@ -1,10 +1,9 @@
-import { Engine, type AbstractEngine, type Scene, type StandardMaterial } from "@babylonjs/core";
+import { Engine } from "@babylonjs/core";
 import {
   Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity, type Look,
   type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
-import type { ChibiFacing } from "../gfx/look/look.js";
 import type { Mode } from "../game/transition.js";
 import type { BattleContext } from "../modes/battle/context.js";
 import type { StepEvent } from "../modes/battle/sync.js";
@@ -19,8 +18,6 @@ import { PlayerLook, type Held } from "./characters.js";
 import { byEnemy } from "./enemies/index.js";
 import { overworldStage, WALKERS } from "./overworld/overworld.js";
 import { createOverworldScene } from "./overworld/scene.js";
-import { overworld3dStage, WALKERS_3D } from "./overworld3d/overworld3d.js";
-import { createOverworld3dScene } from "./overworld3d/scene.js";
 import { redrawSprite } from "./sprites.js";
 
 /** `S` is the drawing's own state (meshes, smoothing), never game state. */
@@ -97,27 +94,6 @@ export class FiredEffects {
   }
 }
 
-export type OverworldLook = "2d" | "3d";
-
-export function overworldLookFrom(search: string): OverworldLook {
-  return new URLSearchParams(search).get("world") === "3d" ? "3d" : "2d";
-}
-
-interface OverworldView { scene: Scene; materials: { player: Record<ChibiFacing, StandardMaterial> } }
-
-interface OverworldDrawing<View extends OverworldView> {
-  create(engine: AbstractEngine, state: OverworldState): View;
-  walkers: Record<OverworldActorData["kind"], AnyVisual<View>>;
-  stage(view: View): (dt: number, fresh: boolean) => void;
-}
-
-const overworldDrawing = <View extends OverworldView>(d: OverworldDrawing<View>): OverworldDrawing<any> => d;
-
-const OVERWORLDS: Record<OverworldLook, OverworldDrawing<any>> = {
-  "2d": overworldDrawing({ create: createOverworldScene, walkers: WALKERS, stage: overworldStage }),
-  "3d": overworldDrawing({ create: createOverworld3dScene, walkers: WALKERS_3D, stage: overworld3dStage }),
-};
-
 type Drawn<K extends string> = Map<Entity, { kind: K; state: unknown }>;
 
 function drawEntities<K extends string, Scene>(
@@ -150,10 +126,9 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const engine = new Engine(canvas, true);
   window.addEventListener("resize", () => engine.resize());
   const arena = createBattleScene(engine, from.battle);
-  const overworldLook = OVERWORLDS[overworldLookFrom(location.search)];
-  const overworld: OverworldView = overworldLook.create(engine, from.overworld);
+  const overworld = createOverworldScene(engine, from.overworld);
   const stage = arenaStage(arena);
-  const level = overworldLook.stage(overworld);
+  const level = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
   const fighters: Drawn<VisualKind> = new Map();
@@ -212,7 +187,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const drawOverworld = (dt: number) => {
     const { world } = from.overworld, kinds = new Map<Entity, OverworldActorData["kind"]>();
     for (const [e, actor] of world.query(OverworldActor)) kinds.set(e, actor.kind);
-    drawEntities(overworldLook.walkers, overworld, world, walkers, kinds, dt);
+    drawEntities(WALKERS, overworld, world, walkers, kinds, dt);
     level(dt, fresh);
     fresh = false;
     overworld.scene.render();

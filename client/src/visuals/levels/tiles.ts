@@ -1,6 +1,6 @@
 import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind } from "@infinite-tower/shared";
-import { PX_PER_TILE, type Pen } from "../overworld3d/props.js";
-import type { Prop, PropKind } from "../overworld3d/scenery.js";
+import { PX_PER_TILE, type Pen } from "../overworld/props.js";
+import type { Prop, PropKind } from "../overworld/scenery.js";
 
 /** `same(dx, dy)`: the neighbour that way (+dy is south) looks the same. */
 export type GroundPaint = (
@@ -15,13 +15,13 @@ export interface TileLook {
 
 export type TileLooks = Record<TileKind, TileLook>;
 
-/** `col` and `row` count from the map's north-west corner; the margin round it is `outside`. */
-function eachTile(level: LevelLayout, outside: TileKind, margin: number, visit: (t: Tile) => void): void {
+/** `col` and `row` count from the map's north-west corner. */
+function eachTile(level: LevelLayout, visit: (t: Tile) => void): void {
   const { halfWidth, halfDepth } = mapHalfSize(level);
-  for (let row = -margin; row < halfDepth * 2 + margin; row++) {
-    for (let col = -margin; col < halfWidth * 2 + margin; col++) {
-      const x = col - halfWidth, z = halfDepth - row - 1;
-      visit({ col, row, x, z, kind: tileAt(level, x + 0.5, z + 0.5) ?? outside });
+  for (let row = 0; row < halfDepth * 2; row++) {
+    for (let col = 0; col < halfWidth * 2; col++) {
+      const x = col - halfWidth, z = halfDepth - row - 1, kind = tileAt(level, x + 0.5, z + 0.5);
+      if (kind) visit({ col, row, x, z, kind });
     }
   }
 }
@@ -30,24 +30,23 @@ interface Tile { col: number; row: number; x: number; z: number; kind: TileKind 
 
 const tileRandom = (t: Tile, salt: number) => seededRandom(salt + t.col * 7919 + t.row * 104729);
 
-/** Onto a canvas of (map + 2 × margin) × PX_PER_TILE pixels, north at the top. */
-export function paintGround(pen: Pen, level: LevelLayout, looks: TileLooks, outside: TileKind, margin: number): void {
+/** Onto a canvas of the map × PX_PER_TILE pixels, north at the top. */
+export function paintGround(pen: Pen, level: LevelLayout, looks: TileLooks): void {
   const kinds = new Map<string, TileKind>();
-  eachTile(level, outside, margin, (t) => kinds.set(`${t.col},${t.row}`, t.kind));
-  eachTile(level, outside, margin, (t) => {
+  eachTile(level, (t) => kinds.set(`${t.col},${t.row}`, t.kind));
+  eachTile(level, (t) => {
     const ground = looks[t.kind].ground;
     const same = (dx: number, dy: number) => {
       const next = kinds.get(`${t.col + dx},${t.row + dy}`);
       return next === undefined || looks[next].ground === ground;
     };
-    ground(pen, (t.col + margin) * PX_PER_TILE, (t.row + margin) * PX_PER_TILE, tileRandom(t, 1), same);
+    ground(pen, t.col * PX_PER_TILE, t.row * PX_PER_TILE, tileRandom(t, 1), same);
   });
 }
 
-/** The same tile always gets the same props, whatever the margin. */
-export function tileProps(level: LevelLayout, looks: TileLooks, outside: TileKind, margin: number): Prop[] {
+export function tileProps(level: LevelLayout, looks: TileLooks): Prop[] {
   const props: Prop[] = [];
-  eachTile(level, outside, margin, (t) => {
+  eachTile(level, (t) => {
     const spec = looks[t.kind].props;
     if (!spec) return;
     const rand = tileRandom(t, 2);

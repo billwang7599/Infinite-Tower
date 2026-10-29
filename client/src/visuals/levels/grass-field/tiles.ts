@@ -1,4 +1,4 @@
-import type { Pen } from "../../overworld3d/props.js";
+import type { Pen } from "../../overworld/props.js";
 import type { GroundPaint, TileLooks } from "../tiles.js";
 
 const T = 16;

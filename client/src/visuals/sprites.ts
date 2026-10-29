@@ -4,35 +4,18 @@ import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene
 export type Px = (x: number, y: number, w: number, h: number, color: string) => void;
 export type SpriteDraw = (px: Px) => void;
 
-export interface PixelMaterialOptions {
-  /** Cut out transparent pixels (alpha test, not blend): crisp edges, no sorting issues. Default true. */
-  cutout?: boolean;
-  /** Ignore lights completely (the 2D overworld has none). Default false: lit, but mostly self-colored. */
-  unlit?: boolean;
-}
-
-/** A material that shows a texture's own colors. */
-export function pixelMaterial(
-  scene: Scene, name: string, tex: DynamicTexture, opts: PixelMaterialOptions = {},
-): StandardMaterial {
-  const { cutout = true, unlit = false } = opts;
+/** One sprite frame, ready for a quad: transparent pixels cut out (alpha test, not blend), its own colours kept. */
+export function spriteMaterial(scene: Scene, name: string, draw: SpriteDraw): StandardMaterial {
+  const tex = spriteTexture(scene, name, draw);
   const m = new StandardMaterial(name, scene);
   m.diffuseTexture = tex;
   m.emissiveTexture = tex; // keeps the colors even in shade
-  m.disableLighting = unlit;
   m.specularColor = Color3.Black();
   m.backFaceCulling = false;
-  if (cutout) {
-    // Babylon 9 tests the final alpha, so the texture's alpha must be wired in too.
-    m.useAlphaFromDiffuseTexture = true;
-    m.transparencyMode = Material.MATERIAL_ALPHATEST;
-  }
+  // Babylon 9 tests the final alpha, so the texture's alpha must be wired in too.
+  m.useAlphaFromDiffuseTexture = true;
+  m.transparencyMode = Material.MATERIAL_ALPHATEST;
   return m;
-}
-
-/** One sprite frame, ready for a quad: draw it, then wrap it in a cut-out pixelMaterial. */
-export function spriteMaterial(scene: Scene, name: string, draw: SpriteDraw): StandardMaterial {
-  return pixelMaterial(scene, name, spriteTexture(scene, name, draw));
 }
 
 /** Draw a sprite material's frame again, in place (a new look for the player, say). */
