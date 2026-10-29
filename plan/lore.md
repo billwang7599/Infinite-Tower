@@ -22,12 +22,12 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
 ## Ring 1: the world (decided by the user)
 
 - **Natives** live in their own universe. They understand avatars as souls from another world, summoned into these
-  bodies. Logging off is being desummoned.
+  bodies. That other world is ours: the real one, where the players sit. Logging off is being desummoned.
 - They call players **avatars**: human in their eyes, but driven by someone from elsewhere.
 - **The natives are split:** factions believe different things about avatars.
 - **Monsters**, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
-  - The truth, found later: the world is starving for soul. It pulls in souls from other worlds as seeds and lets
+  - The truth, found later: the world is starving for soul. It pulls in souls from our world as seeds and lets
     them grow fat on monsters, for a purpose nobody knows yet.
   - A late reveal, or a rumour: some monsters are avatars whose tether snapped, gone wild.
 
