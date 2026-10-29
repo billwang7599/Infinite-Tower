@@ -98,4 +98,6 @@ export const CLOSE_CODES = {
   notLoggedIn: 4001,
   /** MAX_PLAYERS are already on. */
   full: 4002,
+  /** Loading the player's save failed (WebSocket's "internal error"). */
+  loadFailed: 1011,
 } as const;

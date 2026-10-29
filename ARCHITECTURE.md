@@ -391,8 +391,9 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
 the server is full (`MAX_PLAYERS` are on; a player already on it may still take over from another tab) (`CLOSE_CODES`
-in `shared/src/net/server-messages.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
-lost". Positions in `state` are rounded to 1 cm, and it only carries actors and players within
+in `shared/src/net/server-messages.ts`), 1011 loading the save failed (try again); 1008 and 1009 end in "connection
+lost". A welcome that doesn't come within `CONNECT_TIMEOUT_MS` (`client/src/net/net.ts`) counts as unreachable.
+Positions in `state` are rounded to 1 cm, and it only carries actors and players within
 `VIEW_RADIUS_TILES` of the server's copy of you (a circle, as the camera may look any way), so a hacked client can't
 see further.
 

@@ -28,7 +28,7 @@ export class OnlinePlayers {
     this.replace(account.id);
     return this.start(link, account).catch((err: unknown) => {
       console.error(`[store] loading ${account.username} failed`, err);
-      link.close(1011, "couldn't load your save");
+      link.close(CLOSE_CODES.loadFailed, "couldn't load your save");
       return null;
     });
   }

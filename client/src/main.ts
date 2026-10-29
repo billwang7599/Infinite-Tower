@@ -100,6 +100,7 @@ async function play(): Promise<void> {
     // Also catches a connection that dropped while the game was loading.
     joined.net.onLost((reason) => void backToTitle(reason));
   } catch (err) {
+    joined.net.close();
     fail(err);
   }
 }

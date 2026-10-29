@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { CLOSE_CODES, type ServerMsg, type ServerMsgOf } from "@infinite-tower/shared";
 import { SERVER_UNREACHABLE } from "../../src/net/api.js";
-import { Net, NotLoggedInError, SERVER_FULL } from "../../src/net/net.js";
+import { CONNECT_TIMEOUT_MS, LOAD_FAILED, Net, NotLoggedInError, SERVER_FULL } from "../../src/net/net.js";
 
 class FakeSocket {
   static readonly OPEN = 1;
@@ -76,6 +76,32 @@ describe("Net", () => {
     const refused = Net.connect("ws://test/ws");
     FakeSocket.last!.drop(CLOSE_CODES.full);
     await assert.rejects(refused, { message: SERVER_FULL });
+  });
+
+  test("connect fails with its own message when the server couldn't load the save", async (t) => {
+    t.mock.property(globalThis, "WebSocket", FakeSocket as unknown as typeof WebSocket);
+    const refused = Net.connect("ws://test/ws");
+    FakeSocket.last!.drop(CLOSE_CODES.loadFailed);
+    await assert.rejects(refused, { message: LOAD_FAILED });
+  });
+
+  test("connect gives up as unreachable and hangs up when no welcome comes in time", async (t) => {
+    t.mock.property(globalThis, "WebSocket", FakeSocket as unknown as typeof WebSocket);
+    t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const joining = Net.connect("ws://test/ws");
+    const ws = FakeSocket.last!;
+    t.mock.timers.tick(CONNECT_TIMEOUT_MS - 1);
+    assert.equal(ws.readyState, FakeSocket.OPEN);
+    t.mock.timers.tick(1);
+    await assert.rejects(joining, { message: SERVER_UNREACHABLE });
+    assert.equal(ws.readyState, 3);
+  });
+
+  test("a welcome in time keeps the socket open past the connect timeout", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const { ws } = await connect(t);
+    t.mock.timers.tick(CONNECT_TIMEOUT_MS);
+    assert.equal(ws.readyState, FakeSocket.OPEN);
   });
 
   test("a server's socket path is opened on the page's host, passing on the page's ?ping=", async (t) => {
