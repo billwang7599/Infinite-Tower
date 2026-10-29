@@ -562,8 +562,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, a stall's
   silence not taken for lateness, old news ignored), the title's sequence timing, the ping (its average, stale
   pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes,
-  known words only, why one doesn't fit, the search,
-  number picks, Backspace, words into a skill and back), the bag screen's mouse (bagMouse.ts: hover, select, drag
+  known words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a
+  word that doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
+  back), the bag screen's mouse (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose from
   behind and the front, the sword in the hand that holds it, the face only from the front; the chibi's legs standing
@@ -890,13 +891,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       chat/            Chat.tsx (the chat, bottom left in both modes: the log's last lines, or, open, all of it and
                        the field it's typed in; / opens it or focuses it again, Enter sends, Esc closes; unfocused,
                        the field is dimmed with "Press / to chat", the key read from the bindings)
-      skills/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
-                       a known word doesn't fit, `quickPick`, addWord / undoWord, skillText),
-                       SkillBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
-                       keys), ChantPopup.tsx (the fight's chant: open / close, cast, a page written, shown
-                       while the fight writes it; the fight breaks it off, through game.ts), SkillbookScreen.tsx
-                       (the book in hand, over the bag: its 4 pages, written at once), Hotbar.tsx (the pages on
-                       the battle HUD with their keys)
+      skills/          chant.ts (ChantState with the kind being picked from; the carousel's rules: what the next
+                       square takes, `choices` with why a known word doesn't fit, KINDS and kindOpen, `numbered` and
+                       pickNumber (a kind, then its word, or a search's match), addWord, `back`, skillText),
+                       SkillBuilder.tsx (the squares sliding left, the word search, a column per kind with its
+                       words, the number and Backspace keys), ChantPopup.tsx (the fight's chant: open / close, cast,
+                       a page written, shown while the fight writes it; the fight breaks it off, through game.ts),
+                       SkillbookScreen.tsx (the book in hand, over the bag: its 4 pages, written at once), Hotbar.tsx
+                       (the pages on the battle HUD with their keys)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
                        `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
                        lines), battleResult.ts (what a `battleResult` says: found, left behind, died / lost,

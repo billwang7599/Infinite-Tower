@@ -7,7 +7,7 @@ import { useAction } from "../components/useAction.js";
 import type { BattleHudState, SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
-import { addWord, NO_CHANT, skillText, undoWord, type ChantState } from "./chant.js";
+import { NO_CHANT, skillText, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
 interface ChantProps {
@@ -20,8 +20,8 @@ interface ChantProps {
 }
 
 export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps) {
-  const open = useStore(chant, (s) => s.open);
-  const words = useStore(chant, (s) => s.words);
+  const state = useStore(chant, (s) => s);
+  const { open, words } = state;
   const writingPage = useStore(hud, (s) => s.writingPage);
   const knownWords = useStore(skills, (s) => s.known);
   const book = useStore(skills, (s) => s.book);
@@ -40,7 +40,7 @@ export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps
   useAction(input, ["chant", "closeChant", "releaseChant"], (action, repeat) => {
     if (!open) {
       if (action !== "chant") return false;
-      if (!repeat && fighting) chant.set({ open: true });
+      if (!repeat && fighting) chant.set({ open: true, kind: null });
       return;
     }
     if (action === "releaseChant") releaseNow();
@@ -57,10 +57,7 @@ export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps
       }
     >
       <h2 className="mb-2 text-center font-title text-2xl tracking-[0.12em] text-victory">Chant</h2>
-      <SkillBuilder
-        words={words} known={known} input={input} busy={busy}
-        pick={(word) => chant.set(addWord(chant.get(), word, known))} undo={() => chant.set(undoWord(chant.get()))}
-      />
+      <SkillBuilder chant={state} known={known} input={input} busy={busy} change={(to) => chant.set(to)} />
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <button
           type="button" id="chant-release" {...NO_FOCUS} disabled={!skill || busy} onClick={releaseNow}
