@@ -409,7 +409,8 @@ step (15: 4 a second) it sends `battleHash`: the step, the hash of its fight the
 number rounded to 2 decimals, so last-bit differences between machines don't count until they grow), and how late the
 player's inputs come (`lateSteps`: `pace.ts` moves the client's clock ahead when they come late and back when they come
 early, less what the client caused itself). The client compares it with its own hash at that step (kept for 1 s; a hash
-for a step it hasn't run yet waits until it has), and on a mismatch sends `battleResync` once; the server answers with
+for a step it hasn't run yet waits until it has), and on a mismatch sends `battleResync` once (for a hash too far ahead
+of it, once it runs again: a stalled tab asks once, not on every hash); the server answers with
 `battleSync`, its whole fight (`FightSnapshot`, about 1.5 KB of exact JSON) at its own step, at most every 5 steps
 (`MIN_SYNC_GAP_STEPS`); the client loads it and replays its inputs since (or, behind it, jumps there). That's about 0.45
 KB/s down for one player against one boar; up, about 7 KB/s while the aim changes every step (the camera turning, or
