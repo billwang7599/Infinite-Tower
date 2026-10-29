@@ -60,6 +60,7 @@ export class FightSync {
   private sentUpTo = 0;
   /** The step the server's fight was asked for at, until it comes. */
   private askedAt: number | null = null;
+  private behind = false;
   private lastDodgeStep = -Infinity;
   /** The server's result has come: nothing more is sent or checked. */
   private decided = false;
@@ -81,6 +82,8 @@ export class FightSync {
 
   /** One step, with your input. Its events are the fight's `events` until the next. */
   advance(raw: PlayerInputData): void {
+    if (this.behind && !this.decided) this.ask();
+    this.behind = false;
     const input = quantizeInput(raw);
     const step = this.fight.steps + 1;
     this.history.push({ step, ...input });
@@ -117,8 +120,8 @@ export class FightSync {
       const mine = this.hashes.get(step);
       if (mine !== undefined) this.check(mine, hash);
     } else if (step - this.fight.steps > MAX_INPUT_DELAY_STEPS) {
-      // Far behind the server's fight: it has run those steps without your inputs. Take its fight instead.
-      this.ask();
+      // Far behind the server's fight: take its fight once this copy runs again (stalled, it couldn't use one yet).
+      this.behind = true;
     } else {
       this.ahead.set(step, hash);
     }
@@ -128,6 +131,7 @@ export class FightSync {
   onSync({ step, fight, lateSteps, heardStep }: ServerMsgOf<"battleSync">): void {
     if (this.decided) return;
     this.askedAt = null;
+    this.behind = false;
     const present = this.fight.steps;
     const hashBefore = this.fight.hash(), hpBefore = this.hp();
     this.fight.load(fight);

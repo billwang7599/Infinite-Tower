@@ -206,6 +206,31 @@ describe("the client's own copy of the fight", () => {
     assert.equal(inputsSent(net.sent).at(-1)?.upTo, 41);
   });
 
+  test("stalled (no frames: a slow first frame, a hidden tab), it asks for the server's fight once, as it runs again", () => {
+    const { fight, net, sync, step, server } = setup();
+    for (let i = 1; i <= 10; i++) step(IDLE_INPUT);
+    let answered = 0;
+    const answer = () => {
+      server.receive(net);
+      for (; answered < server.resyncs; answered++) sync.onSync(server.sync());
+    };
+    for (let to = 2 * HASH_EVERY_STEPS; to <= 8 * HASH_EVERY_STEPS; to += HASH_EVERY_STEPS) {
+      for (const hash of server.run(to)) sync.onHash(hash);
+      answer();
+    }
+    assert.equal(server.resyncs, 0, "nothing asked while it runs no steps");
+    for (let i = 0; i < 2 * HASH_EVERY_STEPS; i++) {
+      step(IDLE_INPUT);
+      answer();
+      for (const hash of server.run(server.fight.steps + 1)) sync.onHash(hash);
+    }
+    assert.equal(server.resyncs, 1, "asked once, as it ran again");
+    assert.equal(sync.stats.restores, 1);
+    assert.ok(fight.steps >= 8 * HASH_EVERY_STEPS, "where the server is");
+    assert.ok(sync.stats.checks > 0);
+    assert.equal(sync.stats.mismatches, 0);
+  });
+
   test("reports every step's events with their step, and a replayed step's again", () => {
     const { fight, net, sync, step, server } = setup();
     const run = fight.step.bind(fight);
