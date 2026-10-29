@@ -34,7 +34,7 @@ const MAX_TEST_STEPS = 60 * 60;
 /** A dev session already in a debug battle, hurt to HURT, carrying `bag`. */
 function inBattle(bag: Bag = emptyBag(), vitals = HURT) {
   const started = startSession({ dev: true, saved: { vitals: { ...vitals }, bag } });
-  started.session.debugEncounter();
+  started.session.cheat({ kind: "encounter", enemy: "wild-boar" });
   return started;
 }
 
@@ -104,13 +104,13 @@ describe("starting a battle", () => {
 
   test("a dev fight against an enemy is held in the arena of its spawn", () => {
     const { session, link } = startSession({ dev: true });
-    session.debugEncounter(ARENA_SPAWN.enemy);
+    session.cheat({ kind: "encounter", enemy: ARENA_SPAWN.enemy });
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
 
   test("sends encounter with the fight to build: the arena, the enemy, the player's vitals, stats and burden", () => {
     const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     const msg = link.last("encounter");
     assert.equal(msg.source, null);
     assert.equal(msg.seat, 0);
@@ -122,6 +122,7 @@ describe("starting a battle", () => {
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
       gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), seed: playerSeed,
+      invulnerable: false,
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
@@ -129,7 +130,7 @@ describe("starting a battle", () => {
   test("gives the fight the player's bag and what they have in hand (no sword there, no swinging)", () => {
     const bookOnly: Equipment = { ...starterEquipment(), rightHand: null };
     const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, equipment: bookOnly });
   });
 
@@ -141,7 +142,7 @@ describe("starting a battle", () => {
       items: Array.from({ length: count }, (_, x) => ({ item: "boar-tusk", count: 1, x, y: 0, turned: false })),
     };
     const { session, link } = startSession({ dev: true, saved: { bag: heavy } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.equal(link.last("encounter").setup.players[0]!.burden, "heavy");
   });
 
@@ -177,7 +178,7 @@ describe("the server runs the fight", () => {
     const written: Skill = { segments: [{ form: "nova", elements: ["fire"], modifiers: [] }] };
     const book = [written, null, null, null];
     const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     win(session);
     assert.deepEqual(link.last("battleResult").skillbook, book);
   });
@@ -232,7 +233,7 @@ describe("the server runs the fight", () => {
     const swapped: Equipment = { ...starterEquipment(), rightHand: null, leftHand: "sword" };
     const started = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: swapped } });
     const { session, link, saves } = started;
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.overworld.place({ x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     assert.equal(link.last("battleResult").won, false);
@@ -248,7 +249,7 @@ describe("the server runs the fight", () => {
       dev: true, saved: { vitals: { hp: 1, stamina: 40 }, skillbook: book, knownWords: ["nova", "fire"] },
     });
     const { session, link, saves } = started;
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.overworld.place({ x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
     assert.equal(link.last("battleResult").won, false);
@@ -293,7 +294,7 @@ describe("casting skills", () => {
 
   function casts(saved: Partial<PlayerSave>, chanted: boolean): boolean {
     const { session } = startSession({ dev: true, saved });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     play(session, () => IDLE_INPUT, 2);
     if (chanted) play(session, () => CHANT, 1);
     play(session, () => ({ ...IDLE_INPUT, chant: chanted, cast: NOVA }), 1);
@@ -321,7 +322,7 @@ describe("casting skills", () => {
   test("a chant's words reach the fight only if the player knows every one", () => {
     const words = (knownWords: Word[]) => {
       const { session } = startSession({ dev: true, saved: { knownWords } });
-      session.debugEncounter();
+      session.cheat({ kind: "encounter", enemy: "wild-boar" });
       play(session, () => IDLE_INPUT, 2);
       play(session, () => CHANT, 1);
       play(session, () => ({ ...CHANT, chantWords: ["nova", "fire"] }), 1);
@@ -339,13 +340,13 @@ describe("casting skills", () => {
   test("the encounter gives the fight the player's pages", () => {
     const book = [null, NOVA, null, null];
     const { session, link } = startSession({ dev: true, saved: { skillbook: book } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(link.last("encounter").setup.players[0]!.book, book);
   });
 
   function writing(knownWords: Word[]): GameSession {
     const { session } = startSession({ dev: true, saved: { knownWords } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     play(session, () => IDLE_INPUT, 2);
     play(session, () => CHANT, 1);
     play(session, () => ({ ...CHANT, write: { page: 2, skill: NOVA } }), 1);

@@ -238,6 +238,11 @@ Decided by the user:
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
   generous value), for the user to change.
+- Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
+  ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
+  opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the
+  game's tick. Invulnerability lasts the connection (not saved) and is part of the fight's state; give packs into
+  the bag by its rules (overworld only); heal refills HP and stamina, in a fight too.
 - Dev servers simulate a network ping on the game socket, half each way and in order, so the netcode can be felt
   locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
   Production never delays.
@@ -333,6 +338,9 @@ npm run db:seed    # dev accounts test1, test2, test3, password = username, know
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
 ```
 
+In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a fight
+with any enemy, items into the bag.
+
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
 comment, and is read in `server/src/env.ts` (the server) or with `loadEnv` in `client/vite.config.ts` (the dev
@@ -382,10 +390,10 @@ tests say what was agreed. Where tests go and how they're written:
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
-  `"goblin-warlock"` for the warlock) and, in a fight,
+  `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same) and, in a fight,
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
-  goes off only with the chant open: R). A new account has no character: make one first. Skip this when the user says
-  it isn't needed.
+  goes off only with the chant open: R). F1 opens the admin panel (`#admin-panel`; `#admin-invulnerable`,
+  `#admin-heal`). A new account has no character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

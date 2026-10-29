@@ -132,7 +132,7 @@ describe("leaving", () => {
     const bag: PlayerSave["bag"] = { ...newPlayer().bag, items: [meat] };
     store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, bag });
     const { session } = await joinNew(online);
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     for (let i = 0; i < 30; i++) online.tick(FIXED_DT);
     online.leave(session);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.bag.items, []);
@@ -141,7 +141,7 @@ describe("leaving", () => {
   test("a second tab taking over mid-fight is leaving it: the fight is lost", async () => {
     const { online, store } = setup({ withCharacter: true, dev: true });
     const first = await joinNew(online);
-    first.session.debugEncounter();
+    first.session.cheat({ kind: "encounter", enemy: "wild-boar" });
     online.tick(FIXED_DT);
     const second = await joinNew(online);
     assert.equal(first.link.closed?.code, CLOSE_CODES.replaced);
@@ -182,7 +182,7 @@ describe("ticking", () => {
   test("sends no state during a battle", async () => {
     const { online } = setup({ withCharacter: true, dev: true });
     const { link, session } = await joinNew(online);
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     for (let i = 0; i < 6; i++) online.tick(FIXED_DT);
     assert.equal(link.all("state").length, 0);
   });

@@ -21,6 +21,7 @@ interface LayerActions {
   title: MenuAction<"title">;
   creation: MenuAction<"creation">;
   settings: "menu";
+  admin: MenuAction<"admin"> | "adminPanel";
   bag: MenuAction<"bag"> | (typeof BAG_ACTIONS)[number];
   chant: MenuAction<"chant"> | (typeof CHANT_ACTIONS)[number];
   battleBag: MenuAction<"battleBag"> | (typeof BATTLE_BAG_ACTIONS)[number];
@@ -54,11 +55,11 @@ type Handler = (repeat: boolean) => boolean | void;
 
 // A key on actions in two groups (R: turn an item, or chant) means the first group's that the layer keeps.
 const GROUPS_OF: Partial<Record<Layer, readonly Group[]>> = {
-  settings: ["general"], bag: ["overworld"], overworld: ["overworld"], battle: ["battle"], chant: ["battle"],
+  settings: ["general"], admin: ["general"], bag: ["overworld"], overworld: ["overworld"], battle: ["battle"], chant: ["battle"],
   battleBag: ["overworld", "battle"],
 };
 const KEPT: Partial<Record<Layer, readonly ActionName[]>> = {
-  settings: ["menu"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS, battleBag: BATTLE_BAG_ACTIONS,
+  settings: ["menu"], admin: ["adminPanel"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS, battleBag: BATTLE_BAG_ACTIONS,
 };
 const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as Layer, new Map(
   Object.entries<readonly string[]>(actions).flatMap(([action, keys]) => keys.map((k) => [k, action as ActionName])),

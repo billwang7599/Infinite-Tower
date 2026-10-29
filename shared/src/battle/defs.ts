@@ -100,7 +100,8 @@ export interface EnemyAttacks {
   skill?: SkillAttackDef;
 }
 
-export type EnemyId = "wild-boar" | "kobold-swordsman" | "kobold-greatsword" | "goblin-warlock";
+export const ENEMY_IDS = ["wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock"] as const;
+export type EnemyId = (typeof ENEMY_IDS)[number];
 
 export interface EnemyDef {
   id: EnemyId;

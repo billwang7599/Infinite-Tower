@@ -46,6 +46,10 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
+  /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
+  | { t: "healed"; vitals: Vitals }
+  | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
+  | { t: "invulnerable"; on: boolean }
   | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot` is packed into the bag but
    * `leftBehind`. */

@@ -14,7 +14,7 @@ function playerDoing(action: PlayerAction, t: number): PlayerData {
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
     writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null, book: [],
     burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
-    action, actionTime: t, actionDir: { x: 0, z: 1 },
+    action, actionTime: t, actionDir: { x: 0, z: 1 }, invulnerable: false,
   };
 }
 const ATTACKING = playerDoing("attack", 0);

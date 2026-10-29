@@ -23,7 +23,7 @@ function fakeSession() {
     useItem: record("useItem"),
     moveItem: record("moveItem"),
     closeBag: record("closeBag"),
-    debugEncounter: record("debugEncounter"),
+    cheat: record("cheat"),
   };
   return { calls, session: session as unknown as GameSession };
 }
@@ -83,16 +83,15 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "closeBag" }), [["closeBag"]]);
   });
 
-  test("debug encounter asks for a debug battle, against the enemy named if there is one", () => {
-    assert.deepEqual(handle({ t: "debug", cmd: "encounter" }), [["debugEncounter", undefined]]);
-    assert.deepEqual(handle({ t: "debug", cmd: "encounter", enemy: "kobold-swordsman" }),
-      [["debugEncounter", "kobold-swordsman"]]);
+  test("cheat passes the cheat on (the session ignores it unless on a dev server)", () => {
+    const cheat = { kind: "give", item: "boar-meat", count: 2 } as const;
+    assert.deepEqual(handle({ t: "cheat", cheat }), [["cheat", cheat]]);
   });
 
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "saveSkill", "debug",
+      "closeBag", "saveSkill", "cheat",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

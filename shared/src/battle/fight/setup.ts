@@ -26,6 +26,7 @@ export const ENEMY_START_YAW = Math.PI;
 
 export interface PlayerSetup {
   at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Skillbook; seed?: number;
+  invulnerable?: boolean;
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -53,6 +54,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     castQueued: null, writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
+    invulnerable: setup.invulnerable ?? false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
   world.add(e, Wielder, wielder(handsOf(setup.gear.equipment), PLAYER.armReachM));

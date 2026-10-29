@@ -47,6 +47,7 @@ export interface PlayerData {
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
+  invulnerable: boolean;
 }
 export const Player = defineComponent<PlayerData>("Player");
 

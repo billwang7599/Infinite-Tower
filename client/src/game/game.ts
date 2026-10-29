@@ -4,7 +4,8 @@
  * into battle, leaving a decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, moveGear, type Character, type GridSpot, type ServerMsgOf, type Skill, type Spot,
+  bagCounts, moveGear, type Character, type Cheat, type DayChange, type EnemyId, type GridSpot, type ServerMsgOf,
+  type Skill, type Spot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -15,6 +16,7 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
 import { whoHasTheKeys, type UiState } from "../ui/state.js";
+import { setDayClock } from "../visuals/sky/sky.js";
 import type { Drawing } from "../visuals/visuals.js";
 import { exposeDebugHandles } from "./debug.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -37,6 +39,8 @@ export interface Game {
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
   saveCharacter(character: Character): void;
+  cheat(cheat: Cheat): void;
+  setDayClock(change: DayChange): void;
 }
 
 interface GameParts {
@@ -65,6 +69,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
    */
   const updateInput = () => actions.setLayers(whoHasTheKeys(ui, mode));
   ui.settingsScreen.subscribe(updateInput);
+  ui.admin.subscribe(updateInput);
   ui.creation.subscribe(updateInput);
   ui.overworldPanel.subscribe(updateInput);
   ui.chant.subscribe(updateInput);
@@ -155,8 +160,12 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     drawing.frame(dt);
   };
 
+  const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
+
   return {
     mode: () => mode,
+    cheat,
+    setDayClock,
     leaveBattle() {
       if (mode !== "battle" || transition || !result) return;
       transition = startTransition("overworld");
@@ -213,6 +222,15 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
           overworld.setGear(msg.gear);
           say(ui.notifications, { kind: "itemUsed", item: msg.item });
         },
+        healed(msg) {
+          overworld.setVitals(msg.vitals);
+          say(ui.notifications, { kind: "healed" });
+        },
+        given(msg) {
+          overworld.setGear(msg.gear);
+          say(ui.notifications, { kind: "given", item: msg.item, count: msg.count, left: msg.left });
+        },
+        invulnerable: (msg) => ui.admin.set({ invulnerable: msg.on }),
         gear: (msg) => overworld.setGear(msg.gear),
         skillbook: (msg) => ui.skills.set({ book: msg.skillbook }),
         battleHash: (msg) => battle.onHash(msg),
@@ -228,7 +246,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
         battle, overworld, ui, settings, mode: () => mode,
-        encounter: (enemy?: string) => net?.send({ t: "debug", cmd: "encounter", enemy }),
+        encounter: (enemy: EnemyId = "wild-boar") => cheat({ kind: "encounter", enemy }),
       });
     },
     leave() {
@@ -245,6 +263,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       transition = encounter = result = null;
       overworld.leave();
       ui.settingsScreen.set({ open: false });
+      ui.admin.set({ open: false, invulnerable: false });
       ui.creation.set({ open: false });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });

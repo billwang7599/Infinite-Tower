@@ -120,6 +120,10 @@ if it's left out; any whole number of ms, 0 for none), so the netcode can be fel
 `?ping=N` to the page's address (http://localhost:5173/?ping=200; the HUD's ping then reads about 200); no restart
 needed. Production never delays.
 
+**The admin panel (dev only).** F1 in the game opens a panel of cheats: the time of day and how fast it runs,
+invulnerability, a heal, a fight with any enemy, and any item into the bag. Production has no panel and its server
+ignores cheats.
+
 **Troubleshooting.**
 
 - `EADDRINUSE` on :8787: an older `npm run dev` is still running.

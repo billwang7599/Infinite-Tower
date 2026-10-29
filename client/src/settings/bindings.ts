@@ -24,6 +24,7 @@ export const ACTIONS = {
     right: { label: "Move right", keys: ["KeyD"] },
     character: { label: "Character panel", keys: ["KeyC"] },
     inventory: { label: "Inventory", keys: ["KeyB"] },
+    adminPanel: { label: "Admin panel (dev servers only)", keys: ["F1"] },
   },
   /** Turn acts on what's dragged, or else on the selected item; use on the selected item. */
   overworld: {
@@ -71,6 +72,7 @@ export const MENUS = {
     menuLeft: ["ArrowLeft", "KeyA"],
     menuRight: ["ArrowRight", "KeyD"],
   },
+  admin: { closeAdmin: ["Escape"] },
   bag: { closeBag: ["Escape"] },
   battleBag: { closeBag: ["Escape"] },
   chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },

@@ -17,7 +17,7 @@ interface DebugHandles {
   ui: UiState;
   settings: Settings;
   mode: () => Mode | null;
-  encounter: (enemy?: string) => void;
+  encounter: (enemy?: shared.EnemyId) => void;
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {

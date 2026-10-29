@@ -3,6 +3,7 @@ import { OverworldHud } from "./hud/OverworldHud.js";
 import { panelWidthPx } from "./hud/layout.js";
 import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
+import { AdminPanel } from "./screens/admin/AdminPanel.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
 import { SettingsScreen } from "./screens/settings/SettingsScreen.js";
 import { TitleScreen } from "./screens/title/TitleScreen.js";
@@ -65,6 +66,11 @@ export function App({ ui, settings, input, actions }: AppProps) {
       />
       <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />
       <Fade screen={ui.screen} />
+      {playing && import.meta.env.DEV && (
+        <AdminPanel
+          admin={ui.admin} mode={mode} input={input} cheat={actions.cheat} setDayClock={actions.setDayClock}
+        />
+      )}
       {playing && (
         <SettingsScreen
           screen={ui.settingsScreen} open={ui.openSettings} close={ui.closeSettings}

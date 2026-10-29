@@ -78,7 +78,7 @@ interface GroupProps {
 }
 
 function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps) {
-  const actions = actionsOf(group);
+  const actions = actionsOf(group).filter((a) => import.meta.env.DEV || a.action !== "adminPanel");
   const hasMouse = actions.some((a) => actionDef(a).mouse);
   return (
     <section className="mt-4">

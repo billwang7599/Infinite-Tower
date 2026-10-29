@@ -4,7 +4,7 @@ import {
   ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SKILLBOOK_PAGES,
   type StepInput,
 } from "@infinite-tower/shared";
-import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
+import { MAX_GIVE_COUNT, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
 const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = "boy") =>
@@ -42,8 +42,10 @@ describe("parseClientMsg", () => {
       { t: "moveItem", from: { in: "slot", slot: "rightHand" }, to: { in: "slot", slot: "leftHand" }, turned: false },
       { t: "closeBag" },
       { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
-      { t: "debug", cmd: "encounter" },
-      { t: "debug", cmd: "encounter", enemy: "kobold-swordsman" },
+      { t: "cheat", cheat: { kind: "encounter", enemy: "kobold-swordsman" } },
+      { t: "cheat", cheat: { kind: "invulnerable", on: true } },
+      { t: "cheat", cheat: { kind: "give", item: "boar-meat", count: 5 } },
+      { t: "cheat", cheat: { kind: "heal" } },
       { t: "ping", id: 0 },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));
@@ -251,7 +253,16 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput({ ...STEP, chant: "yes" }), null);
   });
 
-  test("debug: only known commands", () => {
-    assert.equal(parse({ t: "debug", cmd: "godmode" }), null);
+  test("cheat: only known cheats, enemies and items, and a sane count", () => {
+    const cheat = (c: unknown) => parse({ t: "cheat", cheat: c });
+    assert.equal(cheat({ kind: "godmode" }), null);
+    assert.equal(cheat({ kind: "encounter", enemy: "dragon" }), null);
+    assert.equal(cheat({ kind: "encounter" }), null);
+    assert.equal(cheat({ kind: "invulnerable", on: "yes" }), null);
+    assert.equal(cheat({ kind: "give", item: "gold", count: 1 }), null);
+    assert.equal(cheat({ kind: "give", item: "boar-meat", count: 0 }), null);
+    assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1.5 }), null);
+    assert.equal(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT + 1 }), null);
+    assert.notEqual(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT }), null);
   });
 });

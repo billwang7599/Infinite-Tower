@@ -12,6 +12,8 @@ export type GameEvent =
   | { kind: "rested" }
   | { kind: "itemUsed"; item: ItemId }
   | { kind: "leftOnCloth"; items: ItemCounts }
+  | { kind: "given"; item: ItemId; count: number; left: number }
+  | { kind: "healed" }
   | { kind: "battleResult"; outcome: BattleOutcome };
 
 type EventKind = GameEvent["kind"];
@@ -30,6 +32,8 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
+  given:        { where: "corner", lines: givenLines },
+  healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
 };
 
@@ -50,4 +54,10 @@ function encounterLine({ source, enemy }: EventOf<"encounter">): string {
 function itemUsedLine(item: ItemId): string {
   const def = itemDef(item);
   return `${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`;
+}
+
+function givenLines({ item, count, left }: EventOf<"given">): string[] {
+  const lines = count > 0 ? [`You get ${describeItems({ [item]: count })}.`] : [];
+  if (left > 0) lines.push(`The bag is full: ${describeItems({ [item]: left })} didn't fit.`);
+  return lines;
 }
