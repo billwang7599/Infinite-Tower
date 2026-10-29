@@ -3,6 +3,8 @@ import { SERVER_UNREACHABLE } from "./api.js";
 import { startPinging } from "./ping.js";
 
 export const SERVER_FULL = "That server is full. Try again later, or pick another one.";
+export const LOAD_FAILED = "The server couldn't load your character. Try again in a moment.";
+export const CONNECT_TIMEOUT_MS = 10_000;
 
 type GameMsgType = Exclude<ServerMsg["t"], "welcome" | "pong">;
 type Listener = (msg: ServerMsg) => void;
@@ -34,17 +36,26 @@ export class Net {
       const ws = new WebSocket(socketUrl(socket));
       const net = new Net(ws);
       let welcomed = false;
+      const giveUp = setTimeout(() => {
+        net.close();
+        reject(new Error(SERVER_UNREACHABLE));
+      }, CONNECT_TIMEOUT_MS);
       ws.onmessage = (ev) => {
         const msg = JSON.parse(String(ev.data)) as ServerMsg;
         if (msg.t !== "welcome") net.receive(msg);
-        else if (!welcomed) { welcomed = true; resolve({ net, welcome: msg }); }
+        else if (!welcomed) {
+          welcomed = true;
+          clearTimeout(giveUp);
+          resolve({ net, welcome: msg });
+        }
       };
       ws.onclose = (ev) => {
         if (welcomed) net.lose(closeReason(ev.code));
         else {
+          clearTimeout(giveUp);
           net.pinging.stop();
           if (ev.code === CLOSE_CODES.notLoggedIn) reject(new NotLoggedInError());
-          else reject(new Error(ev.code === CLOSE_CODES.full ? SERVER_FULL : SERVER_UNREACHABLE));
+          else reject(new Error(refusedReason(ev.code)));
         }
       };
     });
@@ -124,6 +135,12 @@ function socketUrl(socket: string): string {
   const ping = new URLSearchParams(location.search).get("ping");
   if (ping !== null) url.searchParams.set("ping", ping);
   return url.href;
+}
+
+function refusedReason(closeCode: number): string {
+  if (closeCode === CLOSE_CODES.full) return SERVER_FULL;
+  if (closeCode === CLOSE_CODES.loadFailed) return LOAD_FAILED;
+  return SERVER_UNREACHABLE;
 }
 
 function closeReason(closeCode: number): string {
