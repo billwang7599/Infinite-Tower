@@ -23,7 +23,7 @@ Status: **direction** (the user's). Details are undecided unless listed under "D
 
 These were asked early on and never answered:
 
-- What dying costs (a currency, items, progress?).
+- What dying costs beyond the bag and the core's fill ([core.md](core.md)).
 - Party size for co-op, and whether there's PvP.
 - Art direction beyond the current pixel sprites and simple 3D models.
 - How floors work: how many, how big, what's on each, how you go up (a boss per floor?).
