@@ -220,7 +220,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       overworld.join(joined);
       applyCharacter(joined.welcome.character);
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
-      ui.chat.set({ open: false, lines: joined.welcome.chat });
+      ui.chat.set({ open: false, focused: false, lines: joined.welcome.chat });
       net.on("chat", ({ line }) => ui.hearChat([line]));
       net.on("chatRefused", ({ reason }) => say(ui.notifications, { kind: "chatRefused", reason }));
       net.on("challengeNews", ({ news }) => {
@@ -286,7 +286,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       ui.admin.set({ open: false, invulnerable: false });
       ui.creation.set({ open: false });
       ui.challenge.set({ from: null });
-      ui.chat.set({ open: false, lines: [] });
+      ui.chat.set({ open: false, focused: false, lines: [] });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);
