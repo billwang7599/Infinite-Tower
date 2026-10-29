@@ -26,10 +26,13 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (worl
     }
 
     const enemy = world.first(Enemy, Health);
-    patch.enemyAlive = enemy !== undefined && enemy[2].hp > 0;
-    if (enemy) {
-      patch.enemyName = enemy[1].def.name;
-      patch.enemyHpFraction = fraction(enemy[2].hp, enemy[2].max);
+    const foe = ctx.opponent ? ctx.fight?.players.find((e) => !world.has(e, LocalPlayer)) : enemy?.[0];
+    const foeHealth = foe === undefined ? undefined : world.require(foe, Health);
+    patch.duel = ctx.opponent !== null;
+    patch.enemyAlive = foeHealth !== undefined && foeHealth.hp > 0;
+    if (foeHealth) {
+      patch.enemyName = ctx.opponent?.name ?? enemy?.[1].def.name ?? "";
+      patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
     }
     patch.cue = enemy?.[1].state === "parried" && patch.enemyAlive ? "parried"
       : me?.[4].action === "stagger" ? "staggered" : "none";

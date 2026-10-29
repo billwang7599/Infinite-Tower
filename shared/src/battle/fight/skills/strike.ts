@@ -16,10 +16,10 @@ export const skillPower = (world: World, caster: Entity): number =>
 
 // Nearest first; `range` reaches to their surface.
 export function foesNear(world: World, caster: Entity, at: Vec3, range: number, except?: Entity): Entity[] {
-  const team = world.require(caster, Fighter).team;
+  const side = world.require(caster, Fighter).side;
   const found: { e: Entity; dist: number }[] = [];
   for (const [e, fighter, health, body] of world.query(Fighter, Health, Body)) {
-    if (fighter.team === team || health.hp <= 0 || e === except) continue;
+    if (fighter.side === side || health.hp <= 0 || e === except) continue;
     const dist = distXZ(at, body.pos) - fighter.radius;
     if (dist <= range) found.push({ e, dist });
   }

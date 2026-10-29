@@ -16,7 +16,8 @@ import type { GameSession } from "./session.js";
 export interface Battle {
   /** The actor that started it, or null for tall grass. */
   source: Entity | null;
-  enemyId: EnemyId;
+  /** null in a duel. */
+  enemyId: EnemyId | null;
   room: BattleRoom;
   /** Which of the room's players this one is. */
   seat: number;
@@ -24,7 +25,7 @@ export interface Battle {
   over: boolean;
 }
 
-const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
+export const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
 /** Held in the arena of the spawn it came from; tall grass has no spawn, so the level's. */
 export function startBattle(
@@ -76,7 +77,7 @@ function settleBattle(
   session.gear = { ...session.gear, ...gear };
   const won = result === "won";
   const { overworld } = session;
-  const loot = won ? rollDrops(battle.enemyId, overworld.rng) : {};
+  const loot = won && battle.enemyId ? rollDrops(battle.enemyId, overworld.rng) : {};
   const packed = packLoot(session.bag, loot);
   let lost: ItemCounts = {};
 

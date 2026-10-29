@@ -33,6 +33,9 @@ export const ACTIONS = {
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
     turnCameraLeft: { label: "Turn camera left", keys: ["ArrowLeft"] },
     turnCameraRight: { label: "Turn camera right", keys: ["ArrowRight"] },
+    challenge: { label: "Challenge the nearest player to a duel", keys: ["KeyT"] },
+    acceptChallenge: { label: "Accept a duel challenge", keys: ["KeyY"] },
+    declineChallenge: { label: "Decline a duel challenge", keys: ["KeyN"] },
   },
   battle: {
     stab: { label: "Stab", keys: [], mouse: [0] },

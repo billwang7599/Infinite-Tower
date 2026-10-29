@@ -31,6 +31,11 @@ export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
 export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "stab";
 export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
 export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
+const MIRROR: Record<AttackKind, AttackKind> = {
+  lr: "rl", rl: "lr", tb: "tb", bt: "bt", tlbr: "trbl", trbl: "tlbr", brtl: "bltr", bltr: "brtl", stab: "stab",
+};
+/** A swing as someone facing the swinger sees it: its left and right swapped. */
+export const mirrorOf = <A extends AttackKind>(attack: A): A => MIRROR[attack] as A;
 
 export const WEAPON_KINDS = ["sword"] as const;
 export type WeaponKind = (typeof WEAPON_KINDS)[number];

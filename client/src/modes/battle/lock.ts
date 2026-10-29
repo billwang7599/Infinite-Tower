@@ -1,4 +1,4 @@
-import { Body, distXZ, Health, wrapAngle, type Entity, type Vec3 } from "@infinite-tower/shared";
+import { Body, distXZ, Health, LocalPlayer, wrapAngle, type Entity, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { Polled } from "../../core/actions.js";
 
@@ -12,8 +12,9 @@ const RETARGET: Partial<Record<Polled["pressed"][number], Way>> = {
 /** Enemies this close on screen (radians) are a tie, which goes to the one closer to the player. */
 const RETARGET_TIE_RAD = 0.02;
 
-export const livingFoes = ({ enemies, world }: Fight): Foe[] =>
-  enemies.flatMap((e) => world.require(e, Health).hp > 0 ? [{ e, pos: world.require(e, Body).pos }] : []);
+export const livingFoes = ({ targets, world }: Fight): Foe[] =>
+  targets.flatMap((e) =>
+    world.require(e, Health).hp > 0 && !world.has(e, LocalPlayer) ? [{ e, pos: world.require(e, Body).pos }] : []);
 
 export function closestFoe(foes: readonly Foe[], from: Vec3): Entity | null {
   let best: Foe | null = null;

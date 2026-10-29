@@ -8,11 +8,13 @@ import { newPlayer } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
+import { Duels } from "./duels.js";
 import { GameSession } from "./session.js";
 
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
   private readonly overworlds = new Map<string, Overworld>();
+  private readonly duels = new Duels(() => this.byAccount.values());
 
   constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {}
 
@@ -46,6 +48,7 @@ export class OnlinePlayers {
   tick(dt: number): void {
     for (const overworld of this.overworlds.values()) if (!overworld.empty) overworld.step(dt);
     for (const session of this.byAccount.values()) session.tick();
+    this.duels.tick();
   }
 
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
@@ -57,7 +60,7 @@ export class OnlinePlayers {
     const session = new GameSession(account, link, this.dev, saved, (data) => {
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
-    }, (levelId) => this.overworldOf(levelId));
+    }, (levelId) => this.overworldOf(levelId), this.duels);
     session.start();
     // Only once it has started: a session that failed to start is never ticked or saved.
     this.byAccount.set(id, session);

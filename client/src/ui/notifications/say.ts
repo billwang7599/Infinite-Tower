@@ -2,13 +2,17 @@
  * Everything the game tells the player goes through `say`: game code says what happened, and EVENT_MESSAGES where it
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
-import { itemDef, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
+import {
+  itemDef, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf,
+} from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
 
 export type GameEvent =
   /** A fight starting. `source` is the actor that touched you, or null for tall grass. */
   | { kind: "encounter"; source: ServerMsgOf<"encounter">["source"]; enemy: Pick<EnemyDef, "name"> }
+  | { kind: "duel"; with: string }
+  | { kind: "challenge"; news: ChallengeNews }
   | { kind: "rested" }
   | { kind: "itemUsed"; item: ItemId }
   | { kind: "leftOnCloth"; items: ItemCounts }
@@ -29,6 +33,8 @@ interface EventMessage<E extends GameEvent> {
 /** One entry per event: a new kind of event without one doesn't compile. */
 export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K>> } = {
   encounter:    { where: "centre", lines: (event) => [encounterLine(event)] },
+  duel:         { where: "centre", lines: (event) => [`A duel with ${event.with}!`] },
+  challenge:    { where: "corner", lines: ({ news }) => challengeLines(news) },
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
@@ -49,6 +55,18 @@ export function say(to: Notifications, event: GameEvent): void {
 
 function encounterLine({ source, enemy }: EventOf<"encounter">): string {
   return source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`;
+}
+
+function challengeLines(news: ChallengeNews): string[] {
+  switch (news.kind) {
+    case "sent": return [`You challenge ${news.to} to a duel.`];
+    case "received": return [];
+    case "declined": return [`${news.by} declines your challenge.`];
+    case "expired": return [`The challenge with ${news.with} has expired.`];
+    case "cancelled": return [`The challenge with ${news.with} is called off.`];
+    case "nobodyNear": return ["Nobody is close enough to challenge."];
+    case "busy": return [news.who ? `${news.who} is already in a challenge.` : "You already have a challenge open."];
+  }
 }
 
 function itemUsedLine(item: ItemId): string {

@@ -344,6 +344,20 @@ them; treat them as changeable, and still ask before deciding new ones):
   starts only once they're back.
   Enemies go for the nearest player they may. Tall grass rolls per player. Other players are sent within the same
   `VIEW_RADIUS_TILES` as actors.
+- Duels (the user: "request pvp with another player to send them both into an isolated arena"; the rest are the
+  agent's picks from plan/multiplayer.md): T challenges the nearest player within 2 tiles who isn't fighting
+  (`CHALLENGE_RANGE_TILES`); they get a notice with Accept / Decline (Y / N, rebindable, in the overworld's keys), and
+  the challenger hears of a decline. A challenge expires after 15 s (`CHALLENGE_TIME`), and is called off if either
+  leaves or starts another fight. One open challenge per player, either side: challenging while yours is open, or
+  someone in one, is refused with a notice. Range is checked when challenging, not when accepting. Accepted, both go
+  into one fight in the level's duel arena (the Grass Field's stone ruins), 12 m apart facing each other
+  (`DUEL_STARTS`), each locked on the other. Everything works both ways: swings, stabs, blocks, skills, and parries by
+  the same `PARRY` rules, a swing named as its swinger sees it (so a duelist's "lr" meets the other's "lr" head-on); a
+  parried player is staggered as the guarding Kobold staggers you, with no extra damage taken. Weapon hits only hurt,
+  as the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
+  both, at the time limit), no death, nothing lost or gained, no wins, and both come back where they stood with the
+  HP and stamina they went in with; pages written and gear moved in it are kept. Leaving or disconnecting forfeits:
+  the other wins, the leaver loses nothing. The arena banner says VICTORY / DEFEATED.
 
 ## Commands
 

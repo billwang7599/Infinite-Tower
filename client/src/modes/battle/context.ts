@@ -1,4 +1,4 @@
-import type { Entity, GearMove, PageWrite, Skill, Vec3 } from "@infinite-tower/shared";
+import type { Character, Entity, GearMove, PageWrite, Skill, Vec3 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -20,6 +20,7 @@ export interface BattleContext {
   /** The camera's orbit. Unlocked, its yaw is also the aim, and movement is camera-relative. */
   view: ArenaView;
   lock: Entity | null;
+  opponent: { name: string; character: Character } | null;
   /** Your own copy, from the encounter until the player leaves the arena. */
   fight: Fight | null;
   /** Keeps `fight` in line with the server's. */

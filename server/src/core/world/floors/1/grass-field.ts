@@ -48,6 +48,7 @@ export const GRASS_FIELD: LevelDef = {
   },
   spawn: { x: -12, z: -5 },
   arenaId: GRASS_FIELD_ARENA.id,
+  duelArenaId: KOBOLD_RUINS_ARENA.id,
   spawns: [
     { enemy: "wild-boar", at: { x: 8, z: -6 }, respawnTime: 8 },
     // The Kobold Swordsman's own corner, away from the boar and the start.

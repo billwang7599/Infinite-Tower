@@ -13,6 +13,7 @@ import { START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { startBattle, type Battle } from "./battle.js";
 import { runCheat } from "./cheats.js";
+import type { Duels } from "./duels.js";
 import { stateMsg } from "./snapshot.js";
 
 /** 20 a second. */
@@ -48,6 +49,7 @@ export class GameSession {
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
     private readonly overworldOf: (levelId: string) => Overworld,
+    private readonly duels: Duels | null = null,
   ) {
     this.vitals = saved.vitals;
     this.wins = saved.wins;
@@ -123,6 +125,14 @@ export class GameSession {
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
     this.save();
+  }
+
+  challenge(): void {
+    this.duels?.challenge(this);
+  }
+
+  answerChallenge(accept: boolean): void {
+    this.duels?.answer(this, accept);
   }
 
   cheat(cheat: Cheat): void {
@@ -219,7 +229,7 @@ export class GameSession {
   /** One fixed step of the battle, if there's one (its room steps at FIXED_DT); the overworld steps on its own. */
   tick(): void {
     if (this.battle) {
-      this.battle.room.tick();
+      this.battle.room.tick(this.battle.seat);
       return;
     }
     if (this.inOverworld && ++this.ticks % STATE_EVERY_TICKS === 0) {

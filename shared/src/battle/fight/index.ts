@@ -5,7 +5,7 @@ export type { FightEvent, FightOutcome, FightState } from "./context.js";
 export { LEAVING_LOSES, MAX_FIGHT_TIME, playerResult, type PlayerResult } from "./outcome.js";
 export { initPhysics } from "./physics/init.js";
 export {
-  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type FightSetup, type PlayerSetup,
+  DUEL_STARTS, ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type FightSetup, type PlayerSetup,
 } from "./setup.js";
 export { chant, releaseChant, startCast } from "./skills/skilled.js";
 export type { FightSnapshot } from "./state.js";

@@ -12,9 +12,9 @@ const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text)
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
 
 describe("EVENT_MESSAGES", () => {
-  test("only a fight starting goes to the centre banner; everything else is a corner notice", () => {
+  test("only a fight or a duel starting goes to the centre banner; everything else is a corner notice", () => {
     const centre = Object.entries(EVENT_MESSAGES).filter(([, message]) => message.where === "centre");
-    assert.deepEqual(centre.map(([kind]) => kind), ["encounter"]);
+    assert.deepEqual(centre.map(([kind]) => kind), ["encounter", "duel"]);
   });
 });
 
@@ -95,5 +95,34 @@ describe("say", () => {
     say(to, { kind: "healed" });
     assert.deepEqual(notices(to), ["HP and stamina are restored."]);
     assert.equal(banner(to), null);
+  });
+
+  test("a duel starting is the centre banner, naming the other player", () => {
+    const to = new Notifications();
+    say(to, { kind: "duel", with: "Bee" });
+    assert.equal(banner(to), "A duel with Bee!");
+  });
+
+  test("what became of a challenge is a corner notice; one to you is shown by its own notice instead", () => {
+    const said = (news: Parameters<typeof say>[1] & { kind: "challenge" }) => {
+      const to = new Notifications();
+      say(to, news);
+      assert.equal(banner(to), null);
+      return notices(to);
+    };
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "sent", to: "Bee" } }), ["You challenge Bee to a duel."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "received", from: "Bee" } }), []);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "declined", by: "Bee" } }),
+      ["Bee declines your challenge."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "expired", with: "Bee" } }),
+      ["The challenge with Bee has expired."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "cancelled", with: "Bee" } }),
+      ["The challenge with Bee is called off."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "nobodyNear" } }),
+      ["Nobody is close enough to challenge."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "busy", who: "Bee" } }),
+      ["Bee is already in a challenge."]);
+    assert.deepEqual(said({ kind: "challenge", news: { kind: "busy", who: null } }),
+      ["You already have a challenge open."]);
   });
 });

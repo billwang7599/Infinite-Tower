@@ -23,6 +23,7 @@ import { handsOf } from "./weapons/swing.js";
 export const PLAYER_START: Vec3 = { x: 0, y: 0.05, z: -8 };
 export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
+export const DUEL_STARTS: readonly Vec3[] = [{ x: 0, y: 0.05, z: -6 }, { x: 0, y: 0.05, z: 6 }];
 
 export interface PlayerSetup {
   at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Skillbook; seed?: number;
@@ -30,7 +31,7 @@ export interface PlayerSetup {
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
-export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[] }
+export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[]; duel?: boolean }
 
 /** From the feet to the capsule's center, and from there to each cap's middle. */
 const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
@@ -41,7 +42,7 @@ const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
   ({ hands, armReachM, swing: null, blade: restingBlade(), restTime: 0 });
 
-export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup): Entity {
+export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
   const e = world.spawn();
   const center = centerAbove(setup.at, PLAYER_CENTER_HEIGHT);
   const collider = physics.addCapsule(center, PLAYER_HALF_SEGMENT, PLAYER.radius, Layer.Player);
@@ -61,7 +62,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
   world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
-  world.add(e, Fighter, { team: "player", radius: PLAYER.radius });
+  world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius });
   world.add(e, Statuses, noStatuses());
   return e;
 }
@@ -97,7 +98,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
     world.add(e, Wielder, wielder({ rightHand: null, leftHand: null, ...def.wielder.hands }, def.wielder.armReachM));
   }
   world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
-  world.add(e, Fighter, { team: "enemy", radius: def.radius });
+  world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });
   if (def.attacks.skill) world.add(e, Stamina, { value: def.stats.stamina, max: def.stats.stamina, regenDelay: 0 });
   world.add(e, Statuses, noStatuses());

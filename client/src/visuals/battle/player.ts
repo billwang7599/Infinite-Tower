@@ -1,6 +1,7 @@
 import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from "@babylonjs/core";
 import {
-  attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity, type World,
+  attackShape, Body, clamp, damp, Health, LocalPlayer, Player, PLAYER, SkillObject, weaponIn, Wielder, type Entity,
+  type World,
 } from "@infinite-tower/shared";
 import type { Blobs } from "../sky/sky.js";
 import { fighter } from "./battle.js";
@@ -125,7 +126,8 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = player.action === "stagger" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
-  const picture = ctx.materials.player[pose.pose][pose.frame]!;
+  const frames = world.has(e, LocalPlayer) ? ctx.materials.player : ctx.materials.rival;
+  const picture = frames[pose.pose][pose.frame]!;
   if (sprite.plane.material !== picture) sprite.plane.material = picture;
   ctx.sky.tintAt(p, picture.emissiveColor);
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);

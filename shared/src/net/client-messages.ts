@@ -136,6 +136,9 @@ const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
 });
 
+const ChallengeMsg = z.object({ t: z.literal("challenge") });
+const AnswerChallengeMsg = z.object({ t: z.literal("answerChallenge"), accept: z.boolean() });
+
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
@@ -157,7 +160,7 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg,
+  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

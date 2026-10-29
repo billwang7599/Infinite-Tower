@@ -11,7 +11,7 @@ export const BATTLE_FRAMES: Record<Pose | SwordPose, number> = { stand: 1, slash
 
 /** The side chibi faces right, like every side view. */
 export interface PlayerSprites<Sprite> {
-  chibi: Record<ChibiFacing, Sprite>;
+  chibi?: Record<ChibiFacing, Sprite>;
   battle: Record<Pose | SwordPose, Sprite[]>;
 }
 
@@ -38,7 +38,8 @@ export class PlayerLook<Sprite> {
     if (key === this.worn) return;
     this.worn = key;
     this.look = look;
-    for (const facing of CHIBI_FACINGS) this.redraw(this.sprites.chibi[facing], chibiDraw(look, facing));
+    const chibi = this.sprites.chibi;
+    if (chibi) for (const facing of CHIBI_FACINGS) this.redraw(chibi[facing], chibiDraw(look, facing));
     this.paintBattle(look);
   }
 

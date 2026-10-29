@@ -24,6 +24,7 @@ export interface LevelDef {
   /** Where you appear when you enter, and wake up after losing a fight. */
   spawn: Vec2;
   arenaId: string;
+  duelArenaId: string;
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
   spawns: SpawnDef[];
   grass: EncounterTable;

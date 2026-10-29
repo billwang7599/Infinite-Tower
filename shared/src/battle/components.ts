@@ -160,8 +160,11 @@ export interface BodyData {
 export const Body = defineComponent<BodyData>("Body");
 
 export type TeamId = "player" | "enemy";
-/** Anything that can hit or be hit. `radius`: its hurt radius on the ground plane. */
-export interface FighterData { team: TeamId; radius: number }
+/**
+ * Anything that can hit or be hit. `radius`: its hurt radius on the ground plane. Fighters on different `side`s are
+ * foes: every enemy is on -1, players on 0, and in a duel each player on their own seat's.
+ */
+export interface FighterData { team: TeamId; side: number; radius: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 
 /** An attack's hitbox while its blade (or body) is live: an arc in front, or a ray (a stab). Hits each target once. */
