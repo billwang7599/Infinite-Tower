@@ -127,6 +127,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
         eye.x + (Math.random() - 0.5) * s, eye.y + (Math.random() - 0.5) * s, eye.z + (Math.random() - 0.5) * s,
       );
       ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
+      ctx.sky.frame(Date.now(), ctx.camera.position);
 
       const lock = ctx.battle.lock;
       const body = lock === null ? undefined : world.get(lock, Body);

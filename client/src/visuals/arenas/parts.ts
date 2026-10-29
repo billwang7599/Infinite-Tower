@@ -45,7 +45,7 @@ export function scatter(
   for (const [tpl] of parts) {
     tpl.isVisible = false;
     tpl.parent = root;
-    if (castShadows) ctx.sunShadows.addShadowCaster(tpl);
+    if (castShadows) ctx.sky.castShadows(tpl);
   }
   spots.forEach(({ x, z, scale, yaw }, i) => {
     for (const [tpl, y] of parts) {
@@ -72,7 +72,7 @@ export function ringSpots(
 export function settle(ctx: ArenaScene, root: TransformNode, casters: Mesh[] = []): TransformNode {
   for (const m of casters) {
     m.receiveShadows = true;
-    ctx.sunShadows.addShadowCaster(m);
+    ctx.sky.castShadows(m);
   }
   for (const m of root.getChildMeshes()) m.freezeWorldMatrix();
   return root;

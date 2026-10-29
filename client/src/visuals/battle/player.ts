@@ -127,6 +127,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
   const picture = ctx.materials.player[pose.pose][pose.frame]!;
   if (sprite.plane.material !== picture) sprite.plane.material = picture;
+  ctx.sky.tintAt(p, picture.emissiveColor);
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
   sprite.plane.position.y = spriteY(sprite.stretch, bob);
   sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(health.hitstun * 45) * 0.06 : 0;
@@ -161,9 +162,12 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     const floorY = p.y - below;
     const height = p.y - body.centerHeight - floorY;
     const scale = Math.max(0.3, 1 - height * 0.12);
+    const cast = ctx.sky.blobShadow();
     sprite.shadow.isVisible = true;
-    sprite.shadow.position.set(p.x, floorY + 0.02, p.z);
-    sprite.shadow.scaling.set(scale, 1, scale);
+    sprite.shadow.position.set(p.x + cast.offsetM.x * scale, floorY + 0.02, p.z + cast.offsetM.z * scale);
+    sprite.shadow.rotation.y = cast.yawRad;
+    sprite.shadow.scaling.set(scale * cast.stretch, 1, scale);
+    sprite.shadow.visibility = cast.alpha;
   } else {
     sprite.shadow.isVisible = false;
   }

@@ -4,12 +4,13 @@ import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene
 export type Px = (x: number, y: number, w: number, h: number, color: string) => void;
 export type SpriteDraw = (px: Px) => void;
 
-/** One sprite frame, ready for a quad: transparent pixels cut out (alpha test, not blend), its own colours kept. */
+/** One sprite frame, ready for a quad: transparent pixels cut out (alpha test), unlit: its colours × emissiveColor. */
 export function spriteMaterial(scene: Scene, name: string, draw: SpriteDraw): StandardMaterial {
   const tex = spriteTexture(scene, name, draw);
   const m = new StandardMaterial(name, scene);
   m.diffuseTexture = tex;
-  m.emissiveTexture = tex; // keeps the colors even in shade
+  m.disableLighting = true;
+  m.emissiveColor = Color3.White();
   m.specularColor = Color3.Black();
   m.backFaceCulling = false;
   // Babylon 9 tests the final alpha, so the texture's alpha must be wired in too.

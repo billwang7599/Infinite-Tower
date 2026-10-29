@@ -27,7 +27,8 @@ What's built so far:
   than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field, sun and
   shadows, and a tilt-shift blur. The arrow keys turn the camera a quarter turn; walking follows it.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
-  its own look (a forest clearing, stone ruins, a mire).
+  its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
+  shadows follow them, and glowing mushrooms light the mire.
   A sword with eight swings (one per way across
   the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
   short, vertical ones narrow and long, the stab a long thin line. Swings follow the blade's inertia: they start slow

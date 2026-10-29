@@ -2,12 +2,23 @@ import { Color3, Mesh, MeshBuilder, StandardMaterial } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
+import type { MapLight } from "../../sky/sky.js";
 import type { ArenaLookDef } from "../index.js";
 import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.js";
 
 const STUMPS = 34;
 /** Above 1 so the bloom catches the mushrooms' glow. */
 const GLOW = new Color3(0.45, 1.5, 1.15);
+/** Angles (radians) round the wall of the mushroom clumps that light the mire. */
+const CLUMPS_RAD = [0.5, 2.1, 3.6, 5.2];
+const CLUMP_CAPS = 7;
+
+function lights(radius: number): MapLight[] {
+  return CLUMPS_RAD.map((a) => ({
+    at: { x: Math.sin(a) * (radius + 0.8), y: 1, z: Math.cos(a) * (radius + 0.8) },
+    color: new Color3(0.35, 1, 0.8), intensity: 4, rangeM: 9, flicker: 0.12,
+  }));
+}
 
 function build(ctx: ArenaScene, radius: number) {
   const { scene } = ctx;
@@ -80,7 +91,11 @@ function build(ctx: ArenaScene, radius: number) {
   glow.disableLighting = true;
   glow.emissiveColor = GLOW;
   cap.material = glow;
-  scatter(ctx, root, [[cap, 0.1]], ringSpots(rand, 60, radius + 0.4, radius + 3, 0.6, 1.5), false);
+  const clumps = lights(radius).flatMap(({ at }) => Array.from({ length: CLUMP_CAPS }, () => {
+    const a = rand() * Math.PI * 2, r = rand() * 0.7;
+    return { x: at.x + Math.sin(a) * r, z: at.z + Math.cos(a) * r, scale: 0.9 + rand() * 0.8, yaw: rand() * Math.PI };
+  }));
+  scatter(ctx, root, [[cap, 0.1]], [...ringSpots(rand, 60, radius + 0.4, radius + 3, 0.6, 1.5), ...clumps], false);
 
   return settle(ctx, root, stumps);
 }
@@ -93,5 +108,6 @@ export const MIRE: ArenaLookDef = {
     skyLight: { color: new Color3(0.55, 0.65, 0.65), ground: new Color3(0.16, 0.15, 0.1), intensity: 0.45 },
     sun: { color: new Color3(0.98, 0.68, 0.46), intensity: 1.15 },
   },
+  lights,
   build,
 };

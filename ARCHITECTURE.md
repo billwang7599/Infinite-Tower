@@ -527,7 +527,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    map and campfires; moveWalker, the one collision rule, and stepWalker on it for prediction +
                    replay; nearCampfire / REST_RANGE), tiles.ts (TILES: each tile kind's character and rules, solid
                    or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts (ArenaDef: an arena's id,
-                   radius and ArenaLook, sent in each encounter's FightSetup)
+                   radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the time of day from the
+                   wall clock, the same everywhere with no messages: DayClock, timeOfDay, retimeDay; sunAt and
+                   moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
@@ -822,9 +824,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
-        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, the sun and sky light (their
-                         colours are the arena look's), fog / shadows / post, materials, the skill kit, each
-                         fighter's node, the shake, each fighter's impact
+        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
+                         skill kit, each fighter's node, the shake, each fighter's impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
@@ -867,9 +868,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        tileProps: a map's ground picture and props from its tile looks)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
+      sky/             sky.ts: the one owner of the arena's lights and shadows (nothing else makes a light or a shadow
+                       generator): the time of day's sun or moon (one shadow-casting light, cross-faded at the horizon)
+                       and their discs, the sky light, sky colour and fog over a look's colours (SkyLook), the map's
+                       flickering point lights (the nearest the camera cast shadows), a sprite's tint and blob shadow;
+                       setDayClock (dev: `?time=`, `window.setTime`)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
-                         env (sky, fog, light) and build; showArena, the one call battle.ts makes: lights the scene
-                         and returns the look's root, whose disposal takes its meshes and materials), parts.ts (what
+                         env (its daylight colours and fog), its map lights and build; showArena, the one call
+                         battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
+                         its meshes and materials), parts.ts (what
                          the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle)
         forest-clearing/ the boar's and tall grass's: moss, a dirt floor, standing stones, pines, ferns, logs
         stone-ruins/     the Kobolds': flagstones, broken columns and walls, two arches, far ruins, cypresses
@@ -982,7 +989,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's sun, fog, colour grade and camera (its turn time) | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
-| An arena look's sky, fog and light | `env` in each `client/src/visuals/arenas/<look>/` |
+| An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
+| The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
+| The time of day's light: colours by sun height, moonlight, fades, map-light shadows, sprite tint, blob shadows, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |

@@ -49,7 +49,7 @@ export function buildKobold(
   ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number, weapon: WeaponLook | null,
   armReachM: number, build: KoboldBuild,
 ): KoboldModel {
-  const { scene, sunShadows } = ctx;
+  const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
     const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.05, 0.05, 0.05));
@@ -207,7 +207,7 @@ export function buildKobold(
   }
   stars.setEnabled(false);
 
-  for (const p of parts) sunShadows.addShadowCaster(p);
+  for (const p of parts) sky.castShadows(p);
 
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());

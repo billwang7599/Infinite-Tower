@@ -36,7 +36,7 @@ export function disposeBoar(v: BoarModel): void {
 }
 
 export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number): BoarModel {
-  const { scene, sunShadows } = ctx;
+  const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
     const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.05, 0.05, 0.05));
@@ -135,7 +135,7 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
   telegraph.isPickable = false;
   telegraph.setEnabled(false);
 
-  for (const p of parts) sunShadows.addShadowCaster(p);
+  for (const p of parts) sky.castShadows(p);
 
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
