@@ -1,22 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FIXED_DT, mapHalfSize, VIEW, viewHalfWidth, WALKER_RADIUS } from "@infinite-tower/shared";
+import { FIXED_DT, mapHalfSize, WALKER_RADIUS } from "@infinite-tower/shared";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
-import { stateMsg } from "../../../src/core/game/snapshot.js";
+import { stateMsg, VIEW_RADIUS_TILES } from "../../../src/core/game/snapshot.js";
 import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 
-/** Wide enough that the camera follows the player freely around the middle. */
+/** Far wider than the view. */
 const BIG_LEVEL: LevelDef = {
   ...TEST_LEVEL,
   layout: { ...TEST_LEVEL.layout, tiles: Array.from({ length: 200 }, () => ".".repeat(200)) },
   spawn: { x: 0, z: 0 },
   spawns: [],
 };
-const HALF_WIDTH = viewHalfWidth(VIEW.maxAspect);
-
 function overworldAtOrigin(): Overworld {
   const overworld = new Overworld(() => {});
   overworld.enter(BIG_LEVEL);
@@ -37,28 +35,18 @@ describe("state snapshot", () => {
     assert.deepEqual(msg.actors, [{ id: e, kind: "wild-boar", x: 2, z: 1, vx: 1, vz: -1, facing: 1, alert: true }]);
   });
 
-  test("actors just past the screen's edge are still sent, far ones are not", () => {
+  test("actors within the view's radius are sent whichever way they are, ones past it are not", () => {
     const overworld = overworldAtOrigin();
-    const edgeX = spawnActor(overworld.world, "wild-boar", { x: HALF_WIDTH + 0.5, z: 0 }, []);
-    const edgeZ = spawnActor(overworld.world, "wild-boar", { x: 0, z: -(VIEW.halfHeight + 0.5) }, []);
-    spawnActor(overworld.world, "wild-boar", { x: HALF_WIDTH + 50, z: 0 }, []);
-    spawnActor(overworld.world, "wild-boar", { x: 0, z: VIEW.halfHeight + 50 }, []);
-    spawnActor(overworld.world, "wild-boar", { x: -(HALF_WIDTH + 50), z: -(VIEW.halfHeight + 50) }, []);
-    assert.deepEqual(ids(overworld), [edgeX, edgeZ]);
+    const inside: number[] = [];
+    for (let k = 0; k < 16; k++) {
+      const a = (k * Math.PI) / 8, at = (r: number) => ({ x: Math.cos(a) * r, z: Math.sin(a) * r });
+      inside.push(spawnActor(overworld.world, "wild-boar", at(VIEW_RADIUS_TILES - 0.5), []));
+      spawnActor(overworld.world, "wild-boar", at(VIEW_RADIUS_TILES + 0.5), []);
+    }
+    assert.deepEqual(ids(overworld), inside);
   });
 
-  test("the margin past the screen is the same on both axes and a few tiles at most", () => {
-    const overworld = overworldAtOrigin();
-    const boarAt = (x: number, z: number) => spawnActor(overworld.world, "wild-boar", { x, z }, []);
-    const xs = [1, 2, 3, 4, 5, 6, 8].map((m) => boarAt(HALF_WIDTH + m, 0));
-    const zs = [1, 2, 3, 4, 5, 6, 8].map((m) => boarAt(0, VIEW.halfHeight + m));
-    const sent = new Set(ids(overworld));
-    const xMargin = xs.filter((e) => sent.has(e)).length, zMargin = zs.filter((e) => sent.has(e)).length;
-    assert.equal(xMargin, zMargin);
-    assert.ok(xMargin >= 1 && xMargin < 8, `margin ${xMargin}`);
-  });
-
-  test("the window follows the player", () => {
+  test("the view follows the player", () => {
     const overworld = overworldAtOrigin();
     const far = spawnActor(overworld.world, "wild-boar", { x: 60, z: 40 }, []);
     assert.deepEqual(ids(overworld), []);
@@ -66,15 +54,15 @@ describe("state snapshot", () => {
     assert.deepEqual(ids(overworld), [far]);
   });
 
-  test("near a level's edge the window stops with the camera, so actors further in still show", () => {
+  test("near a level's edge the view stays round the player", () => {
     const overworld = new Overworld(() => {});
     overworld.enter({ ...TEST_LEVEL, spawns: [] });
     const { halfWidth } = mapHalfSize(TEST_LEVEL.layout);
-    const cameraStopX = halfWidth + VIEW.overscan - HALF_WIDTH;
-    // The player hugs the left edge; the camera stops at -cameraStopX, so the screen reaches further right.
-    overworld.place({ x: -(halfWidth - WALKER_RADIUS), z: 0 });
-    const inside = spawnActor(overworld.world, "wild-boar", { x: -cameraStopX + HALF_WIDTH + 0.5, z: 0 }, []);
-    assert.deepEqual(ids(overworld), [inside]);
+    const x = -(halfWidth - WALKER_RADIUS);
+    overworld.place({ x, z: 0 });
+    const near = spawnActor(overworld.world, "wild-boar", { x: x + VIEW_RADIUS_TILES - 0.5, z: 0 }, []);
+    spawnActor(overworld.world, "wild-boar", { x: x + VIEW_RADIUS_TILES + 0.5, z: 0 }, []);
+    assert.deepEqual(ids(overworld), [near]);
   });
 
   test("positions and velocities are rounded to 2 decimals", () => {

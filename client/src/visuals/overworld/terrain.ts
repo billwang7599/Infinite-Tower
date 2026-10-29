@@ -1,6 +1,6 @@
 import {
   Color3, MeshBuilder, PointLight, StandardMaterial, Texture, TransformNode, Vector3, Vector4, VertexBuffer, type DynamicTexture,
-  type Mesh, type Scene,
+  type AbstractMesh, type Mesh, type Scene,
 } from "@babylonjs/core";
 import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
 import { drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
@@ -18,6 +18,7 @@ const CAMPFIRE_TILES = 1.4;
 export interface LevelDrawing {
   root: TransformNode;
   flicker(dt: number): void;
+  face(yawRad: number): void;
 }
 
 export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawing {
@@ -46,8 +47,18 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
       m.freezeWorldMatrix();
     }
   });
-  placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], root);
-  return { root, flicker: buildCampfires(view, level, root, sunShadows) };
+  const upright = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], root);
+  const campfires = buildCampfires(view, level, root, sunShadows);
+  upright.push(...campfires.meshes);
+  return {
+    root, flicker: campfires.flicker,
+    face(yawRad) {
+      for (const m of upright) {
+        m.rotation.y = yawRad;
+        m.freezeWorldMatrix();
+      }
+    },
+  };
 }
 
 function tiled(tex: DynamicTexture): DynamicTexture {
@@ -91,9 +102,9 @@ function scaleUVs(mesh: Mesh, u: number, v: number): void {
 }
 
 /** One template quad per kind, every prop an instance of it (one draw call a kind). */
-function placeProps({ scene, sunShadows }: OverworldScene, props: Prop[], root: TransformNode): void {
+function placeProps({ scene, sunShadows }: OverworldScene, props: Prop[], root: TransformNode): AbstractMesh[] {
   const templates = new Map<PropKind, Mesh>();
-  props.forEach((p, i) => {
+  return props.map((p, i) => {
     let tpl = templates.get(p.kind);
     if (!tpl) {
       const art = PROP_ART[p.kind];
@@ -109,7 +120,7 @@ function placeProps({ scene, sunShadows }: OverworldScene, props: Prop[], root: 
     inst.position.set(p.x, p.y, p.z);
     inst.scaling.setAll(p.scale);
     if (i % 2 === 1) inst.scaling.x = -p.scale;
-    inst.freezeWorldMatrix();
+    return inst;
   });
 }
 
@@ -155,8 +166,8 @@ function drawFringe(pen: Pen): void {
 
 function buildCampfires(
   { scene }: OverworldScene, level: LevelLayout, root: TransformNode, shadows: OverworldScene["sunShadows"],
-): (dt: number) => void {
-  if (level.campfires.length === 0) return () => {};
+): { meshes: Mesh[]; flicker: (dt: number) => void } {
+  if (level.campfires.length === 0) return { meshes: [], flicker: () => {} };
   const frames = ([0, 1] as const).map((f) => {
     const m = spriteLook(spriteMaterial(scene, `campfire-${f}`, drawCampfire(f)));
     m.emissiveColor = Color3.White();
@@ -176,7 +187,7 @@ function buildCampfires(
     return { m, light };
   });
   let time = 0;
-  return (dt) => {
+  const flicker = (dt: number) => {
     time += dt;
     const frame = frames[Math.floor(time / FLICKER_TIME) % 2]!;
     for (const { m, light } of fires) {
@@ -184,4 +195,5 @@ function buildCampfires(
       light.intensity = 3 + Math.sin(time * 13) * 0.15 + Math.sin(time * 7.3) * 0.2;
     }
   };
+  return { meshes: fires.map((f) => f.m), flicker };
 }

@@ -25,7 +25,7 @@ What's built so far:
   Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
   than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field, sun and
-  shadows, and a tilt-shift blur.
+  shadows, and a tilt-shift blur. The arrow keys turn the camera a quarter turn; walking follows it.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire).
   A sword with eight swings (one per way across

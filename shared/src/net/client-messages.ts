@@ -8,7 +8,7 @@ import { ATTACK_KINDS } from "../weapons/weapons.js";
 import { SLOTS, type Spot } from "../items/gear.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
-import { MAX_KEYS_PER_ACTION } from "./settings.js";
+import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
 import { ruledText } from "./text-schema.js";
 
 const InputMsg = z.object({
@@ -93,7 +93,10 @@ const KEY = z.string().max(32);
 const SavedSettingsSchema = z.object({
   /** group -> action -> KeyboardEvent.code list */
   bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(MAX_KEYS_PER_ACTION))).optional(),
-  camera: z.object({ sensitivity: z.number().optional() }).optional(),
+  camera: z.object({
+    sensitivity: z.number().optional(),
+    overworldTurns: z.number().int().min(0).max(OVERWORLD_CAMERA_ANGLES - 1).optional(),
+  }).optional(),
   /** Left out means on: saves from before it existed have no such field. */
   mouse: z.object({ autoLock: z.boolean().optional(), swingSensitivity: z.number().optional() }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */

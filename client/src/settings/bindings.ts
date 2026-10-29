@@ -18,8 +18,8 @@ interface ActionDef {
 export const ACTIONS = {
   general: {
     menu: { label: "Settings", keys: ["Escape"] },
-    forward: { label: "Move forward (up)", keys: ["KeyW"] },
-    back: { label: "Move back (down)", keys: ["KeyS"] },
+    forward: { label: "Move forward (away from the camera)", keys: ["KeyW"] },
+    back: { label: "Move back (toward the camera)", keys: ["KeyS"] },
     left: { label: "Move left", keys: ["KeyA"] },
     right: { label: "Move right", keys: ["KeyD"] },
     character: { label: "Character panel", keys: ["KeyC"] },
@@ -30,6 +30,8 @@ export const ACTIONS = {
     rest: { label: "Rest at a campfire", keys: ["KeyE"] },
     turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
+    turnCameraLeft: { label: "Turn camera left", keys: ["ArrowLeft"] },
+    turnCameraRight: { label: "Turn camera right", keys: ["ArrowRight"] },
   },
   battle: {
     stab: { label: "Stab", keys: [], mouse: [0] },

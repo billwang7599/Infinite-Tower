@@ -281,7 +281,7 @@ main.ts
   (`bar`, `bar-layer`). Write each class name out in full (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``),
   because Tailwind can't find names built from pieces; joining whole names (a long list over two strings) is
   fine. Motion comes with `motion-reduce:animate-none`.
-- **Every screen sees the same amount, at most**: 16:9 (23 x 13 overworld tiles, `shared/src/overworld/view.ts`).
+- **Every screen sees the same amount, at most**: 16:9 (`shared/src/overworld/view.ts`).
   `client/index.html` puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see
   a little less width.
 
@@ -355,8 +355,8 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
 (`CLOSE_CODES` in `shared/src/net/accounts.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
-lost". Positions in `state` are rounded to 1 cm, and it only carries actors within the 16:9 view of the server's
-copy of you plus 3 tiles, so a hacked client can't see further.
+lost". Positions in `state` are rounded to 1 cm, and it only carries actors within `VIEW_RADIUS_TILES` of the
+server's copy of you (a circle, as the camera may look any way), so a hacked client can't see further.
 
 **A fight on the wire.** Both sides number the fight's steps from 1. Each frame the client sends the changes of its
 input since the last message, each tagged with the step it's for and rounded to 3 decimals (so both sides run the same
@@ -528,8 +528,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    replay; nearCampfire / REST_RANGE), tiles.ts (TILES: each tile kind's character and rules, solid
                    or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts (ArenaDef: an arena's id,
                    radius and ArenaLook, sent in each encounter's FightSetup)
-  overworld/       view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter: the server sends the actors
-                   around it)
+  overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
@@ -620,7 +619,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
                        and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
-                       actors near your screen), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
+                       actors within VIEW_RADIUS_TILES), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
@@ -698,7 +697,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's and the
                      skillbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
-                     MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity), mouse.ts
+                     MOVED_FROM, load where they are now), camera.ts (CameraSettings: sensitivity, the
+                     overworld camera's quarter turns), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
                      sensitivity, SWING_SENSITIVITY), hud.ts
                      (HudSettings: show ping, the same way)
@@ -779,10 +779,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          useTyped.ts (text typed out), styles.ts (dark on white)
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
       overworld/       The overworld mode: mirrors the server
-        overworld.ts     The mode: its state (the level, the actors), level loads, the walk keys, server state, the
-                         overworld HUD
-        prediction.ts    Predict your own walking (and facing), reconcile with the server's acks
-        facing.ts        Facing (down / up / left / right, the way a walker faces on screen): faceToward, mirrorFor
+        overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
+                         (turned to the camera) and the camera's turn keys, server state, the overworld HUD
+        prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
+        facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
+                         screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
         mirror.ts        Mirror the server's actors, each with its kind
         components.ts    OverworldPos, OverworldActor (its kind: the player, a boar, a Kobold, a goblin),
                          OverworldState
@@ -855,10 +856,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         scene.ts         OverworldScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
         overworld.ts     WALKERS (chibi and enemy billboards: glide, hop, facing, blob shadows, "!"), overworldStage
-                         (the level, the camera following the player)
+                         (the level, the camera following the player and easing through its quarter turns)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
         terrain.ts       Builds it: cliff blocks, grass tops and fringes, the map's ground (paintGround), instanced
-                         props (the tiles' and the scenery's), the campfire's light
+                         props (the tiles' and the scenery's), the campfire's light; face turns them to the camera
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS, one line each:
@@ -980,7 +981,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's sun, fog, colour grade and camera | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
+| How each tile looks; the overworld's sun, fog, colour grade and camera (its turn time) | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` |
 | An arena look's sky, fog and light | `env` in each `client/src/visuals/arenas/<look>/` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
@@ -992,6 +993,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Fight netcode: start wait, resync gap | `server/src/core/battle/room.ts` |
 | Fight netcode: a silent player letting go | `server/src/core/battle/inputs.ts` |
 | Fight netcode: heartbeat, history, pacing | `client/src/modes/battle/sync.ts`, `client/src/modes/battle/pace.ts` |
-| View size | `shared/src/overworld/view.ts` (`VIEW`) |
+| View: a screen's widest shape; how far round the player actors are sent | `shared/src/overworld/view.ts` (`VIEW`); `VIEW_RADIUS_TILES` in `server/src/core/game/snapshot.ts` |
 
 Changing any of these changes how the game plays: ask first (see [AGENTS.md](AGENTS.md)).

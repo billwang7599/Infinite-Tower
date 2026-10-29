@@ -21,7 +21,7 @@ function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) 
   const world = new World();
   const player = world.spawn();
   const pos = world.add(player, OverworldPos, { ...start });
-  const actor = world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, facing: "down", alert: false });
+  const actor = world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: "south", alert: false });
   const view = { level } as OverworldState;
   const net = new FakeNet();
   const prediction = new Prediction(world, view, player, net.asConnection());
@@ -91,16 +91,16 @@ describe("Prediction.step", () => {
     assert.ok(Math.abs(pos.x - (mapHalfSize(LEVEL).halfWidth - WALKER_RADIUS)) < 1e-9);
   });
 
-  test("facing follows the walk in four ways, and standing still keeps it", () => {
+  test("the heading follows the walk in four ways, and standing still keeps it", () => {
     const { prediction, actor } = setup();
     const inputs = [
       { moveX: -1, moveZ: 0 }, STILL, { moveX: 0, moveZ: 1 }, { moveX: 0.5, moveZ: 0 }, { moveX: 0, moveZ: -1 },
     ];
     const faced = inputs.map((input) => {
       prediction.step(input);
-      return actor.facing;
+      return actor.heading;
     });
-    assert.deepEqual(faced, ["left", "left", "up", "right", "down"]);
+    assert.deepEqual(faced, ["west", "west", "north", "east", "south"]);
   });
 
   test("with no level yet, nothing moves and nothing is sent", () => {

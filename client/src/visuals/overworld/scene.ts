@@ -22,6 +22,8 @@ export interface OverworldScene {
     blob: StandardMaterial;
   };
   state: OverworldState;
+  /** The camera's yaw as drawn, easing between its quarter turns: 0 looks north, π/2 east. */
+  yawRad: number;
 }
 
 /** Radians every upright picture leans back from vertical, toward facing the camera. */
@@ -40,7 +42,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
   const sunShadows = setupLook(scene, camera);
   const sprite = (name: string, draw: SpriteDraw) => spriteLook(spriteMaterial(scene, name, draw));
   return {
-    scene, camera, sunShadows, state,
+    scene, camera, sunShadows, state, yawRad: 0,
     materials: {
       player: {
         front: sprite("overworld-player-front", () => {}),

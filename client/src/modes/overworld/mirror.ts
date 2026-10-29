@@ -1,7 +1,7 @@
 /** Mirrors the server's overworld actors: spawn new ones, update the rest, remove the ones that are gone. */
 import type { ActorSnap, Entity, World } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos } from "./components.js";
-import { facingFromSide } from "./facing.js";
+import { headingFromSide } from "./facing.js";
 
 export class ActorMirror {
   /** Server id -> local entity. */
@@ -17,12 +17,12 @@ export class ActorMirror {
       if (e === undefined) {
         e = this.world.spawn();
         this.world.add(e, OverworldPos, { x: s.x, z: s.z });
-        this.world.add(e, OverworldActor, { kind: s.kind, vx: 0, vz: 0, facing: "left", alert: false });
+        this.world.add(e, OverworldActor, { kind: s.kind, vx: 0, vz: 0, heading: "west", alert: false });
         this.local.set(s.id, e);
       }
       Object.assign(this.world.require(e, OverworldPos), { x: s.x, z: s.z });
       Object.assign(this.world.require(e, OverworldActor), {
-        vx: s.vx, vz: s.vz, facing: facingFromSide(s.facing), alert: s.alert,
+        vx: s.vx, vz: s.vz, heading: headingFromSide(s.facing), alert: s.alert,
       });
     }
     for (const [id, e] of this.local) if (!seen.has(id)) this.remove(id, e);
