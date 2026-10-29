@@ -1,9 +1,9 @@
 /** The floor and the wall you bump into are the fight's physics; this only shows them. */
 import { MeshBuilder, type Mesh } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
-import type { ArenaScene } from "./scene.js";
+import type { ArenaScene } from "../../battle/scene.js";
 
-export function buildArena(ctx: ArenaScene, radius: number): Mesh[] {
+export function buildGrassFieldArena(ctx: ArenaScene, radius: number): Mesh[] {
   const { scene, materials, sunShadows } = ctx;
   const decor: Mesh[] = [];
   const rand = seededRandom(7); // same stones and trees every time

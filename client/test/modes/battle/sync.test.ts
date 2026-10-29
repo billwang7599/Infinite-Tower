@@ -19,7 +19,7 @@ const WALKER: EnemyDef = {
   poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
 const SETUP: FightSetup = {
-  arena: { radius: 16 },
+  arena: { id: "test", radius: 16, look: "grass-field" },
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: PLAYER.maxHp, stamina: 100 }, stats: STATS, burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: [],

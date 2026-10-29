@@ -91,7 +91,7 @@ describe("a fight's whole state", () => {
 
   test("a caster comes back mid-chant, its stamina and what it's still to say with it", () => {
     const caster = () => new Fight({
-      arena: { radius: 16 }, players: [player({ x: 0, y: 0.05, z: -6 })], enemies: [enemy(CASTER, BOAR_AT)],
+      arena: { ...ARENA, radius: 16 }, players: [player({ x: 0, y: 0.05, z: -6 })], enemies: [enemy(CASTER, BOAR_AT)],
     });
     for (const at of [40, 75, 160, 333]) {
       const original = caster();

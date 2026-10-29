@@ -7,9 +7,9 @@
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
+import type { ArenaDef } from "../../world/arena.js";
 import { Body, Enemy, Health, Player, SkillObject, Statuses } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
-import type { ArenaDef } from "../defs.js";
 import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
 import type { FightContext, FightEvent, FightOutcome } from "./context.js";

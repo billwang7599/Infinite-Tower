@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inTallGrass, type EnemyId } from "@infinite-tower/shared";
 import { isEnemyId } from "../../../src/core/enemies/index.js";
-import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
-import { rollEnemy, type EncounterTable } from "../../../src/core/levels/level.js";
+import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { rollEnemy, type EncounterTable } from "../../../src/core/world/level.js";
 
 // Only one enemy exists so far, so the table uses made-up ids to tell the picks apart.
 const [A, B, C] = ["a", "b", "c"] as unknown as [EnemyId, EnemyId, EnemyId];
@@ -51,6 +51,10 @@ describe("getLevel", () => {
     assert.throws(() => getLevel("no-such-level"), /no-such-level/);
   });
 
+  test("the start level's arena exists", () => {
+    assert.equal(getArena(getLevel(START_LEVEL).arenaId).id, getLevel(START_LEVEL).arenaId);
+  });
+
   test("the start level is playable: spawn inside, out of the grass, known enemies, a weighted table", () => {
     const level = getLevel(START_LEVEL);
     const { halfWidth, halfDepth, border } = level.layout;
@@ -87,5 +91,11 @@ describe("getLevel", () => {
       assert.ok(Math.hypot(goblin.at.x - other.at.x, goblin.at.z - other.at.z) > 8);
     }
     assert.equal(inTallGrass(level.layout, goblin.at.x, goblin.at.z), false);
+  });
+});
+
+describe("getArena", () => {
+  test("throws for an unknown id", () => {
+    assert.throws(() => getArena("no-such-arena"), /no-such-arena/);
   });
 });

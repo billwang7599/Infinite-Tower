@@ -5,7 +5,7 @@ import {
   type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { bodyOf, CASTER, casts, enemy, flatDist, IDLE, input, player, run } from "../fixtures.js";
+import { ARENA, bodyOf, CASTER, casts, enemy, flatDist, IDLE, input, player, run } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -14,7 +14,7 @@ const SKILL = CASTER.attacks.skill!;
 const KEEP = CASTER.keepAway!;
 
 const fightWith = (def: EnemyDef, gapM: number, seed = 1) => new Fight({
-  arena: { radius: 16 }, players: [player(at(0, -gapM / 2))], enemies: [{ ...enemy(def, at(0, gapM / 2)), seed }],
+  arena: { ...ARENA, radius: 16 }, players: [player(at(0, -gapM / 2))], enemies: [{ ...enemy(def, at(0, gapM / 2)), seed }],
 });
 const them = (fight: Fight) => fight.enemies[0]!;
 const gap = (fight: Fight) => flatDist(bodyOf(fight, fight.players[0]!).pos, bodyOf(fight, them(fight)).pos);
@@ -181,7 +181,7 @@ describe("casting at the player", () => {
       ...CASTER, poise: 1, keepAway: undefined, attacks: { skill: casts({ quickCastM: 0 }) },
     };
     const fight = new Fight({
-      arena: { radius: 16 }, players: [player(at(0, 0))], enemies: [enemy(fragile, at(0, 1.6))],
+      arena: { ...ARENA, radius: 16 }, players: [player(at(0, 0))], enemies: [enemy(fragile, at(0, 1.6))],
     });
     while (!skilledOf(fight).chanting) fight.step([IDLE]);
     run(fight, SKILL.wordTime * 1.5);

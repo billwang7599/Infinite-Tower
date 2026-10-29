@@ -5,11 +5,12 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import { restingBlade } from "../../weapons/weapons.js";
+import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
   WeaponAttack, Wielder, type WielderData,
 } from "../components.js";
-import type { ArenaDef, EnemyAttacks, EnemyDef } from "../defs.js";
+import type { EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, type Stats } from "../stats.js";

@@ -7,8 +7,8 @@ import type { ChibiFacing } from "../../gfx/look/look.js";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "../../modes/overworld/components.js";
 import { mirrorFor, type Facing } from "../../modes/overworld/facing.js";
 import { byEnemy } from "../enemies/index.js";
+import { buildLevel, type LevelDrawing } from "../levels/index.js";
 import type { Visual } from "../visuals.js";
-import { buildLevel, type LevelDrawing } from "./levels/index.js";
 import { CAMERA_HEIGHT, flatSprite, layerY, type OverworldScene } from "./scene.js";
 
 /** Server snapshots arrive ~20x/s: glide toward them (1/s, for dampFactor); snap if far off (respawn, teleport). */

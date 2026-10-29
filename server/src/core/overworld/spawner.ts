@@ -1,7 +1,7 @@
 /** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from the player if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { ENEMIES } from "../enemies/index.js";
-import type { SpawnDef } from "../levels/level.js";
+import type { SpawnDef } from "../world/level.js";
 import { spawnActor } from "./parts.js";
 import { findPlayer } from "./player.js";
 

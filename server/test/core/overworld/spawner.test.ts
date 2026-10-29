@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { Spawner } from "../../../src/core/overworld/spawner.js";
-import type { SpawnDef } from "../../../src/core/levels/level.js";
+import type { SpawnDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 import { actors, pos, testOverworld } from "./helpers.js";
 

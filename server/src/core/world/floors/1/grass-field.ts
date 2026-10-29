@@ -1,7 +1,9 @@
-/** All levels by id. */
-import type { LevelDef } from "./level.js";
+import type { ArenaDef } from "@infinite-tower/shared";
+import type { LevelDef } from "../../level.js";
 
-const GRASS_FIELD: LevelDef = {
+export const GRASS_FIELD_ARENA: ArenaDef = { id: "grass-field", radius: 16, look: "grass-field" };
+
+export const GRASS_FIELD: LevelDef = {
   layout: {
     id: "grass-field",
     name: "Grass Field",
@@ -14,7 +16,7 @@ const GRASS_FIELD: LevelDef = {
     campfires: [{ x: -9, z: -2.5 }],
   },
   spawn: { x: -12, z: -5 },
-  arena: { radius: 16 },
+  arenaId: GRASS_FIELD_ARENA.id,
   spawns: [
     { enemy: "wild-boar", at: { x: 8, z: -6 }, respawnTime: 8 },
     // The Kobold Swordsman's own corner, away from the boar and the start.
@@ -25,15 +27,3 @@ const GRASS_FIELD: LevelDef = {
   grass: { stepDist: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   safeTime: 2,
 };
-
-const LEVELS: Record<string, LevelDef> = {
-  [GRASS_FIELD.layout.id]: GRASS_FIELD,
-};
-
-export const START_LEVEL = GRASS_FIELD.layout.id;
-
-export function getLevel(id: string): LevelDef {
-  const level = LEVELS[id];
-  if (!level) throw new Error(`Unknown level "${id}"`);
-  return level;
-}

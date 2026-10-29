@@ -5,7 +5,7 @@ import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
 import { stateMsg } from "../../../src/core/game/snapshot.js";
-import type { LevelDef } from "../../../src/core/levels/level.js";
+import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 
 /** Wide enough that the camera follows the player freely around the middle. */

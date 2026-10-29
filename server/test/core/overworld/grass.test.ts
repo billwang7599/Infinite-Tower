@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { FIXED_DT, inTallGrass, type EnemyId, type Entity } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
-import type { LevelDef } from "../../../src/core/levels/level.js";
+import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 
 const LEVEL: LevelDef = { ...TEST_LEVEL, spawns: [] };

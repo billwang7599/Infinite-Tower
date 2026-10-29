@@ -1,6 +1,6 @@
 /** The overworld player: replays the client's inputs with the shared walking rules, and rolls for encounters. */
 import { FIXED_DT, inTallGrass, stepWalker, type System, type Vec2, type World } from "@infinite-tower/shared";
-import { rollEnemy } from "../levels/level.js";
+import { rollEnemy } from "../world/level.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData, type QueuedInput } from "./components.js";
 import type { OverworldContext } from "./context.js";
 
