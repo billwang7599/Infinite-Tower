@@ -9,7 +9,7 @@ import {
 import { useEffect, useRef } from "react";
 import { drawItem } from "../../../gfx/items/items.js";
 import { hoveredStack, landing, selectedStack, type BagMouse } from "./bagMouse.js";
-import { CELL, SCALE } from "./grid.js";
+import { CELL, GRID_FRAME_PX, SCALE } from "./grid.js";
 import { itemInfo } from "./itemInfo.js";
 
 interface GridProps {
@@ -30,40 +30,52 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
   const dragged = from && from.in === name ? grid.items.find((s) => s.x === from.x && s.y === from.y) : undefined;
   const spot = landing(mouse, gear);
   const lands = drag && spot && spot.in === name ? spot : null;
+  const edge = fits ? "border-stamina" : "border-hp";
 
   return (
     <div
-      ref={area} id={`${name}-grid`} data-cols={grid.cols} data-rows={grid.rows}
-      className="relative touch-none select-none" style={{ width: grid.cols * CELL, height: grid.rows * CELL }}
+      className="rounded-sm border border-white/15 bg-black/60 shadow-[inset_0_2px_10px_#000,0_1px_0_#ffffff0d]"
+      style={{ padding: GRID_FRAME_PX - 1 }}
     >
       <div
-        className="absolute inset-0 grid border border-white/15 bg-black/45"
-        style={{ gridTemplateColumns: `repeat(${grid.cols}, ${CELL}px)` }}
+        ref={area} id={`${name}-grid`} data-cols={grid.cols} data-rows={grid.rows}
+        className="relative touch-none select-none" style={{ width: grid.cols * CELL, height: grid.rows * CELL }}
       >
-        {Array.from({ length: grid.cols * grid.rows }, (_, i) => (
-          <div key={i} className="border border-white/[0.06]" />
+        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${grid.cols}, ${CELL}px)` }}>
+          {Array.from({ length: grid.cols * grid.rows }, (_, i) => (
+            <div
+              key={i}
+              className="rounded-[2px] border border-black/70 bg-white/[0.035] shadow-[inset_0_1px_0_#ffffff0f]"
+            />
+          ))}
+        </div>
+        {hovered && <Box id={`${name}-hover`} stack={hovered} className="border border-white/30 bg-white/15" />}
+        {grid.items.map((stack) => (
+          <Placed
+            key={`${stack.x},${stack.y}`} stack={stack} left={stack.x * CELL} top={stack.y * CELL}
+            turned={stack.turned} className={`${ITEM_FRAME} ${stack === dragged ? "opacity-25" : ""}`}
+          />
         ))}
+        {selected && (
+          <Box
+            id={`${name}-selected`} stack={selected} className="border-2 border-victory shadow-[0_0_10px_#e8c45a99]"
+          />
+        )}
+        {drag && lands && (
+          <div
+            id={`${name}-landing`} data-fits={fits} data-x={lands.x} data-y={lands.y}
+            className={`pointer-events-none absolute rounded-[2px] border-2 border-dashed ${edge}`}
+            style={cellBox(lands, footprint(drag.item, drag.turned))}
+          />
+        )}
       </div>
-      {hovered && <Box id={`${name}-hover`} stack={hovered} className="border border-white/30 bg-white/15" />}
-      {grid.items.map((stack) => (
-        <Placed
-          key={`${stack.x},${stack.y}`} stack={stack} left={stack.x * CELL} top={stack.y * CELL} turned={stack.turned}
-          className={stack === dragged ? "opacity-25" : ""}
-        />
-      ))}
-      {selected && (
-        <Box id={`${name}-selected`} stack={selected} className="border-2 border-victory shadow-[0_0_10px_#e8c45a99]" />
-      )}
-      {drag && lands && (
-        <div
-          id={`${name}-landing`} data-fits={fits} data-x={lands.x} data-y={lands.y}
-          className={`pointer-events-none absolute border-2 border-dashed ${fits ? "border-stamina" : "border-hp"}`}
-          style={cellBox(lands, footprint(drag.item, drag.turned))}
-        />
-      )}
     </div>
   );
 }
+
+const ITEM_FRAME =
+  "rounded-[2px] border border-white/10 bg-linear-to-b from-white/[0.09] to-white/[0.02] "
+  + "shadow-[inset_0_0_0_1px_#0008]";
 
 const cellBox = (at: Cell, size: { cols: number; rows: number }) =>
   ({ left: at.x * CELL, top: at.y * CELL, width: size.cols * CELL, height: size.rows * CELL });
@@ -87,9 +99,14 @@ export function Placed({ stack, left, top, turned, className, ...attrs }: Placed
       className={`pointer-events-none absolute ${className}`}
       style={{ left, top, width: cols * CELL, height: rows * CELL }}
     >
-      <ItemPicture item={stack.item} turned={turned} scale={SCALE} />
+      <ItemPicture item={stack.item} turned={turned} />
       {stack.count > 1 && (
-        <span className="absolute right-1 bottom-0.5 text-xs font-semibold tabular-nums [text-shadow:0_1px_2px_#000]">
+        <span
+          className={
+            "absolute right-0.5 bottom-0.5 rounded-[2px] bg-black/75 px-1 text-[11px] leading-4 font-semibold "
+            + "tabular-nums"
+          }
+        >
           {stack.count}
         </span>
       )}
@@ -102,16 +119,17 @@ function Box({ id, stack, className }: { id: string; stack: BagItem; className: 
   return (
     <div
       id={id} data-x={stack.x} data-y={stack.y}
-      className={`pointer-events-none absolute ${className}`}
+      className={`pointer-events-none absolute rounded-[2px] ${className}`}
       style={cellBox(stack, footprint(stack.item, stack.turned))}
     />
   );
 }
 
-/** `scale` screen pixels per art pixel. A turned item is the same picture turned 90° clockwise. */
-export function ItemPicture({ item, turned, scale }: { item: ItemId; turned: boolean; scale: number }) {
+/** At SCALE, or smaller to fit in `maxPx`. A turned item is the same picture turned 90° clockwise. */
+export function ItemPicture({ item, turned, maxPx }: { item: ItemId; turned: boolean; maxPx?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const pic = drawItem(item);
+  const scale = maxPx ? Math.min(SCALE, Math.floor(maxPx / Math.max(pic.width, pic.height))) : SCALE;
   useEffect(() => {
     canvas.current?.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pic.rgba), pic.width), 0, 0);
   }, [pic]);
@@ -140,7 +158,7 @@ export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cel
       }
       style={{ top: at.y + 20, ...side }}
     >
-      <div className="text-sm font-semibold">{info.name}</div>
+      <div className="mb-1 border-b border-white/10 pb-1 font-title text-sm text-victory">{info.name}</div>
       <div className="text-white/65 tabular-nums">Size {info.size}</div>
       <div className="text-white/65 tabular-nums">Weight {info.weight}</div>
       {info.effect && <div className="text-stamina">{info.effect}</div>}
