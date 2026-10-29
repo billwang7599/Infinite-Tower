@@ -5,7 +5,7 @@ import { OverworldActor, OverworldPos, Peer, type OverworldActorData } from "../
 import { facingOnScreen, mirrorFor, type Facing } from "../../modes/overworld/facing.js";
 import { chibiDraw } from "../characters.js";
 import { byEnemy } from "../enemies/index.js";
-import type { Blobs } from "../sky/sky.js";
+import type { Blobs } from "../sky/blobs.js";
 import { spriteMaterial } from "../sprites.js";
 import type { Visual } from "../visuals.js";
 import { standingQuad, type OverworldScene } from "./scene.js";

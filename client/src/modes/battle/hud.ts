@@ -1,13 +1,12 @@
-import {
-  Enemy, Health, heldIn, LocalPlayer, Player, roundTo, Stamina, Wielder, type World,
-} from "@infinite-tower/shared";
+import { Enemy, Health, heldIn, LocalPlayer, Player, roundTo, Stamina, Wielder } from "@infinite-tower/shared";
+import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { resultShown, type BattleContext } from "./context.js";
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
-export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (world: World) => void {
-  return (world) => {
+export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (fight: Fight) => void {
+  return ({ world, duel, players }) => {
     const patch: Partial<BattleHudState> = {
       result: ctx.outcome.state,
       showResult: resultShown(ctx.outcome),
@@ -26,12 +25,13 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (worl
     }
 
     const enemy = world.first(Enemy, Health);
-    const foe = ctx.opponent ? ctx.fight?.players.find((e) => !world.has(e, LocalPlayer)) : enemy?.[0];
+    const rival = duel ? players.findIndex((e) => !world.has(e, LocalPlayer)) : -1;
+    const foe = duel ? players[rival] : enemy?.[0];
     const foeHealth = foe === undefined ? undefined : world.require(foe, Health);
-    patch.duel = ctx.opponent !== null;
+    patch.duel = duel;
     patch.enemyAlive = foeHealth !== undefined && foeHealth.hp > 0;
     if (foeHealth) {
-      patch.enemyName = ctx.opponent?.name ?? enemy?.[1].def.name ?? "";
+      patch.enemyName = (duel ? ctx.who[rival]?.name : enemy?.[1].def.name) ?? "";
       patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
     }
     patch.cue = enemy?.[1].state === "parried" && patch.enemyAlive ? "parried"

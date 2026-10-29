@@ -8,7 +8,7 @@ describe("MouseSettings", () => {
   test("auto lock starts on", () => {
     const m = new MouseSettings();
     assert.equal(autoLock(m), true);
-    assert.equal(m.isDefault(), true);
+    assert.deepEqual(m.toSaved(), {});
   });
 
   test("toSaved is empty when on and says so when off", () => {
@@ -16,7 +16,6 @@ describe("MouseSettings", () => {
     assert.deepEqual(m.toSaved(), {});
     m.setAutoLock(false);
     assert.deepEqual(m.toSaved(), { autoLock: false });
-    assert.equal(m.isDefault(), false);
   });
 
   test("restore keeps an explicit choice", () => {
@@ -65,7 +64,6 @@ describe("MouseSettings: swing sensitivity", () => {
     assert.equal(sensitivity(m), SWING_SENSITIVITY.default);
     m.setSwingSensitivity(SWING_SENSITIVITY.max);
     assert.deepEqual(m.toSaved(), { swingSensitivity: SWING_SENSITIVITY.max });
-    assert.equal(m.isDefault(), false);
     const copy = new MouseSettings();
     copy.restore(m.toSaved());
     assert.equal(sensitivity(copy), SWING_SENSITIVITY.max);

@@ -47,7 +47,6 @@ export function createBattle(opts: BattleOptions): Battle {
     polled: actions.poll(), actions, settings,
     view: { ...START_VIEW, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
-    opponent: null,
     who: [],
     fight: null,
     sync: null,
@@ -111,7 +110,7 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start({ setup, seat, opponent, joined }, net) {
+    start({ setup, seat, joined }, net) {
       ctx.fight?.dispose();
       for (const off of unsubscribe) off();
       ctx.casts = [];
@@ -147,7 +146,6 @@ export function createBattle(opts: BattleOptions): Battle {
       if (joined && joined.fight.players.length === fight.players.length) {
         sync.onSync({ t: "battleSync", step: joined.step, fight: joined.fight, lateSteps: 0, heardStep: joined.step });
       }
-      ctx.opponent = opponent ?? null;
       ctx.who = setup.players.map((p) => p.who);
       ctx.outcome = sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
@@ -181,7 +179,7 @@ export function createBattle(opts: BattleOptions): Battle {
       runFight(fight, sync);
       ctx.events = sync.events.splice(0);
       camera(fight, dt);
-      hud(fight.world);
+      hud(fight);
     },
   };
 }

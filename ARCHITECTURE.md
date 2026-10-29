@@ -202,7 +202,8 @@ main.ts
 - **Duels** (`core/game/duels.ts`): the Challenge key sends `challenge`; the server picks the nearest player within
   `CHALLENGE_RANGE_TILES` who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
   side) and tells both how it goes (`challengeNews`). On `answerChallenge` with accept, both get one `encounter` (the
-  other's seat and their `opponent`) for a `FightSetup` with `duel: true`, no enemies, in the level's `duelArenaId`.
+  other's seat; each player's name and character are in the setup's `who`) for a `FightSetup` with `duel: true`, no
+  enemies, in the level's `duelArenaId`.
   In a duel each player is on their own `side` (every `Fighter` has one: enemies -1, players 0), so every hit, skill
   and parry works player against player; a player's swing is named as its swinger sees it, and `mirrorOf` turns it
   for the other (`combat.ts`). `fight.targets` (what an input's `locked` indexes) is the players instead of the
@@ -391,7 +392,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors and other players (a player's character only the first time) |
-| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; in a duel the `opponent`'s name and character; joining a fight under way, `joined` (the host's name and the fight as it was) |
+| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
 | `battleInputs` | with other players in the fight: their changes of input as the server ran them, each tick it ran any (and before a hash) |
@@ -695,8 +696,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        arrives, stepped only while someone's on it), session.ts (GameSession, one player: their
                        save, their walker in their level's overworld (`me`), the battle they're in; a method per
                        thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
-                       nearestPlayer, the nearest other player in reach; Others, what a session sees of the rest;
-                       LAG_SLACK_TILES),
+                       nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
+                       rest; LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        duels.ts (Duels: challenges, their reach, expiry and news; starting a duel; settling a
                        spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME),
@@ -719,8 +720,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        systems and spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer: a
                        player's walk, character and whether they're fighting), parts.ts (spawnActor from behavior
                        parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay,
-                       grass encounters per player, nearestPlayer), spawner.ts (each spawn an enemy's overworld
-                       actor; one taken into a fight comes back respawnTime after it's decided)
+                       grass encounters per player, nearestHuntablePlayer), spawner.ts (each spawn an enemy's
+                       overworld actor; one taken into a fight comes back respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
                        layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId,
@@ -980,9 +981,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
                        colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows), a
-                       sprite's tint and blob shadows (Blobs: a round one from the sky light, and one away from each
-                       light that reaches it, as dark as that light's share there; blobShadowsAt, tested), the yaw
-                       that turns a shadow card to a light; setDayClock (dev: `?time=`, `window.setTime`)
+                       sprite's tint, the yaw that turns a shadow card to a light. daylight.ts (the day clock,
+                       setDayClock (dev: `?time=`, `window.setTime`); by the sun's height: the direct light, the
+                       sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob shadows, Blobs: a
+                       round one from the sky light, and one away from each light that reaches it, as dark as that
+                       light's share there; blobShadowsAt, tested)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
                          env (its daylight colours and fog), its map lights and build; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
@@ -1107,7 +1110,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | A level's daylight sky, fog and light; a campfire's light | `env` in `LEVEL_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/levels/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
-| The time of day's light: colours by sun height, moonlight, fades, map-light shadows, sprite tint, blob shadows, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
+| The time of day's light: colours by sun height, moonlight, fades | top of `client/src/visuals/sky/daylight.ts` |
+| Map-light shadows, sprite tint, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
+| Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |

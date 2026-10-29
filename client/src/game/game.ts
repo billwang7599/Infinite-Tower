@@ -15,7 +15,7 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
 import { whoHasTheKeys, type UiState } from "../ui/state.js";
-import { setDayClock } from "../visuals/sky/sky.js";
+import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Drawing } from "../visuals/visuals.js";
 import { exposeDebugHandles } from "./debug.js";
 import { startTransition, stepTransition, type Mode, type Transition } from "./transition.js";
@@ -115,7 +115,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     result = null;
     battle.start(msg, net);
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
-    if (msg.opponent) say(ui.notifications, { kind: "duel", with: msg.opponent.name });
+    const rival = msg.setup.duel ? msg.setup.players[1 - msg.seat]?.who : undefined;
+    if (rival) say(ui.notifications, { kind: "duel", with: rival.name });
     else if (msg.joined) say(ui.notifications, { kind: "joinedFight", host: msg.joined.host });
     else say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
     setMode("battle");

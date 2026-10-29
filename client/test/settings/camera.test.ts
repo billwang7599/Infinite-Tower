@@ -9,7 +9,7 @@ describe("CameraSettings", () => {
   test("starts at the default sensitivity", () => {
     const c = new CameraSettings();
     assert.equal(sensitivity(c), SENSITIVITY.default);
-    assert.equal(c.isDefault(), true);
+    assert.deepEqual(c.toSaved(), {});
   });
 
   test("toSaved is empty at the default and holds the value otherwise", () => {
@@ -80,10 +80,10 @@ describe("CameraSettings", () => {
   test("reset brings back the default", () => {
     const c = new CameraSettings();
     c.setSensitivity(0.5);
-    assert.equal(c.isDefault(), false);
+    assert.notDeepEqual(c.toSaved(), {});
     c.reset();
     assert.equal(sensitivity(c), SENSITIVITY.default);
-    assert.equal(c.isDefault(), true);
+    assert.deepEqual(c.toSaved(), {});
   });
 
   test("listeners hear a change but not a value that snaps to the same step", () => {
@@ -140,6 +140,6 @@ describe("CameraSettings", () => {
     c.reset();
     assert.equal(c.sensitivityIsDefault(), true);
     assert.equal(c.get().overworldTurns, 1);
-    assert.equal(c.isDefault(), false);
+    assert.deepEqual(c.toSaved(), { overworldTurns: 1 });
   });
 });

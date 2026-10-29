@@ -6,7 +6,7 @@ import * as shared from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import * as overworldComponents from "../modes/overworld/components.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
-import { setDayClock } from "../visuals/sky/sky.js";
+import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import type { Mode } from "./transition.js";

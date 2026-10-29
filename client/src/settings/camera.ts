@@ -48,8 +48,4 @@ export class CameraSettings extends Store<CameraPrefs> {
   sensitivityIsDefault(): boolean {
     return this.get().sensitivity === SENSITIVITY.default;
   }
-
-  isDefault(): boolean {
-    return this.sensitivityIsDefault() && this.get().overworldTurns === 0;
-  }
 }

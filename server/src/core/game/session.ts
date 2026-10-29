@@ -31,7 +31,7 @@ export interface Others {
   duels: Duels;
 }
 
-export function nearestPlayer(
+export function nearestOtherSession(
   from: GameSession, sessions: Iterable<GameSession>, rangeTiles: number, wanted: (s: GameSession) => boolean,
 ): GameSession | null {
   const at = from.overworld.playerPos(from.me);
@@ -69,7 +69,7 @@ export class GameSession {
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
     private readonly overworldOf: (levelId: string) => Overworld,
-    private readonly others: Others | null = null,
+    private readonly others: Others,
   ) {
     this.vitals = saved.vitals;
     this.wins = saved.wins;
@@ -148,17 +148,17 @@ export class GameSession {
   }
 
   challenge(): void {
-    this.others?.duels.challenge(this);
+    this.others.duels.challenge(this);
   }
 
   answerChallenge(accept: boolean): void {
-    this.others?.duels.answer(this, accept);
+    this.others.duels.answer(this, accept);
   }
 
   joinBattle(): void {
     if (!this.inOverworld) return;
     const reach = JOIN_RANGE_TILES + LAG_SLACK_TILES;
-    const host = nearestPlayer(this, this.others?.online() ?? [], reach, (s) => s.liveBattle !== null);
+    const host = nearestOtherSession(this, this.others.online(), reach, (s) => s.liveBattle !== null);
     if (host) joinBattle(this, host);
     else this.link.send({ t: "joinRefused", reason: "nobodyNear" });
   }

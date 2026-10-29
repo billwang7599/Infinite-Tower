@@ -139,8 +139,9 @@ describe("a duel", () => {
     assert.equal(ea.setup.players.length, 2);
     assert.equal(ea.setup.arena.look, getArena(LEVEL.duelArenaId).look);
     assert.equal(ea.setup.arena.look, "stone-ruins");
-    assert.deepEqual(ea.opponent, { name: B_CHARACTER.name, character: B_CHARACTER });
-    assert.deepEqual(eb.opponent, { name: TEST_CHARACTER.name, character: TEST_CHARACTER });
+    assert.deepEqual(ea.setup.players.map((p) => p.who), [
+      { name: TEST_CHARACTER.name, character: TEST_CHARACTER }, { name: B_CHARACTER.name, character: B_CHARACTER },
+    ]);
     assert.equal(a.session.overworld.playerData(a.session.me).fighting, true);
     assert.equal(b.session.overworld.playerData(b.session.me).fighting, true);
   });

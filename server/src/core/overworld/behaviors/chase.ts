@@ -2,7 +2,7 @@
 import { defineComponent, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos } from "../components.js";
 import { part } from "../parts.js";
-import { nearestPlayer } from "../player.js";
+import { nearestHuntablePlayer } from "../player.js";
 import { faceToward, steerToward } from "./move.js";
 
 export interface ChaseOnSightData {
@@ -27,7 +27,7 @@ export function chaseSystem(): System {
   return (world, dt) => {
     for (const [, c, pos, actor] of world.query(ChaseOnSight, OverworldPos, OverworldActor)) {
       c.stateTime += dt;
-      const player = nearestPlayer(world, pos);
+      const player = nearestHuntablePlayer(world, pos);
       const dx = player ? player.pos.x - pos.x : 0, dz = player ? player.pos.z - pos.z : 0;
       const dist = player?.dist ?? Infinity;
 
