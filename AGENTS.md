@@ -143,6 +143,8 @@ Decided by the user:
   pick). Each time a save loads, what's missing is given: every word, and each kit item not carried, packed into the
   bag where it fits. Dying never takes a kit item: one in a hand stays held, one in the bag keeps its spot, and only
   what was really lost is listed. A fresh player carries 17 of the 60 carry limit, using 7 of the bag's 24 cells.
+  This is temporary, so the user and friends can play around. In the real game dying loses everything on you: the
+  avatar disintegrates and leaves it all behind (whether it can be picked up again is undecided; plan/lore.md).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   sword and the skillbook.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
