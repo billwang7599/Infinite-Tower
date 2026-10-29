@@ -5,7 +5,7 @@
  */
 import {
   HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, Stamina, type Carried, type Entity,
-  type Skillbook, type StepInput, type Vitals,
+  type Skillbook, type StepInput, type Vitals, type World,
 } from "@infinite-tower/shared";
 import { Fight, playerResult, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import type { PlayerLink } from "../ports.js";
@@ -63,6 +63,13 @@ export class BattleRoom {
     if (!s || s.gone || this.ended || !this.started) return;
     if (s.syncedAt !== null && this.fight.steps - s.syncedAt < MIN_SYNC_GAP_STEPS) return;
     this.sendSync(s);
+  }
+
+  edit(seat: number, change: (world: World, player: Entity) => void): void {
+    const e = this.fight.players[seat];
+    if (this.ended || e === undefined) return;
+    change(this.fight.world, e);
+    if (this.started) for (const s of this.seats) if (!s.gone) this.sendSync(s);
   }
 
   /** Player `seat` disconnected: it's over for them now (outcome.ts: LEAVING_LOSES). */

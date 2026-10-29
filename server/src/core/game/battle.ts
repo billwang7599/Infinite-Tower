@@ -37,7 +37,7 @@ export function startBattle(
     arena: getArena(spawn?.arenaId ?? overworld.level.arenaId),
     players: [{
       at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
-      book: session.skillbook, seed: randomSeed(overworld.rng),
+      book: session.skillbook, seed: randomSeed(overworld.rng), invulnerable: session.invulnerable,
     }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],

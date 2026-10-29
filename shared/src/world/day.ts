@@ -22,9 +22,9 @@ export function timeOfDay(nowMs: number): number {
   return dayFraction(WALL_CLOCK, nowMs);
 }
 
-export function retimeDay(
-  clock: DayClock, nowMs: number, change: { offsetFraction?: number; fraction?: number; speed?: number },
-): DayClock {
+export interface DayChange { offsetFraction?: number; fraction?: number; speed?: number }
+
+export function retimeDay(clock: DayClock, nowMs: number, change: DayChange): DayClock {
   const at = change.fraction ?? dayFraction(clock, nowMs);
   return { atMs: nowMs, fraction: wrap(at + (change.offsetFraction ?? 0)), speed: change.speed ?? clock.speed };
 }

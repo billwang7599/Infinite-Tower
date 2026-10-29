@@ -4,15 +4,15 @@
  */
 import {
   emptyCloth, gearBurden, heldIn, itemAt, itemDef, moveGear, nearCampfire, PLAYER, skillOf, validateSkill, takeOne,
-  walkPace, type Bag, type Burden, type Character, type Gear, type GridSpot, type SavedSettings, type Skill,
-  type Skillbook, type Spot, type StepInput, type Stats, type Vitals, type Word,
+  walkPace, type Bag, type Burden, type Character, type Cheat, type Gear, type GridSpot, type SavedSettings,
+  type Skill, type Skillbook, type Spot, type StepInput, type Stats, type Vitals, type Word,
 } from "@infinite-tower/shared";
-import { isEnemyId } from "../enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel, START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { startBattle, type Battle } from "./battle.js";
+import { runCheat } from "./cheats.js";
 import { stateMsg } from "./snapshot.js";
 
 /** 20 a second. */
@@ -32,6 +32,8 @@ export class GameSession {
   settings: SavedSettings;
   character: Character | null;
   skillbook: Skillbook;
+  /** A dev cheat for this connection: not saved. */
+  invulnerable = false;
   private held: Gear;
   private readonly knownWords: Word[];
   private ticks = 0;
@@ -116,10 +118,8 @@ export class GameSession {
     this.save();
   }
 
-  /** Dev servers only: a battle right now against `enemy`, in the arena of its spawn on this level. */
-  debugEncounter(enemy = "wild-boar"): void {
-    if (!this.dev || !this.inOverworld || !isEnemyId(enemy)) return;
-    startBattle(this, null, enemy, this.overworld.level.spawns.find((s) => s.enemy === enemy));
+  cheat(cheat: Cheat): void {
+    if (this.dev) runCheat(this, cheat);
   }
 
   /** Only once: a character is kept for good. */

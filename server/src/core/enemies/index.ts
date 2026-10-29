@@ -20,8 +20,6 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   "goblin-warlock": GOBLIN_WARLOCK,
 };
 
-export const isEnemyId = (id: string): id is EnemyId => Object.hasOwn(ENEMIES, id);
-
 export function rollDrops(enemy: EnemyId, rng: () => number): ItemCounts {
   const loot: ItemCounts = {};
   for (const d of ENEMIES[enemy].drops) if (rng() < d.chance) loot[d.item] = (loot[d.item] ?? 0) + d.count;

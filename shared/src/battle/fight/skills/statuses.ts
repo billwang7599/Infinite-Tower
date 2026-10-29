@@ -1,6 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { SKILL_EFFECTS, REACTIONS, STATUSES, type Reaction, type Status } from "../../../skills/effects.js";
-import { Health, Statuses, type StatusData } from "../../components.js";
+import { Health, Player, Statuses, type StatusData } from "../../components.js";
 
 export function noStatuses(): StatusData {
   return {
@@ -31,6 +31,7 @@ export function damageDealtFactor(world: World, e: Entity): number {
 }
 
 export function hurt(world: World, e: Entity, damage: number): number {
+  if (world.get(e, Player)?.invulnerable) return 0;
   const health = world.require(e, Health), s = world.get(e, Statuses);
   let rest = damage;
   if (s) {

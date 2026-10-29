@@ -6,6 +6,8 @@ import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../weapons/weapons.js";
 import { SLOTS, type Spot } from "../items/gear.js";
+import { ITEM_IDS, type ItemId } from "../items/items.js";
+import { ENEMY_IDS } from "../battle/defs.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
@@ -137,12 +139,25 @@ const SaveSkillMsg = z.object({
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
-/** Ignored in production. `encounter` fights `enemy` (an id), or a wild boar. */
-const DebugMsg = z.object({ t: z.literal("debug"), cmd: z.enum(["encounter"]), enemy: z.string().max(32).optional() });
+export const MAX_GIVE_COUNT = 100;
+
+const CheatSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("encounter"), enemy: z.enum(ENEMY_IDS) }),
+  z.object({ kind: z.literal("invulnerable"), on: z.boolean() }),
+  z.object({
+    kind: z.literal("give"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]),
+    count: z.number().int().min(1).max(MAX_GIVE_COUNT),
+  }),
+  z.object({ kind: z.literal("heal") }),
+]);
+export type Cheat = z.infer<typeof CheatSchema>;
+
+/** Dev servers only: production ignores it. */
+const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, DebugMsg,
+  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

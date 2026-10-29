@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ARENA_LOOK_IDS, inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
-import { isEnemyId } from "../../../src/core/enemies/index.js";
+import { ARENA_LOOK_IDS, ENEMY_IDS, inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
 import { ARENAS, getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/world/level.js";
 
@@ -59,7 +58,7 @@ describe("getLevel", () => {
     const level = getLevel(START_LEVEL);
     assert.equal(isSolid(level.layout, level.spawn.x, level.spawn.z), false);
     assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
-    for (const s of level.spawns) assert.ok(isEnemyId(s.enemy));
+    for (const s of level.spawns) assert.ok(ENEMY_IDS.includes(s.enemy));
     assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
     assert.ok(level.grass.stepDist > 0);
   });

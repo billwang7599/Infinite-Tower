@@ -1,11 +1,11 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
- * The UI writes `settingsScreen`, `creation`, `overworldPanel`, `chant`, `battleBag` and `skillbookScreen` too, and
- * the game watches them. `UiActions` is the other direction.
+ * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag` and `skillbookScreen`
+ * too, and the game watches them. `UiActions` is the other direction.
  */
 import {
-  blankSkillbook, type Carried, type Character, type Credentials, type Gear, type GridSpot, type Skill, type Skillbook,
-  type Spot, type Stats, type Word,
+  blankSkillbook, type Carried, type Character, type Cheat, type Credentials, type DayChange, type Gear, type GridSpot,
+  type Skill, type Skillbook, type Spot, type Stats, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -83,6 +83,12 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
+/** `invulnerable` is the server's say. */
+export interface AdminState {
+  open: boolean;
+  invulnerable: boolean;
+}
+
 export interface PingState {
   /** null until a session's first pong. */
   ms: number | null;
@@ -111,6 +117,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
     layers.push("battleBag");
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
+  if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
   if (ui.creation.get().open) layers.push("creation");
   return layers;
@@ -135,6 +142,8 @@ export interface UiActions {
   saveSkill(page: number, skill: Skill): void;
   saveCharacter(character: Character): void;
   returnToTitle(): void;
+  cheat(cheat: Cheat): void;
+  setDayClock(change: DayChange): void;
 }
 
 export class UiState {
@@ -143,6 +152,7 @@ export class UiState {
   /** The notices in the corner and the banner in the centre; game code reaches them through `say`. */
   readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
+  readonly admin = new Store<AdminState>({ open: false, invulnerable: false });
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });

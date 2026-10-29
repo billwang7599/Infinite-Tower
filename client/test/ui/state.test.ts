@@ -86,6 +86,18 @@ describe("whoHasTheKeys", () => {
     assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "settings"]);
   });
 
+  test("the admin panel is over the world and its screens, in either mode; Settings goes over it", () => {
+    const { ui } = playing("overworld");
+    ui.toggleOverworldPanel("inventory");
+    ui.admin.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["overworld", "bag", "admin"]);
+    ui.openSettings();
+    assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["overworld", "bag", "admin", "settings"]);
+    const battle = playing("battle").ui;
+    battle.admin.set({ open: true });
+    assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "admin"]);
+  });
+
   test("the chant popup is over the arena: you stand still while it's open; Settings goes over it", () => {
     const { ui } = playing("battle");
     ui.chant.set({ open: true });

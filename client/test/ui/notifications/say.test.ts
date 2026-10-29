@@ -77,4 +77,23 @@ describe("say", () => {
     assert.deepEqual(notices(to), [`You eat the ${itemDef("boar-meat").name.toLowerCase()}.`]);
     assert.equal(banner(to), null);
   });
+
+  test("a dev cheat's gift is a notice, and a full bag says what didn't fit", () => {
+    const to = new Notifications();
+    say(to, { kind: "given", item: "boar-meat", count: 3, left: 0 });
+    assert.deepEqual(notices(to), ["You get 3 boar meat."]);
+    const full = new Notifications();
+    say(full, { kind: "given", item: "boar-hide", count: 1, left: 2 });
+    assert.deepEqual(notices(full), ["You get boar hide.", "The bag is full: 2 boar hide didn't fit."]);
+    const none = new Notifications();
+    say(none, { kind: "given", item: "boar-hide", count: 0, left: 2 });
+    assert.deepEqual(notices(none), ["The bag is full: 2 boar hide didn't fit."]);
+  });
+
+  test("a dev cheat's heal is a notice", () => {
+    const to = new Notifications();
+    say(to, { kind: "healed" });
+    assert.deepEqual(notices(to), ["HP and stamina are restored."]);
+    assert.equal(banner(to), null);
+  });
 });

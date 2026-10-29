@@ -28,7 +28,7 @@ describe("input", () => {
 
   test("is ignored during a battle", () => {
     const { session } = startSession({ dev: true });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.input(1, 1, 0);
     assert.equal(session.overworld.playerData().queue.length, 0);
   });
@@ -56,41 +56,6 @@ describe("settings", () => {
     assert.deepEqual(saves[0]?.settings, { camera: { sensitivity: 0.5 } });
     t.mock.timers.tick(5000);
     assert.equal(saves.length, 1);
-  });
-});
-
-describe("debugEncounter", () => {
-  test("starts a battle on a dev server", () => {
-    const { session, link } = startSession({ dev: true });
-    session.debugEncounter();
-    assert.ok(session.battle);
-    assert.equal(link.all("encounter").length, 1);
-  });
-
-  test("starts a battle against the enemy asked for, or the wild boar", () => {
-    const { session, link } = startSession({ dev: true });
-    session.debugEncounter("kobold-swordsman");
-    assert.equal(link.last("encounter").setup.enemies[0]?.def.id, "kobold-swordsman");
-  });
-
-  test("an enemy that doesn't exist starts nothing", () => {
-    const { session, link } = startSession({ dev: true });
-    session.debugEncounter("dragon");
-    assert.equal(session.battle, null);
-    assert.equal(link.all("encounter").length, 0);
-  });
-
-  test("does nothing on a production server", () => {
-    const { session, link } = startSession({ dev: false });
-    session.debugEncounter();
-    assert.equal(session.battle, null);
-    assert.equal(link.all("encounter").length, 0);
-  });
-
-  test("does nothing before the player has a level", () => {
-    const { session, link } = startSession({ dev: true, saved: { character: null } });
-    session.debugEncounter();
-    assert.equal(link.all("encounter").length, 0);
   });
 });
 
@@ -134,7 +99,7 @@ describe("rest", () => {
   test("does nothing during a battle", () => {
     const { session, link } = startSession({ dev: true, saved: { vitals: { hp: 10, stamina: 3 } } });
     session.overworld.place(campfire());
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.rest();
     assert.equal(link.all("rested").length, 0);
     assert.deepEqual(session.vitals, { hp: 10, stamina: 3 });
@@ -198,7 +163,7 @@ describe("useItem", () => {
     const { session, link } = startSession({
       dev: true, saved: { vitals: { hp: 10, stamina: 20 }, bag: bagOf(["boar-meat", 1, 2, 1]) },
     });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.useItem(MEAT_CELL);
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
     assert.equal(link.all("itemUsed").length, 0);
@@ -229,7 +194,7 @@ describe("moveItem", () => {
   test("does nothing during a battle", () => {
     const start = bagOf(["boar-hide", 1, 0, 0]);
     const { session, link } = startSession({ dev: true, saved: { bag: start } });
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.moveItem(bagSpot(0, 0), bagSpot(3, 2), false);
     session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(3, 2), false);
     assert.deepEqual(session.bag, start);
@@ -315,7 +280,7 @@ describe("the cloth", () => {
   test("a fight starting leaves it behind", () => {
     const started = startSession({ dev: true, saved: { bag: bagOf(["boar-tusk", 1, 0, 0]) } });
     started.session.moveItem(bagSpot(0, 0), spot("cloth", 0, 0), false);
-    started.session.debugEncounter();
+    started.session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(started.session.gear.cloth, emptyCloth());
   });
 });
@@ -407,7 +372,7 @@ describe("the skillbook", () => {
 
   test("not by a message during a battle: in a fight, writing is the fight's", () => {
     const { session, link } = knowing();
-    session.debugEncounter();
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.saveSkill(1, FIREBOLT);
     assert.deepEqual(session.skillbook, blankSkillbook());
     assert.deepEqual(link.last("skillbook").skillbook, blankSkillbook());

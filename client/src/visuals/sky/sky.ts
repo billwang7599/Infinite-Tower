@@ -3,7 +3,7 @@ import {
   Scene, StandardMaterial, Vector3, type AbstractMesh, type Material,
 } from "@babylonjs/core";
 import {
-  clamp, dayFraction, moonAt, retimeDay, sunAt, WALL_CLOCK, type DayClock, type Vec3,
+  clamp, dayFraction, moonAt, retimeDay, sunAt, WALL_CLOCK, type DayChange, type DayClock, type Vec3,
 } from "@infinite-tower/shared";
 
 export interface SkyLook {
@@ -51,7 +51,7 @@ const FLICKER_RATE = [7.3, 13.1] as const;
 
 let clock: DayClock = WALL_CLOCK;
 
-export function setDayClock(change: { offsetFraction?: number; fraction?: number; speed?: number }): void {
+export function setDayClock(change: DayChange): void {
   clock = retimeDay(clock, Date.now(), change);
 }
 

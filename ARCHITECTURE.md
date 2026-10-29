@@ -170,6 +170,8 @@ main.ts
   happened in a step as `events` (hits, blocks, a charge slamming the wall). How a fight ends is
   `fight/outcome.ts`: lost when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes,
   a guard on the server's resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
+  Every hit, skill and burn hurts through `hurt` (`fight/skills/statuses.ts`), which spares an invulnerable player
+  (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight).
 - **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle, from the moment every player has
   sent their first input. It keeps a clock (steps since the fight started, one a 60 Hz tick) and runs the fight up to
   it as soon as it knows every player's input for the next step (`InputTimeline`), holding a step back for a late
@@ -336,7 +338,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
 | `ping {id}` | every 2 s, for the HUD's ping |
-| `debug {cmd, enemy?}` | dev server only: `encounter` starts a fight against `enemy` (an id), or a wild boar |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal` |
 
 | Server -> client | When |
 |---|---|
@@ -349,6 +351,7 @@ server's fight a `battleHash`. A `ping` never reaches the session: `Connection` 
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
 | `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, skillbook |
 | `rested`, `itemUsed` | what resting or eating did |
+| `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
 | `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `pong {id}` | the answer to `ping {id}` |
@@ -423,7 +426,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`skilled.test.ts`) and writing a page in it (its time, standing still,
   cancelled by a stun or closing, through a save); Bolt, Nova and Self; chains (from a hit, at full range, at
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
-  the four reactions, their order and cooldowns; Self per element (sword hits included). Each fight test file awaits
+  the four reactions, their order and cooldowns; Self per element (sword hits included); an invulnerable player
+  taking no damage, its flag in the state and hash. Each fight test file awaits
   `initPhysics()` first. Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
@@ -442,6 +446,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, blanked
   by a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
   silent player stopping, lateness, the latest of late chant words kept).
+  The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
+  client.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
@@ -533,7 +539,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
-                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
+                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
@@ -618,13 +624,15 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over), session.ts (GameSession, one player: their save, their overworld, the battle
                        they're in; a method per thing a player can ask; disconnect: mid-fight, leaving it),
+                       cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
                        and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
                        actors within VIEW_RADIUS_TILES), clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
-                       battleHash and battleSync, ends and frees it; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
+                       battleHash and battleSync, ends and frees it; `edit` changes a player's fighter between steps
+                       and sends everyone the fight; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one player's world, level, systems and
@@ -724,11 +732,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant`, `battleBag` and `skillbookScreen` (the UI writes them too, the game watches them;
-                       `whoHasTheKeys`:
-                       the layer stack, the top one gets the keys), and UiActions (what the UI asks of the game:
-                       signIn, logOut, play, rest, useItem, moveItem, castSkill, saveSkill, saveCharacter,
-                       returnToTitle). No React.
+                       `chant`, `battleBag`, `skillbookScreen` and `admin` (the UI writes them too, the game watches
+                       them; `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the
+                       UI asks of the game: signIn, logOut, play, rest, useItem, moveItem, castSkill, saveSkill,
+                       saveCharacter, returnToTitle, cheat, setDayClock). No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
@@ -772,6 +779,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,
                          glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
                          space.ts
+        admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats; the time of day and its speed set
+                         through `setDayClock`), admin.ts (its times, speeds and counts)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
                          (camera and swing sensitivity, Auto mouse lock), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
@@ -966,6 +975,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `screens/`; parts used by more than one screen go in `components/`). If the game has to feed it, add fields to a
   store in `ui/state.ts` and `set` them from game code; if it has to ask the game for something, add a function to
   `UiActions` (main.ts provides them).
+- **A cheat** (dev only). A case in `CheatSchema` (`shared/src/net/client-messages.ts`), its branch in `runCheat`
+  (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
+  and a button in `client/src/ui/screens/admin/AdminPanel.tsx`.
 - **Something the game says to the player.** A case in `GameEvent` (`client/src/ui/notifications/say.ts`) and its
   entry in `EVENT_MESSAGES` (TypeScript errors until you add it): `where: "corner"` (a notice) for anything small,
   `"centre"` (the banner) only for bigger events like a fight starting; long wording gets its own file there, like

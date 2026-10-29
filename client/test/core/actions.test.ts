@@ -249,7 +249,8 @@ describe("Actions: the layers", () => {
       [["overworld", "settings"], "KeyB", "inventory"], [["overworld", "settings"], "KeyE", "rest"],
       [["battle"], "KeyE", "rest"], [["overworld"], "KeyS", "goBack"], [["overworld"], "KeyA", "menuLeft"],
       [["overworld"], "Enter", "confirm"], [["title"], "Escape", "goBack"],
-      [["overworld", "creation"], "KeyB", "inventory"],
+      [["overworld", "creation"], "KeyB", "inventory"], [["overworld", "admin"], "KeyW", "forward"],
+      [["battle", "admin"], "Escape", "menu"],
     ];
     for (const [layers, code, action] of cases) {
       const { press, listen } = setup(...layers);
@@ -289,6 +290,8 @@ describe("Actions: the layers", () => {
       ["bag", "Enter", "useItem"], ["bag", "KeyB", "inventory"], ["bag", "KeyC", "character"],
       ["bag", "Escape", "closeBag"], ["overworld", "Escape", "menu"], ["battle", "Escape", "menu"],
       ["settings", "Escape", "menu"], ["title", "Enter", "play"], ["creation", "Escape", "goBack"],
+      ["overworld", "F1", "adminPanel"], ["battle", "F1", "adminPanel"], ["admin", "F1", "adminPanel"],
+      ["admin", "Escape", "closeAdmin"],
     ];
     for (const [layer, code, action] of cases) {
       const { press, listen } = setup(layer);
