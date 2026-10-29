@@ -9,7 +9,7 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 /** The sword hand rides an arc this far (m) out along the blade from here, plus the blade pose's handZ. */
 const HAND_PIVOT: Vec3 = { x: 0.2, y: 0.92, z: 0 };
 const HAND_ARC_M = 0.28;
-const OFF_HAND: Vec3 = { x: -0.3, y: 0.8, z: 0.16 };
+const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;

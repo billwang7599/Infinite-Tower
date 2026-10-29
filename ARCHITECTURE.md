@@ -793,8 +793,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
                        with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
                        Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
-                       (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and fights with the
-                       swordsman's visual (its blade comes from WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
+                       (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and animation.ts:
+                       the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
+                       WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
                        byEnemy)
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
