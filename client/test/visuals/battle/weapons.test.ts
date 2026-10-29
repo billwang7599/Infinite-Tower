@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  attackShape, PLAYER, reverseOf, SCREEN_DIR, SWING_DIRS, WEAPONS, type SwingData, type SwingDir,
-  type WeaponId,
+  attackShape, followingBlade, PLAYER, restingBlade, reverseOf, SCREEN_DIR, SWING_DIRS, WEAPONS, type AttackKind,
+  type SwingData, type SwingDir, type Vec3, type WeaponId,
 } from "@infinite-tower/shared";
 import { MOTIONS, swingFrame, WEAPON_LOOKS, type TrailPose } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps } from "../../fixtures/swings.js";
 
-const { trail: trailPose, thrust: thrustPose, windup: windupBlade, stroke: strokeBlade } = MOTIONS.sword;
+const { trail: trailPose, thrust: thrustPose, windup, stroke: strokeBlade, held } = MOTIONS.sword;
+const GUARD = held(restingBlade());
+const windupBlade = (attack: AttackKind, k: number) => windup(attack, k, GUARD);
+const near = (a: Vec3, b: Vec3, msg: string) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 1e-9, msg);
 const STAB_RANGE = attackShape("stab", PLAYER.armReachM, WEAPONS.sword).range;
 
 const trail = (aimYaw: number, dir: SwingDir): TrailPose[] =>
@@ -85,6 +88,23 @@ describe("a held blade", () => {
     const start = windupBlade("lr", 1).blade, mid = strokeBlade("lr", 0.5).blade, end = strokeBlade("lr", 1).blade;
     assert.ok(start.x > 0.5 && end.x < -0.5, "across, the way it goes");
     assert.ok(mid.z > 0.9, "straight ahead halfway");
+  });
+
+  test("between swings it's held where the fight's blade stopped: where its swing ended, or the guard", () => {
+    for (const dir of SWING_DIRS) {
+      const stopped = held(followingBlade(dir, 0)), end = strokeBlade(dir, 1);
+      near(stopped.blade, end.blade, dir);
+      assert.equal(stopped.handZ, end.handZ);
+    }
+    assert.ok(GUARD.blade.y > 0.5 && GUARD.blade.z > 0.5, "the guard is up and ahead");
+  });
+
+  test("the next wind-up starts from where the blade is held and ends where its swing starts", () => {
+    const out = held(followingBlade("lr", 0));
+    for (const attack of ["lr", "rl", "tb", "stab"] as const) {
+      near(windup(attack, 0, out).blade, out.blade, attack);
+      near(windup(attack, 1, out).blade, windup(attack, 1, GUARD).blade, attack);
+    }
   });
 
   test("a stab draws the hand back, then thrusts it out", () => {

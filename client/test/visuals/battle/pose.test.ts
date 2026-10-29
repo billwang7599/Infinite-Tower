@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, emptyBag, PARRY, PLAYER, starterEquipment, type PlayerAction, type PlayerData,
+  ATTACK_KINDS, emptyBag, followingBlade, PARRY, PLAYER, restingBlade, starterEquipment, SWING_DIRS,
+  type Blade, type PlayerAction, type PlayerData, type SwingData,
 } from "@infinite-tower/shared";
 import { spritePose } from "../../../src/visuals/battle/pose.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
@@ -17,12 +18,13 @@ function playerDoing(action: PlayerAction, t: number): PlayerData {
   };
 }
 const ATTACKING = playerDoing("attack", 0);
+const holding = (swing: SwingData | null, blade: Blade = restingBlade()) => ({ swing, blade });
 
 describe("the player's sprite", () => {
   test("every attack plays its pose's frames in turn: wind-up, strike as its blade goes live, follow-through", () => {
     for (const attack of ATTACK_KINDS) {
       const steps = swingSteps(attack);
-      const poses = steps.map((swing) => spritePose(ATTACKING, swing, true, 1));
+      const poses = steps.map((swing) => spritePose(ATTACKING, holding(swing), true, 1));
       const name = attack === "stab" ? "stab" : `swing-${attack}`;
       for (const pose of poses) assert.ok(pose.scaleX > 0, `${attack} isn't mirrored`);
       const { driveAt, liveAt } = steps[0]!;
@@ -36,7 +38,7 @@ describe("the player's sprite", () => {
 
   test("blocking raises the sword, then braces; staggered, knocked back for half of it, then stumbling", () => {
     const pose = (action: PlayerAction, t: number, stagger = { left: 0, of: 0 }) => {
-      const { pose, frame } = spritePose(playerDoing(action, t), null, true, 1, stagger);
+      const { pose, frame } = spritePose(playerDoing(action, t), holding(null), true, 1, stagger);
       return [pose, frame];
     };
     assert.deepEqual(pose("block", 0.05), ["block", 0]);
@@ -46,21 +48,31 @@ describe("the player's sprite", () => {
       assert.deepEqual(pose("stagger", 0.1, { left: of * 0.4, of }), ["stagger", 1], `${of} s`);
     }
     assert.deepEqual(pose("none", 0.1), ["stand", 0]);
-    assert.deepEqual(spritePose(playerDoing("none", 0.1), null, false, 1).pose, "down");
-    assert.deepEqual(spritePose(ATTACKING, swingAt("lr", 3), false, 1).pose, "down");
+    assert.deepEqual(spritePose(playerDoing("none", 0.1), holding(null), false, 1).pose, "down");
+    assert.deepEqual(spritePose(ATTACKING, holding(swingAt("lr", 3)), false, 1).pose, "down");
+  });
+
+  test("between swings it holds the sword out where the last swing left it, until it's back at rest", () => {
+    for (const dir of SWING_DIRS) {
+      const out = spritePose(playerDoing("none", 1), holding(null, followingBlade(dir, 0)), true, 1);
+      assert.deepEqual([out.pose, out.frame], [`swing-${dir}`, 2], dir);
+    }
+    assert.equal(spritePose(playerDoing("none", 1), holding(null), true, 1).pose, "stand");
+    const blocking = spritePose(playerDoing("block", 1), holding(null, followingBlade("lr", 0)), true, 1);
+    assert.equal(blocking.pose, "block");
   });
 
   test("every frame it picks is drawn", () => {
     const all = ATTACK_KINDS.flatMap((attack) => swingSteps(attack))
-      .map((swing) => spritePose(ATTACKING, swing, true, 1));
+      .map((swing) => spritePose(ATTACKING, holding(swing), true, 1));
     for (const t of [0, 0.05, 0.15, 1]) {
       for (const action of ["block", "stagger", "none"] as const) {
         for (const left of [0, 0.2, 0.4, 0.8]) {
-          all.push(spritePose(playerDoing(action, t), null, true, 1, { left, of: 0.8 }));
+          all.push(spritePose(playerDoing(action, t), holding(null), true, 1, { left, of: 0.8 }));
         }
       }
     }
-    all.push(spritePose(playerDoing("none", 0), null, false, 1));
+    all.push(spritePose(playerDoing("none", 0), holding(null), false, 1));
     for (const { pose, frame } of all) assert.ok(frame >= 0 && frame < BATTLE_FRAMES[pose], `${pose} ${frame}`);
   });
 });

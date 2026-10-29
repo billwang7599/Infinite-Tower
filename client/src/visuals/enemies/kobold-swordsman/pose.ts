@@ -1,4 +1,4 @@
-import type { AttackKind, EnemyState, Vec3 } from "@infinite-tower/shared";
+import type { AttackKind, Blade, EnemyState, Vec3 } from "@infinite-tower/shared";
 import type { WeaponMotion } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -39,15 +39,16 @@ export interface KoboldPose {
 /** `k`: the share of the state's duration gone; `stroke`: its swing's, while it has one (strokeOf). */
 export function koboldPose(
   state: EnemyState, t: number, k: number, attack: AttackKind, motion: WeaponMotion,
-  stroke: { set: number; turn: number } | null,
+  stroke: { set: number; turn: number } | null, blade: Blade,
 ): KoboldPose {
+  const held = motion.held(blade);
   const p = {
-    ...motion.guard, bladeExact: false, lean: 0, roll: 0,
+    ...held, bladeExact: false, lean: 0, roll: 0,
     rollRate: state === "dead" ? 6 : 12, yOff: 0, stars: state === "parried" || state === "stunned",
   };
   const swinging = stroke !== null && (state === "weaponWindup" || state === "weapon" || state === "weaponRecover");
   if (swinging) {
-    Object.assign(p, stroke.set < 1 ? motion.windup(attack, stroke.set) : motion.stroke(attack, stroke.turn));
+    Object.assign(p, stroke.set < 1 ? motion.windup(attack, stroke.set, held) : motion.stroke(attack, stroke.turn));
     p.bladeExact = stroke.set >= 1;
   }
   switch (state) {
@@ -58,7 +59,6 @@ export function koboldPose(
       p.lean = 0.15;
       break;
     case "weaponRecover":
-      if (!swinging) p.blade = norm({ x: 0.3, y: -0.6, z: 0.5 });
       p.lean = 0.08 * (1 - k);
       break;
     case "parried":
@@ -75,7 +75,7 @@ export function koboldPose(
       break;
   }
   const lead = (ahead: number): Vec3 => !swinging || !stroke ? p.blade : stroke.set < 1
-    ? motion.windup(attack, Math.min(1, stroke.set + LEAD_SET * ahead)).blade
+    ? motion.windup(attack, Math.min(1, stroke.set + LEAD_SET * ahead), held).blade
     : motion.stroke(attack, stroke.turn + LEAD_TURN * ahead).blade;
   const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2);
   return {

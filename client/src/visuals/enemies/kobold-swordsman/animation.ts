@@ -36,10 +36,10 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.legs[0].rotation.x = Math.sin(nodes.gait) * amp;
     nodes.legs[1].rotation.x = -Math.sin(nodes.gait) * amp;
 
-    const swing = world.get(e, Wielder)?.swing;
+    const wielder = world.require(e, Wielder), swing = wielder.swing;
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", nodes.motion,
-      swing ? strokeOf(swing) : null);
+      swing ? strokeOf(swing) : null, wielder.blade);
     nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   attackShape, Enemy, followingBlade, liveStep, planSwing, Player, PLAYER, restingBlade, Stamina, stepsUntil, SWING,
-  WEAPONS, Wielder, type AttackKind, type Blade, type EnemyDef, type PlayerData, type PlayerInputData, type WielderData,
+  WEAPONS, Wielder, type AttackKind, type Blade, type EnemyDef, type PlayerData, type PlayerInputData, type SwingDir,
+  type WielderData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BITER, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -145,18 +146,38 @@ describe("how hard it hits and what it costs", () => {
   });
 });
 
-describe("the blade comes to rest", () => {
+describe("where the blade is between swings", () => {
   const atRest = (p: Played) => assert.deepEqual(p.blades.at(-1), restingBlade());
+  const stoppedAt = (attack: SwingDir): Blade => ({ ...followingBlade(attack, 0), vx: 0, vy: 0 });
 
-  test("it keeps moving a while after a swing, then rests: a gap", () => {
+  test("it keeps moving a while after a swing, then stops where the swing left it and stays there", () => {
     const kinds: AttackKind[] = ["lr", "lr"];
     const going = play(chainOf(kinds), 5 + stepsUntil(SWING.setTime + SWING.driveTime + SWING.activeTime) + 5,
       newFight(FAR));
-    assert.notDeepEqual(going.blades.at(-1), restingBlade(), "moving");
-    atRest(play(chainOf(kinds), 120, newFight(FAR)));
+    assert.ok(Math.hypot(going.blades.at(-1)!.vx, going.blades.at(-1)!.vy) > 0, "moving");
+    for (const attack of ["lr", "tb", "trbl"] as const) {
+      const { blades } = play(chainOf([attack]), 300, newFight(FAR));
+      assert.deepEqual(blades.at(-1), stoppedAt(attack), attack);
+    }
   });
 
-  test("on a block or a dodge", () => {
+  test("the next swing winds up from where the blade stopped: back the way it came is quick, again is slow", () => {
+    const opening = liveStep(SWING.setTime + SWING.driveTime);
+    const after = (attack: AttackKind) => {
+      const p = play(chainOf(["lr"], (step) => (step === 150 ? { attack } : {})), 220, newFight(FAR));
+      assert.equal(p.live[1]! - p.starts[1]!, liveStep(planSwing(SWORD, STRENGTH, stoppedAt("lr"), attack).windupTime),
+        attack);
+      return p.live[1]! - p.starts[1]!;
+    };
+    assert.ok(after("rl") < opening && opening < after("lr"));
+  });
+
+  test("a stopped blade hits as hard as one swung from rest", () => {
+    const after = play(chainOf(["lr"], (step) => (step === 150 ? { attack: "rl" } : {})), 220);
+    assert.deepEqual(after.damage, [BASE_DAMAGE, BASE_DAMAGE]);
+  });
+
+  test("a block or a dodge brings it back to rest", () => {
     for (const breaker of [{ block: true }, { dodge: true, moveX: 1 }]) {
       const script = chainOf(["lr", "lr"], (_step, me) => (me.action === "none" ? breaker : {}));
       const broken = play(script, 120, newFight(FAR));
@@ -164,7 +185,7 @@ describe("the blade comes to rest", () => {
     }
   });
 
-  test("on a hit taken", () => {
+  test("so does a hit taken", () => {
     const late: EnemyDef = {
       ...BITER, maxHp: 1e6, poise: 1e6, attacks: { lunge: { ...BITER.attacks.lunge!, firstDelay: 0.8 } },
     };
@@ -174,11 +195,5 @@ describe("the blade comes to rest", () => {
     assert.ok(at !== undefined, "bitten");
     assert.notDeepEqual(bitten.blades[at - 2], restingBlade(), "it was moving");
     assert.deepEqual(bitten.blades[at - 1], restingBlade());
-  });
-
-  test("from rest, the next swing is an opening again", () => {
-    const after = play(chainOf(["lr"], (step) => (step === 100 ? { attack: "lr" } : {})), 160);
-    assert.equal(after.live[1]! - after.starts[1]!, liveStep(SWING.setTime + SWING.driveTime));
-    assert.equal(after.damage[1], BASE_DAMAGE);
   });
 });

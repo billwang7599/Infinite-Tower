@@ -212,9 +212,11 @@ main.ts
   (`fight/behaviors/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
   call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its drive starts, its blade goes live, is
   done, lets go and is over) and its hit; `weaponSystem` then runs every swing the same way, raising its hitbox exactly
-  while it's live, and brings the blade to rest `SWING.gapTime` after a swing ends. Ending an action or an enemy state
-  (`enter`) ends its swing (`endSwing`, which rests the blade if the swing hadn't let go yet, else leaves it following
-  through); a block, a dodge or a hit taken rests it too (`restBlade`). A parry reads the target's swing.
+  while it's live, and stops the blade `SWING.gapTime` after a swing ends, leaving it where it is, so the next wind-up
+  starts from there. Ending an action or an enemy state (`enter`) ends its swing (`endSwing`, which rests the blade at
+  the guard if the swing hadn't let go yet, else leaves it following through); a block, a dodge or a hit taken rests
+  it too (`restBlade`). Between swings the visuals draw the blade held where the fight has it. A parry reads the
+  target's swing.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
   `target`) and its seed. Whoever drives it calls the same three things: `startCast` (a quick-cast, or a chant's
@@ -399,7 +401,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **shared**: the ECS, math, walking, the view rules, every Zod schema, and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, each attack's reach and
-  shape, the blade's inertia (each order's wind-up, flow, damage, poise and cost as `planSwing` says, coming to rest),
+  shape, the blade's inertia (each order's wind-up, flow, damage, poise and cost as `planSwing` says, staying where a
+  swing left it, back at the guard after a block, a dodge or a hit),
   blocking (stamina by momentum, push back,
   only in front, the guard breaking), whole fights won and lost, the time limit and leaving, a fight's whole state
   (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
@@ -553,7 +556,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live, its blade
-                       resting after a gap; startSwing, endSwing, restBlade; handsOf)
+                       stopping where it is after a gap; startSwing, endSwing, restBlade; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
