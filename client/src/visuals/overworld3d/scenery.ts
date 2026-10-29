@@ -1,6 +1,6 @@
-import { inRect, type LevelLayout, type Rect } from "@infinite-tower/shared";
+import { inRect, type Rect } from "@infinite-tower/shared";
 
-export type PropKind = "tree" | "pine" | "bush" | "rock" | "banner" | "fence" | "tuft" | "flowers" | "tallGrass";
+export type PropKind = "tree" | "pine" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
@@ -9,16 +9,10 @@ export interface Ledge { rect: Rect; topY: number }
 export interface Scenery {
   /** The level's own ground first (top 0), then the ledges round it. */
   ledges: Ledge[];
-  paths: Rect[];
   props: Prop[];
 }
 
-const TALL = new Set<PropKind>(["tree", "pine", "bush", "rock", "banner", "fence"]);
-
-export function walkable(level: LevelLayout): Rect {
-  const maxX = level.halfWidth - level.border, maxZ = level.halfDepth - level.border;
-  return { x: -maxX, z: -maxZ, w: maxX * 2, h: maxZ * 2 };
-}
+const TALL = new Set<PropKind>(["tree", "pine", "bush", "rock", "ruin"]);
 
 export function isTall(kind: PropKind): boolean {
   return TALL.has(kind);

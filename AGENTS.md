@@ -233,6 +233,11 @@ Decided by the user:
 - Dev servers simulate a network ping on the game socket, half each way and in order, so the netcode can be felt
   locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
   Production never delays.
+- The Grass Field is a tile map (the user: "go" on these picks): trees, rocks, water and ruin walls block walking for
+  the player and overworld enemies alike (you slide along them; a walker is a 0.6-tile square), the start, campfire
+  and spawns stayed where they were, and the map grew to 44 x 30 tiles with a ring of trees round it. Still one level,
+  no exits. It's a dusky, muted grassland with warm campfire light, flat and in 3D, and the HUD shows "Floor 1"
+  before its name (the floor comes with the level). Its paths, stream, ruins and tree lines are the agent's layout.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):

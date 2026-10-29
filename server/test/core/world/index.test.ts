@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inTallGrass, type EnemyId } from "@infinite-tower/shared";
+import { inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
 import { isEnemyId } from "../../../src/core/enemies/index.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/world/level.js";
@@ -57,8 +57,7 @@ describe("getLevel", () => {
 
   test("the start level is playable: spawn inside, out of the grass, known enemies, a weighted table", () => {
     const level = getLevel(START_LEVEL);
-    const { halfWidth, halfDepth, border } = level.layout;
-    assert.ok(Math.abs(level.spawn.x) <= halfWidth - border && Math.abs(level.spawn.z) <= halfDepth - border);
+    assert.equal(isSolid(level.layout, level.spawn.x, level.spawn.z), false);
     assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
     for (const s of level.spawns) assert.ok(isEnemyId(s.enemy));
     assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);

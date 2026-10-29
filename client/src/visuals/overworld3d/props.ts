@@ -132,29 +132,20 @@ const flowers: Draw = (pen, rand) => {
   }
 };
 
-const banner: Draw = (pen) => {
-  pen.rect(3, 2, 2, 46, BARK.dark);
-  pen.rect(4, 2, 1, 46, BARK.mid);
-  pen.rect(2, 1, 12, 2, "#c9a24a");
-  pen.rect(5, 3, 8, 22, "#7e1f24");
-  pen.rect(5, 3, 2, 22, "#5a1419");
-  pen.rect(11, 3, 2, 22, "#a32b2c");
-  for (let i = 0; i < 4; i++) pen.rect(5 + i * 2, 25 + (i % 2), 2, 2, "#7e1f24");
-  pen.rect(7, 9, 4, 6, "#d9b44a");
-  pen.rect(8, 8, 2, 8, "#d9b44a");
-  pen.rect(8, 11, 2, 2, "#7e1f24");
+const ruin: Draw = (pen, rand) => {
+  for (let row = 0; row < 5; row++) {
+    const y = 23 - (row + 1) * 4, top = row === 4, shift = row % 2 ? 3 : 0;
+    for (let x = -shift; x < 16; x += 6) {
+      if (top && rand() < 0.45) continue;
+      const tone = [STONE.dark, STONE.mid, STONE.mid, STONE.light][Math.floor(rand() * 4)]!;
+      pen.rect(x + 1, y + 1, 5, 3, tone);
+      pen.rect(x + 1, y + 1, 5, 1, STONE.light);
+      pen.rect(x + 1, y + 3, 5, 1, STONE.deep);
+    }
+  }
+  pen.rect(0, 22, 16, 2, STONE.deep);
+  for (let i = 0; i < 5; i++) pen.rect(rand() * 14, 6 + rand() * 14, 2, 1, "#56693f");
   pen.outline(OUTLINE);
-};
-
-const fence: Draw = (pen) => {
-  for (const x of [1, 17]) {
-    pen.rect(x, 2, 3, 14, BARK.mid);
-    pen.rect(x, 2, 1, 14, BARK.dark);
-  }
-  for (const y of [5, 10]) {
-    pen.rect(0, y, 32, 2, BARK.light);
-    pen.rect(0, y + 1, 32, 1, BARK.dark);
-  }
 };
 
 export const PROP_ART: Record<PropKind, PropArt> = {
@@ -165,8 +156,7 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   tuft: { widthPx: 16, heightPx: 10, draw: tuft },
   tallGrass: { widthPx: 16, heightPx: 14, draw: tallGrass },
   flowers: { widthPx: 16, heightPx: 10, draw: flowers },
-  banner: { widthPx: 16, heightPx: 48, draw: banner },
-  fence: { widthPx: 32, heightPx: 16, draw: fence },
+  ruin: { widthPx: 16, heightPx: 24, draw: ruin },
 };
 
 export function pixelCanvas(

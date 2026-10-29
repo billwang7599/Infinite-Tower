@@ -4,6 +4,7 @@
  */
 import { clamp, type Vec2 } from "../core/math.js";
 import type { LevelLayout } from "../world/layout.js";
+import { mapHalfSize } from "../world/tiles.js";
 
 export const VIEW = {
   /** Tiles visible above and below the camera's center. */
@@ -21,7 +22,8 @@ export function viewHalfWidth(aspect: number): number {
 
 /** Where the camera centers to follow `pos`: on it, except near the level's edge, where it stops. */
 export function viewCenter(level: LevelLayout, pos: Vec2, halfViewWidth: number): Vec2 {
-  const maxX = Math.max(0, level.halfWidth + VIEW.overscan - halfViewWidth);
-  const maxZ = Math.max(0, level.halfDepth + VIEW.overscan - VIEW.halfHeight);
+  const { halfWidth, halfDepth } = mapHalfSize(level);
+  const maxX = Math.max(0, halfWidth + VIEW.overscan - halfViewWidth);
+  const maxZ = Math.max(0, halfDepth + VIEW.overscan - VIEW.halfHeight);
   return { x: clamp(pos.x, -maxX, maxX), z: clamp(pos.z, -maxZ, maxZ) };
 }

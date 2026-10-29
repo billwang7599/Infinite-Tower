@@ -19,6 +19,7 @@ export * from "./skills/skill.js";
 export * from "./skills/effects.js";
 export * from "./weapons/weapons.js";
 export * from "./world/layout.js";
+export * from "./world/tiles.js";
 export * from "./world/arena.js";
 export * from "./overworld/view.js";
 export * from "./net/accounts.js";

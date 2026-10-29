@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { mapHalfSize } from "@infinite-tower/shared";
 import { moveSystem } from "../../../src/core/overworld/behaviors/move.js";
 import { Wander, wander, wanderSystem } from "../../../src/core/overworld/behaviors/wander.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
@@ -54,13 +55,13 @@ describe("wander", () => {
     assert.ok(Math.hypot(at.x - target.x, at.z - target.z) < 0.15 + SPEED * DT);
   });
 
-  test("never picks a point outside the level", () => {
+  test("never heads for a solid tile or past the map's edge: it idles on and picks again", () => {
     const a = wanderer();
-    const edge = a.ctx.level.layout.halfWidth - a.ctx.level.layout.border;
-    pos(a.world, a.e).x = edge - 0.5;
+    const { halfWidth } = mapHalfSize(a.ctx.level.layout);
+    pos(a.world, a.e).x = halfWidth - 0.5;
     a.step(a.w.idleDuration / DT);
-    assert.equal(a.w.state, "walk");
-    assert.ok(a.w.targetX <= edge);
+    assert.equal(a.w.state, "idle");
+    assert.equal(a.w.stateTime, 0, "waits out another idle time");
   });
 
   test("holds off while another behavior is busy, then catches its breath before walking on", () => {

@@ -1,5 +1,5 @@
 /** Wander: idle a while, walk to a random nearby point, repeat. Holds off while a higher behavior is busy. */
-import { clampToLevel, defineComponent, type System } from "@infinite-tower/shared";
+import { defineComponent, isSolid, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos } from "../components.js";
 import type { OverworldContext } from "../context.js";
 import { part } from "../parts.js";
@@ -23,7 +23,7 @@ export const wander = (o: { speed: number; minDist?: number; maxDist?: number })
   minDist: 2, maxDist: 7, ...o, state: "idle", stateTime: 0, idleDuration: 1, targetX: 0, targetZ: 0, wasBusy: false,
 });
 
-/** Give up walking somewhere after this long (stuck on the edge). */
+/** Give up walking somewhere after this long (stuck on a solid tile). */
 const MAX_WALK_TIME = 8;
 
 export function wanderSystem(ctx: OverworldContext): System {
@@ -38,9 +38,9 @@ export function wanderSystem(ctx: OverworldContext): System {
       if (w.state === "idle") {
         if (w.stateTime < w.idleDuration) continue;
         const angle = ctx.rng() * Math.PI * 2, walkDist = w.minDist + ctx.rng() * (w.maxDist - w.minDist);
-        const target = { x: pos.x + Math.cos(angle) * walkDist, z: pos.z + Math.sin(angle) * walkDist };
-        clampToLevel(ctx.level.layout, target);
-        Object.assign(w, { state: "walk", stateTime: 0, targetX: target.x, targetZ: target.z });
+        const targetX = pos.x + Math.cos(angle) * walkDist, targetZ = pos.z + Math.sin(angle) * walkDist;
+        if (isSolid(ctx.level.layout, targetX, targetZ)) { w.stateTime = 0; continue; }
+        Object.assign(w, { state: "walk", stateTime: 0, targetX, targetZ });
         continue;
       }
       const dx = w.targetX - pos.x, dz = w.targetZ - pos.z, dist = Math.hypot(dx, dz);

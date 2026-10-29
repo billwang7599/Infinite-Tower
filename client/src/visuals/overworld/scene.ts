@@ -38,7 +38,7 @@ export function flatSprite(scene: Scene, name: string, sizeTiles: number, materi
 
 export function createOverworldScene(engine: AbstractEngine, state: OverworldState): OverworldScene {
   const scene = new Scene(engine);
-  scene.clearColor = new Color4(0.16, 0.3, 0.16, 1);
+  scene.clearColor = new Color4(0.13, 0.18, 0.12, 1);
   scene.skipPointerMovePicking = true;
 
   // Straight-down orthographic camera: +x right, +z up on screen.

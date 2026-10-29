@@ -1,17 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BURDEN, FIXED_DT, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
+  BURDEN, FIXED_DT, mapHalfSize, WALKER_RADIUS, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, type OverworldState } from "../../../src/modes/overworld/components.js";
 import { Prediction } from "../../../src/modes/overworld/prediction.js";
 import { FakeNet } from "../../fixtures/fake-net.js";
 
-/** Walkable x ∈ [-9, 9], z ∈ [-4, 4]. */
+/** An open 20 x 10 field: x ∈ [-10, 10], z ∈ [-5, 5]. */
 const LEVEL: LevelLayout = {
-  id: "test", name: "Test", theme: "grass-field",
-  halfWidth: 10, halfDepth: 5, border: 1, playerSpeed: 5,
-  grass: [], campfires: [],
+  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5,
+  tiles: Array.from({ length: 10 }, () => ".".repeat(20)), campfires: [],
 };
 
 const RIGHT: WalkInput = { moveX: 1, moveZ: 0 };
@@ -89,7 +88,7 @@ describe("Prediction.step", () => {
     const inputs = Array.from({ length: 30 }, () => RIGHT);
     for (const input of inputs) prediction.step(input);
     assert.deepEqual(pos, walk({ x: 8.99, z: 0 }, inputs));
-    assert.equal(pos.x, LEVEL.halfWidth - LEVEL.border);
+    assert.ok(Math.abs(pos.x - (mapHalfSize(LEVEL).halfWidth - WALKER_RADIUS)) < 1e-9);
   });
 
   test("facing follows the walk in four ways, and standing still keeps it", () => {
