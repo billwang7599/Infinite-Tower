@@ -7,7 +7,7 @@ import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
 import { CHALLENGE_RANGE_TILES, CHALLENGE_TIME } from "../../../src/core/game/duels.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
-import type { GameSession } from "../../../src/core/game/session.js";
+import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
@@ -70,9 +70,16 @@ describe("challenging another player to a duel", () => {
     assert.deepEqual(lastNews(a.link), { kind: "sent", to: B_CHARACTER.name });
   });
 
+  test("a player just past range still counts, for lag", async () => {
+    const { a, b } = await players();
+    place(b.session, { x: LEVEL.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES - 0.05, z: LEVEL.spawn.z });
+    a.session.challenge();
+    assert.deepEqual(lastNews(b.link), { kind: "received", from: TEST_CHARACTER.name });
+  });
+
   test("with nobody within range, nobody is challenged", async () => {
     const { a, b } = await players();
-    place(b.session, { x: LEVEL.spawn.x + CHALLENGE_RANGE_TILES + 0.5, z: LEVEL.spawn.z });
+    place(b.session, { x: LEVEL.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES + 0.2, z: LEVEL.spawn.z });
     a.session.challenge();
     assert.deepEqual(lastNews(a.link), { kind: "nobodyNear" });
     assert.deepEqual(news(b.link), []);

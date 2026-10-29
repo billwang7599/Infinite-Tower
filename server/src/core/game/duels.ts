@@ -3,7 +3,7 @@ import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower
 import { BattleRoom } from "../battle/room.js";
 import { getArena } from "../world/index.js";
 import { fighterOf, seatInBattle } from "./battle.js";
-import { nearestOtherSession, type GameSession } from "./session.js";
+import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
 export const CHALLENGE_TIME = 15;
@@ -23,7 +23,7 @@ export class Duels {
       tell(from, { kind: "busy", who: null });
       return;
     }
-    const to = nearestOtherSession(from, this.online(), CHALLENGE_RANGE_TILES,
+    const to = nearestOtherSession(from, this.online(), CHALLENGE_RANGE_TILES + LAG_SLACK_TILES,
       (s) => s.inOverworld && !s.overworld.playerData(s.me).fighting);
     if (!to) tell(from, { kind: "nobodyNear" });
     else if (this.challengeOf(to)) tell(from, { kind: "busy", who: to.name });
