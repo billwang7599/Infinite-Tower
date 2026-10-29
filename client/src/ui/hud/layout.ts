@@ -4,14 +4,17 @@
  */
 import type { OverworldPanel } from "../state.js";
 import type { Gear } from "@infinite-tower/shared";
-import { CELL, EQUIPMENT_WIDTH_PX, INVENTORY_GAP_PX } from "./inventory/grid.js";
+import { CELL, EQUIPMENT_WIDTH_PX, GRID_FRAME_PX, INVENTORY_GAP_PX } from "./inventory/grid.js";
 
 /** PanelFrame's padding and border, left and right together. */
 const FRAME_PX = 42;
 
 export const CHARACTER_PANEL_WIDTH_PX = 288;
-export const inventoryPanelWidthPx = ({ bag, cloth }: Gear): number =>
-  EQUIPMENT_WIDTH_PX + (cloth.cols + bag.cols) * CELL + (cloth.cols > 0 ? 2 : 1) * INVENTORY_GAP_PX + FRAME_PX;
+export const inventoryPanelWidthPx = ({ bag, cloth }: Gear): number => {
+  const grids = cloth.cols > 0 ? 2 : 1;
+  const gridsPx = (cloth.cols + bag.cols) * CELL + grids * (INVENTORY_GAP_PX + 2 * GRID_FRAME_PX);
+  return EQUIPMENT_WIDTH_PX + gridsPx + FRAME_PX;
+};
 
 /** The side panels' width on screen (PanelFrame, at the top right). */
 export const panelWidthPx = (panel: OverworldPanel, gear: Gear): number =>
