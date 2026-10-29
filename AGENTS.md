@@ -269,9 +269,12 @@ Decided by the user:
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
 - Chat is the whole server's: everyone online hears every line, on any level and in fights. A line shows in the
   chat log and, in the overworld, as a bubble over the speaker's head (in a fight, the log only). / opens it (a
-  binding, in the overworld and the arena), and while it's open it's its own input layer, `chat`, owning only Enter
-  (send) and Esc (close): nothing else fires (no walking, challenges or attacks; you stand still), and the text is
-  typed by the browser into a plain `<input>`. The client sends only the text (trimmed, not empty); the server
+  binding, in the overworld and the arena), and while its box has focus it's its own input layer, `chat`, owning
+  only Enter (send) and Esc (close): nothing else fires (no walking, challenges or attacks; you stand still), and
+  the text is typed by the browser into a plain `<input>`. The layer follows the box's focus, as in WoW or FF14: a
+  click elsewhere (the game) takes it, and the keys go back to the game with the chat still open, its box dimmed
+  with "Press / to chat" (the key read from the bindings); / or a click on the box focuses it again. The client
+  sends only the text (trimmed, not empty); the server
   stamps the character's name. It keeps the last 1000 lines in memory only (lost on a restart) and sends a player
   who joins the last 50. A line is at most 500 characters, and a player at most 10 lines in 5 s; past either, the
   line is dropped and the sender told with a small notice (`MAX_CHAT_CHARS` in `shared/src/net/server-messages.ts`;

@@ -102,6 +102,7 @@ export const CHAT_LOG_LINES = 100;
 
 export interface ChatState {
   open: boolean;
+  focused: boolean;
   lines: readonly ChatLine[];
 }
 
@@ -128,7 +129,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
     layers.push("battleBag");
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
-  if (ui.chat.get().open) layers.push("chat");
+  if (ui.chat.get().focused) layers.push("chat");
   if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
   if (ui.creation.get().open) layers.push("creation");
@@ -196,7 +197,7 @@ export class UiState {
   readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
   readonly battleBag = new Store<{ open: boolean }>({ open: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
-  readonly chat = new Store<ChatState>({ open: false, lines: [] });
+  readonly chat = new Store<ChatState>({ open: false, focused: false, lines: [] });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });

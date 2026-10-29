@@ -1,8 +1,10 @@
 import { MAX_CHAT_CHARS } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
 import type { Actions } from "../../core/actions.js";
+import type { KeyBindings } from "../../settings/bindings.js";
 import { TEXT_INPUT } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
+import { keyName } from "../keyNames.js";
 import type { ChatState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
@@ -12,23 +14,30 @@ const CLOSED_LINES = 3;
 interface ChatProps {
   chat: Store<ChatState>;
   input: Actions;
+  bindings: KeyBindings;
   send: (text: string) => void;
 }
 
-export function Chat({ chat, input, send }: ChatProps) {
+export function Chat({ chat, input, bindings, send }: ChatProps) {
   const open = useStore(chat, (s) => s.open);
+  const focused = useStore(chat, (s) => s.focused);
   const lines = useStore(chat, (s) => s.lines);
+  const openKey = useStore(bindings, (s) => s.general.openChat[0]);
   const [draft, setDraft] = useState("");
   const log = useRef<HTMLOListElement>(null);
+  const box = useRef<HTMLInputElement>(null);
 
   useAction(input, ["openChat", "sendChat", "closeChat"], (action, repeat) => {
     if (action === "openChat") {
-      if (!repeat) chat.set({ open: true });
+      if (!repeat) {
+        chat.set({ open: true });
+        box.current?.focus();
+      }
       return;
     }
     if (action === "sendChat" && draft.trim() !== "") send(draft.trim());
     setDraft("");
-    chat.set({ open: false });
+    chat.set({ open: false, focused: false });
   });
 
   useEffect(() => {
@@ -60,11 +69,23 @@ export function Chat({ chat, input, send }: ChatProps) {
       )}
       {/* enterKeyHint="send" lets its Enter through the keyboard to the chat's layer */}
       {open && (
-        <input
-          id="chat-input" aria-label="Chat message" placeholder="Say something" autoFocus autoComplete="off"
-          enterKeyHint="send" maxLength={MAX_CHAT_CHARS} value={draft} onChange={(e) => setDraft(e.target.value)}
-          className={`pointer-events-auto ${TEXT_INPUT}`}
-        />
+        <div className="pointer-events-auto relative">
+          <input
+            ref={box} id="chat-input" aria-label="Chat message" placeholder="Say something" autoFocus
+            autoComplete="off" enterKeyHint="send" maxLength={MAX_CHAT_CHARS} value={draft}
+            onChange={(e) => setDraft(e.target.value)} onFocus={() => chat.set({ focused: true })}
+            onBlur={() => chat.set({ focused: false })}
+            className={`w-full ${TEXT_INPUT} ${focused ? "" : "pr-32 opacity-50"}`}
+          />
+          {!focused && openKey && (
+            <span
+              id="chat-cue"
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-white/80"
+            >
+              Press {keyName(openKey)} to chat
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

@@ -60,7 +60,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               }}
             />
           )}
-          <Chat chat={ui.chat} input={input} send={actions.sendChat} />
+          <Chat chat={ui.chat} input={input} bindings={settings.bindings} send={actions.sendChat} />
         </>
       )}
       <Notices

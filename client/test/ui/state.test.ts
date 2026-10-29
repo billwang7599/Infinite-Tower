@@ -141,13 +141,23 @@ describe("whoHasTheKeys", () => {
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
   });
 
-  test("the chat goes over the overworld or the arena while it's open; Settings goes over it", () => {
+  test("the chat goes over the overworld or the arena while its box has focus; Settings goes over it", () => {
     for (const mode of ["overworld", "battle"] as const) {
       const { ui } = playing(mode);
-      ui.chat.set({ open: true });
+      ui.chat.set({ open: true, focused: true });
       assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "chat"]);
       ui.openSettings();
       assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "chat", "settings"]);
+    }
+  });
+
+  test("the chat open with its box unfocused (a click on the game) leaves the keys to the world", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { ui } = playing(mode);
+      ui.chat.set({ open: true, focused: true });
+      ui.chat.set({ focused: false });
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode]);
+      assert.equal(ui.chat.get().open, true, "the log stays");
     }
   });
 

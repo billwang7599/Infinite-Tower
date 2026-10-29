@@ -133,8 +133,11 @@ main.ts
   clicks, so the fight sees it like any attack; not while blocking or dragging the camera. In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
   stays the field's), and Enter in a field whose `enterKeyHint` is `send` (the chat's); rebinding takes raw keys
-  with `captureKey`. The chat open is a layer of its own, `chat`, over the overworld or the arena, with only Enter
-  (`sendChat`) and Esc (`closeChat`): the browser types the text into its field, and nothing else fires.
+  with `captureKey`. The chat is a layer of its own, `chat`, over the overworld or the arena, while its field has
+  focus (`ui.chat`'s `focused`, which `Chat.tsx` sets on focus and blur), with only Enter (`sendChat`) and Esc
+  (`closeChat`): the browser types the text into its field, and nothing else fires. A click elsewhere takes the
+  focus and the keys go back to the game, the chat staying open; / (`openChat`) or a click on the field focuses it
+  again.
   Pointer input in the UI stays plain DOM events.
 - **Two modes, one world.** `game/game.ts` runs the frame loop and switches between the overworld
   (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
@@ -545,10 +548,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a saved key keeps a new default off
   it), the keyboard (held, latched, text fields, the chat field's Enter, rebinding's raw key), where each key goes
   (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
-  the chat holding everything but Enter and Esc) and who has them, the chat log's cap, what the keys and buttons ask
-  for (actions; the attack pressed last; swipes into swings), the player's pose, sword trail and thrust, the boar's
-  and the Kobold's poses, effects fired once per step and event, camera, mouse and HUD settings, settings sync, when
-  the mouse is captured, overworld prediction, the fight's sync (only changes sent,
+  the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
+  chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; swipes into swings), the
+  player's pose, sword trail and thrust, the boar's and the Kobold's poses, effects fired once per step and event,
+  camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, the fight's sync
+  (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
   nor dropped; another player's inputs coming late rolled back and replayed; every step's events reported, a
@@ -854,8 +858,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant`, `battleBag`, `skillbookScreen`, `admin`, `challenge` and `chat` (open, and the log:
-                       hearChat keeps the last CHAT_LOG_LINES) (the UI writes them too, the game watches them;
+                       `chant`, `battleBag`, `skillbookScreen`, `admin`, `challenge` and `chat` (open, focused, and
+                       the log: hearChat keeps the last CHAT_LOG_LINES) (the UI writes them too, the game watches them;
                        `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
                        of the game: signIn, logOut, play, interact, challenge, answerChallenge, useItem, moveItem,
                        castSkill, saveSkill, sendChat, saveCharacter, returnToTitle, cheat, setDayClock).
@@ -882,7 +886,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
                        clear of), icons.tsx, Ping.tsx (both HUDs' ping)
       chat/            Chat.tsx (the chat, bottom left in both modes: the log's last lines, or, open, all of it and
-                       the field it's typed in; / opens it, Enter sends, Esc closes)
+                       the field it's typed in; / opens it or focuses it again, Enter sends, Esc closes; unfocused,
+                       the field is dimmed with "Press / to chat", the key read from the bindings)
       skills/          chant.ts (ChantState; the carousel's rules: what the next square takes, `choices` with why
                        a known word doesn't fit, `quickPick`, addWord / undoWord, skillText),
                        SkillBuilder.tsx (the squares sliding left, the word search and list, the number and Backspace
