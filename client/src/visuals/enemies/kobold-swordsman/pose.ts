@@ -1,4 +1,4 @@
-import type { AttackKind, Blade, EnemyState, Vec3 } from "@infinite-tower/shared";
+import { clamp, isSwing, type AttackKind, type Blade, type EnemyState, type Vec3 } from "@infinite-tower/shared";
 import type { WeaponMotion } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -17,6 +17,25 @@ const LEAD_SET = 0.3;
 const TWIST_RAD = 0.6;
 const HIP_SHARE = 0.4;
 const BEND_RAD = 0.15;
+/**
+ * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, a stab's
+ * hand `stabM` further back, the body `leanRad` back; eased off by `goneByTurn`, the turn a stroke goes live on.
+ */
+export const KOBOLD_DRAWBACK = { swingRad: 0.7, stabM: 0.15, leanRad: 0.12, goneByTurn: 1 / 3 };
+
+const smooth = (s: number): number => s * s * (3 - 2 * s);
+
+function drawback(stroke: { set: number; turn: number }): number {
+  return stroke.set < 1 ? smooth(stroke.set) : 1 - smooth(clamp(stroke.turn / KOBOLD_DRAWBACK.goneByTurn, 0, 1));
+}
+
+/** Further round its swing's arc, away from where it sweeps to. */
+function turnedBack(blade: Vec3, rad: number): Vec3 {
+  const flat = Math.hypot(blade.x, blade.y);
+  if (flat < 1e-6) return blade;
+  const a = Math.atan2(blade.z, flat) - rad, out = Math.cos(a) / flat;
+  return { x: blade.x * out, y: blade.y * out, z: Math.sin(a) };
+}
 
 /** Where the kobold's parts head (the model eases toward them), in its own frame: +z ahead. */
 export interface KoboldPose {
@@ -74,6 +93,12 @@ export function koboldPose(
       p.yOff = 0.25;
       break;
   }
+  const handBlade = p.blade, pull = swinging ? drawback(stroke) : 0;
+  if (pull > 0) {
+    if (isSwing(attack)) p.blade = turnedBack(p.blade, KOBOLD_DRAWBACK.swingRad * pull);
+    else p.handZ -= KOBOLD_DRAWBACK.stabM * pull;
+    p.lean -= KOBOLD_DRAWBACK.leanRad * pull;
+  }
   const lead = (ahead: number): Vec3 => !swinging || !stroke ? p.blade : stroke.set < 1
     ? motion.windup(attack, Math.min(1, stroke.set + LEAD_SET * ahead), held).blade
     : motion.stroke(attack, stroke.turn + LEAD_TURN * ahead).blade;
@@ -81,8 +106,8 @@ export function koboldPose(
   return {
     ...p,
     hand: {
-      x: HAND_PIVOT.x + p.blade.x * HAND_ARC_M, y: HAND_PIVOT.y + p.blade.y * HAND_ARC_M,
-      z: HAND_PIVOT.z + p.handZ + p.blade.z * HAND_ARC_M,
+      x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
+      z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
     offHand: OFF_HAND,
     twist: dead ? 0 : TWIST_RAD * chestAt.x,

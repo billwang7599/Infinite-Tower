@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { followingBlade, restingBlade, type AttackKind, type Blade, type EnemyState } from "@infinite-tower/shared";
-import { koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
+import {
+  followingBlade, restingBlade, reverseOf, type AttackKind, type Blade, type EnemyState, type SwingDir, type Vec3,
+} from "@infinite-tower/shared";
+import { KOBOLD_DRAWBACK, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
 import { MOTIONS } from "../../../../src/visuals/battle/weapons.js";
 
 const poseOf = (
@@ -57,6 +59,45 @@ describe("the kobold's pose", () => {
     assert.ok(Math.abs(mid.blade.x) < 0.2, "the blade is only straight ahead");
     assert.ok(mid.twist < 0 && mid.hipTwist < 0, "the body is already turned past it");
     assert.ok(past.twist < mid.twist);
+  });
+
+  const guard = MOTIONS.sword.held(restingBlade()).blade;
+  const fromGuard = (v: Vec3): number => Math.acos(Math.min(1, v.x * guard.x + v.y * guard.y + v.z * guard.z));
+  const swings: SwingDir[] = ["lr", "rl", "tb", "trbl", "bltr"];
+
+  test("a wind-up draws the blade back past its plain path, wider and behind, on an opener and a chained swing", () => {
+    for (const attack of swings) {
+      for (const [name, blade] of [["opener", restingBlade()], ["chained", followingBlade(reverseOf(attack), 0)]] as const) {
+        const set = 0.9, plain = MOTIONS.sword.windup(attack, set, MOTIONS.sword.held(blade)).blade;
+        const wound = poseOf("weaponWindup", 0.5, set, attack, { set, turn: 0 }, blade).blade;
+        assert.ok(fromGuard(wound) > fromGuard(plain), `${attack} ${name}: further from guard`);
+        assert.ok(wound.z < plain.z, `${attack} ${name}: further back`);
+      }
+    }
+  });
+
+  test("the draw-back carries into the drive and is gone by the time the blade goes live", () => {
+    const { goneByTurn } = KOBOLD_DRAWBACK;
+    for (const attack of swings) {
+      const driven = poseOf("weaponWindup", 0.5, 0.95, attack, { set: 1, turn: 0 }).blade;
+      assert.ok(driven.z < MOTIONS.sword.stroke(attack, 0).blade.z, `${attack}: still back as the drive starts`);
+      const live = poseOf("weapon", 0, 0, attack, { set: 1, turn: goneByTurn });
+      assert.deepEqual(live.blade, MOTIONS.sword.stroke(attack, goneByTurn).blade, attack);
+    }
+  });
+
+  test("the body leans back further with the draw-back", () => {
+    const wound = poseOf("weaponWindup", 1, 1, "lr");
+    assert.ok(wound.lean < -0.12 - KOBOLD_DRAWBACK.leanRad / 2);
+  });
+
+  test("a stab's hand starts its thrust drawn further back than its plain stroke, and is on it once live", () => {
+    const { goneByTurn, stabM } = KOBOLD_DRAWBACK, stroke = MOTIONS.sword.stroke;
+    const drawn = poseOf("weaponWindup", 0.5, 0.95, "stab", { set: 1, turn: 0 });
+    const live = poseOf("weapon", 0, 0, "stab", { set: 1, turn: goneByTurn });
+    assert.deepEqual(live.blade, stroke("stab", goneByTurn).blade);
+    const plainTravel = stroke("stab", goneByTurn).handZ - stroke("stab", 0).handZ;
+    assert.ok(Math.abs(live.hand.z - drawn.hand.z - (plainTravel + stabM)) < 1e-9);
   });
 
   test("dead it falls over; parried it sees stars", () => {
