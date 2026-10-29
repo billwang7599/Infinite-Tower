@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
-import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
+import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { startSession } from "./helpers.js";
 
 before(() => initPhysics());

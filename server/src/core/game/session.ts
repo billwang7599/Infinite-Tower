@@ -10,7 +10,7 @@ import {
 import { isEnemyId } from "../enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import { Overworld } from "../overworld/overworld.js";
-import { getLevel, START_LEVEL } from "../levels/index.js";
+import { getLevel, START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { startBattle, type Battle } from "./battle.js";
 import { stateMsg } from "./snapshot.js";

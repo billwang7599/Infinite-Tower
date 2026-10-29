@@ -1,9 +1,9 @@
 /** Draws a "grass-field" level: short grass ground, the tall-grass patches and the tree border, in pixel art. */
 import { MeshBuilder, TransformNode, type DynamicTexture, type Scene } from "@babylonjs/core";
 import { seededRandom, type LevelLayout } from "@infinite-tower/shared";
+import { layerY } from "../../overworld/scene.js";
 import { pixelMaterial } from "../../sprites.js";
 import { pixelTexture } from "../../textures.js";
-import { layerY } from "../scene.js";
 
 /** Tiles across the short-grass texture (16 texels a tile): big enough that the repeat isn't obvious. */
 const GRASS_TEXTURE_TILES = 8;

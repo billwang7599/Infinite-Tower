@@ -496,7 +496,9 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 
 **Names.** The 2D map is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
 `modes/overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode),
-and the place it happens is the **arena**. React components are PascalCase `.tsx` files that export components only
+and the place it happens is the **arena**. The tower's places are the **world** (shared `world/`, server
+`core/world/`, client `visuals/levels/` and `visuals/arenas/`): the tower has floors, a floor has levels, and a level
+names the arena its fights happen in. React components are PascalCase `.tsx` files that export components only
 (so Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the
 name (`MAX_BODY_BYTES`).
 
@@ -519,13 +521,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom, nextRandom),
                    time.ts
-  overworld/       layout.ts (LevelLayout: what the client may see of a level, campfires included; stepWalker for
-                   prediction + replay; nearCampfire / REST_RANGE), view.ts (VIEW: how much a screen shows, at most
-                   16:9; viewCenter, the camera's edge rule)
+  world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, campfires
+                   included; stepWalker for prediction + replay; nearCampfire / REST_RANGE), arena.ts (ArenaDef: an
+                   arena's id, radius and ArenaLook, sent in each encounter's FightSetup)
+  overworld/       view.ts (VIEW: how much a screen shows, at most 16:9; viewCenter, the camera's edge rule)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (EnemyDef = body + stats +
-                   optional attacks, ArenaDef), input.ts (PlayerInput; StepInput, a change of input on the wire,
+                   optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
                    FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
@@ -623,8 +626,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        from behavior parts), context.ts (OverworldContext, what systems get), player.ts (input queue
                        + replay, grass encounters, findPlayer), spawner.ts (each spawn an enemy's overworld actor)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move
-      levels/          level.ts (LevelDef: layout, spawn point, spawns, encounter table, arena), index.ts (every
-                       level by id: the Grass Field)
+      world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
+                       layout, spawn point, spawns, encounter table, arenaId; rollEnemy), index.ts (LEVELS and
+                       ARENAS by id, START_LEVEL, getLevel, getArena)
+        floors/1/        Floor 1's levels, a file each: grass-field.ts (the Grass Field and its arena)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; isEnemyId, rollDrops)
@@ -816,9 +821,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, and any skilled fighter's chant circle and chant
-                         words), arenaStage (the scenery per arena size, the camera on the mode's view plus shake, the
+                         words), arenaStage (the scenery per arena, the camera on the mode's view plus shake, the
                          lock-on's diamond)
-        arena.ts         The scenery: grass, stones, forest
         materials.ts     The arena's materials (the player's frames among them)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
                          Imbue's colour)
@@ -843,17 +847,23 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         scene.ts         OverworldScene: the scene, ortho camera, materials; layerY, flatSprite
         overworld.ts     WALKERS (the player's and each enemy's sprite: glide, hop, facing, tuft, "!"), overworldStage
                          (the level, the camera following the player within the view's edge rule)
-        levels/          Level renderers by LevelLayout.theme: index.ts (registry, buildLevel, any theme's campfires,
-                         flickering), grass-field.ts (terrain and its textures)
       overworld3d/     The opt-in 3D overworld (`?world=3d`, overworldLookFrom in visuals.ts picks it): the same
                        level, actors and rules drawn HD-2D style
         scene.ts         Overworld3dScene: perspective camera, sun, shadows, bloom, colour grade, vignette and the
                          tilt-shift blur (GLSL); the sprite materials; standingQuad
         overworld3d.ts   WALKERS_3D (chibi and enemy billboards, blob shadows, "!"), overworld3dStage (level, camera)
-        scenery.ts       Where the ledges, roads and props go, round where you can walk (no Babylon: tested)
+        scenery.ts       Scenery's shapes (ledges, roads, props) and the rules every level's keeps: walkable,
+                         groundY, isTall
         terrain.ts       Builds it: cliff blocks, grass tops and fringes, the field's ground texture, instanced props,
                          the campfire's light
         props.ts         The pixel-art props (trees, pines, bushes, rocks, grass, flowers, banners, fences); Pen
+      levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS, one line each:
+                       the flat overworld's builder and the 3D overworld's scenery; buildLevel, any level's
+                       campfires, flickering)
+        grass-field/     grass-field.ts (the flat terrain and its textures), scenery.ts (where its 3D ledges, roads
+                         and props go, round where you can walk; no Babylon: tested)
+      arenas/          Each arena's scenery, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each)
+        grass-field/     grass-field.ts (grass, a dirt floor, the ring of standing stones, the forest)
 ```
 
 ## Adding things
@@ -862,8 +872,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   handler in `client/src/game/game.ts`'s `net.listen({...})`.
-- **A level.** A `LevelDef` in `server/src/core/levels/index.ts`; reuse a theme or add a renderer in
-  `client/src/visuals/overworld/levels/`.
+- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts`, exporting its
+  `LevelDef`, and its line in `LEVELS` (`server/src/core/world/index.ts`). It names its arena by `arenaId`. For a new
+  look, a theme in `LevelLayout["theme"]` (`shared/src/world/layout.ts`), a folder named by it in
+  `client/src/visuals/levels/` (the flat builder and the 3D scenery) and its line in `LEVEL_LOOKS`.
+- **An arena.** An `ArenaDef` (id, radius, look) beside the level that fights in it, and its line in `ARENAS`. For a
+  new look, a name in `ArenaLook` (`shared/src/world/arena.ts`), a folder named by it in `client/src/visuals/arenas/`
+  and its line in `ARENA_LOOKS` (TypeScript errors until it's there). The wall's shape is the fight's
+  (`arena-physics.ts`), from the radius.
 - **An enemy.** Its id in `EnemyId` (`shared/src/battle/defs.ts`); a file named by it in `server/src/core/enemies/`
   (its `EnemyDef` combining behaviors, its drops, its overworld actor's behavior parts) and its line in `ENEMIES`;
   a folder named by it in `client/src/visuals/enemies/` (model, pose and its test, animation, sprite) and its line
@@ -942,7 +958,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back a Kobold draws its blade (and leans) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
 | Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
-| Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
+| Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/world/floors/` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |

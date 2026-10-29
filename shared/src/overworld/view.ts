@@ -3,7 +3,7 @@
  * server's choice of actors to send both follow it.
  */
 import { clamp, type Vec2 } from "../core/math.js";
-import type { LevelLayout } from "./layout.js";
+import type { LevelLayout } from "../world/layout.js";
 
 export const VIEW = {
   /** Tiles visible above and below the camera's center. */

@@ -20,7 +20,7 @@ const STATUE: EnemyDef = { ...ENEMIES["wild-boar"].def, walkSpeed: 0, turnRate: 
 
 export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerAt = PLAYER_START): FightSetup {
   return {
-    arena: { radius: 16 },
+    arena: { id: "test", radius: 16, look: "grass-field" },
     players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
       burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],

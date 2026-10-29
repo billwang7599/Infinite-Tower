@@ -8,7 +8,7 @@ import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
 import type { Gear } from "../items/gear.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
-import type { LevelLayout } from "../overworld/layout.js";
+import type { LevelLayout } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";

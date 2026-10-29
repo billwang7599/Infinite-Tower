@@ -3,12 +3,12 @@ import {
   ActiveHit, ATTACK_KINDS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
   PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject, Stamina, starterEquipment, Statuses, WeaponAttack,
   Wielder,
-  type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
+  type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
-export const ARENA = { radius: 8 };
+export const ARENA: ArenaDef = { id: "test", radius: 8, look: "grass-field" };
 export const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 
 const ENEMY_BASE: EnemyDef = {

@@ -2,7 +2,7 @@
 import { World, type EnemyId, type Entity, type Vec2 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
 import type { OverworldContext } from "../../../src/core/overworld/context.js";
-import type { LevelDef } from "../../../src/core/levels/level.js";
+import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 
 interface Encounter { source: Entity | null; enemy: EnemyId }

@@ -54,7 +54,7 @@ describe("a Beam", () => {
   test("doesn't reach past its range", () => {
     const B = SKILL_EFFECTS.beam;
     const fight = new Fight({
-      arena: { radius: 20 }, players: [player(ME)],
+      arena: { ...ARENA, radius: 20 }, players: [player(ME)],
       enemies: [enemy(STATUE, at(0, ME.z + B.rangeM + STATUE.radius + B.radiusM + 0.3))],
     });
     castNow(fight, BEAM_WATER);

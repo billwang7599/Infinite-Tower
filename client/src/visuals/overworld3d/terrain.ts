@@ -3,11 +3,11 @@ import {
   type Mesh, type Scene,
 } from "@babylonjs/core";
 import { inRect, seededRandom, type LevelLayout } from "@infinite-tower/shared";
+import { drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { spriteMaterial } from "../sprites.js";
-import { drawCampfire, FLICKER_TIME } from "../overworld/levels/index.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, spriteLook, standingQuad, type Overworld3dScene } from "./scene.js";
-import { grassFieldScenery, isTall, type Ledge, type PropKind, type Scenery } from "./scenery.js";
+import { isTall, type Ledge, type PropKind, type Scenery } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -19,13 +19,9 @@ export interface Level3d {
   flicker(dt: number): void;
 }
 
-const BUILDERS: Record<LevelLayout["theme"], (level: LevelLayout) => Scenery> = {
-  "grass-field": grassFieldScenery,
-};
-
 export function buildLevel3d(view: Overworld3dScene, level: LevelLayout): Level3d {
   const { scene, sunShadows } = view, root = new TransformNode(`level3d-${level.id}`, scene);
-  const scenery = BUILDERS[level.theme](level);
+  const scenery = LEVEL_LOOKS[level.theme].scenery(level);
   const lit = (name: string, tex: DynamicTexture) => {
     const m = new StandardMaterial(name, scene);
     m.diffuseTexture = tex;

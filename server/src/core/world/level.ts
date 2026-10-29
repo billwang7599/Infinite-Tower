@@ -1,5 +1,5 @@
 /** A level. Only `layout` is sent to the client; the rest stays here so a player can't read or change it. */
-import type { ArenaDef, EnemyId, LevelLayout, Vec2 } from "@infinite-tower/shared";
+import type { EnemyId, LevelLayout, Vec2 } from "@infinite-tower/shared";
 
 export interface SpawnDef {
   enemy: EnemyId;
@@ -21,7 +21,7 @@ export interface LevelDef {
   layout: LevelLayout;
   /** Where you appear when you enter, and wake up after losing a fight. */
   spawn: Vec2;
-  arena: ArenaDef;
+  arenaId: string;
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
   spawns: SpawnDef[];
   grass: EncounterTable;

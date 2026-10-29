@@ -8,10 +8,6 @@ import type { Modifier, Segment, SkillElement } from "../skills/skill.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Stats } from "./stats.js";
 
-export interface ArenaDef {
-  radius: number;
-}
-
 /** Damage is at strength 10. */
 export interface AttackDef {
   range: number;

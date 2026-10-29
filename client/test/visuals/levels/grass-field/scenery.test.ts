@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inRect, inTallGrass, type LevelLayout } from "@infinite-tower/shared";
-import {
-  grassFieldScenery, groundY, isTall, walkable,
-} from "../../../src/visuals/overworld3d/scenery.js";
+import { grassFieldScenery } from "../../../../src/visuals/levels/grass-field/scenery.js";
+import { groundY, isTall, walkable } from "../../../../src/visuals/overworld3d/scenery.js";
 
 const LEVEL: LevelLayout = {
   id: "test-field", name: "Test Field", theme: "grass-field", halfWidth: 20, halfDepth: 13, border: 1.6,
   playerSpeed: 5, grass: [{ x: 3, z: 1, w: 11, h: 7 }], campfires: [{ x: -9, z: -2.5 }],
 };
 
-describe("the 3D overworld's scenery", () => {
+describe("the Grass Field's 3D scenery", () => {
   const scenery = grassFieldScenery(LEVEL);
   const area = walkable(LEVEL);
 

@@ -3,8 +3,8 @@ import {
   Body, dampFactor, LocalPlayer, REACTIONS, Skilled, Statuses, type Entity, type Reaction, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { ARENA_LOOKS } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
-import { buildArena } from "./arena.js";
 import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
 import { impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
@@ -101,7 +101,7 @@ function easeCorrection(offset: Vec3, moved: Vec3): void {
 
 export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; frame(world: World, dt: number): void } {
   const lookAt = new Vector3();
-  let arena: { radius: number; meshes: Mesh[] } | null = null;
+  let arena: { id: string; meshes: Mesh[] } | null = null;
   const marker = MeshBuilder.CreatePolyhedron("lock-marker", { type: 1, size: 0.12 }, ctx.scene);
   marker.scaling.y = 1.8;
   const material = new StandardMaterial("lock-marker", ctx.scene);
@@ -112,9 +112,10 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
 
   return {
     newFight(fight) {
-      if (arena?.radius !== fight.arena.radius) {
+      const { id, look, radius } = fight.arena;
+      if (arena?.id !== id) {
         for (const mesh of arena?.meshes ?? []) mesh.dispose();
-        arena = { radius: fight.arena.radius, meshes: buildArena(ctx, fight.arena.radius) };
+        arena = { id, meshes: ARENA_LOOKS[look](ctx, radius) };
       }
       ctx.shake = 0;
       ctx.impacts.clear();

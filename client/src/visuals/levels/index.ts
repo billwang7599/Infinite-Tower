@@ -1,17 +1,19 @@
-/**
- * Level renderers by theme: the layout's `theme` picks the function that draws it. Everything a renderer makes hangs
- * off the returned root node, so leaving the level is one dispose.
- */
 import type { Scene, TransformNode } from "@babylonjs/core";
 import type { LevelLayout } from "@infinite-tower/shared";
-import { spriteMaterial, type SpriteDraw } from "../../sprites.js";
-import { flatSprite, layerY } from "../scene.js";
-import { buildGrassField } from "./grass-field.js";
+import { flatSprite, layerY } from "../overworld/scene.js";
+import type { Scenery } from "../overworld3d/scenery.js";
+import { spriteMaterial, type SpriteDraw } from "../sprites.js";
+import { buildGrassField } from "./grass-field/grass-field.js";
+import { grassFieldScenery } from "./grass-field/scenery.js";
 
-type LevelRenderer = (scene: Scene, level: LevelLayout) => TransformNode;
+interface LevelLook {
+  /** Everything it makes hangs off the returned root, so leaving the level is one dispose. */
+  build(scene: Scene, level: LevelLayout): TransformNode;
+  scenery(level: LevelLayout): Scenery;
+}
 
-const LEVEL_RENDERERS: Record<LevelLayout["theme"], LevelRenderer> = {
-  "grass-field": buildGrassField,
+export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
+  "grass-field": { build: buildGrassField, scenery: grassFieldScenery },
 };
 
 export interface LevelDrawing {
@@ -20,7 +22,7 @@ export interface LevelDrawing {
 }
 
 export function buildLevel(scene: Scene, level: LevelLayout): LevelDrawing {
-  const root = LEVEL_RENDERERS[level.theme](scene, level);
+  const root = LEVEL_LOOKS[level.theme].build(scene, level);
   return { root, flicker: buildCampfires(scene, level, root) };
 }
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { VIEW, viewCenter, viewHalfWidth, type LevelLayout } from "@infinite-tower/shared";
-import { TEST_LAYOUT } from "./level.js";
+import { TEST_LAYOUT } from "../world/level.js";
 
 describe("viewHalfWidth", () => {
   test("grows with the screen's width, up to 16:9", () => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FIXED_DT, stepWalker } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
-import type { LevelDef } from "../../../src/core/levels/level.js";
+import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_LEVEL } from "../../fixtures/level.js";
 import { actors } from "./helpers.js";
 

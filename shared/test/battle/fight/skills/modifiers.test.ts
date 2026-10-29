@@ -14,7 +14,7 @@ const ME: Vec3 = { x: 0, y: 0.05, z: -4 };
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 
 const fightWith = (enemies: Vec3[], radius = ARENA.radius) =>
-  new Fight({ arena: { radius }, players: [player(ME)], enemies: enemies.map((e) => enemy(STATUE, e)) });
+  new Fight({ arena: { ...ARENA, radius }, players: [player(ME)], enemies: enemies.map((e) => enemy(STATUE, e)) });
 const lostHp = (fight: Fight, i: number) => {
   const health = fight.world.require(fight.enemies[i]!, Health);
   return health.max - health.hp;
@@ -170,7 +170,7 @@ describe("Split", () => {
   });
 
   const seeded = (seed: number, radius = ARENA.radius) =>
-    new Fight({ arena: { radius }, players: [player(ME, { seed })], enemies: [enemy(STATUE, at(5, 5))] });
+    new Fight({ arena: { ...ARENA, radius }, players: [player(ME, { seed })], enemies: [enemy(STATUE, at(5, 5))] });
   const startOf = (o: SkillObjectData): Vec3 => ({
     x: o.pos.x - o.dir.x * o.flownM, y: o.pos.y - o.climbPerM * Math.min(o.flownM, o.climbUntilM),
     z: o.pos.z - o.dir.z * o.flownM,

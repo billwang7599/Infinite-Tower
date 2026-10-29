@@ -4,7 +4,7 @@
  * spawns on the right, far from the player.
  */
 import { DEFAULT_LOOK, type Character } from "@infinite-tower/shared";
-import type { LevelDef } from "../../src/core/levels/level.js";
+import type { LevelDef } from "../../src/core/world/level.js";
 
 export const TEST_LEVEL: LevelDef = {
   layout: {
@@ -14,7 +14,7 @@ export const TEST_LEVEL: LevelDef = {
     campfires: [{ x: -12, z: 0 }],
   },
   spawn: { x: -15, z: 0 },
-  arena: { radius: 16 },
+  arenaId: "grass-field",
   spawns: [{ enemy: "wild-boar", at: { x: 14, z: 5 }, respawnTime: 3 }],
   grass: { stepDist: 1, chance: 0.5, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   safeTime: 2,

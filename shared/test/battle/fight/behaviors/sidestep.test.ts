@@ -14,7 +14,7 @@ const BOLT = skill(segment("bolt", ["water"]));
 const STEP = STEPPER.sidestep!;
 
 const fightWith = (def: EnemyDef, { me = ME, them = THEM, seed = 1, radius = ARENA.radius } = {}) =>
-  new Fight({ arena: { radius }, players: [player(me)], enemies: [{ ...enemy(def, them), seed }] });
+  new Fight({ arena: { ...ARENA, radius }, players: [player(me)], enemies: [{ ...enemy(def, them), seed }] });
 const them = (fight: Fight) => fight.enemies[0]!;
 const lostHp = (fight: Fight) => {
   const health = fight.world.require(them(fight), Health);

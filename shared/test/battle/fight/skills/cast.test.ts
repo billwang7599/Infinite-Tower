@@ -174,7 +174,7 @@ describe("chains", () => {
 
   test("a Bolt that misses hands off at its full range", () => {
     const fight = new Fight({
-      arena: { radius: 40 }, players: [player(at(0, 0))],
+      arena: { ...ARENA, radius: 40 }, players: [player(at(0, 0))],
       enemies: [enemy(STATUE, at(0, SKILL_EFFECTS.bolt.rangeM + 2))],
     });
     castNow(fight, skill(segment("bolt", ["fire"]), segment("nova", ["water"])));

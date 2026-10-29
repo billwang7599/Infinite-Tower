@@ -11,7 +11,7 @@ import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { getLevel, START_LEVEL } from "../../../src/core/levels/index.js";
+import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { findBoar, startSession } from "./helpers.js";
 
 before(() => initPhysics());
@@ -91,7 +91,7 @@ describe("starting a battle", () => {
     const msg = link.last("encounter");
     assert.equal(msg.source, null);
     assert.equal(msg.seat, 0);
-    assert.deepEqual(msg.setup.arena, LEVEL.arena);
+    assert.deepEqual(msg.setup.arena, getArena(LEVEL.arenaId));
     const seed = msg.setup.enemies[0]?.seed;
     assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");

@@ -9,6 +9,7 @@ import {
 import { BattleRoom } from "../battle/room.js";
 import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
+import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
 
 export interface Battle {
@@ -29,7 +30,7 @@ export function startBattle(session: GameSession, source: Entity | null, enemyId
   const { overworld, vitals } = session;
   const { bag, equipment } = session.gear;
   const setup: FightSetup = {
-    arena: overworld.level.arena,
+    arena: getArena(overworld.level.arenaId),
     players: [{
       at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
       book: session.skillbook, seed: randomSeed(overworld.rng),

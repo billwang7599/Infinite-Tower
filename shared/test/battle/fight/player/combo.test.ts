@@ -19,7 +19,7 @@ const TOUGH: EnemyDef = { ...STATUE, maxHp: 10000 };
 
 /** Stamina enough for any chain here. */
 const newFight = (at = NEAR, def: EnemyDef = TOUGH) => new Fight({
-  arena: { radius: Math.max(ARENA.radius, at + 2) },
+  arena: { ...ARENA, radius: Math.max(ARENA.radius, at + 2) },
   players: [player({ x: 0, y: 0.05, z: 0 }, {
     vitals: { hp: PLAYER.maxHp, stamina: 1000 }, stats: { ...STATS, stamina: 1000 },
   })],

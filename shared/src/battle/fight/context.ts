@@ -2,8 +2,8 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Form, SkillElement } from "../../skills/skill.js";
+import type { ArenaDef } from "../../world/arena.js";
 import type { TeamId } from "../components.js";
-import type { ArenaDef } from "../defs.js";
 import type { ArenaPhysics } from "./physics/arena-physics.js";
 
 export type FightState = "fighting" | "won" | "lost";

@@ -22,7 +22,7 @@ interface Played { fight: Fight; events: FightEvent[] }
 function play(def: EnemyDef, enemyZ: number, seconds: number, script: (step: number) => Partial<PlayerInputData>,
   stamina: number = STATS.stamina): Played {
   const fight = new Fight({
-    arena: { radius: Math.max(ARENA.radius, 12) },
+    arena: { ...ARENA, radius: Math.max(ARENA.radius, 12) },
     players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: PLAYER.maxHp, stamina } })],
     enemies: [enemy(def, { x: 0, y: 0.05, z: enemyZ })],
   });
