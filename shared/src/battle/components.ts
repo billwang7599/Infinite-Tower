@@ -248,6 +248,11 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   swingsLeft: number;
   /** Seconds until it can parry again. */
   parryCooldown: number;
+  /** A side as in `GUARD`; while it moves there, `guardFrom` stays covered. */
+  guardSide: number;
+  guardFrom: number;
+  guardMoveTime: number;
+  guardHoldTime: number;
 }
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {

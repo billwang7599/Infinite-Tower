@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, followingBlade, planSwing, restingBlade, SWING_DIRS, WEAPONS, Wielder, type AttackKind,
-  type EnemyDef,
+  Body, Enemy, FIXED_DT, followingBlade, guardBlade, Health, planSwing, restingBlade, SWING_DIRS, WeaponAttack, WEAPONS,
+  Wielder, type AttackKind, type EnemyDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, IDLE, player, swings, SWORDSMAN } from "./fixtures.js";
@@ -81,6 +81,7 @@ describe("the swordsman's chains", () => {
       arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100000, stamina: 100 } })],
       enemies: [enemy(hasty, { x: 0, y: 0.05, z: 2 })],
     });
+    Object.assign(fight.world.require(fight.enemies[0]!, WeaponAttack), { guardSide: 0, guardHoldTime: 999 });
     const windups: number[] = [];
     for (let i = 0; i < 120; i++) {
       const was = fight.world.require(fight.enemies[0]!, Enemy).state;
@@ -88,7 +89,8 @@ describe("the swordsman's chains", () => {
       const now = fight.world.require(fight.enemies[0]!, Enemy);
       if (now.state === "weaponWindup" && was !== "weaponWindup") windups.push(now.duration);
     }
-    const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, restingBlade(), "lr");
+    // From the guard it holds, out to the right: "lr" starts on the left.
+    const first = planSwing(WEAPONS.sword, CHAINER.stats.strength, guardBlade(0), "lr");
     const second = planSwing(WEAPONS.sword, CHAINER.stats.strength, followingBlade("lr", first.flow), "rl");
     assert.deepEqual(windups.slice(0, 2), [first.windupTime, second.windupTime]);
   });

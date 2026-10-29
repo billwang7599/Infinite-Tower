@@ -1,12 +1,14 @@
 /**
  * Hits, checked after each physics step with plain math, not physics triggers. A player may parry a hit (the
- * reverse swing, in time) or block it; a swordsman on guard parries a player's swing and blocks a stab.
+ * reverse swing, in time) or block it; a swordsman on guard parries a swing from the side it guards and blocks a
+ * stab.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import { clamp, type Vec2, type Vec3 } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import {
-  isSwing, PARRY, planSwing, restingBlade, reverseOf, weaponIn, type AttackKind, type HitShape,
+  guardCovers, isSwing, PARRY, planSwing, restingBlade, reverseOf, swingSide, weaponIn, type AttackKind,
+  type HitShape,
 } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Stamina, Statuses, WeaponAttack, Wielder,
@@ -15,6 +17,7 @@ import {
 import { PLAYER } from "../player.js";
 import { FighterStats } from "../stats.js";
 import type { FightEvent } from "./context.js";
+import { turnGuard } from "./behaviors/weapon.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
 import { endSwing, restBlade, stopBlade } from "./weapons/swing.js";
@@ -188,7 +191,6 @@ function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number): void {
   if (attack) attack.cooldown = Math.max(attack.cooldown, stunTime + attack.def.cooldown);
 }
 
-/** A hit reaching an enemy: one on guard with a weapon parries a swing (blocks a stab); anything else lands. */
 function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): Resolved {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
   const at = world.require(target, Body).pos, from = world.require(attacker, Body);
@@ -202,7 +204,8 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
       return "blocked";
     }
     const player = world.get(attacker, Player);
-    if (guard.parryCooldown <= 0 && player) {
+    const covered = guard.guardMoveTime > 0 ? guard.guardFrom : guard.guardSide;
+    if (guardCovers(covered, hit.attack) && guard.parryCooldown <= 0 && player) {
       guard.parryCooldown = guard.def.parryCooldown;
       player.action = "stagger";
       // On guard, its blade isn't swinging: it meets the hit with what an opening swing of its own would carry.
@@ -225,6 +228,7 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   const damage = hurt(world, target, hit.damage * bonus * damageDealtFactor(world, attacker));
   health.flash = HIT_FLASH_TIME;
   if (!parried) enemy.poise -= hit.poiseDamage;
+  if (guard && hit.attack !== null && isSwing(hit.attack)) turnGuard(enemy, guard, swingSide(hit.attack));
   siphon(world, attacker, damage);
   events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
   return "landed";

@@ -68,7 +68,10 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
   weapon: (world, e, def) => {
-    world.add(e, WeaponAttack, { def, cooldown: def.firstDelay, swingsLeft: 0, parryCooldown: 0 });
+    world.add(e, WeaponAttack, {
+      def, cooldown: def.firstDelay, swingsLeft: 0, parryCooldown: 0,
+      guardSide: 0, guardFrom: 0, guardMoveTime: 0, guardHoldTime: 0,
+    });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },
 };

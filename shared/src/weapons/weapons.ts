@@ -218,3 +218,29 @@ export const PARRY = {
   /** Only an attacker within this cosine of where the parrier faces can be parried. */
   minDot: 0.5,
 } as const;
+
+/** Sides as the player sees them: 0 is the right, then anticlockwise. */
+export const GUARD = {
+  sides: 8,
+  minHoldTime: 1.5,
+  maxHoldTime: 3,
+  moveTime: 0.3,
+  /** In the blade's screen units: 1 is a swing's end. */
+  bladeOut: 0.8,
+} as const;
+
+const SIDE_RAD = (2 * Math.PI) / GUARD.sides;
+
+export function swingSide(dir: SwingDir): number {
+  const way = SCREEN_DIR[dir];
+  return (Math.round(Math.atan2(-way.y, -way.x) / SIDE_RAD) + GUARD.sides) % GUARD.sides;
+}
+
+export function guardCovers(side: number, dir: SwingDir): boolean {
+  const apart = Math.abs(swingSide(dir) - side) % GUARD.sides;
+  return Math.min(apart, GUARD.sides - apart) <= 1;
+}
+
+export const guardBlade = (side: number): Blade => ({
+  x: Math.cos(side * SIDE_RAD) * GUARD.bladeOut, y: Math.sin(side * SIDE_RAD) * GUARD.bladeOut, vx: 0, vy: 0,
+});
