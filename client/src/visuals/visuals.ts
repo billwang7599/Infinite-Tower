@@ -166,10 +166,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
     const me = fight?.players.find((e) => fight.world.has(e, LocalPlayer));
     if (!fight || me === undefined) return;
     painted = paintHeld(playerLook, painted, fight, me);
-    const rival = from.battle.opponent && fight.players.find((e) => e !== me);
-    if (rival === null || rival === undefined) return;
-    rivalLook.wear(from.battle.opponent!.character.look);
-    rivalPainted = paintHeld(rivalLook, rivalPainted, fight, rival);
+    // Every other player wears the first one's look: there's one set of their pictures.
+    const rival = fight.players.findIndex((e) => e !== me), who = from.battle.who[rival];
+    if (!who) return;
+    rivalLook.wear(who.character.look);
+    rivalPainted = paintHeld(rivalLook, rivalPainted, fight, fight.players[rival]!);
   };
 
   const drawArena = (dt: number) => {

@@ -32,7 +32,7 @@ export interface Game {
   leave(): void;
   /** Once the server's result is in: fade back to the overworld. */
   leaveBattle(): void;
-  rest(): void;
+  interact(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
   useItem(at: GridSpot): void;
@@ -58,7 +58,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   let net: Net | null = null;
   let stopSync = () => {};
   let transition: Transition | null = null;
-  /** The fight being flashed into or fought. */
+  /** The fight being flashed into. */
   let encounter: ServerMsgOf<"encounter"> | null = null;
   /** Held while the player is still in the arena: applied when they leave it. */
   let result: ServerMsgOf<"battleResult"> | null = null;
@@ -116,6 +116,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
     battle.start(msg, net);
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
     if (msg.opponent) say(ui.notifications, { kind: "duel", with: msg.opponent.name });
+    else if (msg.joined) say(ui.notifications, { kind: "joinedFight", host: msg.joined.host });
     else say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
     setMode("battle");
   };
@@ -151,7 +152,10 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       ui.screen.set({ fadeColor: fade.color, fadeOpacity: fade.opacity });
       if (fade.swapNow) {
         if (transition.to === "overworld") enterOverworld();
-        else if (encounter) enterBattle(encounter);
+        else if (encounter) {
+          enterBattle(encounter);
+          encounter = null;
+        }
       }
       if (fade.done) transition = null;
     }
@@ -170,8 +174,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       if (mode !== "battle" || transition || !result) return;
       transition = startTransition("overworld");
     },
-    rest() {
-      if (mode === "overworld" && !transition) overworld.rest();
+    interact() {
+      if (mode === "overworld" && !transition) overworld.interact();
     },
     challenge() {
       if (mode === "overworld" && !transition) net?.send({ t: "challenge" });
@@ -220,6 +224,12 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
         encounter = msg;
         transition = startTransition("battle");
       });
+      net.on("battleJoined", ({ player }) => {
+        // Still flashing in: the fight is built with them in it.
+        if (encounter) encounter.setup.players.push(player);
+        if (player.who) say(ui.notifications, { kind: "joinedYou", who: player.who.name });
+      });
+      net.on("joinRefused", ({ reason }) => say(ui.notifications, { kind: "joinRefused", reason }));
       net.on("character", (msg) => applyCharacter(msg.character));
       net.on("rested", (msg) => {
         overworld.setVitals(msg.vitals);

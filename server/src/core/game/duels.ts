@@ -3,20 +3,19 @@
  * arena of their own. A spar costs and wins nothing: both come back with the HP and stamina they went in with.
  */
 import {
-  distXZ, FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals,
+  FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../battle/room.js";
 import { getArena } from "../world/index.js";
-import { randomSeed } from "./battle.js";
-import type { GameSession } from "./session.js";
+import { fighterOf } from "./battle.js";
+import { nearestPlayer, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
 export const CHALLENGE_TIME = 15;
 
 interface Challenge { from: GameSession; to: GameSession; stepsLeft: number }
 
-const nameOf = (session: GameSession): string => session.character?.name ?? session.account.username;
 const tell = (session: GameSession, news: ChallengeNews) => session.link.send({ t: "challengeNews", news });
 
 export class Duels {
@@ -32,11 +31,11 @@ export class Duels {
     }
     const to = this.nearestInReach(from);
     if (!to) tell(from, { kind: "nobodyNear" });
-    else if (this.challengeOf(to)) tell(from, { kind: "busy", who: nameOf(to) });
+    else if (this.challengeOf(to)) tell(from, { kind: "busy", who: to.name });
     else {
       this.open.add({ from, to, stepsLeft: Math.round(CHALLENGE_TIME / FIXED_DT) });
-      tell(to, { kind: "received", from: nameOf(from) });
-      tell(from, { kind: "sent", to: nameOf(to) });
+      tell(to, { kind: "received", from: from.name });
+      tell(from, { kind: "sent", to: to.name });
     }
   }
 
@@ -44,7 +43,7 @@ export class Duels {
     const challenge = this.challengeOf(to);
     if (!challenge || challenge.to !== to) return;
     this.open.delete(challenge);
-    if (!accept) tell(challenge.from, { kind: "declined", by: nameOf(to) });
+    if (!accept) tell(challenge.from, { kind: "declined", by: to.name });
     else if (this.stillOn(challenge)) startDuel(challenge.from, challenge.to);
     else this.callOff(challenge);
   }
@@ -56,8 +55,8 @@ export class Duels {
         this.callOff(challenge);
       } else if (--challenge.stepsLeft <= 0) {
         this.open.delete(challenge);
-        tell(challenge.from, { kind: "expired", with: nameOf(challenge.to) });
-        tell(challenge.to, { kind: "expired", with: nameOf(challenge.from) });
+        tell(challenge.from, { kind: "expired", with: challenge.to.name });
+        tell(challenge.to, { kind: "expired", with: challenge.from.name });
       }
     }
   }
@@ -73,41 +72,26 @@ export class Duels {
   }
 
   private callOff({ from, to }: Challenge): void {
-    tell(from, { kind: "cancelled", with: nameOf(to) });
-    tell(to, { kind: "cancelled", with: nameOf(from) });
+    tell(from, { kind: "cancelled", with: to.name });
+    tell(to, { kind: "cancelled", with: from.name });
   }
 
   private nearestInReach(from: GameSession): GameSession | null {
-    const at = from.overworld.playerPos(from.me);
-    let best: { session: GameSession; dist: number } | null = null;
-    for (const session of this.online()) {
-      if (session === from || !session.inOverworld || session.overworld !== from.overworld) continue;
-      if (session.overworld.playerData(session.me).fighting) continue;
-      const dist = distXZ(at, session.overworld.playerPos(session.me));
-      if (dist <= CHALLENGE_RANGE_TILES && (!best || dist < best.dist)) best = { session, dist };
-    }
-    return best?.session ?? null;
+    return nearestPlayer(from, this.online(), CHALLENGE_RANGE_TILES,
+      (s) => s.inOverworld && !s.overworld.playerData(s.me).fighting);
   }
 }
 
 function startDuel(a: GameSession, b: GameSession): void {
   const duelists = [a, b];
-  const { overworld } = a;
   const setup: FightSetup = {
-    arena: getArena(overworld.level.duelArenaId),
+    arena: getArena(a.overworld.level.duelArenaId),
     duel: true,
     enemies: [],
-    players: duelists.map((s, i) => {
-      s.closeBag();
-      const { bag, equipment } = s.gear;
-      return {
-        at: DUEL_STARTS[i]!, vitals: s.vitals, stats: s.stats, burden: s.burden, gear: { bag, equipment },
-        book: s.skillbook, seed: randomSeed(overworld.rng), invulnerable: s.invulnerable,
-      };
-    }),
+    players: duelists.map((s, i) => ({ ...fighterOf(s), at: DUEL_STARTS[i]! })),
   };
   const room = new BattleRoom(setup, duelists.map((s, i) => {
-    const before = { ...s.vitals }, opponent = nameOf(duelists[1 - i]!);
+    const before = { ...s.vitals }, opponent = duelists[1 - i]!.name;
     return { link: s.link, onEnd: (result, _after, book, gear) => settleDuel(s, result, before, opponent, book, gear) };
   }));
   duelists.forEach((s, seat) => {
@@ -116,7 +100,7 @@ function startDuel(a: GameSession, b: GameSession): void {
     const other = duelists[1 - seat]!;
     s.link.send({
       t: "encounter", source: null, me: s.overworld.playerPos(s.me), seat, setup,
-      opponent: { name: nameOf(other), character: other.character! },
+      opponent: { name: other.name, character: other.character! },
     });
   });
 }

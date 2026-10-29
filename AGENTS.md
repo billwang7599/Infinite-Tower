@@ -337,11 +337,11 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The shared overworld: one per level, made when its first player arrives, for everyone on it. Other players show as
   their own chibi with their name above (a character is sent each time they come into view), gliding toward the
   server's positions as enemies do, and pass through each other. An enemy a player touches leaves the overworld for
-  everyone at once; it comes back `respawnTime` after that fight is decided (even while its fighter is still on the
-  result screen), whether they won or lost (a loss used to leave it standing). Two players touching one on the same
-  tick: the first in the server's order gets it. A player in a battle stays where they were, with crossed swords over
-  their name, and enemies pass them over: they don't notice, chase or touch them, and the safe time after a fight
-  starts only once they're back.
+  everyone at once; it comes back `respawnTime` after that fight is over for everyone in it (even while its fighters
+  are still on the result screen), whether they won or lost (a loss used to leave it standing). Two players touching
+  one on the same tick: the first in the server's order gets it. A player in a battle stays where they were, with
+  crossed swords over their name, and enemies pass them over: they don't notice, chase or touch them, and the safe time
+  after a fight starts only once they're back.
   Enemies go for the nearest player they may. Tall grass rolls per player. Other players are sent within the same
   `VIEW_RADIUS_TILES` as actors.
 - Duels (the user: "request pvp with another player to send them both into an isolated arena"; the rest are the
@@ -358,6 +358,17 @@ them; treat them as changeable, and still ask before deciding new ones):
   both, at the time limit), no death, nothing lost or gained, no wins, and both come back where they stood with the
   HP and stamina they went in with; pages written and gear moved in it are kept. Leaving or disconnecting forfeits:
   the other wins, the leaver loses nothing. The arena banner says VICTORY / DEFEATED.
+- Joining a battle (the user: "another user can join a users' arena if theyre mid battle"; the rest are the agent's
+  picks from plan/multiplayer.md): within 1.6 tiles (`JOIN_RANGE_TILES`) of a player's crossed swords, the Rest key
+  (E, now "Rest at a campfire, or join a fight"; it joins when no campfire is closer) or the HUD's "Join the fight"
+  button joins their battle; the server checks the reach with the same lag slack as resting (`LAG_SLACK_TILES`). Up
+  to 4 players in a battle at once (`MAX_BATTLE_PLAYERS`); duels can't be joined; a refusal is a notice. A joiner
+  comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies go for the
+  nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
+  (the bag emptied, waking at the level's start), and the fight goes on for the rest; won, everyone still in it counts
+  a win and rolls their own drops (one down on the very step it's won still wins, standing at 1 HP). A joiner who
+  disconnects has lost as `LEAVING_LOSES` says; the rest fight on, and the host leaving doesn't end it for the others.
+  The joiner hears "You join <host>'s fight!" in the centre banner, the others "<name> joins the fight." in a corner.
 
 ## Commands
 

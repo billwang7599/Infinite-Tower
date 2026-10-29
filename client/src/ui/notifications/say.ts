@@ -12,6 +12,9 @@ export type GameEvent =
   /** A fight starting. `source` is the actor that touched you, or null for tall grass. */
   | { kind: "encounter"; source: ServerMsgOf<"encounter">["source"]; enemy: Pick<EnemyDef, "name"> }
   | { kind: "duel"; with: string }
+  | { kind: "joinedFight"; host: string }
+  | { kind: "joinedYou"; who: string }
+  | { kind: "joinRefused"; reason: ServerMsgOf<"joinRefused">["reason"] }
   | { kind: "challenge"; news: ChallengeNews }
   | { kind: "rested" }
   | { kind: "itemUsed"; item: ItemId }
@@ -34,6 +37,9 @@ interface EventMessage<E extends GameEvent> {
 export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K>> } = {
   encounter:    { where: "centre", lines: (event) => [encounterLine(event)] },
   duel:         { where: "centre", lines: (event) => [`A duel with ${event.with}!`] },
+  joinedFight:  { where: "centre", lines: ({ host }) => [`You join ${host}'s fight!`] },
+  joinedYou:    { where: "corner", lines: ({ who }) => [`${who} joins the fight.`] },
+  joinRefused:  { where: "corner", lines: ({ reason }) => [JOIN_REFUSED[reason]] },
   challenge:    { where: "corner", lines: ({ news }) => challengeLines(news) },
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
@@ -52,6 +58,12 @@ export function say(to: Notifications, event: GameEvent): void {
     else to.notify(line);
   }
 }
+
+const JOIN_REFUSED: Record<ServerMsgOf<"joinRefused">["reason"], string> = {
+  nobodyNear: "Nobody close by is fighting.",
+  full: "That fight is full.",
+  duel: "A duel can't be joined.",
+};
 
 function encounterLine({ source, enemy }: EventOf<"encounter">): string {
   return source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`;

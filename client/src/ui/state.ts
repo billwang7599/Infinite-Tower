@@ -51,10 +51,12 @@ export interface OverworldHudState {
   stats: Stats | null;
   /** null until they've made one. */
   character: Character | null;
-  /** The Rest button shows. */
-  nearCampfire: boolean;
+  /** What the Rest key and the button over it do where you stand. */
+  interaction: Interaction | null;
   gear: Gear;
 }
+
+export type Interaction = "rest" | "joinFight";
 
 /** A word over the fight for a moment: you parried the enemy, or you're staggered. */
 export type BattleCue = "none" | "parried" | "staggered";
@@ -139,7 +141,7 @@ export interface UiActions {
   signIn(kind: SignInKind, credentials: Credentials): void;
   logOut(): void;
   play(): void;
-  rest(): void;
+  interact(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
   useItem(at: GridSpot): void;
@@ -166,7 +168,7 @@ export class UiState {
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
   readonly overworld = new Store<OverworldHudState>({
     levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null,
-    nearCampfire: false,
+    interaction: null,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] },
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

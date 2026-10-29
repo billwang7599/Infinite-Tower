@@ -3,25 +3,44 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  emptyCloth, gearBurden, heldIn, itemAt, itemDef, moveGear, nearCampfire, PLAYER, skillOf, validateSkill, takeOne,
-  walkPace, type Bag, type Burden, type Character, type Cheat, type Entity, type Gear, type GridSpot,
-  type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type Vitals, type Word,
+  distXZ, emptyCloth, gearBurden, heldIn, itemAt, itemDef, JOIN_RANGE_TILES, moveGear, nearCampfire, PLAYER, skillOf,
+  validateSkill, takeOne, walkPace, type Bag, type Burden, type Character, type Cheat, type Entity, type Gear,
+  type GridSpot, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type Vitals,
+  type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
-import { startBattle, type Battle } from "./battle.js";
+import { joinBattle, startBattle, type Battle } from "./battle.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
 import { stateMsg } from "./snapshot.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
-/** Leeway on the campfire's reach (see `nearCampfire`). */
-const REST_SLACK_TILES = 0.6;
+/** Leeway on a reach the server checks (a campfire's, a battle's): its copy of you trails the client's. */
+export const LAG_SLACK_TILES = 0.6;
 /** Small changes (settings, the bag) are written at most this often, so a client can't hammer the database. */
 const SAVE_SOON_MS = 1000;
+
+export interface Others {
+  online(): Iterable<GameSession>;
+  duels: Duels;
+}
+
+export function nearestPlayer(
+  from: GameSession, sessions: Iterable<GameSession>, rangeTiles: number, wanted: (s: GameSession) => boolean,
+): GameSession | null {
+  const at = from.overworld.playerPos(from.me);
+  let best: { session: GameSession; dist: number } | null = null;
+  for (const session of sessions) {
+    if (session === from || !session.inLevel || session.overworld !== from.overworld || !wanted(session)) continue;
+    const dist = distXZ(at, session.overworld.playerPos(session.me));
+    if (dist <= rangeTiles && (!best || dist < best.dist)) best = { session, dist };
+  }
+  return best?.session ?? null;
+}
 
 export class GameSession {
   battle: Battle | null = null;
@@ -49,7 +68,7 @@ export class GameSession {
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
     private readonly overworldOf: (levelId: string) => Overworld,
-    private readonly duels: Duels | null = null,
+    private readonly others: Others | null = null,
   ) {
     this.vitals = saved.vitals;
     this.wins = saved.wins;
@@ -128,11 +147,19 @@ export class GameSession {
   }
 
   challenge(): void {
-    this.duels?.challenge(this);
+    this.others?.duels.challenge(this);
   }
 
   answerChallenge(accept: boolean): void {
-    this.duels?.answer(this, accept);
+    this.others?.duels.answer(this, accept);
+  }
+
+  joinBattle(): void {
+    if (!this.inOverworld) return;
+    const reach = JOIN_RANGE_TILES + LAG_SLACK_TILES;
+    const host = nearestPlayer(this, this.others?.online() ?? [], reach, (s) => s.battle?.over === false);
+    if (host) joinBattle(this, host);
+    else this.link.send({ t: "joinRefused", reason: "nobodyNear" });
   }
 
   cheat(cheat: Cheat): void {
@@ -151,7 +178,7 @@ export class GameSession {
   /** Refills HP and stamina, if the server's copy of you is standing by a campfire. */
   rest(): void {
     if (!this.inOverworld) return;
-    if (!nearCampfire(this.overworld.level.layout, this.overworld.playerPos(this.me), REST_SLACK_TILES)) return;
+    if (!nearCampfire(this.overworld.level.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES)) return;
     const full = fullVitals(this.stats);
     if (full.hp !== this.vitals.hp || full.stamina !== this.vitals.stamina) {
       this.vitals = full;
@@ -214,6 +241,10 @@ export class GameSession {
 
   /** Walking around a level: not in a battle, and not still making a character. */
   get inOverworld(): boolean { return this.battle === null && this.walking !== null; }
+
+  get name(): string { return this.character?.name ?? this.account.username; }
+
+  get inLevel(): boolean { return this.walking !== null; }
 
   /** Throws while they're still making a character. */
   get overworld(): Overworld {

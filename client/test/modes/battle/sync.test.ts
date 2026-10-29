@@ -388,3 +388,37 @@ describe("a duel: the other player's inputs come from the server", () => {
     assert.deepEqual(fight.save(), truth.save());
   });
 });
+
+describe("a player joining the fight", () => {
+  const JOINER = { ...SETUP.players[0]!, at: { x: 3, y: 0.05, z: -6 } };
+
+  test("told who, the copy takes the server's fight with them in it and replays your inputs since", () => {
+    const { fight, sync, server } = setup();
+    for (let step = 1; step <= 20; step++) sync.advance(script(step));
+    for (let step = 1; step <= 12; step++) server.fight.step([quantizeInput(script(step))]);
+    server.fight.join(JOINER);
+    sync.onJoined(JOINER);
+    sync.onSync(server.sync());
+    assert.equal(fight.players.length, 2);
+    for (let step = 13; step <= 20; step++) server.fight.step([quantizeInput(script(step)), IDLE_INPUT]);
+    assert.deepEqual(fight.save(), server.fight.save());
+  });
+
+  test("their inputs relayed after that roll the fight back like any other player's", () => {
+    const { fight, sync, server } = setup();
+    for (let step = 1; step <= 10; step++) {
+      sync.advance(IDLE_INPUT);
+      server.fight.step([IDLE_INPUT]);
+    }
+    server.fight.join(JOINER);
+    sync.onJoined(JOINER);
+    sync.onSync(server.sync());
+    const walk = input({ moveX: 1 });
+    for (let step = 11; step <= 30; step++) {
+      sync.advance(IDLE_INPUT);
+      server.fight.step([IDLE_INPUT, step >= 15 ? walk : IDLE_INPUT]);
+    }
+    sync.onInputs({ t: "battleInputs", inputs: [{ seat: 1, changes: [{ step: 15, ...walk }] }] });
+    assert.deepEqual(fight.save(), server.fight.save());
+  });
+});

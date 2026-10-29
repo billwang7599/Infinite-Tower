@@ -31,7 +31,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
   const creating = useStore(ui.creation, (s) => s.open);
   const panel = useStore(ui.overworldPanel, (s) => s.open);
   const gear = useStore(ui.overworld, (s) => s.gear);
-  const nearCampfire = useStore(ui.overworld, (s) => s.nearCampfire);
+  const interaction = useStore(ui.overworld, (s) => s.interaction);
   const playing = inWorld(mode, phase) && !creating;
   const overworldHud = playing && mode === "overworld";
   return (
@@ -43,7 +43,8 @@ export function App({ ui, settings, input, actions }: AppProps) {
               hud={ui.overworld} input={input} ping={ui.ping} hudSettings={settings.hud}
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
-              openSettings={ui.openSettings} rest={actions.rest} useItem={actions.useItem} moveItem={actions.moveItem}
+              openSettings={ui.openSettings} interact={actions.interact} useItem={actions.useItem}
+              moveItem={actions.moveItem}
               skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
               challenge={ui.challenge} challengeNearest={actions.challenge} answerChallenge={actions.answerChallenge}
             />
@@ -63,7 +64,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       <Notices
         notices={ui.notifications.notices} dismiss={ui.notifications.dismissNotice}
         besidePanelPx={overworldHud && panel ? panelWidthPx(panel, gear) : null}
-        aboveRestButton={overworldHud && nearCampfire}
+        aboveRestButton={overworldHud && interaction !== null}
       />
       <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />
       <Fade screen={ui.screen} />

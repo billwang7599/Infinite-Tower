@@ -3,7 +3,7 @@ import type { Vec2 } from "../core/math.js";
 import type { Vitals } from "../battle/player.js";
 import type { EnemyId } from "../battle/defs.js";
 import type { StepInput } from "../battle/input.js";
-import type { FightSetup } from "../battle/fight/setup.js";
+import type { FightSetup, PlayerSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
@@ -61,16 +61,19 @@ export type ServerMsg =
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
   | {
     t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup;
-    opponent?: { name: string; character: Character };
+    opponent?: { name: string; character: Character }; joined?: { host: string; step: number; fight: FightSnapshot };
   }
   /** `lateSteps`: how late your inputs reach the server (the best since the last hash; negative: early), measured
    * on your input up to `heardStep` (client/src/modes/battle/pace.ts). */
   | { t: "battleHash"; step: number; hash: number; lateSteps: number; heardStep: number }
   /** The answer to `battleResync`, and once more as the fight is decided. */
   | { t: "battleSync"; step: number; fight: FightSnapshot; lateSteps: number; heardStep: number }
+  /** Another player came in; a `battleSync` with them in it follows. */
+  | { t: "battleJoined"; player: PlayerSetup }
   /** The other players' changes of input, as the server ran them, since the last of these. */
   | { t: "battleInputs"; inputs: { seat: number; changes: StepInput[] }[] }
   | { t: "challengeNews"; news: ChallengeNews }
+  | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" }
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }

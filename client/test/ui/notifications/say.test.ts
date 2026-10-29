@@ -12,9 +12,9 @@ const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text)
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
 
 describe("EVENT_MESSAGES", () => {
-  test("only a fight or a duel starting goes to the centre banner; everything else is a corner notice", () => {
+  test("only a fight starting for you (yours, a duel, one joined) is the centre banner; the rest are notices", () => {
     const centre = Object.entries(EVENT_MESSAGES).filter(([, message]) => message.where === "centre");
-    assert.deepEqual(centre.map(([kind]) => kind), ["encounter", "duel"]);
+    assert.deepEqual(centre.map(([kind]) => kind), ["encounter", "duel", "joinedFight"]);
   });
 });
 

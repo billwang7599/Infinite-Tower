@@ -11,14 +11,6 @@ still open.
   step and still run on it, so a client could hold its inputs back on purpose and decide them with 200 ms more of
   the fight in view (the boar's AI is deterministic, so a client can already see where it's going). A smaller
   window means more corrections on bad connections. Not decided; worth a look once there's PvP or anything to win.
-- **More than one player in a fight.** The room, the fight and the messages take any number of players, and the room
-  already waits for every player's input on a step (or the late window). What's missing: each client would need the
-  others' inputs (relayed by the server as they come) to run their fighters; until those arrive it can only repeat
-  their last input, so others would be corrected often and may lag on screen (your own character never does). Also
-  something has to step each room once a tick (a set of rooms in `OnlinePlayers`, or a pod per battle), and these
-  placeholders need deciding: whom an enemy goes for (the nearest player still standing), when the fight is lost
-  (every player down; one who left counts as down), whether a downed player on a winning side wins, and whether
-  players bump into each other (they pass through).
 - **Corrections are snaps, eased.** When the hashes differ, the client loads the server's fight and replays; every
   fighter's drawing eases toward where it jumped (`DrawOffset`; a big jump shows as it is). A hit the client hadn't
   seen coming (an input of yours that ran late) can still pop. In headless Chrome, steady pings of 50, 200 and

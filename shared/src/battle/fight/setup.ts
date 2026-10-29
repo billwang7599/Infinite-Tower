@@ -1,6 +1,7 @@
 /** Who's in a fight, where they start, and building them: components plus a collider each. */
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
+import type { Character } from "../../character/character.js";
 import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
@@ -24,10 +25,20 @@ export const PLAYER_START: Vec3 = { x: 0, y: 0.05, z: -8 };
 export const ENEMY_START: Vec3 = { x: 0, y: 0.05, z: 6 };
 export const ENEMY_START_YAW = Math.PI;
 export const DUEL_STARTS: readonly Vec3[] = [{ x: 0, y: 0.05, z: -6 }, { x: 0, y: 0.05, z: 6 }];
+const JOIN_WALL_GAP_M = 2;
+/** Off the arena's -z: the players' side. */
+const JOIN_ANGLES_RAD = [0.7, -0.7, 0];
 
+/** `seat` counts from 1. */
+export function joinStart(arena: ArenaDef, seat: number): Vec3 {
+  const angle = JOIN_ANGLES_RAD[(seat - 1) % JOIN_ANGLES_RAD.length]!, r = arena.radius - JOIN_WALL_GAP_M;
+  return { x: Math.sin(angle) * r, y: 0.05, z: -Math.cos(angle) * r };
+}
+
+/** `who` is for drawing only: the fight doesn't read it. */
 export interface PlayerSetup {
   at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Skillbook; seed?: number;
-  invulnerable?: boolean;
+  invulnerable?: boolean; who?: { name: string; character: Character };
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }

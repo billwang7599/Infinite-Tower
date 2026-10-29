@@ -1,13 +1,13 @@
 import {
-  gearBurden, FIXED_DT, LocalPlayer, nearCampfire, PLAYER, walkPace, type Gear, type ServerMsgOf, type Stats,
-  type Vitals, type World,
+  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PLAYER, REST_RANGE, walkPace, type Gear,
+  type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
 import type { CameraSettings } from "../../settings/camera.js";
-import type { OverworldHudState } from "../../ui/state.js";
+import type { Interaction, OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { OverworldActor, OverworldPos, type OverworldState } from "./components.js";
+import { OverworldActor, OverworldPos, Peer, type OverworldState } from "./components.js";
 import { mapMove } from "./facing.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
@@ -23,8 +23,15 @@ export interface Overworld {
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
   setGear(gear: Gear): void;
-  /** The Rest key, or the HUD's button. */
-  rest(): void;
+  /** The Rest key, or the HUD's button: rest, or join a fight. */
+  interact(): void;
+}
+
+export function interactionAt(level: LevelLayout, at: Vec2, fights: readonly Vec2[]): Interaction | null {
+  const nearest = (spots: readonly Vec2[]) => Math.min(...spots.map((s) => distXZ(s, at)));
+  const fire = nearest(level.campfires), fight = nearest(fights);
+  if (fight <= JOIN_RANGE_TILES && fight < fire) return "joinFight";
+  return fire <= REST_RANGE ? "rest" : null;
 }
 
 interface OverworldOptions {
@@ -51,10 +58,14 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   let stats: Stats | null = null;
 
   const playerPos = () => world.require(player, OverworldPos);
-  /** Walking a level (not in or leaving a battle), next to a campfire. */
-  const byCampfire = () => !!prediction && !inBattle && !!state.level && nearCampfire(state.level, playerPos());
-  const rest = () => {
-    if (byCampfire()) net?.send({ t: "rest" });
+  const interaction = (): Interaction | null => {
+    if (!prediction || inBattle || !state.level) return null;
+    const fights = [...world.query(Peer, OverworldPos)].flatMap(([, peer, pos]) => (peer.fighting ? [pos] : []));
+    return interactionAt(state.level, playerPos(), fights);
+  };
+  const interact = () => {
+    const what = interaction();
+    if (what) net?.send({ t: what === "rest" ? "rest" : "joinBattle" });
   };
   const setVitals = (v: Vitals) =>
     hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / (stats?.stamina ?? 1) });
@@ -113,7 +124,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         accumulator -= FIXED_DT;
       }
       state.cameraTurns = camera.get().overworldTurns;
-      hud.set({ nearCampfire: byCampfire() });
+      hud.set({ interaction: interaction() });
     },
     onBattleResult(msg) {
       inBattle = false;
@@ -124,6 +135,6 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
     },
     setVitals,
     setGear,
-    rest,
+    interact,
   };
 }

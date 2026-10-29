@@ -4,9 +4,9 @@ import {
   type ItemCounts, type ItemId, type Skillbook, type Vitals,
 } from "@infinite-tower/shared";
 import {
-  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult,
+  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type FightSetup, type PlayerResult, type PlayerSetup,
 } from "@infinite-tower/shared/fight";
-import { BattleRoom } from "../battle/room.js";
+import { BattleRoom, type Seat } from "../battle/room.js";
 import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { SpawnDef } from "../world/level.js";
@@ -31,25 +31,49 @@ export const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 **
 export function startBattle(
   session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
-  session.closeBag();
-  const { overworld, vitals } = session;
-  const { bag, equipment } = session.gear;
+  const { overworld, me } = session;
   const setup: FightSetup = {
     arena: getArena(spawn?.arenaId ?? overworld.level.arenaId),
-    players: [{
-      at: PLAYER_START, vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
-      book: session.skillbook, seed: randomSeed(overworld.rng), invulnerable: session.invulnerable,
-    }],
+    players: [{ ...fighterOf(session), at: PLAYER_START }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
-  const room = new BattleRoom(setup, [{
-    link: session.link,
-    onEnd: (result, after, book, gear) => settleBattle(session, result, after, book, gear),
-  }]);
+  const room = new BattleRoom(setup, [seatOf(session)], () => overworld.fightDecided(me));
   session.battle = { source, enemyId, room, seat: 0, over: false };
-  session.link.send({ t: "encounter", source, me: overworld.playerPos(session.me), seat: 0, setup });
+  session.link.send({ t: "encounter", source, me: overworld.playerPos(me), seat: 0, setup });
 }
+
+export function joinBattle(joiner: GameSession, host: GameSession): void {
+  const hosted = host.battle!, { room } = hosted, reason = room.refusal;
+  if (reason) {
+    joiner.link.send({ t: "joinRefused", reason });
+    return;
+  }
+  const seat = room.join(seatOf(joiner), fighterOf(joiner))!;
+  const { overworld, me } = joiner;
+  overworld.enterFight(me);
+  joiner.battle = { source: null, enemyId: hosted.enemyId, room, seat, over: false };
+  joiner.link.send({
+    t: "encounter", source: null, me: overworld.playerPos(me), seat, setup: room.setup,
+    joined: { host: host.name, step: room.fight.steps, fight: room.fight.save() },
+  });
+}
+
+/** Closes their bag: it isn't taken into a fight. */
+export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
+  session.closeBag();
+  const { bag, equipment } = session.gear;
+  return {
+    vitals: session.vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
+    book: session.skillbook, seed: randomSeed(session.overworld.rng), invulnerable: session.invulnerable,
+    who: { name: session.name, character: session.character! },
+  };
+}
+
+const seatOf = (session: GameSession): Seat => ({
+  link: session.link,
+  onEnd: (result, after, book, gear) => settleBattle(session, result, after, book, gear),
+});
 
 /** `loot` packed into `bag` where it fits; `left` is what there was no room for. */
 export function packLoot(bag: Bag, loot: ItemCounts): { bag: Bag; left: ItemCounts } {
@@ -70,7 +94,6 @@ function settleBattle(
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
-  session.overworld.fightDecided(session.me);
   session.skillbook = book;
   // Gone with nothing won or lost: the save keeps what they came in with.
   if (result === "left" || result === "fighting") return;
@@ -84,7 +107,7 @@ function settleBattle(
   if (won) {
     session.bag = packed.bag;
     session.wins++;
-    // A winner is standing (a teammate's win, later, could leave them down).
+    // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
     // Dying is hardcore: everything carried is gone. You wake at the start, rested, with a fresh sword and blank book.

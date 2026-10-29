@@ -30,7 +30,9 @@ What's built so far:
   flickers and lights what's near it). The arrow keys turn the camera a quarter turn; walking follows it. Everyone
   on a level shares it: you see other players (their chibi and name, crossed swords while they fight), and an enemy
   someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
-  stone ruins of your own, everything working player against player, that costs and wins nothing.
+  stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
+  crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
+  drops.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.

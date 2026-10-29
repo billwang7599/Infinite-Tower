@@ -18,11 +18,14 @@ export const LEAVING_LOSES = true;
 /** "left": gone, with LEAVING_LOSES off. */
 export type PlayerResult = FightState | "left";
 
-/** `duelist`: in a duel, whether this player is still standing. Leaving a duel forfeits it, with nothing lost. */
-export function playerResult(outcome: FightOutcome, left: boolean, duelist?: { standing: boolean }): PlayerResult {
-  if (left) return LEAVING_LOSES && !duelist ? "lost" : "left";
-  if (!duelist || outcome.state === "fighting") return outcome.state;
-  return outcome.state === "won" && duelist.standing ? "won" : "lost";
+/** Down while others fight on: lost. Still in a won fight: won, standing or not. A left duel: forfeit, nothing lost. */
+export function playerResult(
+  outcome: FightOutcome, left: boolean, me?: { standing: boolean; duel: boolean },
+): PlayerResult {
+  if (left) return LEAVING_LOSES && !me?.duel ? "lost" : "left";
+  if (!me) return outcome.state;
+  if (outcome.state === "fighting") return me.standing || me.duel ? "fighting" : "lost";
+  return outcome.state === "won" && (me.standing || !me.duel) ? "won" : "lost";
 }
 
 /** After combat: decide the fight and time its state. */

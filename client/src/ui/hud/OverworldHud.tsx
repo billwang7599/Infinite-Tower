@@ -30,7 +30,7 @@ interface OverworldHudProps extends HudProps {
   togglePanel: (panel: OverworldPanel) => void;
   closePanel: () => void;
   openSettings: () => void;
-  rest: () => void;
+  interact: () => void;
   useItem: (at: GridSpot) => void;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
   skills: Store<SkillsState>;
@@ -43,7 +43,7 @@ interface OverworldHudProps extends HudProps {
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
 export function OverworldHud(props: OverworldHudProps) {
-  const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, rest } = props;
+  const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, interact } = props;
   const panel = useStore(panels, (s) => s.open);
   const bookOpen = useStore(props.skillbookScreen, (s) => s.open);
   const gear = useStore(hud, (s) => s.gear);
@@ -54,7 +54,7 @@ export function OverworldHud(props: OverworldHudProps) {
     if (!repeat) toggle(panel);
   });
   useAction(input, ["rest"], (_action, repeat) => {
-    if (!repeat) rest();
+    if (!repeat) interact();
   });
   useAction(input, ["challenge"], (_action, repeat) => {
     if (!repeat) props.challengeNearest();
@@ -76,7 +76,7 @@ export function OverworldHud(props: OverworldHudProps) {
           <GearIcon />
         </HudButton>
       </div>
-      <RestButton hud={hud} rest={rest} />
+      <InteractButton hud={hud} interact={interact} />
       <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
@@ -108,13 +108,19 @@ function PlayerStatus({ hud }: HudProps) {
   );
 }
 
-/** Only by a campfire. Names what it does, not a key: the key is in Settings. */
-function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
-  const near = useStore(hud, (s) => s.nearCampfire);
-  if (!near) return null;
+const INTERACTIONS = {
+  rest: { id: "rest-button", label: "Rest by the fire" },
+  joinFight: { id: "join-fight-button", label: "Join the fight" },
+} as const;
+
+/** Names what it does, not a key: the key is in Settings. */
+function InteractButton({ hud, interact }: HudProps & { interact: () => void }) {
+  const interaction = useStore(hud, (s) => s.interaction);
+  if (!interaction) return null;
+  const { id, label } = INTERACTIONS[interaction];
   return (
     <button
-      type="button" id="rest-button" {...NO_FOCUS} onClick={rest}
+      type="button" id={id} {...NO_FOCUS} onClick={interact}
       style={{ bottom: REST_BUTTON_BOTTOM_PX, height: REST_BUTTON_HEIGHT_PX }}
       className={
         "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
@@ -122,7 +128,7 @@ function RestButton({ hud, rest }: HudProps & { rest: () => void }) {
         + "transition-colors hover:bg-black/80"
       }
     >
-      Rest by the fire
+      {label}
     </button>
   );
 }
