@@ -18,7 +18,7 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
      big `listen({...})` in game.ts. HTTP calls (login, register, me, servers) in one `net/api.ts`.
    - server `ws/`: keep the Connection (`PlayerLink`) and the handler table; tidy names only.
    - Same messages on the wire; the replay/fight hashes don't change. Tests move with the code.
-2. `server-list`: `GET /api/servers` lists the game servers: for now only this one (name from `SERVER_NAME` in
+2. `server-list` (built): `GET /api/servers` lists the game servers: for now only this one (name from `SERVER_NAME` in
    `.env`, default "Local"), with players online and a cap (`MAX_PLAYERS` 50; the socket is refused with a close
    code when full). After login the title screen shows the list; choosing one and Play connects to it. Shaped so a
    second server is a second entry later (same database, same login cookie).

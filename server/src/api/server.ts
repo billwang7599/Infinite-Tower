@@ -1,9 +1,13 @@
-/** The HTTP server: the account API (/api), the door to the game socket (/ws), and the built client in production. */
+/**
+ * The HTTP server: the account API and the server list (/api), the door to the game socket (/ws), and the built
+ * client in production.
+ */
 import { join, sep } from "node:path";
 import fastifyCookie from "@fastify/cookie";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
+import type { GameServer } from "@infinite-tower/shared";
 import Fastify, { type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import type { Accounts } from "../core/accounts/accounts.js";
@@ -19,6 +23,7 @@ export interface ServerOptions {
   /** HTTPS only: on in production, off for dev's plain http://localhost. */
   secureCookies: boolean;
   socket: GameSocket;
+  servers(): GameServer[];
 }
 
 const MAX_BODY_BYTES = 4 * 1024;
@@ -49,6 +54,7 @@ export async function buildServer(opts: ServerOptions): Promise<FastifyInstance>
   await app.register(fastifyWebsocket, { options: { maxPayload: opts.socket.maxMessageBytes } });
 
   await app.register(accountRoutes, { prefix: "/api", accounts: opts.accounts, secureCookies: opts.secureCookies });
+  app.get("/api/servers", async () => opts.servers());
   await app.register(gameSocketRoute, { accounts: opts.accounts, socket: opts.socket });
   const assets = join(opts.clientDist, "assets") + sep;
   await app.register(fastifyStatic, {

@@ -6,7 +6,7 @@ import { VIEW, type Credentials } from "@infinite-tower/shared";
 import { Actions } from "./core/actions.js";
 import { Keyboard } from "./core/keyboard.js";
 import { Mouse } from "./core/mouse.js";
-import { currentAccount, logIn, logOut, register, SERVER_UNREACHABLE } from "./net/api.js";
+import { currentAccount, listServers, logIn, logOut, register, SERVER_UNREACHABLE } from "./net/api.js";
 import { Net, NotLoggedInError } from "./net/net.js";
 import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
@@ -33,7 +33,19 @@ currentAccount().then(
 );
 /** Unless preparing the game already failed. */
 function settle(state: { username: string | null; error?: string }): void {
-  if (ui.title.get().phase === "checking") ui.title.set({ phase: "menu", error: null, ...state });
+  if (ui.title.get().phase !== "checking") return;
+  ui.title.set({ phase: "menu", error: null, ...state });
+  if (state.username) void loadServers();
+}
+
+async function loadServers(): Promise<void> {
+  try {
+    const servers = await listServers();
+    const picked = ui.title.get().server;
+    ui.title.set({ servers, server: servers.some((s) => s.socket === picked) ? picked : servers[0]?.socket ?? null });
+  } catch (err) {
+    ui.title.set({ servers: [], server: null, error: message(err) });
+  }
 }
 
 async function signIn(kind: SignInKind, credentials: Credentials): Promise<void> {
@@ -46,14 +58,14 @@ async function signIn(kind: SignInKind, credentials: Credentials): Promise<void>
     ui.title.set({ phase: "menu", error: message(err) });
     return;
   }
-  await play();
+  await loadServers();
 }
 
 async function signOut(): Promise<void> {
   if (ui.title.get().phase !== "menu") return;
   try {
     await logOut();
-    ui.title.set({ username: null, error: null });
+    ui.title.set({ username: null, error: null, servers: [], server: null });
   } catch (err) {
     ui.title.set({ error: message(err) });
   }
@@ -61,12 +73,22 @@ async function signOut(): Promise<void> {
 
 async function play(): Promise<void> {
   if (ui.title.get().phase !== "menu" || !ui.title.get().username) return;
+  // Retry after the list failed to come: ask for it again first.
+  if (!pickedServer()) {
+    ui.title.set({ error: null });
+    await loadServers();
+  }
+  const server = pickedServer();
+  if (!server || ui.title.get().phase !== "menu") return;
   ui.title.set({ phase: "connecting", error: null });
   // The server owns the overworld, encounters and enemies; nothing starts until it says hello.
-  const joined = await Net.connect().catch((err: unknown) => {
+  const joined = await Net.connect(server.socket).catch((err: unknown) => {
     // The login expired since the page loaded: back to the form.
     if (err instanceof NotLoggedInError) ui.title.set({ phase: "menu", username: null, error: err.message });
-    else ui.title.set({ phase: "menu", error: message(err) });
+    else {
+      ui.title.set({ phase: "menu", error: message(err) });
+      void loadServers();
+    }
     return null;
   });
   if (!joined) return;
@@ -90,6 +112,12 @@ async function backToTitle(error: string | null = null): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, LEAVE_COVERED_MS));
   game.leave();
   ui.title.set({ phase: "menu", error });
+  await loadServers();
+}
+
+function pickedServer() {
+  const { servers, server } = ui.title.get();
+  return servers.find((s) => s.socket === server) ?? null;
 }
 
 /** The details ("Failed to fetch", a WebGL error…) go to the console; the title gets a sentence. */

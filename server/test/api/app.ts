@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TestContext } from "node:test";
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
+import type { GameServer } from "@infinite-tower/shared";
 import type { WebSocket } from "ws";
 import { Accounts } from "../../src/core/accounts/accounts.js";
 import type { Account } from "../../src/core/ports.js";
@@ -21,6 +22,8 @@ export interface TestApp {
 export const INDEX_HTML = "<!doctype html><title>test</title>";
 export const APP_JS = "console.log('app');";
 
+export const TEST_SERVER: GameServer = { name: "Test", socket: "/ws", players: 3, maxPlayers: 10 };
+
 export async function testApp(t: TestContext, opts: { secureCookies?: boolean } = {}): Promise<TestApp> {
   const clientDist = await mkdtemp(join(tmpdir(), "it-client-dist-"));
   await mkdir(join(clientDist, "assets"));
@@ -35,6 +38,7 @@ export async function testApp(t: TestContext, opts: { secureCookies?: boolean } 
     clientDist,
     accounts,
     secureCookies: opts.secureCookies ?? false,
+    servers: () => [TEST_SERVER],
     socket: { maxMessageBytes: 1024, accept: (ws, account, ping) => accepted.push({ ws, account, ping }) },
   });
   t.after(async () => {

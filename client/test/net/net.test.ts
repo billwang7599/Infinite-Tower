@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { CLOSE_CODES, type ServerMsg, type ServerMsgOf } from "@infinite-tower/shared";
 import { SERVER_UNREACHABLE } from "../../src/net/api.js";
-import { Net, NotLoggedInError } from "../../src/net/net.js";
+import { Net, NotLoggedInError, SERVER_FULL } from "../../src/net/net.js";
 
 class FakeSocket {
   static readonly OPEN = 1;
@@ -69,6 +69,22 @@ describe("Net", () => {
     const unreachable = Net.connect("ws://test/ws");
     FakeSocket.last!.drop();
     await assert.rejects(unreachable, { message: SERVER_UNREACHABLE });
+  });
+
+  test("connect fails with the full message when the server is full", async (t) => {
+    t.mock.property(globalThis, "WebSocket", FakeSocket as unknown as typeof WebSocket);
+    const refused = Net.connect("ws://test/ws");
+    FakeSocket.last!.drop(CLOSE_CODES.full);
+    await assert.rejects(refused, { message: SERVER_FULL });
+  });
+
+  test("a server's socket path is opened on the page's host, passing on the page's ?ping=", async (t) => {
+    t.mock.property(globalThis, "WebSocket", FakeSocket as unknown as typeof WebSocket);
+    (globalThis as { location?: unknown }).location = { protocol: "https:", host: "tower.example", search: "?ping=80" };
+    t.after(() => { delete (globalThis as { location?: unknown }).location; });
+    void Net.connect("/ws").catch(() => {});
+    assert.equal(FakeSocket.last!.url, "wss://tower.example/ws?ping=80");
+    FakeSocket.last!.drop();
   });
 
   test("each message goes to every listener of its type, until it unsubscribes", async (t) => {

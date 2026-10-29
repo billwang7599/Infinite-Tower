@@ -13,6 +13,8 @@ export interface GameSocket {
   accept(socket: WebSocket, account: Account | null, askedPing: string | undefined): void;
 }
 
+export const GAME_SOCKET_PATH = "/ws";
+
 export interface GameSocketOptions {
   accounts: Accounts;
   socket: GameSocket;
@@ -21,7 +23,7 @@ export interface GameSocketOptions {
 export const gameSocketRoute: FastifyPluginAsync<GameSocketOptions> = async (app, { accounts, socket }) => {
   const accountOf = new WeakMap<FastifyRequest, Account | null>();
 
-  app.get("/ws", {
+  app.get(GAME_SOCKET_PATH, {
     websocket: true,
     // Before the upgrade, so a failed lookup is still an HTTP answer (503), not a socket that opens and dies.
     async preHandler(req, reply) {

@@ -11,10 +11,10 @@ import { ACCOUNT } from "./helpers.js";
 
 before(() => initPhysics());
 
-function setup(opts: { withCharacter?: boolean; dev?: boolean } = {}) {
+function setup(opts: { withCharacter?: boolean; dev?: boolean; maxPlayers?: number } = {}) {
   const store = new MemoryPlayerStore();
   if (opts.withCharacter) store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER });
-  return { store, online: new OnlinePlayers(store, opts.dev ?? false) };
+  return { store, online: new OnlinePlayers(store, opts.dev ?? false, opts.maxPlayers ?? 50) };
 }
 
 async function joinNew(online: OnlinePlayers) {
@@ -106,6 +106,56 @@ describe("joining", () => {
     release();
     assert.equal(await joining, null);
     assert.deepEqual(link.sent, []);
+  });
+});
+
+describe("a full server", () => {
+  const OTHER: typeof ACCOUNT = { id: "player-2", username: "other" };
+
+  test("counts the players online", async () => {
+    const { online } = setup();
+    assert.equal(online.count, 0);
+    const { session } = await joinNew(online);
+    assert.equal(online.count, 1);
+    online.leave(session);
+    assert.equal(online.count, 0);
+  });
+
+  test("refuses another player with the full close code, and starts no session", async () => {
+    const { online } = setup({ maxPlayers: 1 });
+    await joinNew(online);
+    const link = new FakeLink();
+    assert.equal(await online.join(link, OTHER), null);
+    assert.equal(link.closed?.code, CLOSE_CODES.full);
+    assert.deepEqual(link.sent, []);
+    assert.equal(online.count, 1);
+  });
+
+  test("still lets a player already on it take over from another tab", async () => {
+    const { online } = setup({ maxPlayers: 1 });
+    const first = await joinNew(online);
+    const second = await joinNew(online);
+    assert.equal(first.link.closed?.code, CLOSE_CODES.replaced);
+    assert.equal(second.link.closed, null);
+    assert.equal(online.count, 1);
+  });
+
+  test("checks again once the save has loaded, as another player may have filled the last place", async (t) => {
+    const { online, store } = setup({ maxPlayers: 1 });
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const load = store.load.bind(store);
+    t.mock.method(store, "load", async (id: string) => {
+      if (id === OTHER.id) await gate;
+      return load(id);
+    });
+    const slow = new FakeLink();
+    const joining = online.join(slow, OTHER);
+    await joinNew(online);
+    release();
+    assert.equal(await joining, null);
+    assert.equal(slow.closed?.code, CLOSE_CODES.full);
+    assert.equal(online.count, 1);
   });
 });
 

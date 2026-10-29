@@ -47,9 +47,10 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    starts `prepareGame()` in the background: `game/start.ts` is its own lazily loaded chunk with Babylon, so the
    title shows first while the engine, the arena's physics (Rapier) and both scenes get built behind it.
 2. **Login.** The login form calls `POST /api/login` (or `/api/register`), which sets the httpOnly `it_session`
-   cookie (30 days).
-3. **Join.** Play opens `/ws`; the cookie goes with it. Meanwhile the title plays its enter sequence
-   (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has joined. Only
+   cookie (30 days). Logged in, the title lists the game servers (`GET /api/servers`), the first picked.
+3. **Join.** Play opens the picked server's socket (`/ws`); the cookie goes with it. Meanwhile the title plays its
+   enter sequence (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has
+   joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save and sends
    `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages). With no
@@ -85,9 +86,10 @@ main.ts
  ├─ await initPhysics()                                   the arena fight's Rapier, loaded once
  ├─ db = await connectDb(DEV)                              db/: connects to DATABASE_URL, applies new migrations
  ├─ accounts = new Accounts(new PgAccountStore(db))        core/ rules, db/ storage
- ├─ online = new OnlinePlayers(new PgPlayerStore(db), DEV) core/: who's playing, one GameSession each
- ├─ startServer({ accounts, socket: gameSockets(online, { dev, pingMs }) })
- │     ├─ api/  Fastify: /api routes, the built client, the /ws handshake
+ ├─ online = new OnlinePlayers(new PgPlayerStore(db), DEV, MAX_PLAYERS)  core/: who's playing, one GameSession each
+ ├─ startServer({ accounts, socket: gameSockets(online, { dev, pingMs }), servers })
+ │     ├─ api/  Fastify: /api routes, /api/servers (this server's name and online.count), the built client, the
+ │     │        /ws handshake
  │     └─ ws/   gameSockets(): each socket becomes a Connection (the PlayerLink) bound to a GameSession
  └─ timer -> FixedClock (60 steps a second) -> online.tick(dt): each session steps its overworld or its battle
 ```
@@ -300,6 +302,7 @@ on :8787; in production the server serves the built client itself.
 | `POST /api/login` `{username, password}` | 200 `AccountInfo` + login cookie; 401 on a wrong name or password |
 | `POST /api/logout` | 204, cookie cleared |
 | `GET /api/me` | 200 `AccountInfo`; 401 if not logged in |
+| `GET /api/servers` | 200 `GameServer[]`: name, socket, players online, `MAX_PLAYERS`; for now only this server |
 
 Login and sign-up share 20 tries a minute per IP address (then 429). Bodies must be JSON (415 otherwise), at most
 4 KB, and are checked by the shared Zod schemas in `shared/src/net/api-requests.ts`. The client makes every HTTP
@@ -314,7 +317,8 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
   │◄── HTTP 503 ──────────│ if the lookup threw            │                          │
   │◄── 101, open ─────────│ accept(ws, account) ──────────►│ new Connection(ws)       │
   │◄── close 4001 ─────────────────────────── no account ──│                          │
-  │                       │                                │ online.join(conn) ──────►│ closes the account's
+  │                       │                                │ online.join(conn) ──────►│ full: close 4002; else
+  │                       │                                │                          │ closes the account's
   │                       │                                │                          │ other tab (4000), loads
   │◄── welcome ──────────────────────────────────────────────────────────────────────│ the save, new GameSession
 ```
@@ -325,10 +329,11 @@ than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` 
 session 60 times a second; on the overworld every 3rd tick sends a `state`, and in a fight every 15th step of the
 server's fight a `battleHash`. A `ping` never reaches the session: `Connection` answers it with a `pong` itself.
 
-In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect()` resolves with it and the
-`welcome`; `net.send(msg)` sends; each part of the game subscribes to the messages it needs with `net.on(type, fn)`,
-which returns an unsubscribe: the overworld to `level`, `state`, `encounter` and `gear`, the battle to `battleHash`
-and `battleSync` from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens
+In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect(socket)` opens a server's socket
+(from the list: a path on the page's host, or a whole URL) and resolves with it and the `welcome`; `net.send(msg)`
+sends; each part of the game subscribes to the messages it needs with `net.on(type, fn)`, which returns an
+unsubscribe: the overworld to `level`, `state`, `encounter` and `gear`, the battle to `battleHash` and `battleSync`
+from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens
 (the level, while the game still loads) are held and delivered, in order, once the first listeners are in.
 `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and
 `net.close()` hangs up quietly.
@@ -365,8 +370,9 @@ and `battleSync` from its start to its end, and `game.ts` to the rest. Messages 
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `pong {id}` | the answer to `ping {id}` |
 
-Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab
-(`CLOSE_CODES` in `shared/src/net/server-messages.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
+Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
+the server is full (`MAX_PLAYERS` are on; a player already on it may still take over from another tab) (`CLOSE_CODES`
+in `shared/src/net/server-messages.ts`); 1011 (loading the save failed), 1008 and 1009 end in "connection
 lost". Positions in `state` are rounded to 1 cm, and it only carries actors within `VIEW_RADIUS_TILES` of the
 server's copy of you (a circle, as the camera may look any way), so a hacked client can't see further.
 
@@ -460,7 +466,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
-  `DEV_PING_MS`; a `ping` answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
+  `DEV_PING_MS`, `SERVER_NAME` and `MAX_PLAYERS`; `/api/servers`; a full server refusing a new player; a `ping`
+  answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a save that clashes with new defaults
   falls back to them), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
   layer on top, each with its own keys; held keys read only there) and who has them, what the keys and buttons ask
@@ -610,7 +617,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES), handlers.ts
                    (Handlers<Msg> map + dispatch by `t`, the server's), api.ts (the HTTP API's types: username /
-                   password rules, Credentials, AccountInfo, ApiError), api-requests.ts (its Zod schemas;
+                   password rules, Credentials, AccountInfo, GameServer, ApiError), api-requests.ts (its Zod schemas;
                    server-only import), text-rules.ts (TextRules for the
                    username and character name, rulesHint), text-schema.ts (their Zod check; server-only),
                    settings.ts (MAX_KEYS_PER_ACTION)
@@ -625,14 +632,15 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
   src/
     main.ts          The only file that sees everything: loads the fight's physics, builds db -> core -> api + ws,
                      plugs them together, runs the tick timer
-    env.ts           DEV, PORT, DATABASE_URL, DEV_PING_MS from the environment (loads the repo's .env if there is
-                     one; parseDevPing, parsePingMs)
+    env.ts           DEV, PORT, DATABASE_URL, DEV_PING_MS, SERVER_NAME, MAX_PLAYERS from the environment (loads
+                     the repo's .env if there is one; parseDevPing, parsePingMs, parseServerName, parseMaxPlayers)
     core/            The game. No sockets, HTTP, SQL or env.
       ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
                        PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
-                       tab takes over), session.ts (GameSession, one player: their save, their overworld, the battle
-                       they're in; a method per thing a player can ask; disconnect: mid-fight, leaving it),
+                       tab takes over, a new player refused past maxPlayers; count), session.ts (GameSession, one
+                       player: their save, their overworld, the battle they're in; a method per thing a player can
+                       ask; disconnect: mid-fight, leaving it),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
@@ -666,8 +674,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      a FIFO that holds each message for a while, in order), handlers.ts (each ClientMsg -> one call
                      on the session; connection.ts answers `ping` itself)
     api/             Outlet: HTTP, on Fastify. server.ts (builds the app: plugins, JSON-only bodies, the built
-                     client from client/dist, with hashed assets/ cached for good), cookies.ts (the httpOnly login
-                     cookie), errors.ts (every error as `{error}` with a sentence the title screen can show)
+                     client from client/dist, with hashed assets/ cached for good; /api/servers), cookies.ts (the
+                     httpOnly login cookie), errors.ts (every error as `{error}` with a sentence the title screen
+                     can show)
       routes/          One Fastify plugin per file, each registered in server.ts. accounts.ts (accountRoutes:
                        the /api handlers; login + sign-up rate-limited), game-socket.ts (gameSocketRoute, /ws:
                        checks the login cookie before the upgrade, then hands the socket on)
@@ -699,8 +708,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      flash / fade), debug.ts (the dev handles on `window`, `cast(skill)` among them)
     net/             net.ts (Net, the game socket: connect, send, `on(type)` with an unsubscribe, onLost, onPing,
                      close; passes on the page's `?ping=`; holds messages until the first listeners), api.ts (every
-                     HTTP call: who's logged in, log in, register, log out), ping.ts (startPinging: Net's ping,
-                     every 2 s)
+                     HTTP call: who's logged in, log in, register, log out, the server list), ping.ts
+                     (startPinging: Net's ping, every 2 s)
     core/            keyboard.ts (the page's one key listener: held and latched keys, each keydown raw to Actions;
                      text fields keep their keys but the arrows, Esc, the digits and Backspace; captureKey for
                      rebinding), mouse.ts (optional,
@@ -780,9 +789,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        and above the Rest button), Announcement.tsx (the centre banner: one at a time, wraps in the
                        middle 80%, no ×: it fades on its own), useFadeOut.ts (hold, fade, dismiss)
       screens/         One folder per full-screen page, holding the parts only that page uses
-        title/           TitleScreen.tsx (login form or Play / Retry + Log out, status line, the sequence's layers),
-                         LoginForm.tsx, MenuButton.tsx (the big "◆ Play"), styles.ts, sequence.ts (the enter / leave
-                         sequences' stages and timing), useSequence.ts (the stage for the title's phase)
+        title/           TitleScreen.tsx (login form, or the server list, Play / Retry and Log out; status line, the
+                         sequence's layers), LoginForm.tsx, ServerList.tsx (name and players / cap, or Full),
+                         MenuButton.tsx (the big "◆ Play"), styles.ts, sequence.ts (the enter / leave sequences'
+                         stages and timing), useSequence.ts (the stage for the title's phase)
           backdrop/        The title's low-poly scene on a 2D canvas: Backdrop.tsx (the scene + light shafts, motes,
                          grain, vignette), Scene.tsx (canvas, frame loop), draw.ts (painter's order, glow layer),
                          world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,
@@ -1005,6 +1015,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
+| Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |

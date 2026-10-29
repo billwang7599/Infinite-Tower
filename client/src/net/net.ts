@@ -2,6 +2,8 @@ import { CLOSE_CODES, type ClientMsg, type ServerMsg, type ServerMsgOf } from "@
 import { SERVER_UNREACHABLE } from "./api.js";
 import { startPinging } from "./ping.js";
 
+export const SERVER_FULL = "That server is full. Try again later, or pick another one.";
+
 type GameMsgType = Exclude<ServerMsg["t"], "welcome" | "pong">;
 type Listener = (msg: ServerMsg) => void;
 
@@ -27,9 +29,9 @@ export class Net {
 
   private constructor(private readonly ws: WebSocket) {}
 
-  static connect(url = gameSocketUrl()): Promise<Joined> {
+  static connect(socket: string): Promise<Joined> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(url);
+      const ws = new WebSocket(socketUrl(socket));
       const net = new Net(ws);
       let welcomed = false;
       ws.onmessage = (ev) => {
@@ -41,7 +43,8 @@ export class Net {
         if (welcomed) net.lose(closeReason(ev.code));
         else {
           net.pinging.stop();
-          reject(ev.code === CLOSE_CODES.notLoggedIn ? new NotLoggedInError() : new Error(SERVER_UNREACHABLE));
+          if (ev.code === CLOSE_CODES.notLoggedIn) reject(new NotLoggedInError());
+          else reject(new Error(ev.code === CLOSE_CODES.full ? SERVER_FULL : SERVER_UNREACHABLE));
         }
       };
     });
@@ -115,10 +118,12 @@ export class Net {
 }
 
 /** The page's `?ping=` is passed on as it is: a dev server simulates that round trip, production ignores it. */
-function gameSocketUrl(): string {
+function socketUrl(socket: string): string {
+  if (typeof location === "undefined") return socket;
+  const url = new URL(socket, `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
   const ping = new URLSearchParams(location.search).get("ping");
-  const query = ping === null ? "" : `?ping=${encodeURIComponent(ping)}`;
-  return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws${query}`;
+  if (ping !== null) url.searchParams.set("ping", ping);
+  return url.href;
 }
 
 function closeReason(closeCode: number): string {
