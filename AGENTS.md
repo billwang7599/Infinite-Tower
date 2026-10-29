@@ -185,7 +185,10 @@ Decided by the user:
   round on its momentum (0.19 s) and hits up to 25% harder; a reverse brakes first (0.4 s) and costs the most stamina.
   The blade stays where a swing leaves it ("sword stays where last swung. and from there its inertia"), its momentum
   gone after a short gap, and the next wind-up starts from there: after a pause the reverse goes live in 0.2 s, the same
-  swing again in 0.41 s. A block, a dodge or a hit taken brings it back to the guard. A block stops a hit from in front
+  swing again in 0.41 s. A stab first brings the blade back to the guard (as far as a swing sets it, so 0.55 s from a
+  swing's far side, 0.4 s from the guard), draws back, thrusts and follows through back to the guard ("stab should move
+  sword to start of stab location, and then end up in the default location"). A block, a dodge or a hit taken brings
+  it back to the guard. A block stops a hit from in front
   for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're staggered.
   Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
 - A blade that meets a guard (blocked or parried) stops dead there and the next wind-up starts from there; its swing

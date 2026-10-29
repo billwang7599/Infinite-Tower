@@ -88,13 +88,20 @@ describe("inertia: a swing's timing, speed and cost come from where the blade is
     assert.ok(after("lr", "tlbr").effort > after("lr", "lr").effort, "its neighbour brakes some");
   });
 
-  test("a stab brakes the blade, draws back for its own time, thrusts and leaves the blade at rest", () => {
-    close(opening("stab").windupTime, SWING.stabDrawTime + SWING.driveTime, "from rest");
+  test("a stab brakes the blade, sets it back at the guard, draws back, thrusts and leaves the blade at the guard", () => {
+    const fromGuard = SWING.stabDrawTime + SWING.driveTime;
+    close(opening("stab").windupTime, fromGuard, "from the guard it only draws back");
     for (const first of SWING_DIRS) {
+      const left = planSwing(sword, STRENGTH, followingBlade(first, 0), "stab");
+      close(left.windupTime, SWING.setTime + fromGuard, `left still on ${first}'s far side: set back as far as a swing`);
       const stab = after(first, "stab");
-      close(stab.windupTime, SWING.driveTime * opening(first).flow + SWING.stabDrawTime + SWING.driveTime, first);
+      close(stab.windupTime, SWING.driveTime * opening(first).flow + SWING.setTime + fromGuard, first);
       assert.equal(stab.flow, 1);
     }
+    const near = planSwing(sword, STRENGTH, { ...followingBlade("lr", 0), x: 0.25 }, "stab").windupTime;
+    assert.ok(opening("stab").windupTime < near && near < SWING.setTime + fromGuard, "nearer the guard, sooner");
+    const great = WEAPONS.greatsword, far = planSwing(great, STRENGTH, followingBlade("lr", 0), "stab");
+    close(far.windupTime, (SWING.setTime + fromGuard) * far.timeFactor, "a heavier blade, as much slower");
     assert.deepEqual(followingBlade("stab", 1), restingBlade());
     assert.ok(after("lr", "stab").effort > opening("stab").effort, "braking a moving blade costs more");
     close(after("stab", "lr").windupTime, fromRest, "a swing after a stab is an opening");

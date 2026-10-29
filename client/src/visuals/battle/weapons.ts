@@ -1,5 +1,5 @@
 import {
-  isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type Blade, type SwingData, type SwingDir, type Vec3,
+  clamp, isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type Blade, type SwingData, type SwingDir, type Vec3,
   type WeaponId, type WeaponKind,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
@@ -69,7 +69,7 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 export interface BladePose { blade: Vec3; handZ: number }
 
 const GUARD_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
-/** The blade as it ends a stab, and drawn back before one. */
+/** The blade drawn back before a stab, and as it thrusts. */
 const STAB_DIR = norm({ x: 0, y: 0.08, z: 1 });
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;
@@ -101,8 +101,9 @@ function windupBlade(attack: AttackKind, k: number, from: BladePose): BladePose 
 /** `turn` as in strokeOf; past 1 it runs on. */
 function strokeBlade(attack: AttackKind, turn: number): BladePose {
   if (!isSwing(attack)) {
-    const a = Math.PI * Math.min(1, turn);
-    return { blade: STAB_DIR, handZ: GUARD_BLADE.handZ + (turn < 0.5 ? 0.75 * Math.sin(a) - 0.3 : 0.45 * Math.sin(a)) };
+    const a = Math.PI * Math.min(1, turn), back = clamp(3 * turn - 2, 0, 1);
+    const handZ = GUARD_BLADE.handZ + (turn < 0.5 ? 0.75 * Math.sin(a) - 0.3 : 0.45 * Math.sin(a));
+    return { blade: back > 0 ? lerp(STAB_DIR, GUARD_BLADE.blade, back) : STAB_DIR, handZ };
   }
   const start = swingStart(attack), a = Math.PI * turn;
   const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + STROKE_LEAN });

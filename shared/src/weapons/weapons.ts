@@ -159,10 +159,10 @@ export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack
     };
   };
 
-  if (!isSwing(attack)) return plan(speed * driveTime + SWING.stabDrawTime, 0, speed);
+  const travelTime = (x: number, y: number): number => SWING.setTime * Math.sqrt(Math.hypot(x, y));
+  if (!isSwing(attack)) return plan(speed * driveTime + travelTime(blade.x, blade.y) + SWING.stabDrawTime, 0, speed);
   const way = SCREEN_DIR[attack];
-  const stopped = plan(speed * driveTime + SWING.setTime * Math.sqrt(Math.hypot(way.x + blade.x, way.y + blade.y)), 0,
-    speed);
+  const stopped = plan(speed * driveTime + travelTime(way.x + blade.x, way.y + blade.y), 0, speed);
   const carried = blade.vx * way.x + blade.vy * way.y;
   if (carried <= 0) return stopped;
   const sideways = Math.hypot(blade.vx - way.x * carried, blade.vy - way.y * carried);

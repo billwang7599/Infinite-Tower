@@ -207,9 +207,9 @@ main.ts
   (`SWING`, `planSwing`) and `PARRY`. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each
   hand holds, its arm reach, the swing under way, and its `Blade`: a point in the screen plane, where it is and how it
   moves) swings the weapon in hand. `planSwing` works out an attack from the blade, the weapon and the wielder's
-  strength: its wind-up (setting or looping the blade to the swing's start, then the drive to impact), its drive and
-  follow-through times, the factor its live time scales by, its flow, its impact momentum (damage, poise damage, a
-  block's cost, a parry's stun) and its effort (stamina). `strokeOf` gives where a swing's blade is on any step, so
+  strength: its wind-up (setting or looping the blade to the swing's start, a stab's to the guard and drawn back, then
+  the drive to impact), its drive and follow-through times, the factor its live time scales by, its flow, its impact
+  momentum (damage, poise damage, a block's cost, a parry's stun) and its effort (stamina). `strokeOf` gives where a swing's blade is on any step, so
   every visual draws the blade where the fight has it. The player's controller and an enemy's weapon attack
   (`fight/behaviors/weapon.ts`, whose wind-ups are telegraphs the plan's is only a floor to) decide when and what, and
   call `startSwing` (`fight/weapons/swing.ts`) with the swing's steps (when its drive starts, its blade goes live, is
