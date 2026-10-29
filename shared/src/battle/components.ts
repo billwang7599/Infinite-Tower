@@ -83,6 +83,8 @@ export interface SwingData {
   momentum: number;
   startSpeed: number;
   flow: number;
+  /** The step a guard stopped its blade on: the swing runs its time out with the blade held there. */
+  stoppedAt: number | null;
 }
 
 export interface WielderData {

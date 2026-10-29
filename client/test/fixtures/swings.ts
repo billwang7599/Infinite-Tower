@@ -9,7 +9,7 @@ export function swingAt(attack: AttackKind, step: number, aimYaw = 0): SwingData
     attack, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step, driveAt: liveAt - liveStep(plan.driveTime),
     liveAt, liveUntil: liveAt + liveStep(active), letGoAt: stepsUntil(plan.windupTime + active),
     endAt: stepsUntil(plan.windupTime + active + plan.followTime), damage: 9, knockback: 0, lift: 0, poiseDamage: 12,
-    momentum: plan.momentum, startSpeed: plan.startSpeed, flow: plan.flow,
+    momentum: plan.momentum, startSpeed: plan.startSpeed, flow: plan.flow, stoppedAt: null,
   };
 }
 

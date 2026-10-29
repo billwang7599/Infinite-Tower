@@ -19,6 +19,7 @@ const PULSE_TIME_S = 0.35;
 const SWORD_SIDE_M = 0.45;
 const SWORD_UP_M = 0.25;
 const SHARD_COUNT = 7;
+const SPARK_COUNT = 24;
 
 export interface SkillKit {
   shaders: SkillShaders;
@@ -260,6 +261,7 @@ interface Bursts {
   imbue(elements: readonly SkillElement[], at: Vec3): void;
   impact(elements: readonly SkillElement[], at: Vec3): void;
   reaction(reaction: Reaction, at: Vec3): void;
+  sparks(at: Vec3): void;
   tick(dtS: number): void;
   clear(): void;
 }
@@ -352,6 +354,9 @@ function createBursts(
           break;
         }
       }
+    },
+    sparks(at) {
+      particles.burst("sparks", at, SPARK_COUNT, 0.05);
     },
     tick(dtS) {
       for (let i = fading.length - 1; i >= 0; i--) {

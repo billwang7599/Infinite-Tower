@@ -145,13 +145,15 @@ main.ts
   smoothing (squash, eased angles); its pose comes from the components each frame, from Babylon-free pose functions
   that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, `arm.ts` for a
   3D humanoid's arms, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
-  by fight event type (the camera's shake, a Nova's burst); each fires once per step and event (`FiredEffects`), so
-  a step replayed after a resync doesn't fire it again. The overworld's actors are drawn the same way, from
-  `WALKERS` by their `kind`. `fighter()` (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled`
-  fighter is doing is drawn the same: the circle at its feet while it chants or winds up, and, over anyone but you,
-  its chant's words as a row of squares in front of it (`chantWords.ts`). The player's look is read from
-  `ui.overworld`'s character and painted once (`visuals/characters.ts`), with the weapon in whichever hand its
-  `Wielder` holds it.
+  by fight event type (the camera's shake, a Nova's burst, a weapon hit's hit-stop and jolt, a blocked or parried
+  blade's bounce and sparks); each fires once per step and event (`FiredEffects`), so
+  a step replayed after a resync doesn't fire it again. Hit-stop is drawing only (`visuals/battle/impact.ts`): the
+  fight runs on, the two fighters' drawings hold still for the weapon's `hitStopMs` and then ease after their bodies.
+  The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
+  (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled` fighter is doing is drawn the same: the
+  circle at its feet while it chants or winds up, and, over anyone but you, its chant's words as a row of squares in
+  front of it (`chantWords.ts`). The player's look is read from `ui.overworld`'s character and painted once
+  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`;
   `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
@@ -215,7 +217,9 @@ main.ts
   while it's live, and stops the blade `SWING.gapTime` after a swing ends, leaving it where it is, so the next wind-up
   starts from there. Ending an action or an enemy state (`enter`) ends its swing (`endSwing`, which rests the blade at
   the guard if the swing hadn't let go yet, else leaves it following through); a block, a dodge or a hit taken rests
-  it too (`restBlade`). Between swings the visuals draw the blade held where the fight has it. A parry reads the
+  it too (`restBlade`). A blade that meets a guard (blocked, or parried) stops dead there (`stopBlade`): its hitbox
+  goes, `stoppedAt` holds its stroke still while the swing runs its time out, and it ends still at that point
+  (`stoppedBlade`). Between swings the visuals draw the blade held where the fight has it. A parry reads the
   target's swing.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
@@ -556,7 +560,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live, its blade
-                       stopping where it is after a gap; startSwing, endSwing, restBlade; handsOf)
+                       stopping where it is after a gap, or dead where a guard met it; startSwing, endSwing,
+                       stopBlade, restBlade; handsOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -804,10 +809,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, lights / fog / shadows / post,
-                         materials, the skill kit, each fighter's node, the shake
-        battle.ts        fighter() (a fighter's node following its body, eased over corrections, its reactions'
-                         bursts, and any skilled fighter's chant circle and chant words), arenaStage (the scenery
-                         per arena size, the camera on the mode's view plus shake, the lock-on's diamond)
+                         materials, the skill kit, each fighter's node, the shake, each fighter's impact
+        impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
+                         blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
+        battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
+                         pushed by a jolt, its reactions' bursts, and any skilled fighter's chant circle and chant
+                         words), arenaStage (the scenery per arena size, the camera on the mode's view plus shake, the
+                         lock-on's diamond)
         arena.ts         The scenery: grass, stones, forest
         materials.ts     The arena's materials (the player's frames among them)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
@@ -820,12 +828,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
                          weapon kind: the trail's line and the stab's thrust (by the blade's place on its stroke), a 3D
                          blade's way through a wind-up and a
-                         swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite and a 3D
-                         model's blade. No Babylon: tested
+                         swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's sprite, a 3D
+                         model's blade and its hit-stop. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
-                         Bolt's impact, the reactions, Earth's shards), the chant's and wind-up's circle, and a visual
-                         per SkillObject kind (a Bolt's core and trail or an Earth rock, a Beam's tubes and flares, a
-                         cloud's dome and pulse, a Delay's orb, an Imbue's glow at the sword hand)
+                         Bolt's impact, the reactions, Earth's shards, a clash's sparks), the chant's and wind-up's
+                         circle, and a visual per SkillObject kind (a Bolt's core and trail or an Earth rock, a
+                         Beam's tubes and flares, a cloud's dome and pulse, a Delay's orb, an Imbue's glow at the
+                         sword hand)
         skillLooks.ts    SHADER_LOOKS and PARTICLE_LOOKS (each element's colours and motion), the skill shader
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/
@@ -920,6 +929,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
+| Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: layout, spawns, encounter tables, campfires, arena size | `server/src/core/levels/` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |

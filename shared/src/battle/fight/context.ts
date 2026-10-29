@@ -21,8 +21,8 @@ export type FightEvent =
   | { type: "slam"; enemy: Entity }
   /** `by` parried `target`'s swing: `target` is stunned (an enemy) or staggered (a player). */
   | { type: "parry"; by: Entity; target: Entity }
-  /** `target` blocked a hit; short of stamina, its guard broke (a player staggered). */
-  | { type: "block"; target: Entity; guardBreak: boolean }
+  /** `target` blocked `by`'s hit; short of stamina, its guard broke (a player staggered). */
+  | { type: "block"; by: Entity; target: Entity; guardBreak: boolean }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number };
 

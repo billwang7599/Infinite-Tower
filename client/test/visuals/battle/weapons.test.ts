@@ -70,6 +70,12 @@ describe("the sword trail", () => {
     rest.forEach((poses, i) => assert.deepEqual(poses, first, `aim ${i + 2} is like the first`));
   });
 
+  test("a blade stopped by a guard leaves no trail", () => {
+    const steps = swingSteps("lr"), { liveAt } = steps[0]!;
+    assert.ok(trailPose(steps[liveAt + 1]!), "it had one");
+    for (const swing of steps.slice(liveAt)) assert.equal(trailPose({ ...swing, stoppedAt: liveAt }), null);
+  });
+
   test("the stab draws no trail but a thrust, out as far as the weapon stabs and back, while its blade is live", () => {
     const stab = swingSteps("stab"), reach = STAB_RANGE;
     assert.equal(stab.map(trailPose).filter((pose) => pose !== null).length, 0);

@@ -32,7 +32,9 @@ What's built so far:
   shows the combo), and stamina goes by the effort (reversing costs most); weapons have mass and
   balance (a longsword and a greatsword swing slower and hit harder), and strength sets how fast you swing. A block
   stops what hits it from in front for stamina, and breaks,
-  staggering you, when the stamina runs out. A fight starts locked onto the
+  staggering you, when the stamina runs out. A blocked or parried blade stops dead in sparks, and a
+  landed hit holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went.
+  A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
   Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing

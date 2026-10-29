@@ -1,6 +1,8 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Equipment } from "../../../items/gear.js";
-import { attackShape, followingBlade, restingBlade, SWING, weaponIn, type Blade } from "../../../weapons/weapons.js";
+import {
+  attackShape, followingBlade, restingBlade, stoppedBlade, SWING, weaponIn, type Blade,
+} from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import { addHit } from "../combat.js";
 
@@ -9,19 +11,26 @@ export const handsOf = (equipment: Equipment): WielderData["hands"] =>
 
 export const bladeLive = (swing: SwingData): boolean => swing.step >= swing.liveAt && swing.step < swing.liveUntil;
 
-export function startSwing(world: World, e: Entity, swing: Omit<SwingData, "step">): void {
+export function startSwing(world: World, e: Entity, swing: Omit<SwingData, "step" | "stoppedAt">): void {
   world.remove(e, ActiveHit);
-  world.require(e, Wielder).swing = { ...swing, step: 0 };
+  world.require(e, Wielder).swing = { ...swing, step: 0, stoppedAt: null };
 }
 
 export function endSwing(world: World, e: Entity): void {
   world.remove(e, ActiveHit);
   const wielder = world.get(e, Wielder);
   if (!wielder?.swing) return;
-  const letGo = wielder.swing.step >= wielder.swing.letGoAt;
-  wielder.blade = letGo ? bladeOf(wielder.swing) : restingBlade();
+  const swing = wielder.swing, stopped = swing.stoppedAt !== null, letGo = !stopped && swing.step >= swing.letGoAt;
+  wielder.blade = stopped ? stoppedBlade(swing) : letGo ? bladeOf(swing) : restingBlade();
   wielder.restTime = letGo ? SWING.gapTime : 0;
   wielder.swing = null;
+}
+
+export function stopBlade(world: World, e: Entity): void {
+  const swing = world.get(e, Wielder)?.swing;
+  if (!swing) return;
+  world.remove(e, ActiveHit);
+  swing.stoppedAt ??= swing.step;
 }
 
 function bladeOf(swing: SwingData): Blade {
@@ -50,7 +59,7 @@ export function weaponSystem(): System {
         endSwing(world, e);
         continue;
       }
-      if (!bladeLive(swing)) world.remove(e, ActiveHit);
+      if (!bladeLive(swing) || swing.stoppedAt !== null) world.remove(e, ActiveHit);
       else if (!world.has(e, ActiveHit)) {
         addHit(world, e, swing.dir.x, swing.dir.z, {
           ...attackShape(swing.attack, wielder.armReachM, weapon), damage: swing.damage, knockback: swing.knockback,

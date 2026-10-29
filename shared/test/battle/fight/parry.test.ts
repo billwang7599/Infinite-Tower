@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   ActiveHit, Body, Enemy, FIXED_DT, Health, isSwing, liveStep, PARRY, planSwing, Player, PLAYER, restingBlade,
-  reverseOf, SWING, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef, type PlayerInputData,
-  type Blade, type Stats,
+  reverseOf, stoppedBlade, strokeOf, SWING, SWING_DIRS, WEAPONS, Wielder, type AttackKind, type EnemyDef,
+  type PlayerInputData, type Blade, type Stats, type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, GUARD, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
@@ -70,6 +70,19 @@ describe("parrying the swordsman's swing", () => {
       assert.deepEqual(events.filter((e) => e.event.type === "parry"),
         [{ step: LANDS_AT, event: { type: "parry", by: fight.players[0], target: fight.enemies[0] } }], `k = ${k}`);
     }
+  });
+
+  test("parried, its blade stops dead where the blades met, not back at its guard", () => {
+    const fight = newFight(), wielder = wielderOf(fight, fight.enemies[0]!), script = swingBefore("rl", 2);
+    let met: SwingData | null = null;
+    while (fight.steps < LANDS_AT) {
+      const swing = wielder.swing;
+      fight.step([input(script(fight.steps + 1))]);
+      if (fight.events.some((e) => e.type === "parry")) met = swing;
+    }
+    assert.ok(met, "parried");
+    assert.deepEqual(wielder.blade, stoppedBlade(met));
+    assert.notDeepEqual(wielder.blade, restingBlade());
   });
 
   test("hit by a chain's first swing, the next can still be parried while you're briefly invulnerable", () => {
@@ -163,25 +176,18 @@ describe("the swordsman parrying the player", () => {
     assert.equal(again.fight.world.require(again.fight.players[0]!, Player).action, "stagger");
   });
 
-  test("being parried brings the player's blade to rest", () => {
-    const far = 3.5;
-    let moving = false;
-    const presses: Record<number, AttackKind> = {};
-    const fight = newFight(GUARD, far);
-    const kinds: AttackKind[] = ["lr", "rl", "tb"];
-    let next = 0;
-    while (fight.steps < settled + 160) {
-      const step = fight.steps + 1;
-      const swing = wielderOf(fight).swing;
-      const started = swing !== null && swing.step <= 1 && swing.attack === kinds[next - 1];
-      const due = (step === settled && next === 0) || (next > 0 && next < kinds.length && started);
-      if (due) presses[step] = kinds[next++]!;
-      fight.step([input({ attack: presses[step] ?? null })]);
-      moving ||= isMoving(wielderOf(fight).blade);
+  test("being parried stops the player's blade dead where it met the swordsman's", () => {
+    const fight = newFight(GUARD), wielder = wielderOf(fight);
+    let met: SwingData | null = null;
+    while (!met && fight.steps < settled + LIVE_AFTER + 5) {
+      const swing = wielder.swing;
+      fight.step([input({ attack: fight.steps + 1 === settled ? "lr" : null })]);
+      if (fight.events.some((e) => e.type === "parry")) met = swing;
     }
-    assert.ok(moving, "the blade was moving");
-    assert.equal(hpOf(fight, fight.enemies[0]), GUARD.maxHp, "the last swing was parried");
-    assert.deepEqual(wielderOf(fight).blade, restingBlade());
+    assert.ok(met, "parried");
+    assert.equal(wielder.swing, null);
+    assert.deepEqual(wielder.blade, stoppedBlade(met));
+    assert.notDeepEqual(wielder.blade, restingBlade());
   });
 
   test("not right away: back on guard, it needs its reaction time before it can parry", () => {
@@ -215,6 +221,15 @@ describe("the swordsman parrying the player", () => {
     assert.equal(hpOf(guarded.fight, guarded.fight.enemies[0]), GUARD.maxHp);
     assert.notEqual(guarded.fight.world.require(guarded.fight.players[0]!, Player).action, "stagger");
     assert.ok(guarded.events.some((e) => e.event.type === "block"));
+    const stabbing = newFight(GUARD), mine = wielderOf(stabbing);
+    while (!stabbing.events.some((e) => e.type === "block") && stabbing.steps < settled + 60) {
+      stabbing.step([input({ attack: stabbing.steps + 1 === settled ? "stab" : null })]);
+    }
+    const stab = mine.swing!, turn = strokeOf(stab).turn;
+    play(() => ({}), stabbing.steps + 3, stabbing);
+    assert.equal(mine.swing, stab, "the stab runs on");
+    assert.equal(stabbing.world.has(stabbing.players[0]!, ActiveHit), false, "its hitbox is gone");
+    assert.equal(strokeOf(stab).turn, turn, "the stab stopped where it was blocked");
 
     const def = SWORDSMAN.attacks.weapon!;
     const recovering = Math.round((def.windup + def.active + 0.1) / FIXED_DT);
