@@ -158,7 +158,9 @@ main.ts
   (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled` fighter is doing is drawn the same: the
   circle at its feet while it chants or winds up, and, over anyone but you, its chant's words as a row of squares in
   front of it (`chantWords.ts`). The player's look is read from `ui.overworld`'s character and painted once
-  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it.
+  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it. Every other player in the fight
+  is painted the same way into a set of frames of their own, in their look (`battle.ctx.who`) with their weapon; the
+  sets are kept between fights, one per other player.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`, and
   each other player as a `peer` with their character (sent the first time you see them) and whether they're in a
   battle; `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
@@ -904,7 +906,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         input.ts         A poll -> PlayerInputData (the attack is the last pressed)
         hud.ts           Fills the battle HUD's store, stunned and the skillbook in hand included
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
-      visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; the player's look
+      visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames one per slice after, or the
@@ -921,14 +923,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
-                         skill kit, each fighter's node, the shake, each fighter's impact
+                         skill kit, each fighter's node, each other player's frames, the shake, each fighter's impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, and any skilled fighter's chant circle and chant
                          words), arenaStage (the scenery per arena, the camera on the mode's view plus shake, the
                          lock-on's diamond)
-        materials.ts     The arena's materials (the player's frames among them)
+        materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
                          Imbue's colour)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it

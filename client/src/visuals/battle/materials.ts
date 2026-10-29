@@ -5,11 +5,12 @@ import { BATTLE_FRAMES } from "../characters.js";
 import { spriteMaterial } from "../sprites.js";
 import { blobTexture, telegraphTexture } from "../textures.js";
 
+export type PlayerFrames = Record<Pose | SwordPose, StandardMaterial[]>;
+
 export interface Materials {
   /** The soft round shadow under the player's sprite. */
   blobShadow: StandardMaterial;
-  player: Record<Pose | SwordPose, StandardMaterial[]>;
-  rival: Record<Pose | SwordPose, StandardMaterial[]>;
+  player: PlayerFrames;
   slashFx: StandardMaterial;
   /** The block's guard in front of the player. */
   guardFx: StandardMaterial;
@@ -43,13 +44,13 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.disableLighting = true;
   telegraph.zOffset = -3;
 
-  const frames = (who: string) => {
-    const all = {} as Materials["player"];
-    for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
-      all[pose] = Array.from({ length: count }, (_, i) => spriteMaterial(scene, `${who}-${pose}-${i}`, () => {}));
-    }
-    return all;
-  };
+  return { blobShadow, player: playerFrames(scene, "player"), slashFx, guardFx, telegraph };
+}
 
-  return { blobShadow, player: frames("player"), rival: frames("rival"), slashFx, guardFx, telegraph };
+export function playerFrames(scene: Scene, who: string): PlayerFrames {
+  const all = {} as PlayerFrames;
+  for (const [pose, count] of Object.entries(BATTLE_FRAMES) as [Pose | SwordPose, number][]) {
+    all[pose] = Array.from({ length: count }, (_, i) => spriteMaterial(scene, `${who}-${pose}-${i}`, () => {}));
+  }
+  return all;
 }
