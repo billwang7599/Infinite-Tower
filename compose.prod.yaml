@@ -1,0 +1,38 @@
+# Not compose.yaml's project name, so this never takes over the dev database's container or volume.
+name: infinite-tower-prod
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Node as PID 1 ignores SIGTERM, so `down` would wait 10 s and kill it.
+    init: true
+    # Loopback only: cloudflared on the host is the way in, and the LAN can't reach it.
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?not set}:${POSTGRES_PASSWORD:?not set}@db:5432/${POSTGRES_DB:?not set}
+      SERVER_NAME: ${SERVER_NAME:-}
+      MAX_PLAYERS: ${MAX_PLAYERS:-}
+      BEHIND_CLOUDFLARE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?not set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?not set}
+      POSTGRES_DB: ${POSTGRES_DB:?not set}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:

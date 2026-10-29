@@ -24,7 +24,10 @@ export const APP_JS = "console.log('app');";
 
 export const TEST_SERVER: GameServer = { name: "Test", socket: "/ws", players: 3, maxPlayers: 10 };
 
-export async function testApp(t: TestContext, opts: { secureCookies?: boolean } = {}): Promise<TestApp> {
+export async function testApp(
+  t: TestContext,
+  opts: { secureCookies?: boolean; behindCloudflare?: boolean } = {},
+): Promise<TestApp> {
   const clientDist = await mkdtemp(join(tmpdir(), "it-client-dist-"));
   await mkdir(join(clientDist, "assets"));
   await writeFile(join(clientDist, "index.html"), INDEX_HTML);
@@ -38,6 +41,7 @@ export async function testApp(t: TestContext, opts: { secureCookies?: boolean } 
     clientDist,
     accounts,
     secureCookies: opts.secureCookies ?? false,
+    behindCloudflare: opts.behindCloudflare ?? false,
     servers: () => [TEST_SERVER],
     socket: { maxMessageBytes: 1024, accept: (ws, account, ping) => accepted.push({ ws, account, ping }) },
   });

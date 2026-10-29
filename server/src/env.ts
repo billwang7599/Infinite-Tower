@@ -52,5 +52,13 @@ export function parseMaxPlayers(raw: string | undefined): number {
   return parsed.data;
 }
 
+/** Only where Cloudflare is the one way in: anyone reaching the server directly could fake CF-Connecting-IP. */
+export function parseBehindCloudflare(raw: string | undefined): boolean {
+  if (raw === undefined || raw === "" || raw === "false") return false;
+  if (raw === "true") return true;
+  throw new Error(`BEHIND_CLOUDFLARE must be true or false (got "${raw}")`);
+}
+
 export const SERVER_NAME = parseServerName(process.env.SERVER_NAME);
 export const MAX_PLAYERS = parseMaxPlayers(process.env.MAX_PLAYERS);
+export const BEHIND_CLOUDFLARE = parseBehindCloudflare(process.env.BEHIND_CLOUDFLARE);

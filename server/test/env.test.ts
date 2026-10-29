@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  DEFAULT_DEV_PING_MS, DEFAULT_MAX_PLAYERS, DEFAULT_SERVER_NAME, parseDevPing, parseMaxPlayers, parsePingMs,
-  parseServerName,
+  DEFAULT_DEV_PING_MS, DEFAULT_MAX_PLAYERS, DEFAULT_SERVER_NAME, parseBehindCloudflare, parseDevPing, parseMaxPlayers,
+  parsePingMs, parseServerName,
 } from "../src/env.js";
 
 describe("DEV_PING_MS", () => {
@@ -48,6 +48,24 @@ describe("MAX_PLAYERS", () => {
 
   test("anything else stops the server", () => {
     for (const raw of ["0", "-1", "2.5", "lots", " 5"]) assert.throws(() => parseMaxPlayers(raw), /MAX_PLAYERS/, raw);
+  });
+});
+
+describe("BEHIND_CLOUDFLARE", () => {
+  test("left out (or empty), it's off", () => {
+    assert.equal(parseBehindCloudflare(undefined), false);
+    assert.equal(parseBehindCloudflare(""), false);
+  });
+
+  test("true or false", () => {
+    assert.equal(parseBehindCloudflare("true"), true);
+    assert.equal(parseBehindCloudflare("false"), false);
+  });
+
+  test("anything else stops the server", () => {
+    for (const raw of ["1", "yes", "TRUE", " true"]) {
+      assert.throws(() => parseBehindCloudflare(raw), /BEHIND_CLOUDFLARE/, raw);
+    }
   });
 });
 

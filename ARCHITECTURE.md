@@ -320,7 +320,8 @@ main.ts
 ## Networking
 
 The browser only ever talks to its own page's host: in dev, Vite on :5173 forwards `/ws` and `/api` to the server
-on :8787; in production the server serves the built client itself.
+on :8787; in production the server serves the built client itself (hosted, behind a Cloudflare Tunnel that brings
+HTTPS and the socket to it as plain HTTP: README's "Hosting").
 
 **HTTP** (`server/src/api/`, Fastify). Every error is `{ "error": "<a sentence the title screen can show>" }`.
 
@@ -332,7 +333,9 @@ on :8787; in production the server serves the built client itself.
 | `GET /api/me` | 200 `AccountInfo`; 401 if not logged in |
 | `GET /api/servers` | 200 `GameServer[]`: name, socket, players online, `MAX_PLAYERS`; for now only this server |
 
-Login and sign-up share 20 tries a minute per IP address (then 429). Bodies must be JSON (415 otherwise), at most
+Login and sign-up share 20 tries a minute per IP address (then 429; IPv6 by its /64). With `BEHIND_CLOUDFLARE`
+(hosted, where the tunnel is the only way in) the address is Cloudflare's `CF-Connecting-IP` header, the visitor's;
+without it the header is ignored, since anyone could send it. Bodies must be JSON (415 otherwise), at most
 4 KB, and are checked by the shared Zod schemas in `shared/src/net/api-requests.ts`. The client makes every HTTP
 call through `client/src/net/api.ts`.
 
@@ -514,9 +517,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   reach and its slack, duels and full rooms refused, each player's own result (one down settled at once, a win for
   everyone still in it), a joiner leaving, the enemy kept until the room is over.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
-  sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
-  the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
-  `DEV_PING_MS`, `SERVER_NAME` and `MAX_PLAYERS`; `/api/servers`; a full server refusing a new player; a `ping`
+  sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
+  cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
+  (each way half of it, in order, 0 for none, never in production); `env.ts`'s `DEV_PING_MS`, `SERVER_NAME`,
+  `MAX_PLAYERS` and `BEHIND_CLOUDFLARE`; `/api/servers`; a full server refusing a new player; a `ping`
   answered with a `pong`. `db/` has no tests yet ([plan/tests.md](plan/tests.md)).
 - **client**: only logic that runs without Babylon or the DOM: key bindings (a saved key keeps a new default off
   it), the keyboard (held, latched, text fields, rebinding's raw key), where each key goes (the
@@ -588,7 +592,9 @@ name (`MAX_BODY_BYTES`).
 | `plan/` | future plans and parked ideas, one file each |
 | `package.json` | the workspaces and every `npm run` script (the workspaces have only their own dev / build) |
 | `compose.yaml` | the dev database: Postgres 17 in Docker, on 127.0.0.1 |
-| `.env.example` | local settings (database, ports) with working dev values; `.env` is the git-ignored copy |
+| `compose.prod.yaml` | hosting (README's "Hosting"): the server's image and Postgres 17, the server on the host's 127.0.0.1:8787 for a Cloudflare Tunnel, `BEHIND_CLOUDFLARE` on |
+| `Dockerfile`, `.dockerignore` | the server's image: builds the client, then runs the server as `npm start` does (production, as the `node` user) |
+| `.env.example` | local settings (database, ports) with working dev values; `.env` is the git-ignored copy (hosting reads it too) |
 | `tsconfig.base.json` | strict TypeScript settings every workspace extends |
 
 ```
@@ -685,8 +691,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
   src/
     main.ts          The only file that sees everything: loads the fight's physics, builds db -> core -> api + ws,
                      plugs them together, runs the tick timer
-    env.ts           DEV, PORT, DATABASE_URL, DEV_PING_MS, SERVER_NAME, MAX_PLAYERS from the environment (loads
-                     the repo's .env if there is one; parseDevPing, parsePingMs, parseServerName, parseMaxPlayers)
+    env.ts           DEV, PORT, DATABASE_URL, DEV_PING_MS, SERVER_NAME, MAX_PLAYERS, BEHIND_CLOUDFLARE from the
+                     environment (loads the repo's .env if there is one; parseDevPing, parsePingMs, parseServerName,
+                     parseMaxPlayers, parseBehindCloudflare)
     core/            The game. No sockets, HTTP, SQL or env.
       ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
                        PlayerLink

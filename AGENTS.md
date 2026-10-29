@@ -389,6 +389,7 @@ npm start          # production: builds the client, then the server serves it + 
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
 npm run db:seed    # dev accounts test1, test2, test3, password = username, knowing every skill word (dev runs it; safe to repeat)
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts
+docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postgres, on 127.0.0.1:8787 (README "Hosting")
 ```
 
 In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a fight

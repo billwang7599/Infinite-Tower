@@ -1,6 +1,6 @@
 # The dev database. `npm run dev` starts it (`npm run db:up`); its data stays in the `pgdata` volume
 # until `npm run db:reset`. Its user, password, database and port come from .env (see .env.example).
-# Production doesn't use this file: it sets DATABASE_URL to its own Postgres.
+# Hosting doesn't use this file: compose.prod.yaml runs the server with a Postgres of its own.
 name: infinite-tower
 
 services:
