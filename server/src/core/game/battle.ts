@@ -38,7 +38,9 @@ export function startBattle(
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
   };
-  const room = new BattleRoom(setup, [seatOf(session)], () => overworld.fightDecided(me));
+  const room = new BattleRoom(setup, [seatOf(session)], () => {
+    if (source !== null) overworld.fightDecided(source);
+  });
   session.battle = { source, enemyId, room, seat: 0, over: false };
   session.link.send({ t: "encounter", source, me: overworld.playerPos(me), seat: 0, setup });
 }

@@ -196,7 +196,9 @@ main.ts
   arena's edge); the others get `battleJoined` (their `PlayerSetup`) and a `battleSync` with them in it, and the
   joiner an `encounter` with the room's whole setup and the fight as it is (`joined`). From then on it's a battle like
   any: inputs relayed, each player settled with their own result, drops rolled for each winner. The enemy taken off
-  the overworld comes back once the room is over for everyone (`onOver`), not when its first fighter falls.
+  the overworld comes back once the room is over for everyone (`onOver`), not when its first fighter falls or leaves:
+  the spawner holds its slot by the taken actor, not by a player. Every fighter is marked `fighting` on the
+  overworld (the crossed swords), so the fight can be joined by any of them, the host gone or not.
 - **Duels** (`core/game/duels.ts`): the Challenge key sends `challenge`; the server picks the nearest player within
   `CHALLENGE_RANGE_TILES` who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
   side) and tells both how it goes (`challengeNews`). On `answerChallenge` with accept, both get one `encounter` (the

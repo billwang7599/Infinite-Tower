@@ -366,8 +366,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
   (the bag emptied, waking at the level's start), and the fight goes on for the rest; won, everyone still in it counts
-  a win and rolls their own drops (one down on the very step it's won still wins, standing at 1 HP). A joiner who
-  disconnects has lost as `LEAVING_LOSES` says; the rest fight on, and the host leaving doesn't end it for the others.
+  a win and rolls their own drops (one down on the very step it's won still wins, standing at 1 HP). Anyone who
+  disconnects, the host too, has lost as `LEAVING_LOSES` says, and the rest fight on. With the host gone
+  (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for
+  everyone in it, and the fight can still be joined: every player in it has the crossed swords, not just the host.
   The joiner hears "You join <host>'s fight!" in the centre banner, the others "<name> joins the fight." in a corner.
 
 ## Commands
