@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
+import { ARENA_LOOK_IDS, inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
 import { isEnemyId } from "../../../src/core/enemies/index.js";
-import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { ARENAS, getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/world/level.js";
 
 // Only one enemy exists so far, so the table uses made-up ids to tell the picks apart.
@@ -96,5 +96,26 @@ describe("getLevel", () => {
 describe("getArena", () => {
   test("throws for an unknown id", () => {
     assert.throws(() => getArena("no-such-arena"), /no-such-arena/);
+  });
+
+  test("every arena a spawn names exists", () => {
+    for (const s of getLevel(START_LEVEL).spawns) if (s.arenaId !== undefined) getArena(s.arenaId);
+  });
+
+  test("every arena has a known look and the same round wall as the start level's", () => {
+    const radius = getArena(getLevel(START_LEVEL).arenaId).radius;
+    for (const arena of Object.values(ARENAS)) {
+      assert.ok(ARENA_LOOK_IDS.includes(arena.look), arena.id);
+      assert.equal(arena.radius, radius, arena.id);
+    }
+  });
+
+  test("the boar fights in the level's arena; both Kobolds share one of their own, and the Warlock has another", () => {
+    const level = getLevel(START_LEVEL);
+    const arenaOf = (enemy: string) => level.spawns.find((s) => s.enemy === enemy)?.arenaId ?? level.arenaId;
+    assert.equal(arenaOf("wild-boar"), level.arenaId);
+    assert.equal(arenaOf("kobold-swordsman"), arenaOf("kobold-greatsword"));
+    const looks = new Set(["wild-boar", "kobold-swordsman", "goblin-warlock"].map((e) => getArena(arenaOf(e)).look));
+    assert.equal(looks.size, 3);
   });
 });

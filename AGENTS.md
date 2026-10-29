@@ -226,6 +226,11 @@ Decided by the user:
   pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/enemies/goblin-warlock.ts`.
 - The Goblin Warlock walks backwards while it chants, facing you, if you're inside its keep-away distance; the chant
   goes on. How fast is the agent's pick: its walking speed, as when it backs away otherwise.
+- Arenas have looks of their own, looks only: the same round wall and radius, nothing inside it, nothing that changes
+  how a fight plays. Dusky and muted with warm light (toward the title's dark fantasy, not black). The server picks
+  the arena: a spawn may name its own, else the level's (tall grass uses the level's). On the Grass Field the boar
+  fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire (the looks and which
+  enemy gets which are the agent's picks).
 - A player who disconnects mid-fight has lost it: the bag empties as on a death. A fight still undecided after a
   time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a

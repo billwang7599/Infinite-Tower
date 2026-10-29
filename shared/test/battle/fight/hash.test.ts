@@ -33,6 +33,19 @@ describe("a fight's hash", () => {
     }
   });
 
+  test("an arena's look and id don't change how the fight runs", () => {
+    const a = newFight();
+    const b = new Fight({
+      arena: { id: "elsewhere", radius: ARENA.radius, look: "mire" },
+      players: [player({ x: 0, y: 0.05, z: -5 })], enemies: [enemy(BOAR, { x: 0, y: 0.05, z: 3 })],
+    });
+    for (let step = 1; step <= 600; step++) {
+      a.step([busy(step)]);
+      b.step([busy(step)]);
+      assert.equal(a.hash(), b.hash(), `step ${step}`);
+    }
+  });
+
   test("is a whole number that survives JSON", () => {
     const hash = busyFight().hash();
     assert.ok(Number.isSafeInteger(hash));

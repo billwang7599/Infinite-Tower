@@ -10,6 +10,7 @@ import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
+import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { findBoar, startSession } from "./helpers.js";
@@ -85,6 +86,28 @@ function lose(session: GameSession): void {
 }
 
 describe("starting a battle", () => {
+  const ARENA_SPAWN = LEVEL.spawns.find((s) => s.arenaId !== undefined)!;
+
+  test("an actor whose spawn names an arena is fought there", () => {
+    const { session, link } = startSession();
+    const found = [...session.overworld.world.query(OverworldActor)].find(([, a]) => a.kind === ARENA_SPAWN.enemy);
+    assert.ok(found);
+    session.overworld.startEncounter(found[0], ARENA_SPAWN.enemy);
+    assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
+  });
+
+  test("tall grass, with no actor, is fought in the level's arena", () => {
+    const { session, link } = startSession();
+    session.overworld.startEncounter(null, "wild-boar");
+    assert.deepEqual(link.last("encounter").setup.arena, getArena(LEVEL.arenaId));
+  });
+
+  test("a dev fight against an enemy is held in the arena of its spawn", () => {
+    const { session, link } = startSession({ dev: true });
+    session.debugEncounter(ARENA_SPAWN.enemy);
+    assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
+  });
+
   test("sends encounter with the fight to build: the arena, the enemy, the player's vitals, stats and burden", () => {
     const { session, link } = startSession({ dev: true, saved: { vitals: { ...HURT } } });
     session.debugEncounter();

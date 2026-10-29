@@ -629,10 +629,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        + replay, grass encounters, findPlayer), spawner.ts (each spawn an enemy's overworld actor)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
-                       layout, spawn point, spawns, encounter table, arenaId; rollEnemy), index.ts (LEVELS and
-                       ARENAS by id, START_LEVEL, getLevel, getArena)
+                       layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId;
+                       rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL, getLevel, getArena)
         floors/1/        Floor 1's levels, a file each: grass-field.ts (the Grass Field's tile map and spawns, and its
-                         arena)
+                         arenas)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; isEnemyId, rollDrops)
@@ -818,8 +818,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       sprites.ts       pixelMaterial, spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
-        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, lights / fog / shadows / post,
-                         materials, the skill kit, each fighter's node, the shake, each fighter's impact
+        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, the sun and sky light (their
+                         colours are the arena look's), fog / shadows / post, materials, the skill kit, each
+                         fighter's node, the shake, each fighter's impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
@@ -866,8 +867,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        tileProps: a map's ground picture and props from its tile looks, the same for both views)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
-      arenas/          Each arena's scenery, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each)
-        grass-field/     grass-field.ts (grass, a dirt floor, the ring of standing stones, the forest)
+      arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
+                         env (sky, fog, light) and build; showArena, the one call battle.ts makes: lights the scene
+                         and returns the look's root, whose disposal takes its meshes and materials), parts.ts (what
+                         the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle)
+        forest-clearing/ the boar's and tall grass's: moss, a dirt floor, standing stones, pines, ferns, logs
+        stone-ruins/     the Kobolds': flagstones, broken columns and walls, two arches, far ruins, cypresses
+        mire/            the Goblin Warlock's: peat, stumps, glowing mushrooms, pools, reeds, dead trees
 ```
 
 ## Adding things
@@ -886,10 +892,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   tall grass or not); walking, encounters and enemies follow from it. Then how it looks in every level look's tile
   table (`client/src/visuals/levels/<theme>/tiles.ts`: a ground painter, and props if it has any; TypeScript errors
   until it's there), which both the flat and the 3D overworld draw. A new prop is its art in `PROP_ART`.
-- **An arena.** An `ArenaDef` (id, radius, look) beside the level that fights in it, and its line in `ARENAS`. For a
-  new look, a name in `ArenaLook` (`shared/src/world/arena.ts`), a folder named by it in `client/src/visuals/arenas/`
-  and its line in `ARENA_LOOKS` (TypeScript errors until it's there). The wall's shape is the fight's
-  (`arena-physics.ts`), from the radius.
+- **An arena.** An `ArenaDef` (id, radius, look) beside the level that fights in it, and its line in `ARENAS`. The
+  level's `arenaId` is where tall grass and spawns without one fight; a spawn's own `arenaId` takes its fights
+  elsewhere (`startBattle`). Every arena has the same radius for now (tested). The wall's shape is the fight's
+  (`arena-physics.ts`), from the radius; a look never changes how a fight plays.
+- **An arena look.** Its name in `ARENA_LOOK_IDS` (`shared/src/world/arena.ts`), a folder named by it in
+  `client/src/visuals/arenas/` exporting an `ArenaLookDef` (`env`: sky, fog, ambient, sky light, sun; `build`: every
+  mesh under one `lookRoot`, its materials `own`ed, ending in `settle`), and its line in `ARENA_LOOKS` (TypeScript
+  errors until it's there). Dressing stays outside the radius: nothing inside the wall but the floor.
 - **An enemy.** Its id in `EnemyId` (`shared/src/battle/defs.ts`); a file named by it in `server/src/core/enemies/`
   (its `EnemyDef` combining behaviors, its drops, its overworld actor's behavior parts) and its line in `ENEMIES`;
   a folder named by it in `client/src/visuals/enemies/` (model, pose and its test, animation, sprite) and its line
@@ -968,10 +978,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back a Kobold draws its blade (and leans) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
 | Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
-| Levels: map, spawns, encounter tables, campfires, arena size | `server/src/core/world/floors/` |
+| Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the dusk tint and campfire glow; the 3D sun | `client/src/visuals/levels/` (`tiles.ts` per look, `FLAT_DUSK`, `GLOW`), `client/src/visuals/overworld3d/scene.ts` |
+| An arena look's sky, fog and light | `env` in each `client/src/visuals/arenas/<look>/` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick swings (distance, time, rest between sweeps) | `SWIPE` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |

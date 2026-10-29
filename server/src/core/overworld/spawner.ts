@@ -34,6 +34,10 @@ export class Spawner {
     }
   };
 
+  spawnOf(e: Entity): SpawnDef | undefined {
+    return this.slots.find((s) => s.entity === e)?.def;
+  }
+
   /** Leaving the level. */
   clear(): void {
     for (const slot of this.slots) if (slot.entity !== null) this.world.destroy(slot.entity);
