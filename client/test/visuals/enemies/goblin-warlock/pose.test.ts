@@ -10,6 +10,11 @@ describe("the goblin's pose", () => {
     assert.ok(late.glow > early.glow && early.glow > idle.glow);
   });
 
+  test("chanting it lifts its free hand before it", () => {
+    const idle = goblinPose("approach", 0, 0).offHand, chanting = goblinPose("skillChant", 0.2, 1).offHand;
+    assert.ok(chanting.y > idle.y && chanting.z > idle.z);
+  });
+
   test("a cast's wind-up thrusts the staff forward, glowing full", () => {
     const pose = goblinPose("skillCast", 0.2, 0);
     assert.ok(pose.handZ > goblinPose("approach", 0, 0).handZ);

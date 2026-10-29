@@ -117,10 +117,11 @@ export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
   },
 };
 
-/** `blade`: a 3D model's, from the guard up. */
+/** `blade`: a 3D model's, from the guard up; `twoHanded`: a 3D model holds it with its off hand too. */
 export interface WeaponLook {
   sprite: Art;
   blade: { lengthM: number; widthM: number; color: string };
+  twoHanded: boolean;
 }
 
 // Lengths are the sword's own share: the models' and the sprite's sword is drawn 1 long.
@@ -129,11 +130,16 @@ const LONGSWORD = swordArt({ lengthScale: lengthOf("longsword"), bladeHalfPx: 1.
 const GREATSWORD = swordArt({ lengthScale: lengthOf("greatsword"), bladeHalfPx: 2.3 });
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
-  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
-  "kobold-blade": { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" } },
-  longsword: { sprite: LONGSWORD, blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" } },
-  greatsword: { sprite: GREATSWORD, blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" } },
+  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false },
+  "kobold-blade": { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false },
+  longsword: {
+    sprite: LONGSWORD, blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" }, twoHanded: false,
+  },
+  greatsword: {
+    sprite: GREATSWORD, blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" }, twoHanded: true,
+  },
   "kobold-greatsword": {
     sprite: GREATSWORD, blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" },
+    twoHanded: true,
   },
 };

@@ -143,8 +143,8 @@ main.ts
   `SkillObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
   has drawn: it spawns the new, frames the rest and disposes the gone. A row's own state holds only its meshes and
   smoothing (squash, eased angles); its pose comes from the components each frame, from Babylon-free pose functions
-  that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, each enemy's
-  `pose.ts`). One-shot effects are a second table, `EFFECTS`,
+  that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, `arm.ts` for a
+  3D humanoid's arms, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst); each fires once per step and event (`FiredEffects`), so
   a step replayed after a resync doesn't fire it again. The overworld's actors are drawn the same way, from
   `WALKERS` by their `kind`. `fighter()` (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled`
@@ -810,6 +810,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          Imbue's colour)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action and the swing. No Babylon: tested
+        arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
+                         reached each frame with two-joint IK (reachArm, no Babylon: tested) to where its pose puts
+                         the hand; a wielder's arm is its armReachM long
         weapons.ts       Any wielder's weapon, from its swing: the frame (wind-up, live, follow-through); MOTIONS, by
                          weapon kind: the trail's line and the stab's thrust (by the blade's place on its stroke), a 3D
                          blade's way through a wind-up and a
@@ -853,7 +856,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },
   armReachM }`) gives it a `Wielder`; a `weapon` attack makes it fight like the Kobold, or its own AI calls
   `startSwing` (`fight/weapons/swing.ts`) with the swing's steps and damage. The weapon system does the rest. A 3D
-  model draws its blade from `WEAPON_LOOKS` and moves it with its weapon kind's `MOTIONS` row.
+  model draws its blade from `WEAPON_LOOKS` (two-handed or not) and moves it with its weapon kind's `MOTIONS` row,
+  in the hand of an arm from `visuals/battle/arm.ts`; its pose puts the hand and turns the body ahead of the blade.
 - **A visual** (anything new drawn in a fight). One row in `VISUALS` (`client/src/visuals/visuals.ts`): a
   `Visual` with `spawn` (build its meshes), `frame` (pose them from the entity's components, each frame) and
   `dispose`, and its kind in `kindOf`, from a component the entity already has. Its pose is a function of that

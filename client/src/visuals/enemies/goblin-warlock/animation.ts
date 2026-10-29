@@ -1,16 +1,20 @@
-import { Color3 } from "@babylonjs/core";
+import { Color3, Vector3 } from "@babylonjs/core";
 import { Body, damp, dampFactor, Enemy, Health, Skilled, wrapAngle } from "@infinite-tower/shared";
+import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import { buildGoblin, disposeGoblin, type GoblinModel } from "./model.js";
 import { goblinPose } from "./pose.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const ORB_GLOW = new Color3(1.6, 0.55, 0.15);
+const STAFF_HAND_X = 0.2;
+const offTarget = new Vector3();
 
-export const goblinVisual = fighter<GoblinModel>("enemy", {
+export const goblinVisual = fighter<GoblinModel & { handAt: Vector3; offAt: Vector3 | null }>("enemy", {
   spawn(ctx, world, e, node) {
     const enemy = world.require(e, Enemy);
-    return buildGoblin(ctx, e, node, enemy.def, enemy.yaw);
+    return { ...buildGoblin(ctx, e, node, enemy.def, enemy.yaw), handAt: new Vector3(STAFF_HAND_X, 0.62, 0.22),
+      offAt: null };
   },
   dispose: disposeGoblin,
   frame(nodes, world, e, dt) {
@@ -25,9 +29,15 @@ export const goblinVisual = fighter<GoblinModel>("enemy", {
 
     const words = world.require(e, Skilled).words.length;
     const pose = goblinPose(health.hp > 0 ? enemy.state : "dead", enemy.stateTime, words);
-    nodes.hand.rotation.x = damp(nodes.hand.rotation.x, pose.staffPitch, 18, dt);
-    nodes.hand.position.y = damp(nodes.hand.position.y, pose.handY, 14, dt);
-    nodes.hand.position.z = damp(nodes.hand.position.z, pose.handZ, 20, dt);
+    const hand = nodes.staffArm.hand;
+    hand.rotation.x = damp(hand.rotation.x, pose.staffPitch, 18, dt);
+    nodes.handAt.y = damp(nodes.handAt.y, pose.handY, 14, dt);
+    nodes.handAt.z = damp(nodes.handAt.z, pose.handZ, 20, dt);
+    poseArm(nodes.staffArm, nodes.handAt);
+    offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.2);
+    nodes.offAt ??= offTarget.clone();
+    Vector3.LerpToRef(nodes.offAt, offTarget, dampFactor(10, dt), nodes.offAt);
+    poseArm(nodes.offArm, nodes.offAt);
     nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
     nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);
     nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, dt);
