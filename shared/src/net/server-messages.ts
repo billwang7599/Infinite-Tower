@@ -68,4 +68,6 @@ export const CLOSE_CODES = {
   replaced: 4000,
   /** No (or an expired) login cookie. */
   notLoggedIn: 4001,
+  /** MAX_PLAYERS are already on. */
+  full: 4002,
 } as const;

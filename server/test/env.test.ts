@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_DEV_PING_MS, parseDevPing, parsePingMs } from "../src/env.js";
+import {
+  DEFAULT_DEV_PING_MS, DEFAULT_MAX_PLAYERS, DEFAULT_SERVER_NAME, parseDevPing, parseMaxPlayers, parsePingMs,
+  parseServerName,
+} from "../src/env.js";
 
 describe("DEV_PING_MS", () => {
   test("left out (or empty), it's the default", () => {
@@ -30,5 +33,30 @@ describe("parsePingMs (a page's ?ping=)", () => {
 
   test("anything else is no answer (the caller falls back)", () => {
     for (const raw of [undefined, "", "-5", "1.5", "abc", "1e3"]) assert.equal(parsePingMs(raw), null, String(raw));
+  });
+});
+
+describe("MAX_PLAYERS", () => {
+  test("left out (or empty), it's the default", () => {
+    assert.equal(parseMaxPlayers(undefined), DEFAULT_MAX_PLAYERS);
+    assert.equal(parseMaxPlayers(""), DEFAULT_MAX_PLAYERS);
+  });
+
+  test("any whole number of players, 1 or more", () => {
+    for (const n of [1, 4, 200]) assert.equal(parseMaxPlayers(String(n)), n);
+  });
+
+  test("anything else stops the server", () => {
+    for (const raw of ["0", "-1", "2.5", "lots", " 5"]) assert.throws(() => parseMaxPlayers(raw), /MAX_PLAYERS/, raw);
+  });
+});
+
+describe("SERVER_NAME", () => {
+  test("left out or blank, it's the default", () => {
+    for (const raw of [undefined, "", "   "]) assert.equal(parseServerName(raw), DEFAULT_SERVER_NAME);
+  });
+
+  test("otherwise the name, trimmed", () => {
+    assert.equal(parseServerName("  Aincrad East "), "Aincrad East");
   });
 });

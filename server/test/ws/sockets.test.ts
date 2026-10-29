@@ -26,7 +26,7 @@ const settle = () => new Promise(setImmediate);
 
 function setup(ping: PingOptions = { dev: false, pingMs: 0 }) {
   const store = new MemoryPlayerStore();
-  const sockets = gameSockets(new OnlinePlayers(store, false), ping);
+  const sockets = gameSockets(new OnlinePlayers(store, false, 50), ping);
   const connect = async (account: Account | null = ACCOUNT, requestedPing?: string) => {
     const socket = new FakeSocket();
     sockets.accept(socket.ws, account, requestedPing);

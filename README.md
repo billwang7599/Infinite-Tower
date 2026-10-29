@@ -12,10 +12,11 @@ What's built so far:
 
 - **Accounts:** sign up or log in with a username and password, and stay logged in for 30 days. Logins are limited
   to 20 tries a minute per IP. Playing from a second tab takes over from the first.
-- **Title screen:** the login form and Play beside a low-poly tower of glowing white glass and gold in a dark world
-  (lit like a shader would, on a 2D canvas, no WebGL). The game loads while you're on it. Play becomes Retry if the
-  server is down. Logging in (or Play) glides into the tower, looks straight up it and speeds up it while the server
-  loads you, then flashes white into the world; Return to title plays it backwards.
+- **Title screen:** the login form, then the server list (each server's name and players online; one for now) and
+  Play, beside a low-poly tower of glowing white glass and gold in a dark world (lit like a shader would, on a 2D
+  canvas, no WebGL). The game loads while you're on it. Play becomes Retry if the server is down or full. Play
+  glides into the tower, looks straight up it and speeds up it while the server loads you, then flashes white into
+  the world; Return to title plays it backwards.
 - **Character creation:** a new player's way in holds on white, where a faceless System greets them; then they
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
@@ -111,9 +112,10 @@ npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```
 
-Local settings (database user, password and port, `DATABASE_URL`, the server's `PORT`, `DEV_PING_MS`) live in
-`.env`, which is git-ignored. `npm run dev` copies it from `.env.example` the first time. Changing `POSTGRES_USER`,
-`_PASSWORD` or `_DB` after the database exists needs `npm run db:reset`.
+Local settings (database user, password and port, `DATABASE_URL`, the server's `PORT`, `DEV_PING_MS`, the server's
+name in the server list `SERVER_NAME` and its player cap `MAX_PLAYERS`) live in `.env`, which is git-ignored.
+`npm run dev` copies it from `.env.example` the first time. Changing `POSTGRES_USER`, `_PASSWORD` or `_DB` after the
+database exists needs `npm run db:reset`.
 
 **A simulated ping (dev only).** The dev server delays the game's messages by half of `DEV_PING_MS` each way (50 ms
 if it's left out; any whole number of ms, 0 for none), so the netcode can be felt on localhost. For one tab, add

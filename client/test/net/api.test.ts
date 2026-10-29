@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import { currentAccount, logIn, logOut, register, SERVER_UNREACHABLE } from "../../src/net/api.js";
+import { currentAccount, listServers, logIn, logOut, register, SERVER_UNREACHABLE } from "../../src/net/api.js";
 
 const ACCOUNT = { username: "test1" };
 const CREDENTIALS = { username: "test1", password: "test1" };
@@ -69,5 +69,12 @@ describe("the HTTP API", () => {
   test("logOut throws the server's error when it fails", async (t) => {
     mockFetch(t, () => json(500, { error: "Something went wrong." }));
     await assert.rejects(logOut(), { message: "Something went wrong." });
+  });
+
+  test("listServers gets the game servers", async (t) => {
+    const servers = [{ name: "Local", socket: "/ws", players: 1, maxPlayers: 50 }];
+    const fetch = mockFetch(t, () => json(200, servers));
+    assert.deepEqual(await listServers(), servers);
+    assert.equal(fetch.mock.calls[0]!.arguments[0], "/api/servers");
   });
 });

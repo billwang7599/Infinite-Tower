@@ -1,4 +1,4 @@
-import type { AccountInfo, ApiError, Credentials } from "@infinite-tower/shared";
+import type { AccountInfo, ApiError, Credentials, GameServer } from "@infinite-tower/shared";
 
 export const SERVER_UNREACHABLE =
   "Can't reach the game server. Start everything with `npm run dev` (server + client).";
@@ -11,6 +11,8 @@ export async function currentAccount(): Promise<AccountInfo | null> {
 
 export const logIn = (credentials: Credentials) => request("POST", "/api/login", credentials).then(parse<AccountInfo>);
 export const register = (credentials: Credentials) => request("POST", "/api/register", credentials).then(parse<AccountInfo>);
+
+export const listServers = () => request("GET", "/api/servers").then(parse<GameServer[]>);
 
 export async function logOut(): Promise<void> {
   const res = await request("POST", "/api/logout");

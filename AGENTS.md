@@ -323,6 +323,17 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).
+- Multiplayer (the user: "overhaul net/ ... a nice simple API", "for now just 1 server should work? but client can see
+  a list of servers to join", then "do whatever you think is right"): built as the stack in
+  [plan/multiplayer.md](plan/multiplayer.md), whose picks are all the agent's. The client has one `Net` for the game
+  socket and every HTTP call in `client/src/net/api.ts`; the wire didn't change.
+- The server list: `GET /api/servers` lists only this server for now, its name `SERVER_NAME` ("Local" if left out)
+  and a cap of `MAX_PLAYERS` (50) players online, both in `.env`. Each entry carries its socket, so a second server
+  (same database, same login cookie) is just a second entry. A full server closes a new player's socket (4002, "That
+  server is full"); a player already on it may still take over from another tab. The list is public (no login
+  needed), and anyone may pick a full server and try (the server decides). Logging in no longer goes straight in:
+  it shows the list with the first server picked, and Play joins the picked one. The list is fetched again on the
+  title (after logging in, a failed join, and Return to title), not live.
 
 ## Commands
 
