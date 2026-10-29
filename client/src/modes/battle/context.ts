@@ -1,5 +1,5 @@
 import type { Character, Entity, GearMove, PageWrite, Skill, Vec3 } from "@infinite-tower/shared";
-import type { Fight, FightOutcome } from "@infinite-tower/shared/fight";
+import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
 import type { ArenaView } from "./camera.js";
@@ -21,6 +21,7 @@ export interface BattleContext {
   view: ArenaView;
   lock: Entity | null;
   opponent: { name: string; character: Character } | null;
+  who: PlayerSetup["who"][];
   /** Your own copy, from the encounter until the player leaves the arena. */
   fight: Fight | null;
   /** Keeps `fight` in line with the server's. */

@@ -18,4 +18,5 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   cheat: (msg, s) => s.cheat(msg.cheat),
   challenge: (_msg, s) => s.challenge(),
   answerChallenge: (msg, s) => s.answerChallenge(msg.accept),
+  joinBattle: (_msg, s) => s.joinBattle(),
 };

@@ -1,6 +1,6 @@
 # Multiplayer
 
-Status: **being built**, as a stack of PRs.
+Status: **built** (not yet played by hand), as a stack of PRs; what's still open is at the end.
 
 The user asked (their words): "overhaul net/. it should be consolidated to a nice simple API", "running servers. for
 now just 1 server should work? but client can see a list of servers to join", "support multiplayer joining", "if
@@ -40,21 +40,21 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
    Not done: the other player is drawn with the battle sprite from behind (there's no front view yet), and in a
    duel's first seconds each client loads the server's fight a few times while the two clocks settle (no hash ever
    differed in the headless check; none after that).
-5. `join-battle` (if time): near (1.6 tiles) a player's crossed-swords marker, press the interact key (E, the Rest
-   key, which joins when there's no campfire closer; also a HUD "Join the fight" button) to join their battle. Up
-   to 4 players a battle; a joiner appears at the arena's edge; duels can't be joined. No friendly fire in a shared
-   battle; enemies go for the nearest player; enemy HP doesn't scale. A player who dies loses their bag as now and
-   wakes at the level's start, and the fight goes on for the rest; when it's won, everyone still in it counts a win
-   and rolls their own drops.
+5. `join-battle` (built; not yet played by hand): near (1.6 tiles) a player's crossed-swords marker, the interact key
+   (E, the Rest key, which joins when there's no campfire closer) or the HUD's "Join the fight" button joins their
+   battle. Up to 4 players in it at once; a joiner comes in at the arena's edge; duels can't be joined. No friendly
+   fire; enemies go for the nearest player standing; enemy HP doesn't scale. A player who goes down has lost (the bag
+   emptied, waking at the level's start) and the fight goes on for the rest; when it's won, everyone still in it
+   counts a win and rolls their own drops. Not done: every other player is drawn wearing the first one's look (there's
+   one set of their pictures), from behind.
 
 ## Where things stand
 
 - The server is already authoritative for the overworld, and every player has an account and a save. Each level has
   one shared `Overworld`; each player's `GameSession` has a walker in it. A fought enemy comes back `respawnTime`
-  after its fight is decided (AGENTS.md lists the rest of the picks).
+  after its fight is over for everyone in it (AGENTS.md lists the rest of the picks).
 - A second tab on the same account takes over the first (close code 4000).
-- Fights run on the server, built for any number of players, but every battle has one for now
-  ([server-fights.md](server-fights.md) lists what more players would need).
+- Fights run on the server for any number of players: a duel's two, or a battle others joined.
 
 ## Still open
 

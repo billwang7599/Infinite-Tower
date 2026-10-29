@@ -11,8 +11,6 @@ export const SILENT_STOP_STEPS = 15;
 export interface Lateness { lateSteps: number; heardStep: number }
 
 export class InputTimeline {
-  /** The last step the player has said what they did on. */
-  private heard = 0;
   /** Changes not run yet, in order. */
   private readonly waiting: StepInput[] = [];
   private newestChange = 0;
@@ -22,6 +20,9 @@ export class InputTimeline {
   /** The best lateness since `lateness` was last asked for. */
   private best: Lateness | null = null;
   private heardFrom = false;
+
+  /** A joiner's `heard` is the step they came in after. */
+  constructor(private heard = 0) {}
 
   /** Anything has come: the player is in the arena. */
   get started(): boolean {

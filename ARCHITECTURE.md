@@ -184,8 +184,17 @@ main.ts
   input at most `MAX_INPUT_DELAY` ("A fight on the wire" below has the rules). It's authoritative: hits, damage,
   stamina, deaths and the result. Once it's decided, each player's `onEnd` settles the battle for them
   (`core/game/battle.ts`, or `core/game/duels.ts` for a duel) and the fight is freed. A room takes any number of
-  players: a battle against enemies has one, a duel two. Each player's session ticks it with their seat, and only the
-  first seat still there moves its clock, so it runs one step a tick however many are in it.
+  players: a battle against enemies starts with one, a duel two. Each player's session ticks it with their seat, and
+  only the first seat still there moves its clock, so it runs one step a tick however many are in it. A player whose
+  own result is in before the fight's (`playerResult`: down while the others fight on) is settled then and out of it.
+- **Joining a battle** (`GameSession.joinBattle`, `joinBattle` in `core/game/battle.ts`): the interact key or the
+  HUD's button sends `joinBattle`; the server picks the nearest player in a battle within `JOIN_RANGE_TILES` (plus
+  the same lag slack as resting) and `BattleRoom.join` seats the joiner, unless it's a duel or `MAX_BATTLE_PLAYERS`
+  are still in it (`joinRefused` says why). The fight gets them between steps (`Fight.join`, at `joinStart`, the
+  arena's edge); the others get `battleJoined` (their `PlayerSetup`) and a `battleSync` with them in it, and the
+  joiner an `encounter` with the room's whole setup and the fight as it is (`joined`). From then on it's a battle like
+  any: inputs relayed, each player settled with their own result, drops rolled for each winner. The enemy taken off
+  the overworld comes back once the room is over for everyone (`onOver`), not when its first fighter falls.
 - **Duels** (`core/game/duels.ts`): the Challenge key sends `challenge`; the server picks the nearest player within
   `CHALLENGE_RANGE_TILES` who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
   side) and tells both how it goes (`challengeNews`). On `answerChallenge` with accept, both get one `encounter` (the
@@ -369,6 +378,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `ping {id}` | every 2 s, for the HUD's ping |
 | `challenge` | the Challenge key: duel the nearest player in reach |
 | `answerChallenge {accept}` | Accept / Decline on a challenge to you |
+| `joinBattle` | the interact key (Rest) or the HUD's "Join the fight" by a player in a battle |
 | `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal` |
 
 | Server -> client | When |
@@ -377,10 +387,12 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors and other players (a player's character only the first time) |
-| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; in a duel the `opponent`'s name and character |
+| `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; in a duel the `opponent`'s name and character; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
 | `battleInputs` | with other players in the fight: their changes of input as the server ran them, each tick it ran any (and before a hash) |
+| `battleJoined` | another player came into your fight: their `PlayerSetup` (a `battleSync` with them in it follows) |
+| `joinRefused` | `joinBattle` refused: nobody near is fighting, the fight is full, or it's a duel |
 | `challengeNews` | a duel challenge sent, received, declined, expired, called off, or refused (nobody near, busy) |
 | `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, skillbook; after a duel, `duel` (the opponent's name) |
 | `rested`, `itemUsed` | what resting or eating did |
@@ -417,12 +429,12 @@ KB/s down for one player against one boar; up, about 7 KB/s while the aim change
 locked on to a moving enemy), a fraction of that while it doesn't. There's no message that says how a fight ended: only
 the server's fight decides it, and its final `battleSync` and `battleResult` say so.
 
-With other players in the fight (a duel), the server passes each one's changes of input, as it ran them, to the others
-(`battleInputs`), every tick it ran a step and before every hash. A client runs another player as repeating what they
-last did until their real input comes; then, if it changed on a step already run, it loads its own copy as it was
-before that step (`FightSync` keeps one after every step for a second, in a fight with others) and replays to where it
-was. Too far back for that, it asks for the server's fight. Your own character never waits; another may jump a little
-on your screen (the drawings ease over it, as after a `battleSync`).
+With other players in the fight (a duel, or a battle joined), the server passes each one's changes of input, as it ran
+them, to the others (`battleInputs`), every tick it ran a step and before every hash. A client runs another player as
+repeating what they last did until their real input comes; then, if it changed on a step already run, it loads its own
+copy as it was before that step (`FightSync` keeps one after every step for a second, in a fight with others) and
+replays to where it was. Too far back for that, it asks for the server's fight. Your own character never waits; another
+may jump a little on your screen (the drawings ease over it, as after a `battleSync`).
 
 **A simulated ping (dev only).** A dev server delays every game socket's messages by half of `DEV_PING_MS` each way
 (`.env`, any whole number of ms, 50 if left out), in order, the close included (`ws/delay.ts`), so the netcode can be
@@ -493,7 +505,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   silent player stopping, lateness, the latest of late chant words kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
   client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
-  step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving.
+  step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving. Joining a battle:
+  reach and its slack, duels and full rooms refused, each player's own result (one down settled at once, a win for
+  everyone still in it), a joiner leaving, the enemy kept until the room is over.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit, cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket,
   the simulated ping included (each way half of it, in order, 0 for none, never in production); `env.ts`'s
@@ -579,11 +593,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    time.ts
   world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, its floor, tile
                    map and campfires; moveWalker, the one collision rule, and stepWalker on it for prediction +
-                   replay; nearCampfire / REST_RANGE), tiles.ts (TILES: each tile kind's character and rules, solid
-                   or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts (ArenaDef: an arena's id,
-                   radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the time of day from the
-                   wall clock, the same everywhere with no messages: DayClock, timeOfDay, retimeDay; sunAt and
-                   moonAt, their arcs. Drawing only: nothing in a fight reads it)
+                   replay; nearCampfire / REST_RANGE, JOIN_RANGE_TILES), tiles.ts (TILES: each tile kind's
+                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
+                   (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
+                   time of day from the wall clock, the same everywhere with no messages: DayClock, timeOfDay,
+                   retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
@@ -594,10 +608,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
-                     load / hash, leave(player), outcome, events, dispose; the enemy motor and player ground
-                     systems), setup.ts (FightSetup, the one-on-one and DUEL_STARTS
-                     starting spots, spawning players and enemies: components + a collider, one component per
-                     attack in the def, a Wielder for whoever holds things), context.ts (FightContext,
+                     load / hash, join(player) and leave(player), outcome, events, dispose; the enemy motor and
+                     player ground systems), setup.ts (FightSetup, the one-on-one and DUEL_STARTS
+                     starting spots, joinStart (where a joiner comes in), spawning players and enemies:
+                     components + a collider, one component per attack in the def, a Wielder for whoever holds
+                     things), context.ts (FightContext,
                      FightOutcome, FightEvent), combat.ts (addHit,
                      hits in an arc or a ray, parrying, blocking, knockback, the hit timers), outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
@@ -674,11 +689,14 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        session's late messages are dropped); one Overworld per level, made when its first player
                        arrives, stepped only while someone's on it), session.ts (GameSession, one player: their
                        save, their walker in their level's overworld (`me`), the battle they're in; a method per
-                       thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld),
+                       thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
+                       nearestPlayer, the nearest other player in reach; Others, what a session sees of the rest;
+                       LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        duels.ts (Duels: challenges, their reach, expiry and news; starting a duel; settling a
                        spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME),
-                       battle.ts (start a battle in a BattleRoom with the bag and what's worn, settle its end for
+                       battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
+                       a player as the fight takes them, a duel's too), settle its end for
                        the player: the gear as the fight left it, wins, loot packed into the bag, a loss emptying it
                        and handing a fresh sword and skillbook, vitals), snapshot.ts (the state message: only
                        actors and other players within VIEW_RADIUS_TILES, each player's character sent once),
@@ -686,7 +704,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it; `edit` changes a player's fighter between steps
-                       and sends everyone the fight; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS),
+                       and sends everyone the fight; join seats a player in a fight under way, settle gives each
+                       player their own result; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS, MAX_BATTLE_PLAYERS),
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
@@ -794,8 +813,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
                        `chant`, `battleBag`, `skillbookScreen`, `admin` and `challenge` (the UI writes them too, the
                        game watches them; `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions
-                       (what the UI asks of the game: signIn, logOut, play, rest, challenge, answerChallenge, useItem,
-                       moveItem, castSkill, saveSkill, saveCharacter, returnToTitle, cheat, setDayClock). No React.
+                       (what the UI asks of the game: signIn, logOut, play, interact, challenge, answerChallenge,
+                       useItem, moveItem, castSkill, saveSkill, saveCharacter, returnToTitle, cheat, setDayClock).
+                       No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
@@ -804,7 +824,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
                        canvas: the portrait, or the chibi facing front)
-      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and rest keys,
+      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Rest keys,
+                       the button by a campfire or a fight ("Rest by the fire" / "Join the fight"),
                        the challenge key and a challenge's Accept / Decline notice),
                        BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, no eating; the book over
                        it), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
@@ -853,7 +874,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
-                         (turned to the camera) and the camera's turn keys, server state, the overworld HUD
+                         (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
+                         interactionAt: the Rest key rests, or joins a fight beside you if no campfire is closer
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
                          screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
@@ -868,7 +890,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         sync.ts          FightSync: runs the fight with your inputs, sends their changes with their steps, checks the
                          server's hashes, loads its fight and replays on a mismatch; other players' inputs as the
                          server relays them (until then they repeat their last), going back to the first step one
-                         changed and replaying; every step's events (`events`,
+                         changed and replaying; a player joining (onJoined); every step's events (`events`,
                          replays included); the server's outcome; stats (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)

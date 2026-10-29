@@ -28,7 +28,7 @@ export const ACTIONS = {
   },
   /** Turn acts on what's dragged, or else on the selected item; use on the selected item. */
   overworld: {
-    rest: { label: "Rest at a campfire", keys: ["KeyE"] },
+    rest: { label: "Rest at a campfire, or join a fight", keys: ["KeyE"] },
     turnItem: { label: "Turn an item in the bag", keys: ["KeyR"], mouse: [2] },
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
     turnCameraLeft: { label: "Turn camera left", keys: ["ArrowLeft"] },

@@ -9,7 +9,7 @@ import {
   copyInput, FIXED_DT, HASH_EVERY_STEPS, Health, MAX_INPUT_DELAY_STEPS, MAX_INPUTS_PER_MESSAGE, Player, PlayerInput,
   quantizeInput, sameInput, type ClientMsg, type Entity, type PlayerInputData, type ServerMsgOf, type StepInput,
 } from "@infinite-tower/shared";
-import type { Fight, FightEvent, FightOutcome, FightSnapshot } from "@infinite-tower/shared/fight";
+import type { Fight, FightEvent, FightOutcome, FightSnapshot, PlayerSetup } from "@infinite-tower/shared/fight";
 import { Pace } from "./pace.js";
 
 /** With nothing new to send, the client still says how far it has got this often (steps). */
@@ -136,10 +136,8 @@ export class FightSync {
     const hashBefore = this.fight.hash(), hpBefore = this.hp();
     this.fight.load(fight);
     this.hashes.clear();
-    if (this.states.size > 0) {
-      this.states.clear();
-      this.states.set(step, this.fight.save());
-    }
+    this.states.clear();
+    if (this.fight.players.length > 1) this.states.set(step, this.fight.save());
     for (const at of this.ahead.keys()) if (at <= step) this.ahead.delete(at);
     if (step % HASH_EVERY_STEPS === 0) this.hashes.set(step, this.fight.hash());
     if (step >= present) {
@@ -183,6 +181,14 @@ export class FightSync {
     this.replay(from, present);
   }
 
+  onJoined(player: PlayerSetup): void {
+    if (this.decided) return;
+    this.fight.join(player);
+    this.states.clear();
+    this.hashes.clear();
+    this.ahead.clear();
+  }
+
   /** battleResult: the fight is over, and the banner may show. */
   onResult(won: boolean): void {
     const state = won ? "won" : "lost";
@@ -209,7 +215,7 @@ export class FightSync {
     inputs[this.seat] = input;
     this.fight.step(inputs);
     const step = this.fight.steps;
-    if (this.states.size > 0) {
+    if (this.fight.players.length > 1) {
       this.states.set(step, this.fight.save());
       this.states.delete(step - HISTORY_STEPS - 1);
       this.theirs.delete(step - HISTORY_STEPS - 1);

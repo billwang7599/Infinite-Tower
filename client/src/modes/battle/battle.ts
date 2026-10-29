@@ -48,6 +48,7 @@ export function createBattle(opts: BattleOptions): Battle {
     view: { ...START_VIEW, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
     opponent: null,
+    who: [],
     fight: null,
     sync: null,
     outcome: { state: "fighting", stateTime: 0 },
@@ -110,7 +111,7 @@ export function createBattle(opts: BattleOptions): Battle {
 
   return {
     ctx,
-    start({ setup, seat, opponent }, net) {
+    start({ setup, seat, opponent, joined }, net) {
       ctx.fight?.dispose();
       for (const off of unsubscribe) off();
       ctx.casts = [];
@@ -127,17 +128,27 @@ export function createBattle(opts: BattleOptions): Battle {
       const correcting = (load: () => void) => {
         const before = positions(fight);
         load();
+        const after = positions(fight);
         [...fight.players, ...fight.enemies].forEach((e, i) => {
-          const { pos } = fight.world.require(e, Body), was = before[i]!;
-          corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
+          const was = before[i], pos = after[i]!;
+          if (was) corrected.push({ e, moved: { x: pos.x - was.x, y: pos.y - was.y, z: pos.z - was.z } });
         });
       };
       unsubscribe = [
         net.on("battleHash", (msg) => sync.onHash(msg)),
         net.on("battleSync", (msg) => correcting(() => sync.onSync(msg))),
         net.on("battleInputs", (msg) => correcting(() => sync.onInputs(msg))),
+        net.on("battleJoined", ({ player }) => {
+          sync.onJoined(player);
+          ctx.who.push(player.who);
+        }),
       ];
+      // Taken by another join on the way in, it's out of date: the server's fight is asked for instead.
+      if (joined && joined.fight.players.length === fight.players.length) {
+        sync.onSync({ t: "battleSync", step: joined.step, fight: joined.fight, lateSteps: 0, heardStep: joined.step });
+      }
       ctx.opponent = opponent ?? null;
+      ctx.who = setup.players.map((p) => p.who);
       ctx.outcome = sync.outcome;
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);

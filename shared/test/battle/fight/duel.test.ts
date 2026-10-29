@@ -103,8 +103,8 @@ describe("a duel: two players, each the other's foe", () => {
     fight.world.require(fight.players[1]!, Health).hp = 0;
     play(fight, 1);
     assert.equal(fight.outcome.state, "won");
-    assert.equal(playerResult(fight.outcome, false, { standing: true }), "won");
-    assert.equal(playerResult(fight.outcome, false, { standing: false }), "lost");
+    assert.equal(playerResult(fight.outcome, false, { standing: true, duel: true }), "won");
+    assert.equal(playerResult(fight.outcome, false, { standing: false, duel: true }), "lost");
   });
 
   test("still undecided at the time limit, nobody won", () => {
@@ -112,14 +112,14 @@ describe("a duel: two players, each the other's foe", () => {
     fight.outcome.stateTime = MAX_FIGHT_TIME;
     play(fight, 1);
     assert.equal(fight.outcome.state, "lost");
-    assert.equal(playerResult(fight.outcome, false, { standing: true }), "lost");
+    assert.equal(playerResult(fight.outcome, false, { standing: true, duel: true }), "lost");
   });
 
   test("leaving a duel forfeits it, with nothing lost", () => {
     const fight = pvp();
     fight.leave(fight.players[0]!);
     play(fight, 1);
-    assert.equal(playerResult(fight.outcome, true, { standing: false }), "left");
-    assert.equal(playerResult(fight.outcome, false, { standing: true }), "won");
+    assert.equal(playerResult(fight.outcome, true, { standing: false, duel: true }), "left");
+    assert.equal(playerResult(fight.outcome, false, { standing: true, duel: true }), "won");
   });
 });

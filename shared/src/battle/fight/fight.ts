@@ -26,7 +26,7 @@ import { playerControllerSystem } from "./player/controller.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
 import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
-import { spawnEnemy, spawnPlayer, type FightSetup } from "./setup.js";
+import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { weaponSystem } from "./weapons/swing.js";
 
@@ -68,8 +68,7 @@ export class Fight {
   readonly world = new World();
   readonly physics: ArenaPhysics;
   readonly arena: ArenaDef;
-  /** In the order of the setup; `step` takes their inputs in the same order. */
-  readonly players: readonly Entity[];
+  private readonly seated: Entity[];
   readonly enemies: readonly Entity[];
   readonly duel: boolean;
   /** What an input's `locked` indexes: the enemies, or in a duel the players. */
@@ -87,7 +86,7 @@ export class Fight {
     this.arena = { ...setup.arena };
     this.physics = new ArenaPhysics(this.arena.radius);
     this.duel = setup.duel ?? false;
-    this.players = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
+    this.seated = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
     this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
     this.targets = this.duel ? this.players : this.enemies;
     const ctx: FightContext = {
@@ -103,6 +102,17 @@ export class Fight {
       playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),
       outcomeSystem(this.outcome, this.duel),
     ];
+  }
+
+  /** Setup order, then joining order: the order `step` takes their inputs in. */
+  get players(): readonly Entity[] {
+    return this.seated;
+  }
+
+  join(setup: PlayerSetup): Entity {
+    const e = spawnPlayer(this.world, this.physics, setup);
+    this.seated.push(e);
+    return e;
   }
 
   /** One step. `inputs[i]` is what `players[i]` does; a missing one keeps that player's last input. */
