@@ -126,12 +126,11 @@ const AVERAGE_STRENGTH = 10;
 const inertiaOf = (w: Weapon): number => w.mass * (w.balanceM * w.balanceM + (w.length * w.length) / 12);
 
 export interface SwingPlan {
-  /** Until impact, of which the last `driveTime`. */
   windupTime: number;
   driveTime: number;
   followTime: number;
   timeFactor: number;
-  /** The drive's, in shares of the from-rest impact speed: `flow` is its speed at impact. */
+  /** In shares of the from-rest impact speed, as is `flow`. */
   startSpeed: number;
   flow: number;
   /** Against the starter sword's opening swing at strength 10, as is `effort` (energy added, braking too). */
@@ -139,10 +138,7 @@ export interface SwingPlan {
   effort: number;
 }
 
-/**
- * At a time factor of 1, a push brings the blade from rest to its impact speed in `driveTime`, and brakes it as fast.
- * The drive is that push over a fixed stroke, so from `u` it ends at √(u² + 1), capped at `maxFlow`.
- */
+/** From a speed of u the drive ends at √(u² + 1), capped at maxFlow. */
 export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack: AttackKind): SwingPlan {
   const inertia = inertiaOf(weapon) / inertiaOf(STARTER);
   const rawTimeFactor = Math.sqrt(inertia / (strength / AVERAGE_STRENGTH));
@@ -174,11 +170,7 @@ export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack
   return looped.windupTime < stopped.windupTime ? looped : stopped;
 }
 
-/**
- * Where a swing's blade is on its step. `set`: 0..1 while it's brought to the swing's start. `turn`: then how far it
- * has swung, as a share of the half-turn from its start to its far side (a swing from rest drives a third of it, is
- * live a third and follows through a third). `follow`: 0..1 through the follow-through.
- */
+/** `turn`: share of the half-turn from start to far side (from rest: a third driven, live, follow-through each). */
 export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
   const { step, driveAt, liveAt, liveUntil, endAt, startSpeed: u, flow: v } = swing;
   const driveSteps = Math.max(1, liveAt - driveAt), stroke = ((u + v) / 2) * driveSteps;
