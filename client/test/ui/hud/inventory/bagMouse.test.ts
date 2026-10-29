@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CLOTH, emptyCloth, ITEMS, starterEquipment, type BagItem, type Equipment, type Gear, type ItemId, type Slot,
+  CLOTH, emptyCloth, ITEMS, NO_PILE, starterEquipment, type BagItem, type Equipment, type Gear, type ItemId, type Slot,
   type Spot,
 } from "@infinite-tower/shared";
 import {
@@ -12,11 +12,12 @@ import {
 
 const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
 const bag = (cols: number, rows: number, ...items: BagItem[]): Gear =>
-  ({ bag: { cols, rows, items }, cloth: emptyCloth(), equipment: NOTHING_WORN });
+  ({ bag: { cols, rows, items }, cloth: emptyCloth(), pile: NO_PILE, equipment: NOTHING_WORN });
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
 const at = (x: number, y: number): Spot => ({ in: "bag", x, y });
 const onCloth = (x: number, y: number): Spot => ({ in: "cloth", x, y });
+const onPile = (x: number, y: number): Spot => ({ in: "pile", x, y });
 const slot = (name: Slot): Spot => ({ in: "slot", slot: name });
 
 /** A 6x4 bag: meat x3 at 0,0; a hide at 2,0 (2x2); a tusk standing at 5,0 (1x2). */
@@ -380,5 +381,35 @@ describe("the cloth and the equipment", () => {
     const g: Gear = { ...BAG, equipment: starterEquipment() };
     const clicked = pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0);
     assert.equal(keepUp(clicked.mouse, { ...g, equipment: NOTHING_WORN }).selected, null);
+  });
+});
+
+describe("an open pile", () => {
+  const PILED: Gear = {
+    ...bag(6, 4), pile: { cols: 4, rows: 2, items: [stack("boar-tusk", 0, 0), stack("boar-meat", 1, 0)] },
+  };
+  const fromPile = (x: number, y: number, g: Gear = PILED) =>
+    pointerMove(pointerDown(NO_MOUSE, g, overSpot(onPile(x, y))), g, overSpot(onPile(x, y), FAR), 0);
+
+  test("its items are dragged into the bag: a move from the pile", () => {
+    const m = pointerMove(fromPile(0, 1), PILED, over(2, 1, 0, 0, PILED), 0);
+    assert.equal(canDrop(m, PILED), true);
+    const { move } = pointerUp(m, PILED, over(2, 1, 0, 0, PILED), 0);
+    assert.deepEqual(move, { from: onPile(0, 0), to: at(2, 0), turned: false });
+  });
+
+  test("nothing is dropped onto it, from the bag or moved about on it", () => {
+    const g: Gear = { ...PILED, bag: { ...PILED.bag, items: [stack("boar-hide", 0, 0)] } };
+    const fromBag = pointerMove(dragFrom(0, 0, g), g, overSpot(onPile(2, 0)), 0);
+    assert.equal(canDrop(fromBag, g), false);
+    assert.equal(pointerUp(fromBag, g, overSpot(onPile(2, 0)), 0).move, null);
+    const within = pointerMove(fromPile(1, 0), PILED, overSpot(onPile(3, 1)), 0);
+    assert.equal(canDrop(within, PILED), false);
+  });
+
+  test("its meat isn't eaten from it: it's taken into the bag first", () => {
+    const clicked = pointerUp(pointerDown(NO_MOUSE, PILED, overSpot(onPile(1, 0))), PILED, overSpot(onPile(1, 0)), 0);
+    assert.equal(selectedStack(clicked.mouse, PILED)?.item, "boar-meat");
+    assert.equal(itemToUse(clicked.mouse, PILED, false), null);
   });
 });

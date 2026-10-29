@@ -4,8 +4,8 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, moveGear, type Character, type Cheat, type DayChange, type EnemyId, type GridSpot, type ServerMsgOf,
-  type Skill, type Spot,
+  bagCounts, moveGear, NO_PILE, type Character, type Cheat, type DayChange, type EnemyId, type ServerMsgOf, type Skill,
+  type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -35,7 +35,7 @@ export interface Game {
   interact(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
-  useItem(at: GridSpot): void;
+  useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
@@ -95,9 +95,9 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
 
   const closeBag = () => {
     const gear = ui.overworld.get().gear;
-    if (gear.cloth.items.length === 0) return;
-    say(ui.notifications, { kind: "leftOnCloth", items: bagCounts(gear.cloth) });
-    overworld.setGear({ ...gear, cloth: { ...gear.cloth, items: [] } });
+    if (gear.cloth.items.length === 0 && gear.pile.cols === 0) return;
+    if (gear.cloth.items.length > 0) say(ui.notifications, { kind: "leftOnCloth", items: bagCounts(gear.cloth) });
+    overworld.setGear({ ...gear, cloth: { ...gear.cloth, items: [] }, pile: NO_PILE });
     net?.send({ t: "closeBag" });
   };
 
@@ -178,7 +178,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       transition = startTransition("overworld");
     },
     interact() {
-      if (mode === "overworld" && !transition) overworld.interact();
+      if (mode !== "overworld" || transition) return;
+      if (overworld.interact() === "openPile" && !bagOpen) ui.toggleOverworldPanel("inventory");
     },
     challenge() {
       if (mode === "overworld" && !transition) net?.send({ t: "challenge" });

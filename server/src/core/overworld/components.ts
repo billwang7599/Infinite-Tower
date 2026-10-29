@@ -1,5 +1,5 @@
 /** Overworld entities on the server. The client sees them through `state` (ActorSnap). */
-import { defineComponent, type ActorSnap, type Character, type Vec2 } from "@infinite-tower/shared";
+import { defineComponent, type ActorSnap, type Bag, type Character, type Vec2 } from "@infinite-tower/shared";
 
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
@@ -38,3 +38,10 @@ export interface OverworldPlayerData {
   fighting: boolean;
 }
 export const OverworldPlayer = defineComponent<OverworldPlayerData>("OverworldPlayer");
+
+/** `items` is replaced, never changed in place: sessions spot a change by reference. */
+export interface PileData {
+  items: Bag;
+  vanishAtMs: number;
+}
+export const Pile = defineComponent<PileData>("Pile");

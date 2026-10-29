@@ -1,6 +1,6 @@
 import {
-  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PLAYER, REST_RANGE_TILES, walkPace, type Gear,
-  type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
+  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PILE_RANGE_TILES, PLAYER, REST_RANGE_TILES, walkPace,
+  type Gear, type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
@@ -23,16 +23,29 @@ export interface Overworld {
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
   setGear(gear: Gear): void;
-  /** The Rest key, or the HUD's button: rest, or join a fight. */
-  interact(): void;
+  interact(): Interaction | null;
 }
 
-export function interactionAt(level: LevelLayout, at: Vec2, fights: readonly Vec2[]): Interaction | null {
-  const nearest = (spots: readonly Vec2[]) => Math.min(...spots.map((s) => distXZ(s, at)));
-  const fire = nearest(level.campfires), fight = nearest(fights);
-  if (fight <= JOIN_RANGE_TILES && fight < fire) return "joinFight";
-  return fire <= REST_RANGE_TILES ? "rest" : null;
+export function interactionAt(
+  level: LevelLayout, at: Vec2, fights: readonly Vec2[], piles: readonly Vec2[],
+): Interaction | null {
+  const reachable: [Interaction, readonly Vec2[], number][] = [
+    ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
+    ["openPile", piles, PILE_RANGE_TILES],
+  ];
+  let best: { what: Interaction; dist: number } | null = null;
+  for (const [what, spots, rangeTiles] of reachable) {
+    for (const spot of spots) {
+      const dist = distXZ(spot, at);
+      if (dist <= rangeTiles && (!best || dist < best.dist)) best = { what, dist };
+    }
+  }
+  return best?.what ?? null;
 }
+
+const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile"> = {
+  rest: "rest", joinFight: "joinBattle", openPile: "openPile",
+};
 
 const SPEECH_TIME = 6;
 
@@ -63,11 +76,14 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   const interaction = (): Interaction | null => {
     if (!prediction || inBattle || !state.level) return null;
     const fights = [...world.query(Peer, OverworldPos)].flatMap(([, peer, pos]) => (peer.fighting ? [pos] : []));
-    return interactionAt(state.level, playerPos(), fights);
+    const piles = [...world.query(OverworldActor, OverworldPos)]
+      .flatMap(([, actor, pos]) => (actor.kind === "pile" ? [pos] : []));
+    return interactionAt(state.level, playerPos(), fights, piles);
   };
   const interact = () => {
     const what = interaction();
-    if (what) net?.send({ t: what === "rest" ? "rest" : "joinBattle" });
+    if (what) net?.send({ t: INTERACT_MSG[what] });
+    return what;
   };
   const hush = () => { for (const [e] of world.query(Speech)) world.remove(e, Speech); };
   const setVitals = (v: Vitals) =>
@@ -97,7 +113,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       joinedNet.on("state", (msg) => {
         if (inBattle) return;
         prediction?.reconcile(msg.ack, msg.me);
-        actors.apply(msg.actors, msg.players);
+        actors.apply(msg.actors, msg.players, msg.piles);
       });
       joinedNet.on("encounter", (msg) => {
         inBattle = true;

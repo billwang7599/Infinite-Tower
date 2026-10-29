@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear, SLOTS,
+  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear, NO_PILE, SLOTS,
   starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Stats,
 } from "@infinite-tower/shared";
 
@@ -12,7 +12,7 @@ const NOTHING: Equipment = { rightHand: null, leftHand: null, head: null, body: 
 
 /** Deep-frozen, so a function that changes its input throws. */
 function frozen(g: Gear): Gear {
-  for (const b of [g.bag, g.cloth]) {
+  for (const b of [g.bag, g.cloth, g.pile]) {
     b.items.forEach((s) => Object.freeze(s));
     Object.freeze(b.items);
     Object.freeze(b);
@@ -21,8 +21,9 @@ function frozen(g: Gear): Gear {
   return Object.freeze(g);
 }
 
-const gear = (over: Partial<Gear> = {}): Gear =>
-  frozen({ bag: emptyBag(), cloth: grid(CLOTH.cols, CLOTH.rows), equipment: starterEquipment(), ...over });
+const gear = (over: Partial<Gear> = {}): Gear => frozen({
+  bag: emptyBag(), cloth: grid(CLOTH.cols, CLOTH.rows), pile: NO_PILE, equipment: starterEquipment(), ...over,
+});
 
 describe("the starting gear", () => {
   test("the sword in the right hand, the skillbook in the left, nothing else worn", () => {
@@ -51,11 +52,12 @@ describe("heldIn", () => {
 });
 
 describe("weight", () => {
-  test("what's worn counts, what's on the cloth doesn't", () => {
+  test("what's worn counts, what's on the cloth or an open pile doesn't", () => {
     const bag = grid(6, 4, stack("boar-tusk", 0, 0));
     const cloth = grid(4, 4, stack("boar-hide", 0, 0));
+    const pile = grid(4, 2, stack("boar-tusk", 0, 0));
     const worn = ITEMS.sword.weight + ITEMS.skillbook.weight;
-    assert.equal(gearWeight(gear({ bag, cloth })), bagWeight(bag) + worn);
+    assert.equal(gearWeight(gear({ bag, cloth, pile })), bagWeight(bag) + worn);
   });
 
   test("the burden weighs the bag and the equipment together", () => {
@@ -145,5 +147,50 @@ describe("moveGear", () => {
     const g = gear({ bag: bag(stack("boar-hide", 0, 0)) });
     assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 1, y: 1 }, false), null);
     assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, { in: "bag", x: 5, y: 2 }, false), null);
+  });
+});
+
+describe("moveGear with a pile open", () => {
+  const pile = (...items: BagItem[]) => grid(4, 2, ...items);
+  const PILE_TUSK = { in: "pile", x: 0, y: 0 } as const;
+
+  test("its items are taken into the bag, turned as asked, and leave the pile", () => {
+    const g = gear({ pile: pile(stack("boar-tusk", 0, 0), stack("boar-hide", 1, 0)) });
+    const taken = moveGear(g, PILE_TUSK, { in: "bag", x: 2, y: 1 }, true)!;
+    assert.deepEqual(taken.bag.items, [stack("boar-tusk", 2, 1, 1, true)]);
+    assert.deepEqual(taken.pile.items, [stack("boar-hide", 1, 0)]);
+  });
+
+  test("onto a stack in the bag, only what fits there is taken", () => {
+    const max = ITEMS["boar-meat"].stackSize;
+    const g = gear({ bag: grid(6, 4, stack("boar-meat", 0, 0, max - 1)), pile: pile(stack("boar-meat", 2, 1, 3)) });
+    const taken = moveGear(g, { in: "pile", x: 2, y: 1 }, { in: "bag", x: 0, y: 0 }, false)!;
+    assert.deepEqual(taken.bag.items, [stack("boar-meat", 0, 0, max)]);
+    assert.deepEqual(taken.pile.items, [stack("boar-meat", 2, 1, 2)]);
+  });
+
+  test("a weapon goes straight into an empty hand", () => {
+    const g = gear({ equipment: NOTHING, pile: pile(stack("longsword", 3, 0)) });
+    const taken = moveGear(g, { in: "pile", x: 3, y: 1 }, { in: "slot", slot: "rightHand" }, false)!;
+    assert.equal(taken.equipment.rightHand, "longsword");
+    assert.deepEqual(taken.pile.items, []);
+  });
+
+  test("nothing goes onto it: not from the bag, a hand or the cloth, nor moved about on it", () => {
+    const g = gear({
+      bag: grid(6, 4, stack("boar-hide", 0, 0)), cloth: grid(4, 4, stack("boar-meat", 0, 0)),
+      pile: pile(stack("boar-tusk", 0, 0)),
+    });
+    const free = { in: "pile", x: 2, y: 0 } as const;
+    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, free, false), null);
+    assert.equal(moveGear(g, { in: "cloth", x: 0, y: 0 }, free, false), null);
+    assert.equal(moveGear(g, { in: "slot", slot: "rightHand" }, free, false), null);
+    assert.equal(moveGear(g, PILE_TUSK, { in: "pile", x: 3, y: 0 }, false), null);
+    assert.equal(moveGear(g, PILE_TUSK, PILE_TUSK, true), null);
+  });
+
+  test("no pile open is a grid with no cells", () => {
+    assert.deepEqual(NO_PILE, { cols: 0, rows: 0, items: [] });
+    assert.equal(moveGear(gear(), { in: "slot", slot: "rightHand" }, { in: "pile", x: 0, y: 0 }, false), null);
   });
 });

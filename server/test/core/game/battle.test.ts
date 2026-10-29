@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS, physicalDamage,
-  Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, WEAPONS, type Bag, type Equipment, type GearMove,
-  type PlayerInputData, type Skill, type Word,
+  bagCounts, blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS,
+  physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, WEAPONS, type Bag, type Equipment,
+  type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
-import { packLoot } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
@@ -157,21 +156,33 @@ describe("starting a battle", () => {
 });
 
 describe("the server runs the fight", () => {
-  test("and decides a win from the player's inputs alone: result, loot packed, saved", (t) => {
+  test("and decides a win from the player's inputs alone: result, the drops in a pile where it began, saved", (t) => {
     t.mock.method(Math, "random", () => 0);
-    const { session, link, saves } = inBattle();
+    const { session, link, saves } = inBattle(CARRIED);
+    const at = session.overworld.playerPos(session.me);
     win(session);
     const result = link.last("battleResult");
     assert.equal(result.won, true);
     assert.equal(result.wins, 1);
     assert.ok((result.loot["boar-meat"] ?? 0) >= 1);
-    assert.deepEqual(result.leftBehind, {});
     assert.deepEqual(result.lost, {});
-    assert.deepEqual(result.gear.bag, packLoot(emptyBag(), result.loot).bag);
-    assert.deepEqual(session.bag, result.gear.bag);
+    const pile = session.overworld.nearestPile(at, 0);
+    assert.notEqual(pile, null, "a pile where the fight began");
+    assert.deepEqual(bagCounts(session.overworld.pileItems(pile!)!), result.loot);
+    assert.deepEqual(result.gear.bag, CARRIED, "nothing packed into the bag");
+    assert.deepEqual(session.bag, CARRIED);
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
-    assert.deepEqual(saves[0]?.bag, result.gear.bag);
+    assert.deepEqual(saves[0]?.bag, CARRIED);
+  });
+
+  test("a win with nothing dropped leaves no pile", (t) => {
+    t.mock.method(Math, "random", () => 0.999);
+    const { session, link } = inBattle();
+    const at = session.overworld.playerPos(session.me);
+    win(session);
+    assert.deepEqual(link.last("battleResult").loot, {});
+    assert.equal(session.overworld.nearestPile(at, 100), null);
   });
 
   test("a win keeps the book as it was", () => {
@@ -419,7 +430,7 @@ describe("the bag in a fight", () => {
     assert.equal(action(session).action, "attack");
   });
 
-  test("a win keeps the gear as the fight left it, loot packed around it, and saves it", () => {
+  test("a win keeps the gear as the fight left it, and saves it", () => {
     const { session, link, saves } = inBattle(CARRIED);
     play(session, () => IDLE_INPUT, 2);
     moveInBag(session, { from: { in: "slot", slot: "leftHand" }, to: { in: "bag", x: 4, y: 0 }, turned: false });
@@ -501,27 +512,5 @@ describe("the overworld after a battle", () => {
       tick(session);
     }
     assert.equal(link.all("encounter").length, 2);
-  });
-});
-
-const MEAT_STACK = ITEMS["boar-meat"].stackSize;
-
-describe("packLoot", () => {
-  test("puts everything in the bag when there's room", () => {
-    const { bag, left } = packLoot(emptyBag(), { "boar-meat": 2, "boar-tusk": 1 });
-    assert.deepEqual(left, {});
-    assert.deepEqual(bag.items.map((s) => [s.item, s.count]), [["boar-meat", 2], ["boar-tusk", 1]]);
-  });
-
-  test("what doesn't fit is left behind, by item", () => {
-    const tiny: Bag = { cols: 1, rows: 1, items: [] };
-    const { bag, left } = packLoot(tiny, { "boar-meat": MEAT_STACK + 1, "boar-hide": 1 });
-    assert.deepEqual(left, { "boar-meat": 1, "boar-hide": 1 });
-    assert.deepEqual(bag.items.map((s) => [s.item, s.count]), [["boar-meat", MEAT_STACK]]);
-  });
-
-  test("no loot leaves the bag as it was", () => {
-    const start = emptyBag();
-    assert.deepEqual(packLoot(start, {}), { bag: start, left: {} });
   });
 });

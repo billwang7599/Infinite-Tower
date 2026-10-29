@@ -3,10 +3,10 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  distXZ, emptyCloth, gearBurden, heldIn, itemAt, itemDef, JOIN_RANGE_TILES, moveGear, nearCampfire, PLAYER, skillOf,
-  validateSkill, takeOne, walkPace, type Bag, type Burden, type Character, type Cheat, type Entity, type Gear,
-  type GridSpot, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type Vitals,
-  type Word,
+  distXZ, emptyCloth, gearBurden, heldIn, itemAt, itemDef, JOIN_RANGE_TILES, moveGear, nearCampfire, NO_PILE,
+  PILE_RANGE_TILES, PLAYER, skillOf, validateSkill, takeOne, walkPace, type Bag, type Burden, type Character,
+  type Cheat, type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput,
+  type Stats, type UseSpot, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
@@ -20,7 +20,7 @@ import { stateMsg } from "./snapshot.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
-/** Leeway on a reach the server checks (a campfire's, a battle's): its copy of you trails the client's. */
+/** Leeway on a reach the server checks (a campfire's, a battle's, a pile's): its copy of you trails the client's. */
 export const LAG_SLACK_TILES = 0.6;
 /** Small changes (settings, the bag) are written at most this often, so a client can't hammer the database. */
 const SAVE_SOON_MS = 1000;
@@ -63,6 +63,7 @@ export class GameSession {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private walking: Walking | null = null;
   private readonly introduced = new Set<Entity>();
+  private pileOpen: Entity | null = null;
 
   constructor(
     readonly account: Account,
@@ -77,7 +78,7 @@ export class GameSession {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
-    this.held = { bag: saved.bag, cloth: emptyCloth(), equipment: saved.equipment };
+    this.held = { bag: saved.bag, cloth: emptyCloth(), pile: NO_PILE, equipment: saved.equipment };
     this.gear = this.held;
     this.knownWords = saved.knownWords;
     this.skillbook = saved.skillbook;
@@ -195,7 +196,7 @@ export class GameSession {
     this.link.send({ t: "rested", vitals: this.vitals });
   }
 
-  useItem(at: GridSpot): void {
+  useItem(at: UseSpot): void {
     const grid = this.gear[at.in];
     const item = grid.items[itemAt(grid, at)]?.item;
     const healHp = item ? itemDef(item).healHp ?? 0 : 0;
@@ -207,19 +208,32 @@ export class GameSession {
     this.link.send({ t: "itemUsed", item, vitals: this.vitals, gear: this.gear });
   }
 
+  /** Taking from the pile they have open is first come first served: the overworld's copy is the one taken from. */
   moveItem(from: Spot, to: Spot, turned: boolean): void {
     if (!this.inOverworld) return;
+    this.followPile();
     const moved = moveGear(this.gear, from, to, turned);
     if (moved) {
       this.gear = moved;
+      if (from.in === "pile" && this.pileOpen !== null) this.overworld.setPileItems(this.pileOpen, moved.pile);
+      this.followPile();
       this.saveSoon();
     }
     this.link.send({ t: "gear", gear: this.gear });
   }
 
+  openPile(): void {
+    if (!this.inOverworld) return;
+    const reach = PILE_RANGE_TILES + LAG_SLACK_TILES;
+    this.pileOpen = this.overworld.nearestPile(this.overworld.playerPos(this.me), reach);
+    this.followPile();
+    this.link.send({ t: "gear", gear: this.gear });
+  }
+
   closeBag(): void {
-    if (this.gear.cloth.items.length === 0) return;
-    this.gear = { ...this.gear, cloth: emptyCloth() };
+    if (this.gear.cloth.items.length === 0 && this.pileOpen === null) return;
+    this.pileOpen = null;
+    this.gear = { ...this.gear, cloth: emptyCloth(), pile: NO_PILE };
     this.link.send({ t: "gear", gear: this.gear });
   }
 
@@ -271,9 +285,19 @@ export class GameSession {
       this.battle.room.tick(this.battle.seat);
       return;
     }
-    if (this.inOverworld && ++this.ticks % STATE_EVERY_TICKS === 0) {
-      this.link.send(stateMsg(this.overworld, this.me, this.introduced));
-    }
+    if (!this.inOverworld) return;
+    if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
+    if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
+  }
+
+  /** True if the open pile changed under them (others took from it, or it vanished). */
+  private followPile(): boolean {
+    const items = this.pileOpen === null ? null : this.overworld.pileItems(this.pileOpen);
+    if (items === null) this.pileOpen = null;
+    const pile = items ?? NO_PILE;
+    if (pile === this.gear.pile) return false;
+    this.gear = { ...this.gear, pile };
+    return true;
   }
 
   /** Within SAVE_SOON_MS, or on disconnect, whichever is first. */

@@ -8,8 +8,7 @@ fight) emptying the bag but for the starter kit, the bag screen (in fights too),
 
 ## Next
 
-1. **Loot screen:** after a win, the drops on one side and the bag on the other; drag in what you want, leave the
-   rest. The server keeps the drops until you leave the screen.
+1. **Loot:** drops land as piles that are opened and dragged from into the bag: [drops.md](drops.md).
 2. **Drawing what's worn:** the arena's sprite holds a sword even with none in hand, and nothing shows the
    skillbook.
 

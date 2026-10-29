@@ -71,8 +71,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
-   moment it's decided, sends the final `battleSync`, rolls drops (or, on a loss, empties the bag and slots of all
-   but the starter kit), saves and sends
+   moment it's decided, sends the final `battleSync`, rolls drops and leaves them as a pile on the overworld where
+   the fight began (or, on a loss, empties the bag and slots of all but the starter kit), saves and sends
    `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
    Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death, all but the starter kit.
@@ -169,9 +169,10 @@ main.ts
   sets are kept between fights, one per other player. Each player's sprite shows its back or, once your camera is
   ahead of where they face (their `Skilled` aim), its front (`facingSeen`, `visuals/battle/pose.ts`); the back's
   frames are painted ahead, a front frame the first time it's shown.
-- **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`, and
+- **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`,
   each other player as a `peer` with their character (sent the first time you see them) and whether they're in a
-  battle; `modes/overworld/prediction.ts` predicts your own walking and reconciles with the server's acks.
+  battle, and each pile as a `pile`; `modes/overworld/prediction.ts` predicts your own walking and reconciles with
+  the server's acks.
 - **The fight is a shared `Fight`** (`shared/src/battle/fight/`, imported from `@infinite-tower/shared/fight`, its
   own entry point so Rapier stays out of the title's chunk and the rest of the server). One object per battle, with
   no state outside it: its own ECS world, its own Rapier world, fixed steps of `FIXED_DT`, and `step(inputs)` with
@@ -197,13 +198,14 @@ main.ts
   players: a battle against enemies starts with one, a duel two. Each player's session ticks it with their seat, and
   only the first seat still there moves its clock, so it runs one step a tick however many are in it. A player whose
   own result is in before the fight's (`playerResult`: down while the others fight on) is settled then and out of it.
-- **Joining a battle** (`GameSession.joinBattle`, `joinBattle` in `core/game/battle.ts`): the interact key or the
+- **Joining a battle** (`GameSession.joinBattle`, `joinBattle` in `core/game/battle.ts`): the Interact key or the
   HUD's button sends `joinBattle`; the server picks the nearest player in a battle within `JOIN_RANGE_TILES` (plus
   the same lag slack as resting) and `BattleRoom.join` seats the joiner, unless it's a duel or `MAX_BATTLE_PLAYERS`
   are still in it (`joinRefused` says why). The fight gets them between steps (`Fight.join`, at `joinStart`, the
   arena's edge); the others get `battleJoined` (their `PlayerSetup`) and a `battleSync` with them in it, and the
   joiner an `encounter` with the room's whole setup and the fight as it is (`joined`). From then on it's a battle like
-  any: inputs relayed, each player settled with their own result, drops rolled for each winner. The enemy taken off
+  any: inputs relayed, each player settled with their own result, drops rolled for each winner (a pile each, where
+  they stood). The enemy taken off
   the overworld comes back once the room is over for everyone (`onOver`), not when its first fighter falls or leaves:
   the spawner holds its slot by the taken actor, not by a player. Every fighter is marked `fighting` on the
   overworld (the crossed swords), so the fight can be joined by any of them, the host gone or not.
@@ -217,6 +219,18 @@ main.ts
   for the other (`combat.ts`). `fight.targets` (what an input's `locked` indexes) is the players instead of the
   enemies. Over when one player stands (`outcome.ts`; `playerResult` gives each theirs); `settleDuel` gives back the
   HP and stamina they came in with and counts nothing.
+- **Piles** (`core/overworld/piles.ts`; [plan/drops.md](plan/drops.md) has what's to come): items lying on the
+  overworld, each an entity with an `OverworldPos` and a `Pile` (its items as a grid `PILE_COLS` wide, `packPile`, and
+  when it vanishes). `Overworld.dropPile` lays one down (a won fight's drops, where the winner stood), `pileSystem`
+  removes it `PILE_LIFETIME_MS` after (by the wall clock, so a level nobody's on catches up when it next steps), and
+  `setPileItems` with nothing left removes it at once. `state` sends every pile within `VIEW_RADIUS_TILES`; the client
+  mirrors each as an actor of kind `"pile"`, drawn as a sack. Interact sends `openPile` when a pile is the nearest
+  thing in reach (`interactionAt`), and opens the bag screen; the session opens the nearest pile within
+  `PILE_RANGE_TILES` (+ `LAG_SLACK_TILES`) and from then on keeps a copy of it in its gear's `pile` (the `Gear`'s
+  fourth grid, `NO_PILE` for none, never saved or taken into a fight), followed every tick, so another player's take
+  or its vanishing reaches it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's
+  pile as it is now (first come first served) and writes it back; `moveGear` puts nothing onto a pile. The pile
+  closes with the bag (`closeBag`), on walking and when a fight starts.
 - **The browser runs its own copy of the whole fight** (`modes/battle/`), built from the encounter's setup, so the boar
   reacts to you at once. Each frame its clock (`modes/battle/pace.ts`: real time since the fight's first step, plus an
   offset that keeps it in step with the server's) says how many steps are due, and `modes/battle/sync.ts` (`FightSync`)
@@ -383,10 +397,11 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 |---|---|
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
 | `character` | made your character (ignored if you have one) |
-| `rest` | Rest key by a campfire (the server checks you're there) |
-| `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`) |
-| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag or cloth cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input) |
-| `closeBag` | the bag screen closed: what's on the cloth is lost |
+| `rest` | Interact by a campfire (the server checks you're there) |
+| `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`; not a pile's) |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input, bag and slots only) |
+| `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
+| `openPile` | Interact by a pile: open the nearest in reach beside the bag |
 | `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
@@ -395,7 +410,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `ping {id}` | every 2 s, for the HUD's ping |
 | `challenge` | the Challenge key: duel the nearest player in reach |
 | `answerChallenge {accept}` | Accept / Decline on a challenge to you |
-| `joinBattle` | the interact key (Rest) or the HUD's "Join the fight" by a player in a battle |
+| `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal` |
 
@@ -404,7 +419,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it) and where you are |
-| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors and other players (a player's character only the first time) |
+| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
@@ -412,10 +427,10 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `battleJoined` | another player came into your fight: their `PlayerSetup` (a `battleSync` with them in it follows) |
 | `joinRefused` | `joinBattle` refused: nobody near is fighting, the fight is full, or it's a duel |
 | `challengeNews` | a duel challenge sent, received, declined, expired, called off, or refused (nobody near, busy) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot, `lost`, gear, skillbook; after a duel, `duel` (the opponent's name) |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot (left in a pile where the fight began), `lost`, gear, skillbook; after a duel, `duel` (the opponent's name) |
 | `rested`, `itemUsed` | what resting or eating did |
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
-| `gear` | your bag, cloth and equipment after a `moveItem` (allowed or not), or when the cloth is left behind |
+| `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
@@ -481,7 +496,8 @@ equipment (items gone from the game or in the wrong slot are dropped on load), t
 (`knownWords`) and the skillbook's 4 pages (`skillbook`, each a skill or null), keyed by account; words not in the
 shared `WORDS` are dropped on load, and so is a page that's no longer a skill of known words. The `GameSession` saves
 after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a character, on
-disconnect, and within a second of a settings change, a move in the bag or a page written. The cloth is never saved.
+disconnect, and within a second of a settings change, a move in the bag or a page written. The cloth and an open
+pile are never saved, and nor are the overworld's piles (a restart loses them).
 Position and level aren't saved (you start at the level's start), and stats aren't either (everyone has the same).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
@@ -539,7 +555,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to everyone online
   (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
   none from a player without a character, the history kept to its cap, the last lines in `welcome`, the length and
-  rate limits (each player's own) told to the sender only, nothing kept past a restart.
+  rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles: a won fight's drops
+  landing as one where each winner stood (none for no drops), packed with nothing overlapping, the nearest in reach
+  found, sent within the view's radius, vanishing after `PILE_LIFETIME_MS` or once empty; opening one (in reach, not
+  mid-fight), taking from it into the bag, nothing put onto it or taken from one not opened, closing it (the bag,
+  walking, a fight, its vanishing), and two players at one pile (each seeing the other's take, the same item going to
+  the first).
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -552,7 +573,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; swipes into swings), the
   player's pose, sword trail and thrust, the boar's and the Kobold's poses, effects fired once per step and event,
-  camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, the fight's sync
+  camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, what Interact does
+  where you stand (the nearest in reach), the mirror (other players, piles), the fight's sync
   (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
@@ -565,7 +587,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   known words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a
   word that doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
   back), the bag screen's mouse (bagMouse.ts: hover, select, drag
-  between the bag, the cloth and the slots, turn, use) and tooltip (itemInfo.ts), the item pictures' sizes, and the
+  between the bag, the cloth and the slots and from an open pile, turn, use) and tooltip (itemInfo.ts), the item
+  pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose from
   behind and the front, the sword in the hand that holds it, the face only from the front; the chibi's legs standing
   together in two boots, the right one in shadow), the side of a player the camera sees (and keeps side-on), and the
@@ -635,7 +658,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    time.ts
   world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, its floor, tile
                    map and campfires; moveWalker, the one collision rule, and stepWalker on it for prediction +
-                   replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES), tiles.ts (TILES: each tile kind's
+                   replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES, PILE_RANGE_TILES), tiles.ts
+                   (TILES: each tile kind's
                    character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
                    (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
@@ -690,8 +714,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, what using one does;
                    ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
                    moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), gear.ts (Gear:
-                   the bag, the cloth (CLOTH) and the Equipment slots; Spot, moveGear between them, gearWeight
-                   without the cloth, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
+                   the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment slots; Spot,
+                   UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth or pile,
+                   heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
                    each does to walking and dodging)
   skills/          skill.ts (a skill as data: segments of a Form, elements and modifiers; FORMS, ELEMENTS, OPPOSITE,
                    MODIFIER_FITS, WORDS (all of them); validateWord / validateSkill: why a word is refused, for the builder
@@ -735,7 +760,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        save, their walker in their level's overworld (`me`), the battle they're in; a method per
                        thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
                        nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
-                       rest; LAG_SLACK_TILES),
+                       rest; the pile they have open, followed every tick; LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
@@ -745,9 +770,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
                        a player as the fight takes them; seatInBattle: a session put in a room and sent its
                        `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, loot packed into the bag, a loss emptying the bag and slots of all but
-                       STARTER_KIT, vitals), snapshot.ts (the state message: only
-                       actors and other players within VIEW_RADIUS_TILES, each player's character sent once),
+                       it, wins, drops left in a pile where they stood, a loss emptying the bag and slots of all
+                       but STARTER_KIT, vitals), snapshot.ts (the state message: only actors, other players and
+                       piles within VIEW_RADIUS_TILES, each player's character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -758,8 +783,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
-                       systems and spawner), components.ts (OverworldPos, OverworldActor, OverworldPlayer: a
-                       player's walk, character and whether they're fighting), parts.ts (spawnActor from behavior
+                       systems and spawner; dropPile, nearestPile, pileItems, setPileItems), components.ts
+                       (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, character and whether
+                       they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
+                       parts.ts (spawnActor from behavior
                        parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay,
                        grass encounters per player, nearestHuntablePlayer), spawner.ts (each spawn an enemy's
                        overworld actor; one taken into a fight comes back respawnTime after it's decided)
@@ -875,14 +902,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
                        canvas: the portrait, or the chibi facing front)
-      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Rest keys,
-                       the button by a campfire or a fight ("Rest by the fire" / "Join the fight"),
+      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
+                       keys, the button by a campfire, a fight or a pile ("Rest by the fire" / "Join the fight" /
+                       "Open the pile"),
                        the challenge key and a challenge's Accept / Decline notice),
                        BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, no eating; the book over
                        it), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
-                       the cloth and the bag, wires the mouse and the bag keys, and shows the selected item, the
-                       dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag or the cloth) and its
+                       an open pile over the cloth, and the bag, wires the mouse and the bag keys, and shows the
+                       selected item, the dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag, the
+                       cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
@@ -901,7 +930,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        (the pages on the battle HUD with their keys)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
                        `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
-                       lines), battleResult.ts (what a `battleResult` says: found, left behind, died / lost,
+                       lines), battleResult.ts (what a `battleResult` says: what dropped, died / lost,
                        refused), state.ts (Notifications, UiState's `notifications`: the notices' and the banner's
                        stores, notify / announce / dismiss / clear, MAX_NOTICES), Notices.tsx (the corner: newest
                        at the bottom, at most 5 showing, wrapping at 20rem, about 8 s each, beside an open side panel
@@ -930,15 +959,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
-                         interactionAt: the Rest key rests, or joins a fight beside you if no campfire is closer;
+                         interactionAt: the Interact key rests, joins a fight or opens a pile, the nearest in reach;
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
                          screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
-        mirror.ts        Mirror the server's actors, each with its kind, and other players (peers); entityOf
-        components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin),
-                         Peer (another player's character, fighting), Speech (a chat line over a walker's head, and
-                         how long it has left), OverworldState
+        mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles; entityOf
+        components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin, a
+                         pile), Peer (another player's character, fighting), Speech (a chat line over a walker's
+                         head, and how long it has left), OverworldState
       battle/          The 2.5D arena mode: your own copy of the whole fight, run at once and kept in line
         battle.ts        The mode: start / end a fight (the fight's copy from the encounter's setup), per frame the
                          fight's steps (as many as pace.ts says) and the inputs out (1-4 quick-cast the fight's pages, the
@@ -1011,10 +1040,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
         scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
-                         tilt-shift blur (GLSL); the sprite materials; standingQuad
-        walker.ts        WALKERS (chibi, other players' and enemy billboards: glide, hop, facing, the sky's tint and
-                         blob shadows, "!", another player's own chibi, name and crossed swords, a Speech's bubble
-                         over the head)
+                         tilt-shift blur (GLSL); the sprite materials (a pile's sack among them); standingQuad
+        walker.ts        WALKERS (chibi, other players', enemy and pile billboards: glide, hop, facing, the sky's
+                         tint and blob shadows, "!", another player's own chibi, name and crossed swords, a
+                         Speech's bubble over the head)
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
@@ -1150,6 +1179,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
+| Piles: how long one lies, how wide it's laid out; the reach to open one; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`); `PILE_RANGE_TILES` in `shared/src/world/layout.ts`; `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |

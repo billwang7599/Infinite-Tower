@@ -13,7 +13,8 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [multiplayer.md](multiplayer.md): the server list, a shared overworld, duels (PvP) and joining fights | being built |
 | [deploy.md](deploy.md): client on Cloudflare, server on a VM | idea |
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
-| [inventory.md](inventory.md): the rest of the grid inventory (loot screen, the bag in a fight, skillbook pages) | being built |
+| [inventory.md](inventory.md): the rest of the grid inventory (drawing what's worn, armour, splitting stacks) | being built |
+| [drops.md](drops.md): loot and death drops as piles of items, in the arena and on the overworld (3 PRs) | being built |
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
 | [weapons.md](weapons.md): the arsenal and inertia-based swings (built); weapons from parts | later |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |

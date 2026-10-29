@@ -1,5 +1,5 @@
-import type { ActorSnap, Character, Entity, PlayerSnap, World } from "@infinite-tower/shared";
-import { OverworldActor, OverworldPos, Peer } from "./components.js";
+import type { ActorSnap, Character, Entity, PileSnap, PlayerSnap, World } from "@infinite-tower/shared";
+import { OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
 import { faceToward, headingFromSide } from "./facing.js";
 
 export class ActorMirror {
@@ -9,8 +9,12 @@ export class ActorMirror {
 
   constructor(private readonly world: World) {}
 
-  apply(actors: ActorSnap[], players: PlayerSnap[]): void {
+  apply(actors: ActorSnap[], players: PlayerSnap[], piles: PileSnap[]): void {
     const seen = new Set<number>();
+    for (const s of piles) {
+      seen.add(s.id);
+      this.mirror(s.id, s, "pile");
+    }
     for (const s of actors) {
       seen.add(s.id);
       const actor = this.world.require(this.mirror(s.id, s, s.kind), OverworldActor);
@@ -41,7 +45,7 @@ export class ActorMirror {
     this.world.flush();
   }
 
-  private mirror(id: number, at: { x: number; z: number }, kind: ActorSnap["kind"] | "peer"): Entity {
+  private mirror(id: number, at: { x: number; z: number }, kind: OverworldActorData["kind"]): Entity {
     let e = this.local.get(id);
     if (e === undefined) {
       e = this.world.spawn();

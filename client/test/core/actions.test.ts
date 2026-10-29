@@ -93,9 +93,9 @@ describe("Actions: key to action", () => {
       assert.equal(menu.got.length, 1, layer);
     }
     const overworld = setup("overworld");
-    const rest = overworld.listen("rest");
+    const interact = overworld.listen("interact");
     overworld.press("KeyE");
-    assert.equal(rest.got.length, 1);
+    assert.equal(interact.got.length, 1);
     overworld.actions.poll();
     overworld.press("KeyI");
     assert.deepEqual(overworld.actions.poll().pressed, []);
@@ -253,9 +253,9 @@ describe("Actions: the layers", () => {
 
   test("a handler for an action the layer on top doesn't have never fires", () => {
     const cases: [Layer[], string, ActionName][] = [
-      [["overworld", "bag"], "KeyE", "rest"], [["overworld", "bag"], "KeyW", "forward"],
-      [["overworld", "settings"], "KeyB", "inventory"], [["overworld", "settings"], "KeyE", "rest"],
-      [["battle"], "KeyE", "rest"], [["overworld"], "KeyS", "goBack"], [["overworld"], "KeyA", "menuLeft"],
+      [["overworld", "bag"], "KeyE", "interact"], [["overworld", "bag"], "KeyW", "forward"],
+      [["overworld", "settings"], "KeyB", "inventory"], [["overworld", "settings"], "KeyE", "interact"],
+      [["battle"], "KeyE", "interact"], [["overworld"], "KeyS", "goBack"], [["overworld"], "KeyA", "menuLeft"],
       [["overworld"], "Enter", "confirm"], [["title"], "Escape", "goBack"],
       [["overworld", "creation"], "KeyB", "inventory"], [["overworld", "admin"], "KeyW", "forward"],
       [["battle", "admin"], "Escape", "menu"],
@@ -271,10 +271,10 @@ describe("Actions: the layers", () => {
   test("a listener hears only its own action", () => {
     const { press, listen } = setup("overworld");
     const inventory = listen("inventory");
-    const rest = listen("rest");
+    const interact = listen("interact");
     press("KeyB");
     assert.equal(inventory.got.length, 1);
-    assert.equal(rest.got.length, 0);
+    assert.equal(interact.got.length, 0);
   });
 
   test("Esc in the bag closes it and nothing else; the next Esc opens Settings", () => {
@@ -294,7 +294,7 @@ describe("Actions: the layers", () => {
 
   test("each layer reads its own keys", () => {
     const cases: [Layer, string, ActionName][] = [
-      ["overworld", "KeyE", "rest"], ["battle", "KeyQ", "lockOn"], ["bag", "KeyR", "turnItem"],
+      ["overworld", "KeyE", "interact"], ["battle", "KeyQ", "lockOn"], ["bag", "KeyR", "turnItem"],
       ["bag", "Enter", "useItem"], ["bag", "KeyB", "inventory"], ["bag", "KeyC", "character"],
       ["bag", "Escape", "closeBag"], ["overworld", "Escape", "menu"], ["battle", "Escape", "menu"],
       ["settings", "Escape", "menu"], ["title", "Enter", "play"], ["creation", "Escape", "goBack"],
@@ -527,11 +527,11 @@ describe("Actions: chat", () => {
     }
   });
 
-  test("the chat has only Enter (send) and Esc (close): not Settings, eating, a challenge, resting or the bag", () => {
+  test("the chat has only Enter (send) and Esc (close): not Settings, eating, a challenge, interacting or the bag", () => {
     for (const mode of ["overworld", "battle"] as const) {
       const { press, listen } = setup(mode, "chat");
       const send = listen("sendChat"), close = listen("closeChat");
-      const others = (["menu", "useItem", "leave", "challenge", "rest", "inventory", "chant"] as const)
+      const others = (["menu", "useItem", "leave", "challenge", "interact", "inventory", "chant"] as const)
         .map((action) => listen(action).got);
       for (const code of ["Enter", "Escape", "KeyT", "KeyE", "KeyB", "KeyR"]) press(code);
       assert.equal(send.got.length, 1, mode);

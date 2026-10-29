@@ -10,11 +10,13 @@ import { CELL, EQUIPMENT_WIDTH_PX, GRID_FRAME_PX, INVENTORY_GAP_PX } from "./inv
 const FRAME_PX = 42;
 
 export const CHARACTER_PANEL_WIDTH_PX = 288;
-export const inventoryPanelWidthPx = ({ bag, cloth }: Gear): number => {
-  const grids = cloth.cols > 0 ? 2 : 1;
-  const gridsPx = (cloth.cols + bag.cols) * CELL + grids * (INVENTORY_GAP_PX + 2 * GRID_FRAME_PX);
+/** An open pile shares the cloth's column. */
+export function inventoryPanelWidthPx({ bag, cloth, pile }: Gear): number {
+  const groundCols = Math.max(cloth.cols, pile.cols);
+  const grids = groundCols > 0 ? 2 : 1;
+  const gridsPx = (groundCols + bag.cols) * CELL + grids * (INVENTORY_GAP_PX + 2 * GRID_FRAME_PX);
   return EQUIPMENT_WIDTH_PX + gridsPx + FRAME_PX;
-};
+}
 
 /** The side panels' width on screen (PanelFrame, at the top right). */
 export const panelWidthPx = (panel: OverworldPanel, gear: Gear): number =>

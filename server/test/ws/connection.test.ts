@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
-import { emptyBag, emptyCloth, starterEquipment, type ClientMsg } from "@infinite-tower/shared";
+import { emptyBag, emptyCloth, NO_PILE, starterEquipment, type ClientMsg } from "@infinite-tower/shared";
 import { Connection } from "../../src/ws/connection.js";
 import { FakeSocket } from "./fake-socket.js";
 
@@ -136,7 +136,8 @@ describe("Connection with a simulated ping (dev)", () => {
   test("what the game sends leaves half the ping later, in order", (t) => {
     const { socket, conn } = slow(t, 37);
     conn.send(RESTED);
-    conn.send({ t: "gear", gear: { bag: emptyBag(), cloth: emptyCloth(), equipment: starterEquipment() } });
+    const gear = { bag: emptyBag(), cloth: emptyCloth(), pile: NO_PILE, equipment: starterEquipment() };
+    conn.send({ t: "gear", gear });
     t.mock.timers.tick(18);
     assert.deepEqual(socket.sent, []);
     t.mock.timers.tick(1);

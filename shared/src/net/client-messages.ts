@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { ATTACK_KINDS } from "../weapons/weapons.js";
-import { SLOTS, type Spot } from "../items/gear.js";
+import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
 import { ITEM_IDS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
@@ -42,9 +42,8 @@ export const SkillSchema = z.object({
 
 const PageSchema = z.number().int().nonnegative().max(SKILLBOOK_PAGES - 1);
 
-const GridSpot = z.object({
-  in: z.enum(["bag", "cloth"]), x: z.number().int().nonnegative(), y: z.number().int().nonnegative(),
-});
+const Cell = { x: z.number().int().nonnegative(), y: z.number().int().nonnegative() };
+const GridSpot = z.object({ in: z.enum(["bag", "cloth", "pile"]), ...Cell });
 const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
   z.ZodType<Spot>;
 
@@ -126,11 +125,15 @@ const CharacterMsg = z.object({
 const RestMsg = z.object({ t: z.literal("rest") });
 
 /** Overworld only. */
-const UseItemMsg = z.object({ t: z.literal("useItem"), at: GridSpot });
+const UseItemMsg = z.object({
+  t: z.literal("useItem"), at: z.object({ in: z.enum(["bag", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>,
+});
 
 const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: SpotSchema, to: SpotSchema, turned: z.boolean() });
 
 const CloseBagMsg = z.object({ t: z.literal("closeBag") });
+
+const OpenPileMsg = z.object({ t: z.literal("openPile") });
 
 const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
@@ -164,7 +167,7 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
+  MoveItemMsg, CloseBagMsg, OpenPileMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 
