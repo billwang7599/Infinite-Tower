@@ -17,6 +17,8 @@ The user's rules for every project (subagents, comments and code style, test-fir
   adding things, where to tune. Update it when you add, move or rename a file, or change how things talk.
 - [README.md](README.md): a short description, the finished features, how to run it, the top-level folders. Update
   it when a feature is finished, or commands or top-level folders change.
+- [FORMULAS.md](FORMULAS.md): every calculation that decides how the game plays (damage, stamina, stuns, speeds,
+  skills, drops), where its numbers live, and a worked example. Update it when a calculation or its numbers change.
 - [plan/](plan/): future plans and parked ideas, one file each, with what's decided and what's open. Update it when
   the user mentions a future plan or asks to note an idea, or a plan gets built (move what's true into the other
   docs, then delete or trim the plan).
@@ -75,9 +77,9 @@ Decided by the user:
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
   the shared fight like the sword: the client sends the whole skill as an input, the server checks its words
   against what the player knows. Seven elements, each its own damage type with a status (Burning, Wet, Rooted,
-  Pushed, Shocked, Marked, Cursed), and four reactions on enemies (Conduct, Doused, Fanned, Eclipse), each with a
-  cooldown per target. Skill damage scales with skillpower (was Intellect); Summon is out for now. The tables and
-  what's still to build: [plan/skills.md](plan/skills.md).
+  Pushed, Shocked, Marked, Cursed), and four reactions (Conduct, Doused, Fanned, Eclipse) on whoever a skill hits,
+  players in duels too, each with a cooldown per target. Skill damage scales with skillpower (was Intellect); Summon
+  is out for now. The tables and what's still to build: [plan/skills.md](plan/skills.md).
 - Modifiers go in order: each changes the shot built from the Form, the elements and the modifiers before it (Amplify
   then Split: both Bolts amplified; Follow then Split: every Bolt homes; Split then Split splits each Bolt again). A
   repeat is a full step, with no diminishing returns ("we will penalize in the future by higher stamina costs"; for
@@ -178,6 +180,7 @@ Decided by the user:
   Another player, later, may lag on your screen; your own character is always instant.
 - A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
+- Skills ignore dodge i-frames, hurt invulnerability and blocking: a Bolt hits a dodging or guarding player (for now).
 - A dodge (or the next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting
   the attack short, and starts on the first step the attack lets another action start, as soon as its blade is done
   (the swing's `letGoAt`: its wind-up and live time, which a heavier blade makes longer). If the player can't dodge
@@ -194,11 +197,13 @@ Decided by the user:
   heavier it is. With the starter sword an opening goes live in 0.35 s; the same swing again as the last lets go loops
   round on its momentum (0.19 s) and hits up to 25% harder; a reverse brakes first (0.4 s) and costs the most stamina.
   The blade stays where a swing leaves it ("sword stays where last swung. and from there its inertia"), its momentum
-  gone after a short gap, and the next wind-up starts from there: after a pause the reverse goes live in 0.2 s, the same
-  swing again in 0.41 s. A stab first brings the blade back to the guard (as far as a swing sets it, so 0.55 s from a
-  swing's far side, 0.4 s from the guard), draws back, thrusts and follows through back to the guard ("stab should move
-  sword to start of stab location, and then end up in the default location"). A block, a dodge or a hit taken brings
-  it back to the guard. A block stops a hit from in front
+  spent by the end of its follow-through, and the next wind-up starts from there: after a pause the reverse goes live
+  in 0.2 s, the same swing again in 0.41 s. A stab first brings the blade back to the guard (as far as a swing sets
+  it, so 0.55 s from a swing's far side, 0.4 s from the guard), draws back, thrusts and follows through back to the
+  guard ("stab should move sword to start of stab location, and then end up in the default location"). A block, a
+  dodge or a hit taken between swings brings it back to the guard. Mid-swing, a hit that only hurts lets the swing go
+  on; one that stuns cuts it off, and the blade carries on for `gapTime` then stops where it is (the agent's call,
+  "do what you think is right/realistic"). A block stops a hit from in front
   for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're staggered.
   Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
 - A blade that meets a guard (blocked or parried) stops dead there and the next wind-up starts from there; its swing
@@ -293,7 +298,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
   arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's goes by its swing:
   see the inertia entry above) and the carry limit. HP stays separate. They apply
-  only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10. Everyone has the same player stats, so they
+  only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10 (the Goblin Warlock's skillpower 10).
+  Everyone has the same player stats, so they
   aren't saved.
 - A swing is a mouse move of 40 px within 150 ms (the swing sensitivity, 0.5 to 2, default 1, divides the 40);
   slower or smaller movement is dropped. Once a move swings, more movement the same way is the same sweep (one

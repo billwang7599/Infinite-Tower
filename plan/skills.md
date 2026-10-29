@@ -85,7 +85,8 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   | Light | 0.5D on enemies | Marked, 8 s: sets up Eclipse. On yourself (Self) a shield of 1.0D for 6 s |
   | Darkness | 0.9D, and you heal 20% of it | Cursed: the target deals 15% less damage for 6 s |
 
-- **Reactions** (on enemies only, decided by the server, each with a cooldown per target):
+- **Reactions** (on whoever a skill hits, players in duels too; decided by the server, each with a cooldown per
+  target):
 
   | Reaction | When | What it does | Cooldown |
   |---|---|---|---|
