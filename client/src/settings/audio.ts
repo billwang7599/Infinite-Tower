@@ -3,11 +3,11 @@ import { Store } from "../ui/store.js";
 
 type SavedAudio = SavedSettings["audio"];
 
-export const VOLUMES = ["master", "effects", "ambient"] as const;
+export const VOLUMES = ["master", "effects", "ambient", "music"] as const;
 export type VolumeName = (typeof VOLUMES)[number];
 export type Volumes = Record<VolumeName, number>;
 
-export const VOLUME = { step: 0.05, defaults: { master: 0.8, effects: 1, ambient: 1 } as Volumes } as const;
+export const VOLUME = { step: 0.05, defaults: { master: 0.8, effects: 1, ambient: 1, music: 1 } as Volumes } as const;
 
 export class AudioSettings extends Store<Volumes> {
   constructor() {
@@ -19,7 +19,7 @@ export class AudioSettings extends Store<Volumes> {
       const value = saved?.[name];
       return typeof value === "number" && value >= 0 && value <= 1 ? value : VOLUME.defaults[name];
     };
-    this.set({ master: read("master"), effects: read("effects"), ambient: read("ambient") });
+    this.set(Object.fromEntries(VOLUMES.map((v) => [v, read(v)])) as Volumes);
   }
 
   toSaved(): NonNullable<SavedAudio> {

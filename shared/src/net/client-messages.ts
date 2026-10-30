@@ -105,7 +105,7 @@ const SavedSettingsSchema = z.object({
   mouse: z.object({ autoLock: z.boolean().optional(), swingSensitivity: z.number().optional() }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
-  audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME }).optional(),
+  audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME, music: VOLUME }).optional(),
 });
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 
