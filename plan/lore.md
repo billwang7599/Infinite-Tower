@@ -28,13 +28,28 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
 - **The natives are split:** factions believe different things about avatars. In time there will be many, with
   their own smaller stories inside the big one: kingdoms at war, wars between races, wars of faith. None are needed
   yet.
-- **Monsters are native** to this world, not avatars. Where their souls come from (and where an avatar's lost soul
-  goes) is still being worked out: see Open.
+- **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
 - What people say about monsters, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
   - The truth, found later: the world is starving for soul through Vesk's rift, and the Maker made a door to other
     universes to refill it (see Ring 3). Souls come in through it as seeds and grow fat on monsters.
-  - A late reveal, or a rumour: some monsters are avatars whose tether snapped, gone wild.
+  - A myth: some monsters are avatars whose tether snapped, gone wild. Nobody can prove it either way.
+
+### The soul cycle (lore only; nothing in play follows it yet)
+
+- **Bodies cost soul.** Every living thing is a body (its capacity) filled with soul. Breeding spends part of the
+  parent's soul on the young, which grow by eating and killing.
+- **The land holds loose soul.** Where it pools, it clumps into beasts: that's what a respawn is, and it uses up the
+  pool.
+- **A kill moves soul.** The killer takes part of what the dead held; the rest sinks back into the land. An avatar
+  that dies loses fill to whatever killed it, or to the land.
+- **The rift takes its cut.** Every time soul changes hands, a little is lost through Vesk's rift for good. Left to
+  themselves, natives and monsters pass around less and less: that's the starving.
+- **Avatars are the pump.** Their tethers keep bringing new soul in through the door, and what they lose when they
+  die stays in the world. The loop: door → avatars → kills and deaths → monsters and land → drained by the rift →
+  refilled only by new avatars.
+- **Bosses** are where the cycle runs thick: a place where loose soul has pooled for a long time, or (if the myth is
+  true) an avatar whose tether snapped and who has been eating ever since.
 
 OptChat's reading, for the user to check: chat between players is souls talking across the world, from wherever
 their people really are.
@@ -125,8 +140,8 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   of another myth (a Thor avatar next to a Norse-looking pantheon).
 - What desummoning looks like: the empty shell fading, or the summon animation in reverse (the user is fine with
   either).
-- Monster souls: how soul moves between the land, monsters and avatars (on a kill, on an avatar's death, when
-  monsters respawn or breed), and whether the "snapped tether" rumour stays now that monsters are native.
+- Whether the soul cycle shows in play later (a monster that kills you carries your lost fill; places where many
+  avatars die grow stronger monsters; bosses born from pools). Mechanics, so asked before anything is built.
 - Which factions there are, and which philosophy each follows (later, as the world grows).
 - Backing a god in play: when the player chooses, what switching or going back to neutral costs, and what backing
   one gives. These are mechanics, so they're asked before anything is built.
