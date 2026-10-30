@@ -20,7 +20,6 @@ const POOLS: WaterLook = {
   glint: new Color3(1.2, 1.15, 1),
   rippleSlope: 0.12,
   waveHeightTiles: 0,
-  windTilesPerSec: { x: 0.05, z: 0.03 },
   foam: new Color3(0.32, 0.36, 0.2),
   foamTiles: 0.12,
 };

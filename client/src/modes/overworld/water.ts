@@ -1,4 +1,4 @@
-import { clamp, mapHalfSize, tileAt, type LevelLayout } from "@infinite-tower/shared";
+import { clamp, mapHalfSize, tileAt, TILES, type LevelLayout, type TileKind } from "@infinite-tower/shared";
 
 /** Below the ground beside it: the surface, and the bed below the surface at the bank and at its deepest. */
 export const WATER_DEPTH_TILES = { surface: 0.12, bank: 0.3, deep: 1.1 };
@@ -20,23 +20,31 @@ export interface WaterMap {
   at(x: number, z: number): WaterPoint;
 }
 
-interface Cell { c: number; r: number }
+interface Cell { c: number; r: number; water: boolean }
 
 const SIDES = [[0, -1], [0, 1], [-1, 0], [1, 0]] as const;
 const AROUND = [...SIDES, [-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
 
-// Worked out in the tile grid (col, row; row 0 the north edge), then turned to the world (x east, z north).
+// Worked out in the tile grid (col, row; row 0 the north edge), then turned to the world (x east, z north). Bridges
+// are cells too, so a river cut by one is one river.
 export function waterMap(level: LevelLayout): WaterMap {
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const cols = halfWidth * 2, rows = halfDepth * 2;
-  const index = new Int32Array(cols * rows).fill(-1), tiles: Cell[] = [];
+  const kinds: (TileKind | null)[] = [];
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (tileAt(level, c - halfWidth + 0.5, halfDepth - r - 0.5) === "water") index[r * cols + c] = tiles.push({ c, r }) - 1;
-    }
+    for (let c = 0; c < cols; c++) kinds.push(tileAt(level, c - halfWidth + 0.5, halfDepth - r - 0.5));
   }
-  const indexAt = (c: number, r: number) => (c >= 0 && r >= 0 && c < cols && r < rows ? index[r * cols + c]! : -1);
-  const wet = (c: number, r: number) => indexAt(c, r) >= 0;
+  const onMap = (c: number, r: number) => c >= 0 && r >= 0 && c < cols && r < rows;
+  const kindAt = (c: number, r: number) => (onMap(c, r) ? kinds[r * cols + c] ?? null : null);
+  const wet = (c: number, r: number) => kindAt(c, r) === "water";
+
+  const index = new Int32Array(cols * rows).fill(-1), cells: Cell[] = [];
+  kinds.forEach((kind, k) => {
+    if (kind !== "water" && kind !== "bridge") return;
+    index[k] = cells.push({ c: k % cols, r: Math.floor(k / cols), water: kind === "water" }) - 1;
+  });
+  const indexAt = (c: number, r: number) => (onMap(c, r) ? index[r * cols + c]! : -1);
+  const offMap = woodsRound(kinds, cols, rows);
 
   const shoreAt = (u: number, v: number) => {
     let best = SHORE_CAP_TILES;
@@ -50,20 +58,22 @@ export function waterMap(level: LevelLayout): WaterMap {
   };
 
   const near = (offsets: readonly (readonly [number, number])[]) =>
-    tiles.map(({ c, r }) => offsets.map(([dc, dr]) => indexAt(c + dc, r + dr)).filter((i) => i >= 0));
+    cells.map(({ c, r }) => offsets.map(([dc, dr]) => indexAt(c + dc, r + dr)).filter((i) => i >= 0));
   const neighbours = near(SIDES), around = near(AROUND);
-  const centreShore = tiles.map(({ c, r }) => shoreAt(c + 0.5, r + 0.5));
-  const width = widths(tiles, cols, rows, shoreAt);
-  const flowU = new Float64Array(tiles.length), flowV = new Float64Array(tiles.length);
+  const width = widths(cells, cols, rows, shoreAt);
+  const flowU = new Float64Array(cells.length), flowV = new Float64Array(cells.length);
   for (const body of bodies(neighbours)) {
-    const widest = body.reduce((best, i) => (isWider(tiles, centreShore, i, best) ? i : best));
-    const source = farthest(body, stepsFrom(around, [widest]));
-    const fromSource = stepsFrom(around, source), mouth = farthest(body, fromSource);
-    if (mouth.some((i) => source.includes(i))) continue;
-    const h = potential(body, neighbours, fromSource, new Set([...source, ...mouth]));
+    const touching = body.filter((i) => {
+      const { c, r, water } = cells[i]!;
+      return water && SIDES.some(([dc, dr]) => offMap(c + dc, r + dr));
+    });
+    const ends = runsOff(cells, around, groups(touching, around));
+    if (!ends) continue;
+    const [source, mouth] = ends;
+    const h = potential(body, neighbours, stepsFrom(around, source), stepsFrom(around, mouth), source, mouth);
     const flux = source.reduce((sum, s) => sum + neighbours[s]!.reduce((q, n) => q + h[n]!, 0), 0);
     for (const i of body) {
-      const { c, r } = tiles[i]!;
+      const { c, r } = cells[i]!;
       const slope = (dc: number, dr: number) => {
         const ahead = indexAt(c + dc, r + dr), behind = indexAt(c - dc, r - dr);
         if (ahead >= 0 && behind >= 0) return (h[ahead]! - h[behind]!) / 2;
@@ -80,8 +90,8 @@ export function waterMap(level: LevelLayout): WaterMap {
     }
   }
 
-  const banks: Bank[] = [];
-  for (const { c, r } of tiles) {
+  const waterCells = cells.filter((cell) => cell.water), banks: Bank[] = [];
+  for (const { c, r } of waterCells) {
     const x = c - halfWidth, z = halfDepth - r - 1;
     if (!wet(c, r - 1)) banks.push({ from: { x, z: z + 1 }, to: { x: x + 1, z: z + 1 }, toLand: { x: 0, z: 1 } });
     if (!wet(c, r + 1)) banks.push({ from: { x, z }, to: { x: x + 1, z }, toLand: { x: 0, z: -1 } });
@@ -90,7 +100,7 @@ export function waterMap(level: LevelLayout): WaterMap {
   }
 
   return {
-    tiles: tiles.map(({ c, r }) => ({ x: c - halfWidth, z: halfDepth - r - 1 })),
+    tiles: waterCells.map(({ c, r }) => ({ x: c - halfWidth, z: halfDepth - r - 1 })),
     banks,
     at(x, z) {
       const u = x + halfWidth, v = halfDepth - z, shore = shoreAt(u, v);
@@ -114,18 +124,61 @@ export function waterMap(level: LevelLayout): WaterMap {
   };
 }
 
-/** Ties go to the south, then the east, so water no wider anywhere runs that way. */
-function isWider(tiles: Cell[], shore: number[], i: number, than: number): boolean {
-  const d = shore[i]! - shore[than]!;
-  if (Math.abs(d) > 1e-9) return d > 0;
-  return tiles[i]!.r !== tiles[than]!.r ? tiles[i]!.r > tiles[than]!.r : tiles[i]!.c > tiles[than]!.c;
+// Off the map, or in the woods, rocks or walls joined to its edge, which water runs under and away.
+function woodsRound(kinds: (TileKind | null)[], cols: number, rows: number): (c: number, r: number) => boolean {
+  const woods = new Uint8Array(cols * rows), queue: number[] = [];
+  const reach = (c: number, r: number) => {
+    const k = r * cols + c, kind = kinds[k] ?? null;
+    if (woods[k] || kind === "water" || (kind !== null && !TILES[kind].solid)) return;
+    woods[k] = 1;
+    queue.push(k);
+  };
+  for (let c = 0; c < cols; c++) { reach(c, 0); reach(c, rows - 1); }
+  for (let r = 0; r < rows; r++) { reach(0, r); reach(cols - 1, r); }
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q]! % cols, r = Math.floor(queue[q]! / cols);
+    for (const [dc, dr] of SIDES) {
+      if (c + dc >= 0 && r + dr >= 0 && c + dc < cols && r + dr < rows) reach(c + dc, r + dr);
+    }
+  }
+  return (c, r) => c < 0 || r < 0 || c >= cols || r >= rows || woods[r * cols + c] === 1;
 }
 
-function widths(tiles: Cell[], cols: number, rows: number, shoreAt: (u: number, v: number) => number): number[] {
+// Source and mouth: the two stretches on the edge farthest apart, north to south (else west to east), so rivers agree.
+function runsOff(cells: Cell[], around: number[][], stretches: number[][]): [number[], number[]] | null {
+  if (stretches.length < 2) return null;
+  let pair: [number[], number[]] = [stretches[0]!, stretches[1]!], best = -1;
+  stretches.forEach((a, k) => {
+    const steps = stepsFrom(around, a);
+    for (const b of stretches.slice(k + 1)) {
+      const apart = Math.min(...b.map((i) => steps.get(i)!));
+      if (apart > best) [best, pair] = [apart, [a, b]];
+    }
+  });
+  const mean = (g: number[], of: (cell: Cell) => number) => g.reduce((sum, i) => sum + of(cells[i]!), 0) / g.length;
+  const [a, b] = pair, south = mean(b, (cell) => cell.r) - mean(a, (cell) => cell.r);
+  const downstream = Math.abs(south) > 1e-9 ? south > 0 : mean(b, (cell) => cell.c) > mean(a, (cell) => cell.c);
+  return downstream ? [a, b] : [b, a];
+}
+
+function groups(members: number[], around: number[][]): number[][] {
+  const left = new Set(members), found: number[][] = [];
+  for (const start of members) {
+    if (!left.delete(start)) continue;
+    const group = [start];
+    for (let k = 0; k < group.length; k++) {
+      for (const n of around[group[k]!]!) if (left.delete(n)) group.push(n);
+    }
+    found.push(group);
+  }
+  return found;
+}
+
+function widths(cells: Cell[], cols: number, rows: number, shoreAt: (u: number, v: number) => number): number[] {
   const centres = new Float64Array(cols * rows).fill(-1), corners = new Float64Array((cols + 1) * (rows + 1)).fill(-1);
   const cached = (store: Float64Array, k: number, u: number, v: number) =>
     store[k]! >= 0 ? store[k]! : (store[k] = shoreAt(u, v));
-  return tiles.map(({ c, r }) => {
+  return cells.map(({ c, r }) => {
     let best = 0;
     for (let dr = -SHORE_CAP_TILES; dr <= SHORE_CAP_TILES; dr++) {
       for (let dc = -SHORE_CAP_TILES; dc <= SHORE_CAP_TILES; dc++) {
@@ -177,15 +230,13 @@ function stepsFrom(neighbours: number[][], from: number[]): Map<number, number> 
   return steps;
 }
 
-function farthest(body: number[], steps: Map<number, number>): number[] {
-  const most = Math.max(...body.map((i) => steps.get(i)!));
-  return body.filter((i) => steps.get(i) === most);
-}
-
 /** Potential flow: 0 at the source, 1 at the mouth, every other tile the mean of its neighbours (banks let none out). */
-function potential(body: number[], neighbours: number[][], fromSource: Map<number, number>, ends: Set<number>): number[] {
-  const h: number[] = [], last = Math.max(...body.map((i) => fromSource.get(i)!));
-  for (const i of body) h[i] = fromSource.get(i)! / last;
+function potential(
+  body: number[], neighbours: number[][], fromSource: Map<number, number>, fromMouth: Map<number, number>,
+  source: number[], mouth: number[],
+): number[] {
+  const h: number[] = [], ends = new Set([...source, ...mouth]);
+  for (const i of body) h[i] = fromSource.get(i)! / (fromSource.get(i)! + fromMouth.get(i)!);
   for (let sweep = 0; sweep < SOLVE.maxSweeps; sweep++) {
     let change = 0;
     for (const i of body) {
