@@ -5,7 +5,7 @@ const T = 16;
 const GRASS = { base: "#4a6338", light: "#56703f", dark: "#3f5631", blade: "#61793f", tip: "#7f8f52" };
 const TALL = { base: "#2f4a2b", dark: "#253c23", mid: "#40613a", light: "#58784a", tip: "#86935a" };
 const DIRT = { base: "#6f5a43", dark: "#5c4a38", light: "#82694d", pebble: "#958673", edge: "#4c3d2f" };
-const WATER = { base: "#2b4656", deep: "#233b4a", ripple: "#3a5a6a", shine: "#7f9ca6", bank: "#3a382c" };
+const BED = { base: "#5a5340", dark: "#463f30", pebble: "#746c58", stone: "#8d846c", weed: "#46562f", foot: "#2f2a20" };
 const WOOD = { base: "#6a4b30", dark: "#4a3322", light: "#836042", rail: "#3a281b" };
 const STONE = { base: "#6a6762", dark: "#4b4945", light: "#807c75", moss: "#53663c" };
 const PETALS = ["#d9d2bd", "#d6b45a", "#c57f92", "#8ea0c9"];
@@ -56,15 +56,20 @@ const dirt: GroundPaint = (pen, x, y, rand, same) => {
   });
 };
 
-const water: GroundPaint = (pen, x, y, rand, same) => {
-  pen.rect(x, y, T, T, WATER.base);
-  speckle(pen, x, y, rand, [WATER.deep, WATER.deep], 10);
-  for (let i = 0; i < 3; i++) {
-    const rx = x + Math.floor(rand() * 12), ry = y + 1 + Math.floor(rand() * 14);
-    pen.rect(rx, ry, 3 + Math.floor(rand() * 2), 1, rand() < 0.3 ? WATER.shine : WATER.ripple);
+const riverbed: GroundPaint = (pen, x, y, rand, same) => {
+  pen.rect(x, y, T, T, BED.base);
+  speckle(pen, x, y, rand, [BED.dark, BED.dark, BED.pebble], 18);
+  for (let i = 0; i < 4; i++) {
+    const px = x + 1 + Math.floor(rand() * 13), py = y + 1 + Math.floor(rand() * 13);
+    pen.rect(px, py, 2, 2, rand() < 0.5 ? BED.pebble : BED.stone);
+    pen.rect(px, py + 1, 2, 1, BED.dark);
   }
-  edges(pen, x, y, same, WATER.bank, (ex, ey, w, h) =>
-    pen.rect(ex + (h > 1 ? 1 : 0), ey + (w > 1 ? 1 : 0), w, h, WATER.ripple));
+  if (rand() < 0.35) {
+    const wx = x + Math.floor(rand() * 10), wy = y + Math.floor(rand() * 10);
+    for (let i = 0; i < 6; i++) pen.rect(wx + Math.floor(rand() * 6), wy + Math.floor(rand() * 6), 1, 2, BED.weed);
+  }
+  edges(pen, x, y, same, BED.foot, (ex, ey, w, h) =>
+    pen.rect(ex + (h > 1 ? (ex === x ? 1 : -1) : 0), ey + (w > 1 ? (ey === y ? 1 : -1) : 0), w, h, BED.dark));
 };
 
 const planks: GroundPaint = (pen, x, y, rand, same) => {
@@ -108,6 +113,6 @@ export const GRASS_FIELD_TILES: TileLooks = {
   tallGrass: { ground: tallGrass, props: { kinds: ["tallGrass"], count: 4, scale: 0.8 } },
   tree: { ground: grass, props: { kinds: ["tree", "tree", "pine"], count: 1, scale: 0.6 } },
   rock: { ground: grass, props: { kinds: ["rock"], count: 1, scale: 0.75 } },
-  water: { ground: water },
+  water: { ground: riverbed },
   ruinWall: { ground: flagstones, props: { kinds: ["ruin"], count: 1, scale: 1 } },
 };

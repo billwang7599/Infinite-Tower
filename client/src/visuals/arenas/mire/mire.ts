@@ -3,6 +3,7 @@ import { seededRandom } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { MapLight } from "../../sky/sky.js";
+import { setWater, waterMaterial, type WaterLook } from "../../water/water.js";
 import type { ArenaLookDef } from "../index.js";
 import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.js";
 
@@ -11,6 +12,18 @@ const STUMPS = 34;
 const GLOW = new Color3(0.45, 1.5, 1.15);
 const CLUMPS_RAD = [0.5, 2.1, 3.6, 5.2];
 const CLUMP_CAPS = 7;
+const POOL_DEPTH = 0.5;
+const POOLS: WaterLook = {
+  body: new Color3(0.05, 0.07, 0.04),
+  murkPerTile: 5,
+  reflectivity: 0.12,
+  glint: new Color3(1.2, 1.15, 1),
+  rippleSlope: 0.12,
+  waveHeightTiles: 0,
+  windTilesPerSec: { x: 0.05, z: 0.03 },
+  foam: new Color3(0.32, 0.36, 0.2),
+  foamTiles: 0.12,
+};
 
 function lights(radius: number): MapLight[] {
   return CLUMPS_RAD.map((a) => ({
@@ -47,13 +60,17 @@ function build(ctx: ArenaScene, radius: number) {
     stumps.push(s);
   }
 
-  const water = own(colorMaterial(scene, "mire-water", new Color3(0.06, 0.09, 0.08), new Color3(0.5, 0.45, 0.35)));
-  water.specularPower = 48;
+  const water = own(waterMaterial(scene, "mire-water", POOLS));
   water.zOffset = -2;
   const pool = MeshBuilder.CreateDisc("mire-pool", { radius: 1, tessellation: 20 }, scene);
   pool.rotation.x = Math.PI / 2;
   pool.bakeCurrentTransformIntoVertices();
+  setWater(pool, (x, z) => {
+    const shore = 1 - Math.hypot(x, z);
+    return { flowX: 0, flowZ: 0, shore, column: POOL_DEPTH * shore };
+  });
   pool.material = water;
+  pool.receiveShadows = true;
   scatter(ctx, root, [[pool, 0.02]], ringSpots(rand, 16, radius + 3, radius + 16, 1.5, 4), false);
 
   const branch = (h: number, d: number, tilt: number, yaw: number, y: number) => {

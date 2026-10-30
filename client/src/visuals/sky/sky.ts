@@ -56,6 +56,8 @@ const luminance = (c: Color3) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 export function createSky(scene: Scene): Sky {
   scene.fogMode = Scene.FOGMODE_EXP2;
   const skyLight = new HemisphericLight("sky-light", new Vector3(0, 1, 0), scene);
+  // Glints come from the sun or moon only (water/), not a white sheen from the whole sky.
+  skyLight.specular = Color3.Black();
   const body = new DirectionalLight("sky-body", new Vector3(0, -1, 0), scene);
   body.shadowMinZ = 1;
   body.shadowMaxZ = 90;
@@ -147,6 +149,7 @@ export function createSky(scene: Scene): Sky {
         skyLight.intensity = place.skyLight.intensity * day.skyLightScale;
         const sunLit = direct.body === "sun";
         body.diffuse = sunLit ? place.sun.color.multiply(day.sunTint) : MOONLIGHT.color.clone();
+        body.specular = body.diffuse;
         body.intensity = direct.strength * (sunLit ? place.sun.intensity : MOONLIGHT.intensity);
       }
 
