@@ -48,6 +48,10 @@ nobody approved, say so and ask. When the user decides something, add it to the 
 
 Decided by the user:
 
+- One rule set for the overworld and the arena (the user: "we dont want special behaviour as much as possible.
+  things that work in overworld should work similar/same as battlefield. and vice versa"): what both places have
+  (the bag, eating, piles, Interact, resting...) works the same in both, through the same code. A difference needs a
+  reason the other place can't support it.
 - HP and stamina carry over between fights and are **not** reset on a new connection. They're saved through a
   server-side `PlayerStore` (Postgres now); game code only sees the interface, so the store stays swappable.
 - Postgres is the only database (no separate NoSQL store). In dev it runs in Docker (`compose.yaml`).
@@ -150,11 +154,13 @@ Decided by the user:
   ("auto leave arena after 5 minutes. you can still press enter, but if theres loot there's a are you sure popup").
   When the last player leaves, the leftovers become an overworld pile where the fight began, its 10 minutes starting
   then. The loot is shared ("lets have shared loot"): each fallen enemy's drops are rolled once for the fight, not
-  once per winner, into the one pile, first come first served. In the arena E opens a pile only when you're next to
-  it and looking at it ("make it so we can pickup if we're next to the item and looking at it"): within reach and in
-  front of where the camera faces, the one nearest the view's centre line winning if several are (the overworld keeps
-  nearest-wins). A dead enemy's body disintegrates and is gone ("dead enemy body should disappear/disintegrate"),
-  and stops blocking players from the moment it dies; its drops stay where they lie. A player who leaves the arena
+  once per winner, into the one pile, first come first served. E opens a pile only when you're next to it and
+  looking at it ("make it so we can pickup if we're next to the item and looking at it"), the same way on the
+  overworld as in the arena ("overworld piles open the same way as arena piles"): within reach and in front of the
+  way you face, the one nearest that line winning if several are. In the arena you face where the camera does; on
+  the overworld, the way your chibi faces (from its last step). A dead enemy's body disintegrates and is gone
+  ("dead enemy body should disappear/disintegrate"), and stops blocking players from the moment it dies; its drops
+  stay where they lie. A player who leaves the arena
   early fades out for the others ("the player who leaves early should fade"). Confirmed as built: disconnecting after
   a win isn't a loss, nobody joins a fight that's already won, and the win banner fades after 4 s. Death drops
   ("we can do death drops now"): dying drops all you carry but the starter kit, the bag and any slot holding anything
@@ -378,16 +384,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   every sword deals the same damage per second at strength 10); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's power 14. Numbers: `WEAPONS` and `SWING` in `shared/src/weapons/weapons.ts`.
 - Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
-  is opened within the campfire's reach plus the lag slack (`PILE_RANGE_TILES`, `LAG_SLACK_TILES`). It only gives:
-  nothing goes onto it, nothing is moved about on it or eaten straight off it; taken things go into the bag, a hand
-  or the cloth. It shows in the bag screen above the cloth while open, and closes with the bag (B, Esc), on walking,
-  when a fight starts and when it empties or vanishes. On the overworld it's a tied sack with a bone sticking out.
+  is opened by looking at it, as in the arena (below). It only gives: nothing goes onto it, nothing is moved about on
+  it or eaten straight off it; taken things go into the bag, a hand or the cloth. It shows in the bag screen above
+  the cloth while open, and closes with the bag (B, Esc), on walking, when a fight starts and when it empties or
+  vanishes. On the overworld it's a tied sack with a bone sticking out.
   Numbers: `server/src/core/overworld/piles.ts`.
 - The arena after a win (drops, PR 2): an enemy's drops lie in one pile 0.5 m beside where it fell, on the arena's
-  inner side (`DROP_GAP_M`), drawn as the overworld's sack. It's opened within 2 m (`ARENA_PILE_RANGE_M`) and 35°
-  either side of where the camera faces (`ARENA_PILE_LOOK_RAD`), the server checking where its own copy of the fight
-  has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`ARENA_LAG_SLACK_M`,
-  `ARENA_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the bag
+  inner side (`DROP_GAP_M`), drawn as the overworld's sack. It's opened within 2 m (`PILE_RANGE_M`) and 35°
+  either side of where the camera faces (`PILE_LOOK_RAD`), the server checking where its own copy of the fight
+  has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`PILE_LAG_SLACK_M`,
+  `PILE_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the bag
   screen works there on your real bag (taking from the pile, moving things, the slots), without the cloth; eating
   stays overworld-only, and a page can be written as outside a fight. Leaving then, by Enter, the timer or a
   disconnect, is no loss: what you took is yours and saved. A fight already won can't be joined. The 5 minutes are
@@ -398,6 +404,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   fades, sinks 0.3 m and gives off pale grey ash (`DISSOLVE_*` in `client/src/visuals/battle/battle.ts`). A player who
   leaves the arena fades out over 1 s (`LEAVE_FADE_TIME`), the others' fight getting it at once; one who disconnects
   mid-fight falls (as before) and fades the same way.
+- Overworld piles by looking: the overworld takes the arena's numbers as they are (2 tiles, 35°, and 1 tile and 15° of
+  slack; the reach was 1.6 tiles and its slack 0.6). The way you face there is the chibi's heading, one of four, so a
+  pile 45° off isn't in view until you turn toward it. The server turns its copy of you by the same rule
+  (`faceToward`) from the same inputs, both starting south on entering a level (`START_HEADING`).
 - Death drops (drops, PR 3): the pile lies exactly where the server's copy of the fight has you when you fall (or
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what

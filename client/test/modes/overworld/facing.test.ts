@@ -1,38 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import {
-  faceToward, facingOnScreen, headingFromSide, mapMove, mirrorFor, type Heading,
-} from "../../../src/modes/overworld/facing.js";
-
-describe("faceToward: which way on the map an overworld walker faces", () => {
-  test("walking straight turns to that way: +z is north, +x east", () => {
-    assert.equal(faceToward("south", 1, 0), "east");
-    assert.equal(faceToward("south", -1, 0), "west");
-    assert.equal(faceToward("south", 0, 1), "north");
-    assert.equal(faceToward("north", 0, -1), "south");
-  });
-
-  test("standing still, or barely moving, keeps the way it faced", () => {
-    assert.equal(faceToward("north", 0, 0), "north");
-    assert.equal(faceToward("west", 0.05, -0.05), "west");
-  });
-
-  test("on a diagonal it keeps facing a way it's still walking, so it doesn't flicker", () => {
-    assert.equal(faceToward("north", -1, 1), "north");
-    assert.equal(faceToward("west", -1, 1), "west");
-    assert.equal(faceToward("south", 0.7, -0.7), "south");
-  });
-
-  test("turning onto a diagonal from elsewhere faces the stronger way, east or west on a tie", () => {
-    assert.equal(faceToward("south", -1, 1), "west");
-    assert.equal(faceToward("east", -0.4, 1), "north");
-    assert.equal(faceToward("north", 1, -0.4), "east");
-  });
-
-  test("a sideways nudge under the dead zone doesn't count as walking that way", () => {
-    assert.equal(faceToward("west", 0.05, 1), "north");
-  });
-});
+import { faceToward, type Heading } from "@infinite-tower/shared";
+import { facingOnScreen, headingFromSide, mapMove, mirrorFor } from "../../../src/modes/overworld/facing.js";
 
 describe("headingFromSide: the server's side (1 east, -1 west) for actors seen only from the side", () => {
   test("maps both ways", () => {

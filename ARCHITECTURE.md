@@ -238,13 +238,18 @@ main.ts
   wall clock, so a level nobody's on catches up when it next steps), and `setPileItems` with nothing left removes it
   at once. An arena's drops are piles too, held off the map and untimed (`holdPile`) until they land (`landPile`).
   `state` sends every pile within `VIEW_RADIUS_TILES`; the client mirrors each as an actor of kind `"pile"`, drawn as a
-  sack. Interact sends `openPile` when a pile is the nearest thing in reach (`interactionAt`), and opens the bag screen;
-  the session opens the nearest pile within
-  `PILE_RANGE_TILES` (+ `LAG_SLACK_TILES`) and from then on keeps a copy of it in its gear's `pile` (the `Gear`'s
-  fourth grid, `NO_PILE` for none, never saved or taken into a fight), followed every tick, so another player's take
-  or its vanishing reaches it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's
-  pile as it is now (first come first served) and writes it back; `moveGear` puts nothing onto a pile. The pile
-  closes with the bag (`closeBag`), on walking and when a fight starts.
+  sack. A pile is opened the same way here as in the arena: by looking at it. The rule is the shared `pileInView`
+  (within `PILE_RANGE_M` and `PILE_LOOK_RAD` either side of the way you face, the one nearest that line), which the
+  server runs with its slack as `pileSeen` (`PILE_LAG_SLACK_M`, `PILE_LOOK_SLACK_RAD`, `core/overworld/piles.ts`), for
+  both places. On the overworld the way you face is the walker's heading: the client turns its chibi with `faceToward`
+  on each predicted step, and the server turns its copy (`OverworldPlayer.heading`) with the same `faceToward` on each
+  input it replays, both from `START_HEADING` on entering a level. Interact sends `openPile` when the pile in view is
+  the nearest thing in reach (`interactionAt`), and opens the bag screen; the session opens the one in view of its copy
+  (`Overworld.pileInView`) and from then on keeps a copy of it in its gear's `pile` (the `Gear`'s fourth grid, `NO_PILE`
+  for none, never saved or taken into a fight), followed every tick, so another player's take or its vanishing reaches
+  it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's pile as it is now (first come
+  first served) and writes it back; `moveGear` puts nothing onto a pile. The pile closes with the bag (`closeBag`), on
+  walking and when a fight starts.
 - **The arena after a win** (`core/game/battle.ts`): every `Battle` of a room shares its `ArenaDrops`: where the fight
   began (`home`), the piles lying in the arena with where (`ArenaPile`), and when it closes. As the room is won (its
   `onOver`), each enemy's drops are rolled once for the fight (`dropInArena`), whoever won, into a pile `DROP_GAP_M`
@@ -254,11 +259,10 @@ main.ts
   on a loss lands it at once. While a session is in it (`afterFight`), its tick follows its open pile, sends
   `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once the time is up leaves the arena
   for the player and sends `arenaClosed`. `openPile` there opens the pile the player is looking at (`arenaPileInView`:
-  the shared `pileInView`, within `ARENA_PILE_RANGE_M` + `ARENA_LAG_SLACK_M` of the player in the server's fight and
-  `ARENA_PILE_LOOK_RAD` + `ARENA_LOOK_SLACK_RAD` either side of the aim of the last input it ran, the one nearest that
-  centre line), and `moveItem` works as on the overworld but for the cloth (none there); eating doesn't, writing a page
-  does (as outside a fight). Leaving (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's
-  `onClosed` lands what's left at `home` as one pile (`landDrops`), its `PILE_LIFETIME_MS` starting then. The client:
+  `pileSeen` from where the server's fight has them, along the aim of the last input it ran), and `moveItem` works as on
+  the overworld but for the cloth (none there); eating doesn't, writing a page does (as outside a fight). Leaving
+  (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's `onClosed` lands what's left at `home` as
+  one pile (`landDrops`), its `PILE_LIFETIME_MS` starting then. The client:
   `battleResult`'s `afterFightMs` keeps `FightSync` sending and checking (only a result without it stops it),
   `ctx.drops` holds the arena's piles (drawn as the same sack), the HUD shows `The arena closes in m:ss` at the top and
   an "Open the pile" button (`dropInView`: `pileInView` along the camera's yaw, without the slack), Interact (E) sends
@@ -435,7 +439,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`; not a pile's) |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
-| `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the nearest in reach beside the bag |
+| `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the one in view beside the bag |
 | `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights or after a win (mid-fight it's a `write` fight input); refused mid-battle, without the book in hand or with a word the player doesn't know |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
@@ -553,7 +557,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   swing left it, back at the guard after a block, a dodge or a hit),
   blocking (stamina by momentum, push back,
   only in front, the guard breaking), whole fights won and lost, the time limit and leaving (down only mid-fight,
-  gone from the arena either way, through a save), which arena pile is in view (`pileInView`), a fight's whole state
+  gone from the arena either way, through a save), which pile is in view (`pileInView`), a walker's heading
+  (`faceToward`), a fight's whole state
   (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
   difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
@@ -594,8 +599,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
   none from a player without a character, the history kept to its cap, the last lines in `welcome`, the length and
   rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles: packed with nothing
-  overlapping, the nearest in reach found, sent within the view's radius, vanishing after `PILE_LIFETIME_MS` or once
-  empty; opening one (in reach, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not
+  overlapping, the one a player faces found (in reach and round from their heading, each with its slack), sent within
+  the view's radius, vanishing after `PILE_LIFETIME_MS` or once empty; a walker's heading turned by its inputs as the
+  client's is; opening one (in reach and looked at, not one behind or off to the side, the one nearest the way they
+  face, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not
   opened, closing it (the bag, walking, a fight, its vanishing), and two players at one pile (each seeing the other's
   take, the same item going to the first). The arena after a win (`arena-drops.test.ts`, and the room's and the joined
   battle's tests): the room running on for the winners (their inputs and hashes, no second result), leaving it no
@@ -622,8 +629,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; swipes into swings), the
   player's pose, sword trail and thrust, the boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, what Interact does
-  where you stand (the nearest in reach), the mirror (other players, piles), the fight's sync
-  (only changes sent,
+  where you stand (the nearest in reach, a pile only if you face it), the mirror (other players, piles), the fight's
+  sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
   nor dropped; another player's inputs coming late rolled back and replayed; every step's events reported, a
@@ -707,12 +714,13 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    time.ts
   world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, its floor, tile
                    map and campfires; moveWalker, the one collision rule, and stepWalker on it for prediction +
-                   replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES, PILE_RANGE_TILES), tiles.ts
+                   replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES; Heading, START_HEADING, HEADING_WAY
+                   and faceToward: the way a walker faces, turned by its moves on both sides), piles.ts
+                   (PILE_RANGE_M and PILE_LOOK_RAD, the reach to a pile and how far round from the way you face, on
+                   the overworld and in an arena alike; pileInView, the one in view), tiles.ts
                    (TILES: each tile kind's
                    character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
-                   (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup;
-                   ARENA_PILE_RANGE_M and ARENA_PILE_LOOK_RAD, the reach to the drops there and how far round
-                   from where you look; pileInView, the one in view), day.ts (the
+                   (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
@@ -826,7 +834,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        it, wins, a loss dropping all but STARTER_KIT where they fell (dropWhereFell), vitals; the arena
                        after a win: ArenaDrops (shared by the room), the drops rolled once as the room is won
                        (dropInArena, dropSpot), arenaPiles, arenaPileInView, landDrops (what's left, as one pile);
-                       AFTER_FIGHT_MS, ARENA_LAG_SLACK_M, ARENA_LOOK_SLACK_RAD, DROP_GAP_M), snapshot.ts (the state
+                       AFTER_FIGHT_MS, DROP_GAP_M), snapshot.ts (the state
                        message: only actors, other players and piles within VIEW_RADIUS_TILES, each player's
                        character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
@@ -841,14 +849,18 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
-                       systems and spawner; dropPile, holdPile / landPile (an arena's), nearestPile,
+                       systems and spawner; dropPile, holdPile / landPile (an arena's), pileInView (the
+                       one a player faces),
                        pileItems, setPileItems), components.ts
-                       (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, character and whether
-                       they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
+                       (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading, character and
+                       whether they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS;
+                       pileSeen, the shared pileInView with PILE_LAG_SLACK_M and PILE_LOOK_SLACK_RAD, the overworld's
+                       and an arena's),
                        parts.ts (spawnActor from behavior
-                       parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay,
-                       grass encounters per player, nearestHuntablePlayer), spawner.ts (each spawn an enemy's
-                       overworld actor; one taken into a fight comes back respawnTime after it's decided)
+                       parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay
+                       turning the heading with faceToward, grass encounters per player, nearestHuntablePlayer),
+                       spawner.ts (each spawn an enemy's overworld actor; one taken into a fight comes back
+                       respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
                        layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId,
@@ -1020,11 +1032,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
-                         interactionAt: the Interact key rests, joins a fight or opens a pile, the nearest in reach;
+                         interactionAt: the Interact key rests, joins a fight or opens the pile you face (pileInView
+                         along your heading), the nearest in reach; the heading back to START_HEADING on a `level`;
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
-        facing.ts        Heading (north / east / south / west, on the map) and Facing (up / right / down / left, on
-                         screen): faceToward, mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
+        facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
+                         left, on screen): mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles; entityOf
         components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin, a
                          pile), Peer (another player's character, fighting), Speech (a chat line over a walker's
@@ -1244,8 +1257,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
-| Piles: how long one lies, how wide it's laid out; the reach to open one; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`); `PILE_RANGE_TILES` in `shared/src/world/layout.ts`; `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
-| The arena after a win: how long it stays open, where the drops lie, the reach to them, how far round from where you look, and their slack; the banner's time; the sack's size | `AFTER_FIGHT_MS`, `DROP_GAP_M`, `ARENA_LAG_SLACK_M`, `ARENA_LOOK_SLACK_RAD` in `server/src/core/game/battle.ts`; `ARENA_PILE_RANGE_M`, `ARENA_PILE_LOOK_RAD` in `shared/src/world/arena.ts`; `AFTER_FIGHT_BANNER_TIME` in `client/src/modes/battle/context.ts`; `PILE_SIZE_M` in `client/src/visuals/battle/battle.ts` |
+| Piles: how long one lies, how wide it's laid out; the reach to open one (overworld and arena alike), how far round from the way you face, and their slack; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`, `PILE_LAG_SLACK_M`, `PILE_LOOK_SLACK_RAD`); `PILE_RANGE_M`, `PILE_LOOK_RAD` in `shared/src/world/piles.ts`; `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
+| The arena after a win: how long it stays open, where the drops lie; the banner's time; the sack's size | `AFTER_FIGHT_MS`, `DROP_GAP_M` in `server/src/core/game/battle.ts`; `AFTER_FIGHT_BANNER_TIME` in `client/src/modes/battle/context.ts`; `PILE_SIZE_M` in `client/src/visuals/battle/battle.ts` |
 | A dead enemy crumbling, a leaving player fading | `DISSOLVE_DELAY_TIME`, `DISSOLVE_TIME`, `DISSOLVE_SINK_M`, `ASH_PER_SEC`, `LEAVE_FADE_TIME` in `client/src/visuals/battle/battle.ts`; the ash's look in `PARTICLE_LOOKS` (`skillLooks.ts`) |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |

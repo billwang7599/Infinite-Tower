@@ -1,8 +1,8 @@
 /** Overworld entities: the local player (LocalPlayer) is predicted, everything else is where the server says. */
 import {
-  defineComponent, type ActorSnap, type Character, type Entity, type LevelLayout, type Vec2, type World,
+  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type Vec2,
+  type World,
 } from "@infinite-tower/shared";
-import type { Heading } from "./facing.js";
 
 /** In tiles. */
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");

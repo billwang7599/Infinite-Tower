@@ -1,8 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  ARENA_PILE_LOOK_RAD, ARENA_PILE_RANGE_M, bagCounts, Body, Enemy, pileInView, PlayerInput, roundTo, SLOTS,
-  type Carried, type EnemyId, type Entity, type ItemCounts, type ItemId, type ServerMsgOf, type Skillbook, type Vec2,
-  type Vitals,
+  bagCounts, Body, Enemy, PlayerInput, roundTo, SLOTS, type Carried, type EnemyId, type Entity, type ItemCounts,
+  type ItemId, type ServerMsgOf, type Skillbook, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type Fight, type FightSetup, type PlayerResult, type PlayerSetup,
@@ -11,6 +10,7 @@ import { BattleRoom, type Seat } from "../battle/room.js";
 import { fullVitals, STARTER_KIT } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
+import { pileSeen } from "../overworld/piles.js";
 import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
@@ -46,9 +46,6 @@ export interface ArenaDrops {
 export const newDrops = (home: Vec2): ArenaDrops => ({ home: { x: home.x, z: home.z }, piles: [], closesAtMs: null });
 
 export const AFTER_FIGHT_MS = 5 * 60 * 1000;
-/** Leeway on the reach to the arena's drops and on where you look: the server's copy of you trails the client's. */
-export const ARENA_LAG_SLACK_M = 1;
-export const ARENA_LOOK_SLACK_RAD = (15 * Math.PI) / 180;
 /** Between a fallen enemy's body and its drops, so the body doesn't hide them. */
 export const DROP_GAP_M = 0.5;
 
@@ -187,13 +184,10 @@ export function arenaPiles(drops: ArenaDrops, overworld: Overworld): ArenaPile[]
   return drops.piles;
 }
 
-/** As the client picks it (pileInView), looking where the last input the server ran was aimed. */
 export function arenaPileInView({ room, seat, drops }: Battle, overworld: Overworld): Entity | null {
   const { world } = room.fight, me = room.fight.players[seat]!, aim = world.require(me, PlayerInput);
   const piles = arenaPiles(drops, overworld).map(({ pile, at }) => ({ pile, ...at }));
-  const reachM = ARENA_PILE_RANGE_M + ARENA_LAG_SLACK_M, lookRad = ARENA_PILE_LOOK_RAD + ARENA_LOOK_SLACK_RAD;
-  const seen = pileInView(world.require(me, Body).pos, { x: aim.aimX, z: aim.aimZ }, piles, reachM, lookRad);
-  return seen?.pile ?? null;
+  return pileSeen(world.require(me, Body).pos, { x: aim.aimX, z: aim.aimZ }, piles)?.pile ?? null;
 }
 
 /** All in one pile, so a death's leftovers and the enemy's aren't sacks stacked on one spot. */

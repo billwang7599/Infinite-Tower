@@ -1,6 +1,6 @@
 /** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
 import {
-  bagCounts, distXZ, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
+  bagCounts, HEADING_WAY, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
   type System, type Vec2,
 } from "@infinite-tower/shared";
 import type { LevelDef, SpawnDef } from "../world/level.js";
@@ -10,7 +10,7 @@ import { touchSystem } from "./behaviors/touch.js";
 import { wanderSystem } from "./behaviors/wander.js";
 import { OverworldPlayer, OverworldPos, Pile, type OverworldPlayerData } from "./components.js";
 import type { OverworldContext } from "./context.js";
-import { packPile, PILE_LIFETIME_MS, pileSystem } from "./piles.js";
+import { packPile, PILE_LIFETIME_MS, pileSeen, pileSystem } from "./piles.js";
 import { newWalk, overworldPlayerSystem, queueInput } from "./player.js";
 import { Spawner } from "./spawner.js";
 
@@ -133,13 +133,10 @@ export class Overworld implements OverworldContext {
     data.items = packPile(counts);
   }
 
-  nearestPile(at: Vec2, rangeTiles: number): Entity | null {
-    let nearest: { pile: Entity; dist: number } | null = null;
-    for (const [pile, , pos] of this.world.query(Pile, OverworldPos)) {
-      const dist = distXZ(at, pos);
-      if (dist <= rangeTiles && (!nearest || dist < nearest.dist)) nearest = { pile, dist };
-    }
-    return nearest?.pile ?? null;
+  pileInView(player: Entity): Entity | null {
+    const piles = [...this.world.query(Pile, OverworldPos)].map(([pile, , pos]) => ({ pile, x: pos.x, z: pos.z }));
+    const way = HEADING_WAY[this.playerData(player).heading];
+    return pileSeen(this.playerPos(player), way, piles)?.pile ?? null;
   }
 
   pileItems(pile: Entity): Bag | null {

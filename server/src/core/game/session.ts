@@ -4,7 +4,7 @@
  */
 import {
   distXZ, emptyCloth, gearBurden, heldIn, itemAt, itemDef, JOIN_RANGE_TILES, moveGear, nearCampfire, NO_PILE,
-  PILE_RANGE_TILES, PLAYER, skillOf, validateSkill, takeOne, walkPace, type Bag, type Burden, type Character,
+  PLAYER, skillOf, validateSkill, takeOne, walkPace, type Bag, type Burden, type Character,
   type Cheat, type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput,
   type Stats, type UseSpot, type Vitals, type Word,
 } from "@infinite-tower/shared";
@@ -20,7 +20,7 @@ import { stateMsg } from "./snapshot.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
-/** Leeway on a reach the server checks (a campfire's, a battle's, a pile's): its copy of you trails the client's. */
+/** Leeway on a reach the server checks (a campfire's, a battle's): its copy of you trails the client's. */
 export const LAG_SLACK_TILES = 0.6;
 /** Small changes (settings, the bag) are written at most this often, so a client can't hammer the database. */
 const SAVE_SOON_MS = 1000;
@@ -233,10 +233,8 @@ export class GameSession {
   openPile(): void {
     const arena = this.afterFight;
     if (arena) this.pileOpen = arenaPileInView(arena, this.overworld);
-    else if (this.inOverworld) {
-      const reach = PILE_RANGE_TILES + LAG_SLACK_TILES;
-      this.pileOpen = this.overworld.nearestPile(this.overworld.playerPos(this.me), reach);
-    } else return;
+    else if (this.inOverworld) this.pileOpen = this.overworld.pileInView(this.me);
+    else return;
     this.followPile();
     this.link.send({ t: "gear", gear: this.gear });
   }

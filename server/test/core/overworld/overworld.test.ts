@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FIXED_DT, stepWalker, type Entity } from "@infinite-tower/shared";
+import { faceToward, FIXED_DT, START_HEADING, stepWalker, type Entity } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { LevelDef } from "../../../src/core/world/level.js";
 import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
@@ -101,6 +101,28 @@ describe("Overworld walking", () => {
     assert.ok(Math.abs(overworld.playerData(me).safeTime - 0.5) < 1e-9);
     stepTicks(overworld, 60);
     assert.equal(overworld.playerData(me).safeTime, 0);
+  });
+});
+
+describe("Overworld facing", () => {
+  test("a player starts facing START_HEADING and turns with each input as the client's prediction does", () => {
+    const { overworld, me } = overworldIn();
+    assert.equal(overworld.playerData(me).heading, START_HEADING);
+    let heading = START_HEADING;
+    const moves = [[1, 0], [-1, 1], [0, -1], [0.05, -1], [-0.7, -0.7]] as const;
+    moves.forEach(([moveX, moveZ], i) => {
+      overworld.input(me, i + 1, moveX, moveZ);
+      overworld.step(FIXED_DT);
+      heading = faceToward(heading, moveX, moveZ);
+      assert.equal(overworld.playerData(me).heading, heading, `after input ${i + 1}`);
+    });
+  });
+
+  test("standing still keeps the way they last faced", () => {
+    const { overworld, me } = overworldIn();
+    overworld.input(me, 1, 0, 1);
+    stepTicks(overworld, 30);
+    assert.equal(overworld.playerData(me).heading, "north");
   });
 });
 

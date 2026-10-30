@@ -1,6 +1,8 @@
-import type { ActorSnap, Character, Entity, PileSnap, PlayerSnap, World } from "@infinite-tower/shared";
+import {
+  faceToward, type ActorSnap, type Character, type Entity, type PileSnap, type PlayerSnap, type World,
+} from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
-import { faceToward, headingFromSide } from "./facing.js";
+import { headingFromSide } from "./facing.js";
 
 export class ActorMirror {
   /** Server id -> local entity. */

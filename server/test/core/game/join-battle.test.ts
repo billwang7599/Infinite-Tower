@@ -14,7 +14,7 @@ import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
-import { ACCOUNT, findBoar } from "./helpers.js";
+import { ACCOUNT, findBoar, pileAt } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -158,9 +158,9 @@ describe("a battle fought together", () => {
     const { pile } = host.battle!.drops.piles[0]!;
     host.leaveBattle();
     play(online, [guest], 3);
-    assert.equal(host.overworld.nearestPile(home, 0), null);
+    assert.equal(pileAt(host.overworld, home), null);
     guest.leaveBattle();
-    assert.equal(host.overworld.nearestPile(home, 0), pile);
+    assert.equal(pileAt(host.overworld, home), pile);
   });
 
   test("a fight already won can't be joined", async () => {
