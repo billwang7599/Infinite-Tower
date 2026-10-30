@@ -54,6 +54,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
             <BattleHud
               hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} skills={ui.skills}
               chant={ui.chant} input={input} castSkill={actions.castSkill} saveSkill={actions.saveSkill}
+              interact={actions.interact} leaving={{ asking: ui.leaveArena, leave: actions.leaveArena }}
               bag={{
                 open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
                 settingsScreen: ui.settingsScreen, skillbookScreen: ui.skillbookScreen, moveItem: actions.moveItem,

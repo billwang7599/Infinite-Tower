@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Body, Health } from "@infinite-tower/shared";
+import { Body, Health, Player } from "@infinite-tower/shared";
 import { Fight, initPhysics, joinStart, playerResult, type FightSetup } from "@infinite-tower/shared/fight";
 import { ARENA, BOAR, enemy, input, player, run, STATUE } from "./fixtures.js";
 
@@ -67,5 +67,44 @@ describe("a player's own result in a shared fight", () => {
 
   test("won by the others while down on the same step: everyone still in it wins", () => {
     assert.equal(playerResult({ state: "won", stateTime: 0 }, false, { standing: false, duel: false }), "won");
+  });
+});
+
+describe("a player leaving the arena", () => {
+  const together = (): Fight => new Fight({
+    ...SETUP, players: [player({ x: 0, y: 0.05, z: -5 }), player(joinStart(ARENA, 1))],
+  });
+
+  test("mid-fight: down as if dead, and gone from the arena", () => {
+    const fight = together(), leaver = fight.players[1]!;
+    run(fight, 0.2);
+    fight.leave(leaver);
+    assert.equal(fight.world.require(leaver, Health).hp, 0);
+    assert.equal(fight.world.require(leaver, Player).leftArena, true);
+  });
+
+  test("after a win: gone from the arena, as they were", () => {
+    const fight = together(), leaver = fight.players[1]!;
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    run(fight, 0.2);
+    assert.equal(fight.outcome.state, "won");
+    const hp = fight.world.require(leaver, Health).hp;
+    fight.leave(leaver);
+    assert.equal(fight.world.require(leaver, Health).hp, hp);
+    assert.equal(fight.world.require(leaver, Player).leftArena, true);
+    assert.equal(fight.world.require(fight.players[0]!, Player).leftArena, false);
+  });
+
+  test("is part of the fight's state: a copy loaded from it has them gone too", () => {
+    const fight = together();
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    run(fight, 0.2);
+    const before = fight.hash();
+    fight.leave(fight.players[1]!);
+    assert.notEqual(fight.hash(), before);
+    const copy = together();
+    copy.load(JSON.parse(JSON.stringify(fight.save())));
+    assert.equal(copy.world.require(copy.players[1]!, Player).leftArena, true);
+    assert.equal(copy.hash(), fight.hash());
   });
 });

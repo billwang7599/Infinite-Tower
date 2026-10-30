@@ -71,11 +71,15 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
-   moment it's decided, sends the final `battleSync`, rolls drops and leaves them as a pile on the overworld where
-   the fight began (or, on a loss, empties the bag and slots of all but the starter kit), saves and sends
-   `battleResult`: only then does the result show. Enter leaves the arena (`leaveBattle`) and the overworld goes on.
+   moment it's decided, sends the final `battleSync`, rolls drops and lays them as a pile in the arena beside the
+   fallen enemy (or, on a loss, empties the bag and slots of all but the starter kit), saves and sends
+   `battleResult`: only then does the result show. After a win the fight runs on for up to `AFTER_FIGHT_MS` (5
+   minutes) while the winners walk to the drops and take what they want; Enter leaves the arena (`leaveBattle`;
+   asking first while drops are still there), and the overworld goes on. The last one out leaves what's left as an
+   overworld pile where the fight began.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
-   Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death, all but the starter kit.
+   Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death, all but the starter kit. In the
+   arena after a win it's leaving the arena, with what was taken kept.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
 ## Server: core plus outlets
@@ -163,7 +167,10 @@ main.ts
   The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
   (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled` fighter is doing is drawn the same: the
   circle at its feet while it chants or winds up, and, over anyone but you, its chant's words as a row of squares in
-  front of it (`chantWords.ts`). The player's look is read from `ui.overworld`'s character and painted once
+  front of it (`chantWords.ts`), and its going: a dead enemy lies `DISSOLVE_DELAY_TIME`, then crumbles over
+  `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena (`Player.leftArena`) fades over
+  `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are alpha-tested, and its shadow with
+  it). The player's look is read from `ui.overworld`'s character and painted once
   (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it. Every other player in the fight
   is painted the same way into a set of frames of their own, in their look (`battle.ctx.who`) with their weapon; the
   sets are kept between fights, one per other player. Each player's sprite shows its back or, once your camera is
@@ -187,6 +194,8 @@ main.ts
   happened in a step as `events` (hits, blocks, a charge slamming the wall). How a fight ends is
   `fight/outcome.ts`: lost when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes,
   a guard on the server's resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
+  `Fight.leave` marks a player gone from the arena (`Player.leftArena`, part of the state), downing them only while
+  it's fought.
   Every hit, skill and burn hurts through `hurt` (`fight/skills/statuses.ts`), which spares an invulnerable player
   (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight).
 - **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle, from the moment every player has
@@ -194,7 +203,11 @@ main.ts
   it as soon as it knows every player's input for the next step (`InputTimeline`), holding a step back for a late
   input at most `MAX_INPUT_DELAY` ("A fight on the wire" below has the rules). It's authoritative: hits, damage,
   stamina, deaths and the result. Once it's decided, each player's `onEnd` settles the battle for them
-  (`core/game/battle.ts`, or `core/game/duels.ts` for a duel) and the fight is freed. A room takes any number of
+  (`core/game/battle.ts`, or `core/game/duels.ts` for a duel) and `onOver` runs. A loss or a duel frees the fight
+  then; a win keeps it running for the winners still in the arena (`afterFight`, `inArena`: their inputs, hashes and
+  syncs as before, no result again) until the last of them leaves (`leave`, which after a win is no loss), when it's
+  freed and `onClosed` runs. Whoever leaves, the others get a `battleSync` at once with them gone from the arena
+  (`Fight.leave`), so their drawings fade them out. A decided room can't be joined. A room takes any number of
   players: a battle against enemies starts with one, a duel two. Each player's session ticks it with their seat, and
   only the first seat still there moves its clock, so it runs one step a tick however many are in it. A player whose
   own result is in before the fight's (`playerResult`: down while the others fight on) is settled then and out of it.
@@ -204,8 +217,8 @@ main.ts
   are still in it (`joinRefused` says why). The fight gets them between steps (`Fight.join`, at `joinStart`, the
   arena's edge); the others get `battleJoined` (their `PlayerSetup`) and a `battleSync` with them in it, and the
   joiner an `encounter` with the room's whole setup and the fight as it is (`joined`). From then on it's a battle like
-  any: inputs relayed, each player settled with their own result, drops rolled for each winner (a pile each, where
-  they stood). The enemy taken off
+  any: inputs relayed, each player settled with their own result, and the drops rolled once for the fight, shared by
+  the winners. The enemy taken off
   the overworld comes back once the room is over for everyone (`onOver`), not when its first fighter falls or leaves:
   the spawner holds its slot by the taken actor, not by a player. Every fighter is marked `fighting` on the
   overworld (the crossed swords), so the fight can be joined by any of them, the host gone or not.
@@ -221,16 +234,35 @@ main.ts
   HP and stamina they came in with and counts nothing.
 - **Piles** (`core/overworld/piles.ts`; [plan/drops.md](plan/drops.md) has what's to come): items lying on the
   overworld, each an entity with an `OverworldPos` and a `Pile` (its items as a grid `PILE_COLS` wide, `packPile`, and
-  when it vanishes). `Overworld.dropPile` lays one down (a won fight's drops, where the winner stood), `pileSystem`
-  removes it `PILE_LIFETIME_MS` after (by the wall clock, so a level nobody's on catches up when it next steps), and
-  `setPileItems` with nothing left removes it at once. `state` sends every pile within `VIEW_RADIUS_TILES`; the client
-  mirrors each as an actor of kind `"pile"`, drawn as a sack. Interact sends `openPile` when a pile is the nearest
-  thing in reach (`interactionAt`), and opens the bag screen; the session opens the nearest pile within
+  when it vanishes). `Overworld.dropPile` lays one down, `pileSystem` removes it `PILE_LIFETIME_MS` after (by the
+  wall clock, so a level nobody's on catches up when it next steps), and `setPileItems` with nothing left removes it
+  at once. An arena's drops are piles too, held off the map and untimed (`holdPile`) until they land (`landPile`).
+  `state` sends every pile within `VIEW_RADIUS_TILES`; the client mirrors each as an actor of kind `"pile"`, drawn as a
+  sack. Interact sends `openPile` when a pile is the nearest thing in reach (`interactionAt`), and opens the bag screen;
+  the session opens the nearest pile within
   `PILE_RANGE_TILES` (+ `LAG_SLACK_TILES`) and from then on keeps a copy of it in its gear's `pile` (the `Gear`'s
   fourth grid, `NO_PILE` for none, never saved or taken into a fight), followed every tick, so another player's take
   or its vanishing reaches it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's
   pile as it is now (first come first served) and writes it back; `moveGear` puts nothing onto a pile. The pile
   closes with the bag (`closeBag`), on walking and when a fight starts.
+- **The arena after a win** (`core/game/battle.ts`): every `Battle` of a room shares its `ArenaDrops`: where the
+  fight began (`home`), the piles lying in the arena with where (`ArenaPile`), and when it closes. As the room is won
+  (its `onOver`), each enemy's drops are rolled once for the fight (`dropInArena`), whoever won, into a pile
+  `DROP_GAP_M` beside where it fell, toward the arena's middle (`dropSpot`), and the arena closes `AFTER_FIGHT_MS`
+  after the win (by the wall clock). While a session is in it (`afterFight`), its tick
+  follows its open pile, sends `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once
+  the time is up leaves the arena for the player and sends `arenaClosed`. `openPile` there opens the pile the player
+  is looking at (`arenaPileInView`: the shared `pileInView`, within `ARENA_PILE_RANGE_M` + `ARENA_LAG_SLACK_M` of the
+  player in the server's fight and `ARENA_PILE_LOOK_RAD` + `ARENA_LOOK_SLACK_RAD` either side of the aim of the last
+  input it ran, the one nearest that centre line), and `moveItem` works as on
+  the overworld but for the cloth (none there); eating doesn't, writing a page does (as outside a fight). Leaving
+  (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's `onClosed` lands what's left at `home`,
+  its `PILE_LIFETIME_MS` starting then. The client: `battleResult`'s `afterFightMs` keeps `FightSync` sending and
+  checking (only a result without it stops it), `ctx.drops` holds the arena's piles (drawn as the same sack), the HUD
+  shows `The arena closes in m:ss` at the top and an "Open the pile" button (`dropInView`: `pileInView` along the
+  camera's yaw, without the slack), Interact (E) sends
+  `openPile` and opens the bag screen on the server's gear (as the overworld's, without the cloth), and Enter with
+  drops still there opens the `leaveArena` popup (Enter again leaves, Esc stays).
 - **The browser runs its own copy of the whole fight** (`modes/battle/`), built from the encounter's setup, so the boar
   reacts to you at once. Each frame its clock (`modes/battle/pace.ts`: real time since the fight's first step, plus an
   offset that keeps it in step with the server's) says how many steps are due, and `modes/battle/sync.ts` (`FightSync`)
@@ -246,7 +278,8 @@ main.ts
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
   rule: an enemy shoves a player along, a player never pushes an enemy (a player pinned against the wall holds it
-  back), and dodging, knocked back or dead, a player passes through. Rapier simulates nothing itself
+  back), and dodging, knocked back or dead, a player passes through; anyone passes through a dead enemy. Rapier
+  simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle; or a stab's ray: range +
   width) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not physics: a player may
@@ -399,13 +432,13 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `character` | made your character (ignored if you have one) |
 | `rest` | Interact by a campfire (the server checks you're there) |
 | `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`; not a pile's) |
-| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld only; shown at once; in a fight it's a `gear` fight input, bag and slots only) |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
-| `openPile` | Interact by a pile: open the nearest in reach beside the bag |
-| `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights (in one, it's a `write` fight input); refused in a battle, without the book in hand or with a word the player doesn't know |
+| `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the nearest in reach beside the bag |
+| `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights or after a win (mid-fight it's a `write` fight input); refused mid-battle, without the book in hand or with a word the player doesn't know |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
-| `leaveBattle` | the Leave key after a fight's result: back to the overworld (ignored mid-fight) |
+| `leaveBattle` | the Leave key after a fight's result (with drops still there, after the popup): out of the arena, back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
 | `ping {id}` | every 2 s, for the HUD's ping |
 | `challenge` | the Challenge key: duel the nearest player in reach |
@@ -427,7 +460,9 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `battleJoined` | another player came into your fight: their `PlayerSetup` (a `battleSync` with them in it follows) |
 | `joinRefused` | `joinBattle` refused: nobody near is fighting, the fight is full, or it's a duel |
 | `challengeNews` | a duel challenge sent, received, declined, expired, called off, or refused (nobody near, busy) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, loot (left in a pile where the fight began), `lost`, gear, skillbook; after a duel, `duel` (the opponent's name) |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost`, gear, skillbook, `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
+| `arenaDrops` | after a win, the piles lying in the arena (id, x, z in metres), each time they change |
+| `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
 | `rested`, `itemUsed` | what resting or eating did |
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
 | `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
@@ -511,11 +546,13 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 
 - **shared**: the ECS, math, walking, the view rules, every Zod schema, and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
-  byte for byte, gravity and the floor, the wall, shoving and passing through, knockback, each attack's reach and
+  byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
+  each attack's reach and
   shape, the blade's inertia (each order's wind-up, flow, damage, poise and cost as `planSwing` says, staying where a
   swing left it, back at the guard after a block, a dodge or a hit),
   blocking (stamina by momentum, push back,
-  only in front, the guard breaking), whole fights won and lost, the time limit and leaving, a fight's whole state
+  only in front, the guard breaking), whole fights won and lost, the time limit and leaving (down only mid-fight,
+  gone from the arena either way, through a save), which arena pile is in view (`pileInView`), a fight's whole state
   (exact through JSON; loaded into a new fight, or one that went its own way, it plays on step for step the same, live
   hitboxes included), its hash (the same for the same inputs, changed by anything that matters, not by a last-bit
   difference), a dodge's i-frames step by step (a dodge on the very step a hit lands beats it; its stamina and burden
@@ -555,12 +592,19 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to everyone online
   (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
   none from a player without a character, the history kept to its cap, the last lines in `welcome`, the length and
-  rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles: a won fight's drops
-  landing as one where each winner stood (none for no drops), packed with nothing overlapping, the nearest in reach
-  found, sent within the view's radius, vanishing after `PILE_LIFETIME_MS` or once empty; opening one (in reach, not
-  mid-fight), taking from it into the bag, nothing put onto it or taken from one not opened, closing it (the bag,
-  walking, a fight, its vanishing), and two players at one pile (each seeing the other's take, the same item going to
-  the first).
+  rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles: packed with nothing
+  overlapping, the nearest in reach found, sent within the view's radius, vanishing after `PILE_LIFETIME_MS` or once
+  empty; opening one (in reach, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not
+  opened, closing it (the bag, walking, a fight, its vanishing), and two players at one pile (each seeing the other's
+  take, the same item going to the first). The arena after a win (`arena-drops.test.ts`, and the room's and the joined
+  battle's tests): the room running on for the winners (their inputs and hashes, no second result), leaving it no
+  loss, freed when the last leaves, a loss or a duel freed at once, a decided fight not joinable; the drops beside the
+  fallen enemy and not on the overworld, one roll for the fight however many won, `arenaDrops` as they change,
+  opening it in reach of the server's fight and in front of its aim (each with its slack) and not mid-fight, a winner
+  or a disconnecting joiner leaving gone from the others' fight at once, taking from it (saved soon, the last of it
+  making it go), no cloth and no eating there but writing a page, leaving with what was taken, the leftovers landing at
+  the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then), `AFTER_FIGHT_MS` sending them out
+  (`arenaClosed`), and a disconnect there being no loss.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -580,12 +624,13 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
   nor dropped; another player's inputs coming late rolled back and replayed; every step's events reported, a
   replayed step's again; the result and its banner waiting for the
-  server) and pace (real time's steps, catching up after a stall,
-  a backlog dropped, ahead when late and back when early, lateness it caused itself not made up twice, a stall's
-  silence not taken for lateness, old news ignored), the title's sequence timing, the ping (its average, stale
-  pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes,
-  known words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a
-  word that doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
+  server; after a win that keeps the arena open, still sending and checking), the leave popup's keys (the leave key
+  again leaves, Esc stays) and pace (real time's steps, catching up after a stall, a backlog dropped, ahead when late
+  and back when early, lateness it caused itself not made up twice, a stall's silence not taken for lateness, old news
+  ignored), the title's sequence timing, the ping (its average, stale
+  pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes, known
+  words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a word that
+  doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
   back), the bag screen's mouse (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots and from an open pile, turn, use) and tooltip (itemInfo.ts), the item
   pictures' sizes, and the
@@ -661,7 +706,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES, PILE_RANGE_TILES), tiles.ts
                    (TILES: each tile kind's
                    character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
-                   (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
+                   (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup;
+                   ARENA_PILE_RANGE_M and ARENA_PILE_LOOK_RAD, the reach to the drops there and how far round
+                   from where you look; pileInView, the one in view), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
@@ -674,7 +721,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
-                     load / hash, join(player) and leave(player), outcome, events, dispose; the enemy motor and
+                     load / hash, join(player) and leave(player) (gone from the arena; down mid-fight), outcome,
+                     events, dispose; the enemy motor and
                      player ground systems), setup.ts (FightSetup, the one-on-one and DUEL_STARTS
                      starting spots, joinStart (where a joiner comes in), spawning players and enemies:
                      components + a collider, one component per attack in the def, a Wielder for whoever holds
@@ -760,7 +808,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        save, their walker in their level's overworld (`me`), the battle they're in; a method per
                        thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
                        nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
-                       rest; the pile they have open, followed every tick; LAG_SLACK_TILES),
+                       rest; the pile they have open, followed every tick; in the arena after a win (`afterFight`):
+                       the drops sent as they change, and sent out when it closes; LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
@@ -770,20 +819,25 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
                        a player as the fight takes them; seatInBattle: a session put in a room and sent its
                        `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, drops left in a pile where they stood, a loss emptying the bag and slots of all
-                       but STARTER_KIT, vitals), snapshot.ts (the state message: only actors, other players and
-                       piles within VIEW_RADIUS_TILES, each player's character sent once),
+                       it, wins, a loss emptying the bag and slots of all but STARTER_KIT, vitals; the arena after
+                       a win: ArenaDrops (shared by the room), the drops rolled once as the room is won (dropInArena,
+                       dropSpot), arenaPiles, arenaPileInView, landing what's left; AFTER_FIGHT_MS,
+                       ARENA_LAG_SLACK_M, ARENA_LOOK_SLACK_RAD, DROP_GAP_M), snapshot.ts (the state message: only
+                       actors, other players and piles within VIEW_RADIUS_TILES, each player's character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
-                       battleHash and battleSync, ends and frees it; `edit` changes a player's fighter between steps
-                       and sends everyone the fight; join seats a player in a fight under way, settle gives each
-                       player their own result; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS, MAX_BATTLE_PLAYERS),
+                       battleHash and battleSync, ends and frees it (after a win, once the last winner leaves the
+                       arena; RoomHooks: onOver, onClosed); `leave` sends the rest the fight with the leaver gone;
+                       `edit` changes a player's fighter between steps and sends
+                       everyone the fight; join seats a player in a fight under way, settle gives each player their
+                       own result; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS, MAX_BATTLE_PLAYERS),
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
                        on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
-                       systems and spawner; dropPile, nearestPile, pileItems, setPileItems), components.ts
+                       systems and spawner; dropPile, holdPile / landPile (an arena's), nearestPile,
+                       pileItems, setPileItems), components.ts
                        (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, character and whether
                        they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
                        parts.ts (spawnActor from behavior
@@ -888,11 +942,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
-                       `chant`, `battleBag`, `skillbookScreen`, `admin`, `challenge` and `chat` (open, focused, and
-                       the log: hearChat keeps the last CHAT_LOG_LINES) (the UI writes them too, the game watches them;
+                       `chant`, `battleBag`, `leaveArena`, `skillbookScreen`, `admin`, `challenge` and `chat` (open,
+                       focused, and the log: hearChat keeps the last CHAT_LOG_LINES) (the UI writes them too, the
+                       game watches them;
                        `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
-                       of the game: signIn, logOut, play, interact, challenge, answerChallenge, useItem, moveItem,
-                       castSkill, saveSkill, sendChat, saveCharacter, returnToTitle, cheat, setDayClock).
+                       of the game: signIn, logOut, play, interact, leaveArena, challenge, answerChallenge, useItem,
+                       moveItem, castSkill, saveSkill, sendChat, saveCharacter, returnToTitle, cheat, setDayClock).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -903,11 +958,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
                        canvas: the portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
-                       keys, the button by a campfire, a fight or a pile ("Rest by the fire" / "Join the fight" /
+                       keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
+                       button by a campfire, a fight or a pile, in both HUDs: "Rest by the fire" / "Join the fight" /
                        "Open the pile"),
-                       the challenge key and a challenge's Accept / Decline notice),
                        BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, no eating; the book over
-                       it), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
+                       it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
+                       the leave popup), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
                        an open pile over the cloth, and the bag, wires the mouse and the bag keys, and shows the
                        selected item, the dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag, the
@@ -980,14 +1036,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          replays included); the server's outcome; stats (INPUT_HEARTBEAT_STEPS, HISTORY_STEPS)
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
-        context.ts       BattleContext (the fight, its sync, its outcome as the server says, the lock, the camera's
-                         view, this frame's events and corrections, the skills waiting to be cast), resultShown
+        context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
+                         time and drops, the lock, the camera's view, this frame's events and corrections, the
+                         skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
                          yaw is the aim
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed)
-        hud.ts           Fills the battle HUD's store, stunned and the skillbook in hand included
+        hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
+                         included
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
@@ -1012,13 +1070,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a stopped
                          blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
-                         pushed by a jolt, its reactions' bursts, and any skilled fighter's chant circle and chant
-                         words), arenaStage (the scenery per arena, the camera on the mode's view plus shake, the
-                         lock-on's diamond)
+                         pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle and chant
+                         words, a dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
+                         LEAVE_FADE_TIME), arenaStage (the scenery per arena, the camera on the mode's view plus
+                         shake, the lock-on's diamond, the drops' sacks after a win)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, the sword's trail, thrust and guard (in an
-                         Imbue's colour)
+                         Imbue's colour); a leaving player's sprite in a blended copy of its frame, to fade
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action and the swing; facingSeen (their back or front,
                          by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
@@ -1040,7 +1099,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
         scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
-                         tilt-shift blur (GLSL); the sprite materials (a pile's sack among them); standingQuad
+                         tilt-shift blur (GLSL); the sprite materials (a pile's sack among them, drawPile, the
+                         arena's too); standingQuad
         walker.ts        WALKERS (chibi, other players', enemy and pile billboards: glide, hop, facing, the sky's
                          tint and blob shadows, "!", another player's own chibi, name and crossed swords, a
                          Speech's bubble over the head)
@@ -1180,6 +1240,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Piles: how long one lies, how wide it's laid out; the reach to open one; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`); `PILE_RANGE_TILES` in `shared/src/world/layout.ts`; `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
+| The arena after a win: how long it stays open, where the drops lie, the reach to them, how far round from where you look, and their slack; the banner's time; the sack's size | `AFTER_FIGHT_MS`, `DROP_GAP_M`, `ARENA_LAG_SLACK_M`, `ARENA_LOOK_SLACK_RAD` in `server/src/core/game/battle.ts`; `ARENA_PILE_RANGE_M`, `ARENA_PILE_LOOK_RAD` in `shared/src/world/arena.ts`; `AFTER_FIGHT_BANNER_TIME` in `client/src/modes/battle/context.ts`; `PILE_SIZE_M` in `client/src/visuals/battle/battle.ts` |
+| A dead enemy crumbling, a leaving player fading | `DISSOLVE_DELAY_TIME`, `DISSOLVE_TIME`, `DISSOLVE_SINK_M`, `ASH_PER_SEC`, `LEAVE_FADE_TIME` in `client/src/visuals/battle/battle.ts`; the ash's look in `PARTICLE_LOOKS` (`skillLooks.ts`) |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |

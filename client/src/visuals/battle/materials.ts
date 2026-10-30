@@ -3,6 +3,7 @@ import { Color3, StandardMaterial, type Scene } from "@babylonjs/core";
 import { BATTLE_FACINGS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Pose, SwordPose } from "../../gfx/look/battle.js";
 import { BATTLE_FRAMES } from "../characters.js";
+import { drawPile } from "../overworld/scene.js";
 import { spriteMaterial } from "../sprites.js";
 import { blobTexture, telegraphTexture } from "../textures.js";
 
@@ -16,6 +17,7 @@ export interface Materials {
   /** The block's guard in front of the player. */
   guardFx: StandardMaterial;
   telegraph: StandardMaterial;
+  pile: StandardMaterial;
 }
 
 export function createMaterials(scene: Scene): Materials {
@@ -45,7 +47,10 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.disableLighting = true;
   telegraph.zOffset = -3;
 
-  return { blobShadow, player: playerFrames(scene, "player"), slashFx, guardFx, telegraph };
+  return {
+    blobShadow, player: playerFrames(scene, "player"), slashFx, guardFx, telegraph,
+    pile: spriteMaterial(scene, "arena-pile", drawPile),
+  };
 }
 
 export function playerFrames(scene: Scene, who: string): PlayerFrames {

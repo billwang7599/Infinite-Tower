@@ -1,7 +1,8 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
- * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `skillbookScreen`,
- * `chat` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the other direction.
+ * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `leaveArena`,
+ * `skillbookScreen`, `chat` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the other
+ * direction.
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
@@ -69,8 +70,11 @@ export interface BattleHudState {
   enemyAlive: boolean;
   result: FightState;
   duel: boolean;
-  /** Turns on a moment after `result` is decided. */
+  /** Turns on a moment after `result` is decided (and off again soon, after a win that keeps the arena open). */
   showResult: boolean;
+  afterFight: boolean;
+  arenaSecondsLeft: number;
+  dropInView: boolean;
   stunned: boolean;
   skillbookInHand: boolean;
   brokenOff: boolean;
@@ -129,6 +133,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
     layers.push("battleBag");
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
+  if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");
   if (ui.chat.get().focused) layers.push("chat");
   if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
@@ -149,6 +154,7 @@ export interface UiActions {
   logOut(): void;
   play(): void;
   interact(): void;
+  leaveArena(): void;
   challenge(): void;
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
@@ -185,8 +191,8 @@ export class UiState {
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
-    result: "fighting", duel: false, showResult: false, stunned: false, skillbookInHand: false, brokenOff: false,
-    writingPage: null,
+    result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
+    stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
@@ -196,6 +202,7 @@ export class UiState {
   readonly chant = new Store<ChantState>(NO_CHANT);
   readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
   readonly battleBag = new Store<{ open: boolean }>({ open: false });
+  readonly leaveArena = new Store<{ asking: boolean }>({ asking: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
   readonly chat = new Store<ChatState>({ open: false, focused: false, lines: [] });
 

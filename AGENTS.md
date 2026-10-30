@@ -143,11 +143,22 @@ Decided by the user:
   want dragged into the bag; anyone may take from it, first come first served. The overworld's E is Interact: it
   rests at a campfire, joins a fight or opens a pile, the nearest in reach winning ("e can be our interact button").
   An unpicked pile vanishes 10 minutes after it lands on the overworld ("we can do like a 10 minutes timer"), monster
-  and death drops alike; time in the arena doesn't count. Not built yet: a won fight's drops landing in the arena
-  for whoever is there (dibs, everyone equal), its leftovers moving to an overworld pile at the fight's spot when
-  the last player leaves, leaving the arena automatically after 5 minutes (Enter earlier, asking first if loot is
-  left), and death drops (all but the starter kit, as a pile where you fell; the others pick first in the arena, the
-  rest to the fight's spot). Until then a won fight's drops land as an overworld pile at the fight's spot.
+  and death drops alike; time in the arena doesn't count. A won fight's drops land in the arena ("whoever is in the
+  arena can get dibs first, then when you leave it goes to the overworld (if there's any left)"): after the win the
+  players stay there and walk to them, everyone equal, first come first served, E opening the pile; the arena closes
+  by itself after 5 minutes, and Enter leaves earlier, asking "are you sure" only while loot is still lying there
+  ("auto leave arena after 5 minutes. you can still press enter, but if theres loot there's a are you sure popup").
+  When the last player leaves, the leftovers become an overworld pile where the fight began, its 10 minutes starting
+  then. The loot is shared ("lets have shared loot"): each fallen enemy's drops are rolled once for the fight, not
+  once per winner, into the one pile, first come first served. In the arena E opens a pile only when you're next to
+  it and looking at it ("make it so we can pickup if we're next to the item and looking at it"): within reach and in
+  front of where the camera faces, the one nearest the view's centre line winning if several are (the overworld keeps
+  nearest-wins). A dead enemy's body disintegrates and is gone ("dead enemy body should disappear/disintegrate"),
+  and stops blocking players from the moment it dies; its drops stay where they lie. A player who leaves the arena
+  early fades out for the others ("the player who leaves early should fade"). Confirmed as built: disconnecting after
+  a win isn't a loss, nobody joins a fight that's already won, and the win banner fades after 4 s. Not built yet:
+  death drops (all but the starter kit, as a pile where you fell; the others pick first in the arena, the rest to the
+  fight's spot).
 - Dying is hardcore: the bag is emptied, all but the starter kit, and so is a slot holding anything else. The
   skillbook's pages are kept (the user: the saved spells survive death). Stats go back to their defaults, but they
   can't change yet, so for now nothing else is reset.
@@ -320,7 +331,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
-- Chanting and the skillbook: R opens and closes the chant (E stays free, as saved camera turns may still use it).
+- Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the
   book in hand: it has to be equipped) and a page is written at once, anywhere (no campfire needed). Tab focuses
@@ -368,9 +379,23 @@ them; treat them as changeable, and still ask before deciding new ones):
   is opened within the campfire's reach plus the lag slack (`PILE_RANGE_TILES`, `LAG_SLACK_TILES`). It only gives:
   nothing goes onto it, nothing is moved about on it or eaten straight off it; taken things go into the bag, a hand
   or the cloth. It shows in the bag screen above the cloth while open, and closes with the bag (B, Esc), on walking,
-  when a fight starts and when it empties or vanishes. Until the arena keeps drops, each winner of a fight (a joined
-  one too) rolls their own and they land where that winner stood, as the fight is decided. On the overworld it's a
-  tied sack with a bone sticking out. Numbers: `server/src/core/overworld/piles.ts`.
+  when a fight starts and when it empties or vanishes. On the overworld it's a tied sack with a bone sticking out.
+  Numbers: `server/src/core/overworld/piles.ts`.
+- The arena after a win (drops, PR 2): an enemy's drops lie in one pile 0.5 m beside where it fell, on the arena's
+  inner side (`DROP_GAP_M`), drawn as the overworld's sack. It's opened within 2 m (`ARENA_PILE_RANGE_M`) and 35°
+  either side of where the camera faces (`ARENA_PILE_LOOK_RAD`), the server checking where its own copy of the fight
+  has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`ARENA_LAG_SLACK_M`,
+  `ARENA_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the bag
+  screen works there on your real bag (taking from the pile, moving things, the slots), without the cloth; eating
+  stays overworld-only, and a page can be written as outside a fight. Leaving then, by Enter, the timer or a
+  disconnect, is no loss: what you took is yours and saved. A fight already won can't be joined. The 5 minutes are
+  `AFTER_FIGHT_MS` (`server/src/core/game/battle.ts`), shown at the top as "The arena closes in m:ss"; the result's
+  banner fades after 4 s there so the drops can be seen (`AFTER_FIGHT_BANNER_TIME`). Interact in the arena is a
+  battle binding of its own (E), and the popup takes the leave key again to leave and Esc to stay. A win's notice no
+  longer lists the drops (you saw them in the arena). A dead enemy lies still 0.5 s, then crumbles over 1 s: it
+  fades, sinks 0.3 m and gives off pale grey ash (`DISSOLVE_*` in `client/src/visuals/battle/battle.ts`). A player who
+  leaves the arena fades out over 1 s (`LEAVE_FADE_TIME`), the others' fight getting it at once; one who disconnects
+  mid-fight falls (as before) and fades the same way.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).
@@ -412,12 +437,13 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Joining a battle (the user: "another user can join a users' arena if theyre mid battle"; the rest are the agent's
   picks from plan/multiplayer.md): within 1.6 tiles (`JOIN_RANGE_TILES`) of a player's crossed swords, the Interact
   key (E; it joins when no campfire or pile is closer) or the HUD's "Join the fight"
-  button joins their battle; the server checks the reach with the same lag slack as resting (`LAG_SLACK_TILES`). Up
-  to 4 players in a battle at once (`MAX_BATTLE_PLAYERS`); duels can't be joined; a refusal is a notice. A joiner
-  comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies go for the
+  button joins their battle (until it's won); the server checks the reach with the same lag slack as resting
+  (`LAG_SLACK_TILES`). Up to 4 players in a battle at once (`MAX_BATTLE_PLAYERS`); duels can't be joined; a refusal is a
+  notice. A joiner comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies
+  go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
   (the bag emptied but for the starter kit, waking at the level's start), and the fight goes on for the rest; won,
-  everyone still in it counts a win and rolls their own drops (one down on the very step it's won still wins, standing
+  everyone still in it counts a win and they share the drops (one down on the very step it's won still wins, standing
   at 1 HP). Anyone who
   disconnects, the host too, has lost as `LEAVING_LOSES` says, and the rest fight on. With the host gone
   (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for

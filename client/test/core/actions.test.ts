@@ -104,7 +104,6 @@ describe("Actions: key to action", () => {
     battle.press("KeyQ");
     assert.equal(battle.actions.poll().held.has("lockOn"), true);
     battle.press("KeyI");
-    battle.press("KeyE");
     assert.deepEqual(battle.actions.poll().pressed, []);
   });
 
@@ -218,13 +217,13 @@ describe("Actions: poll", () => {
     assert.equal(actions.poll().held.has("dragCamera"), false);
   });
 
-  test("Q is the lock toggle and right Shift locks the closest; E does nothing in the arena", () => {
+  test("Q is the lock toggle and right Shift locks the closest; E is Interact in the arena too", () => {
     const { actions, press } = setup();
     press("KeyQ");
     press("ShiftRight");
     press("KeyE");
     const polled = actions.poll();
-    assert.deepEqual(polled.pressed, ["lockOn", "lockClosest"]);
+    assert.deepEqual(polled.pressed, ["lockOn", "lockClosest", "interact"]);
     assert.equal(polled.held.has("block"), false);
     assert.equal(polled.turn, 0);
   });
@@ -255,7 +254,7 @@ describe("Actions: the layers", () => {
     const cases: [Layer[], string, ActionName][] = [
       [["overworld", "bag"], "KeyE", "interact"], [["overworld", "bag"], "KeyW", "forward"],
       [["overworld", "settings"], "KeyB", "inventory"], [["overworld", "settings"], "KeyE", "interact"],
-      [["battle"], "KeyE", "interact"], [["overworld"], "KeyS", "goBack"], [["overworld"], "KeyA", "menuLeft"],
+      [["battle", "battleBag"], "KeyE", "interact"], [["overworld"], "KeyS", "goBack"], [["overworld"], "KeyA", "menuLeft"],
       [["overworld"], "Enter", "confirm"], [["title"], "Escape", "goBack"],
       [["overworld", "creation"], "KeyB", "inventory"], [["overworld", "admin"], "KeyW", "forward"],
       [["battle", "admin"], "Escape", "menu"],
@@ -501,6 +500,28 @@ describe("Actions: skills", () => {
       assert.equal(got.length, 1, `${code} in the skillbook`);
       assert.equal(bag.got.length, 0);
     }
+  });
+});
+
+describe("Actions: leaving the arena", () => {
+  test("Enter leaves a finished fight", () => {
+    const { actions, press } = setup();
+    press("Enter");
+    assert.deepEqual(actions.poll().pressed, ["leave"]);
+  });
+
+  test("asked whether to leave the drops: the leave key again leaves, Esc stays; the fight reads nothing", () => {
+    const { actions, press, listen } = setup("battle", "leaveArena");
+    const leave = listen("leave"), stay = listen("stayInArena"), menu = listen("menu");
+    press("KeyW");
+    press("KeyF");
+    press("Enter");
+    press("Escape");
+    assert.equal(leave.got.length, 1);
+    assert.equal(stay.got.length, 1);
+    assert.equal(menu.got.length, 0);
+    const polled = actions.poll();
+    assert.deepEqual([polled.pressed, [...polled.held]], [[], []]);
   });
 });
 

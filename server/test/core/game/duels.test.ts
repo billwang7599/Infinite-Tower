@@ -183,7 +183,7 @@ describe("a duel", () => {
     assert.deepEqual([ra.wins, rb.wins], [0, 0]);
     assert.deepEqual(ra.vitals, HURT);
     assert.deepEqual(rb.vitals, newPlayer().vitals);
-    assert.deepEqual([ra.loot, rb.loot, ra.lost, rb.lost], [{}, {}, {}, {}]);
+    assert.deepEqual([ra.lost, rb.lost, ra.afterFightMs, rb.afterFightMs], [{}, {}, null, null]);
     assert.deepEqual(ra.gear.bag, BAG);
     assert.deepEqual(rb.me, b.session.overworld.playerPos(b.session.me), "no waking at the start");
     assert.deepEqual(ra.me, a.session.overworld.playerPos(a.session.me));

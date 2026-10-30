@@ -137,6 +137,7 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   play: () => void play(),
   saveCharacter: (character) => void preparing.then((game) => game.saveCharacter(character)),
   interact: () => void preparing.then((game) => game.interact()),
+  leaveArena: () => void preparing.then((game) => game.leaveBattle(true)),
   challenge: () => void preparing.then((game) => game.challenge()),
   answerChallenge: (accept) => void preparing.then((game) => game.answerChallenge(accept)),
   useItem: (at) => void preparing.then((game) => game.useItem(at)),

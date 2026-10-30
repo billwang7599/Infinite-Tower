@@ -60,7 +60,7 @@ export class FightSync {
   private askedAt: number | null = null;
   private behind = false;
   private lastDodgeStep = -Infinity;
-  /** The server's result has come: nothing more is sent or checked. */
+  /** The server's result has come and the arena is closing: nothing more is sent or checked. */
   private decided = false;
 
   /** `seat`: which of the fight's players you are. `now`: milliseconds, as performance.now(). */
@@ -187,12 +187,14 @@ export class FightSync {
     this.ahead.clear();
   }
 
-  /** battleResult: the fight is over, and the banner may show. */
-  onResult(won: boolean): void {
+  /** battleResult: the fight is over, and the banner may show. With the arena open, the fight runs on in step. */
+  onResult(won: boolean, arenaOpen: boolean): void {
     const state = won ? "won" : "lost";
-    this.decided = true;
-    this.outbox = [];
-    this.ahead.clear();
+    if (!arenaOpen) {
+      this.decided = true;
+      this.outbox = [];
+      this.ahead.clear();
+    }
     // Timed from the step this copy was decided on, if it agrees: the banner shows as long after that as ever.
     const stateTime = this.fight.outcome.state === state ? this.fight.outcome.stateTime : 0;
     Object.assign(this.outcome, { state, stateTime });

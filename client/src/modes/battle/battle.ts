@@ -25,7 +25,7 @@ export interface Battle {
   ctx: BattleContext;
   start(encounter: ServerMsgOf<"encounter">, net: Pick<Net, "send" | "on">): void;
   /** battleResult: now the result shows. */
-  onResult(won: boolean): void;
+  onResult(result: ServerMsgOf<"battleResult">): void;
   /** Leaving the arena: the fight's copy is dropped. */
   end(): void;
   update(dt: number): void;
@@ -51,6 +51,8 @@ export function createBattle(opts: BattleOptions): Battle {
     fight: null,
     sync: null,
     outcome: { state: "fighting", stateTime: 0 },
+    afterFightMs: null,
+    drops: [],
     events: [],
     corrections: [],
     casts: [],
@@ -141,6 +143,9 @@ export function createBattle(opts: BattleOptions): Battle {
           sync.onJoined(player);
           ctx.who.push(player.who);
         }),
+        net.on("arenaDrops", ({ piles }) => {
+          ctx.drops = piles;
+        }),
       ];
       // Taken by another join on the way in, it's out of date: the server's fight is asked for instead.
       if (joined && joined.fight.players.length === fight.players.length) {
@@ -148,6 +153,8 @@ export function createBattle(opts: BattleOptions): Battle {
       }
       ctx.who = setup.players.map((p) => p.who);
       ctx.outcome = sync.outcome;
+      ctx.afterFightMs = null;
+      ctx.drops = [];
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
@@ -156,8 +163,9 @@ export function createBattle(opts: BattleOptions): Battle {
       // The last fight's result off the HUD before it shows again (its systems write it from the next frame on).
       opts.hud.set({ result: "fighting", showResult: false });
     },
-    onResult(won) {
-      ctx.sync?.onResult(won);
+    onResult({ won, afterFightMs }) {
+      ctx.afterFightMs = afterFightMs;
+      ctx.sync?.onResult(won, afterFightMs !== null);
     },
     end() {
       for (const off of unsubscribe) off();
@@ -166,6 +174,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.fight = null;
       ctx.sync = null;
       ctx.lock = null;
+      ctx.drops = [];
       corrected = [];
     },
     update(dt) {

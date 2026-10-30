@@ -1,15 +1,14 @@
 /** What the game says about a fight's result once the player is back from the arena (the arena has its banner). */
 import { itemDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infinite-tower/shared";
 
-export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "loot" | "lost" | "duel">;
+export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "lost" | "duel">;
 
-/** How a fight ended, in a line at most. Item lists are as long as what was dropped or lost. */
+/** How a fight ended, in a line at most: a win's drops were in the arena. Item lists are as long as what was lost. */
 export function battleResultLines(outcome: BattleOutcome): string[] {
   if (outcome.duel) return [`You ${outcome.won ? "won" : "lost"} the duel against ${outcome.duel}.`];
   const lost = describeItems(outcome.lost);
-  if (!outcome.won) return [lost ? `You died. Lost for good: ${lost}.` : "You died."];
-  const dropped = describeItems(outcome.loot);
-  return dropped ? [`Dropped where the fight began: ${dropped}.`] : [];
+  if (outcome.won) return [];
+  return [lost ? `You died. Lost for good: ${lost}.` : "You died."];
 }
 
 /** "boar meat" / "2 boar meat", or "" for nothing. */

@@ -102,12 +102,16 @@ export type ServerMsg =
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
   | { t: "invulnerable"; on: boolean }
   | { t: "skillbook"; skillbook: Skillbook }
-  /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `loot`: what dropped, left in a pile
-   * on the overworld where the fight began. `duel`: the opponent's name, after a duel. */
+  /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `afterFightMs`: how long the arena
+   * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel. */
   | {
-    t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; loot: ItemCounts; lost: ItemCounts;
-    gear: Gear; skillbook: Skillbook; duel?: string;
+    t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; lost: ItemCounts; gear: Gear;
+    skillbook: Skillbook; afterFightMs: number | null; duel?: string;
   }
+  /** After a win, the drops lying in the arena (metres), each time they change. */
+  | { t: "arenaDrops"; piles: PileSnap[] }
+  /** The arena's time after a win ran out: you're back on the overworld. */
+  | { t: "arenaClosed" }
   | { t: "pong"; id: number };
 
 /** `ServerMsgOf<"state">`. */

@@ -1,4 +1,4 @@
-import { Mesh, MeshBuilder, TransformNode, Vector3, type StandardMaterial } from "@babylonjs/core";
+import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
   attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponIn, Wielder, type Entity,
   type World,
@@ -38,6 +38,8 @@ interface PlayerSprite {
   stretch: number;
   /** The hitstun the current stagger began with (0: not staggered). */
   staggerTime: number;
+  /** The frames are alpha-tested, which ignores the mesh's visibility: leaving, the sprite fades in this blended copy. */
+  fading: StandardMaterial | null;
   facing: BattleFacing;
   sword: StandardMaterial;
 }
@@ -97,14 +99,29 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   guard.setEnabled(false);
 
   return {
-    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0, facing: "back",
-    sword: materials.slashFx,
+    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0, fading: null,
+    facing: "back", sword: materials.slashFx,
   };
+}
+
+function fadingCopy(sprite: PlayerSprite, picture: StandardMaterial): StandardMaterial {
+  if (!sprite.fading) {
+    const m = sprite.fading = new StandardMaterial(`${sprite.plane.name}-fading`, sprite.ctx.scene);
+    m.disableLighting = true;
+    m.specularColor = Color3.Black();
+    m.backFaceCulling = false;
+    m.useAlphaFromDiffuseTexture = true;
+    m.transparencyMode = Material.MATERIAL_ALPHATESTANDBLEND;
+  }
+  sprite.fading.diffuseTexture = picture.diffuseTexture;
+  sprite.fading.emissiveColor.copyFrom(picture.emissiveColor);
+  return sprite.fading;
 }
 
 // The plane goes with the body's node; the shadow and sword effects aren't under it.
 function dispose(sprite: PlayerSprite): void {
   sprite.shadows.dispose();
+  sprite.fading?.dispose();
   for (const node of [sprite.trail, sprite.thrust, sprite.guard]) node.dispose();
 }
 
@@ -132,8 +149,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   const look = ctx.looks.get(e);
   const picture = look?.battleSprite(sprite.facing, pose.pose, pose.frame)
     ?? ctx.materials.player.back[pose.pose][pose.frame]!;
-  if (sprite.plane.material !== picture) sprite.plane.material = picture;
   ctx.sky.tintAt(p, picture.emissiveColor);
+  const shown = player.leftArena ? fadingCopy(sprite, picture) : picture;
+  if (sprite.plane.material !== shown) sprite.plane.material = shown;
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
   sprite.plane.position.y = spriteY(sprite.stretch, bob);
   sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(health.hitstun * 45) * 0.06 : 0;
@@ -167,7 +185,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   if (below !== null) {
     const floorY = p.y - below;
     const height = p.y - body.centerHeight - floorY;
-    sprite.shadows.place({ x: p.x, y: floorY, z: p.z }, below, Math.max(0.3, 1 - height * 0.12));
+    // The sprite's visibility is 1 unless the fighter is fading out; the shadow fades with it.
+    const scale = Math.max(0.3, 1 - height * 0.12);
+    sprite.shadows.place({ x: p.x, y: floorY, z: p.z }, below, scale, sprite.plane.visibility);
   } else {
     sprite.shadows.place(null, 0);
   }

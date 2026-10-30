@@ -79,6 +79,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.deepEqual(battle.leave, ["Enter"]);
+    assert.deepEqual(battle.interact, ["KeyE"]);
   });
 
   test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
@@ -89,7 +90,6 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.turnRight, ["ArrowRight"]);
     assert.deepEqual(battle.lookUp, ["ArrowUp"]);
     assert.deepEqual(battle.lookDown, ["ArrowDown"]);
-    assert.equal(Object.values(battle).flat().includes("KeyE"), false, "E is free in the arena");
   });
 
   test("the right mouse button only drags the camera: it doesn't dodge", () => {
@@ -200,9 +200,9 @@ describe("KeyBindings.bind", () => {
 
   test("the same key can be used in the overworld and in the arena", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(jump, "KeyE", null), unchanged);
-    assert.deepEqual(keys(b, jump), ["Space", "KeyE"]);
-    assert.deepEqual(keys(b, { group: "overworld", action: "interact" }), ["KeyE"]);
+    assert.deepEqual(b.bind(jump, "KeyT", null), unchanged);
+    assert.deepEqual(keys(b, jump), ["Space", "KeyT"]);
+    assert.deepEqual(keys(b, { group: "overworld", action: "challenge" }), ["KeyT"]);
   });
 
   test("a key the overworld and the arena share, put on a general action, comes off both", () => {

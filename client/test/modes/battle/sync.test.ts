@@ -276,7 +276,7 @@ describe("the fight's result", () => {
     assert.equal(fight.outcome.state, "won", "the client's own copy is decided");
     assert.equal(sync.outcome.state, "fighting");
     assert.equal(resultShown(sync.outcome), false, "no banner");
-    sync.onResult(true);
+    sync.onResult(true, false);
     assert.equal(sync.outcome.state, "won");
     assert.equal(resultShown(sync.outcome), true, "the banner at once: the fight was decided seconds ago");
   });
@@ -286,7 +286,7 @@ describe("the fight's result", () => {
     step(IDLE_INPUT);
     fight.world.require(fight.enemies[0]!, Health).hp = 0;
     step(IDLE_INPUT);
-    sync.onResult(true);
+    sync.onResult(true, false);
     assert.equal(resultShown(sync.outcome), false);
     for (let i = 0; i < 2 / FIXED_DT; i++) step(IDLE_INPUT);
     assert.equal(resultShown(sync.outcome), true);
@@ -295,20 +295,34 @@ describe("the fight's result", () => {
   test("a result the client didn't see coming is the server's: lost, though the client's copy fights on", () => {
     const { fight, sync, step } = setup();
     step(IDLE_INPUT);
-    sync.onResult(false);
+    sync.onResult(false, false);
     assert.equal(sync.outcome.state, "lost");
     assert.equal(fight.outcome.state, "fighting");
   });
 
-  test("after the result nothing more is sent, and hashes change nothing", () => {
+  test("after a result that closes the arena nothing more is sent, and hashes change nothing", () => {
     const { net, sync, step, server } = setup();
     step(WALK);
     server.receive(net);
-    sync.onResult(true);
+    sync.onResult(true, false);
     for (let i = 0; i < HASH_EVERY_STEPS * 2; i++) step(script(i));
     assert.deepEqual(net.sent, []);
     sync.onHash({ t: "battleHash", step: HASH_EVERY_STEPS, hash: 1, lateSteps: 0, heardStep: 1 });
     assert.deepEqual(net.sent, []);
+  });
+
+  test("after a win that keeps the arena open, inputs still go and the server's hashes are still checked", () => {
+    const { net, sync, step, server } = setup();
+    step(WALK);
+    server.receive(net);
+    sync.onResult(true, true);
+    assert.equal(sync.outcome.state, "won");
+    for (let i = 0; i < HASH_EVERY_STEPS * 2; i++) step(script(i));
+    assert.ok(inputsSent(net.sent).length > 0, "inputs sent");
+    server.receive(net);
+    const [hash] = server.run();
+    sync.onHash({ ...hash!, hash: hash!.hash + 1 });
+    assert.equal(resyncsSent(net.sent), 1, "a mismatch still asks for the server's fight");
   });
 });
 

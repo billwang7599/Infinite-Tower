@@ -4,7 +4,9 @@ import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { Bar } from "../components/Bar.js";
+import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
+import { BUTTON } from "../components/styles.js";
 import { keyName } from "../keyNames.js";
 import type { ChantState } from "../skills/chant.js";
 import { useAction } from "../components/useAction.js";
@@ -17,6 +19,7 @@ import type {
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
+import { InteractButton } from "./InteractButton.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { Ping } from "./Ping.js";
 
@@ -34,7 +37,14 @@ interface BattleHudProps extends HudProps {
   input: Actions;
   castSkill: (skill: Skill) => void;
   saveSkill: (page: number, skill: Skill) => void;
+  interact: () => void;
+  leaving: LeavingProps;
   bag: BagProps;
+}
+
+interface LeavingProps {
+  asking: Store<{ asking: boolean }>;
+  leave: () => void;
 }
 
 interface BagProps {
@@ -49,6 +59,10 @@ interface BagProps {
 
 export function BattleHud(props: BattleHudProps) {
   const { hud, bindings, ping, hudSettings, skills } = props;
+  const dropInView = useStore(hud, (s) => s.dropInView);
+  useAction(props.input, ["interact"], (_action, repeat) => {
+    if (!repeat) props.interact();
+  });
   return (
     <HudLayer id="battle-hud">
       <Vitals hud={hud} />
@@ -59,10 +73,13 @@ export function BattleHud(props: BattleHudProps) {
       <BossBar hud={hud} />
       <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
+      <ArenaTimer hud={hud} />
+      <InteractButton interaction={dropInView ? "openPile" : null} interact={props.interact} />
       <ChantPopup
         chant={props.chant} skills={skills} hud={hud} input={props.input} cast={props.castSkill} save={props.saveSkill}
       />
       <BattleBag {...props.bag} hud={hud} input={props.input} skills={skills} saveSkill={props.saveSkill} />
+      <LeaveArena {...props.leaving} input={props.input} />
     </HudLayer>
   );
 }
@@ -81,11 +98,17 @@ function BattleBag(props: BattleBagProps) {
   const open = useStore(props.open, (s) => s.open);
   const bookOpen = useStore(skillbookScreen, (s) => s.open);
   const carried = useStore(hud, (s) => s.carried);
+  const afterFight = useStore(hud, (s) => s.afterFight);
+  const served = useStore(props.overworld, (s) => s.gear);
   const writingPage = useStore(hud, (s) => s.writingPage);
   const stats = useStore(props.overworld, (s) => s.stats);
-  const gear = useMemo(() => ({ ...carried, cloth: NO_CLOTH, pile: NO_PILE }), [carried]);
+  // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
+  const gear = useMemo(
+    () => (afterFight ? { ...served, cloth: NO_CLOTH } : { ...carried, cloth: NO_CLOTH, pile: NO_PILE }),
+    [afterFight, served, carried],
+  );
   useAction(input, ["inventory"], (_action, repeat) => {
-    if (!repeat && (open || hud.get().result === "fighting")) props.toggle();
+    if (!repeat && (open || hud.get().result === "fighting" || hud.get().afterFight)) props.toggle();
   });
   if (!open) return null;
   return (
@@ -101,6 +124,51 @@ function BattleBag(props: BattleBagProps) {
         />
       )}
     </>
+  );
+}
+
+function ArenaTimer({ hud }: HudProps) {
+  const afterFight = useStore(hud, (s) => s.afterFight);
+  const secondsLeft = useStore(hud, (s) => s.arenaSecondsLeft);
+  if (!afterFight) return null;
+  const clock = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+  return (
+    <div id="arena-timer" className="absolute top-3 left-1/2 -translate-x-1/2 font-title text-lg tracking-wide">
+      The arena closes in <span className="text-victory">{clock}</span>
+    </div>
+  );
+}
+
+function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions }) {
+  const open = useStore(asking, (s) => s.asking);
+  const stay = () => asking.set({ asking: false });
+  useAction(input, ["leave", "stayInArena"], (action, repeat) => {
+    if (repeat || !open) return false;
+    if (action === "leave") leave();
+    else stay();
+  });
+  if (!open) return null;
+  return (
+    <div
+      id="leave-arena"
+      className={
+        "pointer-events-auto absolute top-1/3 left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
+        + "bg-black/80 px-6 py-4 text-center"
+      }
+    >
+      <div className="mb-1 font-title text-lg tracking-wide">Leave the drops behind?</div>
+      <div className="mb-3 text-sm opacity-80">
+        Once everyone has left, what's left will lie where the fight began, for anyone to take.
+      </div>
+      <div className="flex justify-center gap-3">
+        <button type="button" id="leave-arena-confirm" {...NO_FOCUS} className={BUTTON.primary} onClick={leave}>
+          Leave
+        </button>
+        <button type="button" id="leave-arena-stay" {...NO_FOCUS} className={BUTTON.plain} onClick={stay}>
+          Stay
+        </button>
+      </div>
+    </div>
   );
 }
 

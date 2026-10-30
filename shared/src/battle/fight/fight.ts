@@ -141,9 +141,10 @@ export class Fight {
     return hashFight(this);
   }
 
-  /** `player` disconnected: down as if dead, for good (outcome.ts says what that costs). */
+  /** Mid-fight they're down as if dead, for good (outcome.ts says what that costs). */
   leave(player: Entity): void {
-    this.world.require(player, Health).hp = 0;
+    this.world.require(player, Player).leftArena = true;
+    if (this.outcome.state === "fighting") this.world.require(player, Health).hp = 0;
   }
 
   /** Destroys the entities (their remove hooks run) and frees the physics world. */

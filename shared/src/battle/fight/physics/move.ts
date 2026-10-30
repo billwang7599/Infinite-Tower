@@ -1,8 +1,8 @@
 /**
  * The physics step: gravity, then every body moves by its velocity, stopped by the floor and the wall. Bodies follow
  * the fight's rule rather than masses: an enemy shoves a player along, a player never pushes an enemy (though one
- * pinned against the wall holds it back). Dodging, knocked back or dead, a player passes through enemies; enemies
- * pass through each other, and players through players.
+ * pinned against the wall holds it back). Dodging, knocked back or dead, a player passes through enemies, and
+ * anyone through a dead enemy; enemies pass through each other, and players through players.
  */
 import type { System } from "../../../core/ecs.js";
 import type { Vec3 } from "../../../core/math.js";
@@ -27,9 +27,9 @@ export function moveSystem(physics: ArenaPhysics): System {
 
     // Enemies first: they go where they want, whoever is in the way...
     const enemies: BodyData[] = [];
-    for (const [, , body] of world.query(Enemy, Body)) {
+    for (const [, , body, health] of world.query(Enemy, Body, Health)) {
       mover.travel(body, dt);
-      enemies.push(body);
+      if (health.hp > 0) enemies.push(body);
     }
 
     // ...then players.

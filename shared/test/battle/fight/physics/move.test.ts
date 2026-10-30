@@ -132,6 +132,16 @@ describe("bumping into enemies", () => {
     assert.ok(gap > TOUCH_DIST - SKIN && gap < TOUCH_DIST + 0.5, `beside it (${gap} apart)`);
   });
 
+  test("a dead enemy is no obstacle: the player walks straight through where it lies", () => {
+    const fight = duel(STATUE, { x: 0, y: 0.05, z: 0 }, { x: 0, y: 0.05, z: 1.6 });
+    const me = fight.players[0]!;
+    run(fight, 0.2);
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    run(fight, 1.5, () => input({ moveZ: 1 }));
+    const z = bodyOf(fight, me).pos.z;
+    assert.ok(z > 1.6 + TOUCH_DIST, `came out the other side (z ${z})`);
+  });
+
   for (const [what, setUp] of [
     ["knocked back (in hitstun)", (h: { hitstun: number; hp: number }) => { h.hitstun = 2; }],
     ["dead", (h: { hitstun: number; hp: number }) => { h.hp = 0; }],

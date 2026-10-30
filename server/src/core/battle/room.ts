@@ -2,6 +2,7 @@
  * A fight as the server runs it, authoritatively: stepped in real time, each player's input on the step it was made
  * for. It runs up to its clock as soon as it knows every player's input for the next step, holding a step back for
  * a late one at most MAX_INPUT_DELAY_STEPS, and never runs ahead of the clock. Built for any number of players.
+ * Won against enemies, it runs on for the winners still in the arena (to walk to the drops) until the last leaves.
  */
 import {
   HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Carried, type Entity,
@@ -26,10 +27,16 @@ export interface Seat {
   onEnd(result: PlayerResult, vitals: Vitals, book: Skillbook, gear: Carried): void;
 }
 
+export interface RoomHooks {
+  /** Decided, or everyone gone before it was. */
+  onOver?: () => void;
+  onClosed?: () => void;
+}
+
 interface SeatState {
   seat: Seat;
   inputs: InputTimeline;
-  /** Disconnected, or out of the fight with their result. */
+  /** Out of the arena: disconnected, left it, or out of the fight with a result that doesn't keep them there. */
   gone: boolean;
   /** The step of the last `battleSync` sent them. */
   syncedAt: number | null;
@@ -49,10 +56,11 @@ export class BattleRoom {
   private now = 0;
   private waitedTime = 0;
   private started = false;
+  private decided = false;
   private ended = false;
 
   /** `seats[i]` plays `setup.players[i]`. Needs initPhysics() to have finished. */
-  constructor(private readonly start: FightSetup, seats: Seat[], private readonly onOver = () => {}) {
+  constructor(private readonly start: FightSetup, seats: Seat[], private readonly hooks: RoomHooks = {}) {
     this.fight = new Fight(start);
     this.players = [...start.players];
     this.seats = seats.map((seat) => seated(seat));
@@ -65,7 +73,7 @@ export class BattleRoom {
 
   get refusal(): "duel" | "full" | null {
     if (this.fight.duel) return "duel";
-    return this.ended || this.seats.filter((s) => !s.gone).length >= MAX_BATTLE_PLAYERS ? "full" : null;
+    return this.decided || this.seats.filter((s) => !s.gone).length >= MAX_BATTLE_PLAYERS ? "full" : null;
   }
 
   join(seat: Seat, player: Omit<PlayerSetup, "at">): number | null {
@@ -85,6 +93,15 @@ export class BattleRoom {
   /** Over for everyone, and freed. */
   get over(): boolean {
     return this.ended;
+  }
+
+  get afterFight(): boolean {
+    return this.decided && !this.ended;
+  }
+
+  inArena(seat: number): boolean {
+    const s = this.seats[seat];
+    return !!s && !s.gone && !this.ended;
   }
 
   /** Player `seat` has run their copy to step `upTo`, with these changes of input on the way. */
@@ -108,7 +125,7 @@ export class BattleRoom {
     if (this.started) for (const s of this.seats) if (!s.gone) this.sendSync(s);
   }
 
-  /** Player `seat` disconnected: it's over for them now (outcome.ts: LEAVING_LOSES). */
+  /** Mid-fight it's over for them now (outcome.ts: LEAVING_LOSES); after a win they just go. */
   leave(seat: number): void {
     const s = this.seats[seat];
     if (!s || s.gone || this.ended) return;
@@ -116,8 +133,9 @@ export class BattleRoom {
     const e = this.fight.players[seat]!;
     const vitals = this.vitalsOf(e);
     this.fight.leave(e);
-    this.end(s, e, this.resultOf(e, true), vitals);
+    if (!this.decided) this.end(s, e, this.resultOf(e, true), vitals);
     if (this.seats.every((other) => other.gone)) this.close();
+    else if (this.started) for (const other of this.seats) if (!other.gone) this.sendSync(other);
   }
 
   /** Each player's session calls it with their seat; only the first seat still here moves the clock. */
@@ -141,7 +159,7 @@ export class BattleRoom {
       s.ran = input;
       return input;
     }));
-    this.settle();
+    if (!this.decided) this.settle();
     if (this.ended) return;
     if (step % HASH_EVERY_STEPS === 0) {
       this.relay();
@@ -184,16 +202,20 @@ export class BattleRoom {
 
   /** Everyone whose fight is over gets the fight as it ended (their copy may differ), then their result. */
   private settle(): void {
+    const stay = this.fight.outcome.state === "won" && !this.fight.duel;
     this.seats.forEach((s, i) => {
       if (s.gone) return;
       const e = this.fight.players[i]!;
       const result = this.resultOf(e, false);
       if (result === "fighting") return;
-      s.gone = true;
+      s.gone = !stay;
       this.sendSync(s);
       this.end(s, e, result, this.vitalsOf(e));
     });
-    if (this.fight.outcome.state !== "fighting") this.close();
+    if (this.fight.outcome.state === "fighting") return;
+    this.decided = true;
+    this.hooks.onOver?.();
+    if (this.seats.every((s) => s.gone)) this.close();
   }
 
   private end(s: SeatState, e: Entity, result: PlayerResult, vitals: Vitals): void {
@@ -211,8 +233,9 @@ export class BattleRoom {
   }
 
   private close(): void {
+    if (!this.decided) this.hooks.onOver?.();
     this.ended = true;
-    this.onOver();
     this.fight.dispose();
+    this.hooks.onClosed?.();
   }
 }

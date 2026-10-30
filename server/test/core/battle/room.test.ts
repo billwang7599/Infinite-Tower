@@ -129,7 +129,7 @@ describe("a battle room", () => {
     assert.equal(link.all("battleSync").length, 2);
   });
 
-  test("when it's decided: a last battleSync with the whole fight at once, then the result; the fight is freed", () => {
+  test("when it's won: a last battleSync with the whole fight at once, then the result; the arena stays open", () => {
     const { link, room, ended, play } = openRoom();
     play();
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
@@ -139,12 +139,50 @@ describe("a battle room", () => {
     assert.equal(last.fight.outcome.state, "won");
     assert.deepEqual(ended.map((e) => e.result), ["won"]);
     assert.deepEqual(ended[0]!.vitals, { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina });
+    assert.equal(room.over, false);
+    assert.equal(room.afterFight, true);
+    assert.equal(room.inArena(0), true);
+  });
+
+  test("after a win the fight runs on with the player's inputs and hashes, and the result isn't given again", () => {
+    const { link, room, ended, client, play } = openRoom();
+    play();
+    room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
+    client.fight.world.require(client.fight.enemies[0]!, Health).hp = 0;
+    for (let i = 0; i < HASH_EVERY_STEPS * 2 - 1; i++) play(script(i + 1));
+    assert.equal(room.fight.steps, client.fight.steps);
+    assert.equal(link.last("battleHash").step, client.fight.steps);
+    assert.equal(link.last("battleHash").hash, client.fight.hash());
+    assert.equal(ended.length, 1);
+  });
+
+  test("leaving the arena after a win isn't a loss: nothing more is said, and with nobody left it's freed", () => {
+    const { link, room, ended, play } = openRoom();
+    play();
+    room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
+    play();
+    room.leave(0);
+    assert.deepEqual(ended.map((e) => e.result), ["won"]);
+    assert.equal(room.inArena(0), false);
     assert.equal(room.over, true);
     const sent = link.sent.length;
     for (let i = 0; i < 10; i++) play();
     room.resync(0);
     assert.equal(link.sent.length, sent, "nothing after");
-    assert.equal(ended.length, 1);
+  });
+
+  test("a loss frees the fight at once: nothing more is sent", () => {
+    const { link, room, ended, play } = openRoom();
+    play();
+    room.fight.world.require(room.fight.players[0]!, Health).hp = 0;
+    play();
+    assert.deepEqual(ended.map((e) => e.result), ["lost"]);
+    assert.equal(room.over, true);
+    assert.equal(room.afterFight, false);
+    assert.equal(room.inArena(0), false);
+    const sent = link.sent.length;
+    for (let i = 0; i < 10; i++) play();
+    assert.equal(link.sent.length, sent);
   });
 
   test("the player's vitals at the end are the fight's", () => {

@@ -16,9 +16,9 @@ const who = (name: string): { name: string; character: Character } => ({ name, c
 function shared(setup: FightSetup = setupWith()) {
   const links = [new FakeLink()];
   const ended: { seat: number; result: PlayerResult }[] = [];
-  let overs = 0;
+  let overs = 0, closes = 0;
   const seat = (link: FakeLink, i: number) => ({ link, onEnd: (result: PlayerResult) => ended.push({ seat: i, result }) });
-  const room = new BattleRoom(setup, [seat(links[0]!, 0)], () => overs++);
+  const room = new BattleRoom(setup, [seat(links[0]!, 0)], { onOver: () => overs++, onClosed: () => closes++ });
   const join = (name = "Joiner") => {
     const link = new FakeLink();
     const at = room.join(seat(link, links.length), { ...setup.players[0]!, who: who(name) });
@@ -31,7 +31,7 @@ function shared(setup: FightSetup = setupWith()) {
       room.tick();
     }
   };
-  return { room, links, ended, join, tick, overs: () => overs };
+  return { room, links, ended, join, tick, overs: () => overs, closes: () => closes };
 }
 
 describe("joining a battle under way", () => {
@@ -80,7 +80,7 @@ describe("joining a battle under way", () => {
     tick(2);
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
     tick(2);
-    assert.ok(room.over);
+    assert.ok(room.afterFight);
     assert.equal(join(), null);
   });
 });
@@ -122,8 +122,65 @@ describe("a battle shared by several players", () => {
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
     tick(1);
     assert.deepEqual(ended, [{ seat: 2, result: "lost" }, { seat: 0, result: "won" }, { seat: 1, result: "won" }]);
-    assert.ok(room.over);
     assert.equal(overs(), 1);
+    assert.deepEqual([0, 1, 2].map((s) => room.inArena(s)), [true, true, false], "the winners stay in the arena");
+  });
+
+  test("after a win the arena empties as each winner leaves, and is freed when the last one does", () => {
+    const { room, ended, join, tick, closes } = shared();
+    tick(2);
+    join();
+    tick(2);
+    room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
+    tick(1);
+    room.leave(0);
+    tick(5);
+    assert.equal(room.over, false);
+    assert.equal(closes(), 0);
+    room.leave(1);
+    assert.equal(room.over, true);
+    assert.equal(closes(), 1);
+    assert.equal(ended.length, 2, "leaving isn't a result");
+  });
+
+  test("a winner who leaves is gone from the arena for the others at once: they get the fight without them", () => {
+    const { room, links, join, tick } = shared();
+    tick(2);
+    join();
+    tick(2);
+    room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
+    tick(1);
+    links[1]!.sent.length = 0;
+    room.leave(0);
+    const { players } = links[1]!.last("battleSync").fight;
+    assert.deepEqual(players.map((p) => p.player.leftArena), [true, false]);
+    assert.ok(players[0]!.health.hp > 0, "gone, not down");
+  });
+
+  test("a joiner who disconnects mid-fight is gone from the arena for the others at once, down", () => {
+    const { room, links, join, tick } = shared();
+    tick(2);
+    join();
+    tick(2);
+    links[0]!.sent.length = 0;
+    room.leave(1);
+    const { players } = links[0]!.last("battleSync").fight;
+    assert.deepEqual(players.map((p) => p.player.leftArena), [false, true]);
+    assert.equal(players[1]!.health.hp, 0);
+  });
+
+  test("the one left in the arena moves its clock", () => {
+    const { room, join, tick } = shared();
+    tick(2);
+    join();
+    tick(2);
+    room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
+    tick(1);
+    room.leave(0);
+    const at = room.fight.steps;
+    room.input(1, at + 1, []);
+    room.tick(1);
+    assert.equal(room.fight.steps, at + 1);
   });
 
   test("a joiner who leaves has lost as LEAVING_LOSES says; the rest fight on", () => {

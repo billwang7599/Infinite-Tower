@@ -16,7 +16,7 @@ import { CharacterPanel } from "./character/CharacterPanel.js";
 import { HudLayer } from "./HudLayer.js";
 import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
-import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "./layout.js";
+import { InteractButton } from "./InteractButton.js";
 import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
@@ -49,6 +49,7 @@ export function OverworldHud(props: OverworldHudProps) {
   const gear = useStore(hud, (s) => s.gear);
   const stats = useStore(hud, (s) => s.stats);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
+  const interaction = useStore(hud, (s) => s.interaction);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
@@ -76,7 +77,7 @@ export function OverworldHud(props: OverworldHudProps) {
           <GearIcon />
         </HudButton>
       </div>
-      <InteractButton hud={hud} interact={interact} />
+      <InteractButton interaction={interaction} interact={interact} />
       <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
@@ -105,32 +106,6 @@ function PlayerStatus({ hud }: HudProps) {
         Foes defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>
     </div>
-  );
-}
-
-const INTERACTIONS = {
-  rest: { id: "rest-button", label: "Rest by the fire" },
-  joinFight: { id: "join-fight-button", label: "Join the fight" },
-  openPile: { id: "open-pile-button", label: "Open the pile" },
-} as const;
-
-/** Names what it does, not a key: the key is in Settings. */
-function InteractButton({ hud, interact }: HudProps & { interact: () => void }) {
-  const interaction = useStore(hud, (s) => s.interaction);
-  if (!interaction) return null;
-  const { id, label } = INTERACTIONS[interaction];
-  return (
-    <button
-      type="button" id={id} {...NO_FOCUS} onClick={interact}
-      style={{ bottom: REST_BUTTON_BOTTOM_PX, height: REST_BUTTON_HEIGHT_PX }}
-      className={
-        "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
-        + "border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory "
-        + "transition-colors hover:bg-black/80"
-      }
-    >
-      {label}
-    </button>
   );
 }
 

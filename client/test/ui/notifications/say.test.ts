@@ -5,8 +5,8 @@ import { battleResultLines, type BattleOutcome } from "../../../src/ui/notificat
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
 
-const WIN: BattleOutcome = { won: true, loot: {}, lost: {} };
-const LOSS: BattleOutcome = { won: false, loot: {}, lost: {} };
+const WIN: BattleOutcome = { won: true, lost: {} };
+const LOSS: BattleOutcome = { won: false, lost: {} };
 
 const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text);
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
@@ -36,7 +36,7 @@ describe("say", () => {
 
   test("a fight's result is notices in the corner, with no banner", () => {
     const to = new Notifications();
-    const outcome = { ...WIN, loot: { "boar-meat": 3, "boar-hide": 1 } };
+    const outcome = { ...LOSS, lost: { "boar-meat": 3, "boar-hide": 1 } };
     say(to, { kind: "battleResult", outcome });
     assert.deepEqual(notices(to), battleResultLines(outcome));
     assert.equal(notices(to).length, 1);
@@ -60,7 +60,7 @@ describe("say", () => {
     assert.equal(banner(to), null);
   });
 
-  test("a win that dropped nothing says nothing anywhere", () => {
+  test("a win says nothing anywhere", () => {
     const to = new Notifications();
     say(to, { kind: "battleResult", outcome: WIN });
     assert.deepEqual(notices(to), []);

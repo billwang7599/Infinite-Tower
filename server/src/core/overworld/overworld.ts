@@ -107,11 +107,23 @@ export class Overworld implements OverworldContext {
   }
 
   dropPile(at: Vec2, items: ItemCounts): Entity | null {
+    const pile = this.holdPile(items);
+    if (pile !== null) this.landPile(pile, at);
+    return pile;
+  }
+
+  /** Off the map and not timed until it lands: an arena's drops. */
+  holdPile(items: ItemCounts): Entity | null {
     if (!Object.values(items).some((count) => count > 0)) return null;
     const pile = this.world.spawn();
-    this.world.add(pile, OverworldPos, { x: at.x, z: at.z });
-    this.world.add(pile, Pile, { items: packPile(items), vanishAtMs: Date.now() + PILE_LIFETIME_MS });
+    this.world.add(pile, Pile, { items: packPile(items), vanishAtMs: Infinity });
     return pile;
+  }
+
+  /** Its PILE_LIFETIME_MS starts now. */
+  landPile(pile: Entity, at: Vec2): void {
+    this.world.add(pile, OverworldPos, { x: at.x, z: at.z });
+    this.world.require(pile, Pile).vanishAtMs = Date.now() + PILE_LIFETIME_MS;
   }
 
   nearestPile(at: Vec2, rangeTiles: number): Entity | null {

@@ -55,7 +55,8 @@ export const ACTIONS = {
     skill2: { label: "Quick-cast the skillbook's page 2", keys: ["Digit2"] },
     skill3: { label: "Quick-cast the skillbook's page 3", keys: ["Digit3"] },
     skill4: { label: "Quick-cast the skillbook's page 4", keys: ["Digit4"] },
-    leave: { label: "Leave a finished fight", keys: ["Enter"] },
+    interact: { label: "Interact (open the drops after a fight)", keys: ["KeyE"] },
+    leave: { label: "Leave the arena after a fight", keys: ["Enter"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>>;
 
@@ -79,6 +80,7 @@ export const MENUS = {
   admin: { closeAdmin: ["Escape"] },
   bag: { closeBag: ["Escape"] },
   battleBag: { closeBag: ["Escape"] },
+  leaveArena: { stayInArena: ["Escape"] },
   chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },
   skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
   chat: { sendChat: ["Enter"], closeChat: ["Escape"] },

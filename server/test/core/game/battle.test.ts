@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS,
+  blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS,
   physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, WEAPONS, type Bag, type Equipment,
   type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
@@ -156,33 +156,18 @@ describe("starting a battle", () => {
 });
 
 describe("the server runs the fight", () => {
-  test("and decides a win from the player's inputs alone: result, the drops in a pile where it began, saved", (t) => {
-    t.mock.method(Math, "random", () => 0);
+  test("and decides a win from the player's inputs alone: result, nothing packed into the bag, saved", () => {
     const { session, link, saves } = inBattle(CARRIED);
-    const at = session.overworld.playerPos(session.me);
     win(session);
     const result = link.last("battleResult");
     assert.equal(result.won, true);
     assert.equal(result.wins, 1);
-    assert.ok((result.loot["boar-meat"] ?? 0) >= 1);
     assert.deepEqual(result.lost, {});
-    const pile = session.overworld.nearestPile(at, 0);
-    assert.notEqual(pile, null, "a pile where the fight began");
-    assert.deepEqual(bagCounts(session.overworld.pileItems(pile!)!), result.loot);
-    assert.deepEqual(result.gear.bag, CARRIED, "nothing packed into the bag");
+    assert.deepEqual(result.gear.bag, CARRIED);
     assert.deepEqual(session.bag, CARRIED);
     assert.equal(saves.length, 1);
     assert.equal(saves[0]?.wins, 1);
     assert.deepEqual(saves[0]?.bag, CARRIED);
-  });
-
-  test("a win with nothing dropped leaves no pile", (t) => {
-    t.mock.method(Math, "random", () => 0.999);
-    const { session, link } = inBattle();
-    const at = session.overworld.playerPos(session.me);
-    win(session);
-    assert.deepEqual(link.last("battleResult").loot, {});
-    assert.equal(session.overworld.nearestPile(at, 100), null);
   });
 
   test("a win keeps the book as it was", () => {
