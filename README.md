@@ -73,7 +73,7 @@ What's built so far:
   or dying refills them.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk. Dying empties the bag but for your weapons and skillbook. The bag screen (B) shows what
+  (heals), a hide or a tusk. Dying drops all but your weapons and skillbook. The bag screen (B) shows what
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
   Enter or a double click to eat.
@@ -81,7 +81,8 @@ What's built so far:
   look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
   The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
   pile on the overworld where the fight began, for anyone nearby: E opens the nearest pile there too (or rests at a
-  campfire, or joins a fight, whichever is nearest). A pile vanishes once it's empty, or 10 minutes after it lands.
+  campfire, or joins a fight, whichever is nearest). A pile vanishes once it's empty, or 10 minutes after it lands. What a player drops on dying lies where
+  they fell, for the others in the arena to take once the fight is won, and goes the same way.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it
@@ -101,7 +102,7 @@ What's built so far:
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
   inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's
   copy 4 times a second and corrects it when they differ. The result shows only once the server says so. Leaving
-  mid-fight loses it (the bag empties, as on a death); a fight ends as a loss after 10 minutes.
+  mid-fight loses it (what you carry drops, as on a death); a fight ends as a loss after 10 minutes.
 
 ## Running it
 

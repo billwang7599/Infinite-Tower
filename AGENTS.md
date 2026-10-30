@@ -156,10 +156,12 @@ Decided by the user:
   nearest-wins). A dead enemy's body disintegrates and is gone ("dead enemy body should disappear/disintegrate"),
   and stops blocking players from the moment it dies; its drops stay where they lie. A player who leaves the arena
   early fades out for the others ("the player who leaves early should fade"). Confirmed as built: disconnecting after
-  a win isn't a loss, nobody joins a fight that's already won, and the win banner fades after 4 s. Not built yet:
-  death drops (all but the starter kit, as a pile where you fell; the others pick first in the arena, the rest to the
-  fight's spot).
-- Dying is hardcore: the bag is emptied, all but the starter kit, and so is a slot holding anything else. The
+  a win isn't a loss, nobody joins a fight that's already won, and the win banner fades after 4 s. Death drops
+  ("we can do death drops now"): dying drops all you carry but the starter kit, the bag and any slot holding anything
+  else, as a pile where you fell; a disconnect mid-fight is a death here too. In the arena the others still there get
+  first pick, by the same rules as the enemy's drops; what's left goes to the overworld pile where the fight began
+  when the arena empties, and a solo loss sends it all there at once.
+- Dying is hardcore: all you carry but the starter kit drops where you fell (above), for anyone to take. The
   skillbook's pages are kept (the user: the saved spells survive death). Stats go back to their defaults, but they
   can't change yet, so for now nothing else is reset.
 - The starter kit (the user: "for the new players give them all the spells for now and weapons. they dont lose them
@@ -169,7 +171,7 @@ Decided by the user:
   bag where it fits. Dying never takes a kit item: one in a hand stays held, one in the bag keeps its spot, and only
   what was really lost is listed. A fresh player carries 17 of the 60 carry limit, using 7 of the bag's 24 cells.
   This is temporary, so the user and friends can play around. In the real game dying loses everything on you: the
-  avatar disintegrates and leaves it all behind (whether it can be picked up again is undecided; plan/lore.md).
+  avatar disintegrates and leaves it all behind, for anyone to pick up for a while, as death drops are (plan/lore.md).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   sword and the skillbook.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
@@ -271,7 +273,7 @@ Decided by the user:
   the arena: a spawn may name its own, else the level's (tall grass uses the level's). On the Grass Field the boar
   fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire (the looks and which
   enemy gets which are the agent's picks).
-- A player who disconnects mid-fight has lost it: the bag empties (but for the starter kit) as on a death. A fight
+- A player who disconnects mid-fight has lost it: what they carry drops (but for the starter kit) as on a death. A fight
   still undecided after a time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
   generous value), for the user to change.
@@ -396,6 +398,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   fades, sinks 0.3 m and gives off pale grey ash (`DISSOLVE_*` in `client/src/visuals/battle/battle.ts`). A player who
   leaves the arena fades out over 1 s (`LEAVE_FADE_TIME`), the others' fight getting it at once; one who disconnects
   mid-fight falls (as before) and fades the same way.
+- Death drops (drops, PR 3): the pile lies exactly where the server's copy of the fight has you when you fall (or
+  leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
+  land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
+  dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).
@@ -442,8 +448,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   notice. A joiner comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies
   go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
-  (the bag emptied but for the starter kit, waking at the level's start), and the fight goes on for the rest; won,
-  everyone still in it counts a win and they share the drops (one down on the very step it's won still wins, standing
+  (dropping all but the starter kit where they fell, waking at the level's start), and the fight goes on for the
+  rest; won, everyone still in it counts a win and they share the drops (one down on the very step it's won still
+  wins, standing
   at 1 HP). Anyone who
   disconnects, the host too, has lost as `LEAVING_LOSES` says, and the rest fight on. With the host gone
   (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for

@@ -208,7 +208,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(session.bag, CARRIED);
   });
 
-  test("a loss (the boar wins) empties the bag for good, refills HP, wakes the player at the start, and saves", () => {
+  test("a loss (the boar wins) empties the bag, refills HP, wakes the player at the start, and saves", () => {
     const { session, link, saves } = inBattle(CARRIED, { hp: 1, stamina: 40 });
     session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);

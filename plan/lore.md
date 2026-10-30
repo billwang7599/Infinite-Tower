@@ -17,7 +17,8 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
   the shell's fill is lost. If the fill is already empty, death takes a whole step. The words you know survive:
   knowledge lives in the seed. Today's starter kit (every word and weapon, kept on death) is only so the user and
   friends can run around and have fun for now; it isn't the lore.
-- **Drops.** Anyone can pick up what a dead avatar dropped, for a while; then it crumbles. None of this is built.
+- **Drops.** Anyone can pick up what a dead avatar dropped, for a while; then it crumbles. Built for all but the
+  starter kit (a pile that vanishes after 10 minutes on the overworld; AGENTS.md); the crumbling isn't drawn.
 
 ## Ring 1: the world (decided by the user)
 

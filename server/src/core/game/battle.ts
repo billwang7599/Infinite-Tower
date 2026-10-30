@@ -138,7 +138,7 @@ function settleBattle(
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    // Dying is hardcore: all that's carried is gone but the starter kit, which stays put.
+    // Dying drops all that's carried where they fell but the starter kit, which stays put.
     const kept = (item: ItemId) => STARTER_KIT.includes(item);
     const { bag } = session, equipment = { ...session.gear.equipment };
     lost = bagCounts({ ...bag, items: bag.items.filter((s) => !kept(s.item)) });
@@ -149,6 +149,7 @@ function settleBattle(
       equipment[slot] = null;
     }
     session.gear = { ...session.gear, bag: { ...bag, items: bag.items.filter((s) => kept(s.item)) }, equipment };
+    dropWhereFell(battle, overworld, lost);
     overworld.place(session.me, overworld.level.spawn);
     session.vitals = fullVitals(session.stats);
   }
@@ -166,13 +167,18 @@ function dropSpot(fell: Vec2, enemyRadiusM: number): Vec2 {
   return { x: roundTo(fell.x + way.x * awayM, 2), z: roundTo(fell.z + way.z * awayM, 2) };
 }
 
-/** Rolled once for the fight, whoever won it: the winners share what drops. */
 function dropInArena({ world, enemies }: Fight, drops: ArenaDrops, overworld: Overworld): void {
   for (const e of enemies) {
     const { def } = world.require(e, Enemy);
     const pile = overworld.holdPile(rollDrops(def.id, overworld.rng));
     if (pile !== null) drops.piles = [...drops.piles, { pile, at: dropSpot(world.require(e, Body).pos, def.radius) }];
   }
+}
+
+function dropWhereFell({ room, seat, drops }: Battle, overworld: Overworld, lost: ItemCounts): void {
+  const { pos } = room.fight.world.require(room.fight.players[seat]!, Body);
+  const pile = overworld.holdPile(lost);
+  if (pile !== null) drops.piles = [...drops.piles, { pile, at: { x: roundTo(pos.x, 2), z: roundTo(pos.z, 2) } }];
 }
 
 export function arenaPiles(drops: ArenaDrops, overworld: Overworld): ArenaPile[] {
@@ -190,7 +196,15 @@ export function arenaPileInView({ room, seat, drops }: Battle, overworld: Overwo
   return seen?.pile ?? null;
 }
 
+/** All in one pile, so a death's leftovers and the enemy's aren't sacks stacked on one spot. */
 function landDrops(overworld: Overworld, drops: ArenaDrops): void {
-  for (const { pile } of arenaPiles(drops, overworld)) overworld.landPile(pile, drops.home);
+  const [into, ...rest] = arenaPiles(drops, overworld);
   drops.piles = [];
+  if (!into) return;
+  for (const { pile } of rest) {
+    const items = overworld.pileItems(pile)!;
+    overworld.addToPile(into.pile, bagCounts(items));
+    overworld.setPileItems(pile, { ...items, items: [] });
+  }
+  overworld.landPile(into.pile, drops.home);
 }

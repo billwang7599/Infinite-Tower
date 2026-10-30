@@ -56,7 +56,7 @@ describe("say", () => {
   test("dying is a notice too", () => {
     const to = new Notifications();
     say(to, { kind: "battleResult", outcome: { ...LOSS, lost: { "boar-tusk": 1 } } });
-    assert.deepEqual(notices(to), ["You died. Lost for good: boar tusk."]);
+    assert.deepEqual(notices(to), ["You died and dropped boar tusk; what's left of it lands where the fight began."]);
     assert.equal(banner(to), null);
   });
 

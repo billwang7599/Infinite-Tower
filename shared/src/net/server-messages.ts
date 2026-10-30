@@ -102,7 +102,7 @@ export type ServerMsg =
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
   | { t: "invulnerable"; on: boolean }
   | { t: "skillbook"; skillbook: Skillbook }
-  /** Sent while you're still in the arena. `lost`: what the bag held, on a loss. `afterFightMs`: how long the arena
+  /** Sent while you're still in the arena. `lost`: what a death dropped. `afterFightMs`: how long the arena
    * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel. */
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; lost: ItemCounts; gear: Gear;
