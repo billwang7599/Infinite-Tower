@@ -7,6 +7,8 @@ import {
   bagCounts, LocalPlayer, moveGear, NO_PILE, useSteps, type Character, type Cheat, type DayChange, type EnemyId,
   type ServerMsgOf, type Skill, type Spot, type UseSpot,
 } from "@infinite-tower/shared";
+import type { Audio } from "../audio/audio.js";
+import { bagSound } from "../audio/sounds.js";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
@@ -46,6 +48,7 @@ export interface Game {
 
 interface GameParts {
   drawing: Drawing;
+  audio: Audio;
   actions: Actions;
   ui: UiState;
   settings: Settings;
@@ -53,7 +56,7 @@ interface GameParts {
   overworld: Overworld;
 }
 
-export function createGame({ drawing, actions, ui, settings, battle, overworld }: GameParts): Game {
+export function createGame({ drawing, audio, actions, ui, settings, battle, overworld }: GameParts): Game {
   let mode: Mode | null = null;
   let net: Net | null = null;
   let stopSync = () => {};
@@ -187,6 +190,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       }
     }
     drawing.frame(dt);
+    audio.frame(mode);
   };
 
   const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
@@ -227,6 +231,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       else if (mode === "overworld" || afterFight()) net?.send({ t: "useItem", at });
     },
     moveItem(from, to, turned) {
+      if (!transition) audio.play(bagSound(from, to));
       if (mode === "battle" && !transition && !afterFight()) battle.ctx.gearMoves.push({ from, to, turned });
       if ((mode !== "overworld" && !afterFight()) || transition || !net) return;
       const moved = moveGear(ui.overworld.get().gear, from, to, turned);
@@ -249,6 +254,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       net?.send({ t: "character", character });
     },
     join(joined) {
+      audio.unlock();
       net = joined.net;
       restoreSettings(settings, joined.welcome.settings);
       stopSync = syncSettings(settings, net);
@@ -310,7 +316,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       lastFrameMs = performance.now();
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
-        battle, overworld, ui, settings, mode: () => mode,
+        battle, overworld, ui, settings, audio, mode: () => mode,
         encounter: (enemy: EnemyId = "wild-boar") => cheat({ kind: "encounter", enemy }),
       });
     },
@@ -320,6 +326,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       stopSync = () => {};
       ui.ping.set({ ms: null });
       cancelAnimationFrame(frameRequest);
+      audio.hush();
       net.close();
       net = null;
       if (mode === "battle") battle.end();

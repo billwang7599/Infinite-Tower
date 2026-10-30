@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { FightEvent } from "@infinite-tower/shared/fight";
-import { FiredEffects } from "../../src/visuals/visuals.js";
+import { FiredEffects } from "../../../src/modes/battle/fired.js";
 
 const slam = (enemy: number): FightEvent => ({ type: "slam", enemy });
 

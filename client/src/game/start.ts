@@ -4,6 +4,7 @@
  */
 import { World } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
+import { createAudio } from "../audio/audio.js";
 import type { Actions } from "../core/actions.js";
 import { createBattle } from "../modes/battle/battle.js";
 import { createOverworld } from "../modes/overworld/overworld.js";
@@ -25,7 +26,10 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
     battle: battle.ctx,
     overworld: overworld.state,
   });
-  const game = createGame({ drawing, actions, ui, settings, battle, overworld });
+  const audio = createAudio({
+    volumes: settings.audio, notifications: ui.notifications, battle: battle.ctx, overworld: overworld.state,
+  });
+  const game = createGame({ drawing, audio, actions, ui, settings, battle, overworld });
   await physicsLoaded;
   return game;
 }

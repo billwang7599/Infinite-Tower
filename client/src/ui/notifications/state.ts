@@ -1,5 +1,6 @@
 /** The stores of the notices in the corner and the banner in the centre. Game code goes through `say`, not these. */
 import { Store } from "../store.js";
+import type { GameEvent } from "./say.js";
 
 export interface Message {
   /** Unique per message: the React key, and what dismissing goes by (the text can repeat). */
@@ -24,6 +25,7 @@ export interface AnnouncementState {
 export class Notifications {
   readonly notices = new Store<NoticesState>({ items: [] });
   readonly announcement = new Store<AnnouncementState>({ current: null });
+  readonly said = new Store<{ event: GameEvent | null }>({ event: null });
 
   /** Notices showing at once; one more and the oldest starts leaving. */
   static readonly MAX_NOTICES = 5;

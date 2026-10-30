@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { tileAt, type LevelLayout } from "@infinite-tower/shared";
-import { WATER_DEPTH_TILES, waterMap } from "../../../src/visuals/water/map.js";
+import { WATER_DEPTH_TILES, waterMap } from "../../../src/modes/overworld/water.js";
 
 const level = (tiles: string[]): LevelLayout => ({
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [], tiles,

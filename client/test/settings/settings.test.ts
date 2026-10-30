@@ -22,14 +22,16 @@ describe("createSettings / restoreSettings", () => {
     assert.deepEqual(settings.camera.toSaved(), {});
     assert.deepEqual(settings.mouse.toSaved(), {});
     assert.equal(settings.hud.isDefault(), true);
+    assert.deepEqual(settings.audio.toSaved(), {});
   });
 
   test("restoreSettings fills every store from the save", () => {
     const settings = createSettings();
     restoreSettings(settings, {
       bindings: { battle: { jump: ["KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
-      hud: { showPing: false },
+      hud: { showPing: false }, audio: { master: 0.5 },
     });
+    assert.equal(settings.audio.get().master, 0.5);
     assert.deepEqual(settings.bindings.toSaved(), { battle: { jump: ["KeyX"] } });
     assert.equal(settings.camera.get().sensitivity, 2);
     assert.equal(settings.mouse.get().autoLock, false);
@@ -49,7 +51,9 @@ describe("createSettings / restoreSettings", () => {
     settings.bindings.bind({ group: "battle", action: "turnLeft" }, "KeyZ", null);
     settings.mouse.setAutoLock(false);
     settings.hud.setShowPing(false);
+    settings.audio.setVolume("effects", 0);
     restoreSettings(settings, {});
+    assert.deepEqual(settings.audio.toSaved(), {});
     assert.equal(settings.bindings.isDefault(), true);
     assert.deepEqual(settings.camera.toSaved(), {});
     assert.equal(settings.mouse.get().autoLock, true);
@@ -92,12 +96,13 @@ describe("syncSettings", () => {
     settings.bindings.bind({ group: "battle", action: "jump" }, "KeyX", null);
     settings.mouse.setAutoLock(false);
     settings.hud.setShowPing(false);
+    settings.audio.setVolume("ambient", 0.4);
     t.mock.timers.tick(LATER_MS);
     const expected = {
       t: "settings",
       settings: {
         bindings: { battle: { jump: ["Space", "KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
-        hud: { showPing: false },
+        hud: { showPing: false }, audio: { ambient: 0.4 },
       },
     };
     assert.deepEqual(net.sent, [expected]);
@@ -110,7 +115,9 @@ describe("syncSettings", () => {
     t.mock.timers.tick(LATER_MS);
     settings.camera.reset();
     t.mock.timers.tick(LATER_MS);
-    assert.deepEqual(net.sent.at(-1), { t: "settings", settings: { bindings: {}, camera: {}, mouse: {}, hud: {} } });
+    assert.deepEqual(net.sent.at(-1), {
+      t: "settings", settings: { bindings: {}, camera: {}, mouse: {}, hud: {}, audio: {} },
+    });
   });
 
   test("switching auto lock sends it", (t) => {

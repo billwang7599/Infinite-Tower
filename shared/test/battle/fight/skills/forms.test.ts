@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  releaseTime, FIXED_DT, Health, SKILL_EFFECTS, Player, SKILL, SkillObject, skillCost, Stamina, Statuses, type AttackKind,
-  type EnemyDef, type Skill, type Vec3,
+  Body, releaseTime, FIXED_DT, Health, SKILL_EFFECTS, Player, SKILL, SkillObject, skillCost, Stamina, Statuses,
+  type AttackKind, type EnemyDef, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
@@ -34,6 +34,25 @@ describe("a Form with no element", () => {
     close(lostHp(fight, 0), SKILL_EFFECTS.plain.damage * D);
     const s = fight.world.require(fight.enemies[0]!, Statuses);
     assert.ok(Object.values(s.left).every((left) => left === 0));
+  });
+});
+
+describe("a skill's release", () => {
+  test("a Bolt or a Beam reports it, with its elements and where its caster stands, as the other Forms do", () => {
+    for (const form of ["bolt", "beam"] as const) {
+      const fight = fightWith([at(0, 6)]), cast = skill(segment(form, ["fire"]));
+      const released: unknown[] = [], spawnedAt: Vec3[] = [];
+      fight.step([input({ chant: true })]);
+      fight.step([input({ cast })]);
+      for (let i = 0; i < Math.round(releaseTime(cast) / FIXED_DT) + 2; i++) {
+        fight.step([IDLE]);
+        const now = fight.events.filter((e) => e.type === "skill");
+        released.push(...now);
+        if (now.length > 0) spawnedAt.push({ ...fight.world.require(me(fight), Body).pos });
+      }
+      assert.equal(released.length, 1, form);
+      assert.deepEqual(released[0], { type: "skill", form, elements: ["fire"], at: spawnedAt[0] }, form);
+    }
   });
 });
 

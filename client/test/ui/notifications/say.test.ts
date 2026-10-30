@@ -21,6 +21,15 @@ describe("EVENT_MESSAGES", () => {
 describe("say", () => {
   const enemy = { name: "Test Boar" };
 
+  test("every event told is heard by whoever listens, each time it is told", () => {
+    const to = new Notifications(), heard: string[] = [];
+    to.said.subscribe(() => heard.push(to.said.get().event!.kind));
+    say(to, { kind: "rested" });
+    say(to, { kind: "rested" });
+    say(to, { kind: "challenge", news: { kind: "nobodyNear" } });
+    assert.deepEqual(heard, ["rested", "rested", "challenge"]);
+  });
+
   test("a fight starting is the centre banner, not a notice", () => {
     const to = new Notifications();
     say(to, { kind: "encounter", source: null, enemy });

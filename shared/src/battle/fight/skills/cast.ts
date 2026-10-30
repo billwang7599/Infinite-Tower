@@ -106,6 +106,9 @@ function release(
   const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : { ...skilled.aim };
   const shot = shotOf(segment);
   const base = { caster, skill, segment: index, pos: from, dir: aim, ignore };
+  if (segment.form === "bolt" || segment.form === "beam") {
+    events.push({ type: "skill", form: segment.form, elements: segment.elements, at: { ...from } });
+  }
   switch (segment.form) {
     case "bolt": {
       const count = Math.min(shot.bolts, MAX_LIVE_SHOTS - liveShots(world));

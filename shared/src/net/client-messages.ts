@@ -91,6 +91,7 @@ const BattleResyncMsg = z.object({ t: z.literal("battleResync") });
 const LeaveBattleMsg = z.object({ t: z.literal("leaveBattle") });
 
 const KEY = z.string().max(32);
+const VOLUME = z.number().min(0).max(1).optional();
 
 /** Only what differs from the defaults; the client fills in the rest and ignores what it doesn't recognise. */
 const SavedSettingsSchema = z.object({
@@ -104,6 +105,7 @@ const SavedSettingsSchema = z.object({
   mouse: z.object({ autoLock: z.boolean().optional(), swingSensitivity: z.number().optional() }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
+  audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME }).optional(),
 });
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 

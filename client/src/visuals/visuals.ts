@@ -6,7 +6,7 @@ import {
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
 import type { BattleContext } from "../modes/battle/context.js";
-import type { StepEvent } from "../modes/battle/sync.js";
+import { FiredEffects } from "../modes/battle/fired.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
 import { clash, PARRY_HIT_STOP_MS, strike } from "./battle/impact.js";
@@ -75,26 +75,6 @@ export const EFFECTS: Effects = {
     else if (ev.form === "imbue") bursts.imbue(ev.elements, ev.at);
   },
 };
-
-/** Longer than any replay after a resync goes back. */
-const EFFECT_MEMORY_STEPS = 180;
-
-/** The events whose effects haven't gone off yet, keyed by step and event: a replayed step reports its own again. */
-export class FiredEffects {
-  private readonly fired = new Map<string, number>();
-
-  take(events: readonly StepEvent[]): StepEvent[] {
-    const fresh = events.filter(({ step, event }) => {
-      const key = `${step} ${JSON.stringify(event)}`;
-      if (this.fired.has(key)) return false;
-      this.fired.set(key, step);
-      return true;
-    });
-    const latest = Math.max(...events.map((e) => e.step));
-    for (const [key, step] of this.fired) if (step < latest - EFFECT_MEMORY_STEPS) this.fired.delete(key);
-    return fresh;
-  }
-}
 
 type Painted = { fight: Fight; held: Held | null } | null;
 
