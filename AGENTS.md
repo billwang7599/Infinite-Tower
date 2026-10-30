@@ -209,8 +209,8 @@ Decided by the user:
   stand still while it's open (the world doesn't pause).
 - Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating) go in
   the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
-  (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end). Messages wrap rather than run off
-  screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
+  (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end, smaller and near the top). Messages
+  wrap rather than run off screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
   and fades away on its own. All of it lives in `client/src/ui/notifications/`, and game code only calls
   `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its place and words.
 - The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
@@ -689,7 +689,8 @@ The global rules apply; here is how to set one up in this repo.
   (`client/src/ui/screens/<name>/`); UI used by more than one screen goes in `ui/components/`. Small math goes in
   `shared/src/core/math.ts`.
 - Styling is Tailwind v4 classes, with theme tokens in `client/src/ui/styles.css`. Write class names out in full.
-- No on-screen control hints or fps counters; the HUD's ping (Show ping in Settings hides it) is the one exception.
+- No on-screen control hints or fps counters. Exceptions: the HUD's ping (Show ping in Settings hides it), and the
+  leave key after a fight (on the result banner and under the arena timer), read from the bindings.
 
 ## Git and PRs
 
