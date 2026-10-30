@@ -1,5 +1,7 @@
 /** Overworld entities on the server. The client sees them through `state` (ActorSnap). */
-import { defineComponent, type ActorSnap, type Bag, type Character, type Vec2 } from "@infinite-tower/shared";
+import {
+  defineComponent, type ActorSnap, type Bag, type Character, type Heading, type Vec2,
+} from "@infinite-tower/shared";
 
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
@@ -34,6 +36,7 @@ export interface OverworldPlayerData {
   pace: number;
   vx: number;
   vz: number;
+  heading: Heading;
   /** In a battle: still here for the others to see, but out of the overworld's play. */
   fighting: boolean;
 }

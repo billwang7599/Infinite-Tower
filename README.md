@@ -80,9 +80,9 @@ What's built so far:
 - **Drops:** a won fight's loot lies in the arena where the enemy crumbled away, shared by the winners. Walk up to it,
   look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
   The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
-  pile on the overworld where the fight began, for anyone nearby: E opens the nearest pile there too (or rests at a
-  campfire, or joins a fight, whichever is nearest). A pile vanishes once it's empty, or 10 minutes after it lands. What a player drops on dying lies where
-  they fell, for the others in the arena to take once the fight is won, and goes the same way.
+  pile on the overworld where the fight began, for anyone nearby, opened there the same way: walk up, face it, E.
+  A pile vanishes once it's empty, or 10 minutes after it lands. What a player drops on dying lies where they fell,
+  for the others in the arena to take once the fight is won, and goes the same way.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it

@@ -1,8 +1,17 @@
-import { addItem, ITEMS, type Bag, type ItemCounts, type ItemId, type System } from "@infinite-tower/shared";
+import {
+  addItem, ITEMS, PILE_LOOK_RAD, PILE_RANGE_M, pileInView, type Bag, type ItemCounts, type ItemId, type System,
+  type Vec2,
+} from "@infinite-tower/shared";
 import { Pile } from "./components.js";
 
 export const PILE_LIFETIME_MS = 10 * 60 * 1000;
 export const PILE_COLS = 4;
+/** Leeway on the reach and the look: the server's copy of you trails the client's. */
+export const PILE_LAG_SLACK_M = 1;
+export const PILE_LOOK_SLACK_RAD = (15 * Math.PI) / 180;
+
+export const pileSeen = <P extends Vec2>(me: Vec2, way: Vec2, piles: readonly P[]): P | null =>
+  pileInView(me, way, piles, PILE_RANGE_M + PILE_LAG_SLACK_M, PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD);
 
 /** Wider than PILE_COLS only for an item too big to fit turned. */
 export function packPile(items: ItemCounts): Bag {

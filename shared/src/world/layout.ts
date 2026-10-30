@@ -24,7 +24,6 @@ export interface LevelLayout {
 /** Center to center. */
 export const REST_RANGE_TILES = 1.6;
 export const JOIN_RANGE_TILES = 1.6;
-export const PILE_RANGE_TILES = REST_RANGE_TILES;
 
 /**
  * Close enough to a campfire to rest. The server adds `slack`: its copy of you trails the client's prediction by
@@ -93,4 +92,32 @@ export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: 
   const vx = ix * speed, vz = iz * speed;
   moveWalker(level, pos, vx * dt, vz * dt);
   if (opts.vel) { opts.vel.vx = vx; opts.vel.vz = vz; }
+}
+
+/** On the map: +z is north, +x east. */
+export type Heading = "north" | "east" | "south" | "west";
+
+export const START_HEADING: Heading = "south";
+
+export const HEADING_WAY: Readonly<Record<Heading, Vec2>> = {
+  north: { x: 0, z: 1 }, east: { x: 1, z: 0 }, south: { x: 0, z: -1 }, west: { x: -1, z: 0 },
+};
+
+/** Less than this on an axis (of a 0-1 input) isn't walking that way. */
+const DEAD_ZONE = 0.1;
+
+/**
+ * Heading after walking (moveX, moveZ) on the map. It keeps a way it's still walking, so a diagonal doesn't flicker
+ * between two pictures; otherwise it takes the stronger axis, east or west on a tie. Standing still keeps it.
+ */
+export function faceToward(current: Heading, moveX: number, moveZ: number): Heading {
+  const walking: Record<Heading, boolean> = {
+    west: moveX < -DEAD_ZONE, east: moveX > DEAD_ZONE, south: moveZ < -DEAD_ZONE, north: moveZ > DEAD_ZONE,
+  };
+  if (walking[current]) return current;
+  if (walking.west || walking.east || walking.north || walking.south) {
+    if (Math.abs(moveX) >= Math.abs(moveZ)) return moveX > 0 ? "east" : "west";
+    return moveZ > 0 ? "north" : "south";
+  }
+  return current;
 }

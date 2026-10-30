@@ -1,6 +1,7 @@
 /** The overworld player: replays the client's inputs with the shared walking rules, and rolls for encounters. */
 import {
-  distXZ, FIXED_DT, inTallGrass, stepWalker, type Character, type System, type Vec2, type World,
+  distXZ, faceToward, FIXED_DT, inTallGrass, START_HEADING, stepWalker, type Character, type System, type Vec2,
+  type World,
 } from "@infinite-tower/shared";
 import { rollEnemy } from "../world/level.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData, type QueuedInput } from "./components.js";
@@ -18,7 +19,7 @@ export function queueInput(walk: OverworldPlayerData, input: QueuedInput): void 
 export function newWalk(character: Character): OverworldPlayerData {
   return {
     character, queue: [], lastSeq: 0, credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1, vx: 0, vz: 0,
-    fighting: false,
+    heading: START_HEADING, fighting: false,
   };
 }
 
@@ -49,6 +50,7 @@ export function overworldPlayerSystem(ctx: OverworldContext): System {
         walk.ack = input.seq;
         const x0 = pos.x, z0 = pos.z;
         stepWalker(layout, pos, input, FIXED_DT, { pace: walk.pace, vel: walk });
+        walk.heading = faceToward(walk.heading, input.moveX, input.moveZ);
         if (!inTallGrass(layout, pos.x, pos.z)) continue;
         walk.grassDist += Math.hypot(pos.x - x0, pos.z - z0);
         while (walk.grassDist >= grass.stepDist) {

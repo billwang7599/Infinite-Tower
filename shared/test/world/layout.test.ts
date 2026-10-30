@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, inRect, mapHalfSize, moveWalker, nearCampfire, REST_RANGE_TILES, stepWalker, WALKER_RADIUS, type Vec2,
-  type Velocity2,
+  faceToward, FIXED_DT, HEADING_WAY, inRect, mapHalfSize, moveWalker, nearCampfire, REST_RANGE_TILES, stepWalker,
+  WALKER_RADIUS, type Vec2, type Velocity2,
 } from "@infinite-tower/shared";
 import { ROCKS, TEST_LAYOUT as level } from "./level.js";
 
@@ -115,5 +115,43 @@ describe("nearCampfire", () => {
   });
   test("slack reaches further", () => {
     assert.equal(nearCampfire(level, { x: fire.x + REST_RANGE_TILES + 0.1, z: fire.z }, 0.2), true);
+  });
+});
+
+describe("faceToward: which way on the map an overworld walker faces", () => {
+  test("walking straight turns to that way: +z is north, +x east", () => {
+    assert.equal(faceToward("south", 1, 0), "east");
+    assert.equal(faceToward("south", -1, 0), "west");
+    assert.equal(faceToward("south", 0, 1), "north");
+    assert.equal(faceToward("north", 0, -1), "south");
+  });
+
+  test("standing still, or barely moving, keeps the way it faced", () => {
+    assert.equal(faceToward("north", 0, 0), "north");
+    assert.equal(faceToward("west", 0.05, -0.05), "west");
+  });
+
+  test("on a diagonal it keeps facing a way it's still walking, so it doesn't flicker", () => {
+    assert.equal(faceToward("north", -1, 1), "north");
+    assert.equal(faceToward("west", -1, 1), "west");
+    assert.equal(faceToward("south", 0.7, -0.7), "south");
+  });
+
+  test("turning onto a diagonal from elsewhere faces the stronger way, east or west on a tie", () => {
+    assert.equal(faceToward("south", -1, 1), "west");
+    assert.equal(faceToward("east", -0.4, 1), "north");
+    assert.equal(faceToward("north", 1, -0.4), "east");
+  });
+
+  test("a sideways nudge under the dead zone doesn't count as walking that way", () => {
+    assert.equal(faceToward("west", 0.05, 1), "north");
+  });
+});
+
+describe("HEADING_WAY: the way a heading looks, on the ground", () => {
+  test("+z is north and +x east, each one tile long", () => {
+    assert.deepEqual(HEADING_WAY, {
+      north: { x: 0, z: 1 }, east: { x: 1, z: 0 }, south: { x: 0, z: -1 }, west: { x: -1, z: 0 },
+    });
   });
 });

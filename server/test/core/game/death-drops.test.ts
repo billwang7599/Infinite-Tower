@@ -15,7 +15,7 @@ import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import type { Account } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
-import { ACCOUNT, startSession, tick } from "./helpers.js";
+import { ACCOUNT, pileAt, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -36,7 +36,7 @@ const fightOf = (session: GameSession) => session.battle!.room.fight;
 const pilesOn = (overworld: Overworld) => [...overworld.world.query(Pile, OverworldPos)].map(([pile]) => pile);
 
 const countsAt = (overworld: Overworld, at: Vec2): ItemCounts | null => {
-  const pile = overworld.nearestPile(at, 0);
+  const pile = pileAt(overworld, at);
   return pile === null ? null : bagCounts(overworld.pileItems(pile)!);
 };
 

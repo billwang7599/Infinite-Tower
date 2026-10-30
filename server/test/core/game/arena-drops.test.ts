@@ -1,22 +1,20 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  ARENA_PILE_LOOK_RAD, ARENA_PILE_RANGE_M, bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, NO_PILE,
+  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M,
   type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Word,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
-import {
-  AFTER_FIGHT_MS, ARENA_LAG_SLACK_M, ARENA_LOOK_SLACK_RAD, DROP_GAP_M,
-} from "../../../src/core/game/battle.js";
+import { AFTER_FIGHT_MS, DROP_GAP_M } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
-import { startSession, tick } from "./helpers.js";
+import { PILE_LAG_SLACK_M, PILE_LIFETIME_MS, PILE_LOOK_SLACK_RAD } from "../../../src/core/overworld/piles.js";
+import { pileAt, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
-const REACH_M = ARENA_PILE_RANGE_M + ARENA_LAG_SLACK_M;
-const LOOK_RAD = ARENA_PILE_LOOK_RAD + ARENA_LOOK_SLACK_RAD;
+const REACH_M = PILE_RANGE_M + PILE_LAG_SLACK_M;
+const LOOK_RAD = PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD;
 const DROPPED = rollDrops("wild-boar", () => 0);
 const MEAT: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 1, x: 0, y: 0, turned: false }] };
 const bagSpot = (x: number, y: number): GridSpot => ({ in: "bag", x, y });
@@ -84,7 +82,7 @@ describe("a won fight's drops", () => {
     const besideM = ENEMIES["wild-boar"].def.radius + DROP_GAP_M;
     assert.ok(Math.abs(distXZ(fell, at) - besideM) < 0.02, "clear of its body");
     assert.ok(Math.hypot(at.x, at.z) < Math.hypot(fell.x, fell.z), "on the arena's inner side");
-    assert.equal(session.overworld.nearestPile(home, 100), null, "nothing on the overworld yet");
+    assert.equal(pileAt(session.overworld, home, 100), null, "nothing on the overworld yet");
     assert.deepEqual(session.bag, emptyBag(), "nothing packed into the bag");
     assert.equal(session.inOverworld, false);
   });
@@ -116,7 +114,7 @@ describe("a won fight's drops", () => {
 });
 
 describe("taking from the arena's drops", () => {
-  test("opened within ARENA_PILE_RANGE_M (plus the lag slack) of where the server's fight has you", (t) => {
+  test("opened within PILE_RANGE_M (plus the lag slack) of where the server's fight has you", (t) => {
     const { session, link, at, items } = won(t);
     faceFrom(session, at, REACH_M - 0.05);
     session.openPile();
@@ -130,7 +128,7 @@ describe("taking from the arena's drops", () => {
     assert.deepEqual(link.last("gear").gear.pile, NO_PILE);
   });
 
-  test("only looked at: up to ARENA_PILE_LOOK_RAD (plus the lag slack) round from where the player faces", (t) => {
+  test("only looked at: up to PILE_LOOK_RAD (plus the lag slack) round from where the player faces", (t) => {
     const { session, link, at, items } = won(t);
     faceFrom(session, at, 1, LOOK_RAD - 0.02);
     session.openPile();
@@ -210,7 +208,7 @@ describe("leaving the arena after a win", () => {
     const left = pile()!;
     t.mock.timers.tick(AFTER_FIGHT_MS / 2);
     session.leaveBattle();
-    assert.equal(session.overworld.nearestPile(home, 0), left);
+    assert.equal(pileAt(session.overworld, home), left);
     assert.deepEqual(bagCounts(session.overworld.pileItems(left)!), DROPPED);
     t.mock.timers.tick(PILE_LIFETIME_MS - 1);
     session.overworld.step(FIXED_DT);
@@ -237,7 +235,7 @@ describe("leaving the arena after a win", () => {
     step(session, 1);
     assert.equal(link.all("arenaClosed").length, 1);
     assert.equal(session.battle, null);
-    assert.equal(session.overworld.nearestPile(home, 0), left);
+    assert.equal(pileAt(session.overworld, home), left);
   });
 
   test("disconnecting isn't a loss: what they took is saved, and the leftovers land", (t) => {
@@ -247,6 +245,6 @@ describe("leaving the arena after a win", () => {
     session.disconnect();
     assert.deepEqual(bagCounts(saves.at(-1)!.bag), { "boar-tusk": 1 });
     assert.equal(saves.at(-1)!.wins, 1);
-    assert.equal(overworld.nearestPile(home, 0), left);
+    assert.equal(pileAt(overworld, home), left);
   });
 });

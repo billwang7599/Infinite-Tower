@@ -1,8 +1,8 @@
 # Drops
 
-Status: **built**, as a stack of three PRs: overworld piles, the arena after a win, and death drops. What's true of
-them is in [ARCHITECTURE.md](../ARCHITECTURE.md) and the decisions in [AGENTS.md](../AGENTS.md). What's left here
-is still open.
+Status: **built**, as a stack of PRs: overworld piles, the arena after a win, death drops, and overworld piles opened
+by looking at them as the arena's are. What's true of them is in [ARCHITECTURE.md](../ARCHITECTURE.md) and the
+decisions in [AGENTS.md](../AGENTS.md). What's left here is still open.
 
 ## Open
 
@@ -11,3 +11,5 @@ is still open.
   others should be able to take from it mid-fight (the bag mid-fight is the shared fight's, so the pile would have to
   be too).
 - Whether dropping things onto a pile (giving them to others) should be possible; for now a pile only gives.
+- On the overworld the way you face is one of the chibi's four headings, so a pile 45° off is out of view until you
+  turn toward it; whether looking there should follow the exact way of your last step instead.

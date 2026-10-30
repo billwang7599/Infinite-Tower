@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, emptyBag, FIXED_DT, fits, NO_PILE, PILE_RANGE_TILES, type BagItem, type Character, type GridSpot,
-  type ItemCounts, type ItemId,
+  bagCounts, emptyBag, FIXED_DT, fits, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M, type BagItem, type Character,
+  type GridSpot, type ItemCounts, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
-import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
-import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
+import type { GameSession } from "../../../src/core/game/session.js";
+import { PILE_LAG_SLACK_M, PILE_LIFETIME_MS, PILE_LOOK_SLACK_RAD } from "../../../src/core/overworld/piles.js";
 import type { Account } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
@@ -17,12 +17,19 @@ import { ACCOUNT, startSession, tick } from "./helpers.js";
 before(() => initPhysics());
 
 const LOOT: ItemCounts = { "boar-tusk": 1, "boar-hide": 1 };
-const REACH_TILES = PILE_RANGE_TILES + LAG_SLACK_TILES;
+const REACH_TILES = PILE_RANGE_M + PILE_LAG_SLACK_M;
+const LOOK_RAD = PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD;
 const bagSpot = (x: number, y: number): GridSpot => ({ in: "bag", x, y });
 
-function dropBeside(session: GameSession, awayTiles = REACH_TILES - 0.1, loot = LOOT) {
+function walk(session: GameSession, moveX: number, moveZ: number): void {
+  session.input(session.overworld.playerData(session.me).lastSeq + 1, moveX, moveZ);
+  tick(session);
+}
+
+function dropBeside(session: GameSession, awayTiles = REACH_TILES - 0.1, loot = LOOT, offRad = 0) {
   const at = session.overworld.playerPos(session.me);
-  const pile = session.overworld.dropPile({ x: at.x + awayTiles, z: at.z }, loot)!;
+  const spot = { x: at.x + Math.cos(offRad) * awayTiles, z: at.z + Math.sin(offRad) * awayTiles };
+  const pile = session.overworld.dropPile(spot, loot)!;
   const items = () => session.overworld.pileItems(pile);
   const spotOf = (item: ItemId): GridSpot => {
     const s = items()?.items.find((stack: BagItem) => stack.item === item);
@@ -32,8 +39,14 @@ function dropBeside(session: GameSession, awayTiles = REACH_TILES - 0.1, loot = 
   return { pile, items, spotOf };
 }
 
-function byAPile(opts: Parameters<typeof startSession>[0] = {}) {
+function facingEast(opts: Parameters<typeof startSession>[0] = {}) {
   const started = startSession(opts);
+  walk(started.session, 1, 0);
+  return started;
+}
+
+function byAPile(opts: Parameters<typeof startSession>[0] = {}) {
+  const started = facingEast(opts);
   return { ...started, ...dropBeside(started.session) };
 }
 
@@ -49,7 +62,7 @@ function roomFor(session: GameSession, item: ItemId): GridSpot {
 }
 
 describe("opening a pile", () => {
-  test("in reach (with the lag slack), its items come down with the gear, beside the bag", () => {
+  test("in reach (with the lag slack) and faced, its items come down with the gear, beside the bag", () => {
     const { session, link, items } = byAPile();
     session.openPile();
     assert.deepEqual(link.last("gear").gear.pile, items());
@@ -57,18 +70,42 @@ describe("opening a pile", () => {
   });
 
   test("out of reach, nothing opens", () => {
-    const { session, link } = startSession();
+    const { session, link } = facingEast();
     dropBeside(session, REACH_TILES + 0.1);
     session.openPile();
     assert.deepEqual(link.last("gear").gear.pile, NO_PILE);
   });
 
-  test("of two in reach, the nearest opens", () => {
-    const { session } = startSession();
-    dropBeside(session, 1, { "boar-meat": 1 });
-    const near = dropBeside(session, 0.5, { "boar-tusk": 1 });
+  test("only looked at: up to PILE_LOOK_RAD (plus the lag slack) round from the way they face, none behind", () => {
+    const { session, link } = facingEast();
+    dropBeside(session, 1, LOOT, Math.PI);
+    dropBeside(session, 1, LOOT, LOOK_RAD + 0.02);
+    dropBeside(session, 1, LOOT, -(LOOK_RAD + 0.02));
     session.openPile();
-    assert.deepEqual(session.gear.pile, near.items());
+    assert.deepEqual(link.last("gear").gear.pile, NO_PILE);
+    const seen = dropBeside(session, 1, LOOT, LOOK_RAD - 0.02);
+    session.openPile();
+    assert.deepEqual(session.gear.pile, seen.items());
+  });
+
+  test("they face the way they last walked", () => {
+    const { session } = facingEast();
+    const east = dropBeside(session, 1, { "boar-tusk": 1 });
+    const north = dropBeside(session, 1, { "boar-meat": 1 }, Math.PI / 2);
+    walk(session, 0, 1);
+    session.openPile();
+    assert.deepEqual(session.gear.pile, north.items());
+    walk(session, 1, 0);
+    session.openPile();
+    assert.deepEqual(session.gear.pile, east.items());
+  });
+
+  test("of two in view, the one nearest the way they face opens, not the nearest", () => {
+    const { session } = facingEast();
+    dropBeside(session, 0.5, { "boar-meat": 1 }, PILE_LOOK_RAD * 0.8);
+    const centred = dropBeside(session, 1.5, { "boar-tusk": 1 }, -PILE_LOOK_RAD * 0.1);
+    session.openPile();
+    assert.deepEqual(session.gear.pile, centred.items());
   });
 
   test("not mid-fight", () => {
@@ -185,6 +222,7 @@ async function twoByAPile() {
     return { link, session };
   };
   const a = await join(ACCOUNT), b = await join(OTHER);
+  for (const { session } of [a, b]) walk(session, 1, 0);
   return { online, a, b, ...dropBeside(a.session, 0.5) };
 }
 

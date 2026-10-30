@@ -1,6 +1,7 @@
 import {
-  distXZ, gearBurden, FIXED_DT, JOIN_RANGE_TILES, LocalPlayer, PILE_RANGE_TILES, PLAYER, REST_RANGE_TILES, walkPace,
-  type Gear, type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
+  distXZ, gearBurden, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, pileInView, PILE_RANGE_M, PLAYER,
+  REST_RANGE_TILES, START_HEADING, walkPace, type Gear, type Heading, type LevelLayout, type ServerMsgOf,
+  type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
@@ -27,11 +28,12 @@ export interface Overworld {
 }
 
 export function interactionAt(
-  level: LevelLayout, at: Vec2, fights: readonly Vec2[], piles: readonly Vec2[],
+  level: LevelLayout, at: Vec2, heading: Heading, fights: readonly Vec2[], piles: readonly Vec2[],
 ): Interaction | null {
+  const seen = pileInView(at, HEADING_WAY[heading], piles);
   const reachable: [Interaction, readonly Vec2[], number][] = [
     ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
-    ["openPile", piles, PILE_RANGE_TILES],
+    ["openPile", seen ? [seen] : [], PILE_RANGE_M],
   ];
   let best: { what: Interaction; dist: number } | null = null;
   for (const [what, spots, rangeTiles] of reachable) {
@@ -59,7 +61,7 @@ interface OverworldOptions {
 export function createOverworld({ world, actions, hud, camera }: OverworldOptions): Overworld {
   const player = world.spawn();
   world.add(player, OverworldPos, { x: 0, z: 0 });
-  world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: "south", alert: false });
+  world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
   world.add(player, LocalPlayer, true);
   const state: OverworldState = { world, player, level: null, cameraTurns: camera.get().overworldTurns };
   const actors = new ActorMirror(world);
@@ -78,7 +80,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
     const fights = [...world.query(Peer, OverworldPos)].flatMap(([, peer, pos]) => (peer.fighting ? [pos] : []));
     const piles = [...world.query(OverworldActor, OverworldPos)]
       .flatMap(([, actor, pos]) => (actor.kind === "pile" ? [pos] : []));
-    return interactionAt(state.level, playerPos(), fights, piles);
+    return interactionAt(state.level, playerPos(), world.require(player, OverworldActor).heading, fights, piles);
   };
   const interact = () => {
     const what = interaction();
@@ -108,6 +110,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         actors.clear();
         state.level = msg.level;
         prediction?.reset(msg.me);
+        world.require(player, OverworldActor).heading = START_HEADING;
         hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor });
       });
       joinedNet.on("state", (msg) => {
