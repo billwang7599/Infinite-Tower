@@ -1,12 +1,12 @@
 # Sounds
 
-Every sound file in `client/src/audio/sounds/`, where it came from, who made it and its licence. All of them are CC0
-(public domain): no credit is required, but it's given here. Each pack's page was checked to say CC0 before use; packs
-licensed CC-BY or behind a login were skipped.
+Every sound file in `client/src/audio/sounds/` and every music track in `client/src/audio/music/`, where it came
+from, who made it and its licence. All of them are CC0 (public domain): no credit is required, but it's given here.
+Each pack's page was checked to say CC0 before use; packs licensed CC-BY or behind a login were skipped.
 
-Each file is the original trimmed of silence, made mono (the game pans it), evened out in loudness and saved as Ogg
-Vorbis. The campfire is a 10 s stretch of its recording, its ends crossfaded so it loops. `client/src/audio/sounds.ts`
-says which sound plays which files, and how loud and how high.
+Each sound file is the original trimmed of silence, made mono (the game pans it), evened out in loudness and saved as
+Ogg Vorbis. The campfire is a 10 s stretch of its recording, its ends crossfaded so it loops.
+`client/src/audio/sounds.ts` says which sound plays which files, and how loud and how high.
 
 A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and its row here.
 
@@ -159,3 +159,19 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 | `swing-5.ogg` | [Swishes Sound Pack](https://opengameart.org/content/swishes-sound-pack): `swish-9.wav` | artisticdude | CC0 |
 | `victory-1.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `gong_01.ogg` | rubberduck | CC0 |
 | `windup-magic-1.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `magic1.wav` | artisticdude | CC0 |
+
+## Music
+
+Each track is a seamless loop: its ends crossfaded over 20 ms so the loop point doesn't click, evened out to the same
+loudness (-18 LUFS), and saved as stereo Ogg Vorbis at about 75 kbps. 4.4 MB in all; a track is only fetched when it's
+about to play. `client/src/audio/music.ts` says where each plays (`MUSIC`) and how loud (`TRACKS`).
+
+A new track: a CC0 loop only, named `<track>.ogg`, its row in `TRACKS`, and its row here.
+
+| File | Plays | From | Author | Licence |
+|---|---|---|---|---|
+| `title.ogg` | the title, making a character | [JRPG Music Pack #4 (Calm)](https://opengameart.org/content/jrpg-pack-4-calm): `Calm6 - Innocence.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `grass-field.ogg` | the Grass Field | [Forest Whisper Theme](https://opengameart.org/content/forest-whisper-theme): `Forest Whisper.ogg` | Cleyton Kauffman | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `mistwood.ogg` | the Mistwood | [Dark Forest Theme](https://opengameart.org/content/dark-forest-theme): `GameMusic_ForestTheme_24_0.mp3` | cynicmusic | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `battle.ogg` | fights in the forest clearing and the stone ruins | [JRPG Music Pack #5 (Action)](https://opengameart.org/content/jrpg-pack-5-action): `Action2 - Army Approaching.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `battle-mire.ogg` | fights in the mire | [JRPG Music Pack #5 (Action)](https://opengameart.org/content/jrpg-pack-5-action): `Action1 - Encounter With The Witches.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |

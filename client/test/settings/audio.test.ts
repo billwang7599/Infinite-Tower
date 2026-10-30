@@ -41,6 +41,15 @@ describe("AudioSettings", () => {
     assert.deepEqual(a.get(), { ...VOLUME.defaults, master: 0, ambient: 0.5 });
   });
 
+  test("music has a volume of its own, saved and restored like the others", () => {
+    const a = new AudioSettings();
+    a.setVolume("music", 0.3);
+    assert.deepEqual(a.toSaved(), { music: 0.3 });
+    const copy = new AudioSettings();
+    copy.restore({ music: 0.3 });
+    assert.deepEqual(copy.get(), { ...VOLUME.defaults, music: 0.3 });
+  });
+
   test("isDefault tells each volume apart", () => {
     const a = new AudioSettings();
     a.setVolume("effects", 0.3);

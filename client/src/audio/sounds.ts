@@ -1,7 +1,7 @@
 import type { ArenaLook, EnemyId, LevelLayout, SkillElement, Spot } from "@infinite-tower/shared";
 import type { GameEvent } from "../ui/notifications/say.js";
 
-export type Bus = "effects" | "ambient";
+type Bus = "effects" | "ambient";
 
 export interface SoundDef {
   // Files `<stem>-1.ogg` to `<stem>-<variants>.ogg` in sounds/; the stem is the sound's name unless given.

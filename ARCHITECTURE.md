@@ -197,6 +197,12 @@ main.ts
   listener on the page). Browsers only start sound after a user gesture: the AudioContext is made on the first pointer
   press or as the game joins (Play), whichever is first. The volumes are settings (`settings/audio.ts`), saved with the
   others.
+  Music comes the same way: each frame `musicFor` (`audio/music.ts`, tested) picks the track from the mode, the level's
+  theme and the arena's look (`MUSIC`: the title's with no mode or before a level comes, then each level's, each
+  arena's in a fight, none once it's decided), and when it changes the old track fades out and the new one fades in
+  (`MUSIC_FADE_TIME`). A track is fetched and decoded only when it's wanted and dropped when it stops, since a couple
+  of minutes of decoded music is tens of MB. It plays through the music bus, the fourth volume. On the title no frame
+  runs: the title's track is the one wanted until a frame says otherwise, and `game.leave()` calls `audio.frame(null)`.
 - **The overworld shows what the server says.** `modes/overworld/mirror.ts` mirrors each actor with its `kind`,
   each other player as a `peer` with their character (sent the first time you see them) and whether they're in a
   battle, and each pile as a `pile`; `modes/overworld/prediction.ts` predicts your own walking and reconciles with
@@ -694,7 +700,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   swing's whoosh once as its blade sets off (lower and louder the heavier the blade), wind-ups, deaths, dodges, jumps
   and landings, steps every stride on the arena's ground, a Bolt's cast, loop and impact (split ones one loop; none for
   one a reload remade), the result once, a new fight forgetting the last; on the overworld, the ears, campfires, the
-  nearest water, footsteps for players only, and a jump not taken for a walk; the volume settings saved and read back.
+  nearest water, footsteps for players only, and a jump not taken for a walk; the volume settings saved and read back;
+  the music's files all there and used, and which track plays on the title, each level and each arena, and none once a
+  fight is decided.
   Rendering, how the fight feels, the React screens and what the sound sounds like are tried in a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
@@ -724,8 +732,8 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
   otherwise, and on a mode importing visuals/). It reads the modes' state each frame; game code never draws, and
   never hands state to drawing code.
 - **Sound has one owner, `client/src/audio/`**, built the same way: it hears the modes' state each frame, and game
-  code only calls it for what isn't state (a move in the bag). What plays where is plain, tested data (`SOUNDS`);
-  only `audio/audio.ts` touches Web Audio. Every file is CC0 and listed in SOUNDS.md.
+  code only calls it for what isn't state (a move in the bag). What plays where is plain, tested data (`SOUNDS`,
+  `MUSIC`); only `audio/audio.ts` touches Web Audio. Every file is CC0 and listed in SOUNDS.md.
 - **Small, single-purpose files** (roughly under 200 lines). Add a folder per new mode, enemy or screen rather than
   growing an existing file. Small math (clamping, smoothing, distances, turning) goes in `shared/src/core/math.ts`.
 
@@ -745,7 +753,7 @@ name (`MAX_BODY_BYTES`).
 |---|---|
 | `README.md` | a short description, the finished features, how to run it, the top-level folders |
 | `ARCHITECTURE.md` | this file |
-| `SOUNDS.md` | every sound file: its pack, author and licence (all CC0) |
+| `SOUNDS.md` | every sound and music file: its pack, author and licence (all CC0) |
 | `FORMULAS.md` | every calculation that decides how the game plays, with where its numbers live and worked examples |
 | `AGENTS.md` | how to work in this repo: ask before game mechanics, decisions so far, checks, git and PRs |
 | `plan/` | future plans and parked ideas, one file each |
@@ -989,8 +997,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      overworld camera's quarter turns), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; swing
                      sensitivity, SWING_SENSITIVITY), hud.ts
-                     (HudSettings: show ping, the same way), audio.ts (AudioSettings: the master, effects
-                     and ambient volumes, 0 to 1 on the slider's step, each saved only if changed)
+                     (HudSettings: show ping, the same way), audio.ts (AudioSettings: the master, effects,
+                     ambient and music volumes, 0 to 1 on the slider's step, each saved only if changed)
     gfx/             Pictures drawn in code onto plain pixels, no Babylon (the UI uses them too)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
@@ -1077,7 +1085,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats; the time of day and its speed set
                          through `setDayClock`), admin.ts (its times, speeds and counts)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
-                         (camera and swing sensitivity, Auto mouse lock), AudioSection.tsx (the three volume
+                         (camera and swing sensitivity, Auto mouse lock), AudioSection.tsx (the four volume
                          sliders), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
         creation/        A new player making their character, on white: CreationScreen.tsx (the scene: the System's
                          greeting, the panel beside the portrait and chibi, "Is this you?", saving, the farewell,
@@ -1126,14 +1134,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          included
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
-                     page's button clicks, the events told and `play` for the bag; MAX_VOICES), sounds.ts (SOUNDS:
+                     page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
+                     at a time, crossfaded, MUSIC_FADE_TIME), music.ts (TRACKS: each track's volume; MUSIC: which
+                     plays on the title, each level theme and each arena look; musicFor), sounds.ts (SOUNDS:
                      each sound's files, volume, rate, spread, bus, loop, reach; `take`, a variant other than the
                      last; ENEMY_SOUNDS, ELEMENT_SOUNDS, STEP_SOUNDS (each arena look's ground), ARENA_AMBIENCE,
                      WATER_SOUNDS (each level theme's), EVENT_SOUNDS (what `say` events sound like), bagSound),
                      mix.ts (Ears, Hearing, place: a sound's gain and pan from where it is; mixGain;
                      nearestWater), battle.ts (fightEars: a fight's cues and loops each frame; swingVoice;
                      ARENA_HEARING, STRIDE_M), overworld.ts (overworldEars: footsteps, campfires, the nearest
-                     water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files, SOUNDS.md)
+                     water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files, SOUNDS.md), music/ (a
+                     track's .ogg, `<track>.ogg`, a seamless loop)
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
@@ -1329,6 +1340,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   test fails on a file that's missing or unused). Something in a fight is heard from the fight's state in
   `audio/battle.ts` (a step event's entry in `EVENT_CUES`, or a change on a fighter), something on the overworld in
   `audio/overworld.ts`; neither plays anything itself, they return cues and loops, so test them there.
+- **Music.** A CC0 track only (its row in SOUNDS.md), a seamless loop saved as stereo Ogg Vorbis at the others'
+  loudness, `client/src/audio/music/<track>.ogg`, with its row in `TRACKS` (`client/src/audio/music.ts`). Where it
+  plays is its name in `MUSIC` there: a new level theme or arena look doesn't compile until it has one.
 
 ## Where to tune things
 
@@ -1355,6 +1369,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
 | How water looks (colour, murk, reflection, glints, ripples, wind, foam), per level and in the mire | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `WATER_DEPTH_TILES` in `client/src/modes/overworld/water.ts` |
 | Sounds: each one's files, volume, rate, variation, bus, how far it carries; which sounds an enemy, element, arena or level has | `SOUNDS` and the tables below it in `client/src/audio/sounds.ts` |
+| Music: which track plays where, each track's volume, how long a crossfade takes | `MUSIC`, `TRACKS` in `client/src/audio/music.ts`; `MUSIC_FADE_TIME` in `client/src/audio/audio.ts` |
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back a Kobold draws its blade (and leans, turns and bends) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |

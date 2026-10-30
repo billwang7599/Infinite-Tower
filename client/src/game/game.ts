@@ -326,7 +326,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       stopSync = () => {};
       ui.ping.set({ ms: null });
       cancelAnimationFrame(frameRequest);
-      audio.hush();
+      audio.frame(null);
       net.close();
       net = null;
       if (mode === "battle") battle.end();

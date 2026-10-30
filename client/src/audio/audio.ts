@@ -5,23 +5,28 @@ import type { AudioSettings } from "../settings/audio.js";
 import type { Notifications } from "../ui/notifications/state.js";
 import { fightEars, type Cue, type Heard } from "./battle.js";
 import { mixGain, place } from "./mix.js";
+import { MUSIC, musicFor, TRACKS, type TrackName } from "./music.js";
 import { overworldEars } from "./overworld.js";
 import { EVENT_SOUNDS, soundDef, take, type SoundName } from "./sounds.js";
 
 const URLS = import.meta.glob<string>("./sounds/*.ogg", { eager: true, query: "?url", import: "default" });
+const MUSIC_URLS = import.meta.glob<string>("./music/*.ogg", { eager: true, query: "?url", import: "default" });
 // Of one sound at once: a burst of split Bolts shouldn't stack sixteen impacts.
 const MAX_VOICES = 4;
 const LOOP_EASE_TIME = 0.1;
 const LOOP_STOP_TIME = 0.5;
+const MUSIC_FADE_TIME = 1.5;
 const DEBUG_LOG_LENGTH = 50;
 
 export interface Audio {
   // Call on a user gesture: browsers only let sound start after one.
   unlock(): void;
   play(sound: SoundName): void;
+  // null is the title: no sounds, the title's music.
   frame(mode: Mode | null): void;
-  hush(): void;
-  debug(): { context: AudioContextState | null; loaded: number; loops: string[]; played: string[] };
+  debug(): {
+    context: AudioContextState | null; loaded: number; loops: string[]; played: string[]; music: TrackName | null;
+  };
 }
 
 interface AudioParts {
@@ -33,16 +38,22 @@ interface AudioParts {
 
 interface Voice { sound: SoundName; src: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; own: number }
 
+interface Music { track: TrackName; gain: GainNode; src: AudioBufferSourceNode | null }
+
+const decode = (c: AudioContext, url: string): Promise<AudioBuffer> =>
+  fetch(url).then((r) => r.arrayBuffer()).then((data) => c.decodeAudioData(data));
+
 export function createAudio({ volumes, notifications, battle, overworld }: AudioParts): Audio {
   let ctx: AudioContext | null = null, out: AudioNode | null = null;
   const buffers = new Map<string, AudioBuffer>(), voices = new Map<SoundName, number>();
   const lastVariant = new Map<SoundName, number>(), loops = new Map<string, Voice>(), played: string[] = [];
   const hearFight = fightEars(), hearOverworld = overworldEars();
+  let wantedMusic: TrackName | null = MUSIC.title, music: Music | null = null;
 
   const load = (c: AudioContext) => {
     for (const [path, url] of Object.entries(URLS)) {
       const file = path.slice(path.lastIndexOf("/") + 1);
-      fetch(url).then((r) => r.arrayBuffer()).then((data) => c.decodeAudioData(data)).then(
+      decode(c, url).then(
         (buffer) => buffers.set(file, buffer),
         (err: unknown) => console.warn(`Sound ${file} didn't load`, err),
       );
@@ -100,6 +111,39 @@ export function createAudio({ volumes, notifications, battle, overworld }: Audio
 
   const play = (sound: SoundName) => start({ sound, at: null }, 1, 0, false);
 
+  const musicGain = (track: TrackName) => mixGain(volumes.get(), "music", TRACKS[track].volume);
+
+  // Decoded only while it plays: a couple of minutes of music is tens of MB decoded, a fraction of that fetched.
+  const playMusic = (track: TrackName | null) => {
+    wantedMusic = track;
+    if (!ctx || !out || music?.track === track) return;
+    const c = ctx, now = c.currentTime;
+    if (music?.src) {
+      music.gain.gain.setTargetAtTime(0, now, MUSIC_FADE_TIME / 4);
+      music.src.stop(now + MUSIC_FADE_TIME);
+    } else music?.gain.disconnect();
+    music = null;
+    if (!track) return;
+    const playing: Music = { track, gain: c.createGain(), src: null };
+    playing.gain.gain.value = 0;
+    playing.gain.connect(out);
+    music = playing;
+    decode(c, MUSIC_URLS[`./music/${track}.ogg`]!).then(
+      (buffer) => {
+        if (music !== playing) return;
+        const src = c.createBufferSource();
+        src.buffer = buffer;
+        src.loop = true;
+        src.connect(playing.gain);
+        src.onended = () => playing.gain.disconnect();
+        src.start();
+        playing.src = src;
+        playing.gain.gain.setTargetAtTime(musicGain(track), c.currentTime, MUSIC_FADE_TIME / 4);
+      },
+      (err: unknown) => console.warn(`Music ${track} didn't load`, err),
+    );
+  };
+
   const unlock = () => {
     if (!ctx) {
       ctx = new AudioContext();
@@ -109,6 +153,7 @@ export function createAudio({ volumes, notifications, battle, overworld }: Audio
       limiter.connect(ctx.destination);
       out = limiter;
       load(ctx);
+      playMusic(wantedMusic);
     }
     if (ctx.state === "suspended") void ctx.resume();
   };
@@ -123,17 +168,23 @@ export function createAudio({ volumes, notifications, battle, overworld }: Audio
     const event = notifications.said.get().event, sound = event && EVENT_SOUNDS[event.kind];
     if (sound) play(sound);
   });
+  volumes.subscribe(() => {
+    if (ctx && music?.src) music.gain.gain.setTargetAtTime(musicGain(music.track), ctx.currentTime, LOOP_EASE_TIME);
+  });
 
   return {
     unlock,
     play,
     frame(mode) {
       render(mode === "battle" ? hearFight(battle) : mode === "overworld" ? hearOverworld(overworld) : null);
+      playMusic(musicFor({
+        mode, level: overworld.level?.theme ?? null, arena: battle.fight?.arena.look ?? null,
+        decided: battle.outcome.state !== "fighting",
+      }));
     },
-    hush: () => render(null),
     debug: () => ({
       context: ctx?.state ?? null, loaded: buffers.size, loops: [...loops.values()].map((v) => v.sound),
-      played: [...played],
+      played: [...played], music: music?.src ? music.track : null,
     }),
   };
 }

@@ -1,6 +1,5 @@
 import { clamp, type Vec2 } from "@infinite-tower/shared";
-import type { Volumes } from "../settings/audio.js";
-import type { Bus } from "./sounds.js";
+import type { VolumeName, Volumes } from "../settings/audio.js";
 
 // The yaw as the arena camera's: forward is (sin yaw, cos yaw).
 export interface Ears { x: number; z: number; yaw: number }
@@ -18,7 +17,7 @@ export function place(ears: Ears, at: Vec2 | null, hearing: Hearing, reach = 1):
   return { gain, pan: clamp(right / Math.max(d, near), -1, 1) * MAX_PAN };
 }
 
-export const mixGain = (volumes: Volumes, bus: Bus, ...gains: number[]): number =>
+export const mixGain = (volumes: Volumes, bus: Exclude<VolumeName, "master">, ...gains: number[]): number =>
   gains.reduce((total, g) => total * g, volumes.master * volumes[bus]);
 
 // `tiles` by their south-west corners, each a tile wide (the water map's).

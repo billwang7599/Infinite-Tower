@@ -99,10 +99,11 @@ What's built so far:
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade), hits, blocks and parries, footsteps,
   dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further
-  away, and to the left or right. No music yet. Every file is CC0 ([SOUNDS.md](SOUNDS.md)).
+  away, and to the left or right. Looping music on the title, in each level and in fights (the mire has its own),
+  crossfading from one to the next. Every file is CC0 ([SOUNDS.md](SOUNDS.md)).
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
-  effects and ambient volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's), return to
-  title.
+  effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),
+  return to title.
 - **Saving:** your character, vitals, wins, bag, equipment and settings are kept with your account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
@@ -201,6 +202,6 @@ The character art can be previewed at http://localhost:5173/art.html while `npm 
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | how the code fits together, every file, how to add things, where to tune |
 | [FORMULAS.md](FORMULAS.md) | every calculation that decides how the game plays, with worked examples |
-| [SOUNDS.md](SOUNDS.md) | every sound file: where it's from, who made it, its licence (all CC0) |
+| [SOUNDS.md](SOUNDS.md) | every sound and music file: where it's from, who made it, its licence (all CC0) |
 | [AGENTS.md](AGENTS.md) | how to work in this repo: ask before game mechanics, decisions so far, checks, git and PRs |
 | [plan/](plan/README.md) | where it's headed |

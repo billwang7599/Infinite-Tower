@@ -50,11 +50,12 @@ describe("place", () => {
 });
 
 describe("mixGain", () => {
-  const volumes = { master: 0.5, effects: 0.8, ambient: 0.25 };
+  const volumes = { master: 0.5, effects: 0.8, ambient: 0.25, music: 0.6 };
 
   test("the master volume times the bus's, times the sound's own gains", () => {
     assert.equal(mixGain(volumes, "effects", 0.5, 2), 0.5 * 0.8 * 0.5 * 2);
     assert.equal(mixGain(volumes, "ambient", 1), 0.5 * 0.25);
+    assert.equal(mixGain(volumes, "music", 0.5), 0.5 * 0.6 * 0.5);
   });
 
   test("a master or bus at zero silences it", () => {

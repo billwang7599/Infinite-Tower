@@ -7,6 +7,7 @@ const LABELS: Record<VolumeName, { label: string; hint: string }> = {
   master: { label: "Master volume", hint: "Every sound" },
   effects: { label: "Effects", hint: "Fighting, footsteps, items and clicks" },
   ambient: { label: "Ambient", hint: "Water and campfires" },
+  music: { label: "Music", hint: "Title, levels and fights" },
 };
 
 export function AudioSection({ audio }: { audio: AudioSettings }) {

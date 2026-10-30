@@ -25,8 +25,8 @@ The user's rules for every project (subagents, comments and code style, test-fir
 - AGENTS.md: this file. Update it when the user decides something about this repo or game. How they want work
   done in general goes in `~/.pi/agent/AGENTS.md`.
 
-[SOUNDS.md](SOUNDS.md) lists every sound file's pack, author and licence: sounds are CC0 only, and each file added
-or removed changes its row there.
+[SOUNDS.md](SOUNDS.md) lists every sound and music file's pack, author and licence: sounds and music are CC0 only,
+and each file added or removed changes its row there.
 
 [ART.md](ART.md)'s "What to draw" counts the drawings each piece of art needs: update it whenever a look option,
 body type, view, chibi facing or battle pose is added or removed.
@@ -307,7 +307,16 @@ Decided by the user:
   campfire; the mire arena bubbles. Sounds come from where they happen: quieter further off, panned left or right, and
   each play a little off in pitch and volume so repeats differ. Master, Effects and Ambient volumes in Settings
   (80%, 100%, 100% to start), saved with the other settings. Sound starts only after a click (the browser's rule).
-  No music yet (the next PR). Every file is CC0, listed in [SOUNDS.md](SOUNDS.md).
+  Every file is CC0, listed in [SOUNDS.md](SOUNDS.md).
+- Music (the user: "we can find some royalty free looping music? match the vibe of the scenery/battle", then "yea
+  just go with what you think is right"; the tracks, how loud and the rest below are the agent's picks, not listened
+  to yet): CC0 seamless loops, one per scene, crossfading over 1.5 s when the scene changes. The title plays
+  Junkala's "Innocence" (also while making a character), the Grass Field Kauffman's "Forest Whisper", the Mistwood
+  cynicmusic's "Dark Forest Theme", fights in the forest clearing and the stone ruins (the duels too) Junkala's "Army
+  Approaching", and fights in the mire Junkala's "Encounter With The Witches". A fight's music fades out as it's
+  decided, so the victory or defeat sound rings out, and the arena stays quiet until you leave. A fourth volume,
+  Music (100% to start), saved with the others. The volumes come with the save, so before Play the title's music is
+  at the default volume.
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
   ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
   opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the
@@ -568,10 +577,10 @@ tests say what was agreed. Where tests go and how they're written:
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
   `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same) and, in a fight,
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
-  goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, and the
-  last sounds played (nobody can hear a headless browser). F1 opens the admin panel (`#admin-panel`;
-  `#admin-invulnerable`, `#admin-heal`). A new account has no character: make one first. Skip this when the user
-  says it isn't needed.
+  goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
+  last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`). A new account has no character: make one first. Skip this
+  when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.
