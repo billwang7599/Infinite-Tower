@@ -3,14 +3,14 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  distXZ, emptyCloth, finishUse, gearBurden, Health, heldIn, JOIN_RANGE_TILES, moveGear, nearCampfire, NO_PILE,
-  PLAYER, skillOf, startUse, stepUse, validateSkill, walkPace, type Bag, type Burden, type Character, type Cheat,
-  type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput, type Stats,
-  type UseSpot, type Using, type Vitals, type Word,
+  distXZ, emptyCloth, finishUse, gearBurden, Health, heldIn, inRect, JOIN_RANGE_TILES, moveGear, nearCampfire,
+  NO_PILE, PLAYER, skillOf, startUse, stepUse, validateSkill, walkPace, type Bag, type Burden, type Character,
+  type Cheat, type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput,
+  type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { START_LEVEL } from "../world/index.js";
+import { levelOrStart } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -65,6 +65,7 @@ export class GameSession {
   private readonly introduced = new Set<Entity>();
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
+  private levelId: string;
 
   constructor(
     readonly account: Account,
@@ -83,6 +84,7 @@ export class GameSession {
     this.gear = this.held;
     this.knownWords = saved.knownWords;
     this.skillbook = saved.skillbook;
+    this.levelId = levelOrStart(saved.level);
   }
 
   /** Its weight sets how fast they walk the overworld. */
@@ -104,7 +106,7 @@ export class GameSession {
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
       chat: this.others.chat.recent(), dev: this.dev,
     });
-    if (this.character) this.enterLevel(START_LEVEL);
+    if (this.character) this.enterLevel(this.levelId);
   }
 
   input(seq: number, moveX: number, moveZ: number): void {
@@ -185,7 +187,7 @@ export class GameSession {
     this.character = character;
     this.save();
     this.link.send({ t: "character", character });
-    if (!this.walking) this.enterLevel(START_LEVEL);
+    if (!this.walking) this.enterLevel(this.levelId);
   }
 
   /** Refills HP and stamina, if the server's copy of you is standing by a campfire. */
@@ -262,6 +264,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
+      level: this.levelId,
     });
   }
 
@@ -301,6 +304,13 @@ export class GameSession {
       return;
     }
     if (!this.inOverworld) return;
+    const at = this.overworld.playerPos(this.me);
+    const exit = this.overworld.level.exits.find((e) => inRect(e.area, at.x, at.z));
+    if (exit) {
+      this.enterLevel(exit.to, exit.at);
+      this.save();
+      return;
+    }
     this.tickUse();
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
@@ -357,12 +367,16 @@ export class GameSession {
     this.saveTimer ??= setTimeout(() => this.save(), SAVE_SOON_MS);
   }
 
-  private enterLevel(id: string): void {
+  private enterLevel(id: string, at?: Vec2): void {
     if (!this.character) return;
-    this.walking?.overworld.leave(this.walking.me);
+    if (this.walking) {
+      this.closeBag();
+      this.walking.overworld.leave(this.walking.me);
+    }
     const overworld = this.overworldOf(id);
-    const me = overworld.join(this.character, (source, enemy, spawn) => startBattle(this, source, enemy, spawn));
+    const me = overworld.join(this.character, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), at);
     this.walking = { overworld, me };
+    this.levelId = id;
     this.introduced.clear();
     this.gear = this.held;
     this.link.send({ t: "level", level: overworld.level.layout, me: overworld.playerPos(me) });

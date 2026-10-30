@@ -49,7 +49,7 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
-  skillbook: data.skillbook,
+  skillbook: data.skillbook, level: data.level,
 });
 
 function fromRow(row: typeof players.$inferSelect): PlayerSave {
@@ -57,7 +57,7 @@ function fromRow(row: typeof players.$inferSelect): PlayerSave {
   return {
     vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
     character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
-    skillbook: readable(row.skillbook, new Set(knownWords)),
+    skillbook: readable(row.skillbook, new Set(knownWords)), level: row.level,
   };
 }
 

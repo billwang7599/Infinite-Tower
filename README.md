@@ -21,8 +21,9 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** Floor 1's Grass Field, a dusky tile map of paths, tree lines, rocks, a stream and pond, ruins and a
-  patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
+- **Overworld:** Floor 1's Grass Field and, through a gap in the trees east of it, the Mistwood (dark pines, a marsh
+  crossed by boardwalks, its own campfire). The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
+  and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
   Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
   than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a

@@ -92,6 +92,13 @@
       "when": 1793221244883,
       "tag": "0012_skills-data",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793336705186,
+      "tag": "0013_player-level",
+      "breakpoints": true
     }
   ]
 }

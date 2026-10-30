@@ -40,5 +40,6 @@ export const players = pgTable("players", {
   equipment: jsonb().$type<Equipment>().notNull().default(starterEquipment()),
   knownWords: text("known_words").array().notNull().default([]),
   skillbook: jsonb().$type<Skillbook>().notNull().default(blankSkillbook()),
+  level: text(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

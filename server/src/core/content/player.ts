@@ -14,7 +14,7 @@ export const fullVitals = (stats: Stats): Vitals => ({ hp: PLAYER.maxHp, stamina
 /** A player the store has never saved. */
 export const newPlayer = (): PlayerSave => ({
   vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
-  equipment: starterEquipment(), skillbook: blankSkillbook(),
+  equipment: starterEquipment(), skillbook: blankSkillbook(), level: null,
 });
 
 export function withStarterKit(save: PlayerSave): PlayerSave {

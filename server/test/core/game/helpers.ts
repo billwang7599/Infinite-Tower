@@ -8,7 +8,7 @@ import { Duels } from "../../../src/core/game/duels.js";
 import { GameSession } from "../../../src/core/game/session.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getLevel } from "../../../src/core/world/index.js";
 import { FakeLink } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 
@@ -19,15 +19,19 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
   const saved: PlayerSave = { ...newPlayer(), character: TEST_CHARACTER, ...opts.saved };
-  const overworld = new Overworld(getLevel(START_LEVEL));
+  const overworlds = new Map<string, Overworld>();
+  const overworldOf = (id: string) => {
+    if (!overworlds.has(id)) overworlds.set(id, new Overworld(getLevel(id)));
+    return overworlds.get(id)!;
+  };
   const persist = (data: PlayerSave) => saves.push(structuredClone(data));
   const online = () => [session];
   const session = new GameSession(
-    ACCOUNT, link, opts.dev ?? false, saved, persist, () => overworld,
+    ACCOUNT, link, opts.dev ?? false, saved, persist, overworldOf,
     { online, duels: new Duels(online), chat: new Chat(online) },
   );
   session.start();
-  return { session, link, saves };
+  return { session, link, saves, overworldOf };
 }
 
 export function tick(session: GameSession, times = 1): void {

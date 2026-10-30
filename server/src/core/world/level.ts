@@ -1,5 +1,5 @@
 /** A level. Only `layout` is sent to the client; the rest stays here so a player can't read or change it. */
-import type { EnemyId, LevelLayout, Vec2 } from "@infinite-tower/shared";
+import type { EnemyId, LevelLayout, Rect, Vec2 } from "@infinite-tower/shared";
 
 export interface SpawnDef {
   enemy: EnemyId;
@@ -19,6 +19,13 @@ export interface EncounterTable {
   enemies: { enemy: EnemyId; weight: number }[];
 }
 
+export interface ExitDef {
+  /** Tiles at the map's edge: walking into it takes you to level `to`, at `at`. */
+  area: Rect;
+  to: string;
+  at: Vec2;
+}
+
 export interface LevelDef {
   layout: LevelLayout;
   /** Where you appear when you enter, and wake up after losing a fight. */
@@ -28,6 +35,7 @@ export interface LevelDef {
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
   spawns: SpawnDef[];
   grass: EncounterTable;
+  exits: ExitDef[];
   /** No encounters for this long after a fight. */
   safeTime: number;
 }

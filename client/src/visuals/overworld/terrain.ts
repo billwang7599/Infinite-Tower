@@ -10,7 +10,7 @@ import { spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
-import { isTall, type Ledge, type Prop, type PropKind } from "./scenery.js";
+import { isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -28,7 +28,7 @@ export interface LevelDrawing {
 
 export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawing {
   const { scene, sky } = view, root = new TransformNode(`level-${level.id}`, scene);
-  const look = LEVEL_LOOKS[level.theme], scenery = look.scenery(level);
+  const look = LEVEL_LOOKS[level.theme], scenery = openExits(look.scenery(level), level);
   const lights = campfireLights(level);
   sky.look(look.env, lights);
   const lit = (name: string, tex: DynamicTexture) => {
