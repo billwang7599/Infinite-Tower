@@ -3,12 +3,12 @@ import { itemDef, type ItemCounts, type ItemId, type ServerMsgOf } from "@infini
 
 export type BattleOutcome = Pick<ServerMsgOf<"battleResult">, "won" | "lost" | "duel">;
 
-/** How a fight ended, in a line at most: a win's drops were in the arena. Item lists are as long as what was lost. */
+/** How a fight ended, in a line at most: a win's drops were in the arena. Item lists are never cut short. */
 export function battleResultLines(outcome: BattleOutcome): string[] {
   if (outcome.duel) return [`You ${outcome.won ? "won" : "lost"} the duel against ${outcome.duel}.`];
   const lost = describeItems(outcome.lost);
   if (outcome.won) return [];
-  return [lost ? `You died. Lost for good: ${lost}.` : "You died."];
+  return [lost ? `You died and dropped ${lost}; what's left of it lands where the fight began.` : "You died."];
 }
 
 /** "boar meat" / "2 boar meat", or "" for nothing. */

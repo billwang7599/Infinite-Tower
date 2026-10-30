@@ -1,6 +1,7 @@
 /** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
 import {
-  distXZ, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type System, type Vec2,
+  bagCounts, distXZ, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
+  type System, type Vec2,
 } from "@infinite-tower/shared";
 import type { LevelDef, SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
@@ -124,6 +125,12 @@ export class Overworld implements OverworldContext {
   landPile(pile: Entity, at: Vec2): void {
     this.world.add(pile, OverworldPos, { x: at.x, z: at.z });
     this.world.require(pile, Pile).vanishAtMs = Date.now() + PILE_LIFETIME_MS;
+  }
+
+  addToPile(pile: Entity, items: ItemCounts): void {
+    const data = this.world.require(pile, Pile), counts = bagCounts(data.items);
+    for (const [item, count] of Object.entries(items) as [ItemId, number][]) counts[item] = (counts[item] ?? 0) + count;
+    data.items = packPile(counts);
   }
 
   nearestPile(at: Vec2, rangeTiles: number): Entity | null {

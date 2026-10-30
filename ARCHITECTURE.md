@@ -72,14 +72,14 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
    moment it's decided, sends the final `battleSync`, rolls drops and lays them as a pile in the arena beside the
-   fallen enemy (or, on a loss, empties the bag and slots of all but the starter kit), saves and sends
-   `battleResult`: only then does the result show. After a win the fight runs on for up to `AFTER_FIGHT_MS` (5
+   fallen enemy (or, on a loss, drops all in the bag and slots but the starter kit as a pile where they fell), saves
+   and sends `battleResult`: only then does the result show. After a win the fight runs on for up to `AFTER_FIGHT_MS` (5
    minutes) while the winners walk to the drops and take what they want; Enter leaves the arena (`leaveBattle`;
    asking first while drops are still there), and the overworld goes on. The last one out leaves what's left as an
    overworld pile where the fight began.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
-   Mid-fight, that loses the fight (`LEAVING_LOSES`): the bag empties as on a death, all but the starter kit. In the
-   arena after a win it's leaving the arena, with what was taken kept.
+   Mid-fight, that loses the fight (`LEAVING_LOSES`): what they carry drops as on a death, all but the starter kit.
+   In the arena after a win it's leaving the arena, with what was taken kept.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
 ## Server: core plus outlets
@@ -232,7 +232,7 @@ main.ts
   for the other (`combat.ts`). `fight.targets` (what an input's `locked` indexes) is the players instead of the
   enemies. Over when one player stands (`outcome.ts`; `playerResult` gives each theirs); `settleDuel` gives back the
   HP and stamina they came in with and counts nothing.
-- **Piles** (`core/overworld/piles.ts`; [plan/drops.md](plan/drops.md) has what's to come): items lying on the
+- **Piles** (`core/overworld/piles.ts`; [plan/drops.md](plan/drops.md) has what's still open): items lying on the
   overworld, each an entity with an `OverworldPos` and a `Pile` (its items as a grid `PILE_COLS` wide, `packPile`, and
   when it vanishes). `Overworld.dropPile` lays one down, `pileSystem` removes it `PILE_LIFETIME_MS` after (by the
   wall clock, so a level nobody's on catches up when it next steps), and `setPileItems` with nothing left removes it
@@ -245,24 +245,25 @@ main.ts
   or its vanishing reaches it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's
   pile as it is now (first come first served) and writes it back; `moveGear` puts nothing onto a pile. The pile
   closes with the bag (`closeBag`), on walking and when a fight starts.
-- **The arena after a win** (`core/game/battle.ts`): every `Battle` of a room shares its `ArenaDrops`: where the
-  fight began (`home`), the piles lying in the arena with where (`ArenaPile`), and when it closes. As the room is won
-  (its `onOver`), each enemy's drops are rolled once for the fight (`dropInArena`), whoever won, into a pile
-  `DROP_GAP_M` beside where it fell, toward the arena's middle (`dropSpot`), and the arena closes `AFTER_FIGHT_MS`
-  after the win (by the wall clock). While a session is in it (`afterFight`), its tick
-  follows its open pile, sends `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once
-  the time is up leaves the arena for the player and sends `arenaClosed`. `openPile` there opens the pile the player
-  is looking at (`arenaPileInView`: the shared `pileInView`, within `ARENA_PILE_RANGE_M` + `ARENA_LAG_SLACK_M` of the
-  player in the server's fight and `ARENA_PILE_LOOK_RAD` + `ARENA_LOOK_SLACK_RAD` either side of the aim of the last
-  input it ran, the one nearest that centre line), and `moveItem` works as on
-  the overworld but for the cloth (none there); eating doesn't, writing a page does (as outside a fight). Leaving
-  (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's `onClosed` lands what's left at `home`,
-  its `PILE_LIFETIME_MS` starting then. The client: `battleResult`'s `afterFightMs` keeps `FightSync` sending and
-  checking (only a result without it stops it), `ctx.drops` holds the arena's piles (drawn as the same sack), the HUD
-  shows `The arena closes in m:ss` at the top and an "Open the pile" button (`dropInView`: `pileInView` along the
-  camera's yaw, without the slack), Interact (E) sends
-  `openPile` and opens the bag screen on the server's gear (as the overworld's, without the cloth), and Enter with
-  drops still there opens the `leaveArena` popup (Enter again leaves, Esc stays).
+- **The arena after a win** (`core/game/battle.ts`): every `Battle` of a room shares its `ArenaDrops`: where the fight
+  began (`home`), the piles lying in the arena with where (`ArenaPile`), and when it closes. As the room is won (its
+  `onOver`), each enemy's drops are rolled once for the fight (`dropInArena`), whoever won, into a pile `DROP_GAP_M`
+  beside where it fell, toward the arena's middle (`dropSpot`), and the arena closes `AFTER_FIGHT_MS` after the win (by
+  the wall clock). A player's loss (down, leaving mid-fight or the time limit) puts all they lose into a pile where the
+  server's fight has them (`dropWhereFell`), seen and opened only once the fight is won, as the enemy's; a room closed
+  on a loss lands it at once. While a session is in it (`afterFight`), its tick follows its open pile, sends
+  `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once the time is up leaves the arena
+  for the player and sends `arenaClosed`. `openPile` there opens the pile the player is looking at (`arenaPileInView`:
+  the shared `pileInView`, within `ARENA_PILE_RANGE_M` + `ARENA_LAG_SLACK_M` of the player in the server's fight and
+  `ARENA_PILE_LOOK_RAD` + `ARENA_LOOK_SLACK_RAD` either side of the aim of the last input it ran, the one nearest that
+  centre line), and `moveItem` works as on the overworld but for the cloth (none there); eating doesn't, writing a page
+  does (as outside a fight). Leaving (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's
+  `onClosed` lands what's left at `home` as one pile (`landDrops`), its `PILE_LIFETIME_MS` starting then. The client:
+  `battleResult`'s `afterFightMs` keeps `FightSync` sending and checking (only a result without it stops it),
+  `ctx.drops` holds the arena's piles (drawn as the same sack), the HUD shows `The arena closes in m:ss` at the top and
+  an "Open the pile" button (`dropInView`: `pileInView` along the camera's yaw, without the slack), Interact (E) sends
+  `openPile` and opens the bag screen on the server's gear (as the overworld's, without the cloth), and Enter with drops
+  still there opens the `leaveArena` popup (Enter again leaves, Esc stays).
 - **The browser runs its own copy of the whole fight** (`modes/battle/`), built from the encounter's setup, so the boar
   reacts to you at once. Each frame its clock (`modes/battle/pace.ts`: real time since the fight's first step, plus an
   offset that keeps it in step with the server's) says how many steps are due, and `modes/battle/sync.ts` (`FightSync`)
@@ -460,7 +461,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `battleJoined` | another player came into your fight: their `PlayerSetup` (a `battleSync` with them in it follows) |
 | `joinRefused` | `joinBattle` refused: nobody near is fighting, the fight is full, or it's a duel |
 | `challengeNews` | a duel challenge sent, received, declined, expired, called off, or refused (nobody near, busy) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost`, gear, skillbook, `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost` (what a death dropped), gear, skillbook, `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
 | `arenaDrops` | after a win, the piles lying in the arena (id, x, z in metres), each time they change |
 | `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
 | `rested`, `itemUsed` | what resting or eating did |
@@ -604,7 +605,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   or a disconnecting joiner leaving gone from the others' fight at once, taking from it (saved soon, the last of it
   making it go), no cloth and no eating there but writing a page, leaving with what was taken, the leftovers landing at
   the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then), `AFTER_FIGHT_MS` sending them out
-  (`arenaClosed`), and a disconnect there being no loss.
+  (`arenaClosed`), and a disconnect there being no loss. Death drops (`death-drops.test.ts`): all but the starter
+  kit from the bag and hands, alone landing at the fight's spot at once (a disconnect and the time limit alike, its
+  `PILE_LIFETIME_MS` from then), with others fighting on lying where you fell, not openable mid-fight, then taken
+  from after the win, the arena's piles landing as one, everyone down landing it all, and a duel dropping nothing.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -819,11 +823,12 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
                        a player as the fight takes them; seatInBattle: a session put in a room and sent its
                        `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, a loss emptying the bag and slots of all but STARTER_KIT, vitals; the arena after
-                       a win: ArenaDrops (shared by the room), the drops rolled once as the room is won (dropInArena,
-                       dropSpot), arenaPiles, arenaPileInView, landing what's left; AFTER_FIGHT_MS,
-                       ARENA_LAG_SLACK_M, ARENA_LOOK_SLACK_RAD, DROP_GAP_M), snapshot.ts (the state message: only
-                       actors, other players and piles within VIEW_RADIUS_TILES, each player's character sent once),
+                       it, wins, a loss dropping all but STARTER_KIT where they fell (dropWhereFell), vitals; the arena
+                       after a win: ArenaDrops (shared by the room), the drops rolled once as the room is won
+                       (dropInArena, dropSpot), arenaPiles, arenaPileInView, landDrops (what's left, as one pile);
+                       AFTER_FIGHT_MS, ARENA_LAG_SLACK_M, ARENA_LOOK_SLACK_RAD, DROP_GAP_M), snapshot.ts (the state
+                       message: only actors, other players and piles within VIEW_RADIUS_TILES, each player's
+                       character sent once),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
