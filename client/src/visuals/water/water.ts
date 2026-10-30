@@ -20,7 +20,11 @@ export interface WaterLook {
 /** Per vertex: the current (tiles a second), how far the bank is and how deep the water (tiles). */
 export interface WaterPoint { flowX: number; flowZ: number; shore: number; column: number }
 
-const RIPPLE = { px: 128, waves: 48, tiles: 2.6, fineTiles: 0.95, fineShare: 0.55 };
+// The texture is sampled twice, the second turned and at another scale, so its repeat never shows.
+const RIPPLE = {
+  px: 256, waves: 160, wavesAcross: { min: 4, max: 40 }, tiles: 7.3, turnedTiles: 4.7, turnRad: 1.1, turnedShare: 0.7,
+  flowCycleSec: 1, stillCycleSec: 3,
+};
 // Each cell of still water gets a ring in a slot with this chance, at a random spot and time in it.
 const RINGS = {
   cellTiles: 4, slotSec: 6, chance: 0.35, lifeSec: 2.4, reachTiles: 1.1, widthTiles: 0.5, crestsApartTiles: 0.2,
@@ -77,24 +81,27 @@ vWaterFlow = waterFlow;
 vWaterShore = waterShore;`,
 };
 
-// Two-phase flow mapping: each phase slides the ripples along the current for one cycle and fades out as it jumps
-// back. The jump also shifts the pattern (500 jumps a loop, so 500 * shift is whole).
+// Two-phase flow mapping: each phase slides the ripples along the current and fades out as it jumps back, shifted
+// (LOOP_SEC / cycle jumps make a whole shift). Dividing by the weights' length keeps the contrast from pulsing.
+const [TURN_COS, TURN_SIN] = [Math.cos(RIPPLE.turnRad).toFixed(4), Math.sin(RIPPLE.turnRad).toFixed(4)];
 const FRAGMENT = {
   CUSTOM_FRAGMENT_DEFINITIONS: `uniform sampler2D waterRipples;
 varying vec2 vWaterFlow;
 varying vec2 vWaterShore;
 ${WAVE}
 vec3 waterLayers(vec2 p, vec2 shift) {
-  vec4 big = texture2D(waterRipples, p / ${RIPPLE.tiles.toFixed(2)} + shift);
-  vec4 fine = texture2D(waterRipples, p.yx / ${RIPPLE.fineTiles.toFixed(2)} - shift);
-  return vec3((big.rg * 2.0 - 1.0) + (fine.gr * 2.0 - 1.0) * ${RIPPLE.fineShare.toFixed(2)}, big.b);
+  const mat2 turn = mat2(${TURN_COS}, ${TURN_SIN}, -${TURN_SIN}, ${TURN_COS});
+  const float share = ${RIPPLE.turnedShare.toFixed(2)};
+  vec4 a = texture2D(waterRipples, p / ${RIPPLE.tiles.toFixed(2)} + shift);
+  vec4 b = texture2D(waterRipples, turn * p / ${RIPPLE.turnedTiles.toFixed(2)} - shift);
+  return vec3(a.rg * 2.0 - 1.0 + (b.rg * 2.0 - 1.0) * turn * share, (a.b - 0.5 + (b.b - 0.5) * share) / (1.0 + share));
 }
 vec3 waterRipple(vec2 p, vec2 drift, float t) {
-  const float cycle = 2.4;
-  float c = t / cycle, a = fract(c), b = fract(c + 0.5), wa = 1.0 - abs(1.0 - 2.0 * a);
-  vec2 jump = vec2(0.25, 0.362);
-  return waterLayers(p - drift * a * cycle, floor(c) * jump) * wa
-    + waterLayers(p - drift * b * cycle, floor(c + 0.5) * jump + 0.5) * (1.0 - wa);
+  float cycle = drift == vec2(0.0) ? ${RIPPLE.stillCycleSec.toFixed(2)} : ${RIPPLE.flowCycleSec.toFixed(2)};
+  float c = t / cycle, a = fract(c), b = fract(c + 0.5), wa = 1.0 - abs(1.0 - 2.0 * a), wb = 1.0 - wa;
+  const vec2 jump = vec2(0.25, 0.36);
+  return (waterLayers(p - drift * a * cycle, floor(c) * jump) * wa
+    + waterLayers(p - drift * b * cycle, floor(c + 0.5) * jump + 0.5) * wb) / sqrt(wa * wa + wb * wb);
 }
 vec4 waterHash(vec4 p) {
   p = fract(p * vec4(0.1031, 0.103, 0.0973, 0.1099));
@@ -134,11 +141,10 @@ float waterFresnel = waterLook.y + (1.0 - waterLook.y) * pow(1.0 - waterCos, 3.0
 vec3 waterUp = reflect(-viewDirectionW, normalW);
 vec3 waterMirror = waterSky * mix(2.8, 0.7, clamp(waterUp.y, 0.0, 1.0));
 float waterThrough = exp(-waterLook.x * vWaterShore.y / max(viewDirectionW.y, 0.2));
-vec3 waterBody = finalDiffuse * (1.0 + 0.8 * smoothstep(0.55, 0.95, waterR.z));
-vec3 waterLit = waterBody * (1.0 - waterThrough) * (1.0 - waterFresnel) + waterMirror * waterFresnel + finalSpecular;
+vec3 waterLit = finalDiffuse * (1.0 - waterThrough) * (1.0 - waterFresnel) + waterMirror * waterFresnel + finalSpecular;
 float waterSeen = waterThrough * (1.0 - waterFresnel);
 float waterFoamAt = waterFoam.a > 0.0
-  ? (1.0 - smoothstep(0.4, 1.0, vWaterShore.x / waterFoam.a + (0.5 - waterR.z) * 2.2)) * 0.4 : 0.0;
+  ? (1.0 - smoothstep(0.4, 1.0, vWaterShore.x / waterFoam.a - waterR.z * 2.2)) * 0.4 : 0.0;
 waterLit = mix(waterLit, waterFoam.rgb * clamp(diffuseBase, 0.0, 1.0), waterFoamAt);
 waterSeen *= 1.0 - waterFoamAt;
 color = vec4(waterLit / max(1.0 - waterSeen, 0.001), 1.0 - waterSeen);`,
@@ -198,38 +204,40 @@ class WaterPlugin extends MaterialPluginBase {
   }
 }
 
-// A sum of sines with whole wave numbers, so it tiles: rg its slope (scaled to fit), b its height.
+// A sum of sines with whole wave numbers, so it tiles: rg its slope (scaled to fit), b its height. Each sine is split
+// into a row's and a column's part (sin(a + b)), so there's no trig per texel.
 function rippleTexture(scene: Scene): Texture {
-  const { px, waves } = RIPPLE, rand = seededRandom(17), tau = Math.PI * 2;
-  const spec = Array.from({ length: waves }, () => {
-    const turn = rand() * tau, k = 3 + rand() * 7;
-    const m = Math.round(Math.cos(turn) * k), n = Math.round(Math.sin(turn) * k);
-    return { m, n, amp: Math.hypot(m, n) ** -1.6, phase: rand() * tau };
-  }).filter((w) => w.m !== 0 || w.n !== 0);
-  const slope = new Float32Array(px * px * 2), height = new Float32Array(px * px);
-  let maxSlope = 0, low = Infinity, high = -Infinity;
-  for (let j = 0; j < px; j++) {
+  const { px, waves, wavesAcross: { min, max } } = RIPPLE, rand = seededRandom(17), tau = Math.PI * 2;
+  const height = new Float32Array(px * px), slopeX = new Float32Array(px * px), slopeZ = new Float32Array(px * px);
+  const sinA = new Float32Array(px), cosA = new Float32Array(px);
+  for (let w = 0; w < waves; w++) {
+    const turn = rand() * tau, across = min * (max / min) ** rand(), phase = rand() * tau;
+    const m = Math.round(Math.cos(turn) * across), n = Math.round(Math.sin(turn) * across);
+    const amp = Math.hypot(m, n) ** -1.4;
     for (let i = 0; i < px; i++) {
-      let h = 0, du = 0, dv = 0;
-      for (const { m, n, amp, phase } of spec) {
-        const a = tau * (m * i + n * j) / px + phase;
-        h += amp * Math.sin(a);
-        du += amp * m * Math.cos(a);
-        dv += amp * n * Math.cos(a);
-      }
-      const k = j * px + i;
-      slope[k * 2] = du;
-      slope[k * 2 + 1] = dv;
-      height[k] = h;
-      maxSlope = Math.max(maxSlope, Math.abs(du), Math.abs(dv));
-      low = Math.min(low, h);
-      high = Math.max(high, h);
+      sinA[i] = Math.sin(tau * m * i / px + phase);
+      cosA[i] = Math.cos(tau * m * i / px + phase);
     }
+    for (let j = 0; j < px; j++) {
+      const sinB = Math.sin(tau * n * j / px), cosB = Math.cos(tau * n * j / px);
+      for (let i = 0; i < px; i++) {
+        const k = j * px + i, sin = sinA[i]! * cosB + cosA[i]! * sinB, cos = cosA[i]! * cosB - sinA[i]! * sinB;
+        height[k]! += amp * sin;
+        slopeX[k]! += amp * m * cos;
+        slopeZ[k]! += amp * n * cos;
+      }
+    }
+  }
+  let maxSlope = 0, low = Infinity, high = -Infinity;
+  for (let k = 0; k < px * px; k++) {
+    maxSlope = Math.max(maxSlope, Math.abs(slopeX[k]!), Math.abs(slopeZ[k]!));
+    low = Math.min(low, height[k]!);
+    high = Math.max(high, height[k]!);
   }
   const data = new Uint8Array(px * px * 4);
   for (let k = 0; k < px * px; k++) {
-    data[k * 4] = Math.round((slope[k * 2]! / maxSlope * 0.5 + 0.5) * 255);
-    data[k * 4 + 1] = Math.round((slope[k * 2 + 1]! / maxSlope * 0.5 + 0.5) * 255);
+    data[k * 4] = Math.round((slopeX[k]! / maxSlope * 0.5 + 0.5) * 255);
+    data[k * 4 + 1] = Math.round((slopeZ[k]! / maxSlope * 0.5 + 0.5) * 255);
     data[k * 4 + 2] = Math.round(((height[k]! - low) / (high - low)) * 255);
     data[k * 4 + 3] = 255;
   }
