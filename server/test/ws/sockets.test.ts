@@ -9,6 +9,7 @@ import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 import { PLAYER_STATS, withStarterKit } from "../../src/core/content/player.js";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
+import { START_LEVEL } from "../../src/core/world/index.js";
 import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
 import { MemoryPlayerStore } from "../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../fixtures/level.js";
@@ -21,7 +22,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = withStarterKit({
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: starterEquipment(), skillbook: blankSkillbook(),
+  equipment: starterEquipment(), skillbook: blankSkillbook(), level: START_LEVEL,
 });
 
 /** Lets a pending store load (and what follows it) finish. */

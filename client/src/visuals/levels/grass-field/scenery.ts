@@ -1,8 +1,8 @@
 import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
-import { groundY, type Ledge, type Prop, type PropKind, type Scenery } from "../../overworld/scenery.js";
+import {
+  groundY, SCENERY_REACH_TILES as REACH, type Ledge, type Prop, type PropKind, type Scenery,
+} from "../../overworld/scenery.js";
 
-/** Tiles past the level's edge the scenery reaches: more than the camera can show. */
-const REACH = 16;
 const NORTH_STEP_TILES = 4;
 const LEDGE_Y = { low: -2.5, high: 2.5, higher: 5 };
 

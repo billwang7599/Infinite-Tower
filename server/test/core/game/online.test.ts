@@ -35,7 +35,7 @@ describe("joining", () => {
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
-        skillbook: welcome.skillbook },
+        skillbook: welcome.skillbook, level: null },
       withStarterKit(newPlayer()),
     );
     assert.equal(welcome.dev, false);

@@ -101,6 +101,26 @@ const rock: Draw = (pen) => {
   pen.outline(OUTLINE);
 };
 
+const DEAD_WOOD = { dark: "#2e2620", mid: "#4a3f36", light: "#655849" };
+
+const deadTree: Draw = (pen, rand) => {
+  const branch = (x: number, y: number, way: number, length: number) => {
+    for (let i = 0; i < length; i++) {
+      pen.rect(x + way * i, y - Math.floor(i * 0.7), 2, 2, i % 3 ? DEAD_WOOD.mid : DEAD_WOOD.dark);
+    }
+  };
+  pen.rect(14, 18, 5, 38, DEAD_WOOD.mid);
+  pen.rect(14, 18, 2, 38, DEAD_WOOD.dark);
+  pen.rect(17, 24, 1, 26, DEAD_WOOD.light);
+  pen.rect(10, 53, 13, 3, DEAD_WOOD.dark);
+  branch(15, 32, -1, 11);
+  branch(18, 27, 1, 11);
+  branch(15, 20, -1, 7);
+  branch(17, 17, 1, 6);
+  for (let i = 0; i < 6; i++) pen.rect(4 + rand() * 24, 4 + rand() * 16, 1, 2, DEAD_WOOD.dark);
+  pen.outline(OUTLINE);
+};
+
 const BLADE = { dark: "#3f6a2e", mid: "#5d8f3c", light: "#88b552", shine: "#c4dc7a" };
 const TALL_BLADE = { dark: "#335c2b", mid: "#467a35", light: "#6c9d45", shine: "#a8c860" };
 
@@ -119,6 +139,29 @@ const tuft: Draw = (pen, rand) => blades(pen, rand, 16, 10, 7);
 const tallGrass: Draw = (pen, rand) => {
   pen.rect(1, 12, 14, 2, TALL_BLADE.dark);
   blades(pen, rand, 16, 13, 12, TALL_BLADE);
+};
+
+const REED = { dark: "#2c3b26", mid: "#3e5233", light: "#58704a", shine: "#7f9160" };
+
+const reeds: Draw = (pen, rand) => {
+  blades(pen, rand, 16, 18, 10, REED);
+  for (let i = 0; i < 3; i++) {
+    const x = 2 + Math.floor(rand() * 12), y = 1 + Math.floor(rand() * 5);
+    pen.rect(x, y + 3, 1, 15 - y, REED.mid);
+    pen.rect(x, y, 2, 4, "#5a3d26");
+    pen.rect(x, y, 1, 3, "#7a5536");
+  }
+};
+
+const mushrooms: Draw = (pen, rand) => {
+  blades(pen, rand, 16, 10, 3, REED);
+  const caps = ["#9fd8c8", "#c8b6e2", "#d8e6b0"];
+  for (let i = 0; i < 3; i++) {
+    const x = 1 + Math.floor(rand() * 11), h = 2 + Math.floor(rand() * 3), cap = caps[Math.floor(rand() * caps.length)]!;
+    pen.rect(x + 1, 10 - h, 1, h, "#d9d2bd");
+    pen.rect(x, 8 - h, 4, 2, cap);
+    pen.rect(x + 1, 7 - h, 2, 1, cap);
+  }
 };
 
 const flowers: Draw = (pen, rand) => {
@@ -151,11 +194,14 @@ const ruin: Draw = (pen, rand) => {
 export const PROP_ART: Record<PropKind, PropArt> = {
   tree: { widthPx: 48, heightPx: 64, draw: tree },
   pine: { widthPx: 32, heightPx: 64, draw: pine },
+  deadTree: { widthPx: 32, heightPx: 56, draw: deadTree },
   bush: { widthPx: 32, heightPx: 20, draw: bush },
   rock: { widthPx: 24, heightPx: 18, draw: rock },
   tuft: { widthPx: 16, heightPx: 10, draw: tuft },
   tallGrass: { widthPx: 16, heightPx: 14, draw: tallGrass },
   flowers: { widthPx: 16, heightPx: 10, draw: flowers },
+  reeds: { widthPx: 16, heightPx: 18, draw: reeds },
+  mushrooms: { widthPx: 16, heightPx: 10, draw: mushrooms },
   ruin: { widthPx: 16, heightPx: 24, draw: ruin },
 };
 

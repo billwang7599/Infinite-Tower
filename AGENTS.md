@@ -426,6 +426,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
+- Levels: floor 1 has the Grass Field and the Mistwood, joined by a road off the edge of each (walk into it to cross).
+  The level you're on is saved: you come back to it, at its start, when you log in, and dying wakes you at the start
+  of the level you died on. Mistwood reuses the floor's enemies (boars, the Kobold, the Warlock) and the mire arena.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

@@ -884,10 +884,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
                        layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId,
-                       duelArenaId;
-                       rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL, getLevel, getArena)
-        floors/1/        Floor 1's levels, a file each: grass-field.ts (the Grass Field's tile map and spawns, and its
-                         arenas)
+                       duelArenaId, exits (ExitDef: edge tiles that take you to another level, and where you land);
+                       rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL, levelOrStart, getLevel, getArena)
+        floors/1/        Floor 1's levels, a file each: grass-field.ts, mistwood.ts (tile map, spawns, exits), and
+                         arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
@@ -1157,8 +1157,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
                        and light, campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and
                        props from its tile looks)
+        ground.ts        groundPainters: the ground painters every level's tiles share, over its GroundPalette
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
+        mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds), scenery.ts (its
+                         surroundings; no Babylon: tested)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
@@ -1192,7 +1195,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts`, exporting its
   `LevelDef` (its `floor`, and its map as rows of tile characters, north first, centred on 0, 0), and its line in
   `LEVELS` (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the
-  start, the campfires and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable. For a
+  start, the campfires and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable. A way to
+  another level is an `ExitDef` on each side (an open stretch of the map's edge, and where you land on the other); the
+  scenery cuts a gap in front of it. For a
   new look, a theme in `LevelLayout["theme"]` (`shared/src/world/layout.ts`), a folder named by it in
   `client/src/visuals/levels/` (its tile looks and 3D scenery) and its line in `LEVEL_LOOKS`.
 - **A tile kind.** Its line in `TILES` (`shared/src/world/tiles.ts`: a character no other kind uses, solid or not,

@@ -6,6 +6,8 @@ import type { SpriteDraw } from "../sprites.js";
 import type { WaterLook } from "../water/water.js";
 import { GRASS_FIELD_TILES } from "./grass-field/tiles.js";
 import { grassFieldScenery } from "./grass-field/scenery.js";
+import { mistwoodScenery } from "./mistwood/scenery.js";
+import { MISTWOOD_TILES } from "./mistwood/tiles.js";
 import type { TileLooks } from "./tiles.js";
 
 interface LevelLook {
@@ -37,6 +39,28 @@ export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
       foamTiles: 0.12,
     },
     scenery: grassFieldScenery,
+  },
+  mistwood: {
+    env: {
+      sky: new Color3(0.2, 0.23, 0.24),
+      fogDensity: 0.034,
+      ambient: new Color3(0.17, 0.2, 0.21),
+      skyLight: { color: new Color3(0.45, 0.58, 0.62), ground: new Color3(0.15, 0.16, 0.12), intensity: 0.45 },
+      sun: { color: new Color3(0.86, 0.8, 0.7), intensity: 1.05 },
+    },
+    tiles: MISTWOOD_TILES,
+    water: {
+      body: new Color3(0.05, 0.08, 0.05),
+      murkPerTile: 4,
+      reflectivity: 0.16,
+      glint: new Color3(1.1, 1.1, 1),
+      rippleSlope: 0.2,
+      waveHeightTiles: 0.008,
+      windTilesPerSec: { x: 0.04, z: 0.02 },
+      foam: new Color3(0.36, 0.4, 0.28),
+      foamTiles: 0.1,
+    },
+    scenery: mistwoodScenery,
   },
 };
 

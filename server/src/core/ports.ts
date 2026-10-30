@@ -23,6 +23,8 @@ export interface PlayerSave {
   equipment: Equipment;
   knownWords: Word[];
   skillbook: Skillbook;
+  /** The level they were last on (null: never in one); one that's gone from the game is the start level. */
+  level: string | null;
 }
 
 export interface PlayerStore {
