@@ -1154,9 +1154,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
-                       colours and fog), tile looks and the 3D surroundings; the campfire's picture and light,
-                       campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and props from its
-                       tile looks)
+                       colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
+                       and light, campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and
+                       props from its tile looks)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
@@ -1168,6 +1168,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob shadows, Blobs: a
                        round one from the sky light, and one away from each light that reaches it, as dark as that
                        light's share there; blobShadowsAt, tested)
+      water/           The one water look, overworld and arena alike: water.ts (waterMaterial, a shader with
+                       flowing ripples, fresnel sky, sun and moon glints and shore foam, tuned by a WaterLook;
+                       setWater gives a mesh its current, shore and depth per vertex), map.ts (waterMap: each
+                       water tile's flow, width, depth and banks from the level's tiles; tested), level.ts
+                       (levelWater: the level's ground with the water cut out, its bed, banks and surface)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
                          env (its daylight colours and fog), its map lights and build; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
@@ -1287,6 +1292,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
+| How water looks (colour, murk, reflection, glints, ripples, wind, foam), per level and in the mire | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `WATER_DEPTH_TILES` in `client/src/visuals/water/map.ts` |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back a Kobold draws its blade (and leans) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
 | Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |

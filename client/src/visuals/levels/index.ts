@@ -3,6 +3,7 @@ import type { LevelLayout } from "@infinite-tower/shared";
 import type { Scenery } from "../overworld/scenery.js";
 import type { MapLight, SkyLook } from "../sky/sky.js";
 import type { SpriteDraw } from "../sprites.js";
+import type { WaterLook } from "../water/water.js";
 import { GRASS_FIELD_TILES } from "./grass-field/tiles.js";
 import { grassFieldScenery } from "./grass-field/scenery.js";
 import type { TileLooks } from "./tiles.js";
@@ -10,6 +11,7 @@ import type { TileLooks } from "./tiles.js";
 interface LevelLook {
   env: SkyLook;
   tiles: TileLooks;
+  water: WaterLook;
   scenery(level: LevelLayout): Scenery;
 }
 
@@ -23,6 +25,17 @@ export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
       sun: { color: new Color3(1, 0.68, 0.46), intensity: 1.5 },
     },
     tiles: GRASS_FIELD_TILES,
+    water: {
+      body: new Color3(0.08, 0.22, 0.25),
+      murkPerTile: 1.8,
+      reflectivity: 0.12,
+      glint: new Color3(1.6, 1.5, 1.35),
+      rippleSlope: 0.55,
+      waveHeightTiles: 0.025,
+      windTilesPerSec: { x: 0.12, z: 0.05 },
+      foam: new Color3(0.62, 0.68, 0.66),
+      foamTiles: 0.12,
+    },
     scenery: grassFieldScenery,
   },
 };

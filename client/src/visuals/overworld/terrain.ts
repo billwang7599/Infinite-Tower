@@ -7,6 +7,7 @@ import { campfireLights, drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../leve
 import { paintGround, tileProps } from "../levels/tiles.js";
 import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
 import { spriteMaterial } from "../sprites.js";
+import { levelWater } from "../water/level.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
 import { isTall, type Ledge, type Prop, type PropKind } from "./scenery.js";
@@ -44,15 +45,18 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   const fringe = cutoutMaterial(scene, "overworld-fringe", tiled(pixelCanvas(scene, "fringe", 16, 8, drawFringe)));
   fringe.disableLighting = false;
   fringe.emissiveColor = Color3.Black();
+  const water = levelWater(scene, level, look.water);
 
   scenery.ledges.forEach((ledge, i) => {
-    const parts = buildLedge(scene, ledge, i, i === 0 ? field : grass, brick, fringe);
-    for (const m of parts) {
+    const carved = i === 0 ? water.ground : null;
+    const parts = buildLedge(scene, ledge, i, carved ? field : grass, brick, fringe, carved);
+    for (const m of [...parts, ...carved ? [water.surface] : []]) {
       m.parent = root;
       m.receiveShadows = true;
       m.freezeWorldMatrix();
     }
     sky.castShadows(parts[0]!);
+    if (carved) sky.castShadows(carved);
   });
   const props = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], lights, root);
   const campfires = buildCampfires(view, level, root);
@@ -79,6 +83,7 @@ function tiled(tex: DynamicTexture): DynamicTexture {
 
 function buildLedge(
   scene: Scene, { rect, topY }: Ledge, i: number, top: StandardMaterial, side: StandardMaterial, fringe: StandardMaterial,
+  carved: Mesh | null,
 ): Mesh[] {
   const cx = rect.x + rect.w / 2, cz = rect.z + rect.h / 2, wide = (n: number) => new Vector4(0, 0, n / 2, BLOCK_DEPTH / 2);
   const block = MeshBuilder.CreateBox(`ledge-${i}`, {
@@ -87,8 +92,13 @@ function buildLedge(
   }, scene);
   block.position.set(cx, topY - BLOCK_DEPTH / 2 - 0.01, cz);
   block.material = side;
-  const ground = MeshBuilder.CreateGround(`ledge-top-${i}`, { width: rect.w, height: rect.h }, scene);
-  ground.position.set(cx, topY, cz);
+  if (carved) {
+    // Open-topped, so the water's bed shows through the carved ground's holes.
+    const normals = block.getVerticesData(VertexBuffer.NormalKind)!, indices = block.getIndices()!;
+    block.setIndices(indices.filter((_, k) => normals[indices[k - (k % 3)]! * 3 + 1]! < 0.5));
+  }
+  const ground = carved ?? MeshBuilder.CreateGround(`ledge-top-${i}`, { width: rect.w, height: rect.h }, scene);
+  if (!carved) ground.position.set(cx, topY, cz);
   ground.material = top;
   if (i > 0) scaleUVs(ground, rect.w / 2, rect.h / 2);
   const edges: [number, number, number, number][] = [
