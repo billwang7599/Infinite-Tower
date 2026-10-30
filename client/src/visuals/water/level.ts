@@ -1,7 +1,7 @@
 import { Mesh, VertexBuffer, VertexData, type Scene } from "@babylonjs/core";
 import { mapHalfSize, tileAt, type LevelLayout } from "@infinite-tower/shared";
 import { PX_PER_TILE } from "../overworld/props.js";
-import { WATER_DEPTH_TILES, waterMap } from "./map.js";
+import { WATER_DEPTH_TILES, waterMap } from "../../modes/overworld/water.js";
 import { setWater, waterMaterial, type WaterLook } from "./water.js";
 
 const STEPS_PER_TILE = 4;

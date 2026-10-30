@@ -11,6 +11,7 @@ import { useAction } from "../../components/useAction.js";
 import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { AudioSection } from "./AudioSection.js";
 import { CameraSection } from "./CameraSection.js";
 import { KeyBindingsList } from "./KeyBindingsList.js";
 import { FOCUS_RING, SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
@@ -62,6 +63,7 @@ export function SettingsScreen({ screen, open, close, settings, input, returnToT
         <div className="min-h-0 flex-1 overflow-y-auto px-7">
           <CameraSection camera={settings.camera} mouse={settings.mouse} />
           <HudSection hud={settings.hud} />
+          <AudioSection audio={settings.audio} />
           <KeyBindingsList bindings={settings.bindings} input={input} />
         </div>
         <Footer close={close} returnToTitle={returnToTitle} />

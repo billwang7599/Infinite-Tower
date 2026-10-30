@@ -3,6 +3,7 @@
  * `battle.fight.world` while a fight is on; `encounter()` fights a wild boar, or the enemy named (dev servers only).
  */
 import * as shared from "@infinite-tower/shared";
+import type { Audio } from "../audio/audio.js";
 import type { Battle } from "../modes/battle/battle.js";
 import * as overworldComponents from "../modes/overworld/components.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
@@ -16,6 +17,7 @@ interface DebugHandles {
   overworld: Overworld;
   ui: UiState;
   settings: Settings;
+  audio: Audio;
   mode: () => Mode | null;
   encounter: (enemy?: shared.EnemyId) => void;
 }
@@ -31,7 +33,7 @@ export function exposeDebugHandles(h: DebugHandles): void {
   if (!import.meta.env.DEV && !params.has("debug")) return;
   Object.assign(window, {
     battle: h.battle.ctx, overworld: h.overworld.state, mode: h.mode, ui: h.ui, settings: h.settings,
-    encounter: h.encounter,
+    audio: h.audio.debug, encounter: h.encounter,
     cast: (skill: shared.Skill) => h.battle.ctx.casts.push(skill),
     components: { ...shared, ...overworldComponents },
   });

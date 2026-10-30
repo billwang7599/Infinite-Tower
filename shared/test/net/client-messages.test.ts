@@ -227,6 +227,14 @@ describe("parseClientMsg", () => {
     for (const showPing of ["true", 1, null]) assert.equal(settings({ showPing }), null);
   });
 
+  test("settings: the volumes may be left out, and each is a number from 0 to 1", () => {
+    const settings = (audio: object) => parse({ t: "settings", settings: { audio } });
+    for (const audio of [{}, { master: 0 }, { master: 1, effects: 0.5, ambient: 0.25 }]) {
+      assert.deepEqual(settings(audio), { t: "settings", settings: { audio } });
+    }
+    for (const master of ["1", null, -0.1, 1.5]) assert.equal(settings({ master }), null, JSON.stringify(master));
+  });
+
   test("chat: only the text, trimmed; nothing but spaces is dropped", () => {
     assert.deepEqual(parse({ t: "chat", text: "  hi all " }), { t: "chat", text: "hi all" });
     for (const text of ["", "   ", 5, null]) assert.equal(parse({ t: "chat", text }), null, JSON.stringify(text));

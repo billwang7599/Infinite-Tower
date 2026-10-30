@@ -55,6 +55,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
 export function say(to: Notifications, event: GameEvent): void {
   // TypeScript can't tie `event` to its own kind's entry, so the entry is read as taking any event.
   const { where, lines } = EVENT_MESSAGES[event.kind] as EventMessage<GameEvent>;
+  to.said.set({ event });
   for (const line of lines(event)) {
     if (where === "centre") to.announce(line);
     else to.notify(line);
