@@ -90,6 +90,22 @@ describe("the Kobold Swordsman", () => {
     });
   }
 
+  test("each chained swing winds up for its whole chain wind-up, a longer tell than its blade needs", () => {
+    const def = KOBOLD.attacks.weapon!;
+    assert.ok(def.chainWindup < def.windup, "the opener's is longer still");
+    for (const seed of [1, 2, 3]) {
+      const fight = fightWith(KOBOLD, seed), it = () => fight.world.require(fight.enemies[0]!, Enemy);
+      const chained: number[] = [];
+      for (let i = 0; i < 30 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
+        const was = it().state;
+        fight.step([IDLE_INPUT]);
+        if (was === "weapon" && it().state === "weaponWindup") chained.push(it().duration);
+      }
+      assert.ok(chained.length > 2, `seed ${seed}`);
+      for (const t of chained) assert.equal(t, def.chainWindup, `seed ${seed}: ${chained.join(", ")}`);
+    }
+  });
+
   test("its own blade never drops, even on the lowest roll", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
     assert.deepEqual(rollDrops("kobold-swordsman", () => 0), {});

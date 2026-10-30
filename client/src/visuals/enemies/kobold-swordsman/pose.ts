@@ -19,14 +19,23 @@ const HIP_SHARE = 0.4;
 const BEND_RAD = 0.15;
 /**
  * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, a stab's
- * hand `stabM` further back, the body `leanRad` back; eased off by `goneByTurn`, the turn a stroke goes live on.
+ * hand `stabM` further back, the body `leanRad` back; the chest turns `turnRad` toward the blade's side (a stab's:
+ * the sword's) and bends `bendRad` toward its height; eased off by `goneByTurn`, the turn a stroke goes live on.
  */
-export const KOBOLD_DRAWBACK = { swingRad: 0.7, stabM: 0.15, leanRad: 0.12, goneByTurn: 1 / 3 };
+export const KOBOLD_DRAWBACK = {
+  swingRad: 1.1, stabM: 0.25, leanRad: 0.2, turnRad: 0.5, bendRad: 0.25, goneByTurn: 1 / 3,
+};
 
 const smooth = (s: number): number => s * s * (3 - 2 * s);
 
 function drawback(stroke: { set: number; turn: number }): number {
   return stroke.set < 1 ? smooth(stroke.set) : 1 - smooth(clamp(stroke.turn / KOBOLD_DRAWBACK.goneByTurn, 0, 1));
+}
+
+function coilToward(attack: AttackKind, blade: Vec3): { x: number; y: number } {
+  if (!isSwing(attack)) return { x: 1, y: 0 };
+  const flat = Math.hypot(blade.x, blade.y);
+  return flat < 1e-6 ? { x: 0, y: 0 } : { x: blade.x / flat, y: blade.y / flat };
 }
 
 /** Further round its swing's arc, away from where it sweeps to. */
@@ -102,7 +111,8 @@ export function koboldPose(
   const lead = (ahead: number): Vec3 => !swinging || !stroke ? p.blade : stroke.set < 1
     ? motion.windup(attack, Math.min(1, stroke.set + LEAD_SET * ahead), held).blade
     : motion.stroke(attack, stroke.turn + LEAD_TURN * ahead).blade;
-  const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2);
+  const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2), coil = coilToward(attack, chestAt);
+  const coilTwist = KOBOLD_DRAWBACK.turnRad * pull * coil.x;
   return {
     ...p,
     hand: {
@@ -110,8 +120,8 @@ export function koboldPose(
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
     offHand: OFF_HAND,
-    twist: dead ? 0 : TWIST_RAD * chestAt.x,
-    hipTwist: dead ? 0 : TWIST_RAD * HIP_SHARE * hipsAt.x,
-    bend: dead ? 0 : -BEND_RAD * chestAt.y,
+    twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
+    hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
+    bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,
   };
 }

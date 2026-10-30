@@ -91,6 +91,22 @@ describe("the kobold's pose", () => {
     assert.ok(wound.lean < -0.12 - KOBOLD_DRAWBACK.leanRad / 2);
   });
 
+  test("the draw-back turns the body: toward the blade's side for a swing, the sword shoulder back for a stab", () => {
+    const { turnRad } = KOBOLD_DRAWBACK, drawn = { set: 1, turn: 0 };
+    const at = (attack: AttackKind) => poseOf("weaponWindup", 0.5, 0.95, attack, drawn);
+    assert.ok(at("lr").twist > turnRad && at("lr").hipTwist > 0);
+    assert.ok(at("rl").twist < -turnRad && at("rl").hipTwist < 0);
+    assert.ok(Math.abs(at("stab").twist - turnRad) < 1e-9);
+    assert.ok(at("stab").hipTwist > 0);
+  });
+
+  test("a high wind-up rears the chest back, a low one hunches it over", () => {
+    const { bendRad } = KOBOLD_DRAWBACK, drawn = { set: 1, turn: 0 };
+    const high = poseOf("weaponWindup", 0.5, 0.95, "tb", drawn), low = poseOf("weaponWindup", 0.5, 0.95, "bt", drawn);
+    assert.ok(high.bend < -bendRad, `${high.bend}`);
+    assert.ok(low.bend > bendRad, `${low.bend}`);
+  });
+
   test("a stab's hand starts its thrust drawn further back than its plain stroke, and is on it once live", () => {
     const { goneByTurn, stabM } = KOBOLD_DRAWBACK, stroke = MOTIONS.sword.stroke;
     const drawn = poseOf("weaponWindup", 0.5, 0.95, "stab", { set: 1, turn: 0 });

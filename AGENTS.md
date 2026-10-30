@@ -252,8 +252,8 @@ Decided by the user:
   `hitStopMs` in `WEAPON_LOOKS` and the top of `client/src/visuals/battle/impact.ts`.
 - The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
   three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
-  first swing winds up 1.1 s, the ones after it 0.45 s (telegraphs: the blade's own wind-up is only a floor, which since
-  the slower swings makes most of its chained turns 0.5-0.6 s). A swing is parried by the reverse swing, or either of
+  first swing winds up 1.1 s, the ones after it 0.8 s (the user: "make the chain wind ups slightly longer"; telegraphs:
+  the blade's own wind-up is only a floor, at most 0.8 s here). A swing is parried by the reverse swing, or either of
   the two 45° from it (3 of 8), live within `PARRY.window` (0.15 s) before it lands (the Kobold is stunned, knocked
   back and takes more damage), even while you're briefly invulnerable from the swing before it; a parry 45° off stuns
   and knocks back half as much (`PARRY.offAngleShare`), the extra damage the same. A stab is parried by a stab the
@@ -267,8 +267,10 @@ Decided by the user:
   It drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
   chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
   inertia.
-  Its attacks are read from its blade alone, with no marker over its head (the user: "remove the attack indicator
-  now. it should be purely visual based").
+  Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
+  sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
+  back and turns its body, with a wind-up sound once sounds exist. There's no attack-warning marker; the lock-on
+  diamond stays, since it shows which enemy you're locked onto.
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
   too"; not hand-played yet): a Longsword and a Greatsword, which every player has (the starter kit). The Kobold
