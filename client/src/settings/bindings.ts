@@ -84,6 +84,7 @@ export const MENUS = {
   chant: { ...WORD_KEYS, releaseChant: ["Enter"], closeChant: ["Escape"] },
   skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
   chat: { sendChat: ["Enter"], closeChat: ["Escape"] },
+  dialogue: { nextLine: ["Enter"], closeDialogue: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;
 
 export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;

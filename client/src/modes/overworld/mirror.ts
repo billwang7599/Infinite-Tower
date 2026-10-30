@@ -1,13 +1,15 @@
 import {
-  faceToward, type ActorSnap, type Character, type Entity, type PileSnap, type PlayerSnap, type World,
+  faceToward, type ActorSnap, type Character, type Entity, type LevelLayout, type PileSnap, type PlayerSnap,
+  type World,
 } from "@infinite-tower/shared";
-import { OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
+import { Npc, OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
 import { headingFromSide } from "./facing.js";
 
 export class ActorMirror {
   /** Server id -> local entity. */
   private readonly local = new Map<number, Entity>();
   private readonly characters = new Map<number, Character>();
+  private npcs: Entity[] = [];
 
   constructor(private readonly world: World) {}
 
@@ -40,9 +42,21 @@ export class ActorMirror {
     return this.local.get(id);
   }
 
-  /** Entering another level. */
+  enter(level: LevelLayout): void {
+    this.clear();
+    this.npcs = level.npcs.map(({ npc, at, heading }) => {
+      const e = this.world.spawn();
+      this.world.add(e, OverworldPos, { x: at.x, z: at.z });
+      this.world.add(e, OverworldActor, { kind: "npc", vx: 0, vz: 0, heading, alert: false });
+      this.world.add(e, Npc, { id: npc });
+      return e;
+    });
+  }
+
   clear(): void {
     for (const [id, e] of this.local) this.remove(id, e);
+    for (const e of this.npcs) this.world.destroy(e);
+    this.npcs = [];
     this.characters.clear();
     this.world.flush();
   }

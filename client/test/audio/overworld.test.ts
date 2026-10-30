@@ -9,7 +9,7 @@ import {
 
 // 8 x 4 tiles, centred on 0, 0: x from -4 to 4, z from -2 to 2 (north first). Water in the east column, rows 1-2.
 const LEVEL: LevelLayout = {
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [{ x: -2, z: 1 }],
+  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [{ x: -2, z: 1 }], npcs: [],
   tiles: ["........", ".......~", ".......~", "........"],
 };
 const DRY: LevelLayout = { ...LEVEL, theme: "mistwood", tiles: ["........", "........"], campfires: [] };

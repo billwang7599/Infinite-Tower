@@ -33,7 +33,8 @@ What's built so far:
   someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
   stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
   crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
-  drops.
+  drops. Hollis, a native of the tower, keeps the Grass Field's campfire: face Hollis and press E (or "Talk") for a
+  few words about the world, a line at a time (Enter, E or a click; Esc closes). Talking changes nothing.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.

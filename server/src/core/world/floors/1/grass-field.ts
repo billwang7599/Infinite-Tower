@@ -55,6 +55,7 @@ export const GRASS_FIELD: LevelDef = {
       "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     ],
     campfires: [{ x: -9, z: -2.5 }],
+    npcs: [{ npc: "hollis", at: { x: -6, z: -3.5 }, heading: "west" }],
   },
   spawn: { x: -12, z: -5 },
   arenaId: GRASS_FIELD_ARENA.id,

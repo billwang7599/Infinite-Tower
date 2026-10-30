@@ -22,7 +22,7 @@ export * from "./weapons/weapons.js";
 export * from "./world/layout.js";
 export * from "./world/tiles.js";
 export * from "./world/arena.js";
-export * from "./world/piles.js";
+export * from "./world/interact.js";
 export * from "./world/day.js";
 export * from "./overworld/view.js";
 export * from "./net/api.js";

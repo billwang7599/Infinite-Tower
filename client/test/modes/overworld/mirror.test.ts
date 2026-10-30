@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_LOOK, World, type Character, type PileSnap, type PlayerSnap } from "@infinite-tower/shared";
-import { OverworldActor, OverworldPos, Peer } from "../../../src/modes/overworld/components.js";
+import {
+  DEFAULT_LOOK, World, type Character, type LevelLayout, type PileSnap, type PlacedNpc, type PlayerSnap,
+} from "@infinite-tower/shared";
+import { Npc, OverworldActor, OverworldPos, Peer } from "../../../src/modes/overworld/components.js";
 import { ActorMirror } from "../../../src/modes/overworld/mirror.js";
 
 const ALICE: Character = { name: "Alice", gender: "girl", look: DEFAULT_LOOK };
@@ -66,5 +68,32 @@ describe("ActorMirror: piles", () => {
     assert.deepEqual(piles(world), [{ x: 4, z: -1 }, { x: 0, z: -1 }]);
     mirror.apply([], [], [pile({ id: 21, x: 0 })]);
     assert.deepEqual(piles(world), [{ x: 0, z: -1 }]);
+  });
+});
+
+describe("ActorMirror: NPCs", () => {
+  const HOLLIS: PlacedNpc = { npc: "hollis", at: { x: -6, z: 3 }, heading: "west" };
+  const levelWith = (...npcs: PlacedNpc[]) => ({ npcs } as unknown as LevelLayout);
+  const npcs = (world: World) => [...world.query(Npc, OverworldActor, OverworldPos)]
+    .map(([, npc, actor, pos]) => ({ id: npc.id, kind: actor.kind, heading: actor.heading, pos }));
+
+  test("a level's NPCs stand where it puts them, facing its way, each known by its id", () => {
+    const world = new World(), mirror = new ActorMirror(world);
+    mirror.enter(levelWith(HOLLIS));
+    assert.deepEqual(npcs(world), [{
+      id: "hollis", kind: "npc", heading: "west", pos: { x: -6, z: 3 },
+    }]);
+  });
+
+  test("they stay through the server's state, and go with the level", () => {
+    const world = new World(), mirror = new ActorMirror(world);
+    mirror.enter(levelWith(HOLLIS));
+    mirror.apply([], [], []);
+    assert.equal(npcs(world).length, 1);
+    mirror.enter(levelWith());
+    assert.equal(npcs(world).length, 0);
+    mirror.enter(levelWith(HOLLIS));
+    mirror.clear();
+    assert.equal(npcs(world).length, 0);
   });
 });

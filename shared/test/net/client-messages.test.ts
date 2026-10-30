@@ -43,6 +43,7 @@ describe("parseClientMsg", () => {
       { t: "moveItem", from: { in: "slot", slot: "rightHand" }, to: { in: "slot", slot: "leftHand" }, turned: false },
       { t: "moveItem", from: { in: "pile", x: 1, y: 2 }, to: { in: "bag", x: 0, y: 0 }, turned: false },
       { t: "openPile" },
+      { t: "talk" },
       { t: "closeBag" },
       { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
       { t: "cheat", cheat: { kind: "encounter", enemy: "kobold-swordsman" } },

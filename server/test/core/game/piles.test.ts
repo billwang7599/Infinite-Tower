@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, emptyBag, FIXED_DT, fits, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M, type BagItem, type Character,
-  type GridSpot, type ItemCounts, type ItemId,
+  bagCounts, emptyBag, FIXED_DT, fits, INTERACT_LOOK_RAD, INTERACT_RANGE_M, NO_PILE, type BagItem,
+  type Character, type GridSpot, type ItemCounts, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { PILE_LAG_SLACK_M, PILE_LIFETIME_MS, PILE_LOOK_SLACK_RAD } from "../../../src/core/overworld/piles.js";
+import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
+import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import type { Account } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
@@ -17,8 +18,8 @@ import { ACCOUNT, startSession, tick } from "./helpers.js";
 before(() => initPhysics());
 
 const LOOT: ItemCounts = { "boar-tusk": 1, "boar-hide": 1 };
-const REACH_TILES = PILE_RANGE_M + PILE_LAG_SLACK_M;
-const LOOK_RAD = PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD;
+const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
+const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 const bagSpot = (x: number, y: number): GridSpot => ({ in: "bag", x, y });
 
 function walk(session: GameSession, moveX: number, moveZ: number): void {
@@ -76,7 +77,7 @@ describe("opening a pile", () => {
     assert.deepEqual(link.last("gear").gear.pile, NO_PILE);
   });
 
-  test("only looked at: up to PILE_LOOK_RAD (plus the lag slack) round from the way they face, none behind", () => {
+  test("only looked at: up to INTERACT_LOOK_RAD (plus the lag slack) round from the way they face, none behind", () => {
     const { session, link } = facingEast();
     dropBeside(session, 1, LOOT, Math.PI);
     dropBeside(session, 1, LOOT, LOOK_RAD + 0.02);
@@ -102,8 +103,8 @@ describe("opening a pile", () => {
 
   test("of two in view, the one nearest the way they face opens, not the nearest", () => {
     const { session } = facingEast();
-    dropBeside(session, 0.5, { "boar-meat": 1 }, PILE_LOOK_RAD * 0.8);
-    const centred = dropBeside(session, 1.5, { "boar-tusk": 1 }, -PILE_LOOK_RAD * 0.1);
+    dropBeside(session, 0.5, { "boar-meat": 1 }, INTERACT_LOOK_RAD * 0.8);
+    const centred = dropBeside(session, 1.5, { "boar-tusk": 1 }, -INTERACT_LOOK_RAD * 0.1);
     session.openPile();
     assert.deepEqual(session.gear.pile, centred.items());
   });

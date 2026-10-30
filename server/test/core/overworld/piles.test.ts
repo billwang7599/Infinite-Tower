@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import {
-  bagCounts, bagProblems, FIXED_DT, HEADING_WAY, ITEMS, PILE_LOOK_RAD, PILE_RANGE_M, START_HEADING, type ItemCounts,
+  bagCounts, bagProblems, FIXED_DT, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, ITEMS, START_HEADING,
+  type ItemCounts,
 } from "@infinite-tower/shared";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
-import {
-  PILE_COLS, PILE_LAG_SLACK_M, PILE_LIFETIME_MS, PILE_LOOK_SLACK_RAD,
-} from "../../../src/core/overworld/piles.js";
+import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
+import { PILE_COLS, PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
 
 const LOOT: ItemCounts = { "boar-meat": 2, "boar-hide": 1, "boar-tusk": 1 };
@@ -47,8 +47,8 @@ describe("a pile on the overworld", () => {
     const overworld = new Overworld(TEST_LEVEL);
     const me = overworld.join(TEST_CHARACTER, () => {});
     overworld.place(me, { x: 0, z: 0 });
-    const ahead = HEADING_WAY[START_HEADING], reachM = PILE_RANGE_M + PILE_LAG_SLACK_M;
-    const lookRad = PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD;
+    const ahead = HEADING_WAY[START_HEADING], reachM = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
+    const lookRad = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
     overworld.dropPile({ x: -ahead.x, z: -ahead.z }, LOOT);
     overworld.dropPile({ x: ahead.x * (reachM + 0.1), z: ahead.z * (reachM + 0.1) }, LOOT);
     const off = (rad: number) => ({

@@ -6,7 +6,7 @@ import { groundY } from "../../../../src/visuals/overworld/scenery.js";
 
 const LEVEL: LevelLayout = {
   id: "test-field", name: "Test Field", floor: 1, theme: "grass-field", playerSpeed: 5,
-  tiles: Array.from({ length: 26 }, () => ".".repeat(40)), campfires: [{ x: -9, z: -2.5 }],
+  tiles: Array.from({ length: 26 }, () => ".".repeat(40)), campfires: [{ x: -9, z: -2.5 }], npcs: [],
 };
 const { halfWidth: L, halfDepth: D } = mapHalfSize(LEVEL);
 const MAP = { x: -L, z: -D, w: L * 2, h: D * 2 };

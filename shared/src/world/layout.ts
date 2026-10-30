@@ -19,6 +19,16 @@ export interface LevelLayout {
   playerSpeed: number;
   /** Campfire centers. Standing within REST_RANGE_TILES of one, you can rest: HP and stamina refill. */
   campfires: Vec2[];
+  npcs: PlacedNpc[];
+}
+
+export const NPC_IDS = ["hollis"] as const;
+export type NpcId = (typeof NPC_IDS)[number];
+
+export interface PlacedNpc {
+  npc: NpcId;
+  at: Vec2;
+  heading: Heading;
 }
 
 /** Center to center. */

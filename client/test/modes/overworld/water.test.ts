@@ -4,7 +4,7 @@ import { tileAt, type LevelLayout } from "@infinite-tower/shared";
 import { WATER_DEPTH_TILES, waterMap } from "../../../src/modes/overworld/water.js";
 
 const level = (tiles: string[]): LevelLayout => ({
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [], tiles,
+  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [], npcs: [], tiles,
 });
 
 // 14 x 16, centred on 0, 0: a river 2 wide (x -1 to 1) from the north, under a bridge (z 3 to 4), into a lake with

@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, ITEMS, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M,
+  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, INTERACT_LOOK_RAD, INTERACT_RANGE_M, ITEMS, NO_PILE,
   useSteps, type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { AFTER_FIGHT_MS, DROP_GAP_M } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { PILE_LAG_SLACK_M, PILE_LIFETIME_MS, PILE_LOOK_SLACK_RAD } from "../../../src/core/overworld/piles.js";
+import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
+import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import { pileAt, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
-const REACH_M = PILE_RANGE_M + PILE_LAG_SLACK_M;
-const LOOK_RAD = PILE_LOOK_RAD + PILE_LOOK_SLACK_RAD;
+const REACH_M = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
+const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 const DROPPED = rollDrops("wild-boar", () => 0);
 const MEAT: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 1, x: 0, y: 0, turned: false }] };
 const bagSpot = (x: number, y: number): GridSpot => ({ in: "bag", x, y });
@@ -116,7 +117,7 @@ describe("a won fight's drops", () => {
 });
 
 describe("taking from the arena's drops", () => {
-  test("opened within PILE_RANGE_M (plus the lag slack) of where the server's fight has you", (t) => {
+  test("opened within INTERACT_RANGE_M (plus the lag slack) of where the server's fight has you", (t) => {
     const { session, link, at, items } = won(t);
     faceFrom(session, at, REACH_M - 0.05);
     session.openPile();
@@ -130,7 +131,7 @@ describe("taking from the arena's drops", () => {
     assert.deepEqual(link.last("gear").gear.pile, NO_PILE);
   });
 
-  test("only looked at: up to PILE_LOOK_RAD (plus the lag slack) round from where the player faces", (t) => {
+  test("only looked at: up to INTERACT_LOOK_RAD (plus the lag slack) round from where the player faces", (t) => {
     const { session, link, at, items } = won(t);
     faceFrom(session, at, 1, LOOK_RAD - 0.02);
     session.openPile();

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { DEFAULT_LOOK } from "@infinite-tower/shared";
 import type { Mode } from "../../src/game/transition.js";
 import { CHAT_LOG_LINES, inWorld, UiState, whoHasTheKeys, type TitleState } from "../../src/ui/state.js";
 
@@ -51,6 +52,31 @@ describe("UiState chat", () => {
     ui.hearChat(Array.from({ length: CHAT_LOG_LINES }, (_, i) => line(i + 3)));
     assert.equal(ui.chat.get().lines.length, CHAT_LOG_LINES);
     assert.deepEqual(ui.chat.get().lines[0], line(3));
+  });
+});
+
+describe("UiState dialogue", () => {
+  const LINES = ["one", "two", "three"];
+
+  test("opens on its first line, goes on a line at a time, and closes after the last", () => {
+    const ui = new UiState();
+    ui.openDialogue("Hollis", DEFAULT_LOOK, LINES);
+    assert.deepEqual(ui.dialogue.get(), { open: true, name: "Hollis", look: DEFAULT_LOOK, lines: LINES, line: 0 });
+    ui.nextLine();
+    ui.nextLine();
+    assert.equal(ui.dialogue.get().line, 2);
+    ui.nextLine();
+    assert.equal(ui.dialogue.get().open, false);
+  });
+
+  test("closes at any line, and opens again from the first", () => {
+    const ui = new UiState();
+    ui.openDialogue("Hollis", DEFAULT_LOOK, LINES);
+    ui.nextLine();
+    ui.closeDialogue();
+    assert.equal(ui.dialogue.get().open, false);
+    ui.openDialogue("Hollis", DEFAULT_LOOK, LINES);
+    assert.equal(ui.dialogue.get().line, 0);
   });
 });
 
@@ -158,6 +184,16 @@ describe("whoHasTheKeys", () => {
       ui.chat.set({ focused: false });
       assert.deepEqual(whoHasTheKeys(ui, mode), [mode]);
       assert.equal(ui.chat.get().open, true, "the log stays");
+    }
+  });
+
+  test("talking is over the world, in either mode: you stand still while it's open; Settings goes over it", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { ui } = playing(mode);
+      ui.openDialogue("Hollis", DEFAULT_LOOK, ["hello"]);
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "dialogue"]);
+      ui.openSettings();
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "dialogue", "settings"]);
     }
   });
 
