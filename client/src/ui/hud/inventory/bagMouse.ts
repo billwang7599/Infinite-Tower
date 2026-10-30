@@ -174,10 +174,10 @@ export function rightPress(m: BagMouse, gear: Gear): Turned {
   return { mouse: m, move: s && turnInPlace(gear, s) };
 }
 
-/** Whether using it would do anything: it has a use, and food isn't wasted at full HP (the server refuses). */
+/** Whether using it would do anything: it's consumable, and healing isn't wasted at full HP (the server refuses). */
 function canUse(stack: BagItem, fullHp: boolean): boolean {
-  const def = itemDef(stack.item);
-  return !!def.verb && !(def.healHp && fullHp);
+  const use = itemDef(stack.item).consumable;
+  return !!use && !(fullHp && use.effects.some((effect) => "healHp" in effect));
 }
 
 /** Not what's worn, nor what's on a pile: that's taken into the bag first. */

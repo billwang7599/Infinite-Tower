@@ -58,6 +58,7 @@ export function createBattle(opts: BattleOptions): Battle {
     casts: [],
     writes: [],
     gearMoves: [],
+    uses: [],
   };
   const camera = arenaCamera(ctx);
   const hud = hudSystem(ctx, opts.hud);
@@ -101,6 +102,7 @@ export function createBattle(opts: BattleOptions): Battle {
     if (input.chantWords) wordsDue = null;
     input.bag = opts.bag.get().open;
     input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
+    input.use = input.use ? null : ctx.uses.shift() ?? null;
     for (let i = 0; i < steps; i++) sync.advance(input);
     sync.flush();
     opts.skills.set({ book: fight.world.first(LocalPlayer, Player)![2].book });
@@ -118,6 +120,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.casts = [];
       ctx.writes = [];
       ctx.gearMoves = [];
+      ctx.uses = [];
       corrected = [];
       sentWords = opts.chant.get().words;
       wordsDue = null;

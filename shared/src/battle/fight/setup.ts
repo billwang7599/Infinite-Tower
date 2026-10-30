@@ -63,7 +63,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: null, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
-    castQueued: null, writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null,
+    castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
+    writing: null, using: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
     invulnerable: setup.invulnerable ?? false, leftArena: false,

@@ -3,10 +3,10 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  distXZ, emptyCloth, gearBurden, heldIn, itemAt, itemDef, JOIN_RANGE_TILES, moveGear, nearCampfire, NO_PILE,
-  PLAYER, skillOf, validateSkill, takeOne, walkPace, type Bag, type Burden, type Character,
-  type Cheat, type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput,
-  type Stats, type UseSpot, type Vitals, type Word,
+  distXZ, emptyCloth, finishUse, gearBurden, Health, heldIn, JOIN_RANGE_TILES, moveGear, nearCampfire, NO_PILE,
+  PLAYER, skillOf, startUse, stepUse, validateSkill, walkPace, type Bag, type Burden, type Character, type Cheat,
+  type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput, type Stats,
+  type UseSpot, type Using, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
@@ -64,6 +64,7 @@ export class GameSession {
   private walking: Walking | null = null;
   private readonly introduced = new Set<Entity>();
   private pileOpen: Entity | null = null;
+  private using: Using | null = null;
 
   constructor(
     readonly account: Account,
@@ -200,15 +201,9 @@ export class GameSession {
   }
 
   useItem(at: UseSpot): void {
-    const grid = this.gear[at.in];
-    const item = grid.items[itemAt(grid, at)]?.item;
-    const healHp = item ? itemDef(item).healHp ?? 0 : 0;
-    const left = takeOne(grid, at);
-    if (!this.inOverworld || !item || !left || healHp <= 0 || this.vitals.hp >= PLAYER.maxHp) return;
-    this.gear = { ...this.gear, [at.in]: left };
-    this.vitals = { ...this.vitals, hp: Math.min(PLAYER.maxHp, this.vitals.hp + healHp) };
-    this.save();
-    this.link.send({ t: "itemUsed", item, vitals: this.vitals, gear: this.gear });
+    if ((!this.inOverworld && !this.afterFight) || this.using) return;
+    this.using = startUse(this.gear[at.in], at, { hp: this.vitals.hp, max: PLAYER.maxHp });
+    if (this.using) this.link.send({ t: "using", at });
   }
 
   /**
@@ -220,7 +215,7 @@ export class GameSession {
     if (!this.inOverworld && !inArena) return;
     this.followPile();
     const onCloth = from.in === "cloth" || to.in === "cloth";
-    const moved = inArena && onCloth ? null : moveGear(this.gear, from, to, turned);
+    const moved = this.using || (inArena && onCloth) ? null : moveGear(this.gear, from, to, turned);
     if (moved) {
       this.gear = moved;
       if (from.in === "pile" && this.pileOpen !== null) this.overworld.setPileItems(this.pileOpen, moved.pile);
@@ -240,6 +235,10 @@ export class GameSession {
   }
 
   closeBag(): void {
+    if (this.using) {
+      this.using = null;
+      this.link.send({ t: "using", at: null });
+    }
     if (this.gear.cloth.items.length === 0 && this.pileOpen === null) return;
     this.pileOpen = null;
     this.gear = { ...this.gear, cloth: emptyCloth(), pile: NO_PILE };
@@ -302,6 +301,7 @@ export class GameSession {
       return;
     }
     if (!this.inOverworld) return;
+    this.tickUse();
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
   }
@@ -314,11 +314,32 @@ export class GameSession {
       this.link.send({ t: "arenaClosed" });
       return;
     }
+    this.tickUse();
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     const piles = arenaPiles(battle.drops, this.overworld);
     if (piles === battle.shownDrops) return;
     battle.shownDrops = piles;
     this.link.send({ t: "arenaDrops", piles: piles.map(({ pile, at }) => ({ id: pile, ...at })) });
+  }
+
+  private tickUse(): void {
+    if (!this.using) return;
+    const using = stepUse(this.using);
+    this.using = using.stepsLeft > 0 ? using : null;
+    if (this.using) return;
+    const target = { hp: this.vitals.hp, max: PLAYER.maxHp };
+    const grid = finishUse(using, this.gear[using.at.in], target);
+    if (!grid) {
+      this.link.send({ t: "using", at: null });
+      return;
+    }
+    this.gear = { ...this.gear, [using.at.in]: grid };
+    this.vitals = { ...this.vitals, hp: target.hp };
+    const battle = this.afterFight;
+    // In the arena after a win the fight's HP follows, so its HUD shows it.
+    battle?.room.edit(battle.seat, (world, me) => { world.require(me, Health).hp = target.hp; });
+    this.save();
+    this.link.send({ t: "itemUsed", item: using.item, vitals: this.vitals, gear: this.gear });
   }
 
   /** True if the open pile changed under them (others took from it, or it vanished). */

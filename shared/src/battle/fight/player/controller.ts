@@ -2,6 +2,7 @@ import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
 import { emptyCloth, heldIn, moveGear, NO_PILE, type Spot } from "../../../items/gear.js";
+import { startUse } from "../../../items/using.js";
 import {
   Body, Health, Player, Skilled, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData, type StaminaData,
   type WielderData,
@@ -24,9 +25,10 @@ const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
 
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   endSwing(world, e);
-  if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
+  if (["chant", "write", "bag", "use"].includes(player.action)) player.brokenOff = true;
   if (action !== "cast") endCast(world.require(e, Skilled));
   player.writing = null;
+  player.using = null;
   player.action = action;
   player.actionTime = 0;
   player.actionDir = { x, z };
@@ -128,12 +130,14 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   } else if (!locked) player.castBuffer = Math.max(0, player.castBuffer - dt);
   const writePressed = input.write !== null && !player.writeHeld;
   const gearPressed = input.gear !== null && !player.gearHeld;
+  const usePressed = input.use !== null && !player.useHeld;
   if (input.chantWords !== null && !player.wordsHeld) skilled.words = [...input.chantWords];
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
   skilled.held = input.cast !== null || input.castHeld;
   player.writeHeld = input.write !== null;
   player.gearHeld = input.gear !== null;
+  player.useHeld = input.use !== null;
   player.wordsHeld = input.chantWords !== null;
   skilled.aim = { x: input.aimX, z: input.aimZ };
   const lockedOn = input.locked === null ? null : targets[input.locked] ?? null;
@@ -159,7 +163,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? SKILL_EFFECTS.self.air.dodgeCostFactor : 1);
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
     const chanting = player.action === "chant" || player.action === "write";
-    const inBag = player.action === "bag";
+    const inBag = player.action === "bag", usingNow = player.action === "use";
+    const using = inBag && usePressed && input.use?.in === "bag" ? startUse(player.gear.bag, input.use, health) : null;
     let queuedCast = player.castQueued;
     if (queuedCast !== null && player.action !== "chant" && !(skillbook && onPage(player.book, queuedCast))) {
       player.castQueued = queuedCast = null;
@@ -167,7 +172,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     }
     const write = input.write;
     // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
-    const dodgeable = free || chanting || inBag || player.action === "cast" || player.action === "beam";
+    const dodgeable = free || chanting || inBag || usingNow || player.action === "cast"
+      || player.action === "beam";
     if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
@@ -188,10 +194,15 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       player.action = "write";
       player.actionTime = 0;
       player.writing = write;
-    } else if ((player.action === "chant" && !input.chant) || (inBag && !input.bag)
+    } else if (using) {
+      player.action = "use";
+      player.actionTime = 0;
+      player.using = using;
+    } else if ((player.action === "chant" && !input.chant) || ((inBag || usingNow) && !input.bag)
       || (player.action === "write" && !input.chant && !input.bag)) {
       player.action = "none";
       player.writing = null;
+      player.using = null;
     } else if (free && input.chant && !player.brokenOff) {
       startAction(world, e, player, "chant", input.aimX, input.aimZ);
       restBlade(wielder);
@@ -239,6 +250,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       case "chant":
       case "write":
       case "bag":
+      case "use":
         v.x = approach(v.x, 0, PLAYER.accel * dt);
         v.z = approach(v.z, 0, PLAYER.accel * dt);
         break;
@@ -261,7 +273,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   skilled.chanting = player.action === "chant" || (player.action === "write" && input.chant);
 
   // Stamina: paused during actions (blocking too, not chanting or in the bag), regenerates after a short delay.
-  if (player.action !== "none" && player.action !== "chant" && player.action !== "write" && player.action !== "bag") {
+  if (!["none", "chant", "write", "bag", "use"].includes(player.action)) {
     stamina.regenDelay = PLAYER.staminaRegenDelay;
   }
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;

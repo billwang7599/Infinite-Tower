@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M,
-  type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Word,
+  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, ITEMS, NO_PILE, PILE_LOOK_RAD, PILE_RANGE_M,
+  useSteps, type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
@@ -38,9 +38,11 @@ function faceFrom(session: GameSession, at: Vec2, awayM = 1, offRad = 0): void {
 }
 
 /** A dev session that has just won against the boar (everything dropped, by default), still in the arena. */
-function won(t: TestContext, opts: { random?: number; bag?: Bag; knownWords?: Word[] } = {}) {
+function won(t: TestContext, opts: { random?: number; bag?: Bag; knownWords?: Word[]; vitals?: Vitals } = {}) {
   t.mock.method(Math, "random", () => opts.random ?? 0);
-  const started = startSession({ dev: true, saved: { bag: opts.bag ?? emptyBag(), knownWords: opts.knownWords ?? [] } });
+  const { bag = emptyBag(), knownWords = [], vitals } = opts;
+  const saved = { bag, knownWords, ...(vitals && { vitals }) };
+  const started = startSession({ dev: true, saved });
   const { session } = started;
   const home = { ...session.overworld.playerPos(session.me) };
   session.cheat({ kind: "encounter", enemy: "wild-boar" });
@@ -178,11 +180,18 @@ describe("taking from the arena's drops", () => {
     assert.deepEqual(link.last("gear").gear.cloth.items, []);
   });
 
-  test("nothing is eaten in the arena", (t) => {
-    const { session, link } = won(t, { bag: MEAT });
+  test("eating works there as on the overworld, and the fight's HP follows", (t) => {
+    const hp = 50;
+    const { session, link } = won(t, { bag: MEAT, vitals: { hp, stamina: 40 } });
     session.useItem({ in: "bag", x: 0, y: 0 });
-    assert.deepEqual(session.bag, MEAT);
-    assert.equal(link.all("itemUsed").length, 0);
+    assert.deepEqual(link.last("using"), { t: "using", at: { in: "bag", x: 0, y: 0 } });
+    step(session, useSteps("boar-meat"));
+    const healed = hp + ITEMS["boar-meat"].consumable.effects[0].healHp;
+    assert.equal(session.vitals.hp, healed);
+    assert.deepEqual(session.bag, emptyBag());
+    assert.equal(link.last("itemUsed").vitals.hp, healed);
+    const fight = fightOf(session);
+    assert.equal(fight.world.require(fight.players[0]!, Health).hp, healed);
   });
 
   test("a page can be written there, as outside a fight", (t) => {

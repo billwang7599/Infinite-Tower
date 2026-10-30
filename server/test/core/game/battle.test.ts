@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS,
-  physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, WEAPONS, type Bag, type Equipment,
+  physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, useSteps, WEAPONS, type Bag, type Equipment,
   type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -436,6 +436,26 @@ describe("the bag in a fight", () => {
     assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
     assert.deepEqual(result.gear.equipment, { ...starterEquipment(), rightHand: null });
     assert.deepEqual(result.gear.bag.items, [{ item: "sword", count: 1, x: 5, y: 0, turned: false }]);
+  });
+
+  test("meat eaten from it, as the fight's input: the server's fight heals at the end and keeps it in the result", () => {
+    const { session, link } = inBattle(CARRIED);
+    play(session, () => IDLE_INPUT, 2);
+    play(session, () => BAG, 1);
+    play(session, () => ({ ...BAG, use: { in: "bag", x: 0, y: 0 } }), 1);
+    play(session, () => BAG, useSteps("boar-meat"));
+    const fight = fightOf(session), me = fight.players[0]!;
+    assert.equal(fight.world.require(me, Health).hp, HURT.hp + ITEMS["boar-meat"].consumable.effects[0].healHp);
+    win(session);
+    assert.equal(link.last("battleResult").gear.bag.items.find((s) => s.item === "boar-meat")?.count, 1);
+  });
+
+  test("useItem messages do nothing mid-fight: eating there is the fight's input", () => {
+    const { session, link } = inBattle(CARRIED);
+    session.useItem({ in: "bag", x: 0, y: 0 });
+    play(session, () => IDLE_INPUT, useSteps("boar-meat") + 2);
+    assert.equal(fightOf(session).world.require(fightOf(session).players[0]!, Health).hp, HURT.hp);
+    assert.equal(link.all("using").length, 0);
   });
 
   test("moveItem messages are still refused mid-fight", () => {

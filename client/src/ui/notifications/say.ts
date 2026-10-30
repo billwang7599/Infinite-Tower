@@ -90,7 +90,7 @@ function challengeLines(news: ChallengeNews): string[] {
 
 function itemUsedLine(item: ItemId): string {
   const def = itemDef(item);
-  return `${def.verb === "Eat" ? "You eat the" : "You use the"} ${def.name.toLowerCase()}.`;
+  return `You ${def.consumable?.verb.toLowerCase() ?? "use"} the ${def.name.toLowerCase()}.`;
 }
 
 function givenLines({ item, count, left }: EventOf<"given">): string[] {

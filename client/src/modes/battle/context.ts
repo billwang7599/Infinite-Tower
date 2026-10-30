@@ -1,4 +1,4 @@
-import type { Entity, GearMove, PageWrite, PileSnap, Skill, Vec3 } from "@infinite-tower/shared";
+import type { Entity, GearMove, PageWrite, PileSnap, Skill, UseSpot, Vec3 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -37,4 +37,5 @@ export interface BattleContext {
   casts: Skill[];
   writes: PageWrite[];
   gearMoves: GearMove[];
+  uses: UseSpot[];
 }

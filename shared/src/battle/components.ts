@@ -6,16 +6,17 @@ import type { AttackKind, Blade } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
+import type { Using } from "../items/using.js";
 import type { Reaction, Status } from "../skills/effects.js";
 import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { PageWrite } from "./input.js";
 
 /**
  * "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun).
- * "write": writing a page, from the chant or the bag. "bag": the bag screen open.
+ * "write": writing a page, from the chant or the bag. "bag": the bag screen open. "use": using an item from the bag.
  */
 export type PlayerAction =
-  "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag";
+  "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use";
 
 export interface PlayerData {
   grounded: boolean;
@@ -27,6 +28,7 @@ export interface PlayerData {
   dodgeHeld: boolean;
   writeHeld: boolean;
   gearHeld: boolean;
+  useHeld: boolean;
   wordsHeld: boolean;
   /** The chant or the bag broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
   brokenOff: boolean;
@@ -38,6 +40,7 @@ export interface PlayerData {
   queued: AttackKind | null;
   castQueued: Skill | null;
   writing: PageWrite | null;
+  using: Using | null;
   book: Skillbook;
   action: PlayerAction;
   /** Seconds since the current action started. */

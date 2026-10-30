@@ -37,7 +37,7 @@ describe("the starting gear", () => {
 
   test("the sword and the skillbook are held in a hand, and don't stack", () => {
     for (const id of ["sword", "skillbook"] as const) {
-      assert.equal(ITEMS[id].wornOn, "hand");
+      assert.equal(ITEMS[id].wearable.on, "hand");
       assert.equal(ITEMS[id].stackSize, 1);
     }
   });

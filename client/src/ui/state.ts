@@ -53,6 +53,7 @@ export interface OverworldHudState {
   character: Character | null;
   interaction: Interaction | null;
   gear: Gear;
+  using: UseSpot | null;
 }
 
 export type Interaction = "rest" | "joinFight" | "openPile";
@@ -80,6 +81,7 @@ export interface BattleHudState {
   brokenOff: boolean;
   writingPage: number | null;
   carried: Carried;
+  using: UseSpot | null;
 }
 
 export interface SkillsState {
@@ -182,7 +184,7 @@ export class UiState {
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
   readonly overworld = new Store<OverworldHudState>({
     levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null,
-    interaction: null,
+    interaction: null, using: null,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
@@ -192,7 +194,7 @@ export class UiState {
     hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
     result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
-    stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null,
+    stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

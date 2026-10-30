@@ -325,7 +325,7 @@ describe("the arsenal", () => {
 
   test("every weapon is a worn-in-hand item of a known kind, as heavy as the item", () => {
     for (const [id, weapon] of Object.entries(WEAPONS)) {
-      assert.equal(ITEMS[id as keyof typeof WEAPONS].wornOn, "hand", id);
+      assert.equal(ITEMS[id as keyof typeof WEAPONS].wearable.on, "hand", id);
       assert.ok(WEAPON_KINDS.includes(weapon.kind), id);
       assert.equal(weapon.mass, ITEMS[id as keyof typeof WEAPONS].weight, id);
     }

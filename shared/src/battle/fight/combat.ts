@@ -170,7 +170,7 @@ function hitPlayer(
     const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, dir);
   }
-  if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag"].includes(player.action)) {
+  if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag", "use"].includes(player.action)) {
     breakOff(player, world.require(target, Skilled));
   }
   restBlade(world.require(target, Wielder));
@@ -180,10 +180,11 @@ function hitPlayer(
 }
 
 export function breakOff(player: PlayerData, skilled: SkilledData): void {
-  if (player.action === "chant" || player.action === "write" || player.action === "bag") player.brokenOff = true;
+  if (["chant", "write", "bag", "use"].includes(player.action)) player.brokenOff = true;
   player.action = "none";
   interrupt(skilled);
   player.writing = null;
+  player.using = null;
 }
 
 function parryEnemy(world: World, e: Entity, by: Vec3, stunTime: number, share: number): void {

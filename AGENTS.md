@@ -180,6 +180,16 @@ Decided by the user:
   avatar disintegrates and leaves it all behind, for anyone to pick up for a while, as death drops are (plan/lore.md).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   sword and the skillbook.
+- Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
+  overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
+  battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
+  fight and in the arena after a win, and heals at the end; not at full HP. A hit or a stun during it stops it and
+  the meat isn't used up. Mid-fight it's the shared fight's `use` input, so the server decides it.
+- An item is its components (the user: "each item is an entity, and the entity has things attached like consumable.
+  if its consumable, it holds the data of how long. and what the effect is"): `consumable { verb, useTime, effects }`
+  and `wearable { on, verb? }` in `ITEMS`, as data (the bag stays counts per cell). Anything consumable is used
+  through one shared rule (`shared/src/items/using.ts`) on the overworld and in a fight. Healing is the only effect
+  so far; new effects (damage, strength, a duration...) are game mechanics to ask about first.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
   rest about 600 ms, a tooltip with its name, size, weight and what it does), selected (a click; the same item or
   empty space deselects) or dragged (past a few pixels: a ghost under the pointer, green where it fits and red
@@ -361,7 +371,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   still while the bag is open (stamina still recovers), and B or Esc close it. Things move between the bag and the
   equipment slots, and within the bag, at once, as the shared fight's inputs (`bag` held, `gear` pressed), so the
   server runs and checks them with the same gear rules; what the fight's bag and slots end up as is its result. A
-  stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Nothing is eaten mid-fight.
+  stun closes it, as it ends the chant, and a dodge pressed in it closes it and dodges. Meat is eaten from it as on
+  the overworld (the pressed input `use`).
   The skillbook opens from it (book in hand) and writes a page in the fight's 2 s; with the book open over the bag,
   no dodge gets through.
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
@@ -372,10 +383,13 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
-- Items: boar meat heals 35 HP (eaten from the bag screen, overworld only, not at full HP) and weighs 0.5; a hide
+- Items: boar meat heals 35 HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
   bag is empty. The server checks every move with the shared bag rules (mid-fight, the fight does).
+- Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
+  nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
+  stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
 - Heavier swords: the user asked for slower, more exaggerated swings that start slow and carry on by momentum, to be
   read from the blade alone. From rest at strength 10 a swing goes live in 0.35 s with the sword, 0.53 s with the
   longsword and 1.0 s with the greatsword (inertia counts the blade's length too: m × (balance² + length² / 12)), and
@@ -394,8 +408,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   either side of where the camera faces (`PILE_LOOK_RAD`), the server checking where its own copy of the fight
   has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`PILE_LAG_SLACK_M`,
   `PILE_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the bag
-  screen works there on your real bag (taking from the pile, moving things, the slots), without the cloth; eating
-  stays overworld-only, and a page can be written as outside a fight. Leaving then, by Enter, the timer or a
+  screen works there on your real bag (taking from the pile, moving things, the slots, eating), without the cloth,
+  and a page can be written as outside a fight. Leaving then, by Enter, the timer or a
   disconnect, is no loss: what you took is yours and saved. A fight already won can't be joined. The 5 minutes are
   `AFTER_FIGHT_MS` (`server/src/core/game/battle.ts`), shown at the top as "The arena closes in m:ss"; the result's
   banner fades after 4 s there so the drops can be seen (`AFTER_FIGHT_BANNER_TIME`). Interact in the arena is a

@@ -61,6 +61,16 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK);
   });
 
+  test("a late meal is kept, as a press is", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, { bag: true })], 0);
+    takeRange(timeline, 1, 5);
+    const use = { in: "bag", x: 1, y: 0 } as const;
+    timeline.receive(7, [at(3, { bag: true, use }), at(4, { bag: true })], 6);
+    assert.deepEqual(timeline.take(6), { ...IDLE_INPUT, bag: true, use });
+    assert.deepEqual(timeline.take(7), { ...IDLE_INPUT, bag: true });
+  });
+
   test("late chant words are kept, the latest of them: each is the chant's words whole", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);

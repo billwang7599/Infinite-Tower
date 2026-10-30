@@ -76,7 +76,7 @@ What's built so far:
   (heals), a hide or a tusk. Dying drops all but your weapons and skillbook. The bag screen (B) shows what
   you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
   still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
-  Enter or a double click to eat.
+  Enter or a double click to eat. Eating takes a second, on the overworld or mid-fight, and a hit stops it.
 - **Drops:** a won fight's loot lies in the arena where the enemy crumbled away, shared by the winners. Walk up to it,
   look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
   The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
