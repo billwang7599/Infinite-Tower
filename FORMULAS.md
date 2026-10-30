@@ -324,7 +324,7 @@ Each in `server/src/core/enemies/<id>.ts`.
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
   recovering or the wall's 2.2 s stun.
 - **Kobolds:** a chain of 2 or 3 (even odds) of random moves, never the same twice running; a 1.1 s telegraph before the
-  first, 0.45 s before the others (or the blade's own wind-up if longer); live 0.12 × k s, stepping in at 3 m/s; then
+  first, 0.8 s before the others (or the blade's own wind-up if longer); live 0.12 × k s, stepping in at 3 m/s; then
   0.9 s to recover and 1.2 s more before the next chain; first after 1.5 s. A Bolt aimed within about 26° of it is
   side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts

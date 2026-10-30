@@ -74,11 +74,11 @@ for the user to review; all of it is `planSwing` and `SWING` in `weapons.ts`, de
   A stab doesn't depend on where the blade is, only how fast it moves.
 - A buffered dodge or attack waits until the swing lets go (its wind-up and live time), so a heavier blade lets go
   later; it's never cut short.
-- The Kobold's 1.1 s and 0.45 s wind-ups stay as telegraphs; the blade's own wind-up is only a floor. It never swings
-  the same way twice running, so most of its chained swings now take the blade's 0.5-0.6 s; the Kobold Greatsword's
-  chained ones 1.1-1.7 s. A telegraph longer than the blade needs holds the blade being set; the drive keeps its own
-  time. Its chained swings flow like the player's (a 45° neighbour hits for 17). It follows through as it recovers. It
-  has no stamina bar, so its swings cost nothing.
+- The Kobold's 1.1 s and 0.8 s wind-ups stay as telegraphs; the blade's own wind-up is only a floor (at most 0.8 s
+  for its blade, so its chained swings all take 0.8 s); the Kobold Greatsword's chained ones 1.1-1.7 s. A telegraph
+  longer than the blade needs holds the blade being set; the drive keeps its own time. Its chained swings flow like
+  the player's (a 45° neighbour hits for 17). It follows through as it recovers. It has no stamina bar, so its swings
+  cost nothing.
 
 ## Later: weapons from parts
 

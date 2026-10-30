@@ -20,7 +20,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     attacks: {
       weapon: {
         knockback: 5, lift: 1.5,
-        triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, active: 0.12, speed: 3, recover: 0.9,
+        triggerDist: 2.6, windup: 1.1, chainWindup: 0.8, active: 0.12, speed: 3, recover: 0.9,
         minChain: 2, maxChain: 3, moves: [...SWING_DIRS, "stab"],
         cooldown: 1.2, firstDelay: 1.5, parryReaction: 0.3, parryCooldown: 1.5,
       },

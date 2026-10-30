@@ -1299,7 +1299,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
 | How water looks (colour, murk, reflection, glints, ripples, wind, foam), per level and in the mire | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `WATER_DEPTH_TILES` in `client/src/visuals/water/map.ts` |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
-| How far back a Kobold draws its blade (and leans) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
+| How far back a Kobold draws its blade (and leans, turns and bends) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
 | Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
