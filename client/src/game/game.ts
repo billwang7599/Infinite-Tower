@@ -17,6 +17,7 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
 import { whoHasTheKeys, type UiState } from "../ui/state.js";
+import { NPC_LOOKS } from "../visuals/npcs/index.js";
 import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Drawing } from "../visuals/visuals.js";
 import { exposeDebugHandles } from "./debug.js";
@@ -82,6 +83,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   ui.battleBag.subscribe(updateInput);
   ui.leaveArena.subscribe(updateInput);
   ui.chat.subscribe(updateInput);
+  ui.dialogue.subscribe(updateInput);
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
   // breaks the bag off the same way, and the fight's result closes it (after a win it opens again on the server's
   // gear, for the drops).
@@ -122,6 +124,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     if (next !== "overworld") ui.closeOverworldPanel();
     ui.closeBattleBag();
     ui.leaveArena.set({ asking: false });
+    ui.closeDialogue();
     ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
     drawing.show(next);
@@ -210,7 +213,8 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     },
     interact() {
       if (transition) return;
-      if (mode === "battle") {
+      if (ui.dialogue.get().open) ui.nextLine();
+      else if (mode === "battle") {
         if (!ui.battle.get().dropInView) return;
         net?.send({ t: "openPile" });
         if (!battleBagOpen) ui.toggleBattleBag();
@@ -282,6 +286,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       });
       net.on("joinRefused", ({ reason }) => say(ui.notifications, { kind: "joinRefused", reason }));
       net.on("character", (msg) => applyCharacter(msg.character));
+      net.on("dialogue", ({ npc, lines }) => ui.openDialogue(NPC_LOOKS[npc].name, NPC_LOOKS[npc].look, lines));
       net.on("rested", (msg) => {
         overworld.setVitals(msg.vitals);
         say(ui.notifications, { kind: "rested" });

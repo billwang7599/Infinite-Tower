@@ -428,11 +428,11 @@ them; treat them as changeable, and still ask before deciding new ones):
   vanishes. On the overworld it's a tied sack with a bone sticking out.
   Numbers: `server/src/core/overworld/piles.ts`.
 - The arena after a win (drops, PR 2): an enemy's drops lie in one pile 0.5 m beside where it fell, on the arena's
-  inner side (`DROP_GAP_M`), drawn as the overworld's sack. It's opened within 2 m (`PILE_RANGE_M`) and 35°
-  either side of where the camera faces (`PILE_LOOK_RAD`), the server checking where its own copy of the fight
-  has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`PILE_LAG_SLACK_M`,
-  `PILE_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the bag
-  screen works there on your real bag (taking from the pile, moving things, the slots, eating), without the cloth,
+  inner side (`DROP_GAP_M`), drawn as the overworld's sack. It's opened within 2 m (`INTERACT_RANGE_M`) and 35°
+  either side of where the camera faces (`INTERACT_LOOK_RAD`), the server checking where its own copy of the fight
+  has you and the aim of the last input it ran, with 1 m and 15° of slack for lag (`INTERACT_LAG_SLACK_M`,
+  `INTERACT_LOOK_SLACK_RAD`). The fight runs on after the win (you walk, the server and client stay in step), and the
+  bag screen works there on your real bag (taking from the pile, moving things, the slots, eating), without the cloth,
   and a page can be written as outside a fight. Leaving then, by Enter, the timer or a
   disconnect, is no loss: what you took is yours and saved. A fight already won can't be joined. The 5 minutes are
   `AFTER_FIGHT_MS` (`server/src/core/game/battle.ts`), shown at the top as "The arena closes in m:ss"; the result's
@@ -507,6 +507,17 @@ them; treat them as changeable, and still ask before deciding new ones):
   (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for
   everyone in it, and the fight can still be joined: every player in it has the crossed swords, not just the host.
   The joiner hears "You join <host>'s fight!" in the centre banner, the others "<name> joins the fight." in a corner.
+- The first NPC (the user: "make an npc ... use all your own judgement"): Hollis, a native of the tower who keeps the
+  Grass Field's campfire, standing about 3 tiles east of it, facing the fire. Talk only: Interact (E) or the HUD's
+  "Talk", next to Hollis and looking at Hollis, by the same reach and look as a pile (`INTERACT_RANGE_M`,
+  `INTERACT_LOOK_RAD`; the server checks it with the same slack). Seven short lines, a line at a time: who avatars are
+  to the natives, resting at the fire, the soul leaking into beasts, the core's realms (Yan, Sol, Lux, Ling, Tian), what
+  dying costs (the lore's, not today's starter kit), the Kobolds in the ruins east of the river and the Mistwood's gap
+  to the east. Enter, E or a click go on, Esc closes, and you stand still while it's open (the world doesn't pause). No
+  shop, quests or rewards: talking changes nothing and isn't saved. The lines live on the server and come only when you
+  talk. NPCs are kept like enemies (the user: "their sprites and interaction and stuff should be saved like
+  monsters"): one server file per NPC for what it says (`server/src/core/npcs/<id>.ts`), one client folder for its name
+  and look (`client/src/visuals/npcs/<id>/`), and a level only places it by id.
 
 ## Commands
 

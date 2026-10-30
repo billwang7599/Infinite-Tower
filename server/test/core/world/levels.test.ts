@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  distXZ, inRect, inTallGrass, isSolid, mapHalfSize, tileAt, WALKER_RADIUS, type LevelLayout, type Vec2,
+  distXZ, inRect, inTallGrass, INTERACT_RANGE_M, isSolid, mapHalfSize, REST_RANGE_TILES, tileAt, WALKER_RADIUS,
+  type LevelLayout, type Vec2,
 } from "@infinite-tower/shared";
 import { getLevel, LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
 import type { ExitDef, LevelDef } from "../../../src/core/world/level.js";
@@ -66,12 +67,13 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
     const places: [string, Vec2][] = [
       ["the start", level.spawn],
       ...layout.campfires.map((c, i): [string, Vec2] => [`campfire ${i}`, c]),
+      ...layout.npcs.map(({ npc, at }): [string, Vec2] => [npc, at]),
       ...level.spawns.flatMap((s): [string, Vec2][] => [
         [s.enemy, s.at], [`${s.enemy} (mirrored)`, { x: -s.at.x, z: s.at.z }],
       ]),
     ];
 
-    test("the start, the campfires and every spawn stand clear of solid tiles", () => {
+    test("the start, the campfires, the NPCs and every spawn stand clear of solid tiles", () => {
       for (const [name, at] of places) assert.ok(fitsAt(layout, at), name);
     });
 
@@ -81,6 +83,13 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
 
     test("has a campfire", () => {
       assert.ok(layout.campfires.length > 0);
+    });
+  });
+
+  describe(`${layout.name}'s NPCs`, () => {
+    test("none stands there twice", () => {
+      const ids = layout.npcs.map(({ npc }) => npc);
+      assert.equal(new Set(ids).size, ids.length);
     });
   });
 
@@ -115,6 +124,13 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
     });
   });
 }
+
+test("a native stands by the start level's campfire, in talking reach of someone resting there", () => {
+  const { layout } = getLevel(START_LEVEL);
+  const byFire = layout.npcs.filter((npc) =>
+    layout.campfires.some((fire) => distXZ(npc.at, fire) <= REST_RANGE_TILES + INTERACT_RANGE_M));
+  assert.equal(byFire.length, 1);
+});
 
 test("every level can be reached from the start level through exits", () => {
   const ids = Object.keys(LEVELS), reached = new Set([START_LEVEL]), todo = [START_LEVEL];

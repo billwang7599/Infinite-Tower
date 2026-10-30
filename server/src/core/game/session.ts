@@ -9,6 +9,7 @@ import {
   type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
+import { NPCS } from "../npcs/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { levelOrStart } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
@@ -234,6 +235,12 @@ export class GameSession {
     else return;
     this.followPile();
     this.link.send({ t: "gear", gear: this.gear });
+  }
+
+  talk(): void {
+    if (!this.inOverworld) return;
+    const npc = this.overworld.npcInView(this.me);
+    if (npc) this.link.send({ t: "dialogue", npc, lines: NPCS[npc].lines });
   }
 
   closeBag(): void {

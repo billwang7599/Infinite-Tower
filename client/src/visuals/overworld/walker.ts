@@ -2,11 +2,12 @@ import { Color3, DynamicTexture, StandardMaterial, VertexBuffer, type Mesh } fro
 import { dampFactor, distXZ, type Entity, type Look, type Vec2, type World } from "@infinite-tower/shared";
 import { CHIBI_FACINGS, type ChibiFacing } from "../../gfx/look/look.js";
 import {
-  OverworldActor, OverworldPos, Peer, Speech, type OverworldActorData,
+  Npc, OverworldActor, OverworldPos, Peer, Speech, type OverworldActorData,
 } from "../../modes/overworld/components.js";
 import { facingOnScreen, mirrorFor, type Facing } from "../../modes/overworld/facing.js";
 import { chibiDraw } from "../characters.js";
 import { byEnemy } from "../enemies/index.js";
+import { NPC_LOOKS } from "../npcs/index.js";
 import type { Blobs } from "../sky/blobs.js";
 import { spriteMaterial } from "../sprites.js";
 import type { Visual } from "../visuals.js";
@@ -38,7 +39,7 @@ const CHIBI_FACING = {
   down: "front", up: "back", left: "side", right: "side",
 } as const satisfies Record<Facing, ChibiFacing>;
 
-interface PeerExtras {
+interface Named {
   name: Mesh;
   fighting: Mesh;
   owned: StandardMaterial[];
@@ -51,7 +52,7 @@ interface Walker {
   tint: Float32Array;
   facings: Record<ChibiFacing, StandardMaterial> | null;
   alert: Mesh | null;
-  peer: PeerExtras | null;
+  named: Named | null;
   bubble: Bubble | null;
   sizeTiles: number;
   drawn: Vec2;
@@ -81,12 +82,13 @@ function walker(spec: {
         alert.material = materials.alert;
         alert.setEnabled(false);
       }
-      const peer = world.get(e, Peer);
-      const extras = peer ? peerExtras(view, peer.character.name) : null;
-      const facings = peer ? peerFacings(view, peer.character.look, extras!) : spec.facings?.(view) ?? null;
+      const npc = world.get(e, Npc);
+      const shown = world.get(e, Peer)?.character ?? (npc ? NPC_LOOKS[npc.id] : null);
+      const named = shown ? namedExtras(view, shown.name) : null;
+      const facings = shown ? lookFacings(view, shown.look, named!) : spec.facings?.(view) ?? null;
       mesh.material = facings?.front ?? spec.material(view);
       return {
-        view, mesh, blobs, tint, alert, peer: extras, bubble: null, mirror: 1, facings, sizeTiles: size,
+        view, mesh, blobs, tint, alert, named, bubble: null, mirror: 1, facings, sizeTiles: size,
         drawn: { x: pos.x, z: pos.z }, glide: spec.glide, walkPhase: 0,
       };
     },
@@ -96,10 +98,10 @@ function walker(spec: {
       w.blobs.dispose();
       w.alert?.dispose();
       w.bubble?.dispose();
-      if (!w.peer) return;
-      w.peer.name.dispose();
-      w.peer.fighting.dispose();
-      for (const m of w.peer.owned) m.dispose(false, true);
+      if (!w.named) return;
+      w.named.name.dispose();
+      w.named.fighting.dispose();
+      for (const m of w.named.owned) m.dispose(false, true);
     },
   };
 }
@@ -110,21 +112,22 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
     glide: false,
   }),
   peer: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: true }),
+  npc: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: false }),
   pile: walker({ material: (v) => v.materials.pile, sizeTiles: PILE_SIZE_TILES, glide: false }),
   ...byEnemy(({ sprite }, id) => walker({
     material: (v) => v.materials.enemies[id], sizeTiles: sprite.sizeTiles, glide: true, alert: true,
   })),
 };
 
-function peerFacings(view: OverworldScene, look: Look, extras: PeerExtras): Record<ChibiFacing, StandardMaterial> {
+function lookFacings(view: OverworldScene, look: Look, named: Named): Record<ChibiFacing, StandardMaterial> {
   const facings = Object.fromEntries(CHIBI_FACINGS.map((facing) =>
-    [facing, spriteMaterial(view.scene, `overworld-peer-${facing}`, chibiDraw(look, facing))])) as
+    [facing, spriteMaterial(view.scene, `overworld-look-${facing}`, chibiDraw(look, facing))])) as
     Record<ChibiFacing, StandardMaterial>;
-  extras.owned.push(...Object.values(facings));
+  named.owned.push(...Object.values(facings));
   return facings;
 }
 
-function peerExtras(view: OverworldScene, name: string): PeerExtras {
+function namedExtras(view: OverworldScene, name: string): Named {
   const { scene } = view;
   const texture = new DynamicTexture("overworld-name", NAME_TEXTURE_PX, scene, true);
   const ctx = texture.getContext() as CanvasRenderingContext2D;
@@ -189,13 +192,13 @@ function drawWalker(w: Walker, world: World, e: Entity, dt: number): void {
     if (actor.alert) w.alert.position.set(at.x + side * Math.cos(yaw), w.sizeTiles * 0.9, at.z - side * Math.sin(yaw));
   }
   let overHeadY = w.sizeTiles * 0.95;
-  if (w.peer) {
-    const fighting = world.require(e, Peer).fighting;
-    w.peer.name.position.set(at.x, overHeadY, at.z);
-    w.peer.name.rotation.y = yaw;
-    w.peer.fighting.setEnabled(fighting);
-    w.peer.fighting.position.set(at.x, overHeadY + NAME_HEIGHT_TILES, at.z);
-    w.peer.fighting.rotation.y = yaw;
+  if (w.named) {
+    const fighting = world.get(e, Peer)?.fighting ?? false;
+    w.named.name.position.set(at.x, overHeadY, at.z);
+    w.named.name.rotation.y = yaw;
+    w.named.fighting.setEnabled(fighting);
+    w.named.fighting.position.set(at.x, overHeadY + NAME_HEIGHT_TILES, at.z);
+    w.named.fighting.rotation.y = yaw;
     overHeadY += NAME_HEIGHT_TILES + (fighting ? MARKER_TILES : 0);
   }
   const said = world.get(e, Speech)?.text ?? null;

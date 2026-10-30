@@ -1,12 +1,12 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
  * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `leaveArena`,
- * `skillbookScreen`, `chat` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the other
- * direction.
+ * `skillbookScreen`, `chat`, `dialogue` and the title's `pickedSocket` too, and the game watches them. `UiActions` is
+ * the other direction.
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
-  type GameServer, type Gear, type Skill, type Skillbook, type Spot, type Stats, type UseSpot, type Word,
+  type GameServer, type Gear, type Look, type Skill, type Skillbook, type Spot, type Stats, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -56,7 +56,7 @@ export interface OverworldHudState {
   using: UseSpot | null;
 }
 
-export type Interaction = "rest" | "joinFight" | "openPile";
+export type Interaction = "rest" | "joinFight" | "openPile" | "talk";
 
 /** A word over the fight for a moment: you parried the enemy, or you're staggered. */
 export type BattleCue = "none" | "parried" | "staggered";
@@ -112,6 +112,14 @@ export interface ChatState {
   lines: readonly ChatLine[];
 }
 
+export interface DialogueState {
+  open: boolean;
+  name: string;
+  look: Look | null;
+  lines: readonly string[];
+  line: number;
+}
+
 /** The overworld's side panels; one is open at a time. Neither pauses the world. */
 export type OverworldPanel = "character" | "inventory";
 
@@ -136,6 +144,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
   if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");
+  if (ui.dialogue.get().open) layers.push("dialogue");
   if (ui.chat.get().focused) layers.push("chat");
   if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
@@ -207,6 +216,7 @@ export class UiState {
   readonly leaveArena = new Store<{ asking: boolean }>({ asking: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
   readonly chat = new Store<ChatState>({ open: false, focused: false, lines: [] });
+  readonly dialogue = new Store<DialogueState>({ open: false, name: "", look: null, lines: [], line: 0 });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
@@ -225,6 +235,14 @@ export class UiState {
   };
   readonly hearChat = (lines: readonly ChatLine[]): void =>
     this.chat.set({ lines: [...this.chat.get().lines, ...lines].slice(-CHAT_LOG_LINES) });
+  readonly openDialogue = (name: string, look: Look, lines: readonly string[]): void =>
+    this.dialogue.set({ open: true, name, look, lines, line: 0 });
+  readonly nextLine = (): void => {
+    const { line, lines } = this.dialogue.get();
+    if (line + 1 < lines.length) this.dialogue.set({ line: line + 1 });
+    else this.closeDialogue();
+  };
+  readonly closeDialogue = (): void => this.dialogue.set({ open: false });
   readonly closeOverworldPanel = (): void => {
     this.overworldPanel.set({ open: null });
     this.skillbookScreen.set({ open: false });

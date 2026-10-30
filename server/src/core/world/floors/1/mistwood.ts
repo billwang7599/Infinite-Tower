@@ -51,6 +51,7 @@ export const MISTWOOD: LevelDef = {
       "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
     ],
     campfires: [{ x: -16, z: 3 }],
+    npcs: [],
   },
   spawn: { x: -18, z: 0 },
   arenaId: WARLOCK_MIRE_ARENA.id,

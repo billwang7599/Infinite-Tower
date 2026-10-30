@@ -12,6 +12,7 @@ export const TEST_LEVEL: LevelDef = {
     tiles: Array.from({ length: 20 }, (_, row) =>
       row >= 8 && row < 12 ? `${".".repeat(18)}""""${".".repeat(18)}` : ".".repeat(40)),
     campfires: [{ x: -12, z: 0 }],
+    npcs: [],
   },
   spawn: { x: -15, z: 0 },
   arenaId: "grass-field",

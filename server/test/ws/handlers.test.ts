@@ -24,6 +24,7 @@ function fakeSession() {
     moveItem: record("moveItem"),
     closeBag: record("closeBag"),
     openPile: record("openPile"),
+    talk: record("talk"),
     cheat: record("cheat"),
     challenge: record("challenge"),
     answerChallenge: record("answerChallenge"),
@@ -91,6 +92,10 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "openPile" }), [["openPile"]]);
   });
 
+  test("talk asks the NPC in view to speak", () => {
+    assert.deepEqual(handle({ t: "talk" }), [["talk"]]);
+  });
+
   test("cheat passes the cheat on (the session ignores it unless on a dev server)", () => {
     const cheat = { kind: "give", item: "boar-meat", count: 2 } as const;
     assert.deepEqual(handle({ t: "cheat", cheat }), [["cheat", cheat]]);
@@ -108,7 +113,7 @@ describe("message handlers", () => {
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "openPile", "saveSkill", "cheat", "challenge", "answerChallenge", "joinBattle", "chat",
+      "closeBag", "openPile", "talk", "saveSkill", "cheat", "challenge", "answerChallenge", "joinBattle", "chat",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

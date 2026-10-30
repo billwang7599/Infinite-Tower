@@ -5,7 +5,7 @@ import { campfireLights } from "../../../src/visuals/levels/index.js";
 
 const LEVEL: LevelLayout = {
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5,
-  campfires: [{ x: 2, z: -3 }, { x: -5, z: 4 }], tiles: ["...."],
+  campfires: [{ x: 2, z: -3 }, { x: -5, z: 4 }], npcs: [], tiles: ["...."],
 };
 
 describe("campfireLights", () => {

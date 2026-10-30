@@ -1,14 +1,14 @@
 /** Overworld entities: the local player (LocalPlayer) is predicted, everything else is where the server says. */
 import {
-  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type Vec2,
-  type World,
+  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type NpcId,
+  type Vec2, type World,
 } from "@infinite-tower/shared";
 
 /** In tiles. */
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
 export interface OverworldActorData {
-  kind: ActorSnap["kind"] | "player" | "peer" | "pile";
+  kind: ActorSnap["kind"] | "player" | "peer" | "pile" | "npc";
   vx: number;
   vz: number;
   heading: Heading;
@@ -22,6 +22,8 @@ interface PeerData {
   fighting: boolean;
 }
 export const Peer = defineComponent<PeerData>("Peer");
+
+export const Npc = defineComponent<{ id: NpcId }>("Npc");
 
 export const Speech = defineComponent<{ text: string; remainingTime: number }>("Speech");
 

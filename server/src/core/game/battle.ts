@@ -10,7 +10,7 @@ import { BattleRoom, type Seat } from "../battle/room.js";
 import { fullVitals, STARTER_KIT } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { pileSeen } from "../overworld/piles.js";
+import { inViewWithSlack } from "../overworld/interact.js";
 import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
@@ -187,7 +187,7 @@ export function arenaPiles(drops: ArenaDrops, overworld: Overworld): ArenaPile[]
 export function arenaPileInView({ room, seat, drops }: Battle, overworld: Overworld): Entity | null {
   const { world } = room.fight, me = room.fight.players[seat]!, aim = world.require(me, PlayerInput);
   const piles = arenaPiles(drops, overworld).map(({ pile, at }) => ({ pile, ...at }));
-  return pileSeen(world.require(me, Body).pos, { x: aim.aimX, z: aim.aimZ }, piles)?.pile ?? null;
+  return inViewWithSlack(world.require(me, Body).pos, { x: aim.aimX, z: aim.aimZ }, piles)?.pile ?? null;
 }
 
 /** All in one pile, so a death's leftovers and the enemy's aren't sacks stacked on one spot. */

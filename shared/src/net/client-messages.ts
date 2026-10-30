@@ -136,6 +136,8 @@ const CloseBagMsg = z.object({ t: z.literal("closeBag") });
 
 const OpenPileMsg = z.object({ t: z.literal("openPile") });
 
+const TalkMsg = z.object({ t: z.literal("talk") });
+
 const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
 });
@@ -168,7 +170,8 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, OpenPileMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
+  MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg,
+  JoinBattleMsg, ChatMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

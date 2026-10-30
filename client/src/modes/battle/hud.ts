@@ -1,5 +1,5 @@
 import {
-  Body, Enemy, Health, heldIn, LocalPlayer, pileInView, Player, roundTo, Stamina, Wielder,
+  Body, Enemy, Health, heldIn, LocalPlayer, inView, Player, roundTo, Stamina, Wielder,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleHudState } from "../../ui/state.js";
@@ -31,7 +31,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.carried = me[4].gear;
       patch.using = me[4].using?.at ?? null;
       const facing = { x: Math.sin(ctx.view.yaw), z: Math.cos(ctx.view.yaw) };
-      patch.dropInView = afterFight && pileInView(me[6].pos, facing, ctx.drops) !== null;
+      patch.dropInView = afterFight && inView(me[6].pos, facing, ctx.drops) !== null;
     }
 
     const enemy = world.first(Enemy, Health);

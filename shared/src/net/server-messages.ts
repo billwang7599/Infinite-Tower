@@ -9,7 +9,7 @@ import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
 import type { Gear, UseSpot } from "../items/gear.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
-import type { LevelLayout } from "../world/layout.js";
+import type { LevelLayout, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";
@@ -99,6 +99,7 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
+  | { t: "dialogue"; npc: NpcId; lines: readonly string[] }
   /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
   | { t: "healed"; vitals: Vitals }
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }

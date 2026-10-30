@@ -525,6 +525,30 @@ describe("Actions: leaving the arena", () => {
   });
 });
 
+describe("Actions: talking", () => {
+  test("Enter and the interact key go on, Esc closes and opens nothing else; the world reads nothing", () => {
+    const { actions, press, listen } = setup("overworld", "dialogue");
+    const next = listen("nextLine"), interact = listen("interact"), close = listen("closeDialogue");
+    const menu = listen("menu"), use = listen("useItem");
+    press("KeyW");
+    press("Enter");
+    press("KeyE");
+    press("Escape");
+    assert.deepEqual([next.got.length, interact.got.length, close.got.length], [1, 1, 1]);
+    assert.deepEqual([menu.got.length, use.got.length], [0, 0]);
+    const polled = actions.poll();
+    assert.deepEqual([polled.pressed, [...polled.held]], [[], []]);
+  });
+
+  test("the same over the arena", () => {
+    const { press, listen } = setup("battle", "dialogue");
+    const interact = listen("interact"), leave = listen("leave");
+    press("KeyE");
+    press("Enter");
+    assert.deepEqual([interact.got.length, leave.got.length], [1, 0]);
+  });
+});
+
 describe("Actions: chat", () => {
   test("/ opens the chat in the overworld and the arena, kept from the page so it isn't typed", () => {
     for (const layer of ["overworld", "battle"] as const) {

@@ -1,5 +1,5 @@
 import {
-  distXZ, gearBurden, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, pileInView, PILE_RANGE_M, PLAYER,
+  distXZ, gearBurden, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M, PLAYER,
   REST_RANGE_TILES, START_HEADING, walkPace, type Gear, type Heading, type LevelLayout, type ServerMsgOf,
   type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
@@ -30,11 +30,14 @@ export interface Overworld {
 export function interactionAt(
   level: LevelLayout, at: Vec2, heading: Heading, fights: readonly Vec2[], piles: readonly Vec2[],
 ): Interaction | null {
-  const seen = pileInView(at, HEADING_WAY[heading], piles);
+  const faced = inView(at, HEADING_WAY[heading], [
+    ...piles.map((pile) => ({ what: "openPile" as const, ...pile })),
+    ...level.npcs.map((npc) => ({ what: "talk" as const, ...npc.at })),
+  ]);
   const reachable: [Interaction, readonly Vec2[], number][] = [
     ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
-    ["openPile", seen ? [seen] : [], PILE_RANGE_M],
   ];
+  if (faced) reachable.push([faced.what, [faced], INTERACT_RANGE_M]);
   let best: { what: Interaction; dist: number } | null = null;
   for (const [what, spots, rangeTiles] of reachable) {
     for (const spot of spots) {
@@ -45,8 +48,8 @@ export function interactionAt(
   return best?.what ?? null;
 }
 
-const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile"> = {
-  rest: "rest", joinFight: "joinBattle", openPile: "openPile",
+const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile" | "talk"> = {
+  rest: "rest", joinFight: "joinBattle", openPile: "openPile", talk: "talk",
 };
 
 const SPEECH_TIME = 6;
@@ -107,7 +110,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       setGear(welcome.gear);
       setVitals(welcome.vitals);
       joinedNet.on("level", (msg) => {
-        actors.clear();
+        actors.enter(msg.level);
         state.level = msg.level;
         prediction?.reset(msg.me);
         world.require(player, OverworldActor).heading = START_HEADING;

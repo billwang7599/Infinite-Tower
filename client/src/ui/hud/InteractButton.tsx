@@ -6,6 +6,7 @@ const INTERACTIONS = {
   rest: { id: "rest-button", label: "Rest by the fire" },
   joinFight: { id: "join-fight-button", label: "Join the fight" },
   openPile: { id: "open-pile-button", label: "Open the pile" },
+  talk: { id: "talk-button", label: "Talk" },
 } as const;
 
 export function InteractButton({ interaction, interact }: { interaction: Interaction | null; interact: () => void }) {
