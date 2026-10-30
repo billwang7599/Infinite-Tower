@@ -260,7 +260,7 @@ main.ts
   `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once the time is up leaves the arena
   for the player and sends `arenaClosed`. `openPile` there opens the pile the player is looking at (`arenaPileInView`:
   `pileSeen` from where the server's fight has them, along the aim of the last input it ran), and `moveItem` works as on
-  the overworld but for the cloth (none there); eating doesn't, writing a page does (as outside a fight). Leaving
+  the overworld but for the cloth (none there); eating and writing a page work as outside a fight. Leaving
   (`leaveBattle`, a disconnect or the time) is `BattleRoom.leave`; the room's `onClosed` lands what's left at `home` as
   one pile (`landDrops`), its `PILE_LIFETIME_MS` starting then. The client:
   `battleResult`'s `afterFightMs` keeps `FightSync` sending and checking (only a result without it stops it),
@@ -349,7 +349,19 @@ main.ts
   still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
   equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the battle with the
-  fight's gear.
+  fight's gear (and its HP).
+- **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`,
+  `useTime`, `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't
+  ECS entities: a bag holds counts of item ids per cell.
+- **Using an item is one rule in both places** (`shared/src/items/using.ts`): `startUse` (a consumable whose effects
+  would do something, so no healing at full HP), `stepUse` (its item's `useTime`, counted in `FIXED_DT` steps:
+  `useSteps`) and `finishUse` (one used up, its effects applied). `applyEffects` is the one place an effect does
+  something: a new kind of effect is one more `ItemEffect` member and one more case there. On the overworld and in
+  the arena after a win, `GameSession.useItem` starts it and its tick steps it (sending `using`, then `itemUsed`;
+  `closeBag` stops it). Mid-fight it's the pressed input `use` from the "bag" action: the "use" action (held still,
+  dodgeable, broken off by a stun like the bag), stepped by `useSystem` (`fight/player/use.ts`), which runs after the
+  step's hits and stops it on any hit, nothing used (a `used` event when it's done, which the client tells as
+  `itemUsed`).
 - **AI and animation are separate.** Enemy behavior systems (`fight/behaviors/`) only set state, facing, wanted
   movement and hitboxes (the motor turns that into velocity); each model's visual (client) reads the state and
   poses the model.
@@ -436,12 +448,12 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
 | `character` | made your character (ignored if you have one) |
 | `rest` | Interact by a campfire (the server checks you're there) |
-| `useItem {at}` | used one of the item in a bag or cloth cell `at` (`{in, x, y}`; not a pile's) |
+| `useItem {at}` | use the consumable in a bag or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
 | `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the one in view beside the bag |
 | `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights or after a win (mid-fight it's a `write` fight input); refused mid-battle, without the book in hand or with a word the player doesn't know |
-| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots), and the last step run |
+| `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots, a use its bag cell), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
 | `leaveBattle` | the Leave key after a fight's result (with drops still there, after the popup): out of the arena, back to the overworld (ignored mid-fight) |
 | `settings` | a setting changed (debounced on the client) |
@@ -468,6 +480,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost` (what a death dropped), gear, skillbook, `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
 | `arenaDrops` | after a win, the piles lying in the arena (id, x, z in metres), each time they change |
 | `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
+| `using` | `useItem` started using what's at `at` (its `useTime`, then `itemUsed`), or `at` null: it stopped, nothing used (the bag closed, a fight started) |
 | `rested`, `itemUsed` | what resting or eating did |
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
 | `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
@@ -572,11 +585,15 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the wall, a Bolt after a Nova); a Bolt through a save and the hash; each element's damage, status and resistance;
   the four reactions, their order and cooldowns; Self per element (sword hits included); an invulnerable player
   taking no damage, its flag in the state and hash. A duel (`duel.test.ts`): hits, parries (mirrored), blocks and
-  Bolts player against player, the lock, and how it ends. Each fight test file awaits
+  Bolts player against player, the lock, and how it ends. Eating in a fight (`player/use.test.ts`): healed and one
+  used up once its `useTime` is up, held still, not at full HP or with the bag shut, stopped (nothing eaten) by
+  closing the bag, a dodge, a hit that only hurts or one that stuns, and through a save; and the shared rule
+  (`items/using.test.ts`, any consumable's time and effects coming from its item). Each fight test file awaits
   `initPhysics()` first. Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
-  numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items,
+  numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items
+  (eating taking its `useTime`, stopped by closing the bag, walking or a fight; mid-fight only as the fight's input),
   accounts and passwords are all tested without a database or a socket, and so are battles: the server deciding a
   win from the player's inputs alone, a loss emptying the bag, leaving mid-fight (or a second tab) losing it, the
   time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an in-order wire
@@ -610,12 +627,13 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   fallen enemy and not on the overworld, one roll for the fight however many won, `arenaDrops` as they change,
   opening it in reach of the server's fight and in front of its aim (each with its slack) and not mid-fight, a winner
   or a disconnecting joiner leaving gone from the others' fight at once, taking from it (saved soon, the last of it
-  making it go), no cloth and no eating there but writing a page, leaving with what was taken, the leftovers landing at
-  the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then), `AFTER_FIGHT_MS` sending them out
-  (`arenaClosed`), and a disconnect there being no loss. Death drops (`death-drops.test.ts`): all but the starter
-  kit from the bag and hands, alone landing at the fight's spot at once (a disconnect and the time limit alike, its
-  `PILE_LIFETIME_MS` from then), with others fighting on lying where you fell, not openable mid-fight, then taken
-  from after the win, the arena's piles landing as one, everyone down landing it all, and a duel dropping nothing.
+  making it go), no cloth there but eating (the fight's HP following) and writing a page, leaving with what was
+  taken, the leftovers landing at the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then),
+  `AFTER_FIGHT_MS` sending them out (`arenaClosed`), and a disconnect there being no loss. Death drops
+  (`death-drops.test.ts`): all but the starter kit from the bag and hands, alone landing at the fight's spot at once
+  (a disconnect and the time limit alike, its `PILE_LIFETIME_MS` from then), with others fighting on lying where you
+  fell, not openable mid-fight, then taken from after the win, the arena's piles landing as one, everyone down landing
+  it all, and a duel dropping nothing.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -748,9 +766,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, when to attack, block, dodge, a cast's wind-up, the chant
-                       (held still; a skill on no page cast only from it), the bag (held still; gear moved) and
-                       writing a page, stamina; controlPlayer; no sword in hand, no attacks or block; no
-                       skillbook, no quick-casts or pages)
+                       (held still; a skill on no page cast only from it), the bag (held still; gear moved;
+                       eating started) and writing a page, stamina; controlPlayer; no sword in hand, no attacks
+                       or block; no skillbook, no quick-casts or pages), use.ts (useSystem: a consumable used
+                       once its useTime is up, stopped by a hit)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
@@ -771,13 +790,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
-  items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, what using one does;
-                   ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks; fits, addItem,
-                   moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by), gear.ts (Gear:
-                   the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment slots; Spot,
-                   UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth or pile,
-                   heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what
-                   each does to walking and dodging)
+  items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, and its components:
+                   consumable, wearable; ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks;
+                   fits, addItem, moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by),
+                   gear.ts (Gear: the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment
+                   slots; Spot, UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth
+                   or pile, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what each does
+                   to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
+                   consumable used from the bag, the same on the overworld and in a fight)
   skills/          skill.ts (a skill as data: segments of a Form, elements and modifiers; FORMS, ELEMENTS, OPPOSITE,
                    MODIFIER_FITS, WORDS (all of them); validateWord / validateSkill: why a word is refused, for the builder
                    and the server's check; skillCost, releaseTime; SKILL: their numbers; SKILLBOOK_PAGES, Skillbook,
@@ -978,8 +998,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight or a pile, in both HUDs: "Rest by the fire" / "Join the fight" /
                        "Open the pile"),
-                       BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, no eating; the book over
-                       it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
+                       BattleHud.tsx (and the bag in a fight: the fight's gear, no cloth, eating as a fight input;
+                       the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
                        portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
                        an open pile over the cloth, and the bag, wires the mouse and the bag keys, and shows the
@@ -1190,7 +1210,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
   `shared/src/battle/fight/behaviors/`, listed in `fight.ts`, its state in `fight/state.ts`. A new overworld
   behavior: component + factory + system in `server/src/core/overworld/behaviors/`.
-- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, worn on a hand), its row in `WEAPONS`
+- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand), its row in `WEAPONS`
   (`shared/src/weapons/weapons.ts`: kind, length, damage, speed), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code. A new kind is a name in
@@ -1255,7 +1275,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
-| Items: size, stack size, weight, healing, the slot they're worn in | `shared/src/items/items.ts` |
+| Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Piles: how long one lies, how wide it's laid out; the reach to open one (overworld and arena alike), how far round from the way you face, and their slack; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`, `PILE_LAG_SLACK_M`, `PILE_LOOK_SLACK_RAD`); `PILE_RANGE_M`, `PILE_LOOK_RAD` in `shared/src/world/piles.ts`; `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |
 | The arena after a win: how long it stays open, where the drops lie; the banner's time; the sack's size | `AFTER_FIGHT_MS`, `DROP_GAP_M` in `server/src/core/game/battle.ts`; `AFTER_FIGHT_BANNER_TIME` in `client/src/modes/battle/context.ts`; `PILE_SIZE_M` in `client/src/visuals/battle/battle.ts` |

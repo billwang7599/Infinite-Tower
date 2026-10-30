@@ -4,8 +4,8 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, moveGear, NO_PILE, type Character, type Cheat, type DayChange, type EnemyId, type ServerMsgOf, type Skill,
-  type Spot, type UseSpot,
+  bagCounts, LocalPlayer, moveGear, NO_PILE, useSteps, type Character, type Cheat, type DayChange, type EnemyId,
+  type ServerMsgOf, type Skill, type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";
@@ -62,6 +62,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   let encounter: ServerMsgOf<"encounter"> | null = null;
   /** Held while the player is still in the arena: applied when they leave it. */
   let result: ServerMsgOf<"battleResult"> | null = null;
+  /** A resync can replay a use onto a later step; two can't end within the second's use time, so it's told once. */
+  let lastUsedStep = -Infinity;
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
@@ -104,8 +106,8 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   updateInput();
 
   const closeBag = () => {
-    const gear = ui.overworld.get().gear;
-    if (gear.cloth.items.length === 0 && gear.pile.cols === 0) return;
+    const { gear, using } = ui.overworld.get();
+    if (gear.cloth.items.length === 0 && gear.pile.cols === 0 && !using) return;
     if (gear.cloth.items.length > 0) say(ui.notifications, { kind: "leftOnCloth", items: bagCounts(gear.cloth) });
     overworld.setGear({ ...gear, cloth: { ...gear.cloth, items: [] }, pile: NO_PILE });
     net?.send({ t: "closeBag" });
@@ -126,6 +128,7 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
   const enterBattle = (msg: ServerMsgOf<"encounter">) => {
     if (!net) return;
     result = null;
+    lastUsedStep = -Infinity;
     battle.start(msg, net);
     const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
     const rival = msg.setup.duel ? msg.setup.players[1 - msg.seat]?.who : undefined;
@@ -174,7 +177,15 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       if (fade.done) transition = null;
     }
     if (mode === "overworld") overworld.update(dt, transition !== null);
-    else if (mode === "battle") battle.update(dt);
+    else if (mode === "battle") {
+      battle.update(dt);
+      for (const { step, event } of battle.ctx.events) {
+        if (event.type !== "used" || step - lastUsedStep < useSteps(event.item)) continue;
+        if (!battle.ctx.fight?.world.has(event.player, LocalPlayer)) continue;
+        lastUsedStep = step;
+        say(ui.notifications, { kind: "itemUsed", item: event.item });
+      }
+    }
     drawing.frame(dt);
   };
 
@@ -211,7 +222,9 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
       net?.send({ t: "answerChallenge", accept });
     },
     useItem(at) {
-      if (mode === "overworld" && !transition) net?.send({ t: "useItem", at });
+      if (transition) return;
+      if (mode === "battle" && !afterFight()) battle.ctx.uses.push(at);
+      else if (mode === "overworld" || afterFight()) net?.send({ t: "useItem", at });
     },
     moveItem(from, to, turned) {
       if (mode === "battle" && !transition && !afterFight()) battle.ctx.gearMoves.push({ from, to, turned });
@@ -267,7 +280,10 @@ export function createGame({ drawing, actions, ui, settings, battle, overworld }
         overworld.setVitals(msg.vitals);
         say(ui.notifications, { kind: "rested" });
       });
+      net.on("using", ({ at }) => ui.overworld.set({ using: at }));
       net.on("itemUsed", (msg) => {
+        ui.overworld.set({ using: null });
+        if (result) result = { ...result, vitals: msg.vitals, gear: msg.gear };
         overworld.setVitals(msg.vitals);
         overworld.setGear(msg.gear);
         say(ui.notifications, { kind: "itemUsed", item: msg.item });

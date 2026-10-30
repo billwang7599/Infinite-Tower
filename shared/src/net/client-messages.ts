@@ -46,6 +46,7 @@ const Cell = { x: z.number().int().nonnegative(), y: z.number().int().nonnegativ
 const GridSpot = z.object({ in: z.enum(["bag", "cloth", "pile"]), ...Cell });
 const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
   z.ZodType<Spot>;
+const UseSpotSchema = z.object({ in: z.enum(["bag", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>;
 
 const StepInputSchema = z.object({
   step: FightStep,
@@ -65,6 +66,7 @@ const StepInputSchema = z.object({
   locked: z.number().int().nonnegative().max(MAX_ENEMY_INDEX).nullable(),
   bag: z.boolean(),
   gear: z.object({ from: SpotSchema, to: SpotSchema, turned: z.boolean() }).nullable(),
+  use: UseSpotSchema.nullable(),
 })
   .refine((i) => Math.hypot(i.moveX, i.moveZ) <= MAX_MOVE_LENGTH, "moves faster than walking")
   .refine((i) => Math.abs(Math.hypot(i.aimX, i.aimZ) - 1) <= AIM_LENGTH_SLACK, "the aim isn't a direction") satisfies
@@ -124,10 +126,7 @@ const CharacterMsg = z.object({
 
 const RestMsg = z.object({ t: z.literal("rest") });
 
-/** Overworld only. */
-const UseItemMsg = z.object({
-  t: z.literal("useItem"), at: z.object({ in: z.enum(["bag", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>,
-});
+const UseItemMsg = z.object({ t: z.literal("useItem"), at: UseSpotSchema });
 
 const MoveItemMsg = z.object({ t: z.literal("moveItem"), from: SpotSchema, to: SpotSchema, turned: z.boolean() });
 

@@ -7,7 +7,7 @@ import type { FightSetup, PlayerSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
-import type { Gear } from "../items/gear.js";
+import type { Gear, UseSpot } from "../items/gear.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
 import type { LevelLayout } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
@@ -94,6 +94,8 @@ export type ServerMsg =
   | { t: "chat"; line: ChatLine; speaker: number | "you" | null }
   | { t: "chatRefused"; reason: "tooFast" | "tooLong" }
   | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" }
+  /** Using what's at `at` has started (its `useTime`, then `itemUsed`), or null: it stopped, nothing used. */
+  | { t: "using"; at: UseSpot | null }
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }

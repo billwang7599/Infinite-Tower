@@ -1,6 +1,7 @@
 /** What a fight's systems share besides the ECS world: its physics, its arena, what happened and how it stands. */
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
+import type { ItemId } from "../../items/items.js";
 import type { Form, SkillElement } from "../../skills/skill.js";
 import type { ArenaDef } from "../../world/arena.js";
 import type { TeamId } from "../components.js";
@@ -24,7 +25,8 @@ export type FightEvent =
   /** `target` blocked `by`'s hit; short of stamina, its guard broke (a player staggered). */
   | { type: "block"; by: Entity; target: Entity; guardBreak: boolean }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
-  | { type: "pageWritten"; player: Entity; page: number };
+  | { type: "pageWritten"; player: Entity; page: number }
+  | { type: "used"; player: Entity; item: ItemId };
 
 export interface FightContext {
   world: World;

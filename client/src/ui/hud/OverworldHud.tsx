@@ -49,6 +49,7 @@ export function OverworldHud(props: OverworldHudProps) {
   const gear = useStore(hud, (s) => s.gear);
   const stats = useStore(hud, (s) => s.stats);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
+  const using = useStore(hud, (s) => s.using);
   const interaction = useStore(hud, (s) => s.interaction);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
@@ -82,7 +83,7 @@ export function OverworldHud(props: OverworldHudProps) {
       {panel === "character" && <CharacterPanel hud={hud} close={close} />}
       {panel === "inventory" && (
         <InventoryPanel
-          gear={gear} stats={stats} canHeal={!fullHp} input={input} settingsScreen={settingsScreen}
+          gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
           use={props.useItem} move={props.moveItem} openSkillbook={() => showBook(true)} close={close}
         />
       )}

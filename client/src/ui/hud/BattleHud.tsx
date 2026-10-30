@@ -55,6 +55,7 @@ interface BagProps {
   settingsScreen: Store<SettingsScreenState>;
   skillbookScreen: Store<{ open: boolean }>;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
+  useItem: (at: UseSpot) => void;
 }
 
 export function BattleHud(props: BattleHudProps) {
@@ -85,7 +86,6 @@ export function BattleHud(props: BattleHudProps) {
 }
 
 const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
-const NO_USE = (_at: UseSpot) => {};
 
 type BattleBagProps = BagProps & HudProps & {
   input: Actions;
@@ -101,6 +101,9 @@ function BattleBag(props: BattleBagProps) {
   const afterFight = useStore(hud, (s) => s.afterFight);
   const served = useStore(props.overworld, (s) => s.gear);
   const writingPage = useStore(hud, (s) => s.writingPage);
+  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
+  const usingInFight = useStore(hud, (s) => s.using);
+  const usingServed = useStore(props.overworld, (s) => s.using);
   const stats = useStore(props.overworld, (s) => s.stats);
   // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
   const gear = useMemo(
@@ -114,8 +117,9 @@ function BattleBag(props: BattleBagProps) {
   return (
     <>
       <InventoryPanel
-        gear={gear} stats={stats} canHeal={false} input={input} settingsScreen={props.settingsScreen} use={NO_USE}
-        move={props.moveItem} openSkillbook={() => skillbookScreen.set({ open: true })} close={props.close}
+        gear={gear} stats={stats} canHeal={!fullHp} using={afterFight ? usingServed : usingInFight} input={input}
+        settingsScreen={props.settingsScreen} use={props.useItem} move={props.moveItem}
+        openSkillbook={() => skillbookScreen.set({ open: true })} close={props.close}
       />
       {bookOpen && (
         <SkillbookScreen

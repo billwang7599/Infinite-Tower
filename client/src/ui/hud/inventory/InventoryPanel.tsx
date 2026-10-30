@@ -24,13 +24,13 @@ import {
 } from "./bagMouse.js";
 import { EquipmentSlots } from "./EquipmentSlots.js";
 import { CELL, INVENTORY_GAP_PX } from "./grid.js";
-import { formatWeight, itemInfo } from "./itemInfo.js";
+import { effectsText, formatWeight, itemInfo } from "./itemInfo.js";
 
 interface PanelProps {
   gear: Gear;
   stats: Stats | null;
-  /** Healing items can't be used: at full HP (the server refuses) or in a fight. */
   canHeal: boolean;
+  using: UseSpot | null;
   input: Actions;
   settingsScreen: Store<SettingsScreenState>;
   use: (at: UseSpot) => void;
@@ -54,7 +54,7 @@ const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
-  const { gear, stats, canHeal, input, settingsScreen, use, move, openSkillbook, close } = props;
+  const { gear, stats, canHeal, using, input, settingsScreen, use, move, openSkillbook, close } = props;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
@@ -82,13 +82,13 @@ export function InventoryPanel(props: PanelProps) {
     latest.current = { mouse: next, grab };
     setView(latest.current);
   };
-  const send = (m: GearMove | null) => { if (m) move(m.from, m.to, m.turned); };
+  const send = (m: GearMove | null) => { if (m && !using) move(m.from, m.to, m.turned); };
   const bookInHand = (m: BagMouse) => !m.drag && m.selected?.in === "slot"
     && gear.equipment[m.selected.slot] === "skillbook";
   const applyUse = (m: BagMouse) => {
     const at = itemToUse(m, gear, !canHeal);
-    if (at) use(at);
-    else if (bookInHand(m)) openSkillbook();
+    if (at && !using) use(at);
+    else if (!at && bookInHand(m)) openSkillbook();
   };
   const turnWith = (turn: typeof turnKey) => {
     const { mouse: next, move: turned } = turn(current(), gear);
@@ -197,8 +197,8 @@ export function InventoryPanel(props: PanelProps) {
           </Column>
         </div>
         <BagDetails
-          gear={gear} stack={selectedStack(mouse, gear)}
-          usable={itemToUse(mouse, gear, !canHeal) !== null || bookInHand(mouse)}
+          gear={gear} stack={selectedStack(mouse, gear)} using={using !== null}
+          usable={(!using && itemToUse(mouse, gear, !canHeal) !== null) || bookInHand(mouse)}
           use={() => applyUse(current())}
         />
         {drag && dragged && pointer && (
@@ -267,11 +267,12 @@ interface DetailsProps {
   /** The selected stack. */
   stack: BagItem | null;
   usable: boolean;
+  using: boolean;
   use: () => void;
 }
 
 /** Under the grid: the selected item's name, count and description, and its use button. */
-function BagDetails({ gear, stack, usable, use }: DetailsProps) {
+function BagDetails({ gear, stack, usable, using, use }: DetailsProps) {
   if (!stack) {
     return (
       <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-white/45 italic`}>
@@ -279,7 +280,7 @@ function BagDetails({ gear, stack, usable, use }: DetailsProps) {
       </p>
     );
   }
-  const def = itemDef(stack.item);
+  const def = itemDef(stack.item), verb = def.consumable?.verb ?? def.wearable?.verb;
   return (
     <div id="bag-details" data-item={stack.item} className={`${DETAILS_STRIP} flex items-start gap-4`}>
       <div
@@ -293,16 +294,16 @@ function BagDetails({ gear, stack, usable, use }: DetailsProps) {
           {def.name} {stack.count > 1 && <span className="text-white tabular-nums">×{stack.count}</span>}
         </div>
         <p className="mt-0.5 text-xs text-white/60">
-          {def.description}{def.healHp ? ` Restores ${def.healHp} HP. Not mid-fight.` : ""}
+          {def.description}{def.consumable ? ` ${effectsText(def.consumable.effects)}` : ""}
         </p>
         <p className="mt-1 text-[11px] text-white/40 tabular-nums">Weight {itemInfo(stack).weight}</p>
       </div>
-      {def.verb && (
+      {verb && (
         <button
           type="button" id="bag-use" {...NO_FOCUS} disabled={!usable} onClick={use}
           className={`pointer-events-auto self-center ${BUTTON.primary}`}
         >
-          {def.verb}
+          {using && def.consumable ? `${verb}ing…` : verb}
         </button>
       )}
     </div>

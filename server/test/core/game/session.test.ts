@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, itemDef, ITEMS, PLAYER, REST_RANGE_TILES,
-  starterEquipment, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId, type Skill,
+  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, PLAYER, REST_RANGE_TILES,
+  starterEquipment, useSteps, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
+  type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -11,7 +12,7 @@ import { startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
-const MEAT_HEAL_HP = itemDef("boar-meat").healHp ?? 0;
+const MEAT_HEAL_HP = ITEMS["boar-meat"].consumable.effects[0].healHp;
 const FULL = fullVitals(PLAYER_STATS);
 const campfire = () => {
   const fire = getLevel(START_LEVEL).layout.campfires[0];
@@ -114,15 +115,22 @@ const bagSpot = (x: number, y: number) => spot("bag", x, y);
 const bagOf = (...items: [ItemId, number, number, number][]): Bag =>
   ({ ...emptyBag(), items: items.map(([item, count, x, y]) => ({ item, count, x, y, turned: false })) });
 
-describe("useItem", () => {
+describe("eating (useItem)", () => {
   const MEAT_CELL = bagSpot(2, 1);
+  const EAT_TICKS = useSteps("boar-meat");
+  const hungry = (hp: number, count = 2, dev = false) =>
+    startSession({ dev, saved: { vitals: { hp, stamina: 20 }, bag: bagOf(["boar-meat", count, 2, 1]) } });
 
-  test("eating meat while hurt heals, uses one up, saves, and sends itemUsed", () => {
+  test("takes its useTime: the meat is used up and heals at the end, then it's saved and itemUsed sent", () => {
     const hp = PLAYER.maxHp - MEAT_HEAL_HP - 5;
-    const { session, link, saves } = startSession({
-      saved: { vitals: { hp, stamina: 20 }, bag: bagOf(["boar-meat", 2, 2, 1]) },
-    });
+    const { session, link, saves } = hungry(hp);
     session.useItem(MEAT_CELL);
+    assert.deepEqual(link.last("using"), { t: "using", at: MEAT_CELL });
+    tick(session, EAT_TICKS - 1);
+    assert.equal(session.vitals.hp, hp, "not yet");
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
+    assert.equal(link.all("itemUsed").length, 0);
+    tick(session);
     assert.deepEqual(session.vitals, { hp: hp + MEAT_HEAL_HP, stamina: 20 });
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
     assert.equal(saves.length, 1);
@@ -132,41 +140,82 @@ describe("useItem", () => {
   });
 
   test("healing is capped at max HP, and the last one leaves the cell empty", () => {
-    const { session } = startSession({
-      saved: { vitals: { hp: PLAYER.maxHp - 1, stamina: 20 }, bag: bagOf(["boar-meat", 1, 2, 1]) },
-    });
+    const { session } = hungry(PLAYER.maxHp - 1, 1);
     session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS);
     assert.equal(session.vitals.hp, PLAYER.maxHp);
     assert.deepEqual(session.bag, emptyBag());
   });
 
-  test("does nothing at full HP", () => {
+  test("doesn't start at full HP", () => {
     const { session, link, saves } = startSession({ saved: { bag: bagOf(["boar-meat", 1, 2, 1]) } });
     session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS);
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
     assert.equal(saves.length, 0);
-    assert.equal(link.all("itemUsed").length, 0);
+    assert.equal(link.all("using").length + link.all("itemUsed").length, 0);
   });
 
-  test("does nothing on an empty cell, or an item that can't be used", () => {
+  test("doesn't start on an empty cell, or an item that can't be used", () => {
     const { session, link } = startSession({
       saved: { vitals: { hp: 10, stamina: 20 }, bag: bagOf(["boar-tusk", 1, 0, 0]) },
     });
     session.useItem(MEAT_CELL);
     session.useItem(bagSpot(0, 1));
+    tick(session, EAT_TICKS);
     assert.equal(session.vitals.hp, 10);
     assert.deepEqual(session.bag, bagOf(["boar-tusk", 1, 0, 0]));
+    assert.equal(link.all("using").length + link.all("itemUsed").length, 0);
+  });
+
+  test("closing the bag stops it: nothing healed, the meat kept, and the client told", () => {
+    const { session, link } = hungry(10);
+    session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS / 2);
+    session.closeBag();
+    assert.deepEqual(link.last("using"), { t: "using", at: null });
+    tick(session, EAT_TICKS);
+    assert.equal(session.vitals.hp, 10);
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
     assert.equal(link.all("itemUsed").length, 0);
   });
 
-  test("does nothing during a battle", () => {
-    const { session, link } = startSession({
-      dev: true, saved: { vitals: { hp: 10, stamina: 20 }, bag: bagOf(["boar-meat", 1, 2, 1]) },
-    });
-    session.cheat({ kind: "encounter", enemy: "wild-boar" });
+  test("walking stops it", () => {
+    const { session } = hungry(10);
     session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS / 2);
+    session.input(1, 1, 0);
+    tick(session, EAT_TICKS);
+    assert.equal(session.vitals.hp, 10);
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
+  });
+
+  test("a fight starting stops it, the meat taken into the fight uneaten", () => {
+    const { session, link } = hungry(10, 2, true);
+    session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS / 2);
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
+    assert.deepEqual(link.last("using"), { t: "using", at: null });
+    const fight = session.battle!.room.fight;
+    assert.deepEqual(fight.world.require(fight.players[0]!, Player).gear.bag, bagOf(["boar-meat", 2, 2, 1]));
+  });
+
+  test("one at a time: using another while eating does nothing", () => {
+    const { session } = hungry(10);
+    session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS / 2);
+    session.useItem(MEAT_CELL);
+    tick(session, EAT_TICKS);
+    assert.equal(session.vitals.hp, 10 + MEAT_HEAL_HP);
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
-    assert.equal(link.all("itemUsed").length, 0);
+  });
+
+  test("nothing in the bag moves while eating", () => {
+    const { session, link } = hungry(10);
+    session.useItem(MEAT_CELL);
+    session.moveItem(MEAT_CELL, bagSpot(0, 0), false);
+    assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
+    assert.deepEqual(link.last("gear").gear, session.gear);
   });
 });
 
@@ -321,11 +370,12 @@ describe("carry weight", () => {
     close(stepRight(session), FULL_STEP);
   });
 
-  test("eating back under the line restores full speed at once", () => {
+  test("eating back under the line restores full speed once it's eaten", () => {
     const { session } = startSession({
       saved: { vitals: { hp: 10, stamina: 20 }, bag: OVERLOADED, equipment: NOTHING_WORN },
     });
     session.useItem(bagSpot(tuskCount, 0));
+    tick(session, useSteps("boar-meat"));
     close(stepRight(session), FULL_STEP);
   });
 });

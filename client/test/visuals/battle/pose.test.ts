@@ -12,7 +12,8 @@ function playerDoing(action: PlayerAction, t: number): PlayerData {
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false,
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
-    writeHeld: false, gearHeld: false, wordsHeld: false, brokenOff: false, writing: null, book: [],
+    writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false, writing: null, using: null,
+    book: [],
     burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
     action, actionTime: t, actionDir: { x: 0, z: 1 }, invulnerable: false, leftArena: false,
   };

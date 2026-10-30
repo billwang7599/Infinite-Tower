@@ -58,6 +58,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               bag={{
                 open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
                 settingsScreen: ui.settingsScreen, skillbookScreen: ui.skillbookScreen, moveItem: actions.moveItem,
+                useItem: actions.useItem,
               }}
             />
           )}

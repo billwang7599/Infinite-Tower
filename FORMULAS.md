@@ -344,9 +344,11 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 ## Healing and refills
 
-- **Boar meat:** +35 HP (`healHp`), up to 100; on the overworld only, refused at full HP.
+- **Boar meat:** +35 HP (its `consumable`'s `healHp`), up to 100, once its `useTime` (1 s) is up, on the overworld
+  or in a fight; refused at full HP.
 - **Campfire:** within `REST_RANGE_TILES` 1.6 (+ `LAG_SLACK_TILES` 0.6 on the server): HP and stamina to full (100,
   and the stamina stat).
 - **After a fight:** won, what it left you, at least 1 HP; lost, full HP and stamina at the level's start; a duel
   gives back what you came in with.
-- **In a fight:** only skills heal: Self Water 0.3 D, Darkness 20% of its hit, Siphoning 10% of the damage you deal.
+- **In a fight:** meat (above), and skills: Self Water 0.3 D, Darkness 20% of its hit, Siphoning 10% of the
+  damage you deal.

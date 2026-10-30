@@ -24,8 +24,12 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("boar-meat", 3)).weight, `${formatWeight(each)} each, ${all} in all`);
   });
 
-  test("says what it does: food says how much it heals; things that do nothing say nothing", () => {
-    assert.match(itemInfo(stack("boar-meat")).effect ?? "", new RegExp(`Heals ${ITEMS["boar-meat"].healHp} HP`));
+  test("says what it does: food how much it heals and how long it takes to eat; other things nothing", () => {
+    const food = itemInfo(stack("boar-meat")).effect ?? "";
+    const { useTime, effects } = ITEMS["boar-meat"].consumable;
+    assert.match(food, new RegExp(`Heals ${effects[0].healHp} HP`));
+    assert.match(food, new RegExp(`Takes ${useTime} s`));
+    assert.doesNotMatch(food, /mid-fight/);
     assert.equal(itemInfo(stack("boar-hide")).effect, null);
   });
 

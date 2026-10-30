@@ -23,6 +23,7 @@ import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
 import { playerControllerSystem } from "./player/controller.js";
+import { useSystem } from "./player/use.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
 import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
@@ -99,7 +100,7 @@ export class Fight {
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx),
+      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx), useSystem(ctx),
       outcomeSystem(this.outcome, this.duel),
     ];
   }

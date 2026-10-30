@@ -14,6 +14,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
   cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
+  use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -127,6 +128,16 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput({ ...STEP, gear: { ...gear, turned: undefined } }), null, "no turned");
     assert.equal(battleInput({ ...STEP, gear: { ...gear, to: { in: "bag", x: -1, y: 0 } } }), null);
     assert.equal(battleInput({ ...STEP, gear: { ...gear, from: { in: "slot", slot: "tail" } } }), null);
+  });
+
+  test("battleInput: using what's in a cell of the bag or the cloth, not a pile's or a slot", () => {
+    const using = { ...STEP, bag: true, use: { in: "bag", x: 2, y: 1 } };
+    assert.deepEqual(battleInput(using), { t: "battleInput", upTo: 1, inputs: [using] });
+    assert.notEqual(battleInput({ ...STEP, use: { in: "cloth", x: 0, y: 0 } }), null);
+    assert.equal(battleInput({ ...STEP, use: { in: "pile", x: 0, y: 0 } }), null);
+    assert.equal(battleInput({ ...STEP, use: { in: "slot", slot: "rightHand" } }), null);
+    assert.equal(battleInput({ ...STEP, use: { in: "bag", x: -1, y: 0 } }), null);
+    assert.equal(battleInput({ ...STEP, use: undefined }), null, "no use");
   });
 
   test("battleInput: the locked enemy is a whole index, or none", () => {
