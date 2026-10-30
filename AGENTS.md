@@ -51,6 +51,11 @@ nobody approved, say so and ask. When the user decides something, add it to the 
 
 Decided by the user:
 
+- Never lock a player out (the user: "core game is like a semi-sandbox in terms of rpg. we never want to lock a
+  player to a class, or whatever they want. they may need some effort to change so that its not free, but never
+  locked or soft locked out"): every choice (a god to back, a build, a path) can be changed later. A change may
+  cost effort, but no choice is permanent and none can leave a player stuck. It covers gameplay choices; the
+  character's name and look stay fixed after creation for now (items or mechanics to change them may come later).
 - One rule set for the overworld and the arena (the user: "we dont want special behaviour as much as possible.
   things that work in overworld should work similar/same as battlefield. and vice versa"): what both places have
   (the bag, eating, piles, Interact, resting...) works the same in both, through the same code. A difference needs a

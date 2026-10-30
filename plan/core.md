@@ -20,7 +20,8 @@ fights won.
   into them.
 - **What a step gives:** every stat goes up by a flat base amount that grows exponentially with the realm, plus
   **free points** the player puts into any stats. Starting numbers: +1 to every stat and 2 free points per step in
-  the first realm, both doubling each realm; tuned later.
+  the first realm, both doubling each realm; tuned later. Placed points are never locked in: they can be taken back
+  and placed again, for some effort (how, and what it costs, is open).
 - **HP comes only from vitality**, so it grows with the core through vitality's share of each step.
 - **Essence:** each monster's essence has its own worth (a Kobold's more than a boar's). It's absorbed from the bag
   **anywhere**, mid-fight included, as a **2 s channel** (the same on the overworld and in a fight). The rest was
