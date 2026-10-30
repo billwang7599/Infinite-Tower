@@ -54,7 +54,8 @@ their people really are.
   themselves.
 - **No good side and no bad side.** The pantheon is split by philosophies, each with a fair case and a price, not
   by heroes and villains. The player chooses which god (and so which philosophy) to back, or stays neutral and
-  backs none. The natives' factions each follow one too.
+  backs none. The natives' factions each follow one too. Like every choice in the game, it's never locked: the
+  player can switch gods or go back to neutral, for some effort, but never for nothing.
 
 ### The question they split over
 
@@ -127,8 +128,8 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
 - Monster souls: how soul moves between the land, monsters and avatars (on a kill, on an avatar's death, when
   monsters respawn or breed), and whether the "snapped tether" rumour stays now that monsters are native.
 - Which factions there are, and which philosophy each follows (later, as the world grows).
-- Backing a god in play: when the player chooses, whether they can switch or go back to neutral (and what that
-  costs), and what backing one gives or locks out. These are mechanics, so they're asked before anything is built.
+- Backing a god in play: when the player chooses, what switching or going back to neutral costs, and what backing
+  one gives. These are mechanics, so they're asked before anything is built.
 - When and why a god walks the world (a late boss, an event?).
 - Whether the realm names (Yan, Sol, Lux, Ling, Tian) stay as they are next to a Greek and Norse pantheon.
 - The seats: what "strongest or most honoured" measures, what the quest is, what a seat gives, and whether it's lost
