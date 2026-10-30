@@ -1128,7 +1128,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         water.ts         waterMap: each water tile's flow, width, depth and banks from the level's tiles, for the
-                         drawing and the sound alike (WATER_DEPTH_TILES); tested
+                         drawing and the sound alike (WATER_DEPTH_TILES); only water that runs off the map (touches
+                         its edge, or the woods joined to it, in two places) flows, bridges joining a river's pieces;
+                         tested
         facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
                          left, on screen): mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles, and the
@@ -1263,8 +1265,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        round one from the sky light, and one away from each light that reaches it, as dark as that
                        light's share there; blobShadowsAt, tested)
       water/           The one water look, overworld and arena alike: water.ts (waterMaterial, a shader with
-                       flowing ripples, fresnel sky, sun and moon glints and shore foam, tuned by a WaterLook;
-                       setWater gives a mesh its current, shore and depth per vertex), level.ts (levelWater: the
+                       ripples carried by the current (in place where there's none), waves rising and falling in
+                       place, a ring now and then at a random spot on still water (none where there's a current),
+                       fresnel sky, sun and moon glints and shore foam, tuned by a WaterLook and RINGS; setWater gives
+                       a mesh its current, shore and depth per vertex), level.ts (levelWater: the
                        level's ground with the water cut out, its bed, banks and surface, from the water map in
                        modes/overworld/water.ts)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
@@ -1403,7 +1407,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
-| How water looks (colour, murk, reflection, glints, ripples, wind, foam), per level and in the mire | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `WATER_DEPTH_TILES` in `client/src/modes/overworld/water.ts` |
+| How water looks (colour, murk, reflection, glints, ripples, foam), per level and in the mire; rings in still water; how fast it runs | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `RINGS` in `client/src/visuals/water/water.ts`; `FLOW`, `WATER_DEPTH_TILES` in `client/src/modes/overworld/water.ts` |
 | Sounds: each one's files, volume, rate, variation, bus, how far it carries; which sounds an enemy, element, arena or level has | `SOUNDS` and the tables below it in `client/src/audio/sounds.ts` |
 | Music: which track plays where, each track's volume, how long a crossfade takes | `MUSIC`, `TRACKS` in `client/src/audio/music.ts`; `MUSIC_FADE_TIME` in `client/src/audio/audio.ts` |
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |

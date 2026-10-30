@@ -518,6 +518,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   talk. NPCs are kept like enemies (the user: "their sprites and interaction and stuff should be saved like
   monsters"): one server file per NPC for what it says (`server/src/core/npcs/<id>.ts`), one client folder for its name
   and look (`client/src/visuals/npcs/<id>/`), and a level only places it by id.
+- Still and running water (the user: "water should not be flowing if it has nowhere to flow to ... lakes and stuff
+  shouldnt flow. they can ripple if they have things in it"): only water that runs off the map flows. A body touching
+  the map's edge (or the woods, rocks and walls joined to it) in two separate places runs from one to the other (the
+  two farthest apart), north to south, else west to east, so every river runs one way; bridges and boardwalks count as
+  water, so a river cut by one is one river. Touching it once (the Grass Field's west pond) or not at all, it lies
+  still: no current and no drift (the wind drift is gone; the waves rise and fall in place). Now and then a small ring
+  spreads and fades at a random spot on still water, the mire's pools too, never on running water (the user: "ripples
+  in the water should be random (spot) and sporatic (timing). make them more sparse in both timing and spot"). Looks
+  only: water stays solid. Numbers: `client/src/modes/overworld/water.ts`, `RINGS` in
+  `client/src/visuals/water/water.ts`.
 
 ## Commands
 

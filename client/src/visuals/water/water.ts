@@ -13,8 +13,6 @@ export interface WaterLook {
   glint: Color3;
   rippleSlope: number;
   waveHeightTiles: number;
-  /** Ripples drift this way on top of the current, so still water moves too. */
-  windTilesPerSec: { x: number; z: number };
   foam: Color3;
   foamTiles: number;
 }
@@ -23,6 +21,11 @@ export interface WaterLook {
 export interface WaterPoint { flowX: number; flowZ: number; shore: number; column: number }
 
 const RIPPLE = { px: 128, waves: 48, tiles: 2.6, fineTiles: 0.95, fineShare: 0.55 };
+// Each cell of still water gets a ring in a slot with this chance, at a random spot and time in it.
+const RINGS = {
+  cellTiles: 4, slotSec: 6, chance: 0.35, lifeSec: 2.4, reachTiles: 1.1, widthTiles: 0.5, crestsApartTiles: 0.2,
+  slope: 3,
+};
 const GLINT_POWER = 220;
 // Every period in the shader divides it, so the clock's wrap never shows.
 const LOOP_SEC = 1200;
@@ -52,14 +55,14 @@ export function setWater(mesh: Mesh, at: (x: number, z: number) => WaterPoint): 
 const UNIFORMS = `uniform float waterTime;
 uniform vec3 waterSky;
 uniform vec4 waterLook;
-uniform vec4 waterFoam;
-uniform vec2 waterWind;`;
+uniform vec4 waterFoam;`;
 
 // waterLook: murk per tile, reflectivity, wave height, ripple slope. waterFoam: colour, width in tiles.
+// The waves stand (they rise and fall in place), so still water never seems to drift.
 const WAVE = `vec3 waterWave(vec2 p, float t) {
   const vec2 k1 = vec2(1.9, 1.2), k2 = vec2(-1.1, 2.6);
-  float a1 = dot(k1, p) - t * 2.6179939, a2 = dot(k2, p) - t * 2.0943951;
-  return vec3(0.6 * sin(a1) + 0.4 * sin(a2), 0.6 * cos(a1) * k1 + 0.4 * cos(a2) * k2);
+  float a1 = dot(k1, p), a2 = dot(k2, p), b1 = 0.6 * cos(t * 2.6179939), b2 = 0.4 * cos(t * 2.0943951);
+  return vec3(b1 * sin(a1) + b2 * sin(a2), b1 * cos(a1) * k1 + b2 * cos(a2) * k2);
 }
 float waterCalm(float shore) { return clamp(shore * 2.0, 0.0, 1.0); }`;
 
@@ -92,10 +95,39 @@ vec3 waterRipple(vec2 p, vec2 drift, float t) {
   vec2 jump = vec2(0.25, 0.362);
   return waterLayers(p - drift * a * cycle, floor(c) * jump) * wa
     + waterLayers(p - drift * b * cycle, floor(c + 0.5) * jump + 0.5) * (1.0 - wa);
+}
+vec4 waterHash(vec4 p) {
+  p = fract(p * vec4(0.1031, 0.103, 0.0973, 0.1099));
+  p += dot(p, p.wzxy + 33.33);
+  return fract((p.xxyz + p.yzzw) * p.zywx);
+}
+// The slot wraps with the clock, so no ring is cut short. A ring shows only where the bank is at least half as far as
+// its centre, so one centred on land shows little or nothing.
+vec2 waterRingSlope(vec2 p, float t, float shore) {
+  const float cell = ${RINGS.cellTiles.toFixed(2)}, slot = ${RINGS.slotSec.toFixed(2)}, life = ${RINGS.lifeSec.toFixed(2)};
+  const float slots = ${(LOOP_SEC / RINGS.slotSec).toFixed(1)}, reach = ${RINGS.reachTiles.toFixed(2)};
+  const float width = ${RINGS.widthTiles.toFixed(2)};
+  vec2 slope = vec2(0.0), first = floor(p / cell - 0.5);
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      vec2 at = first + vec2(float(i), float(j));
+      float shifted = t + waterHash(vec4(at, 0.0, 1.0)).x * slot;
+      vec4 h = waterHash(vec4(at, mod(floor(shifted / slot), slots), 2.0));
+      vec2 away = p - (at + h.yz) * cell;
+      float age = mod(shifted, slot) - h.w * (slot - life), d = length(away), behind = age * reach / life - d;
+      if (h.x < ${RINGS.chance.toFixed(2)} && age > 0.0 && age < life && behind > 0.0 && behind < width) {
+        float fade = 1.0 - age / life, crest = sin(behind * ${(2 * Math.PI / RINGS.crestsApartTiles).toFixed(4)});
+        float strength = sin(behind / width * 3.1415927) * fade * smoothstep(0.5 * d, 0.5 * d + 0.15, shore);
+        slope += away / max(d, 0.001) * strength * crest * ${RINGS.slope.toFixed(2)};
+      }
+    }
+  }
+  return slope;
 }`,
   CUSTOM_FRAGMENT_BEFORE_LIGHTS: `float waterCalmHere = waterCalm(vWaterShore.x);
-vec3 waterR = waterRipple(vPositionW.xz, vWaterFlow + waterWind, waterTime);
+vec3 waterR = waterRipple(vPositionW.xz, vWaterFlow, waterTime);
 vec2 waterSlope = waterR.xy * waterLook.w + waterLook.z * waterCalmHere * waterWave(vPositionW.xz, waterTime).yz;
+if (vWaterFlow == vec2(0.0)) waterSlope += waterRingSlope(vPositionW.xz, waterTime, vWaterShore.x);
 normalW = normalize(vec3(-waterSlope.x, 1.0, -waterSlope.y));`,
   CUSTOM_FRAGMENT_BEFORE_FOG: `float waterCos = clamp(dot(normalW, viewDirectionW), 0.0, 1.0);
 float waterFresnel = waterLook.y + (1.0 - waterLook.y) * pow(1.0 - waterCos, 3.0);
@@ -134,7 +166,6 @@ class WaterPlugin extends MaterialPluginBase {
       ubo: [
         { name: "waterTime", size: 1, type: "float" }, { name: "waterSky", size: 3, type: "vec3" },
         { name: "waterLook", size: 4, type: "vec4" }, { name: "waterFoam", size: 4, type: "vec4" },
-        { name: "waterWind", size: 2, type: "vec2" },
       ],
       vertex: UNIFORMS,
       fragment: UNIFORMS,
@@ -155,7 +186,6 @@ class WaterPlugin extends MaterialPluginBase {
     ubo.updateColor3("waterSky", scene.fogColor);
     ubo.updateFloat4("waterLook", look.murkPerTile, look.reflectivity, look.waveHeightTiles, look.rippleSlope);
     ubo.updateFloat4("waterFoam", look.foam.r, look.foam.g, look.foam.b, look.foamTiles);
-    ubo.updateFloat2("waterWind", look.windTilesPerSec.x, look.windTilesPerSec.z);
     ubo.setTexture("waterRipples", this.ripples);
   }
 
