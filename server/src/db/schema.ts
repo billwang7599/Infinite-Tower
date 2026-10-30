@@ -3,6 +3,7 @@ import {
   blankSkillbook, starterEquipment, type Bag, type Character, type Equipment, type SavedSettings, type Skillbook,
 } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
+import { newStory, type Story } from "../core/game/story.js";
 import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /** Logins (account-store.ts). The password is scrypt'd, with its parameters and salt (core/accounts/passwords.ts). */
@@ -40,6 +41,7 @@ export const players = pgTable("players", {
   equipment: jsonb().$type<Equipment>().notNull().default(starterEquipment()),
   knownWords: text("known_words").array().notNull().default([]),
   skillbook: jsonb().$type<Skillbook>().notNull().default(blankSkillbook()),
+  story: jsonb().$type<Story>().notNull().default(newStory()),
   level: text(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

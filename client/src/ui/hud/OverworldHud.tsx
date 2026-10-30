@@ -14,7 +14,7 @@ import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
 import { HudLayer } from "./HudLayer.js";
-import { BagIcon, GearIcon, PersonIcon } from "./icons.js";
+import { BagIcon, BookIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { InteractButton } from "./InteractButton.js";
 import { Ping } from "./Ping.js";
@@ -39,6 +39,7 @@ interface OverworldHudProps extends HudProps {
   challenge: Store<{ from: string | null }>;
   challengeNearest: () => void;
   answerChallenge: (accept: boolean) => void;
+  toggleQuestbook: () => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -73,6 +74,9 @@ export function OverworldHud(props: OverworldHudProps) {
         </HudButton>
         <HudButton id="character-button" label="Character" onClick={() => toggle("character")}>
           <PersonIcon />
+        </HudButton>
+        <HudButton id="questbook-button" label="Questbook" onClick={props.toggleQuestbook}>
+          <BookIcon />
         </HudButton>
         <HudButton id="settings-button" label="Settings" onClick={openSettings}>
           <GearIcon />

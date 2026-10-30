@@ -1,5 +1,7 @@
 /** Builders for the game tests: a started session with fakes around it, and the overworld's boar. */
-import { distXZ, FIXED_DT, type Entity, type Vec2 } from "@infinite-tower/shared";
+import {
+  addItem, distXZ, emptyBag, FIXED_DT, type Bag, type Entity, type ItemCounts, type ItemId, type Vec2,
+} from "@infinite-tower/shared";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -52,4 +54,10 @@ export function findBoar(session: GameSession) {
 export function pileAt(overworld: Overworld, at: Vec2, rangeTiles = 0): Entity | null {
   for (const [pile, , pos] of overworld.world.query(Pile, OverworldPos)) if (distXZ(pos, at) <= rangeTiles) return pile;
   return null;
+}
+
+export function bagWith(items: ItemCounts): Bag {
+  let bag = emptyBag();
+  for (const [item, count] of Object.entries(items) as [ItemId, number][]) bag = addItem(bag, item, count).bag;
+  return bag;
 }

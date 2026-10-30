@@ -2,6 +2,7 @@
 import type {
   Bag, Character, Equipment, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
 } from "@infinite-tower/shared";
+import type { Story } from "./game/story.js";
 
 /** The account's id. */
 export type PlayerId = string;
@@ -23,6 +24,7 @@ export interface PlayerSave {
   equipment: Equipment;
   knownWords: Word[];
   skillbook: Skillbook;
+  story: Story;
   /** The level they were last on (null: never in one); one that's gone from the game is the start level. */
   level: string | null;
 }

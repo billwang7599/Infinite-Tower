@@ -4,6 +4,7 @@ import {
 } from "@infinite-tower/shared";
 import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
+import { keptStory } from "../core/game/story.js";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
 import { players } from "./schema.js";
@@ -49,7 +50,7 @@ type PlayerRow = Required<Omit<typeof players.$inferInsert, "id" | "updatedAt">>
 const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
-  skillbook: data.skillbook, level: data.level,
+  skillbook: data.skillbook, story: data.story, level: data.level,
 });
 
 function fromRow(row: typeof players.$inferSelect): PlayerSave {
@@ -57,7 +58,7 @@ function fromRow(row: typeof players.$inferSelect): PlayerSave {
   return {
     vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
     character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
-    skillbook: readable(row.skillbook, new Set(knownWords)), level: row.level,
+    skillbook: readable(row.skillbook, new Set(knownWords)), story: keptStory(row.story), level: row.level,
   };
 }
 

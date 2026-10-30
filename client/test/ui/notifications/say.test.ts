@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { itemDef, MAX_CHAT_CHARS } from "@infinite-tower/shared";
+import { itemDef, MAX_CHAT_CHARS, type QuestNews } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
@@ -143,5 +143,25 @@ describe("say", () => {
       ["Bee is already in a challenge."]);
     assert.deepEqual(said({ kind: "challenge", news: { kind: "busy", who: null } }),
       ["You already have a challenge open."]);
+  });
+
+  test("quest news is corner notices: a quest taken, a count, a step done or the quest, what came of it", () => {
+    const said = (news: QuestNews) => {
+      const to = new Notifications();
+      say(to, { kind: "quest", news });
+      assert.equal(banner(to), null);
+      return notices(to);
+    };
+    assert.deepEqual(said({ kind: "taken", quest: "Hides", step: "Gather 2 boar hides." }),
+      ["New quest: Hides. Gather 2 boar hides."]);
+    assert.deepEqual(said({ kind: "tally", quest: "Hunt", have: 1, need: 3 }), ["Hunt: 1 / 3."]);
+    const step = { kind: "advanced" as const, quest: "Hides", gained: {}, dropped: {}, lore: [] };
+    assert.deepEqual(said({ ...step, next: "Bring them to Hollis." }), ["Hides: Bring them to Hollis."]);
+    assert.deepEqual(said({
+      ...step, next: null, gained: { "boar-meat": 2 }, dropped: { "boar-tusk": 1 }, lore: ["Avatars", "Pads"],
+    }), [
+      "Quest complete: Hides.", "You get 2 boar meat.", "The bag is full: boar tusk is left at your feet.",
+      "New in your questbook: Avatars.", "New in your questbook: Pads.",
+    ]);
   });
 });

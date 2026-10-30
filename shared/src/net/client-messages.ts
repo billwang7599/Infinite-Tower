@@ -138,6 +138,11 @@ const OpenPileMsg = z.object({ t: z.literal("openPile") });
 
 const TalkMsg = z.object({ t: z.literal("talk") });
 
+export const MAX_QUEST_ID_CHARS = 64;
+const QuestId = z.string().min(1).max(MAX_QUEST_ID_CHARS);
+const AcceptQuestMsg = z.object({ t: z.literal("acceptQuest"), quest: QuestId });
+const DeliverMsg = z.object({ t: z.literal("deliver"), quest: QuestId });
+
 const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
 });
@@ -170,8 +175,8 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
-  MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, SaveSkillMsg, PingMsg, CheatMsg, ChallengeMsg, AnswerChallengeMsg,
-  JoinBattleMsg, ChatMsg,
+  MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, AcceptQuestMsg, DeliverMsg, SaveSkillMsg, PingMsg, CheatMsg,
+  ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

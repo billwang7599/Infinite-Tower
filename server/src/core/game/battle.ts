@@ -14,6 +14,7 @@ import { inViewWithSlack } from "../overworld/interact.js";
 import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
+import { progressStory } from "./story.js";
 
 export interface Battle {
   /** The actor that started it, or null for tall grass. */
@@ -132,6 +133,8 @@ function settleBattle(
   if (won) {
     if (afterFightMs !== null) battle.drops.closesAtMs ??= Date.now() + afterFightMs;
     session.wins++;
+    const { world, enemies } = battle.room.fight;
+    progressStory(session, [], enemies.map((e) => world.require(e, Enemy).def.id));
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {

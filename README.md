@@ -34,8 +34,14 @@ What's built so far:
   someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
   stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
   crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
-  drops. Hollis, a native of the tower, keeps the Grass Field's campfire: face Hollis and press E (or "Talk") for a
-  few words about the world, a line at a time (Enter, E or a click; Esc closes). Talking changes nothing.
+  drops. Hollis, a native of the tower, keeps the Grass Field's campfire: face Hollis and press E (or "Talk") to hear
+  him, a line at a time (Enter, E or a click; Esc closes). What he says follows your story.
+- **Quests:** NPCs offer quests at the end of what they say (Accept or Not now), and hand over what a step asks
+  for the same way. Steps ask you to gather items, hand them over, go somewhere, talk to someone or win fights against
+  an enemy, and give items, lore and story progress. Hollis has the first chain: two boar hides, three boars, and
+  what he knows about the pads you wake on. The questbook (J, or the HUD's book; in fights too) has the main quest
+  and side quests, each with its next step and a hint as the NPC gave it, and the lore found so far under the quest
+  that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.
@@ -96,8 +102,8 @@ What's built so far:
   a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't swing, stab or
   block; without the skillbook you can't quick-cast. Worn things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
-  inventory and Settings. Small notices (loot, a full bag, dying, resting, eating) stack in the bottom-right corner
-  and fade; only a fight starting gets the big banner in the middle.
+  inventory, the questbook and Settings. Small notices (loot, a full bag, dying, resting, eating, quests) stack in
+  the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade), hits, blocks and parries, footsteps,
   dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further
@@ -106,7 +112,8 @@ What's built so far:
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
   effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),
   return to title.
-- **Saving:** your character, vitals, wins, bag, equipment and settings are kept with your account in Postgres.
+- **Saving:** your character, vitals, wins, bag, equipment, story and settings are kept with your account in
+  Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
   inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's

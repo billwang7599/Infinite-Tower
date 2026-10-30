@@ -4,8 +4,8 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, LocalPlayer, moveGear, NO_PILE, useSteps, type Character, type Cheat, type DayChange, type EnemyId,
-  type ServerMsgOf, type Skill, type Spot, type UseSpot,
+  bagCounts, LocalPlayer, moveGear, NO_PILE, useSteps, type Character, type Cheat, type DayChange,
+  type DialogueOffer, type EnemyId, type ServerMsgOf, type Skill, type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -42,6 +42,7 @@ export interface Game {
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
   sendChat(text: string): void;
+  takeOffer(offer: DialogueOffer): void;
   saveCharacter(character: Character): void;
   cheat(cheat: Cheat): void;
   setDayClock(change: DayChange): void;
@@ -84,6 +85,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   ui.leaveArena.subscribe(updateInput);
   ui.chat.subscribe(updateInput);
   ui.dialogue.subscribe(updateInput);
+  ui.questbook.subscribe(updateInput);
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
   // breaks the bag off the same way, and the fight's result closes it (after a win it opens again on the server's
   // gear, for the drops).
@@ -125,6 +127,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     ui.closeBattleBag();
     ui.leaveArena.set({ asking: false });
     ui.closeDialogue();
+    ui.closeQuestbook();
     ui.chant.set(NO_CHANT);
     ui.screen.set({ mode: next });
     drawing.show(next);
@@ -197,12 +200,17 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   };
 
   const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
+  const takeOffer = (offer: DialogueOffer) => {
+    ui.closeDialogue();
+    net?.send(offer.kind === "quest" ? { t: "acceptQuest", quest: offer.quest } : { t: "deliver", quest: offer.quest });
+  };
   const afterFight = () => mode === "battle" && !transition && battle.ctx.afterFightMs !== null;
 
   return {
     mode: () => mode,
     cheat,
     setDayClock,
+    takeOffer,
     leaveBattle(sure = false) {
       if (mode !== "battle" || transition || !result) return;
       if (!sure && battle.ctx.drops.length > 0) {
@@ -213,8 +221,10 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     },
     interact() {
       if (transition) return;
-      if (ui.dialogue.get().open) ui.nextLine();
-      else if (mode === "battle") {
+      if (ui.dialogue.get().open) {
+        const offer = ui.nextLine();
+        if (offer) takeOffer(offer);
+      } else if (mode === "battle") {
         if (!ui.battle.get().dropInView) return;
         net?.send({ t: "openPile" });
         if (!battleBagOpen) ui.toggleBattleBag();
@@ -267,6 +277,11 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       applyCharacter(joined.welcome.character);
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
       ui.chat.set({ open: false, focused: false, lines: joined.welcome.chat });
+      ui.questbook.set({ open: false, quests: joined.welcome.questbook });
+      net.on("questbook", ({ quests, news }) => {
+        ui.questbook.set({ quests });
+        for (const told of news) say(ui.notifications, { kind: "quest", news: told });
+      });
       net.on("chat", ({ line }) => ui.hearChat([line]));
       net.on("chatRefused", ({ reason }) => say(ui.notifications, { kind: "chatRefused", reason }));
       net.on("challengeNews", ({ news }) => {
@@ -286,7 +301,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       });
       net.on("joinRefused", ({ reason }) => say(ui.notifications, { kind: "joinRefused", reason }));
       net.on("character", (msg) => applyCharacter(msg.character));
-      net.on("dialogue", ({ npc, lines }) => ui.openDialogue(NPC_LOOKS[npc].name, NPC_LOOKS[npc].look, lines));
+      net.on("dialogue", ({ npc, lines, offer }) => {
+        ui.openDialogue(NPC_LOOKS[npc].name, NPC_LOOKS[npc].look, lines, offer);
+      });
       net.on("rested", (msg) => {
         overworld.setVitals(msg.vitals);
         say(ui.notifications, { kind: "rested" });
@@ -342,6 +359,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       ui.creation.set({ open: false });
       ui.challenge.set({ from: null });
       ui.chat.set({ open: false, focused: false, lines: [] });
+      ui.questbook.set({ open: false, quests: [] });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

@@ -55,7 +55,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(map.battle.leave, ["Enter"]);
   });
 
-  test("general: Esc, WASD to move, C the character panel, B the inventory, / the chat", () => {
+  test("general: Esc, WASD to move, C the character panel, B the inventory, J the questbook, / the chat", () => {
     const general = new KeyBindings().get().general;
     assert.deepEqual(general.openChat, ["Slash"]);
     assert.deepEqual(general.menu, ["Escape"]);
@@ -63,6 +63,7 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual([forward, left, back, right], [["KeyW"], ["KeyA"], ["KeyS"], ["KeyD"]]);
     assert.deepEqual(general.character, ["KeyC"]);
     assert.deepEqual(general.inventory, ["KeyB"]);
+    assert.deepEqual(general.questbook, ["KeyJ"]);
   });
 
   test("the arena: no swing keys (the mouse swings), a left click stabs, left Shift blocks, F dodges, Space jumps", () => {

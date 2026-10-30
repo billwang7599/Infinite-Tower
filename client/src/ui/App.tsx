@@ -7,6 +7,7 @@ import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
 import { AdminPanel } from "./screens/admin/AdminPanel.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
+import { QuestbookScreen } from "./screens/questbook/QuestbookScreen.js";
 import { SettingsScreen } from "./screens/settings/SettingsScreen.js";
 import { TitleScreen } from "./screens/title/TitleScreen.js";
 import type { Actions } from "../core/actions.js";
@@ -49,6 +50,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               moveItem={actions.moveItem}
               skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
               challenge={ui.challenge} challengeNearest={actions.challenge} answerChallenge={actions.answerChallenge}
+              toggleQuestbook={ui.toggleQuestbook}
             />
           )}
           {mode === "battle" && (
@@ -64,7 +66,10 @@ export function App({ ui, settings, input, actions }: AppProps) {
             />
           )}
           <Chat chat={ui.chat} input={input} bindings={settings.bindings} send={actions.sendChat} />
-          <Dialogue dialogue={ui.dialogue} input={input} next={ui.nextLine} close={ui.closeDialogue} />
+          <Dialogue
+            dialogue={ui.dialogue} input={input} next={actions.interact} take={actions.takeOffer}
+            close={ui.closeDialogue}
+          />
         </>
       )}
       <Notices
@@ -74,6 +79,12 @@ export function App({ ui, settings, input, actions }: AppProps) {
       />
       <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />
       <Fade screen={ui.screen} />
+      {playing && (
+        <QuestbookScreen
+          questbook={ui.questbook} overworld={ui.overworld} input={input} toggle={ui.toggleQuestbook}
+          close={ui.closeQuestbook}
+        />
+      )}
       {playing && import.meta.env.DEV && (
         <AdminPanel
           admin={ui.admin} mode={mode} input={input} cheat={actions.cheat} setDayClock={actions.setDayClock}

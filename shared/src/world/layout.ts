@@ -7,7 +7,7 @@ import { isSolid, mapHalfSize } from "./tiles.js";
 
 export interface Rect { x: number; z: number; w: number; h: number }
 
-export interface LevelLayout {
+export interface LevelMap {
   id: string;
   name: string;
   /** The tower floor it's on, shown before its name. */
@@ -19,6 +19,10 @@ export interface LevelLayout {
   playerSpeed: number;
   /** Campfire centers. Standing within REST_RANGE_TILES of one, you can rest: HP and stamina refill. */
   campfires: Vec2[];
+}
+
+/** A level as one player is sent it: the NPCs standing there depend on their story. */
+export interface LevelLayout extends LevelMap {
   npcs: PlacedNpc[];
 }
 
@@ -39,7 +43,7 @@ export const JOIN_RANGE_TILES = 1.6;
  * Close enough to a campfire to rest. The server adds `slack`: its copy of you trails the client's prediction by
  * a round trip, so a player who just walked up would otherwise be refused.
  */
-export function nearCampfire(level: LevelLayout, pos: Vec2, slack = 0): boolean {
+export function nearCampfire(level: LevelMap, pos: Vec2, slack = 0): boolean {
   return level.campfires.some((c) => distXZ(c, pos) <= REST_RANGE_TILES + slack);
 }
 
@@ -66,7 +70,7 @@ const MAX_STEP_TILES = 0.5;
 const EDGE_EPS = 1e-6;
 
 /** x then z, each stopped flush at a solid tile, so walkers slide along walls. Client and server both run it. */
-export function moveWalker(level: LevelLayout, pos: Vec2, dx: number, dz: number): void {
+export function moveWalker(level: LevelMap, pos: Vec2, dx: number, dz: number): void {
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const hits = (x: number, z: number) => {
     const r = WALKER_RADIUS - EDGE_EPS, gx = x + halfWidth, gz = halfDepth - z;
@@ -94,7 +98,7 @@ function slide(at: number, d: number, origin: number, hits: (at: number) => bool
     : Math.min(at, origin + Math.floor(g - WALKER_RADIUS + EDGE_EPS) + WALKER_RADIUS);
 }
 
-export function stepWalker(level: LevelLayout, pos: Vec2, input: WalkInput, dt: number, opts: WalkOptions = {}): void {
+export function stepWalker(level: LevelMap, pos: Vec2, input: WalkInput, dt: number, opts: WalkOptions = {}): void {
   let ix = clamp(input.moveX, -1, 1), iz = clamp(input.moveZ, -1, 1);
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }

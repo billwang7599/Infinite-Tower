@@ -63,12 +63,40 @@ export type ChallengeNews =
   | { kind: "nobodyNear" }
   | { kind: "busy"; who: string | null };
 
+export type QuestHalf = "main" | "side";
+
+export type Tally = { item: ItemId; need: number } | { kills: number; need: number };
+
+export interface LoreEntry {
+  title: string;
+  text: string;
+}
+
+export interface QuestView {
+  id: string;
+  title: string;
+  half: QuestHalf;
+  step: { text: string; hint: string; tally: Tally | null } | null;
+  lore: LoreEntry[];
+}
+
+export type QuestNews =
+  | { kind: "taken"; quest: string; step: string }
+  | { kind: "tally"; quest: string; have: number; need: number }
+  | {
+    kind: "advanced"; quest: string; next: string | null; gained: ItemCounts; dropped: ItemCounts; lore: string[];
+  };
+
+export type DialogueOffer =
+  | { kind: "quest"; quest: string; title: string; step: string }
+  | { kind: "deliver"; quest: string; item: ItemId; count: number };
+
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines
    * said, oldest first. */
   | {
     t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
-    gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; dev: boolean;
+    gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; dev: boolean;
   }
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
@@ -99,7 +127,8 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
-  | { t: "dialogue"; npc: NpcId; lines: readonly string[] }
+  | { t: "dialogue"; npc: NpcId; lines: readonly string[]; offer: DialogueOffer | null }
+  | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }
   /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
   | { t: "healed"; vitals: Vitals }
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }

@@ -3,7 +3,8 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  itemDef, MAX_CHAT_CHARS, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type ServerMsgOf,
+  itemDef, MAX_CHAT_CHARS, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type QuestNews,
+  type ServerMsgOf,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -22,7 +23,8 @@ export type GameEvent =
   | { kind: "given"; item: ItemId; count: number; left: number }
   | { kind: "healed" }
   | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
-  | { kind: "battleResult"; outcome: BattleOutcome };
+  | { kind: "battleResult"; outcome: BattleOutcome }
+  | { kind: "quest"; news: QuestNews };
 
 type EventKind = GameEvent["kind"];
 type EventOf<K extends EventKind> = Extract<GameEvent, { kind: K }>;
@@ -49,6 +51,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
   chatRefused:  { where: "corner", lines: ({ reason }) => [CHAT_REFUSED[reason]] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
+  quest:        { where: "corner", lines: ({ news }) => questLines(news) },
 };
 
 /** Tells the player about `event` in its place: each line is a notice, or the banner (a new one replaces it). */
@@ -98,4 +101,14 @@ function givenLines({ item, count, left }: EventOf<"given">): string[] {
   const lines = count > 0 ? [`You get ${describeItems({ [item]: count })}.`] : [];
   if (left > 0) lines.push(`The bag is full: ${describeItems({ [item]: left })} didn't fit.`);
   return lines;
+}
+
+function questLines(news: QuestNews): string[] {
+  if (news.kind === "taken") return [`New quest: ${news.quest}. ${news.step}`];
+  if (news.kind === "tally") return [`${news.quest}: ${news.have} / ${news.need}.`];
+  const lines = [news.next === null ? `Quest complete: ${news.quest}.` : `${news.quest}: ${news.next}`];
+  const gained = describeItems(news.gained), dropped = describeItems(news.dropped);
+  if (gained) lines.push(`You get ${gained}.`);
+  if (dropped) lines.push(`The bag is full: ${dropped} is left at your feet.`);
+  return [...lines, ...news.lore.map((title) => `New in your questbook: ${title}.`)];
 }

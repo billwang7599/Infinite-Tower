@@ -1,4 +1,4 @@
-import type { LevelLayout } from "./layout.js";
+import type { LevelMap } from "./layout.js";
 
 export interface TileRule {
   char: string;
@@ -25,23 +25,23 @@ const KIND_BY_CHAR = new Map<string, TileKind>(
   Object.entries(TILES).map(([kind, rule]) => [rule.char, kind as TileKind]),
 );
 
-export function mapHalfSize(level: LevelLayout): { halfWidth: number; halfDepth: number } {
+export function mapHalfSize(level: LevelMap): { halfWidth: number; halfDepth: number } {
   return { halfWidth: (level.tiles[0]?.length ?? 0) / 2, halfDepth: level.tiles.length / 2 };
 }
 
 /** Null outside the map (or for a character no kind uses). */
-export function tileAt(level: LevelLayout, x: number, z: number): TileKind | null {
+export function tileAt(level: LevelMap, x: number, z: number): TileKind | null {
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const char = level.tiles[Math.floor(halfDepth - z)]?.[Math.floor(x + halfWidth)];
   return char === undefined ? null : KIND_BY_CHAR.get(char) ?? null;
 }
 
-export function isSolid(level: LevelLayout, x: number, z: number): boolean {
+export function isSolid(level: LevelMap, x: number, z: number): boolean {
   const kind = tileAt(level, x, z);
   return kind === null || TILES[kind].solid;
 }
 
-export function inTallGrass(level: LevelLayout, x: number, z: number): boolean {
+export function inTallGrass(level: LevelMap, x: number, z: number): boolean {
   const kind = tileAt(level, x, z);
   return kind !== null && TILES[kind].tallGrass;
 }
