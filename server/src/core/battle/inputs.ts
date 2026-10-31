@@ -7,13 +7,20 @@ import { IDLE_INPUT, MAX_INPUT_LEAD_STEPS, type PlayerInputData, type StepInput 
 
 export const SILENT_STOP_STEPS = 15;
 
+type Presses = Pick<PlayerInputData, "jump" | "attack" | "dodge" | "guardBreak" | "cast" | "chantWords" | "use">;
+const NO_PRESSES: Presses =
+  { jump: false, attack: null, dodge: false, guardBreak: false, cast: null, chantWords: null, use: null };
+
 /** How late a player's inputs reach the server, in steps (negative: early), measured on their input up to a step. */
 export interface Lateness { lateSteps: number; heardStep: number }
 
 export class InputTimeline {
-  /** Changes not run yet, in order. */
+  /** Changes for steps not run yet, in order: one a step at most, up to MAX_INPUT_LEAD_STEPS past the clock. */
   private readonly waiting: StepInput[] = [];
+  private late: PlayerInputData | null = null;
+  private pressed: Presses = { ...NO_PRESSES };
   private newestChange = 0;
+  private ranStep: number;
   /** What the player holds, as of the last step run. */
   private held: PlayerInputData = { ...IDLE_INPUT };
   private guessed = 0;
@@ -22,7 +29,9 @@ export class InputTimeline {
   private heardFrom = false;
 
   /** A joiner's `heard` is the step they came in after. */
-  constructor(private heard = 0) {}
+  constructor(private heard = 0) {
+    this.ranStep = heard;
+  }
 
   /** Anything has come: the player is in the arena. */
   get started(): boolean {
@@ -36,7 +45,8 @@ export class InputTimeline {
     for (const input of inputs) {
       if (input.step <= this.newestChange || input.step > limit) continue;
       this.newestChange = input.step;
-      this.waiting.push(input);
+      if (input.step > this.ranStep) this.waiting.push(input);
+      else this.fold(input);
     }
     this.heard = Math.max(this.heard, Math.min(upTo, limit));
     // The clock's next step is now + 1: an input for it, here now, is just in time.
@@ -53,37 +63,40 @@ export class InputTimeline {
    * runs as it was made (a dodge goes where it was aimed), with every button pressed in any of them held down.
    */
   take(step: number): PlayerInputData {
-    let late: PlayerInputData | null = null;
-    const pressed: Pick<PlayerInputData, "jump" | "attack" | "dodge" | "guardBreak" | "cast" | "chantWords" | "use"> =
-      { jump: false, attack: null, dodge: false, guardBreak: false, cast: null, chantWords: null, use: null };
+    this.ranStep = step;
     while (this.waiting[0] && this.waiting[0].step <= step) {
-      const { step: madeFor, ...change } = this.waiting.shift()!;
-      if (madeFor < step) {
-        const anyPress = change.jump || change.attack !== null || change.dodge || change.guardBreak
-          || change.cast !== null;
-        if (!late && anyPress) late = change;
-        pressed.jump ||= change.jump;
-        pressed.attack ??= change.attack;
-        pressed.dodge ||= change.dodge;
-        pressed.guardBreak ||= change.guardBreak;
-        pressed.cast ??= change.cast;
-        pressed.chantWords = change.chantWords ?? pressed.chantWords;
-        pressed.use ??= change.use;
-      }
+      const { step: _madeFor, ...change } = this.waiting.shift()!;
       this.held = change;
     }
-    const base = late ?? this.held;
+    const { held, pressed } = this;
     const input = {
-      ...base, jump: this.held.jump || pressed.jump, attack: this.held.attack ?? pressed.attack,
-      dodge: this.held.dodge || pressed.dodge, guardBreak: this.held.guardBreak || pressed.guardBreak,
-      cast: this.held.cast ?? pressed.cast, castHeld: this.held.castHeld,
-      chantWords: this.held.chantWords ?? pressed.chantWords, use: this.held.use ?? pressed.use,
+      ...(this.late ?? held), jump: held.jump || pressed.jump, attack: held.attack ?? pressed.attack,
+      dodge: held.dodge || pressed.dodge, guardBreak: held.guardBreak || pressed.guardBreak,
+      cast: held.cast ?? pressed.cast, castHeld: held.castHeld,
+      chantWords: held.chantWords ?? pressed.chantWords, use: held.use ?? pressed.use,
     };
+    this.late = null;
+    this.pressed = { ...NO_PRESSES };
     if (this.known(step)) {
       this.guessed = 0;
       return input;
     }
     return ++this.guessed > SILENT_STOP_STEPS ? { ...input, moveX: 0, moveZ: 0 } : input;
+  }
+
+  private fold({ step: _madeFor, ...change }: StepInput): void {
+    const anyPress = change.jump || change.attack !== null || change.dodge || change.guardBreak
+      || change.cast !== null;
+    if (!this.late && anyPress) this.late = change;
+    const pressed = this.pressed;
+    pressed.jump ||= change.jump;
+    pressed.attack ??= change.attack;
+    pressed.dodge ||= change.dodge;
+    pressed.guardBreak ||= change.guardBreak;
+    pressed.cast ??= change.cast;
+    pressed.chantWords = change.chantWords ?? pressed.chantWords;
+    pressed.use ??= change.use;
+    this.held = change;
   }
 
   /** The best lateness since this was last asked, or with none, how long the player has been silent. */

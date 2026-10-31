@@ -60,6 +60,16 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK);
   });
 
+  test("a late change and the next step's own in one message: the late press runs, then the next change", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    const strafe = { ...IDLE_INPUT, moveX: 1 };
+    timeline.receive(6, [at(4, { ...WALK, dodge: true }), at(6, strafe)], 5);
+    assert.deepEqual(timeline.take(6), { ...WALK, dodge: true });
+    assert.deepEqual(timeline.take(7), strafe);
+  });
+
   test("a late cast is kept, as a press is", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);
