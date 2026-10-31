@@ -11,7 +11,7 @@ export function Hotbar({ skills, bindings }: { skills: Store<SkillsState>; bindi
   const book = useStore(skills, (s) => s.book);
   const keys = useStore(bindings, (s) => s.battle);
   return (
-    <ol id="hotbar" className="absolute bottom-44 left-4 flex flex-col gap-1.5">
+    <ol id="hotbar" className="absolute bottom-65 left-4 flex flex-col gap-1.5">
       {book.map((written, page) => (
         <li
           key={page} data-page={page}

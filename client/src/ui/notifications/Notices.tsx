@@ -1,4 +1,6 @@
-import { REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX } from "../hud/layout.js";
+import {
+  CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX, REST_BUTTON_BOTTOM_PX, REST_BUTTON_HEIGHT_PX,
+} from "../hud/layout.js";
 import type { Store } from "../store.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { useStore } from "../useStore.js";
@@ -29,7 +31,10 @@ export function Notices({ notices, dismiss, besidePanelPx, aboveRestButton }: No
   return (
     <div
       id="notices"
-      style={{ right: rightPx, bottom: bottomPx, maxWidth: `calc(100% - ${rightPx + MARGIN_PX}px)` }}
+      style={{
+        right: rightPx, bottom: bottomPx,
+        maxWidth: `calc(100% - ${rightPx + MARGIN_PX + CORE_CARD_LEFT_PX + CORE_CARD_WIDTH_PX}px)`,
+      }}
       className="pointer-events-none absolute flex w-80 flex-col items-end transition-[right,bottom] duration-300"
     >
       {items.map((n) => (

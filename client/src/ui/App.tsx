@@ -1,6 +1,7 @@
 import { Chat } from "./chat/Chat.js";
 import { Dialogue } from "./dialogue/Dialogue.js";
 import { BattleHud } from "./hud/BattleHud.js";
+import { CoreCard } from "./hud/CoreCard.js";
 import { OverworldHud } from "./hud/OverworldHud.js";
 import { panelWidthPx } from "./hud/layout.js";
 import { Announcement } from "./notifications/Announcement.js";
@@ -65,6 +66,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               }}
             />
           )}
+          <CoreCard mode={mode} overworld={ui.overworld} battle={ui.battle} said={ui.notifications.said} />
           <Chat chat={ui.chat} input={input} bindings={settings.bindings} send={actions.sendChat} />
           <Dialogue
             dialogue={ui.dialogue} input={input} next={actions.interact} take={actions.takeOffer}

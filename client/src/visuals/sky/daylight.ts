@@ -1,6 +1,6 @@
 import { Color3 } from "@babylonjs/core";
 import {
-  clamp, dayFraction, moonAt, retimeDay, sunAt, WALL_CLOCK, type DayChange, type DayClock, type Vec3,
+  clamp, dayFraction, moonAt, retimeDay, smoothstep, sunAt, WALL_CLOCK, type DayChange, type DayClock, type Vec3,
 } from "@infinite-tower/shared";
 
 interface DirectLight { body: "sun" | "moon"; toLight: Vec3; strength: number }
@@ -28,18 +28,14 @@ export function setDayClock(change: DayChange): void {
 export const dayFractionAt = (nowMs: number) => dayFraction(clock, nowMs);
 
 const altitudeDeg = (v: Vec3) => (Math.asin(clamp(v.y, -1, 1)) * 180) / Math.PI;
-const smoothstep = ([lo, hi]: readonly [number, number], x: number) => {
-  const t = clamp((x - lo) / (hi - lo), 0, 1);
-  return t * t * (3 - 2 * t);
-};
 
 export function directLightAt(fraction: number): DirectLight {
   const sun = sunAt(fraction), sunAlt = altitudeDeg(sun);
-  const sunUp = smoothstep(SUN_FADE_DEG, sunAlt);
+  const sunUp = smoothstep(...SUN_FADE_DEG, sunAlt);
   if (sunUp > 0) return { body: "sun", toLight: sun, strength: sunUp };
   const moon = moonAt(fraction);
-  return { body: "moon", toLight: moon, strength: (1 - smoothstep(DUSK_FADE_DEG, sunAlt)) * smoothstep(MOON_FADE_DEG,
-    altitudeDeg(moon)) };
+  return { body: "moon", toLight: moon, strength: (1 - smoothstep(...DUSK_FADE_DEG, sunAlt)) * smoothstep(
+    ...MOON_FADE_DEG, altitudeDeg(moon)) };
 }
 
 export function daylightAt(fraction: number) {
@@ -52,7 +48,8 @@ export function daylightAt(fraction: number) {
   return {
     sky: mix(a.sky, b.sky), skyLight: mix(a.skyLight, b.skyLight), sunTint: mix(a.sunTint, b.sunTint),
     skyLightScale: a.skyLightScale + (b.skyLightScale - a.skyLightScale) * t,
-    sunDiscAlpha: smoothstep(DISC_FADE_DEG, alt),
-    moonDiscAlpha: smoothstep(DISC_FADE_DEG, altitudeDeg(moonAt(fraction))) * (1 - 0.6 * smoothstep(SUN_FADE_DEG, alt)),
+    sunDiscAlpha: smoothstep(...DISC_FADE_DEG, alt),
+    moonDiscAlpha: smoothstep(...DISC_FADE_DEG, altitudeDeg(moonAt(fraction)))
+      * (1 - 0.6 * smoothstep(...SUN_FADE_DEG, alt)),
   };
 }

@@ -49,7 +49,7 @@ export function Chat({ chat, input, bindings, send }: ChatProps) {
     <div
       id="chat"
       className={
-        "pointer-events-none absolute bottom-24 left-4 flex w-[min(26rem,40%)] flex-col gap-1 font-ui text-sm "
+        "pointer-events-none absolute bottom-45 left-4 flex w-[min(26rem,40%)] flex-col gap-1 font-ui text-sm "
         + "text-white text-shadow-hud"
       }
     >

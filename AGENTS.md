@@ -361,9 +361,13 @@ Decided by the user:
   that doubles each realm (1 in the first) and gives free points (2 in the first, doubling), placed in any stat and
   never locked in (taking them back costs some effort). HP comes only from vitality. On death the step's fill is lost,
   or with none, a whole step. Floors don't need a realm. Enemies' realms aren't shown (and come later, with floors).
-  The F1 admin panel adds and removes steps. Nothing about it should read like XP: the HUD's sphere comes later. The
-  character panel shows the stats as a polygon chart (like Pokémon's) with a small number under each stat, for any
-  number of stats (more can be added), with + and − for free points; the hidden stats stay hidden.
+  The F1 admin panel adds and removes steps. Nothing about it should read like XP. The HUD has your portrait in the
+  bottom-left corner, and a click flips it over to your core: the avatar's soul as a sphere with light growing from its
+  centre, not a filling orb. Each step the light grows bigger and brighter, its colour changing with each realm from
+  fiery (Yan) to ethereal (Tian); inside a step there's no number or bar, only the light breathing (a slow pulse) and
+  sparks when a breakthrough is near, and a breakthrough gets a moment. The character panel shows the stats as a
+  polygon chart (like Pokémon's) with a small number under each stat, for any number of stats (more can be added),
+  with + and − for free points; the hidden stats stay hidden.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -401,8 +405,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   - HP regen runs for players only, on the overworld, in fights and in the arena after a win; in a fight it waits 5 s
     after any damage (a burn's tick too). The server sends HP in `state` while it comes back.
   - Agility speeds overworld walking too (one rule set).
-  - The HUD shows the realm and step under the bars, in both modes; the character panel shows it, the free points and
-    the seven shown stats with + and − (− only by a fire). The admin panel's step up / down is overworld only and
+  - The character panel shows the realm and step, the free points and the seven shown stats with + and − (− only by
+    a fire). The admin panel's step up / down is overworld only and
     empties the fill.
   - Saved in three columns (`core_steps`, `core_fill`, `stat_points`); players from before start at Early Yan, empty.
 - The stats chart (core PR 3; the user: "just make it. assume whatever you want"; tried headless, not hand-played):
@@ -415,6 +419,28 @@ them; treat them as changeable, and still ask before deciding new ones):
     (dashed) and the stat's effect now and after; hovering a stat shows what it does under the chart (the list's
     lines are gone otherwise).
   - The character panel is wider for it: 336 px (was 288).
+- The sphere HUD (the user: "just make it. assume whatever you want"; only checked in a headless browser):
+  - It follows the mockups the user saw: a smoky pixel-art glass sphere, 64 pixels shown at 2x, dithered to 8 shades,
+    lit from the top left, its glass clearing realm by realm. Each realm's light has its own shape and colour: Yan a
+    flickering flame (its sparks rise like embers), Sol a sun with rays, Lux a white star with cross spikes, Ling a
+    teal and violet spirit swirl, Tian a pale light with a halo ring round the glass that brightens each step.
+  - Brighter every step. Bigger every step of a realm; a new realm starts condensed, smaller than the Peak before it
+    but bigger than the last realm's Early (as in the mockups). A whole core looks like Peak Tian. Numbers: `LIGHT` in
+    `client/src/gfx/core/light.ts`.
+  - The light breathes over 4.2 s (size and brightness). Sparks start at 70% of the step's fill (`SPARKS_FROM`) and
+    thicken toward the breakthrough; a Peak's are now and then the next realm's colour.
+  - A breakthrough (only one the game tells, with `say`): the light gathers for 0.9 s (shrinking and brightening, sparks
+    drawn in, the sphere trembling), flashes at 1 s (the new step showing from then), a ring spreads and it settles by
+    2.8 s (`BREAKTHROUGH` in `sphere.ts`). With the portrait up, the card turns to the core for it and back 4.3 s after
+    it began; a click turns it back sooner. Several steps at once are one breakthrough. The admin's step buttons and a
+    step lost on death change the sphere with no moment.
+  - The card is 128 px wide, bottom left in both modes: the portrait (the creation one, at 2x) and your name in a band
+    on its front, the sphere and the step's name ("Middle Yan 炎"; the glyph for Yan, Ling and Tian) on its back; it
+    turns in 0.6 s. It stays turned between the overworld and fights (not after returning to the title), and in a fight
+    it shows the fight's core, so a breakthrough there shows at once. No key turns it.
+  - The realm line under the bars is gone: the card's back and the character panel name the step.
+  - The chat and the arena's hotbar moved up above the card, and the notices keep clear of its right edge.
+  - It's painted at most 30 times a second and only while the core side shows (under 1 ms a paint).
 - Guard stances (the user asked for sword fights like For Honor's; the design is the main chat's, every detail below
   the agent's, none hand-played; numbers in `ATTACKS`, `COMBAT` and `ENEMY_GUARD` in `shared/src/weapons/weapons.ts`):
   - Locked on (fights start locked), with a sword in hand, you always hold a guard: left, top or right, as you see it.
@@ -759,8 +785,9 @@ tests say what was agreed. Where tests go and how they're written:
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
-  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). A new account has no
-  character: make one first. Skip this when the user says it isn't needed.
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). The HUD's card is
+  `#core-card` (a click turns it; `data-face` is `portrait` or `core`), its sphere the canvas `#core-sphere`. A new
+  account has no character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

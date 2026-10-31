@@ -105,11 +105,10 @@ function PlayerStatus({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
   const wins = useStore(hud, (s) => s.wins);
-  const core = useStore(hud, (s) => s.core);
   return (
     <div className="absolute top-3 left-4">
       {name && <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} core={core} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
       <div id="overworld-wins" className="text-[13px] font-normal">
         Foes defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>

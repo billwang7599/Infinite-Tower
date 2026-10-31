@@ -22,6 +22,9 @@ export function inventoryPanelWidthPx({ bag, cloth, pile }: Gear): number {
 export const panelWidthPx = (panel: OverworldPanel, gear: Gear): number =>
   panel === "inventory" ? inventoryPanelWidthPx(gear) : CHARACTER_PANEL_WIDTH_PX;
 
+export const CORE_CARD_LEFT_PX = 16;
+export const CORE_CARD_WIDTH_PX = 128;
+
 /** The Rest button, bottom centre, by a campfire (OverworldHud.tsx). */
 export const REST_BUTTON_BOTTOM_PX = 32;
 export const REST_BUTTON_HEIGHT_PX = 46;
