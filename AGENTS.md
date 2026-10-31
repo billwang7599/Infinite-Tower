@@ -136,6 +136,13 @@ Decided by the user:
     bottom ring missing) to consistently show what stance we're using. not just the indication on attack. similar to
     for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. Only you see yours;
     enemies and other players get no ring, and their swings no marker.
+  - Another's swing is read off its weapon (the user picked the weapon cue: "we need to make sure our models and
+    animations clearly show the sword swing"): its blade drawn back on the side the swing comes from (each of the 7
+    ways, and a stab's hand drawn back with the blade level), further for a heavy; a glint at the blade's tip just
+    before it goes live; the swing's crescent trail (the one your own swing leaves) while live; and its whoosh from
+    the side the blade sets off from. The Kobolds and other players alike. Sizes and timings are the agent's picks:
+    `glintOf` in `client/src/visuals/battle/weapons.ts`, `GLINT_SIZE_M` in `blade.ts`, `SWING_SIDE_M` in
+    `client/src/audio/battle.ts`.
   - Swing steering isn't built ([plan/ideas.md](plan/ideas.md)).
   Every smaller rule and the agent's numbers: "The Hybrid sword" under "Decided by the agent".
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the

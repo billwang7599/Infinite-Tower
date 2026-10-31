@@ -1413,8 +1413,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
                          trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to fade
+        slash.ts         A swing's crescent trail across the swinger's view (buildSlash, placeSlash from the motion's
+                         TrailPose): every player's and the Kobolds'
         blade.ts         The 3D sword: buildBlade (grip, guard and blade along a hand's +y, from WEAPON_LOOKS: the
-                         Kobolds' and every player's); a flat sprite's held blade (holdBlade, placeBlade: at the
+                         Kobolds' and every player's); its tip's glint just before it goes live (cueBlade, showCue
+                         by glintOf); a flat sprite's held blade (holdBlade, placeBlade: at the
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered
@@ -1654,7 +1657,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | The aim ring (wedge size, radius, height, the stab's mark) | top of `client/src/visuals/battle/aimRing.ts` |
-| How fast a player's 3D blade turns and follows the sprite's hand, how much it glows | top of `client/src/visuals/battle/blade.ts` |
+| How fast a player's 3D blade turns and follows the sprite's hand, how much it glows; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
+| How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |

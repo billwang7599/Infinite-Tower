@@ -4,7 +4,7 @@ import {
   ITEMS, SCREEN_DIR, SWING_DIRS, WEAPONS, type AttackKind, type SwingData, type Vec3, type WeaponId,
 } from "@infinite-tower/shared";
 import {
-  MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS, type TrailPose,
+  glintOf, MOTIONS, strokeOf, swingFrame, wayCut, WEAPON_LOOKS, type TrailPose,
 } from "../../../src/visuals/battle/weapons.js";
 import { swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
@@ -108,6 +108,28 @@ describe("a held blade", () => {
   test("the wind-up starts from where the blade is held", () => {
     const from = held(wayCut("rl"));
     for (const way of SWING_DIRS) near(windup(wayCut(way), 0, from).blade, from.blade, way);
+  });
+});
+
+describe("a stab's wind-up", () => {
+  test("draws the hand back with the blade level, pointing ahead", () => {
+    const from = held(wayCut("tb", true)), wound = windup(wayCut("stab", true), 1, from);
+    assert.ok(wound.handZ < from.handZ - 0.3, `hand drawn back to ${wound.handZ}`);
+    assert.ok(wound.blade.z > 0.99, "pointing ahead");
+    assert.ok(strokeBlade(wayCut("stab", true), 0.5).handZ > wound.handZ, "then thrust forward");
+  });
+});
+
+describe("the blade's cue", () => {
+  test("glints just before the blade goes live, brightest as it does, gone soon after", () => {
+    for (const attack of KINDS) {
+      const steps = swingSteps(attack, "lr"), { liveAt, liveUntil } = steps[0]!, glints = steps.map(glintOf);
+      assert.equal(glints[0], 0, `${attack}: not as it starts`);
+      assert.ok(glints[liveAt - 2]! > 0 && glints[liveAt - 2]! < glints[liveAt]!, `${attack}: rising`);
+      assert.equal(glints[liveAt], 1);
+      assert.equal(glints[liveUntil], 0, `${attack}: gone while it's still live`);
+    }
+    assert.equal(glintOf(null), 0);
   });
 });
 

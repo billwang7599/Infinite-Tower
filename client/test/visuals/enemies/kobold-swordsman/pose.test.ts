@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import type { EnemyState, Vec3 } from "@infinite-tower/shared";
+import { SCREEN_DIR, SWING_DIRS, WAYS, type EnemyState, type Vec3 } from "@infinite-tower/shared";
 import { KOBOLD_DRAWBACK, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
-import { DRAWBACK, MOTIONS, type BladePose, type Cut } from "../../../../src/visuals/battle/weapons.js";
+import {
+  DRAWBACK, MOTIONS, wayCut, type BladePose, type Cut,
+} from "../../../../src/visuals/battle/weapons.js";
 
 const D = Math.SQRT1_2;
 const LR: Cut = { x: 1, y: 0 }, RL: Cut = { x: -1, y: 0 }, TB: Cut = { x: 0, y: -1 };
@@ -82,6 +84,27 @@ describe("the kobold's pose", () => {
       const live = poseOf("weapon", 0, 0, cut, { set: 1, turn: goneByTurn });
       assert.deepEqual(live.blade, MOTIONS.sword.stroke(cut, goneByTurn).blade, JSON.stringify(cut));
     }
+  });
+
+  test("each way winds up on its own side, the blade drawn to where its cut starts, every way told apart", () => {
+    const wound = WAYS.map((way) => poseOf("weapon", 0.5, 0.9, wayCut(way, true), { set: 0.9, turn: 0 }).blade);
+    SWING_DIRS.forEach((way) => {
+      const blade = wound[WAYS.indexOf(way)]!, start = { x: -SCREEN_DIR[way].x, y: -SCREEN_DIR[way].y };
+      if (Math.abs(start.x) > 0.1) assert.equal(Math.sign(blade.x), Math.sign(start.x), `${way} across`);
+      if (Math.abs(start.y) > 0.1) assert.equal(Math.sign(blade.y), Math.sign(start.y), `${way} up or down`);
+    });
+    for (let a = 0; a < wound.length; a++) {
+      for (let b = a + 1; b < wound.length; b++) {
+        const [u, w] = [wound[a]!, wound[b]!], cos = u.x * w.x + u.y * w.y + u.z * w.z;
+        assert.ok(cos < Math.cos(0.4), `${WAYS[a]} and ${WAYS[b]} look alike`);
+      }
+    }
+  });
+
+  test("a stab's wind-up draws the sword hand back behind the guard", () => {
+    const guard = poseOf("approach", 0, 0, wayCut("stab", true), null);
+    const wound = poseOf("weapon", 0.5, 0.9, wayCut("stab", true), { set: 0.9, turn: 0 });
+    assert.ok(wound.hand.z < guard.hand.z - 0.2, `${wound.hand.z} vs ${guard.hand.z}`);
   });
 
   test("the body leans back further with the draw-back", () => {
