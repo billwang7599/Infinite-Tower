@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, MAX_INPUT_LEAD_STEPS, Player, PLAYER, Stamina,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, MAX_INPUT_LEAD_STEPS, PLAYER,
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, LEAVING_LOSES, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
@@ -90,15 +90,28 @@ describe("a battle room", () => {
     assert.deepEqual(room.fight.save(), expected.save());
   });
 
+  test("keeps inputs that come early and runs each on its own step: its fight stays the client's", () => {
+    const { room, client, play, tick } = openRoom();
+    play();
+    // Its clock moved on for inputs that came as late as the server waits for, then the ping spike passed.
+    for (let i = 0; i < MAX_INPUT_DELAY_STEPS; i++) {
+      const sent = client.step(script(client.fight.steps + 1));
+      room.input(0, sent.upTo, sent.inputs);
+    }
+    for (let i = 0; i < 2 * HASH_EVERY_STEPS; i++) play(script(client.fight.steps + 1));
+    while (room.fight.steps < client.fight.steps) tick();
+    assert.deepEqual(room.fight.save(), client.fight.save());
+  });
+
   test("drops inputs for steps further ahead of its clock than MAX_INPUT_LEAD_STEPS", () => {
     const { room, play } = openRoom();
     play();
     const ahead = room.fight.steps + 1 + MAX_INPUT_LEAD_STEPS + 1;
     room.input(0, ahead, [{ step: ahead, ...input({ attack: "light" }) }]);
-    for (let i = 0; i < 40; i++) play(null);
-    const player = room.fight.world.require(room.fight.players[0]!, Player);
-    assert.equal(player.action, "none");
-    assert.equal(room.fight.world.require(room.fight.players[0]!, Stamina).value, PLAYER_STATS.stamina);
+    while (room.fight.steps < ahead + 10) play(null);
+    const idle = new Fight(setupWith());
+    while (idle.steps < room.fight.steps) idle.step([IDLE_INPUT]);
+    assert.deepEqual(room.fight.save(), idle.save());
   });
 
   test("a client gone silent: the fight goes on in real time, MAX_INPUT_DELAY_STEPS behind its clock", () => {

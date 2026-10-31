@@ -11,5 +11,9 @@ export const HASH_EVERY_STEPS = 15;
 const MAX_INPUT_DELAY = 0.2;
 export const MAX_INPUT_DELAY_STEPS = Math.round(MAX_INPUT_DELAY / FIXED_DT);
 
-/** An input further ahead of the server's clock is dropped, so a client can't run ahead of real time. */
-export const MAX_INPUT_LEAD_STEPS = 6;
+/**
+ * Seconds an input may come ahead of the server's clock (a client briefly ahead) and still wait for its own step.
+ * One further ahead is dropped, so a client can't run ahead of real time.
+ */
+const MAX_INPUT_LEAD_TIME = 0.5;
+export const MAX_INPUT_LEAD_STEPS = Math.round(MAX_INPUT_LEAD_TIME / FIXED_DT);

@@ -218,12 +218,13 @@ Decided by the user:
 - The server runs the arena fight and decides it: hits, damage, stamina, deaths and the result. The browser runs
   the whole fight itself too (you and the enemies) and shows it at once, so the boar reacts without lag; it sends
   only its inputs, each tagged with the fight step it's for. The server runs them on those steps: an input up to
-  200 ms late still runs on its own step (the server waits for it), a later one on the server's next step, and one
-  for a step too far ahead of the server's clock is dropped, so a client can't run ahead of real time. Four times a
-  second the server sends a hash of its fight's state; a client whose copy differs asks for the whole state, loads
-  it and replays its inputs since. The result banner, loot, the bag and saving wait for the server's result (the
-  client may keep animating). Tunable: `MAX_INPUT_DELAY` and `HASH_EVERY_STEPS` in `shared/src/battle/netcode.ts`.
-  Another player, later, may lag on your screen; your own character is always instant.
+  200 ms late still runs on its own step (the server waits for it), a later one on the server's next step; one up
+  to 0.5 s early (a client briefly ahead of the server's clock) waits for its own step, and one further ahead is
+  dropped, so a client can't run ahead of real time. Four times a second the server sends a hash of its fight's
+  state; a client whose copy differs asks for the whole state, loads it and replays its inputs since. The result
+  banner, loot, the bag and saving wait for the server's result (the client may keep animating). Tunable:
+  `MAX_INPUT_DELAY`, `MAX_INPUT_LEAD_TIME` (the agent's pick) and `HASH_EVERY_STEPS` in
+  `shared/src/battle/netcode.ts`. Another player, later, may lag on your screen; your own character is always instant.
 - A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
 - Skills ignore dodge i-frames, hurt invulnerability and guards: a Bolt hits a dodging or guarding player (for now).

@@ -580,7 +580,9 @@ numbers), and `upTo`, the last step its copy has run; with nothing new, `upTo` a
 (`INPUT_HEARTBEAT_STEPS`). The server checks each message (`battleInput`'s Zod schema: steps in order and not after
 `upTo`, the aim a direction, the move no longer than two keys make) and runs every input on its own step: up to
 `MAX_INPUT_DELAY` (0.2 s, `MAX_INPUT_DELAY_STEPS` = 12) late it waits, later it runs it on its next step, presses kept,
-and more than `MAX_INPUT_LEAD_STEPS` (6) ahead of its clock it drops it. A step run without the player's input holds
+and one early (a client briefly ahead, as after a ping spike) it keeps for its own step, up to `MAX_INPUT_LEAD_TIME`
+(0.5 s, `MAX_INPUT_LEAD_STEPS` = 30) ahead of its clock; further ahead it drops, so a client can't run ahead of real
+time (late changes are folded as they come, so at most one a step waits). A step run without the player's input holds
 what they held; after `SILENT_STOP_STEPS` of those in a row, their move keys let go. After every `HASH_EVERY_STEPS`-th
 step (15: 4 a second) it sends `battleHash`: the step, the hash of its fight there (`Fight.hash`: the whole state, every
 number rounded to 2 decimals, so last-bit differences between machines don't count until they grow), and how late the
@@ -688,7 +690,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an in-order wire
   that can hold messages back): waiting for the first input, each input on its own step hash for hash, never past
   its clock, waiting for a late input up to `MAX_INPUT_DELAY_STEPS` and running a later one on its next step,
-  dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
+  keeping early inputs for their own steps and dropping ones too far ahead, a silent client's fight going on (and
+  still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; blocking the Kobold's attack the same way; the Kobold as
   tuned, beaten by a player who reads its guard and counters its guard breaks whatever its seed, beating one who
@@ -696,8 +699,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
   chanting without the book; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
-  through a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
-  silent player stopping, lateness, the latest of late chant words kept, a late guard break kept).
+  through a death); and the input timeline (changes held, late presses and casts kept, a late change and an on-time
+  one in one message, too far ahead dropped, a silent player stopping, lateness, the latest of late chant words
+  kept, a late guard break kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
   client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
   step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving. Joining a battle:
@@ -882,7 +886,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
-                   agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_STEPS), stats.ts (Stats,
+                   agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats,
                    FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
@@ -1012,7 +1016,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        everyone the fight; join seats a player in a fight under way, settle gives each player their
                        own result; MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS, MAX_BATTLE_PLAYERS),
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
-                       on the next step, too far ahead dropped, a silent player let go; SILENT_STOP_STEPS)
+                       on the next step, early ones kept for theirs, too far ahead dropped, a silent player let
+                       go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
                        systems and spawner; dropPile, holdPile / landPile (an arena's), pileInView and npcInView
