@@ -6,7 +6,7 @@ import {
 import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import {
-  cutOf, lerpBlade, MOTIONS, strokeOf, WEAPON_LOOKS, type BladePose, type WeaponMotion,
+  cutOf, lerpBlade, MOTIONS, strokeOf, swingCut, WEAPON_LOOKS, type BladePose, type WeaponMotion,
 } from "../../battle/weapons.js";
 import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
@@ -41,7 +41,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
 
     const swing = world.require(e, Wielder).swing, guard = world.get(e, WeaponAttack);
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
-    const cut = cutOf(swing?.attack ?? "light", swing?.side ?? guard?.guard ?? "top", true);
+    const cut = swing ? swingCut(swing, true) : cutOf("light", guard?.guard ?? "top", true);
     const heavy = (swing?.attack ?? (enemy.state === "weaponWindup" ? guard?.next : null)) === "heavy";
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
       swing ? strokeOf(swing) : null, heldGuard(nodes.motion, guard), heavy);

@@ -8,6 +8,7 @@ import {
 import type { Fight } from "@infinite-tower/shared/fight";
 import { showArena } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
+import { aimRing } from "./aimRing.js";
 import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
 import { impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
@@ -147,6 +148,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
   material.emissiveColor = new Color3(1.3, 0.35, 0.25);
   marker.material = material;
   marker.isPickable = false;
+  const ring = aimRing(ctx.scene);
   const piles = new Map<number, Mesh>();
 
   const drawPiles = () => {
@@ -191,6 +193,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
       drawPiles();
 
       const lock = ctx.battle.lock;
+      ring.frame(world, lock, ctx.battle.fight?.style === "hybrid");
       const body = lock === null ? undefined : world.get(lock, Body);
       marker.setEnabled(body !== undefined);
       if (!body) return;

@@ -54,6 +54,16 @@ export interface WeaponCounters {
   reactTime: number;
 }
 
+export interface HybridSwordsmanDef {
+  windupTime: number;
+  chainWindupTime: number;
+  recoverTime: number;
+  blockReactTime: number;
+  tapParryChance: number;
+  kickAfterTime: number;
+  kickChance: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -68,6 +78,7 @@ export interface WeaponAttackDef {
   cooldown: number;
   firstDelay: number;
   counters?: WeaponCounters;
+  hybrid: HybridSwordsmanDef;
 }
 
 /**

@@ -1,17 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, newCore, starterEquipment, type GuardSide, type PlayerAction,
-  type PlayerData, type SwingData,
+  ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, newCore, starterEquipment, SWING_DIRS, WAYS, type GuardSide,
+  type PlayerAction, type PlayerData, type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
 import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
 import { GRAB_BLADE, MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
-import { swingAt, swingSteps } from "../../fixtures/swings.js";
+import { swingAt, swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
-function playerDoing(action: PlayerAction, t: number, guard: GuardSide | null = null): PlayerData {
+function playerDoing(
+  action: PlayerAction, t: number, guard: GuardSide | null = null, way: SwingDir | null = null,
+): PlayerData {
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, guardBreakHeld: false,
+    blockHeld: false, kickHeld: false, kickBuffer: 0, tapParryLeft: 0, sinceBlockPress: 1, way,
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
     writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false, writing: null, using: null,
     book: [],
@@ -78,6 +81,22 @@ describe("the player's sprite", () => {
     assert.equal(spritePose(playerDoing("grab", 0.1, "top"), holding(null), true, 1).pose, "grab");
   });
 
+  test("the hybrid's swings take the drawn swing nearest their way; a stab the overhead one", () => {
+    const pose = (way: (typeof WAYS)[number]) => spritePose(ATTACKING, holding(waySwingAt(way, 2)), true, 1).pose;
+    assert.equal(pose("lr"), "swing-lr");
+    assert.equal(pose("trbl"), "swing-trbl");
+    assert.equal(pose("bt"), "swing-tb");
+    assert.equal(pose("brtl"), "swing-rl");
+    assert.equal(pose("stab"), "swing-tb");
+  });
+
+  test("the hybrid: aimed, held on the side the swing will come from; blocking, up top; kicking, reaching", () => {
+    assert.equal(spritePose(playerDoing("none", 1, null, "lr"), holding(null), true, 1).pose, "guard-left");
+    assert.equal(spritePose(playerDoing("none", 1, null, "brtl"), holding(null), true, 1).pose, "guard-right");
+    assert.equal(spritePose(playerDoing("block", 1, null, "lr"), holding(null), true, 1).pose, "guard-top");
+    assert.equal(spritePose(playerDoing("kick", 0.1, null, "lr"), holding(null), true, 1).pose, "grab");
+  });
+
   test("every frame it picks is drawn", () => {
     const all = ATTACK_KINDS.flatMap((attack) => GUARD_SIDES.flatMap((side) => swingSteps(attack, side)))
       .map((swing) => spritePose(ATTACKING, holding(swing), true, 1));
@@ -89,6 +108,14 @@ describe("the player's sprite", () => {
       }
     }
     all.push(spritePose(playerDoing("none", 0), holding(null), false, 1));
+    for (const way of WAYS) {
+      for (let step = 0; step < waySwingAt(way, 0).endAt; step++) {
+        all.push(spritePose(ATTACKING, holding(waySwingAt(way, step)), true, 1));
+      }
+    }
+    for (const action of ["block", "kick", "none"] as const) {
+      for (const way of SWING_DIRS) all.push(spritePose(playerDoing(action, 0.1, null, way), holding(null), true, 1));
+    }
     for (const { pose, frame } of all) assert.ok(frame >= 0 && frame < BATTLE_FRAMES[pose], `${pose} ${frame}`);
   });
 });
@@ -138,11 +165,26 @@ describe("the player's blade", () => {
     }
   });
 
+  test("the hybrid's aim holds it out on that side, as For Honor's guard would", () => {
+    assert.deepEqual(blade(playerDoing("none", 1, null, "lr")).blade, guarding("left").blade);
+    assert.deepEqual(blade(playerDoing("none", 1, null, "rl")).blade, guarding("right").blade);
+    assert.deepEqual(blade(playerDoing("block", 1, null, "lr")).blade, guarding("top").blade);
+  });
+
+  test("a hybrid swing's blade sweeps its way; a stab points straight ahead", () => {
+    const { liveAt, liveUntil, endAt } = waySwingAt("bt", 0);
+    const rising = blade(playerDoing("attack", 0.1), waySwingAt("bt", endAt - 1)).blade;
+    assert.ok(rising.y > 0.5, "a rising cut ends up high");
+    const stab = blade(playerDoing("attack", 0.1), waySwingAt("stab", (liveAt + liveUntil) >> 1)).blade;
+    assert.ok(stab.z > 0.95, "ahead");
+  });
+
   test("knocked back, parried or held it reels, as an enemy's does; guard breaking it's lowered; dead it lies flat", () => {
     for (const action of ["recoil", "stagger", "grabbed"] as const) {
       assert.deepEqual(blade(playerDoing(action, 0.1, "left"), swingAt("light", "left", 3)).blade, REELING_BLADE);
     }
     assert.deepEqual(blade(playerDoing("grab", 0.1, "top")).blade, GRAB_BLADE);
+    assert.deepEqual(blade(playerDoing("kick", 0.1, null, "lr")).blade, GRAB_BLADE);
     assert.ok(Math.abs(blade(playerDoing("none", 0.1), null, false).blade.y) < 0.2);
   });
 });

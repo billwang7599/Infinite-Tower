@@ -23,11 +23,15 @@ export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: Lock
 type MoveListener = (dx: number, dy: number, atMs: number) => void;
 
 const BUTTON_BITS = [1, 4, 2, 8, 16];
+export const WHEEL = "MouseWheel";
+/** A trackpad's scroll sends a stream of wheel events: one press until it rests this long. */
+const WHEEL_REST_MS = 150;
 
 export class Mouse extends Buttons {
   private moved: MoveListener = () => {};
   private dx = 0;
   private dy = 0;
+  private lastWheelMs = -Infinity;
   locked = false;
   /** Only capture the mouse when the current mode wants it (the arena). */
   private lockable = false;
@@ -56,6 +60,13 @@ export class Mouse extends Buttons {
       this.dy += e.movementY;
       this.moved(e.movementX, e.movementY, e.timeStamp);
     });
+    canvas.addEventListener("wheel", (e) => {
+      if (!this.locked || e.deltaY === 0) return;
+      e.preventDefault();
+      if (e.timeStamp - this.lastWheelMs > WHEEL_REST_MS) this.press(WHEEL);
+      this.lastWheelMs = e.timeStamp;
+      this.release(WHEEL);
+    }, { passive: false });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
   }

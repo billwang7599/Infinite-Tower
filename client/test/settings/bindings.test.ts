@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
+import { COMBAT_STYLE_IDS, MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import {
-  ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, isFixed, keysOf, type ActionRef,
+  ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, isFixed, keysOf, type ActionRef, type Group,
 } from "../../src/settings/bindings.js";
 
 const menu: ActionRef = { group: "general", action: "menu" };
@@ -14,7 +14,9 @@ const useItem: ActionRef = { group: "overworld", action: "useItem" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
-const guardLeft: ActionRef = { group: "battle", action: "guardLeft" };
+const guardLeft: ActionRef = { group: "for-honor", action: "guardLeft" };
+const aimTopLeft: ActionRef = { group: "hybrid", action: "aimTopLeft" };
+const kick: ActionRef = { group: "hybrid", action: "kick" };
 const dragCamera: ActionRef = { group: "battle", action: "dragCamera" };
 const leave: ActionRef = { group: "battle", action: "leave" };
 
@@ -27,8 +29,8 @@ function withSpareKey(): KeyBindings {
 }
 
 describe("ACTIONS and helpers", () => {
-  test("three groups: general (everywhere), the overworld's and the arena's", () => {
-    assert.deepEqual(GROUPS, ["general", "overworld", "battle"]);
+  test("general (everywhere), the overworld's, the arena's, and each combat style's", () => {
+    assert.deepEqual(GROUPS, ["general", "overworld", "battle", ...COMBAT_STYLE_IDS]);
   });
 
   test("every action has a default key or a mouse button, within the limit, none reserved but Esc", () => {
@@ -46,16 +48,17 @@ describe("ACTIONS and helpers", () => {
 
   test("no default key is on two actions that work together; the overworld and the arena share some", () => {
     const map = new KeyBindings().get();
-    for (const place of ["overworld", "battle"] as const) {
-      const all = [...actionsOf("general"), ...actionsOf(place)].flatMap((ref) => keysOf(map, ref));
-      assert.equal(new Set(all).size, all.length, place);
+    const places: Group[][] = [["overworld"], ...COMBAT_STYLE_IDS.map((style): Group[] => ["battle", style])];
+    for (const place of places) {
+      const all = [...actionsOf("general"), ...place.flatMap(actionsOf)].flatMap((ref) => keysOf(map, ref));
+      assert.equal(new Set(all).size, all.length, place.join());
     }
     assert.deepEqual(map.overworld.interact, ["KeyE"]);
     assert.deepEqual(map.overworld.useItem, ["Enter"]);
     assert.deepEqual(map.battle.leave, ["Enter"]);
   });
 
-  test("general: Esc, WASD to move, C the character panel, B the inventory, J the questbook, / the chat", () => {
+  test("general: Esc, WASD to move, C the character panel, B the inventory, H the questbook, / the chat", () => {
     const general = new KeyBindings().get().general;
     assert.deepEqual(general.openChat, ["Slash"]);
     assert.deepEqual(general.menu, ["Escape"]);
@@ -63,21 +66,34 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual([forward, left, back, right], [["KeyW"], ["KeyA"], ["KeyS"], ["KeyD"]]);
     assert.deepEqual(general.character, ["KeyC"]);
     assert.deepEqual(general.inventory, ["KeyB"]);
-    assert.deepEqual(general.questbook, ["KeyJ"]);
+    assert.deepEqual(general.questbook, ["KeyH"], "J aims in the hybrid");
   });
 
   test("the arena: left click light, right heavy; U, I and O guard; left Shift guard breaks; F dodges", () => {
-    const battle = new KeyBindings().get().battle;
+    const { battle, "for-honor": forHonor } = new KeyBindings().get();
     assert.deepEqual([battle.lightAttack, battle.heavyAttack], [[], []]);
     assert.deepEqual([ACTIONS.battle.lightAttack.mouse, ACTIONS.battle.heavyAttack.mouse], [[0], [2]]);
     assert.equal(isFixed({ group: "battle", action: "lightAttack" }), true, "attacks stay on the mouse");
     assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1], "the camera drags on the middle button");
-    assert.deepEqual([battle.guardLeft, battle.guardTop, battle.guardRight], [["KeyU"], ["KeyI"], ["KeyO"]]);
-    assert.deepEqual(battle.guardBreak, ["ShiftLeft"]);
+    assert.deepEqual([forHonor.guardLeft, forHonor.guardTop, forHonor.guardRight], [["KeyU"], ["KeyI"], ["KeyO"]]);
+    assert.deepEqual(forHonor.guardBreak, ["ShiftLeft"]);
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.deepEqual(battle.leave, ["Enter"]);
     assert.deepEqual(battle.interact, ["KeyE"]);
+  });
+
+  test("the hybrid: U I O / J L / M , . aim, K or the scroll wheel stabs, left Shift blocks, G kicks", () => {
+    const hybrid = new KeyBindings().get().hybrid;
+    assert.deepEqual(
+      [hybrid.aimTopLeft, hybrid.aimTop, hybrid.aimTopRight, hybrid.aimLeft, hybrid.aimRight, hybrid.aimBottomLeft,
+        hybrid.aimBottom, hybrid.aimBottomRight],
+      [["KeyU"], ["KeyI"], ["KeyO"], ["KeyJ"], ["KeyL"], ["KeyM"], ["Comma"], ["Period"]],
+    );
+    assert.deepEqual(hybrid.stab, ["KeyK"]);
+    assert.equal(ACTIONS.hybrid.stab.wheel, true);
+    assert.deepEqual(hybrid.block, ["ShiftLeft"]);
+    assert.deepEqual(hybrid.kick, ["KeyG"]);
   });
 
   test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
@@ -155,7 +171,7 @@ describe("KeyBindings.bind", () => {
     b.bind(dodge, "KeyX", null);
     const before = b.get();
     assert.equal(keys(b, dodge).length, MAX_KEYS_PER_ACTION);
-    assert.deepEqual(b.bind(dodge, "KeyG", null), { ok: false, full: true });
+    assert.deepEqual(b.bind(dodge, "KeyV", null), { ok: false, full: true });
     assert.equal(b.get(), before);
   });
 
@@ -163,8 +179,8 @@ describe("KeyBindings.bind", () => {
     const b = new KeyBindings();
     b.bind(dodge, "KeyZ", null);
     b.bind(dodge, "KeyX", null);
-    assert.deepEqual(b.bind(dodge, "KeyG", "KeyZ"), unchanged);
-    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyG", "KeyX"]);
+    assert.deepEqual(b.bind(dodge, "KeyV", "KeyZ"), unchanged);
+    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyV", "KeyX"]);
   });
 
   test("a key held by another action with spare keys moves over", () => {
@@ -269,7 +285,7 @@ describe("KeyBindings.bind", () => {
   test("adding another action's key to a full action is refused and leaves the key where it was", () => {
     const b = withSpareKey();
     b.bind(dodge, "KeyX", null);
-    b.bind(dodge, "KeyG", null);
+    b.bind(dodge, "KeyV", null);
     const before = b.get();
     assert.deepEqual(b.bind(dodge, "KeyZ", null), { ok: false, full: true });
     assert.equal(b.get(), before);
@@ -285,10 +301,19 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, dodge), ["KeyZ", "KeyX", "KeyF"]);
   });
 
-  test("U is guard left's only key, so binding it to dodge swaps the dodge's key onto guard left", () => {
+  test("U is guard left's only key, and the hybrid's top-left aim's, so binding it to dodge swaps F onto both", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), { ok: true, takenFrom: [guardLeft], gave: "KeyF" });
+    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), { ok: true, takenFrom: [guardLeft, aimTopLeft], gave: "KeyF" });
     assert.deepEqual(keys(b, guardLeft), ["KeyF"]);
+    assert.deepEqual(keys(b, aimTopLeft), ["KeyF"]);
+  });
+
+  test("two combat styles may share a key: they're never in one fight", () => {
+    const b = new KeyBindings();
+    assert.deepEqual(b.bind(kick, "KeyU", "KeyG"), { ok: true, takenFrom: [aimTopLeft], gave: "KeyG" });
+    assert.deepEqual(keys(b, guardLeft), ["KeyU"], "For Honor's guard keeps it");
+    assert.deepEqual(b.bind(guardLeft, "KeyG", null), { ok: true, takenFrom: [], gave: null });
+    assert.deepEqual(keys(b, guardLeft), ["KeyU", "KeyG"]);
   });
 });
 

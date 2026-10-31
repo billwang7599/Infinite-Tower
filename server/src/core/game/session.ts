@@ -3,11 +3,12 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn, hpRegenPerSec, inRect,
-  JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo, skillOf, startUse,
-  stepUse, takeBackPoint, validateSkill, type Bag, type Burden, type Character, type Cheat, type CoreState,
-  type Entity, type Gear, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot, type StepInput,
-  type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
+  coreStats, DEFAULT_COMBAT_STYLE, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
+  hpRegenPerSec, inRect, isCombatStyle, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
+  placePoint, roundTo, skillOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden,
+  type Character, type Cheat, type CombatStyle, type CoreState, type Entity, type Gear, type SavedSettings,
+  type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type UseSpot, type Using,
+  type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../content/player.js";
@@ -316,6 +317,11 @@ export class GameSession {
   setSettings(settings: SavedSettings): void {
     this.settings = settings;
     this.saveSoon();
+  }
+
+  get combatStyle(): CombatStyle {
+    const style = this.settings.combat?.style;
+    return isCombatStyle(style) ? style : DEFAULT_COMBAT_STYLE;
   }
 
   /** Walking around a level: not in a battle, and not still making a character. */

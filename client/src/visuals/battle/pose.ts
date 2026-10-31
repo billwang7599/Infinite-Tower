@@ -1,18 +1,40 @@
-import type {
-  AttackKind, GuardSide, PlayerAction, PlayerData, Vec2, Vec3, WielderData,
+import {
+  sideOfWay, type AttackKind, type GuardSide, type PlayerAction, type PlayerData, type SwingData, type Vec2,
+  type Vec3, type Way, type WielderData,
 } from "@infinite-tower/shared";
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import {
-  cutOf, drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, type WeaponMotion,
+  cutOf, drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingCut, swingFrame, wayCut,
+  type Cut, type WeaponMotion,
 } from "./weapons.js";
 
 const ATTACK_POSES: Record<AttackKind, Record<GuardSide, SwordPose>> = {
   light: { left: "swing-lr", top: "swing-tb", right: "swing-rl" },
   heavy: { left: "swing-tlbr", top: "swing-tb", right: "swing-trbl" },
 };
+const WAY_POSES: Record<Way, SwordPose> = {
+  lr: "swing-lr", rl: "swing-rl", tb: "swing-tb", bt: "swing-tb", tlbr: "swing-tlbr", trbl: "swing-trbl",
+  bltr: "swing-lr", brtl: "swing-rl", stab: "swing-tb",
+};
 const GUARD_POSES: Record<GuardSide, SwordPose> = { left: "guard-left", top: "guard-top", right: "guard-right" };
 export const STAGGERED: readonly PlayerAction[] = ["recoil", "stagger", "grabbed"];
+const REACHING: readonly PlayerAction[] = ["grab", "kick"];
+
+const swingPose = (swing: SwingData): SwordPose =>
+  swing.way ? WAY_POSES[swing.way] : ATTACK_POSES[swing.attack][swing.side];
+
+function stanceOf(player: PlayerData): GuardSide | null {
+  if (player.guard) return player.guard;
+  if (player.action === "block") return "top";
+  return player.way && sideOfWay(player.way);
+}
+
+function stanceCut(player: PlayerData): Cut | null {
+  if (player.guard) return cutOf("light", player.guard, true);
+  if (player.action === "block") return cutOf("light", "top", true);
+  return player.way && wayCut(player.way, true);
+}
 
 /** Its frames: gfx/look/battle.ts. */
 type PlayerPose = "stand" | "down" | SwordPose;
@@ -35,11 +57,12 @@ export function spritePose(
   stagger = { left: 0, of: 0 },
 ): SpritePose {
   const attacking = swing !== null && swing.step < swing.endAt;
+  const stance = stanceOf(player);
   const pose: PlayerPose = !alive ? "down"
-    : attacking ? ATTACK_POSES[swing.attack][swing.side]
+    : attacking ? swingPose(swing)
     : STAGGERED.includes(player.action) ? "stagger"
-    : player.action === "grab" ? "grab"
-    : player.guard ? GUARD_POSES[player.guard]
+    : REACHING.includes(player.action) ? "grab"
+    : stance ? GUARD_POSES[stance]
     : "stand";
   const frame = pose === "stagger" ? (player.action === "grabbed" || stagger.left > stagger.of / 2 ? 0 : 1)
     : attacking && alive ? swingFrame(swing)
@@ -56,10 +79,10 @@ export function playerBlade(
 ): { blade: Vec3; exact: boolean } {
   if (!alive) return { blade: DROPPED_BLADE, exact: false };
   if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false };
-  if (player.action === "grab") return { blade: GRAB_BLADE, exact: false };
-  const held = player.guard ? motion.held(cutOf("light", player.guard, true)) : REST_BLADE;
+  if (REACHING.includes(player.action)) return { blade: GRAB_BLADE, exact: false };
+  const stance = stanceCut(player), held = stance ? motion.held(stance) : REST_BLADE;
   if (!swing || swing.step >= swing.endAt) return { blade: held.blade, exact: false };
-  const cut = cutOf(swing.attack, swing.side, true), stroke = strokeOf(swing);
+  const cut = swingCut(swing, true), stroke = strokeOf(swing);
   const { blade } = stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn);
   const pull = pullOf(stroke, swing.attack === "heavy") * SPRITE_DRAWBACK;
   return { blade: drawnBack(blade, pull), exact: stroke.set >= 1 };

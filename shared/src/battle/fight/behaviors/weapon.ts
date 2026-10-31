@@ -13,10 +13,10 @@ import { bladeLive, lastFeintStep, startSwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
 
 /** Starts only when facing the target this squarely (cos of the angle). */
-const MIN_FACING_DOT = 0.8;
+export const MIN_FACING_DOT = 0.8;
 /** Keeps turning toward the target while winding up, this fast. */
-const WINDUP_TURN_RAD_PER_SEC = 2.5;
-const STEP_ACCEL = 40;
+export const WINDUP_TURN_RAD_PER_SEC = 2.5;
+export const STEP_ACCEL = 40;
 
 function otherSide(enemy: EnemyData, from: GuardSide): GuardSide {
   const others = GUARD_SIDES.filter((side) => side !== from);

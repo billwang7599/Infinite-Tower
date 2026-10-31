@@ -1,9 +1,18 @@
-import { attackSteps, WEAPONS, type AttackKind, type GuardSide, type SwingData } from "@infinite-tower/shared";
+import {
+  attackSteps, CHAIN, sideOfWay, wayStepsAfter, WEAPONS, type AttackKind, type GuardSide, type SwingData, type Way,
+} from "@infinite-tower/shared";
 
 export function swingAt(attack: AttackKind, side: GuardSide, step: number, aimYaw = 0): SwingData {
   return {
-    attack, side, chain: 0, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
+    attack, side, way: null, chain: 0, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
     ...attackSteps(WEAPONS.sword, attack, 0), damage: 9, poiseDamage: 12,
+  };
+}
+
+export function waySwingAt(way: Way, step: number): SwingData {
+  return {
+    attack: "light", side: sideOfWay(way), way, chain: 0, dir: { x: 0, z: 1 }, step,
+    ...wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false), damage: 9, poiseDamage: 12,
   };
 }
 

@@ -1,12 +1,13 @@
 /**
  * Every action, its default keys, and the player's changes. Game code asks about actions (core/actions.ts), so a
- * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed;
- * they're listed so the settings screen can show them. Three groups: general works in the overworld and in the
- * arena, the other two only there; so a general key is on nothing else, but the overworld and the arena may share
- * keys. In the arena the left hand is on WASD and the right on the mouse: its buttons attack, and a flick left, up or
- * right moves the guard there (core/actions.ts).
+ * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons and the wheel
+ * are fixed; they're listed so the settings screen can show them. General works in the overworld and in the arena,
+ * the overworld's and the arena's only there; so a general key is on nothing else, but the overworld and the arena
+ * may share keys. Each combat style has a group of its own (named as the style), working in the arena with the
+ * arena's in a fight of that style, so two styles may share keys. In the arena the left hand is on WASD and the
+ * right on the mouse: its buttons attack, and a flick moves the guard, or aims (core/actions.ts).
  */
-import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
+import { COMBAT_STYLE_IDS, MAX_KEYS_PER_ACTION, type CombatStyle, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
 
 interface ActionDef {
@@ -14,6 +15,7 @@ interface ActionDef {
   keys: readonly string[];
   /** MouseEvent.button: 0 left (trackpad tap), 1 middle (wheel click), 2 right (two-finger tap). */
   mouse?: readonly number[];
+  wheel?: true;
 }
 
 export const ACTIONS = {
@@ -25,7 +27,7 @@ export const ACTIONS = {
     right: { label: "Move right", keys: ["KeyD"] },
     character: { label: "Character panel", keys: ["KeyC"] },
     inventory: { label: "Inventory", keys: ["KeyB"] },
-    questbook: { label: "Questbook", keys: ["KeyJ"] },
+    questbook: { label: "Questbook", keys: ["KeyH"] },
     adminPanel: { label: "Admin panel (dev servers only)", keys: ["F1"] },
     openChat: { label: "Open the chat", keys: ["Slash"] },
   },
@@ -43,10 +45,6 @@ export const ACTIONS = {
   battle: {
     lightAttack: { label: "Light attack", keys: [], mouse: [0] },
     heavyAttack: { label: "Heavy attack", keys: [], mouse: [2] },
-    guardLeft: { label: "Guard left (or flick the mouse left)", keys: ["KeyU"] },
-    guardTop: { label: "Guard top (or flick the mouse up)", keys: ["KeyI"] },
-    guardRight: { label: "Guard right (or flick the mouse right)", keys: ["KeyO"] },
-    guardBreak: { label: "Guard break (in a heavy's wind-up: feint; grabbed: counter)", keys: ["ShiftLeft"] },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Lock on / off", keys: ["KeyQ"] },
@@ -64,7 +62,26 @@ export const ACTIONS = {
     interact: { label: "Interact (open the drops after a fight)", keys: ["KeyE"] },
     leave: { label: "Leave the arena after a fight", keys: ["Enter"] },
   },
-} as const satisfies Record<string, Record<string, ActionDef>>;
+  "for-honor": {
+    guardLeft: { label: "Guard left (or flick the mouse left)", keys: ["KeyU"] },
+    guardTop: { label: "Guard top (or flick the mouse up)", keys: ["KeyI"] },
+    guardRight: { label: "Guard right (or flick the mouse right)", keys: ["KeyO"] },
+    guardBreak: { label: "Guard break (in a heavy's wind-up: feint; grabbed: counter)", keys: ["ShiftLeft"] },
+  },
+  hybrid: {
+    aimTopLeft: { label: "Aim from the top left (or flick the mouse up-left)", keys: ["KeyU"] },
+    aimTop: { label: "Aim from the top (or flick up)", keys: ["KeyI"] },
+    aimTopRight: { label: "Aim from the top right (or flick up-right)", keys: ["KeyO"] },
+    aimLeft: { label: "Aim from the left (or flick left)", keys: ["KeyJ"] },
+    aimRight: { label: "Aim from the right (or flick right)", keys: ["KeyL"] },
+    aimBottomLeft: { label: "Aim from the bottom left (or flick down-left)", keys: ["KeyM"] },
+    aimBottom: { label: "Aim from below (or flick down)", keys: ["Comma"] },
+    aimBottomRight: { label: "Aim from the bottom right (or flick down-right)", keys: ["Period"] },
+    stab: { label: "Stab", keys: ["KeyK"], wheel: true },
+    block: { label: "Block (hold; pressed just before a hit: parry)", keys: ["ShiftLeft"] },
+    kick: { label: "Kick (in your wind-up: feint)", keys: ["KeyG"] },
+  },
+} as const satisfies Record<string, Record<string, ActionDef>> & Record<CombatStyle, Record<string, ActionDef>>;
 
 const WORD_KEYS = {
   pick1: ["Digit1"], pick2: ["Digit2"], pick3: ["Digit3"], pick4: ["Digit4"], pick5: ["Digit5"], pick6: ["Digit6"],
@@ -152,6 +169,9 @@ export class KeyBindings extends Store<KeyMap> {
     });
     if (clashes(own.general)) own = { ...own, general: none.general };
     for (const place of PLACES) if (clashes(own.general, own[place])) own = { ...own, [place]: none[place] };
+    for (const style of STYLE_GROUPS) {
+      if (clashes(own.general, own.battle, own[style])) own = { ...own, [style]: none[style] };
+    }
     this.set(buildMap((ref) => {
       const keys = keysOf(own, ref);
       return keys.length > 0 ? keys : defaultKeys(ref).filter((k) => holders(own, ref.group, k, ref).length === 0);
@@ -219,8 +239,14 @@ const sameKeys = (a: readonly string[], b: readonly string[]) =>
 
 /** Where the player can be: each works with general's keys and its own. */
 const PLACES = ["overworld", "battle"] as const;
+const STYLE_GROUPS: readonly Group[] = COMBAT_STYLE_IDS;
+
 /** The groups whose keys work together with `group`'s, so no key may be on two of their actions. */
-const together = (group: Group): readonly Group[] => (group === "general" ? GROUPS : ["general", group]);
+function together(group: Group): readonly Group[] {
+  if (group === "general") return GROUPS;
+  if (group === "battle") return ["general", "battle", ...STYLE_GROUPS];
+  return STYLE_GROUPS.includes(group) ? ["general", "battle", group] : ["general", group];
+}
 
 /** The actions other than `except` that have `key` among the groups working together with `group`. */
 function holders(map: KeyMap, group: Group, key: string, except: ActionRef): ActionRef[] {
@@ -252,7 +278,7 @@ const prop = (o: unknown, key: string): unknown =>
 /**
  * Where actions used to be saved ("group.action"), tried in order when they have nothing saved where they are now:
  * the overworld was the field, movement and the panels were per mode, the bag had a group of its own, skills were
- * spells, and Interact was Rest.
+ * spells, Interact was Rest, and For Honor's keys were the arena's.
  */
 const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "general.forward": ["battle.forward", "overworld.up", "field.up"],
@@ -268,6 +294,10 @@ const MOVED_FROM: Partial<Record<string, readonly string[]>> = {
   "battle.skill2": ["battle.spell2"],
   "battle.skill3": ["battle.spell3"],
   "battle.skill4": ["battle.spell4"],
+  "for-honor.guardLeft": ["battle.guardLeft"],
+  "for-honor.guardTop": ["battle.guardTop"],
+  "for-honor.guardRight": ["battle.guardRight"],
+  "for-honor.guardBreak": ["battle.guardBreak"],
 };
 
 function savedKeys(saved: unknown, ref: ActionRef): unknown {

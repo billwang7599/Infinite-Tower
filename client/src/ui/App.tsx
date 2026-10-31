@@ -90,6 +90,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       {playing && import.meta.env.DEV && (
         <AdminPanel
           admin={ui.admin} mode={mode} input={input} cheat={actions.cheat} setDayClock={actions.setDayClock}
+          combat={settings.combat}
         />
       )}
       {playing && (

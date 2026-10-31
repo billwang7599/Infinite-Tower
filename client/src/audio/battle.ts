@@ -32,6 +32,7 @@ const WINDUPS: readonly EnemyState[] = ["weaponWindup", "lungeWindup", "chargeWi
 const HEAVY_VOICE = { rate: 0.85, gain: 1.25 } as const;
 const FEINT_VOICE = { rate: 1.4, gain: 0.7 } as const;
 const GRAB_SOUNDS = { grabbed: "hit-body", broken: "guard-break", teched: "block" } as const;
+const KICK_SOUNDS = { shoved: "hit-body", staggered: "guard-break", nothing: "block" } as const;
 
 export function swingVoice(massKg: number, attack: AttackKind): { rate: number; gain: number } {
   const heavier = massKg / ITEMS.sword.weight, heavy = attack === "heavy";
@@ -59,10 +60,14 @@ const EVENT_CUES: EventCues = {
     { sound: ev.weapon ? "hit-blade" : "hit-body", at: posOf(world, ev.target) }, ...grunt(world, ev.target),
   ],
   slam: (ev, world) => [{ sound: "slam", at: posOf(world, ev.enemy) }],
-  block: (ev, world) => [{ sound: "block", at: posOf(world, ev.target) }],
+  block: (ev, world) => [
+    { sound: "block", at: posOf(world, ev.target) },
+    ...ev.broken ? [{ sound: "guard-break" as const, at: posOf(world, ev.target) }] : [],
+  ],
   parry: (ev, world) => [{ sound: "parry", at: posOf(world, ev.by) }],
   feint: (ev, world) => [{ sound: "draw-blade", at: posOf(world, ev.by), ...FEINT_VOICE }],
   guardBreak: (ev, world) => [{ sound: GRAB_SOUNDS[ev.result], at: posOf(world, ev.target) }],
+  kick: (ev, world) => [{ sound: KICK_SOUNDS[ev.result], at: posOf(world, ev.target) }],
   skill(ev) {
     const el = ELEMENT_SOUNDS[ev.elements[0] ?? "plain"];
     return [{ sound: ev.form === "nova" ? el.impact : el.cast, at: flat(ev.at), rate: el.rate }];
@@ -97,14 +102,15 @@ function hearFighters(fight: Fight, fighters: Map<Entity, Fighter>, begun: Map<s
     if (player && swing?.attack === "heavy" && swing.step < swing.liveAt) {
       once("heavy", steps - swing.step, "draw-blade", swingVoice(massKg, "heavy"));
     }
-    if (player?.action === "grab") once("grab", since(player.actionTime), "grab");
+    if (player?.action === "grab" || player?.action === "kick") once("grab", since(player.actionTime), "grab");
     if (enemy) {
       const { windup, death } = ENEMY_SOUNDS[enemy.def.id];
       if (windup && WINDUPS.includes(enemy.state)) {
-        const next = enemy.state === "weaponWindup" ? world.get(e, WeaponAttack)?.next ?? "light" : "light";
+        const next = enemy.state !== "weaponWindup" ? "light"
+          : swing?.attack ?? world.get(e, WeaponAttack)?.next ?? "light";
         once(enemy.state, since(enemy.stateTime), windup, swingVoice(massKg, next));
       }
-      if (enemy.state === "guardBreak") once("grab", since(enemy.stateTime), "grab");
+      if (enemy.state === "guardBreak" || enemy.state === "kick") once("grab", since(enemy.stateTime), "grab");
       if (enemy.state === "dead") once("dead", since(enemy.stateTime), death);
     }
     const casting = world.get(e, Skilled);

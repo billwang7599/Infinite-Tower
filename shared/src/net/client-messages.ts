@@ -4,7 +4,8 @@
  */
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
-import { ATTACK_KINDS, GUARD_SIDES } from "../weapons/weapons.js";
+import { STRIKES, SWING_DIRS } from "../weapons/hybrid.js";
+import { COMBAT_STYLE_IDS, GUARD_SIDES } from "../weapons/weapons.js";
 import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
 import { ITEM_IDS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
@@ -56,10 +57,13 @@ const StepInputSchema = z.object({
   aimX: z.number(),
   aimZ: z.number(),
   jump: z.boolean(),
-  attack: z.enum(ATTACK_KINDS).nullable(),
+  attack: z.enum(STRIKES).nullable(),
   dodge: z.boolean(),
   guard: z.enum(GUARD_SIDES).nullable(),
   guardBreak: z.boolean(),
+  way: z.enum(SWING_DIRS).nullable(),
+  block: z.boolean(),
+  kick: z.boolean(),
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),
@@ -108,6 +112,7 @@ const SavedSettingsSchema = z.object({
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
   audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME, music: VOLUME }).optional(),
+  combat: z.object({ style: z.enum(COMBAT_STYLE_IDS).optional() }).optional(),
 });
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
 

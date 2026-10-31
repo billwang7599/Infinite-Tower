@@ -3,6 +3,12 @@ import { toSteps } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 
+export const COMBAT_STYLES = { "for-honor": { name: "For Honor" }, hybrid: { name: "Hybrid" } } as const;
+export type CombatStyle = keyof typeof COMBAT_STYLES;
+export const COMBAT_STYLE_IDS = Object.keys(COMBAT_STYLES) as [CombatStyle, ...CombatStyle[]];
+export const DEFAULT_COMBAT_STYLE: CombatStyle = "for-honor";
+export const isCombatStyle = (s: unknown): s is CombatStyle => typeof s === "string" && Object.hasOwn(COMBAT_STYLES, s);
+
 export const GUARD_SIDES = ["left", "top", "right"] as const;
 export type GuardSide = (typeof GUARD_SIDES)[number];
 export const ATTACK_KINDS = ["light", "heavy"] as const;

@@ -11,11 +11,14 @@ import {
   type ActionRef, type BindResult, type Group, type KeyBindings, type KeyMap,
 } from "../../../settings/bindings.js";
 import { BUTTON } from "../../components/styles.js";
-import { keyName, mouseName } from "../../keyNames.js";
+import { keyName, mouseName, WHEEL_NAME } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
-const GROUP_TITLES: Record<Group, string> = { general: "General", overworld: "Overworld", battle: "Battle" };
+const GROUP_TITLES: Record<Group, string> = {
+  general: "General", overworld: "Overworld", battle: "Battle", "for-honor": "Battle: For Honor style",
+  hybrid: "Battle: Hybrid style",
+};
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {
@@ -79,7 +82,7 @@ interface GroupProps {
 
 function GroupSection({ group, keyMap, waiting, listenFor, unbind }: GroupProps) {
   const actions = actionsOf(group).filter((a) => import.meta.env.DEV || a.action !== "adminPanel");
-  const hasMouse = actions.some((a) => actionDef(a).mouse);
+  const hasMouse = actions.some((a) => actionDef(a).mouse || actionDef(a).wheel);
   return (
     <section className="mt-4">
       <h4 className="mb-1 text-xs tracking-[0.3em] text-white/45 uppercase">{GROUP_TITLES[group]}</h4>
@@ -145,7 +148,9 @@ function BindingRow({ action, mouseColumn, keys, waitingFor, listenFor, unbind }
           )
         )}
         {mouseColumn && (
-          <span className="ml-1 w-22 text-right text-xs text-white/45">{def.mouse?.map(mouseName).join(" / ")}</span>
+          <span className="ml-1 w-22 text-right text-xs text-white/45">
+            {[...def.mouse?.map(mouseName) ?? [], ...def.wheel ? [WHEEL_NAME] : []].join(" / ")}
+          </span>
         )}
       </span>
     </div>

@@ -17,7 +17,7 @@ const WHIFF_STEPS = toSteps(GUARD_BREAK.whiffTime);
 const OPEN_ACTIONS: ReadonlySet<PlayerAction> = new Set([
   "none", "attack", "recoil", "cast", "chant", "write", "beam", "bag", "use",
 ]);
-const OPEN_STATES: ReadonlySet<EnemyState> = new Set([
+export const OPEN_STATES: ReadonlySet<EnemyState> = new Set([
   "approach", "recoil", "weaponRecover", "lungeRecover", "chargeRecover", "skillChant",
 ]);
 
@@ -25,19 +25,25 @@ export function startGrab(wielder: WielderData): void {
   wielder.grab = { step: 0, target: null, techAt: null };
 }
 
-function facingOf(world: World, e: Entity): Vec2 {
+export function facingOf(world: World, e: Entity): Vec2 {
   const player = world.get(e, Player);
   if (player) return player.actionDir;
   const yaw = world.require(e, Enemy).yaw;
   return { x: Math.sin(yaw), z: Math.cos(yaw) };
 }
 
-export function inGrabReach(world: World, grabber: Entity, target: Entity): boolean {
-  const from = world.require(grabber, Body).pos, to = world.require(target, Body).pos, way = facingOf(world, grabber);
-  const dx = to.x - from.x, dz = to.z - from.z, dist = Math.hypot(dx, dz);
-  return dist - world.require(target, Fighter).radius <= GUARD_BREAK.reachM
-    && (dist < 1e-6 || (dx * way.x + dz * way.z) / dist >= GUARD_BREAK.minDot);
+/** `reachM`: from the centre to the target's edge; `minDot`: the cosine of how far off where it faces. */
+export interface Reach { reachM: number; minDot: number }
+
+export function inReach(world: World, from: Entity, target: Entity, reach: Reach): boolean {
+  const at = world.require(from, Body).pos, to = world.require(target, Body).pos, way = facingOf(world, from);
+  const dx = to.x - at.x, dz = to.z - at.z, dist = Math.hypot(dx, dz);
+  return dist - world.require(target, Fighter).radius <= reach.reachM
+    && (dist < 1e-6 || (dx * way.x + dz * way.z) / dist >= reach.minDot);
 }
+
+export const inGrabReach = (world: World, grabber: Entity, target: Entity): boolean =>
+  inReach(world, grabber, target, GUARD_BREAK);
 
 export function grabbable(world: World, e: Entity): boolean {
   const wielder = world.get(e, Wielder), swing = wielder?.swing, player = world.get(e, Player);
@@ -49,12 +55,12 @@ export function grabbable(world: World, e: Entity): boolean {
   return player ? OPEN_ACTIONS.has(player.action) : enemy !== undefined && OPEN_STATES.has(enemy.state);
 }
 
-function nearestInReach(world: World, grabber: Entity): Entity | null {
-  const side = world.require(grabber, Fighter).side, from = world.require(grabber, Body).pos;
+export function nearestInReach(world: World, from: Entity, reach: Reach): Entity | null {
+  const side = world.require(from, Fighter).side, at = world.require(from, Body).pos;
   let best: Entity | null = null, bestDist = Infinity;
   for (const [e, fighter, body, health] of world.query(Fighter, Body, Health)) {
-    if (fighter.side === side || health.hp <= 0 || !inGrabReach(world, grabber, e)) continue;
-    const dist = Math.hypot(body.pos.x - from.x, body.pos.z - from.z);
+    if (fighter.side === side || health.hp <= 0 || !inReach(world, from, e, reach)) continue;
+    const dist = Math.hypot(body.pos.x - at.x, body.pos.z - at.z);
     if (dist < bestDist) [best, bestDist] = [e, dist];
   }
   return best;
@@ -118,7 +124,7 @@ export function guardBreakSystem(events: FightEvent[]): System {
         continue;
       }
       if (target === null) {
-        const found = grab.step === GRAB_STEPS ? nearestInReach(world, e) : null;
+        const found = grab.step === GRAB_STEPS ? nearestInReach(world, e, GUARD_BREAK) : null;
         if (found !== null && grabbable(world, found)) {
           seize(world, grab, found);
           events.push({ type: "guardBreak", by: e, target: found, result: "grabbed" });

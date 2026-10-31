@@ -59,7 +59,7 @@ export function koboldPose(
     ...held, bladeExact: false, lean: 0, roll: 0, rollRate: state === "dead" ? 6 : 12, yOff: 0,
     stars: state === "stunned",
   };
-  const swinging = stroke !== null && (state === "weapon" || state === "weaponRecover");
+  const swinging = stroke !== null && (state === "weapon" || state === "weaponRecover" || state === "weaponWindup");
   if (swinging) {
     Object.assign(p, stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn));
     p.bladeExact = stroke.set >= 1;
@@ -75,6 +75,7 @@ export function koboldPose(
       p.lean = 0.08 * (1 - k);
       break;
     case "guardBreak":
+    case "kick":
       p.blade = GRAB_BLADE;
       p.lean = GRAB_LEAN_RAD;
       break;
@@ -106,7 +107,7 @@ export function koboldPose(
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
-    offHand: state === "guardBreak" ? GRAB_HAND : OFF_HAND,
+    offHand: state === "guardBreak" || state === "kick" ? GRAB_HAND : OFF_HAND,
     twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
     hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,

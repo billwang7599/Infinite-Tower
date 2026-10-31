@@ -48,7 +48,7 @@ What's built so far:
   rack, then on to Hollis) leads into Hollis's: two boar hides, three boars, and what he knows about the pads you
   wake on; then, in the Mistwood, what Ilse's loom makes of its pad. Maren and Tobin each have a side quest further
   out (a Goblin Warlock in the Mistwood, a Kobold in the Grass Field), and Corwin and Ilse two each (hides for a
-  blind and a count of Kobolds; tusks for a loom and the Kobold in the Mistwood's ruins). The questbook (J, or the
+  blind and a count of Kobolds; tusks for a loom and the Kobold in the Mistwood's ruins). The questbook (H, or the
   HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
   it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
@@ -62,6 +62,14 @@ What's built so far:
   time; a heavy can be feinted early in its wind-up. A small widget shows your guard and your foe's; a landed hit
   holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went. A dodge
   roll with i-frames, jump, stamina.
+  A **Combat style** setting (Settings, or the F1 admin panel) switches the fights you start, and the duels you
+  challenge to, to the **Hybrid** style: the mouse (or U I O / J L / M , .) aims one of eight sides, left and right
+  click swing light and heavy from there, the wheel or K stabs; the old momentum chains (the reverse swing quickest,
+  a chain hitting harder until a gap, block, dodge or hit taken; a stab spends it); a held block (left Shift) stops
+  anything in front for stamina and a chip, broken by a heavy; tapped just before a hit it parries, free, opening the
+  attacker; the reverse swing just gone live parries too; G kicks (shoves, or staggers a held block; in your own
+  wind-up, feints). A ring of eight wedges round the locked foe shows your aim and its swing coming. The Kobold
+  fights the hybrid's way in a hybrid fight.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
@@ -78,7 +86,8 @@ What's built so far:
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
   the camera), Space jumps, F dodges; a quick flick of the mouse left, up or right (or U, I, O) moves your guard, a left
-  click is a light attack and a right click a heavy one, and Left Shift guard breaks (in a heavy's wind-up, feints). R opens the chant, and 1-4 quick-cast the skillbook's pages.
+  click is a light attack and a right click a heavy one, and Left Shift guard breaks (in a heavy's wind-up, feints).
+  R opens the chant, and 1-4 quick-cast the skillbook's pages. H opens the questbook.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes
   back to typing. Lines show in a log at the bottom left and, in the overworld, in a bubble over the

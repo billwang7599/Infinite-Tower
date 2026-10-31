@@ -22,6 +22,10 @@ const SWORDED: EnemyDef = {
     weapon: {
       triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
       cooldown: 99, firstDelay: 99,
+      hybrid: {
+        windupTime: 9, chainWindupTime: 9, recoverTime: 1, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99,
+        kickChance: 0,
+      },
     },
   },
 };

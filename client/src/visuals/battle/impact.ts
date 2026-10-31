@@ -1,6 +1,6 @@
 import { Body, LocalPlayer, weaponItemIn, Wielder, type Entity, type Vec3, type World } from "@infinite-tower/shared";
 import type { ArenaScene } from "./scene.js";
-import { cutOf, WEAPON_LOOKS, type Cut } from "./weapons.js";
+import { swingCut, WEAPON_LOOKS, type Cut } from "./weapons.js";
 
 export const JOLT_M = 0.18;
 const JOLT_MS = 140;
@@ -46,7 +46,7 @@ export function strike(scene: ArenaScene, world: World, by: Entity, target: Enti
   const ahead = levelUnit(eye, at), right = { x: ahead.z, y: 0, z: -ahead.x };
   const away = levelUnit(world.require(by, Body).pos, world.require(target, Body).pos);
   const swing = world.get(by, Wielder)?.swing;
-  const push = joltOf(swing ? cutOf(swing.attack, swing.side, !world.has(by, LocalPlayer)) : null, away, right);
+  const push = joltOf(swing ? swingCut(swing, !world.has(by, LocalPlayer)) : null, away, right);
   scene.impacts.set(by, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
   scene.impacts.set(target, { ageMs: 0, stopMs, push, pushMs: JOLT_MS });
 }

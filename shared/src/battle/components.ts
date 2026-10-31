@@ -2,6 +2,7 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
+import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
 import type { AttackKind, GuardSide } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
@@ -15,11 +16,11 @@ import type { PageWrite } from "./input.js";
 /**
  * "recoil": an attack of theirs was blocked; "stagger": parried or guard broken (both in hitstun). "grab": guard
  * breaking; "grabbed": being guard broken, still able to counter it. "write": writing a page, from the chant or the
- * bag. "bag": the bag screen open. "use": using an item from the bag.
+ * bag. "bag": the bag screen open. "use": using an item from the bag. "block" and "kick": the hybrid style's.
  */
 export type PlayerAction =
   | "none" | "attack" | "dodge" | "recoil" | "stagger" | "grab" | "grabbed" | "cast" | "chant" | "write" | "beam"
-  | "bag" | "use";
+  | "bag" | "use" | "block" | "kick";
 
 export interface PlayerData {
   grounded: boolean;
@@ -27,9 +28,11 @@ export interface PlayerData {
   airTime: number;
   jumpHeld: boolean;
   /** The attack held on the last step: a different one is a new press. */
-  attackHeld: AttackKind | null;
+  attackHeld: Strike | null;
   dodgeHeld: boolean;
   guardBreakHeld: boolean;
+  blockHeld: boolean;
+  kickHeld: boolean;
   writeHeld: boolean;
   gearHeld: boolean;
   useHeld: boolean;
@@ -41,8 +44,11 @@ export interface PlayerData {
   attackBuffer: number;
   dodgeBuffer: number;
   guardBreakBuffer: number;
+  kickBuffer: number;
   castBuffer: number;
-  queued: AttackKind | null;
+  tapParryLeft: number;
+  sinceBlockPress: number;
+  queued: Strike | null;
   castQueued: Skill | null;
   writing: PageWrite | null;
   using: Using | null;
@@ -52,6 +58,7 @@ export interface PlayerData {
   actionTime: number;
   actionDir: Vec2;
   guard: GuardSide | null;
+  way: SwingDir | null;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
@@ -82,6 +89,7 @@ export const Skilled = defineComponent<SkilledData>("Skilled");
 export interface SwingData {
   attack: AttackKind;
   side: GuardSide;
+  way: Way | null;
   chain: number;
   dir: Vec2;
   step: number;
@@ -105,6 +113,10 @@ export interface WielderData {
   swing: SwingData | null;
   grab: GrabData | null;
   grabImmuneTime: number;
+  kick: { step: number } | null;
+  combo: Way | null;
+  comboTime: number;
+  momentum: number;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
 
@@ -183,6 +195,7 @@ export interface ActiveHitData {
   minDot: number;
   attack: AttackKind | null;
   side: GuardSide;
+  way: Way | null;
   damage: number;
   knockback: number;
   lift: number;
@@ -217,7 +230,7 @@ export type EnemyState =
   | "approach" | "stunned" | "recoil" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "weaponWindup" | "weapon" | "weaponRecover" | "guardBreak" | "grabbed"
+  | "weaponWindup" | "weapon" | "weaponRecover" | "guardBreak" | "grabbed" | "kick"
   | "skillChant" | "skillCast"
   | "sidestep";
 
@@ -258,6 +271,8 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   parryRead: boolean;
   feint: boolean;
   riposte: boolean;
+  way: Way;
+  kickWait: number;
 }
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {

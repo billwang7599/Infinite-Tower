@@ -22,8 +22,8 @@ interface FighterSnapshot {
   vel: Vec3;
   health: HealthData;
   statuses: StatusData;
-  wielder: {
-    swing: SwingData | null; grab: (Omit<GrabData, "target"> & { target: number }) | null; grabImmuneTime: number;
+  wielder: Omit<WielderData, "hands" | "armReachM" | "grab"> & {
+    grab: (Omit<GrabData, "target"> & { target: number }) | null;
   } | null;
   skilled: Omit<SkilledData, "target"> & { target: number };
 }
@@ -75,8 +75,11 @@ const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e ==
 
 function saveWielder(wielder: WielderData | undefined, fighters: readonly Entity[]): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const grab = wielder.grab && { ...wielder.grab, target: indexIn(fighters, wielder.grab.target) };
-  return { swing: copySwing(wielder.swing), grab, grabImmuneTime: wielder.grabImmuneTime };
+  const { swing, grab, kick, grabImmuneTime, combo, comboTime, momentum } = wielder;
+  return {
+    swing: copySwing(swing), grab: grab && { ...grab, target: indexIn(fighters, grab.target) }, grabImmuneTime,
+    kick: kick && { ...kick }, combo, comboTime, momentum,
+  };
 }
 
 function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
@@ -143,10 +146,10 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
     if (wielder && s.wielder) {
-      wielder.swing = copySwing(s.wielder.swing);
-      const grab = s.wielder.grab;
-      wielder.grab = grab && { ...grab, target: fighterAt(grab.target) };
-      wielder.grabImmuneTime = s.wielder.grabImmuneTime;
+      const { swing, grab, kick, ...rest } = s.wielder;
+      Object.assign(wielder, rest, {
+        swing: copySwing(swing), grab: grab && { ...grab, target: fighterAt(grab.target) }, kick: kick && { ...kick },
+      });
     }
     const { words, aim, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };

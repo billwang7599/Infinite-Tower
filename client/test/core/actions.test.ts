@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { copyInput, IDLE_INPUT, type GuardSide } from "@infinite-tower/shared";
+import { copyInput, IDLE_INPUT, type GuardSide, type SwingDir } from "@infinite-tower/shared";
 import { Actions, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
-import { pickedGuard, readPlayerInput } from "../../src/modes/battle/input.js";
+import { pickedGuard, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
@@ -52,7 +52,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   };
   const read = () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, null, input);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null }, input);
     return input;
   };
   const attack = () => read().attack;
@@ -579,22 +579,22 @@ describe("Actions: talking", () => {
 });
 
 describe("Actions: the questbook", () => {
-  test("J opens it from the overworld and the arena", () => {
+  test("H opens it from the overworld and the arena", () => {
     for (const layer of ["overworld", "battle"] as const) {
       const { press, listen } = setup(layer);
       const questbook = listen("questbook");
-      press("KeyJ");
+      press("KeyH");
       assert.equal(questbook.got.length, 1, layer);
     }
   });
 
-  test("over either, only J and Esc work, and close it (no Settings, bag or interact); the world reads nothing", () => {
+  test("over either, only H and Esc work, and close it (no Settings, bag or interact); the world reads nothing", () => {
     for (const mode of ["overworld", "battle"] as const) {
       const { actions, press, listen } = setup(mode, "questbook");
       const questbook = listen("questbook"), close = listen("closeQuestbook");
       const others = (["menu", "inventory", "interact", "openChat"] as const).map((a) => listen(a));
       press("KeyW");
-      press("KeyJ");
+      press("KeyH");
       press("Escape");
       for (const key of ["KeyB", "KeyE", "Slash"]) press(key);
       assert.deepEqual([questbook.got.length, close.got.length], [1, 1], mode);
@@ -831,5 +831,90 @@ describe("Actions: the mouse moves the guard and attacks", () => {
     move(FAR, 0);
     assert.deepEqual(guards(), ["guardRight"]);
     assert.deepEqual(guards(), []);
+  });
+});
+
+describe("Actions: a hybrid fight", () => {
+  const hybrid = () => {
+    const s = setup();
+    s.actions.setCombatStyle("hybrid");
+    const aim = (was: SwingDir = "tb") => pickedWay(s.actions.poll(), was);
+    const readHybrid = () => {
+      const input = copyInput(IDLE_INPUT);
+      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr" }, input);
+      return input;
+    };
+    return { ...s, aim, readHybrid };
+  };
+
+  test("U I O / J L / M , . aim from their side of the grid: the swing goes from there across", () => {
+    const grid = [
+      ["KeyU", "tlbr"], ["KeyI", "tb"], ["KeyO", "trbl"], ["KeyJ", "lr"], ["KeyL", "rl"], ["KeyM", "bltr"],
+      ["Comma", "bt"], ["Period", "brtl"],
+    ] as const;
+    for (const [key, way] of grid) {
+      const { aim, press } = hybrid();
+      press(key);
+      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, key);
+    }
+  });
+
+  test("a flick aims eight ways: the side it moves toward, the nearest of them", () => {
+    const flicks = [
+      [-1, 0, "lr"], [1, 0, "rl"], [0, -1, "tb"], [0, 1, "bt"], [-1, -1, "tlbr"], [1, -1, "trbl"], [-1, 1, "bltr"],
+      [1, 1, "brtl"],
+    ] as const;
+    for (const [x, y, way] of flicks) {
+      const { aim, move } = hybrid();
+      move(x * FAR, y * FAR);
+      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, `${x},${y}`);
+    }
+  });
+
+  test("K stabs, the clicks attack, left Shift blocks (a tap shorter than a step too), G kicks", () => {
+    const { readHybrid, press, release, click } = hybrid();
+    press("KeyK");
+    assert.equal(readHybrid().attack, "stab");
+    click(0);
+    assert.equal(readHybrid().attack, "light");
+    press("ShiftLeft");
+    release("ShiftLeft");
+    const tapped = readHybrid();
+    assert.equal(tapped.block, true);
+    assert.equal(tapped.guardBreak, false, "not For Honor's guard break");
+    press("ShiftLeft");
+    assert.equal(readHybrid().block, true, "held");
+    release("ShiftLeft");
+    assert.equal(readHybrid().block, false);
+    press("KeyG");
+    assert.equal(readHybrid().kick, true);
+    assert.equal(readHybrid().way, "lr");
+  });
+
+  test("the scroll wheel stabs, once per turn of it however many events it sends", () => {
+    const { readHybrid, canvas } = hybrid();
+    const wheel = (atMs: number) => {
+      const event = Object.assign(new Event("wheel", { cancelable: true }), { deltaY: 40 });
+      Object.defineProperty(event, "timeStamp", { value: atMs });
+      canvas.dispatchEvent(event);
+    };
+    wheel(1000);
+    wheel(1020);
+    wheel(1040);
+    assert.equal(readHybrid().attack, "stab");
+    assert.equal(readHybrid().attack, null);
+    wheel(1060);
+    assert.equal(readHybrid().attack, null, "still the same turn");
+    wheel(2000);
+    assert.equal(readHybrid().attack, "stab");
+  });
+
+  test("For Honor's keys don't aim, and the hybrid's don't guard", () => {
+    const { actions, aim, press } = hybrid();
+    press("KeyU");
+    assert.equal(aim("tb"), "tlbr");
+    actions.setCombatStyle("for-honor");
+    press("KeyJ");
+    assert.equal(aim("tb"), "tb", "J does nothing in a For Honor fight");
   });
 });
