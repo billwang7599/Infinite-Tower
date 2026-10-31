@@ -96,6 +96,14 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(hybrid.kick, ["KeyG"]);
   });
 
+  test("Posture: right click guards (fixed), left Shift is a perilous thrust, G a perilous sweep", () => {
+    const posture = new KeyBindings().get().posture;
+    assert.deepEqual(ACTIONS.posture.guard.mouse, [2]);
+    assert.equal(isFixed({ group: "posture", action: "guard" }), true);
+    assert.deepEqual(posture.perilousThrust, ["ShiftLeft"]);
+    assert.deepEqual(posture.perilousSweep, ["KeyG"]);
+  });
+
   test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
     const battle = new KeyBindings().get().battle;
     assert.deepEqual(battle.lockOn, ["KeyQ"]);
@@ -140,9 +148,11 @@ describe("ACTIONS and helpers", () => {
     for (const key of ["KeyW", "Space", "Enter", "ShiftLeft"]) assert.equal(isBindable(key), true);
   });
 
-  test("only the settings (on Esc) and the mouse's attacks and camera drag are fixed", () => {
-    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed),
-      [menu, { group: "battle", action: "lightAttack" }, { group: "battle", action: "heavyAttack" }, dragCamera]);
+  test("only the settings (on Esc), the mouse's attacks, camera drag and Posture's guard are fixed", () => {
+    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [
+      menu, { group: "battle", action: "lightAttack" }, { group: "battle", action: "heavyAttack" }, dragCamera,
+      { group: "posture", action: "guard" },
+    ]);
   });
 });
 

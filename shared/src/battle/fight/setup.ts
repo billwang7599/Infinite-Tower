@@ -7,6 +7,7 @@ import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import type { CoreState } from "../../soul/core.js";
 import { HYBRID } from "../../weapons/hybrid.js";
+import { DEFLECT_STEPS } from "../../weapons/posture.js";
 import { DEFAULT_COMBAT_STYLE, ENEMY_GUARD, type CombatStyle } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
@@ -72,7 +73,9 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
     attackHeld: null, dodgeHeld: false, guardBreakHeld: false, blockHeld: false, kickHeld: false, attackBuffer: 0,
     dodgeBuffer: 0, guardBreakBuffer: 0, kickBuffer: 0, castBuffer: 0, tapParryLeft: 0,
-    sinceBlockPress: HYBRID.block.retapTime, queued: null,
+    sinceBlockPress: HYBRID.block.retapTime, perilousHeld: null, perilousBuffer: 0, perilousQueued: null,
+    sinceGuardPressSteps: DEFLECT_STEPS.window + 1, sinceGuardReleaseSteps: DEFLECT_STEPS.spam,
+    deflectWindowSteps: DEFLECT_STEPS.window, queued: null,
     castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
@@ -98,7 +101,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
     world.add(e, WeaponAttack, {
       def, cooldown: def.firstDelay, swingsLeft: 0, chain: 0, next: "light",
       guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime, parryRead: false,
-      feint: false, riposte: false, way: "tb", kickWait: 0,
+      feint: false, riposte: false, way: "tb", kickWait: 0, perilousEnd: null,
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

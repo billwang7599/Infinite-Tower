@@ -136,8 +136,9 @@ main.ts
   no mode sees `Mouse`. Mouse movement in the arena is also read as flicks there: a quick move left, up or right
   (`FLICK`, scaled by the flick sensitivity) is pressed as `guardLeft`, `guardTop` or `guardRight`, the same actions
   as the guard keys, in order with the keys and clicks; not while dragging the camera. In a hybrid fight a flick
-  aims one of 8 ways instead (`aimLeft`, `aimTopLeft`, ...). The arena's keys are its own group plus the group of the
-  fight's combat style (`setCombatStyle`, as each fight starts), so For Honor's and the hybrid's keys may overlap.
+  aims one of 8 ways instead (`aimLeft`, `aimTopLeft`, ...); in a Posture fight it does nothing. The arena's keys are
+  the group of the fight's combat style (`setCombatStyle`, as each fight starts) then its own, so the styles' keys may
+  overlap, and a style's mouse button comes first (Posture's right click is its `guard`, not the heavy attack).
   A turn of the scroll wheel is a press of `MouseWheel` (one per scroll: it has to rest 150 ms), bound like a
   mouse button (the hybrid's stab). In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
@@ -404,12 +405,18 @@ main.ts
   (`styles/hybrid/`): an aimed way (`Player.way`, the input's `way`), light, heavy and stab swings on the old momentum
   chains (`Wielder.combo`, `comboTime`, `momentum`), the held block and the tap parry (the `block` action, its
   `tapParryLeft`), the counter-parry by the reverse swing (`parryShare`), and the kick (`Wielder.kick`, `kickSystem`).
-  A new style is one more entry, a binding group named as it (`client/src/settings/bindings.ts`) and, if it needs
-  them, fields on the input.
+  Posture (`styles/posture/`): a `Posture` component on every fighter (its optional `spawned` hook adds it), swings in
+  strings of four from the top (`startPostureSwing`, the fourth a finisher), the held guard (the `block` action) and
+  its deflect window (`sinceGuardPressSteps`, `deflectWindowSteps`), the perilous thrust and sweep (the input's
+  `perilous`; `SwingData` and `ActiveHit` carry `posture` and `perilous`), Mikiri, the jump kick and Zanshin, breaks
+  and deathblows (`posture.ts`), and the Kobold's strings, deflects and grab (`swordsman.ts`). A new style is one more
+  entry, a binding group named as it (`client/src/settings/bindings.ts`) and, if it needs them, fields on the input.
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and
   the side it comes from; a body blow comes from the top) to the attacker; `combatSystem` (`fight/combat.ts`) resolves
   hits with plain math, not physics; the fight's style decides first if a hit is parried or blocked (For Honor's below;
-  the hybrid's in `styles/hybrid/defend.ts`). In For Honor, a weapon's hit is parried first when the target's heavy
+  the hybrid's in `styles/hybrid/defend.ts`, Posture's in `styles/posture/defend.ts`, which may also land it itself:
+  "struck", a deathblow). A dodge's i-frames skip every hit but a perilous thrust (for Mikiri), and a perilous sweep
+  skips a player in the air. In For Honor, a weapon's hit is parried first when the target's heavy
   began within
   `PARRY.windowTime` from the side across it, facing the attacker: the heavy is spent (its stamina given back) and the
   attacker is opened (`stagger`: a player's "stagger" action in hitstun, an enemy's "staggered" state). A hit is
@@ -737,15 +744,20 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   heavy or running short breaking it, not the back), the tap parry (in the window, let go again, the riposte, too
   early, a retap), the counter-parry (head-on, 45° off for a share, a stab by a stab); the kick (shove, stagger a
   block, nothing mid-swing, reach); the Kobold's hybrid brain (ways, block, tap parry, kicks); `weapons/hybrid.test.ts`
-  for the ways' rules. Eating in a fight (`player/use.test.ts`): healed and one
-  used up once its `useTime` is up, held still, not at full HP or with the bag shut, stopped (nothing eaten) by
-  closing the bag, a dodge, a hit that only hurts or one that stuns, and through a save; and the shared rule
-  (`items/using.test.ts`, any consumable's time and effects coming from its item). The core in a fight
-  (`player/absorb.test.ts`: essence absorbed in its time, held still, stopped by a hit with the essence kept, a
-  breakthrough growing the stats and bars at once, a whole core refusing it, through a save) and the stats it gives
-  (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger, stamina
-  recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()` first.
-  Also the battle inputs' rounding and what counts as a change.
+  for the ways' rules. Posture (`styles/posture/`, a duel's helpers in `duel.ts`): the deflect window's edges, mashing
+  shrinking it and a deflect resetting it, a guard's posture by heft, deflect streaks, both ways, not the back; hits,
+  breaks, deathblows and the half left after a break; thrusts through a guard, their tighter deflect, Mikiri; sweeps
+  under a guard and over a jump; strings, the finisher, the perilous costs, the jump kick and Zanshin; recovery by
+  time, guarding and HP; the Kobold's guard, deflect and riposte, delayed swings, perilous ends and grab, backing off,
+  stepping back from a sweep; the boar's guardable lunge and unguardable charge; a Posture fight's hash and save.
+  Eating in a fight (`player/use.test.ts`): healed and one used up once its `useTime` is up, held still, not at full HP
+  or with the bag shut, stopped (nothing eaten) by closing the bag, a dodge, a hit that only hurts or one that stuns,
+  and through a save; and the shared rule (`items/using.test.ts`, any consumable's time and effects coming from its
+  item). The core in a fight (`player/absorb.test.ts`: essence absorbed in its time, held still, stopped by a hit with
+  the essence kept, a breakthrough growing the stats and bars at once, a whole core refusing it, through a save) and the
+  stats it gives (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger,
+  stamina recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()`
+  first. Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items
@@ -761,7 +773,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   late, with the same hit or miss and HP on both sides; blocking the Kobold's attack the same way; the Kobold as
   tuned, beaten by a player who reads its guard and counters its guard breaks whatever its seed, beating one who
   doesn't; in the hybrid, its old wind-ups, beaten by a player who tap-parries and kicks, beating one who only holds a
-  block or only swings (`enemies/kobold-swordsman-hybrid.test.ts`); a battle and a duel fought in the starter's (the
+  block or only swings (`enemies/kobold-swordsman-hybrid.test.ts`); in Posture, beaten by a player who deflects on the
+  beat and answers each perilous attack, beating one who only guards (`enemies/kobold-swordsman-posture.test.ts`); a
+  battle and a duel fought in the starter's (the
   challenger's) combat style; a cast or a page written
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
   chanting without the book; the skillbook (pages written, refused for
@@ -844,9 +858,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; flicks into guards; the guard
-  break; in a hybrid fight the aim grid, 8-way flicks, the stab on K or the wheel, the block and the kick), the
-  player's pose and blade (the hybrid's ways, aim, block and kick too), sword trail and cut, the hybrid's aim ring, the
-  boar's and the Kobold's poses, effects fired once per step and event,
+  break; in a hybrid fight the aim grid, 8-way flicks, the stab on K or the wheel, the block and the kick; in a
+  Posture fight right click guarding, the perilous keys and no flicks), the player's pose and blade (the hybrid's ways,
+  aim, block and kick too; Posture's guard and deflect), Posture's sounds, sword trail and cut, the hybrid's aim
+  ring, the boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
   Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
@@ -999,12 +1014,17 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       styles/          styles.ts (STYLES: each combat style's sword controls (read / first / last, called by the player
                        controller), its defend (a hit parried or blocked), its swordsman brain and what runs after the
-                       hits; SwordTurn), for-honor.ts (the guard, attacks from its side, chains of three, the guard
-                       break and the feint; guardOf; heavy parries and guard blocks; with behaviors/weapon.ts and
-                       weapons/guard-break.ts), hybrid/ (player.ts: the aimed way, light / heavy / stab on the old
-                       momentum chains, the held block and its tap window, the kick and the feint; defend.ts: the
-                       counter-parry, the tap parry, the held block, blocking; kick.ts: kickSystem, a kick landing;
-                       swordsman.ts: the Kobold's hybrid brain)
+                       hits; the optional spawned hook; SwordTurn), for-honor.ts (the guard, attacks from its side,
+                       chains of three, the guard break and the feint; guardOf; heavy parries and guard blocks; with
+                       behaviors/weapon.ts and weapons/guard-break.ts), hybrid/ (player.ts: the aimed way, light / heavy
+                       / stab on the old momentum chains, the held block and its tap window, the kick and the feint;
+                       defend.ts: the counter-parry, the tap parry, the held block, blocking; kick.ts: kickSystem, a
+                       kick landing; swordsman.ts: the Kobold's hybrid brain), posture/ (player.ts: strings from the
+                       top, the finisher, the guard and its deflect window, the perilous thrust and sweep, the jump
+                       kick, Zanshin; defend.ts: deflects, guards, Mikiri, deathblows, a landed hit's posture;
+                       posture.ts: the Posture component's spawning, addPosture and breaking, postureSystem's recovery
+                       and broken timer, guarding; swordsman.ts: the Kobold's strings, delays, perilous ends, grab,
+                       deflect reads, backing off and stepping back from a sweep)
       player/          controller.ts (move, jump, the style's sword controls, dodge, a cast's
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
@@ -1028,7 +1048,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
-                       startSwing at the weapon's fixed timings, startWaySwing (the hybrid's), endSwing, endChain,
+                       startSwing at the weapon's fixed timings, startWaySwing (the hybrid's), startPostureSwing
+                       (Posture's), endSwing, endChain,
                        bladeLive, feintable; handsOf),
                        guard-break.ts (guardBreakSystem: grabs reaching out, held through the tech window, countered
                        or breaking the guard; startGrab, grabbable, inReach / nearestInReach (the kick's too),
@@ -1059,7 +1080,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    length)), hybrid.ts (the hybrid style's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay,
                    reverseOf, SCREEN_DIR, sideOfWay; chainKind, CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the
                    block and tap parry, the kick); COUNTER_PARRY, parryShare; wayShape, wayStepsAfter, strikeCost,
-                   strikeDamage)
+                   strikeDamage), posture.ts (Posture's: PERILOUS, POSTURE_MOVES, POSTURE, DEFLECT_STEPS;
+                   postureSteps, moveOf, moveDamage, deflectPosture, recoveryPerSec, nextWindow)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1213,7 +1235,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
                      layer's held and pressed actions and its axes, the flicks read from the mouse's movement
-                     (`FLICK`; by the fight's style, `FLICKS`: For Honor's guard, the hybrid's 8-way aim),
+                     (`FLICK`; by the fight's style, `FLICKS`: For Honor's guard, the hybrid's 8-way aim, none in
+                     Posture),
                      `setCombatStyle` (which style group's keys the arena takes), `lookDelta` for the arena's mouse
                      movement, and when the mouse may lock)
     settings/        settings.ts (Settings: every kind of setting in one object; main.ts makes it once and passes
@@ -1282,7 +1305,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
                        "Join the fight" / "Open the pile" / "Talk" / "Look"),
-                       BattleHud.tsx (the guard widget: yours and the locked foe's sides; and the bag in a fight:
+                       BattleHud.tsx (the guard widget: yours and the locked foe's sides; Posture's bars, filling
+                       from both ends, under your vitals and under the boss bar; and the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left in both
@@ -1392,9 +1416,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          yaw is the aim
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
-        input.ts         A poll -> PlayerInputData (the attack is the last pressed; a guard break pressed or held)
-        hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
-                         included
+        input.ts         A poll -> PlayerInputData (the attack is the last pressed, a perilous attack too; a guard
+                         break, a block or Posture's guard pressed or held)
+        hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand, an arena pile in view and the
+                         Posture bars (yours, the boss bar's foe's) included
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
                      page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
@@ -1405,9 +1430,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      WATER_SOUNDS (each level theme's), EVENT_SOUNDS (what `say` events sound like), bagSound),
                      mix.ts (Ears, Hearing, place: a sound's gain and pan from where it is; mixGain;
                      nearestWater), battle.ts (fightEars: a fight's cues and loops each frame; swingVoice;
-                     ARENA_HEARING, STRIDE_M), overworld.ts (overworldEars: footsteps, campfires, the nearest
-                     water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files, SOUNDS.md), music/ (a
-                     track's .ogg, `<track>.ogg`, a seamless loop)
+                     ARENA_HEARING, STRIDE_M; PERILOUS_CUE and Posture's moments), overworld.ts (overworldEars:
+                     footsteps, campfires, the nearest water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files,
+                     SOUNDS.md), music/ (a track's .ogg, `<track>.ogg`, a seamless loop)
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
@@ -1434,8 +1459,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a parry's longer hold, bounce and shower of sparks
-                         (parried), a guard break's catch, and its break's jolt and flash (grabbed); impactPose and
-                         joltOf (no Babylon: tested)
+                         (parried), a guard break's catch, and its break's jolt and flash (grabbed), Zanshin's lift
+                         (flick); impactPose and joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle and chant
                          words, a dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
@@ -1453,7 +1478,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action, the swing and the guard or the hybrid's aim and
                          block (staggered, grabbed, grabbing or kicking included; a hybrid way takes the nearest drawn
-                         swing); playerBlade (their 3D blade, from the same, by the weapon's MOTIONS
+                         swing); playerBlade (their 3D blade, from the same, Posture's guard across the body and its
+                         deflect's snap forward included, by the weapon's MOTIONS
                          row and the shared draw-back, drawn back less: SPRITE_DRAWBACK); facingSeen (their back
                          or front, by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
         arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
@@ -1464,9 +1490,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
                          MOTIONS, by weapon kind: the trail's line, a 3D blade held on guard and its way through a
                          wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
-                         pullOf, drawnBack) and the blade at rest, reeling and lowered to grab (every wielder's: the
-                         Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade and its hit-stop. No
-                         Babylon: tested
+                         pullOf, drawnBack) and the blade at rest, reeling, lowered to grab, and across the body on
+                         Posture's guard or snapped forward to deflect (every wielder's: the Kobolds' and the
+                         players'); WEAPON_LOOKS, by weapon: its 3D blade and its hit-stop. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a parry's, a broken guard's
                          flash), the chant's and wind-up's
@@ -1662,6 +1688,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The hybrid style: the swings' starts by chain, momentum, the heavy and the stab; the held block, the tap parry and its riposte, the counter-parry, the kick | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `COUNTER_PARRY`) |
 | A swordsman in the hybrid: its wind-ups, recovery, when it blocks, how often it tap-parries and kicks | `hybrid` in its weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | The hybrid's aim ring (sizes, height) | top of `client/src/visuals/battle/aimRing.ts` |
+| Posture: every attack's timings, damage and posture; the bar, its recovery, the deflect window and its penalty, Mikiri, the jump kick, breaks and deathblows, Zanshin, the Kobold's grab | `shared/src/weapons/posture.ts` (`POSTURE_MOVES`, `POSTURE`) |
+| A swordsman in Posture: its wind-ups and delays, string lengths, perilous ends, deflect chances, backing off; each enemy's posture, and a body blow's | `posture` in its weapon attack and its def, `posture` on a lunge or charge (`server/src/core/enemies/`) |
+| Posture's bars' colours; its sounds | `PostureBar` in `client/src/ui/hud/BattleHud.tsx`; `PERILOUS_CUE`, `POSTURE_CUES` in `client/src/audio/battle.ts` |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |

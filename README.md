@@ -69,7 +69,11 @@ What's built so far:
   anything in front for stamina and a chip, broken by a heavy; tapped just before a hit it parries, free, opening the
   attacker; the reverse swing just gone live parries too; G kicks (shoves, or staggers a held block; in your own
   wind-up, feints). A ring of eight wedges round the locked foe shows your aim and its swing coming. The Kobold
-  fights the hybrid's way in a hybrid fight.
+  fights the hybrid's way in a hybrid fight. Or to **Posture** (Sekiro's): no directions; left click swings in strings
+  of four, held right click guards and its press, just before a hit, deflects; every fighter has a posture bar that
+  guards, deflects and hits fill, full it breaks and the next hit is a deathblow. Left Shift is a perilous thrust
+  (dodge into it: Mikiri), G a perilous sweep (jump it, then kick off the sweeper); guard on the beat after a hit for
+  Zanshin. The Kobold walks up guarding, deflects, delays swings and ends strings in a thrust, a sweep or a grab.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its

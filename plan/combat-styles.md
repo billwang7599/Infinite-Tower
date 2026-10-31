@@ -4,7 +4,8 @@ Three more ways to fight with a sword, picked with the per-player Combat style s
 Hybrid. The user: "come up with some other combat styles that feel fun and realistic. im thinking we have to both
 read the opponent and also reward good weapon play. search online for existing games and their mechanics. we can also
 add in/mix in stuff", and "make any assumptions you want". Everything below is the agent's design, built overnight
-one PR per style in the order given, for the user to play and retune. None of it is built yet.
+one PR per style in the order given, for the user to play and retune. Posture is built (its rules are in AGENTS.md's
+"The Posture style" and FORMULAS.md); One Strike and Master Cuts aren't yet.
 
 ## Survey
 
@@ -49,9 +50,11 @@ Liechtenauer with KCD. Absolver's decks and physics swordplay are under "Not now
 - **The switch.** They plug into the Combat style setting's PR (assumed merged first): one style per fight, fixed at
   its start (the host's setting in a battle, joiners fighting in it; the challenger's in a duel), `Player.style` in
   the fight's state and hash. The Kobolds fight in the fight's style.
-- **Keys are slots, each style says what they do.** Mouse buttons stay fixed; keys stay rebindable. The settings
-  screen shows the picked style's words for each slot. One new action, `guardDown` (K, and a downward flick, which
-  the flick reader now drops), shared by One Strike and Master Cuts.
+- **Keys are slots, each style says what they do.** Mouse buttons stay fixed; keys stay rebindable. One new action,
+  `guardDown` (K, and a downward flick, which the flick reader now drops), shared by One Strike and Master Cuts.
+  Posture took a simpler road than slots: its group has actions of its own (`guard` on right click, `perilousThrust`,
+  `perilousSweep`), and a style's group is read before the arena's, so its mouse button wins; the next two can do
+  the same, each action named for what it does in that style.
 
   | Slot (action) | Default | Posture | One Strike | Master Cuts |
   |---|---|---|---|---|
@@ -63,11 +66,10 @@ Liechtenauer with KCD. Absolver's decks and physics swordplay are under "Not now
   | `guardDown` (new) | K, flick down | (none) | lowers the blade | Alber |
 
   Dodge (F), jump (Space), lock-on, skills, the chant, the bag and eating work as now in every style.
-- **Code.** Each style is one rules file with its numbers table (`shared/src/weapons/styles/<style>.ts`), its
-  player side (`shared/src/battle/fight/styles/<style>.ts`, called from `player/controller.ts` by `Player.style`), its
-  hit rules as one branch in `combatSystem`, and its Kobold brain (`fight/behaviors/<style>.ts`, run instead of
-  `weaponAttackSystem`), with the Kobolds' per-style numbers in their files under `server/src/core/enemies/`. New
-  fight state goes in `save()` / `load()` and the hash. Inputs gain at most one held field per style, Zod-checked.
+- **Code.** As Posture and the hybrid: a numbers table (`shared/src/weapons/<style>.ts`), a `STYLES` entry with its
+  player side, `defend` and Kobold brain (`shared/src/battle/fight/styles/<style>/`), the Kobolds' per-style numbers
+  in their files under `server/src/core/enemies/`. New fight state goes in `save()` / `load()` and the hash. Inputs
+  gain at most one held field per style, Zod-checked.
 - **Numbers** are for a heft-1 blade; every time scales by the weapon's heft (longsword 1.2, greatsword 1.6) as now,
   and weapon damage by strength through `physicalDamage` unless a style says otherwise. Anything a player must react
   to (not a read, like the beat) winds up for at least 0.2 s, so PvP still reads at 100 ms of ping (the other
@@ -79,74 +81,19 @@ Liechtenauer with KCD. Absolver's decks and physics swordplay are under "Not now
 - **Each PR** also updates FORMULAS.md (a section per style), ARCHITECTURE.md, AGENTS.md ("Decided by the agent"),
   the README's feature line, and trims this file. Skills still ignore guards, deflects and lines (the current rule).
 
-## 1. Posture (Sekiro, with Nioh's Ki Pulse)
+## 1. Posture (Sekiro, with Nioh's Ki Pulse): built
 
-**The idea.** One defensive button and no directions. Both sides have a posture bar that fills under pressure; full,
-you're broken and the next hit is a deathblow. You win by keeping a rhythm: deflecting a string of swings breaks the
-attacker, and each perilous attack has exactly one right answer. Reading is rhythm and attack type; weapon play is
-timing, never mashing, and returning to guard on the beat.
+One defensive button and no directions: a posture bar that guards, deflects and hits fill, full it breaks and the next
+hit is a deathblow; deflecting a string breaks the attacker, each perilous attack has one answer (Mikiri the thrust,
+jump the sweep, dodge the grab). What it does now is in AGENTS.md ("The Posture style") and FORMULAS.md. Still open:
 
-**Controls.** Left click swings (a chain of four). Right click held guards; its press is the deflect. Shift is a
-perilous thrust, G a perilous sweep. F toward a thrust is a Mikiri counter; Space over a sweep, then left click in
-the air, is a jump kick. U, I, O, K and flicks do nothing.
-
-**Numbers** (`POSTURE`; times × heft; damage × the weapon's, × strength):
-
-| Attack | Windup | Live | Recovery | Damage | Posture when guarded | Stamina |
-|---|---|---|---|---|---|---|
-| swing 1-3 | 0.3 (in a chain 0.25) | 0.1 | 0.3 | ×0.8 | 12 | 0 |
-| swing 4 (finisher) | 0.45 | 0.12 | 0.45 | ×1.5 | 20 | 0 |
-| perilous thrust | 0.6 | 0.1 | 0.5 | ×1.5 | unguardable | 15 |
-| perilous sweep | 0.55 | 0.12 | 0.5 | ×1.2, stagger 0.4 s | unguardable | 15 |
-
-- Posture: 100 for players and the Kobold Swordsman, 120 the Kobold Greatsword, 80 the boar, 60 the Warlock (enemies
-  reuse `Enemy.poise` as posture left). It recovers 20 a second from 1 s after it last grew, ×1.5 while guarding,
-  × (0.3 + 0.7 × the HP share): low HP means slow recovery, so chip damage matters.
-- Guarding (held; it covers 140° in front, as now): no HP lost; you take the posture above (× the attacker's heft).
-  Swings and guarding cost no stamina; posture replaces it.
-- Deflect: the guard pressed at most 0.2 s before the hit lands (that step counts). No HP lost; you take a quarter
-  of the posture; the attacker takes 15, +5 for each deflect of theirs in the last 1 s (at most +15), and recoils
-  0.25 s (a string goes on after it, as in Sekiro). A press within 0.5 s of the last release shrinks the next
-  window by 0.05 s, down to 0.067 s (4 steps); a deflect, or 0.5 s without pressing, resets it. Held past the
-  window, it's a guard. The perilous thrust deflects only within 0.12 s; the sweep and grab never.
-- Mikiri counter: a dodge toward a thrust's thrower (within 45°) when the thrust lands in the dodge's first 0.3 s:
-  you stop on the blade, unhurt; the thrower takes 45 posture and is opened 0.6 s.
-- Sweeps hit only fighters on the ground. Jumped, left click while still airborne within 1.5 m of the sweeper kicks
-  off them: 30 posture, staggered 0.3 s, no damage.
-- A hit landed also gives the target half its "guarded" posture.
-- Broken (posture full): staggered, a player 1.2 s, an enemy 1.5 s. The first weapon hit in it is a deathblow: 35% of
-  the target's most HP (through `hurt`), and posture empties. Not taken, posture drops to half when it ends.
-- Zanshin (Nioh's Ki Pulse): pressing guard within 0.15 s after your swing's blade ends, on a swing that hit or was
-  guarded, takes 15 off your own posture and 0.1 s off its recovery. Its tell is a flick of the blade and a soft chime.
-
-**The Kobold.** Walks up guarding (your swings fill its posture). Each of your swings, rolled at its start from the
-fight's seed: it deflects 30% (then strikes at once, the riposte flag). Its strings are 2-4 swings; 25% of swings are
-delayed (windup +0.3 s, the blade held high: the tell); 30% of strings end in a perilous attack: thrust 45%, sweep
-30%, grab 25% (the guard break's grab, 0.5 s windup, unguardable, 25 damage and 30 posture, no tech window). Above
-70% posture it backs off 2 m to recover, so you have to press it. Your perilous attacks: it deflects a thrust 20% and
-steps back from a sweep 30% (the sidestep behavior). The boar's lunge can be guarded (30) or deflected (25 to the
-boar); its charge is perilous (dodge it). The Warlock's poke can be guarded or deflected.
-
-**PvP.** Symmetric. Turtling is answered by perilous attacks and by chain timing: the next swing may start anywhere
-in the last one's 0.3 s recovery, so a defender can't deflect on a fixed beat, and the spam penalty punishes
-guessing. Circling still matters (guards and deflects only cover the front).
-
-**Drawn and heard.** Poses: guard (blade across the body, angled), deflect (a snap forward), the four swings,
-the thrust (blade drawn back level at the hip, point forward, body side-on), the sweep (crouched, blade low behind),
-the grab (free hand open, leaning in), broken (down on one knee), the deathblow (a thrust through), Zanshin's flick.
-Every perilous windup rings one sharp sound, the same for thrust, sweep and grab (Sekiro's kanji as sound). A
-deflect clangs higher than a guard and throws sparks; a break thuds. HUD: your posture bar under HP, filling from
-both ends to the middle, yellow to red; the locked foe's above its head.
-
-**Reuses.** `startSwing`, `weaponSystem` and `attackShape` (every swing from the top), `parries()`' window check
-(keyed to the guard's press step, not a heavy's), `blocked()`'s recoil, `stagger()`, `Enemy.poise` and the brain's
-stagger, the grab in `guard-break.ts`, the dodge's i-frames, `grounded` for sweeps, the Kobold's sidestep. New: posture
-on players, the deflect clock and penalty, the perilous kinds, a `groundOnly` flag on `ActiveHit`, the HUD bars.
-
-**Tests first.** The window's edges (a press on the landing step deflects, one a step before the window guards);
-the penalty shrinking and resetting; posture from guards, deflects and hits, its recovery (by HP and guarding);
-breaking and the deathblow; thrusts through a guard, the tight thrust deflect and Mikiri; sweeps missing airborne
-targets and the jump kick; Zanshin; the Kobold's seeded deflects, delays and perilous ends; a duel both ways.
+- **Art.** No new drawings yet: the sprite's top guard and stagger frames stand in. Wanted: guard (blade across the
+  body, angled), deflect (a snap forward), the four swings, the thrust (blade drawn back level at the hip, side-on),
+  the sweep (crouched, blade low behind), the grab (free hand open, leaning in), broken (down on one knee), the
+  deathblow (a thrust through), Zanshin's flick. Then ART.md's "What to draw".
+- **The foe's bar over its head**, as the plan had it; it's under the boss bar for now.
+- **Feel.** Every number is a first guess and none was hand-played; the Kobold beats a bot that only guards and loses
+  to one that reads it (`server/test/core/enemies/kobold-swordsman-posture.test.ts`), with about half its HP left.
 
 ## 2. One Strike (Bushido Blade, Nidhogg, Hellish Quart)
 
@@ -279,8 +226,8 @@ a duel both ways.
 
 ## Build order
 
-1. **Posture**: the most different from For Honor and the Hybrid (no directions at all), the simplest controls,
-   strong against every enemy we have, and mostly built on the parry window, poise and the grab.
+1. **Posture** (built): the most different from For Honor and the Hybrid (no directions at all), the simplest
+   controls, strong against every enemy we have.
 2. **One Strike**: the most novel feel (lethal, footsies, disarms) and the best PvP read; more new parts (the line
    clock, disarms, the loose blade, zones, the lame).
 3. **Master Cuts**: the cheapest on top of For Honor's code, but the closest to it in feel, so last.

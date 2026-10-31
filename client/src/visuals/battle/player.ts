@@ -1,7 +1,7 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
-  type World,
+  Body, clamp, damp, Health, Player, PLAYER, Posture, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder,
+  type Entity, type World,
 } from "@infinite-tower/shared";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
@@ -151,7 +151,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     const up = 0.5 - hand[1] / VIEWS.battle.height;
     placeBlade(sprite.blade, ctx.camera, {
       x: position.x + across * SPRITE_SIZE * pose.scaleX, y: position.y + up * SPRITE_SIZE * pose.scaleY,
-    }, faceYaw, playerBlade(player, wielder, alive, motion), dt);
+    }, faceYaw, playerBlade(player, wielder, alive, motion, world.has(e, Posture)), dt);
   }
 
   const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);

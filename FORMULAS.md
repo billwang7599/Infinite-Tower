@@ -16,6 +16,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Guards](#guards)
 - [Parries, guard breaks and feints](#parries-guard-breaks-and-feints)
 - [The hybrid style](#the-hybrid-style)
+- [The Posture style](#the-posture-style)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -211,6 +212,45 @@ in `shared/src/battle/fight/styles/hybrid/`. Damage still goes × √(strength /
 Example: a sword light, then the reverse, then the reverse again: wind-ups 0.1, 0.045 and 0.04 s; damage 9, 11.25
 and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it. Blocked held, that first light costs the
 blocker 9 stamina and 1.8 HP.
+
+## The Posture style
+
+A fight in the Posture style plays by `POSTURE_MOVES` and `POSTURE` in `shared/src/weapons/posture.ts`; the rules in
+`shared/src/battle/fight/styles/posture/`. Every time × the heft, damage × the weapon's × √(strength / 10),
+posture × the attacker's heft. Poise isn't used by its swings: posture is.
+
+| Attack | Wind-up | Live | Recovery | Damage | Posture a guard takes | Stamina |
+|---|---|---|---|---|---|---|
+| swing 1-3 | 0.3 (chained 0.25) | 0.1 | 0.3 | ×0.8 | 12 | 0 |
+| swing 4 (finisher) | 0.45 | 0.12 | 0.45 | ×1.5 | 20 | 0 |
+| perilous thrust | 0.6 | 0.1 | 0.5 | ×1.5 | 30 (unguardable) | 15 |
+| perilous sweep | 0.55 | 0.12 | 0.5 | ×1.2, staggers 0.4 s | 20 (unguardable) | 15 |
+
+- **Posture:** players 100, the Kobold Swordsman 100, the Kobold Greatsword 120, the boar 80, the Warlock 60 (`posture`
+  on each enemy's def). From 1 s after it last grew it falls 20 a second × 1.5 guarding × (0.3 + 0.7 × HP share).
+- **Guard** (held, 140° in front, idle): no HP lost, the posture above. A guarded body blow (the boar's lunge 30, the
+  Warlock's poke 10; one with none, like the boar's charge, can't be guarded) pushes you back at 60% of its knockback.
+- **Deflect:** the guard pressed at most `windowTime` 0.2 s (12 steps) before the hit lands, that step counting. You
+  take a quarter of its posture; the attacker 15, +5 for each deflect of theirs in a row (each within 1 s of the last),
+  at most +15 (25 for a body blow), and recoils 0.25 s. A press under 0.5 s after letting the guard go opens a window
+  0.05 s (3 steps) shorter than the last, down to 0.067 s (4 steps); a deflect or a press 0.5 s after letting go gives
+  the whole window back. A perilous thrust deflects only within 0.12 s; a sweep never.
+- **A hit landed** gives the target half its posture. **Broken** (full): staggered 1.2 s (an enemy 1.5 s); the first
+  weapon hit in it is a deathblow, 35% of the most HP (through defense), posture back to 0; untaken, it ends at half.
+- **Mikiri:** a dodge toward a thrust's thrower (within 45°) that the thrust meets in its first 0.3 s: you stop unhurt;
+  the thrower takes 45 posture and is opened 0.6 s. **Sweeps** miss anyone in the air; a left click in the air within
+  1.5 m of someone sweeping kicks off them: 30 posture, staggered 0.3 s, no damage.
+- **Zanshin:** the guard pressed within 0.15 s after your blade's live time ends, on a swing that hit or was guarded:
+  15 off your posture and 0.1 s off its recovery.
+- **The Kobold** (`posture` in its weapon attack): strings of 2-4 swings, the first winding up 0.6 s, the rest 0.4 s,
+  25% of them 0.3 s later (its blade drawn as quick and held high); 30% of strings end in a perilous attack (a thrust
+  45%, a sweep 30%, a grab 25%: 0.5 s, unguardable, 25 damage, 30 posture, staggered 0.6 s; a dodge beats it); 0.6 s
+  of recovery, then its cooldown. Walking up it guards; it deflects 30% of your swings (20% of thrusts) and strikes at
+  once, steps back from 30% of sweeps, and over 70% posture it backs off 2 m past its reach.
+
+Example: the Kobold's three-swing string, each deflected: it takes 15, 20 and 25 (60 posture), you 3 each. Four of
+your swings into its guard (12 each) before it recovers break it (108); your next light is a deathblow of
+160 × 0.35 = 56 HP.
 
 ## Poise and stagger (enemies)
 

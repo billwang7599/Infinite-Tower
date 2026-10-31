@@ -1,7 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
-  Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject,
+  Health, LungeAttack, maxHpOf, newCore, PERILOUS, Player, PLAYER, PlayerInput, Posture, Sidestep, SkillAttack, Skilled,
+  SkillObject,
   Stamina, staminaMaxOf, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
@@ -17,7 +18,7 @@ export const FULL_STAMINA = staminaMaxOf(STATS);
 const ENEMY_BASE: EnemyDef = {
   id: "wild-boar", name: "Test", maxHp: 100,
   stats: { ...STATS, skillpower: 0 },
-  radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+  radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, posture: 100, attacks: {},
 };
 
 /** Stands where it's put and never attacks. */
@@ -61,6 +62,11 @@ export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
     windupTime: 0.6, chainWindupTime: 0.4, recoverTime: 0.8, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99,
     kickChance: 0,
   },
+  posture: {
+    windupTime: 0.6, chainWindupTime: 0.4, delayTime: 0.3, delayChance: 0, minString: 1, maxString: 1,
+    perilousChance: 0, ends: { thrust: 1, sweep: 0, grab: 0 }, recoverTime: 0.8, deflectChance: 0,
+    thrustDeflectChance: 0, sweepStepBackChance: 0, backOffShare: 2, backOffM: 2,
+  },
   ...over,
 });
 
@@ -94,8 +100,8 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, guardBreak: false,
-  way: null, block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null,
-  locked: null, bag: false, gear: null, use: null,
+  way: null, block: false, kick: false, perilous: null, cast: null, castHeld: false, chant: false, chantWords: null,
+  write: null, locked: null, bag: false, gear: null, use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -104,6 +110,13 @@ export function busyHybrid(step: number): PlayerInputData {
     ...busy(step), guard: null, way: SWING_DIRS[Math.floor(step / 13) % SWING_DIRS.length]!,
     attack: step % 9 < 2 ? STRIKES[Math.floor(step / 9) % STRIKES.length]! : null,
     block: step % 71 > 50, kick: step % 59 === 3,
+  });
+}
+
+export function busyPosture(step: number): PlayerInputData {
+  return input({
+    ...busy(step), guard: null, attack: step % 9 < 2 ? "light" : null, block: step % 37 > 25,
+    perilous: step % 61 < 2 ? PERILOUS[Math.floor(step / 61) % PERILOUS.length]! : null,
   });
 }
 
@@ -151,6 +164,7 @@ export function dumpState(fight: Fight): string {
       skilled: fight.world.get(e, Skilled),
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
       statuses: fight.world.get(e, Statuses),
+      posture: fight.world.get(e, Posture),
     };
   });
   const shots = [...fight.world.query(SkillObject)].map(([, shot]) => shot);

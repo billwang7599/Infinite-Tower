@@ -15,6 +15,8 @@ const PARRY_BOUNCE_MS = 220;
 const GRAB_HIT_STOP_MS = 70;
 const BROKEN_JOLT_M = 0.35;
 const BROKEN_JOLT_MS = 200;
+const FLICK_M = 0.08;
+const FLICK_MS = 120;
 
 export interface Impact { ageMs: number; stopMs: number; push: Vec3; pushMs: number }
 
@@ -81,4 +83,8 @@ export function grabbed(scene: ArenaScene, world: World, by: Entity, target: Ent
   const push = { x: away.x * BROKEN_JOLT_M, y: 0, z: away.z * BROKEN_JOLT_M };
   scene.impacts.set(target, { ageMs: 0, stopMs: 0, push, pushMs: BROKEN_JOLT_MS });
   scene.skills.bursts.guardBroken({ x: t.x, y: t.y + SPARK_UP_M, z: t.z });
+}
+
+export function flick(scene: ArenaScene, e: Entity): void {
+  scene.impacts.set(e, { ageMs: 0, stopMs: 0, push: { x: 0, y: FLICK_M, z: 0 }, pushMs: FLICK_MS });
 }

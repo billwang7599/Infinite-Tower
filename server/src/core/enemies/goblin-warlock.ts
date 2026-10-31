@@ -16,13 +16,14 @@ export const GOBLIN_WARLOCK: Enemy = {
     poise: 20,
     poiseRegen: 8,
     staggerTime: 1.0,
+    posture: 60,
     keepAway: { nearM: 4, farM: 7 },
     attacks: {
       lunge: {
         triggerDist: 1.6, range: 1.5, minDot: 0.6,
         windup: 0.4, active: 0.15, recover: 0.5, speed: 2,
         damage: 5, knockback: 3, lift: 0.5,
-        cooldown: 0.8, firstDelay: 0,
+        cooldown: 0.8, firstDelay: 0, posture: 10,
       },
       skill: {
         skill: { form: "bolt", elements: ["fire"], modifiers: [] },

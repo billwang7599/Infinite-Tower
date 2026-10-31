@@ -184,9 +184,26 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
+  const posture = useStore(hud, (s) => s.posture);
   return (
     <div className="absolute top-3 left-4">
       <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
+      {posture !== null && <PostureBar id="posture-bar" fraction={posture} className="w-75" />}
+    </div>
+  );
+}
+
+const POSTURE_HUE_DEG = { empty: 50, full: 0 };
+
+function PostureBar({ id, fraction, className }: { id: string; fraction: number; className: string }) {
+  const half = `${(fraction * 50).toFixed(1)}%`;
+  const hue = POSTURE_HUE_DEG.empty + (POSTURE_HUE_DEG.full - POSTURE_HUE_DEG.empty) * fraction;
+  const fill = { width: half, backgroundColor: `hsl(${hue.toFixed(0)} 90% 55%)` };
+  return (
+    <div id={id} data-fraction={fraction} className={`relative h-1.5 border border-white/20 bg-black/60 ${className}`}>
+      <div className="absolute inset-y-0 left-0" style={fill} />
+      <div className="absolute inset-y-0 right-0" style={fill} />
+      <div className="absolute inset-y-0 left-1/2 w-px bg-white/40" />
     </div>
   );
 }
@@ -216,6 +233,7 @@ function BossBar({ hud }: HudProps) {
   const name = useStore(hud, (s) => s.enemyName);
   const hpFraction = useStore(hud, (s) => s.enemyHpFraction);
   const alive = useStore(hud, (s) => s.enemyAlive);
+  const posture = useStore(hud, (s) => s.foePosture);
   return (
     <div
       className={`absolute bottom-12 left-1/2 w-[min(640px,70%)] -translate-x-1/2 transition-opacity duration-600 ${
@@ -224,6 +242,7 @@ function BossBar({ hud }: HudProps) {
     >
       <div id="boss-name" className="mb-1 font-title text-[17px] font-medium tracking-wide">{name}</div>
       <Bar fraction={hpFraction} fill="from-boss to-boss-dark" chip />
+      {posture !== null && <PostureBar id="foe-posture-bar" fraction={posture} className="mx-auto w-1/2" />}
     </div>
   );
 }

@@ -3,7 +3,9 @@ import { toSteps } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 
-export const COMBAT_STYLES = { "for-honor": { name: "For Honor" }, hybrid: { name: "Hybrid" } } as const;
+export const COMBAT_STYLES = {
+  "for-honor": { name: "For Honor" }, hybrid: { name: "Hybrid" }, posture: { name: "Posture" },
+} as const;
 export type CombatStyle = keyof typeof COMBAT_STYLES;
 export const COMBAT_STYLE_IDS = Object.keys(COMBAT_STYLES) as [CombatStyle, ...CombatStyle[]];
 export const DEFAULT_COMBAT_STYLE: CombatStyle = "for-honor";

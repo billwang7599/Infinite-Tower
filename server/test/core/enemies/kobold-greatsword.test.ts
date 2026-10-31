@@ -11,10 +11,11 @@ const GREATSWORD = ENEMIES["kobold-greatsword"].def;
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
 
 describe("the Kobold Greatsword", () => {
-  test("is the Kobold Swordsman with a greatsword in hand", () => {
+  test("is the Kobold Swordsman with a greatsword in hand, and more posture", () => {
     assert.equal(GREATSWORD.wielder?.hands.rightHand, "kobold-greatsword");
-    const { id: _id, name: _name, wielder, ...rest } = GREATSWORD;
-    const { id: _kid, name: _kname, wielder: koboldWielder, ...kobold } = KOBOLD;
+    assert.ok(GREATSWORD.posture > KOBOLD.posture);
+    const { id: _id, name: _name, wielder, posture: _posture, ...rest } = GREATSWORD;
+    const { id: _kid, name: _kname, wielder: koboldWielder, posture: _kposture, ...kobold } = KOBOLD;
     assert.deepEqual(rest, kobold);
     assert.equal(wielder?.armReachM, koboldWielder?.armReachM);
   });

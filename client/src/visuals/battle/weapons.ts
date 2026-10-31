@@ -85,6 +85,8 @@ export interface BladePose { blade: Vec3; handZ: number }
 export const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
 export const REELING_BLADE = norm({ x: 0.6, y: -0.5, z: -0.2 });
 export const GRAB_BLADE = norm({ x: 0.7, y: -0.4, z: 0.3 });
+export const POSTURE_GUARD_BLADE = norm({ x: -0.8, y: 0.5, z: 0.35 });
+export const DEFLECT_BLADE = norm({ x: -0.4, y: 0.55, z: 0.75 });
 const GUARD_OUT = 0.8;
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;

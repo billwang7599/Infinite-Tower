@@ -5,9 +5,10 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillAttack, SkillObject, Skilled,
-  Stamina, Statuses, WeaponAttack, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Posture, Sidestep, SkillAttack, SkillObject,
+  Skilled, Stamina, Statuses, WeaponAttack, Wielder,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type PostureData, type SkillObjectData,
+  type SkilledData,
   type GrabData, type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
 import type { Word } from "../../skills/skill.js";
@@ -26,6 +27,7 @@ interface FighterSnapshot {
     grab: (Omit<GrabData, "target"> & { target: number }) | null;
   } | null;
   skilled: Omit<SkilledData, "target"> & { target: number };
+  posture: PostureData | null;
 }
 
 interface PlayerSnapshot extends FighterSnapshot {
@@ -92,11 +94,13 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
     const { words, aim, target, ...skilled } = world.require(e, Skilled);
+    const posture = world.get(e, Posture);
     return {
       pos: { ...pos }, vel: { ...vel }, health: { ...world.require(e, Health) },
       statuses: copyStatuses(world.require(e, Statuses)),
       wielder: saveWielder(world.get(e, Wielder), fighters),
       skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
+      posture: posture ? { ...posture } : null,
     };
   };
   return {
@@ -154,6 +158,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     const { words, aim, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };
     Object.assign(world.require(e, Skilled), skilled, copied);
+    const posture = world.get(e, Posture);
+    if (posture && s.posture) Object.assign(posture, s.posture);
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.
   for (const e of fighters) world.remove(e, ActiveHit);

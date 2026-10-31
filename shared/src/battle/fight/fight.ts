@@ -29,7 +29,7 @@ import { windUpSystem } from "./skills/skilled.js";
 import { regenSystem, statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, styleOf, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
-import { STYLES } from "./styles/styles.js";
+import { STYLES, type Style } from "./styles/styles.js";
 import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
@@ -74,6 +74,7 @@ export class Fight {
   readonly enemies: readonly Entity[];
   readonly duel: boolean;
   readonly style: CombatStyle;
+  private readonly rules: Style;
   /** What an input's `locked` indexes: the enemies, or in a duel the players. */
   readonly targets: readonly Entity[];
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
@@ -90,9 +91,10 @@ export class Fight {
     this.physics = new ArenaPhysics(this.arena.radius);
     this.duel = setup.duel ?? false;
     this.style = styleOf(setup);
-    const style = STYLES[this.style];
-    this.seated = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
-    this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
+    const style = this.rules = STYLES[this.style];
+    this.seated = setup.players.map((p, i) =>
+      this.joined(spawnPlayer(this.world, this.physics, p, this.duel ? i : 0)));
+    this.enemies = setup.enemies.map((e) => this.joined(spawnEnemy(this.world, this.physics, e)));
     this.targets = this.duel ? this.players : this.enemies;
     const ctx: FightContext = {
       world: this.world, physics: this.physics, arena: this.arena, enemies: this.enemies, events: this.events,
@@ -119,8 +121,13 @@ export class Fight {
   }
 
   join(setup: PlayerSetup): Entity {
-    const e = spawnPlayer(this.world, this.physics, setup);
+    const e = this.joined(spawnPlayer(this.world, this.physics, setup));
     this.seated.push(e);
+    return e;
+  }
+
+  private joined(e: Entity): Entity {
+    this.rules.spawned?.(this.world, e);
     return e;
   }
 

@@ -4,7 +4,8 @@
  * are fixed; they're listed so the settings screen can show them. General works in the overworld and in the arena,
  * the overworld's and the arena's only there; so a general key is on nothing else, but the overworld and the arena
  * may share keys. Each combat style has a group of its own (named as the style), working in the arena with the
- * arena's in a fight of that style, so two styles may share keys. In the arena the left hand is on WASD and the
+ * arena's in a fight of that style, so two styles may share keys; a style's mouse button comes before the arena's
+ * (Posture's right click guards). In the arena the left hand is on WASD and the
  * right on the mouse: its buttons attack, and a flick moves the guard, or aims (core/actions.ts).
  */
 import { COMBAT_STYLE_IDS, MAX_KEYS_PER_ACTION, type CombatStyle, type SavedSettings } from "@infinite-tower/shared";
@@ -80,6 +81,11 @@ export const ACTIONS = {
     stab: { label: "Stab", keys: ["KeyK"], wheel: true },
     block: { label: "Block (hold; pressed just before a hit: parry)", keys: ["ShiftLeft"] },
     kick: { label: "Kick (in your wind-up: feint)", keys: ["KeyG"] },
+  },
+  posture: {
+    guard: { label: "Guard (hold; pressed just before a hit: deflect)", keys: [], mouse: [2] },
+    perilousThrust: { label: "Perilous thrust (unguardable)", keys: ["ShiftLeft"] },
+    perilousSweep: { label: "Perilous sweep (unguardable; jumped over)", keys: ["KeyG"] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>> & Record<CombatStyle, Record<string, ActionDef>>;
 

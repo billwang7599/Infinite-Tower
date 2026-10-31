@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Player, Wielder, type PlayerInputData } from "@infinite-tower/shared";
+import { Player, Posture, Wielder, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
 import {
-  ARENA, busy, busyHybrid, enemy, IDLE, input, player, run, SWORDSMAN,
+  ARENA, busy, busyHybrid, busyPosture, enemy, IDLE, input, player, run, SWORDSMAN,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -24,6 +24,26 @@ describe("a fight's combat style", () => {
     assert.equal(new Fight(setup()).style, "for-honor");
     assert.equal(new Fight(setup({ style: "hybrid" })).style, "hybrid");
     assert.equal(new Fight(setup({ style: "for-honor" })).style, "for-honor");
+    assert.equal(new Fight(setup({ style: "posture" })).style, "posture");
+  });
+
+  test("only a Posture fight gives its fighters a posture bar, joiners too", () => {
+    for (const style of ["for-honor", "hybrid", "posture"] as const) {
+      const fight = new Fight(setup({ style }));
+      const joiner = fight.join(player({ x: 2, y: 0.05, z: 0 }));
+      for (const e of [...fight.players, ...fight.enemies, joiner]) {
+        assert.equal(fight.world.has(e, Posture), style === "posture", `${style} ${e}`);
+      }
+    }
+  });
+
+  test("For Honor and the hybrid ignore Posture's perilous attacks", () => {
+    for (const style of ["for-honor", "hybrid"] as const) {
+      const fight = new Fight(setup({ style }));
+      run(fight, 0.2, () => input({ locked: 0 }));
+      fight.step([input({ locked: 0, perilous: "thrust" })]);
+      assert.equal(swingOf(fight), null, style);
+    }
   });
 
   test("For Honor ignores the hybrid's keys: no stab, no held block, no kick, no aimed way", () => {
@@ -49,15 +69,41 @@ describe("a fight's combat style", () => {
     assert.equal(swingOf(fight)?.attack, "heavy");
   });
 
-  test("every fighter in it plays by it: a swordsman swings the hybrid's ways, or For Honor's sides", () => {
-    for (const style of ["for-honor", "hybrid"] as const) {
+  test("every fighter in it plays by it: a swordsman swings the hybrid's ways, For Honor's sides or Posture's", () => {
+    for (const style of ["for-honor", "hybrid", "posture"] as const) {
       const fight = new Fight(setup({ style }));
       const kobold = fight.enemies[0]!;
       while (swingOf(fight, kobold) === null && fight.steps < 600) fight.step([IDLE]);
       const swing = swingOf(fight, kobold);
       assert.ok(swing, style);
       assert.equal(swing.way !== null, style === "hybrid", style);
+      assert.equal(swing.posture > 0, style === "posture", style);
     }
+  });
+
+  test("a Posture fight is the same on both sides: same inputs, same hash; a save loads mid-fight", () => {
+    const a = new Fight(setup({ style: "posture" })), b = new Fight(setup({ style: "posture" }));
+    for (let step = 1; step <= 600; step++) {
+      a.step([busyPosture(step)]);
+      b.step([busyPosture(step)]);
+      assert.equal(a.hash(), b.hash(), `step ${step}`);
+    }
+    for (const at of [3, 150, 333]) {
+      const original = new Fight(setup({ style: "posture" }));
+      runTo(original, at, busyPosture);
+      const copy = new Fight(setup({ style: "posture" }));
+      copy.load(JSON.parse(JSON.stringify(original.save())));
+      runTo(original, at + 200, busyPosture);
+      runTo(copy, at + 200, busyPosture);
+      assert.equal(copy.hash(), original.hash(), `loaded at ${at}`);
+    }
+  });
+
+  test("posture is part of the hash", () => {
+    const fight = new Fight(setup({ style: "posture" }));
+    const before = fight.hash();
+    fight.world.require(fight.enemies[0]!, Posture).value = 12;
+    assert.notEqual(fight.hash(), before);
   });
 
   test("a hybrid fight is the same on both sides: same inputs, same hash; a save loads mid-chain", () => {
@@ -85,10 +131,9 @@ describe("a fight's combat style", () => {
     assert.notEqual(fight.hash(), before);
   });
 
-  test("the same inputs in the two styles make different fights", () => {
-    const a = new Fight(setup()), b = new Fight(setup({ style: "hybrid" }));
-    runTo(a, 300, busy);
-    runTo(b, 300, busy);
-    assert.notEqual(a.hash(), b.hash());
+  test("the same inputs in each style make different fights", () => {
+    const [a, b, c] = (["for-honor", "hybrid", "posture"] as const).map((style) => new Fight(setup({ style })));
+    for (const fight of [a!, b!, c!]) runTo(fight, 300, busy);
+    assert.equal(new Set([a!.hash(), b!.hash(), c!.hash()]).size, 3);
   });
 });

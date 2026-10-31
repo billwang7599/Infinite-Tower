@@ -1,9 +1,10 @@
-import type { GuardSide, PlayerInputData, Strike, SwingDir } from "@infinite-tower/shared";
+import type { GuardSide, Perilous, PlayerInputData, Strike, SwingDir } from "@infinite-tower/shared";
 import type { Polled } from "../../core/actions.js";
 
 type Pressed = Polled["pressed"][number];
 
 const ATTACKS: Partial<Record<Pressed, Strike>> = { lightAttack: "light", heavyAttack: "heavy", stab: "stab" };
+const PERILOUS: Partial<Record<Pressed, Perilous>> = { perilousThrust: "thrust", perilousSweep: "sweep" };
 const GUARDS: Partial<Record<Pressed, GuardSide>> = { guardLeft: "left", guardTop: "top", guardRight: "right" };
 const AIMS: Partial<Record<Pressed, SwingDir>> = {
   aimTopLeft: "tlbr", aimTop: "tb", aimTopRight: "trbl", aimLeft: "lr", aimRight: "rl", aimBottomLeft: "bltr",
@@ -29,12 +30,13 @@ export function readPlayerInput(
   input.aimZ = cos;
   input.jump = polled.held.has("jump");
   input.attack = lastOf(polled, ATTACKS) ?? null;
+  input.perilous = lastOf(polled, PERILOUS) ?? null;
   // A tap shorter than a step still dodges.
   const tapped = (action: Pressed) => polled.pressed.includes(action) || polled.held.has(action);
   input.dodge = tapped("dodge");
   input.guardBreak = tapped("guardBreak");
   input.kick = tapped("kick");
-  input.block = tapped("block");
+  input.block = tapped("block") || tapped("guard");
   input.guard = stance.guard;
   input.way = stance.way;
 }

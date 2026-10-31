@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   COMBAT_STYLE_IDS, DEFAULT_LOOK, GUARD_SIDES, HIDDEN_STATS, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
-  OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
+  OVERWORLD_CAMERA_ANGLES, PERILOUS, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
 } from "@infinite-tower/shared";
 import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
@@ -13,8 +13,8 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null,
-  guardBreak: false, way: null, block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null,
-  write: null, locked: null, bag: false, gear: null, use: null,
+  guardBreak: false, way: null, block: false, kick: false, perilous: null, cast: null, castHeld: false, chant: false,
+  chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -142,6 +142,15 @@ describe("parseClientMsg", () => {
     assert.equal(battleInput({ ...STEP, way: "stab" }), null, "the stab is an attack, not an aim");
     assert.equal(battleInput({ ...STEP, block: "yes" }), null);
     assert.equal(battleInput({ ...STEP, kick: 1 }), null);
+  });
+
+  test("battleInput: Posture's perilous attack is a thrust, a sweep or none", () => {
+    for (const perilous of [...PERILOUS, null]) {
+      assert.deepEqual(battleInput({ ...STEP, perilous }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, perilous }] });
+    }
+    assert.equal(battleInput({ ...STEP, perilous: "grab" }), null, "the grab is the Kobold's only");
+    const { perilous: _, ...without } = STEP;
+    assert.equal(battleInput(without), null);
   });
 
   test("battleInput: the bag is open or not, and a gear move goes between two spots", () => {

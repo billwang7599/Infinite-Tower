@@ -834,6 +834,58 @@ describe("Actions: the mouse moves the guard and attacks", () => {
   });
 });
 
+describe("Actions: a Posture fight", () => {
+  const posture = () => {
+    const s = setup();
+    s.actions.setCombatStyle("posture");
+    return s;
+  };
+
+  test("right click guards, held, a tap shorter than a step too; left click swings; it's never a heavy", () => {
+    const { read, click, unclick } = posture();
+    click(2);
+    unclick(2);
+    const tapped = read();
+    assert.equal(tapped.block, true);
+    assert.equal(tapped.attack, null);
+    click(2);
+    assert.equal(read().block, true, "held");
+    unclick(2);
+    assert.equal(read().block, false);
+    click(0);
+    assert.equal(read().attack, "light");
+  });
+
+  test("left Shift is a perilous thrust, G a perilous sweep, each a press", () => {
+    const { read, press } = posture();
+    press("ShiftLeft");
+    const thrust = read();
+    assert.equal(thrust.perilous, "thrust");
+    assert.equal(thrust.guardBreak, false, "not For Honor's guard break");
+    assert.equal(read().perilous, null);
+    press("KeyG");
+    const sweep = read();
+    assert.equal(sweep.perilous, "sweep");
+    assert.equal(sweep.kick, false, "not the hybrid's kick");
+  });
+
+  test("flicks and the guard keys do nothing", () => {
+    const { actions, move, press } = posture();
+    move(-FAR, 0);
+    press("KeyU");
+    assert.deepEqual(actions.poll().pressed, []);
+  });
+
+  test("in the other styles right click is still a heavy", () => {
+    for (const style of ["for-honor", "hybrid"] as const) {
+      const { actions, read, click } = setup();
+      actions.setCombatStyle(style);
+      click(2);
+      assert.equal(read().attack, "heavy", style);
+    }
+  });
+});
+
 describe("Actions: a hybrid fight", () => {
   const hybrid = () => {
     const s = setup();

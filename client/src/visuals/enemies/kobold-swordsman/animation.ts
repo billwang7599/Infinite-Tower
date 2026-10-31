@@ -1,12 +1,13 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, WeaponAttack, weaponItemIn, WEAPONS, Wielder, wrapAngle,
-  type WeaponAttackData,
+  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, Posture, WeaponAttack, weaponItemIn, WEAPONS, Wielder,
+  wrapAngle, type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
 import {
-  cutOf, lerpBlade, MOTIONS, strokeOf, swingCut, WEAPON_LOOKS, type BladePose, type WeaponMotion,
+  cutOf, lerpBlade, MOTIONS, POSTURE_GUARD_BLADE, REST_BLADE, strokeOf, swingCut, WEAPON_LOOKS, type BladePose,
+  type WeaponMotion,
 } from "../../battle/weapons.js";
 import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
@@ -43,8 +44,9 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const cut = swing ? swingCut(swing, true) : cutOf("light", guard?.guard ?? "top", true);
     const heavy = (swing?.attack ?? (enemy.state === "weaponWindup" ? guard?.next : null)) === "heavy";
+    const held = world.has(e, Posture) ? POSTURE_GUARD : heldGuard(nodes.motion, guard);
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
-      swing ? strokeOf(swing) : null, heldGuard(nodes.motion, guard), heavy);
+      swing ? strokeOf(swing) : null, held, heavy);
     nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
@@ -83,6 +85,8 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     }
   },
 });
+
+const POSTURE_GUARD: BladePose = { blade: POSTURE_GUARD_BLADE, handZ: REST_BLADE.handZ };
 
 function heldGuard(motion: WeaponMotion, guard: WeaponAttackData | undefined): BladePose {
   const to = motion.held(cutOf("light", guard?.guard ?? "top", true));

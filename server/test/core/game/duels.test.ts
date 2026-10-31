@@ -154,7 +154,7 @@ describe("a duel", () => {
   });
 
   test("is fought in the challenger's combat style, for both", async () => {
-    for (const [mine, theirs] of [["hybrid", "for-honor"], ["for-honor", "hybrid"]] as const) {
+    for (const [mine, theirs] of [["hybrid", "for-honor"], ["for-honor", "hybrid"], ["posture", "hybrid"]] as const) {
       const { a, b } = await players();
       a.session.setSettings({ combat: { style: mine } });
       b.session.setSettings({ combat: { style: theirs } });

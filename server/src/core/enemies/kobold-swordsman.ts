@@ -16,6 +16,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     poise: 40,
     poiseRegen: 10,
     staggerTime: 0.8,
+    posture: 100,
     attacks: {
       weapon: {
         triggerDist: 2.6, windup: 0.5, chainWindup: 0.35, speed: 3, recover: 0.9, minChain: 2, maxChain: 3,
@@ -27,6 +28,11 @@ export const KOBOLD_SWORDSMAN: Enemy = {
         hybrid: {
           windupTime: 1.1, chainWindupTime: 0.45, recoverTime: 0.5, blockReactTime: 0.3, tapParryChance: 0.25,
           kickAfterTime: 1, kickChance: 0.5,
+        },
+        posture: {
+          windupTime: 0.6, chainWindupTime: 0.4, delayTime: 0.3, delayChance: 0.25, minString: 2, maxString: 4,
+          perilousChance: 0.3, ends: { thrust: 0.45, sweep: 0.3, grab: 0.25 }, recoverTime: 0.6, deflectChance: 0.3,
+          thrustDeflectChance: 0.2, sweepStepBackChance: 0.3, backOffShare: 0.7, backOffM: 2,
         },
       },
     },

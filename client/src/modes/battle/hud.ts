@@ -1,6 +1,6 @@
 import {
-  Body, Enemy, Health, heldIn, LocalPlayer, inView, mirrorSide, Player, roundTo, Stamina, WeaponAttack, Wielder,
-  type Entity, type GuardSide, type World,
+  Body, Enemy, Health, heldIn, LocalPlayer, inView, mirrorSide, Player, Posture, roundTo, Stamina, WeaponAttack,
+  Wielder, type Entity, type GuardSide, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleHudState } from "../../ui/state.js";
@@ -32,6 +32,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.carried = me[4].gear;
       patch.using = me[4].using?.at ?? null;
       patch.core = me[4].core;
+      patch.posture = postureOf(world, me[0]);
       const facing = { x: Math.sin(ctx.view.yaw), z: Math.cos(ctx.view.yaw) };
       patch.dropInView = afterFight && inView(me[6].pos, facing, ctx.drops) !== null;
     }
@@ -46,11 +47,17 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.enemyName = (duel ? ctx.who[rival]?.name : enemy?.[1].def.name) ?? "";
       patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
     }
+    patch.foePosture = foe === undefined ? null : postureOf(world, foe);
     const foeGuard = ctx.lock === null || style !== "for-honor" ? null : guardSideOf(world, ctx.lock);
     patch.foeGuard = foeGuard && mirrorSide(foeGuard);
 
     hud.set(patch);
   };
+}
+
+function postureOf(world: World, e: Entity): number | null {
+  const posture = world.get(e, Posture);
+  return posture ? fraction(posture.value, posture.max) : null;
 }
 
 function guardSideOf(world: World, e: Entity): GuardSide | null {

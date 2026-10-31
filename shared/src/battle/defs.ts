@@ -21,6 +21,7 @@ export interface AttackDef {
   cooldown: number;
   /** From the fight's start to the first use. */
   firstDelay: number;
+  posture?: number;
 }
 
 /** A short-range lunge with a sweeping hit. */
@@ -64,6 +65,24 @@ export interface HybridSwordsmanDef {
   kickChance: number;
 }
 
+export interface PostureSwordsmanDef {
+  windupTime: number;
+  chainWindupTime: number;
+  delayTime: number;
+  delayChance: number;
+  minString: number;
+  maxString: number;
+  perilousChance: number;
+  /** Which perilous end, as shares that add up to 1. */
+  ends: Record<"thrust" | "sweep" | "grab", number>;
+  recoverTime: number;
+  deflectChance: number;
+  thrustDeflectChance: number;
+  sweepStepBackChance: number;
+  backOffShare: number;
+  backOffM: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -79,6 +98,7 @@ export interface WeaponAttackDef {
   firstDelay: number;
   counters?: WeaponCounters;
   hybrid: HybridSwordsmanDef;
+  posture: PostureSwordsmanDef;
 }
 
 /**
@@ -128,6 +148,7 @@ export interface EnemyDef {
   poise: number;
   poiseRegen: number;
   staggerTime: number;
+  posture: number;
   attacks: EnemyAttacks;
   wielder?: { hands: Partial<Record<Hand, ItemId>>; armReachM: number };
   sidestep?: SidestepDef;

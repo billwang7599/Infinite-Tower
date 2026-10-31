@@ -9,7 +9,7 @@ import type { BattleContext } from "../modes/battle/context.js";
 import { FiredEffects } from "../modes/battle/fired.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
-import { clash, grabbed, parried, strike } from "./battle/impact.js";
+import { clash, flick, grabbed, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
@@ -82,6 +82,12 @@ export const EFFECTS: Effects = {
     if (ev.result === "nothing") return;
     shake(scene, ev.result === "staggered" ? 0.16 : 0.08);
     grabbed(scene, world, ev.by, ev.target, ev.result === "staggered");
+  },
+  posture(scene, ev, world) {
+    if (ev.what === "zanshin") return flick(scene, ev.by);
+    shake(scene, ev.what === "deathblow" ? 0.22 : ev.what === "broken" ? 0.16 : 0.1);
+    if (ev.what === "mikiri") parried(scene, world, ev.by, ev.target);
+    else grabbed(scene, world, ev.by, ev.target, ev.what !== "jumpKick");
   },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);

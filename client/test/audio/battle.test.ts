@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, WeaponAttack, ITEMS, newCore, Player, SkillObject,
-  starterEquipment, type EnemyDef, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
+  starterEquipment, type CombatStyle, type EnemyDef, type Entity, type PlayerInputData, type Skill, type Vec3,
+  type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
-import { fightEars, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
+import { fightEars, PERILOUS_CUE, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
 import { ELEMENT_SOUNDS, ENEMY_SOUNDS, STEP_SOUNDS } from "../../src/audio/sounds.js";
 import type { StepEvent } from "../../src/modes/battle/sync.js";
 
@@ -14,7 +15,7 @@ before(() => initPhysics());
 const STATS = BASE_STATS;
 const STANDER: EnemyDef = {
   id: "kobold-swordsman", name: "Stander", maxHp: 100, stats: STATS, radius: 0.6, walkSpeed: 0, turnRate: 3,
-  poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+  poise: 1000, poiseRegen: 0, staggerTime: 1, posture: 100, attacks: {},
 };
 const SWORDED: EnemyDef = {
   ...STANDER, wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },
@@ -26,12 +27,17 @@ const SWORDED: EnemyDef = {
         windupTime: 9, chainWindupTime: 9, recoverTime: 1, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99,
         kickChance: 0,
       },
+      posture: {
+        windupTime: 9, chainWindupTime: 9, delayTime: 0, delayChance: 0, minString: 1, maxString: 1,
+        perilousChance: 0, ends: { thrust: 1, sweep: 0, grab: 0 }, recoverTime: 1, deflectChance: 0,
+        thrustDeflectChance: 0, sweepStepBackChance: 0, backOffShare: 2, backOffM: 0,
+      },
     },
   },
 };
 const FIRE_BOLT: Skill = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] };
-const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER): FightSetup => ({
-  arena: { id: "test", radius: 16, look },
+const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER, style?: CombatStyle): FightSetup => ({
+  arena: { id: "test", radius: 16, look }, style,
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: 100, stamina: 100 }, stats: STATS, core: newCore(), burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: [FIRE_BOLT],
@@ -39,8 +45,8 @@ const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER)
   enemies: [{ def, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
 });
 
-function arena(look?: FightSetup["arena"]["look"], def?: EnemyDef) {
-  const fight = new Fight(setup(look, def));
+function arena(look?: FightSetup["arena"]["look"], def?: EnemyDef, style?: CombatStyle) {
+  const fight = new Fight(setup(look, def, style));
   const ctx: FightToHear = {
     fight, events: [], outcome: { state: "fighting", stateTime: 0 },
     sync: { stats: { checks: 0, mismatches: 0, restores: 0, corrections: 0, hiddenHits: 0, hiddenDodgeHits: 0 } },
@@ -141,6 +147,34 @@ describe("the arena's ears", () => {
         ({ step: 2 + i, event: { type: "guardBreak", by: enemy, target: player, result } }));
       assert.deepEqual(sounds(hear(ctx)!), ["hit-body", "guard-break", "block"]);
     });
+
+  test("in Posture a perilous wind-up rings one sharp sound, the same for a thrust, a sweep and the Kobold's grab", () => {
+    const rings = (heard: { cues: { sound: string; rate?: number }[] }) =>
+      heard.cues.filter((c) => c.sound === PERILOUS_CUE.sound && c.rate === PERILOUS_CUE.rate).length;
+    for (const perilous of ["thrust", "sweep"] as const) {
+      const { run } = arena(undefined, STANDER, "posture");
+      run(2);
+      assert.equal(rings(run(1, { perilous })), 1, perilous);
+      assert.equal(rings(run(30)), 0, perilous);
+    }
+    const { run, world, enemy } = arena(undefined, SWORDED, "posture");
+    run(1);
+    Object.assign(world.require(enemy, Enemy), { state: "guardBreak", stateTime: 0 });
+    assert.equal(rings(run(0)), 1);
+    const forHonor = arena(undefined, SWORDED);
+    forHonor.run(1);
+    Object.assign(forHonor.world.require(forHonor.enemy, Enemy), { state: "guardBreak", stateTime: 0 });
+    assert.equal(rings(forHonor.run(0)), 0, "For Honor's guard break isn't perilous");
+  });
+
+  test("Posture's moments: a break and a deathblow thud, a Mikiri rings, a jump kick thumps, Zanshin chimes softly", () => {
+    const { ctx, hear, player, enemy } = arena(undefined, STANDER, "posture");
+    const whats = ["broken", "deathblow", "mikiri", "jumpKick", "zanshin"] as const;
+    ctx.events = whats.map((what, i) => ({ step: 1 + i, event: { type: "posture", by: player, target: enemy, what } }));
+    const heard = hear(ctx)!;
+    assert.deepEqual(sounds(heard), ["guard-break", "guard-break", "parry", "hit-body", "parry"]);
+    assert.ok(heard.cues[4]!.gain! < 1 && heard.cues[4]!.rate! > 1, "soft and high");
+  });
 
   test("a feint is heard as the blade is pulled back", () => {
     const { ctx, hear, player } = arena();

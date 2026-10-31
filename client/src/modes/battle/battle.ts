@@ -93,7 +93,7 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const hybrid = fight.style === "hybrid";
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, {
-      guard: hybrid || ctx.lock === null ? null : ctx.guard, way: hybrid ? ctx.way : null,
+      guard: fight.style !== "for-honor" || ctx.lock === null ? null : ctx.guard, way: hybrid ? ctx.way : null,
     }, input);
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {

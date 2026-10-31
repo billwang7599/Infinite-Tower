@@ -5,6 +5,7 @@ import type { Equipment } from "../../../items/gear.js";
 import {
   HYBRID, sideOfWay, strikeDamage, wayShape, wayStepsAfter, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
+import { moveDamage, POSTURE_MOVES, postureSteps, type PostureMove } from "../../../weapons/posture.js";
 import {
   attackDamage, attackShape, attackSteps, ATTACKS, FEINT, weaponIn, type AttackKind, type GuardSide, type Weapon,
 } from "../../../weapons/weapons.js";
@@ -27,7 +28,7 @@ export function startSwing(
   world.require(e, Wielder).swing = {
     attack, side, way: null, chain, dir, step: 0, ...attackSteps(weapon, attack, chain, swift),
     damage: attackDamage(weapon, attack, world.require(e, FighterStats)),
-    poiseDamage: ATTACKS[attack].poiseDamage,
+    poiseDamage: ATTACKS[attack].poiseDamage, posture: 0, perilous: null,
   };
 }
 
@@ -39,7 +40,23 @@ export function startWaySwing(
     attack: strike === "heavy" ? "heavy" : "light", side: sideOfWay(way), way, chain: 0, dir, step: 0,
     ...wayStepsAfter(weapon, windupTime, strike === "heavy"),
     damage: strikeDamage(weapon, strike, power, world.require(e, FighterStats)),
-    poiseDamage: HYBRID[strike].poiseDamage,
+    poiseDamage: HYBRID[strike].poiseDamage, posture: 0, perilous: null,
+  };
+}
+
+const POSTURE_WAYS: Record<PostureMove, Way | null> = { swing: null, finisher: null, thrust: "stab", sweep: "lr" };
+
+export function startPostureSwing(
+  world: World, e: Entity, weapon: Weapon, move: PostureMove, chain: number, dir: Vec2, windupTime: number,
+  delayTime = 0,
+): void {
+  world.remove(e, ActiveHit);
+  const perilous = move === "thrust" || move === "sweep" ? move : null;
+  world.require(e, Wielder).swing = {
+    attack: move === "swing" ? "light" : "heavy", side: "top", way: POSTURE_WAYS[move], chain, dir, step: 0,
+    ...postureSteps(weapon, move, windupTime, delayTime),
+    damage: moveDamage(weapon, move, world.require(e, FighterStats)), poiseDamage: 0,
+    posture: POSTURE_MOVES[move].posture * weapon.heft, perilous,
   };
 }
 
@@ -71,7 +88,7 @@ export function weaponSystem(): System {
           : attackShape(swing.side, wielder.armReachM, weapon);
         addHit(world, e, swing.dir.x, swing.dir.z, {
           ...shape, damage: swing.damage, poiseDamage: swing.poiseDamage, attack: swing.attack, side: swing.side,
-          way: swing.way,
+          way: swing.way, posture: swing.posture, perilous: swing.perilous,
         });
       }
       swing.step++;

@@ -105,6 +105,10 @@ Decided by the user:
     kick for a player who holds a block long; modest odds. The boar and the Goblin Warlock just keep working. The
     3D player blade follows the hybrid's ways.
   Every number and smaller rule is the agent's: "The Hybrid style" under "Decided by the agent".
+  A third, **Posture** (Sekiro's, with Nioh's Ki Pulse), is the agent's design from the user's ask ("come up with some
+  other combat styles that feel fun and realistic… read the opponent and also reward good weapon play… make any
+  assumptions you want"; [plan/combat-styles.md](plan/combat-styles.md)), every rule of it under "The Posture style"
+  in "Decided by the agent". Not hand-played yet.
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -583,6 +587,61 @@ them; treat them as changeable, and still ask before deciding new ones):
     blade is held on that side (For Honor's guard poses); blocking, up top; kicking, the guard break's reach (the
     Kobold too). No new drawings. Sounds: a kick whooshes like a guard break; a shove thuds, a block kicked or broken
     crashes like a broken guard. The F1 panel's chips and Settings take hold from the next fight.
+- The Posture style (the agent's design, plan/combat-styles.md; tried only in tests and a headless browser, none
+  hand-played; numbers in `POSTURE_MOVES` and `POSTURE`, `shared/src/weapons/posture.ts`, the Kobold's in `posture` in
+  its weapon attack, each enemy's `posture`):
+  - Keys: a "Battle: Posture style" group: Guard on right click (fixed; the arena's heavy attack never fires in a
+    Posture fight, since a style's mouse button now comes before the arena's), a perilous thrust on left Shift and a
+    perilous sweep on G (the keys For Honor's guard break and the hybrid's block and kick use; styles never meet in
+    one fight). Left click swings. Flicks and U I O K do nothing. The input gained one held field, `perilous`.
+  - The bar is a `Posture` component on every fighter in a Posture fight, players and enemies alike (not the enemy's
+    poise); Posture's swings deal no poise damage, skills still do. Players 100, the Kobold Swordsman 100, the Kobold
+    Greatsword 120, the boar 80, the Warlock 60. It recovers 20 a second from 1 s after it last grew, ×1.5 guarding,
+    × (0.3 + 0.7 × the HP share). Broken, it can't grow; a break isn't shortened by toughness (it's an opening).
+  - Swings come from the top (For Honor's top shape: reach ×1.3, 60°); the finisher, thrust and sweep count as
+    heavies for the tells (drawn back further, the sprite's crouch, the low draw-blade). The thrust is shaped as the
+    hybrid's stab (×1.75, 16°), the sweep as a level cut (×1, 160°). A swing started in the last one's recovery
+    chains; after the finisher the next waits for its recovery and starts a new string. A perilous attack starts from
+    idle or a recovery, on the ground, with any stamina left. Imbue's swiftness speeds Posture's wind-ups too.
+  - A guard or a perilous attack's posture is × the attacker's heft; a thrust gives a guard 30, a sweep 20 (they
+    can't be guarded, so only a landed one's half counts: 15 and 10). A guarded blade isn't stopped: the attacker's
+    string goes on and it may still hit someone else. A guarded body blow pushes you back at 60%, as in For Honor.
+  - The deflect window is counted in steps: a press on the landing step up to 12 steps (0.2 s) before it deflects; you
+    must be idle or guarding (not mid-swing), sword in hand, facing it (140°). A press under 0.5 s after letting the
+    guard go opens a window 3 steps shorter than the last, down to 4; a press 0.5 s or more after letting go, or a
+    deflect, gives all 12 back (the plan's "0.5 s without pressing" read as since letting go). One press deflects
+    every hit landing in its window. A thrust's window is 7 steps.
+  - A deflect streak is deflects in a row, each within 1 s of the last. A deflected player recoils 0.25 s and their
+    string ends; a deflected Kobold's string goes on after its recoil. Any deflected body blow (the boar's lunge, the
+    Warlock's poke) gives its thrower 25 and a 0.25 s recoil, and restarts the lunge's cooldown.
+  - The deathblow (35% of the most HP, through defense) leaves the stagger to run out as it was.
+  - Mikiri: in the dodge's first 0.3 s, toward the thrower within 45°; the dodger stops dead (the dodge ends). Any
+    other dodge's i-frames beat a thrust as before, but the same thrust can't hit them after.
+  - The jump kick: a left click in the air while a foe within 1.5 m (centre to edge, any direction) has a sweep going
+    (any part of it); you bounce up at 5 m/s. With no sweeper near, a left click in the air is a swing.
+  - Zanshin: the guard pressed within 9 steps (0.15 s) after the blade's live time ends, once per swing (a perilous
+    one too). Its tell: the fighter lifts 8 cm for 120 ms and a soft, high chime (no blade move of its own).
+  - Stamina doesn't refill while guarding (Posture's guard is the hybrid's block action) or swinging.
+  - The Kobold: its own wind-ups so it can be read (0.6 s for a string's first swing and its finisher, 0.4 s for the
+    rest; × its heft), not the player's 0.3 / 0.25; the next swing winds up as the last one's blade ends; a delayed
+    swing draws back at the normal pace and holds there 0.3 s; the perilous end comes after the string's swings; 0.6
+    s of recovery, then its 1.2 s cooldown. It reads each of your attacks as it starts (within its reach, facing you);
+    its riposte after a deflect is one chained swing. Over 70% posture it starts no strings and walks backwards until
+    2 m past its reach (it still guards). It steps back from a sweep with its sidestep (0.3 s at 8 m/s, straight away).
+    Its grab: For Honor's guard-break reach (1.9 m, 45°), 0.5 s × heft, 25 damage (× strength), 30 posture,
+    staggered 0.6 s, no counter; a dodge's i-frames beat it; 0.5 s of recovery. The boar's lunge can be guarded (30),
+    its charge can't; the Warlock's poke can (10).
+  - The HUD: your posture bar under your stamina, the foe's under its boss bar (not over its head), filling from both
+    ends to the middle, yellow to red; only in a Posture fight.
+  - Sounds, no new files: every perilous wind-up (thrust, sweep, the Kobold's grab) rings the parry's clang pitched
+    up (×1.8, louder); a deflect is the parry's clang and sparks; a break thuds (the guard break's crash, ×0.7); a
+    deathblow the same lower and louder; Mikiri the parry's clang lower; a jump kick a body hit; Zanshin the clang
+    very high and soft.
+  - Drawn, no new drawings: your guard holds the 3D blade across your body, point up to the off side, and a press
+    snaps it forward for the deflect window; the Kobold guards the same way; a thrust's wind-up points the blade
+    ahead, a sweep's draws it low and across; the sprite's top-guard frame and the stagger frames stand in for the
+    plan's guard, broken and deathblow poses. A break, a deathblow and a jump kick jolt like a broken guard, Mikiri
+    holds like a parry.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -858,11 +917,13 @@ tests say what was agreed. Where tests go and how they're written:
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
   `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same;
-  `window.settings.combat.setStyle("hybrid")` first for a hybrid fight) and, in a fight,
+  `window.settings.combat.setStyle("hybrid")` or `("posture")` first for those styles) and, in a fight,
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
-  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). The HUD's card is
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). Headless Chromium has
+  no pointer lock, so mouse buttons don't count there: fake it with a context init script (a `pointerLockElement`
+  getter, `requestPointerLock` / `exitPointerLock` dispatching `pointerlockchange`). The HUD's card is
   `#core-card` (a click turns it; `data-face` is `portrait` or `core`), its sphere the canvas `#core-sphere`. A new
   account has no character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.

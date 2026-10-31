@@ -5,6 +5,7 @@
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
 import type { Way } from "../../weapons/hybrid.js";
+import type { Perilous } from "../../weapons/posture.js";
 import { mirrorSide, type AttackKind, type GuardSide, type HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
@@ -26,7 +27,7 @@ const MIN_ANGLE_CHECK_DIST = 0.3;
 const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
 
-export type Defended = "parried" | "blocked" | null;
+export type Defended = "parried" | "blocked" | "struck" | null;
 export type Defend = (
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity,
 ) => Defended;
@@ -39,13 +40,16 @@ export interface HitSpec extends HitShape {
   attack?: AttackKind | null;
   side?: GuardSide;
   way?: Way | null;
+  posture?: number;
+  perilous?: Perilous | null;
 }
 
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
   world.add(e, ActiveHit, {
     dirX, dirZ, range: attack.range, minDot: attack.minDot, damage: attack.damage, knockback: attack.knockback ?? 0,
     lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null,
-    side: attack.side ?? "top", way: attack.way ?? null, alreadyHit: new Set(),
+    side: attack.side ?? "top", way: attack.way ?? null, posture: attack.posture ?? 0,
+    perilous: attack.perilous ?? null, alreadyHit: new Set(),
   });
 }
 
@@ -84,14 +88,15 @@ export function combatSystem(events: FightEvent[], defend: Defend): System {
         if (targetFighter.side === attackerFighter.side || targetHealth.hp <= 0) continue;
         if (hit.alreadyHit.has(target) || targetHealth.invuln > 0) continue;
         const player = world.get(target, Player);
-        if (player?.action === "dodge"
-          && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
+        // A thrust meets a dodge for Posture's Mikiri; a sweep passes under a jump.
+        if (player && inIframes(player) && hit.perilous !== "thrust") continue;
+        if (hit.perilous === "sweep" && player && !player.grounded) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
 
         hit.alreadyHit.add(target);
         const defended = defend(world, events, attacker, hit, target);
         if (defended === "parried") break;
-        if (defended === "blocked") {
+        if (defended === "blocked" || defended === "struck") {
           if (!world.has(attacker, ActiveHit)) break;
           continue;
         }
@@ -101,6 +106,9 @@ export function combatSystem(events: FightEvent[], defend: Defend): System {
     }
   };
 }
+
+export const inIframes = (player: PlayerData): boolean => player.action === "dodge"
+  && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd;
 
 export function stagger(world: World, e: Entity, time: number): void {
   endSwing(world, e);

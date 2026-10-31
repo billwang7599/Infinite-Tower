@@ -5,8 +5,8 @@ import {
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import {
-  cutOf, drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingCut, swingFrame, wayCut,
-  type Cut, type WeaponMotion,
+  cutOf, DEFLECT_BLADE, drawnBack, GRAB_BLADE, POSTURE_GUARD_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf,
+  swingCut, swingFrame, wayCut, type Cut, type WeaponMotion,
 } from "./weapons.js";
 
 const ATTACK_POSES: Record<AttackKind, Record<GuardSide, SwordPose>> = {
@@ -74,12 +74,20 @@ export function spritePose(
 const SPRITE_DRAWBACK = 0.5;
 const DROPPED_BLADE: Vec3 = { x: 0.9, y: 0, z: Math.sqrt(1 - 0.9 ** 2) };
 
+function postureBlade(player: PlayerData): Vec3 | null {
+  const still = player.action === "none" || player.action === "block";
+  if (still && player.sinceGuardPressSteps <= player.deflectWindowSteps) return DEFLECT_BLADE;
+  return player.action === "block" ? POSTURE_GUARD_BLADE : null;
+}
+
 export function playerBlade(
-  player: PlayerData, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
+  player: PlayerData, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion, posture = false,
 ): { blade: Vec3; exact: boolean } {
   if (!alive) return { blade: DROPPED_BLADE, exact: false };
   if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false };
   if (REACHING.includes(player.action)) return { blade: GRAB_BLADE, exact: false };
+  const guard = posture ? postureBlade(player) : null;
+  if (guard) return { blade: guard, exact: false };
   const stance = stanceCut(player), held = stance ? motion.held(stance) : REST_BLADE;
   if (!swing || swing.step >= swing.endAt) return { blade: held.blade, exact: false };
   const cut = swingCut(swing, true), stroke = strokeOf(swing);

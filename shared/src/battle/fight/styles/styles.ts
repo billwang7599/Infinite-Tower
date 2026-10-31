@@ -9,6 +9,10 @@ import { hybridDefend } from "./hybrid/defend.js";
 import { kickSystem } from "./hybrid/kick.js";
 import { HYBRID_PLAYER } from "./hybrid/player.js";
 import { hybridSwordsmanSystem } from "./hybrid/swordsman.js";
+import { postureDefend } from "./posture/defend.js";
+import { POSTURE_PLAYER } from "./posture/player.js";
+import { postureSystem, spawnPosture } from "./posture/posture.js";
+import { postureSwordsmanSystem } from "./posture/swordsman.js";
 
 export interface SwordTurn {
   world: World;
@@ -31,9 +35,14 @@ export interface Style {
   defend: Defend;
   swordsman(events: FightEvent[]): System;
   after(events: FightEvent[]): System;
+  spawned?(world: World, e: Entity): void;
 }
 
 export const STYLES: Record<CombatStyle, Style> = {
   "for-honor": FOR_HONOR,
   hybrid: { ...HYBRID_PLAYER, defend: hybridDefend, swordsman: hybridSwordsmanSystem, after: kickSystem },
+  posture: {
+    ...POSTURE_PLAYER, defend: postureDefend, swordsman: postureSwordsmanSystem, after: postureSystem,
+    spawned: spawnPosture,
+  },
 };

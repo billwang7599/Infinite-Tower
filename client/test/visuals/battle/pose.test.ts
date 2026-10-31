@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, newCore, starterEquipment, SWING_DIRS, WAYS, type GuardSide,
+  ATTACK_KINDS, ATTACKS, DEFLECT_STEPS, emptyBag, GUARD_SIDES, newCore, starterEquipment, SWING_DIRS, WAYS,
+  type GuardSide,
   type PlayerAction, type PlayerData, type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
 import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
-import { GRAB_BLADE, MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
+import {
+  DEFLECT_BLADE, GRAB_BLADE, MOTIONS, POSTURE_GUARD_BLADE, REELING_BLADE, REST_BLADE,
+} from "../../../src/visuals/battle/weapons.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
 import { swingAt, swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
@@ -14,7 +17,9 @@ function playerDoing(
 ): PlayerData {
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, guardBreakHeld: false,
-    blockHeld: false, kickHeld: false, kickBuffer: 0, tapParryLeft: 0, sinceBlockPress: 1, way,
+    blockHeld: false, kickHeld: false, kickBuffer: 0, tapParryLeft: 0, sinceBlockPress: 1, way, perilousHeld: null,
+    perilousBuffer: 0, perilousQueued: null, sinceGuardPressSteps: 99, sinceGuardReleaseSteps: 99,
+    deflectWindowSteps: DEFLECT_STEPS.window,
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
     writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false, writing: null, using: null,
     book: [],
@@ -177,6 +182,18 @@ describe("the player's blade", () => {
     assert.ok(rising.y > 0.5, "a rising cut ends up high");
     const stab = blade(playerDoing("attack", 0.1), waySwingAt("stab", (liveAt + liveUntil) >> 1)).blade;
     assert.ok(stab.z > 0.95, "ahead");
+  });
+
+  test("Posture's guard holds it across the body; a press just made snaps it forward to deflect", () => {
+    const posture = (player: PlayerData) => playerBlade(player, holding(null), true, MOTIONS.sword, true).blade;
+    assert.deepEqual(posture(playerDoing("block", 1)), POSTURE_GUARD_BLADE);
+    assert.notDeepEqual(POSTURE_GUARD_BLADE, guarding("top").blade);
+    const pressed = { ...playerDoing("block", 0), sinceGuardPressSteps: 0 };
+    assert.deepEqual(posture(pressed), DEFLECT_BLADE);
+    assert.ok(DEFLECT_BLADE.z > POSTURE_GUARD_BLADE.z, "forward");
+    assert.deepEqual(posture({ ...pressed, sinceGuardPressSteps: DEFLECT_STEPS.window + 1 }), POSTURE_GUARD_BLADE);
+    assert.deepEqual(posture(playerDoing("none", 1)), REST_BLADE.blade, "idle, at rest");
+    assert.deepEqual(blade(playerDoing("block", 1)).blade, guarding("top").blade, "the hybrid's block stays up top");
   });
 
   test("knocked back, parried or held it reels, as an enemy's does; guard breaking it's lowered; dead it lies flat", () => {

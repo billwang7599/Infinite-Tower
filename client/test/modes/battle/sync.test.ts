@@ -17,7 +17,7 @@ const FULL_HP = maxHpOf(STATS);
 /** Walks up to whoever is there and stands; never attacks. */
 const WALKER: EnemyDef = {
   id: "wild-boar", name: "Walker", maxHp: 100, stats: STATS, radius: 0.85, walkSpeed: 3, turnRate: 3,
-  poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+  poise: 1000, poiseRegen: 0, staggerTime: 1, posture: 100, attacks: {},
 };
 const SETUP: FightSetup = {
   arena: { id: "test", radius: 16, look: "forest-clearing" },

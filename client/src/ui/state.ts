@@ -63,6 +63,9 @@ export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look";
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
+  /** Posture's bars, 0..1; null outside a Posture fight. */
+  posture: number | null;
+  foePosture: number | null;
   guard: GuardSide | null;
   foeGuard: GuardSide | null;
   enemyName: string;
@@ -209,7 +212,8 @@ export class UiState {
     },
   });
   readonly battle = new Store<BattleHudState>({
-    hpFraction: 1, staminaFraction: 1, guard: null, foeGuard: null, enemyName: "", enemyHpFraction: 1,
+    hpFraction: 1, staminaFraction: 1, posture: null, foePosture: null, guard: null, foeGuard: null, enemyName: "",
+    enemyHpFraction: 1,
     enemyAlive: false,
     result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,

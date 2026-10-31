@@ -49,6 +49,7 @@ const FLICKS: Record<CombatStyle, readonly (WorldAction | null)[]> = {
   hybrid: [
     "aimRight", "aimBottomRight", "aimBottom", "aimBottomLeft", "aimLeft", "aimTopLeft", "aimTop", "aimTopRight",
   ],
+  posture: [],
 };
 
 export interface Polled {
@@ -170,7 +171,7 @@ export class Actions {
     const length = Math.hypot(x, y);
     if (length < FLICK.distancePx / this.mouseSettings.get().flickSensitivity) return;
     const ways = FLICKS[this.style], turn = (2 * Math.PI) / ways.length;
-    const flicked = ways[(Math.round(Math.atan2(y, x) / turn) + ways.length) % ways.length];
+    const flicked = ways.length > 0 ? ways[(Math.round(Math.atan2(y, x) / turn) + ways.length) % ways.length] : null;
     if (flicked) this.flicks.push([flicked, nextPressOrder()]);
     this.flickedWay = { x: x / length, y: y / length };
     this.sweep = [];
@@ -183,7 +184,7 @@ export class Actions {
   private of(layer: Layer, key: string): ActionName | undefined {
     const fixed = FIXED.get(layer)?.get(key);
     if (fixed) return fixed;
-    const groups = layer === "battle" ? ["battle", this.style] as const : GROUPS_OF[layer] ?? [];
+    const groups = layer === "battle" ? [this.style, "battle"] as const : GROUPS_OF[layer] ?? [];
     for (const group of groups) {
       const action = this.actionOf(group, key) as ActionName | undefined;
       if (action && (KEPT[layer]?.includes(action) ?? true)) return action;

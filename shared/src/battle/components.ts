@@ -3,6 +3,7 @@ import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
+import type { Perilous, PerilousEnd } from "../weapons/posture.js";
 import type { AttackKind, GuardSide } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
@@ -16,7 +17,8 @@ import type { PageWrite } from "./input.js";
 /**
  * "recoil": an attack of theirs was blocked; "stagger": parried or guard broken (both in hitstun). "grab": guard
  * breaking; "grabbed": being guard broken, still able to counter it. "write": writing a page, from the chant or the
- * bag. "bag": the bag screen open. "use": using an item from the bag. "block" and "kick": the hybrid style's.
+ * bag. "bag": the bag screen open. "use": using an item from the bag. "block" and "kick": the hybrid style's
+ * ("block" is Posture's guard too).
  */
 export type PlayerAction =
   | "none" | "attack" | "dodge" | "recoil" | "stagger" | "grab" | "grabbed" | "cast" | "chant" | "write" | "beam"
@@ -48,6 +50,12 @@ export interface PlayerData {
   castBuffer: number;
   tapParryLeft: number;
   sinceBlockPress: number;
+  perilousHeld: Perilous | null;
+  perilousBuffer: number;
+  perilousQueued: Perilous | null;
+  sinceGuardPressSteps: number;
+  sinceGuardReleaseSteps: number;
+  deflectWindowSteps: number;
   queued: Strike | null;
   castQueued: Skill | null;
   writing: PageWrite | null;
@@ -99,6 +107,8 @@ export interface SwingData {
   endAt: number;
   damage: number;
   poiseDamage: number;
+  posture: number;
+  perilous: Perilous | null;
 }
 
 export interface GrabData {
@@ -170,6 +180,19 @@ export interface SkillObjectData {
 export const SkillObject = defineComponent<SkillObjectData>("SkillObject");
 
 export interface StaminaData { value: number; max: number; regenDelay: number }
+
+export interface PostureData {
+  value: number;
+  max: number;
+  /** Seconds since it last grew. */
+  calmTime: number;
+  /** Seconds left broken: the next weapon hit is a deathblow. */
+  brokenTime: number;
+  streak: number;
+  streakTime: number;
+  connected: boolean;
+}
+export const Posture = defineComponent<PostureData>("Posture");
 export const Stamina = defineComponent<StaminaData>("Stamina");
 
 /** Code moves a body by setting `vel`; the physics step moves the collider and writes back `pos` and `vel`. */
@@ -200,6 +223,8 @@ export interface ActiveHitData {
   knockback: number;
   lift: number;
   poiseDamage: number;
+  posture: number;
+  perilous: Perilous | null;
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
@@ -273,6 +298,7 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   riposte: boolean;
   way: Way;
   kickWait: number;
+  perilousEnd: PerilousEnd | null;
 }
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {
