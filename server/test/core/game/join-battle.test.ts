@@ -10,7 +10,7 @@ import { MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getLevel } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
@@ -18,7 +18,8 @@ import { ACCOUNT, findBoar, pileAt } from "./helpers.js";
 
 before(() => initPhysics());
 
-const LEVEL = getLevel(START_LEVEL);
+// The Grass Field: one boar and a Kobold, where these tests count the actors.
+const LEVEL = getLevel("grass-field");
 const BOAR_SPAWN = LEVEL.spawns.find((s) => s.enemy === "wild-boar")!;
 const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
 const ACCOUNTS: Account[] = [ACCOUNT, ...[2, 3, 4, 5, 6].map((n) => ({ id: `player-${n}`, username: `p${n}` }))];
@@ -27,7 +28,7 @@ const characterOf = (i: number): Character => ({ ...TEST_CHARACTER, name: `Playe
 async function players(count = 2) {
   const store = new MemoryPlayerStore();
   ACCOUNTS.slice(0, count).forEach((account, i) => {
-    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG });
+    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG, level: LEVEL.layout.id });
   });
   const online = new OnlinePlayers(store, true, 50);
   const all: { link: FakeLink; session: GameSession }[] = [];

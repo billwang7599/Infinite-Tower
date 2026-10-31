@@ -61,6 +61,13 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
       }
     });
 
+    test("its start is a summoning pad: you wake standing on it", () => {
+      for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
+        const at = { x: level.spawn.x + sx * WALKER_RADIUS, z: level.spawn.z + sz * WALKER_RADIUS };
+        assert.equal(tileAt(layout, at.x, at.z), "pad");
+      }
+    });
+
     test("has tall grass, and the start isn't in it", () => {
       assert.ok(centers.some((t) => inTallGrass(layout, t.x, t.z)));
       assert.equal(inTallGrass(layout, level.spawn.x, level.spawn.z), false);
@@ -127,6 +134,15 @@ test("for a new player a native stands by the start level's campfire, in talking
   const byFire = NPC_IDS.map((npc) => stopFor(newStory(), NPCS[npc])).filter((stop) => stop?.level === START_LEVEL
     && layout.campfires.some((fire) => distXZ(stop.at, fire) <= REST_RANGE_TILES + INTERACT_RANGE_M));
   assert.equal(byFire.length, 1);
+});
+
+test("the start level is gentle: only boars, and its tall grass starts fewer fights than any other level's", () => {
+  const start = getLevel(START_LEVEL);
+  const enemies = [...start.spawns.map((s) => s.enemy), ...start.grass.enemies.map((e) => e.enemy)];
+  assert.deepEqual([...new Set(enemies)], ["wild-boar"]);
+  for (const level of Object.values(LEVELS).filter((l) => l !== start)) {
+    assert.ok(start.grass.chance < level.grass.chance, level.layout.id);
+  }
 });
 
 test("every level can be reached from the start level through exits", () => {

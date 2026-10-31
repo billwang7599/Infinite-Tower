@@ -1,7 +1,8 @@
 # NPCs
 
-Status: **next big step**. Hollis by the Grass Field's fire is the only NPC. Quests, the questbook, lines that follow
-your story and stops (where an NPC stands, by the story, per player) are built (AGENTS.md, ARCHITECTURE.md); his first
+Status: **next big step**. Hollis by the Grass Field's fire, and Maren and Tobin in the Waking Hollow (the starting
+area, where their short chain sends you on to Hollis), are the NPCs. Quests, the questbook, lines that follow your
+story and stops (where an NPC stands, by the story, per player) are built (AGENTS.md, ARCHITECTURE.md); Hollis's first
 chain ends with "meet me in the Mistwood", but he has only the fire's stop for now. The plan below grows from there.
 
 The model the user named: the story of AdventureQuest Worlds (quest chains, a cast that turns up again across the

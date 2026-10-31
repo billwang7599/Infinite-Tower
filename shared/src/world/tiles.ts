@@ -13,6 +13,7 @@ export const TILES = {
   bridge: { char: "=", solid: false, tallGrass: false },
   ruinFloor: { char: "_", solid: false, tallGrass: false },
   tallGrass: { char: '"', solid: false, tallGrass: true },
+  pad: { char: "@", solid: false, tallGrass: false },
   tree: { char: "T", solid: true, tallGrass: false },
   rock: { char: "o", solid: true, tallGrass: false },
   water: { char: "~", solid: true, tallGrass: false },

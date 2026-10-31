@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { ARENA_LOOK_IDS, ENEMY_IDS, inTallGrass, isSolid, type EnemyId } from "@infinite-tower/shared";
-import { ARENAS, getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { ARENAS, getArena, getLevel, LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
 import { rollEnemy, type EncounterTable } from "../../../src/core/world/level.js";
 
 // Only one enemy exists so far, so the table uses made-up ids to tell the picks apart.
@@ -63,8 +63,8 @@ describe("getLevel", () => {
     assert.ok(level.grass.stepDist > 0);
   });
 
-  test("the Kobold Swordsman has a patch of its own: one spawns on the start level, away from the boar", () => {
-    const level = getLevel(START_LEVEL);
+  test("the Kobold Swordsman has a patch of its own: one spawns on the Grass Field, away from the boar", () => {
+    const level = getLevel("grass-field");
     const kobold = level.spawns.find((s) => s.enemy === "kobold-swordsman");
     const boar = level.spawns.find((s) => s.enemy === "wild-boar");
     assert.ok(kobold && boar);
@@ -73,7 +73,7 @@ describe("getLevel", () => {
   });
 
   test("the Kobold Greatsword spawns near the Kobold Swordsman, out of the grass", () => {
-    const level = getLevel(START_LEVEL);
+    const level = getLevel("grass-field");
     const big = level.spawns.find((s) => s.enemy === "kobold-greatsword");
     const kobold = level.spawns.find((s) => s.enemy === "kobold-swordsman");
     assert.ok(big && kobold);
@@ -82,7 +82,7 @@ describe("getLevel", () => {
   });
 
   test("the Goblin Warlock has a corner of its own, away from the others", () => {
-    const level = getLevel(START_LEVEL);
+    const level = getLevel("grass-field");
     const goblin = level.spawns.find((s) => s.enemy === "goblin-warlock");
     assert.ok(goblin);
     for (const other of level.spawns.filter((s) => s !== goblin)) {
@@ -98,7 +98,9 @@ describe("getArena", () => {
   });
 
   test("every arena a spawn names exists", () => {
-    for (const s of getLevel(START_LEVEL).spawns) if (s.arenaId !== undefined) getArena(s.arenaId);
+    for (const level of Object.values(LEVELS)) {
+      for (const s of level.spawns) if (s.arenaId !== undefined) getArena(s.arenaId);
+    }
   });
 
   test("every arena has a known look and the same round wall as the start level's", () => {
@@ -110,7 +112,7 @@ describe("getArena", () => {
   });
 
   test("the boar fights in the level's arena; both Kobolds share one of their own, and the Warlock has another", () => {
-    const level = getLevel(START_LEVEL);
+    const level = getLevel("grass-field");
     const arenaOf = (enemy: string) => level.spawns.find((s) => s.enemy === enemy)?.arenaId ?? level.arenaId;
     assert.equal(arenaOf("wild-boar"), level.arenaId);
     assert.equal(arenaOf("kobold-swordsman"), arenaOf("kobold-greatsword"));

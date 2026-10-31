@@ -38,10 +38,10 @@ describe("tiles", () => {
     assert.equal(new Set(chars).size, chars.length);
   });
 
-  test("trees, rocks, water and ruin walls block; paths, bridges, flowers and tall grass don't", () => {
+  test("trees, rocks, water and ruin walls block; paths, bridges, flowers, tall grass and pads don't", () => {
     const blocks = (k: TileKind) => TILES[k].solid;
     for (const k of ["tree", "rock", "water", "ruinWall"] as const) assert.equal(blocks(k), true, k);
-    for (const k of ["grass", "path", "bridge", "flowers", "tallGrass", "ruinFloor"] as const) {
+    for (const k of ["grass", "path", "bridge", "flowers", "tallGrass", "ruinFloor", "pad"] as const) {
       assert.equal(blocks(k), false, k);
     }
   });

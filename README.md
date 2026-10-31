@@ -21,8 +21,10 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** Floor 1's Grass Field and, through a gap in the trees east of it, the Mistwood (dark pines, a marsh
-  crossed by boardwalks, its own campfire). The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
+- **Overworld:** Floor 1's Waking Hollow, where new characters wake on a summoning pad (a small camp by an old
+  waystation, a brook with a footbridge and two boars in the tall grass across it), the Grass Field east of it and,
+  through a gap in the trees east of that, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire).
+  Every level's start is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
   and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
   Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
   and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
@@ -34,12 +36,15 @@ What's built so far:
   someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
   stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
   crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
-  drops. Hollis, a native of the tower, keeps the Grass Field's campfire: face Hollis and press E (or "Talk") to hear
-  him, a line at a time (Enter, E or a click; Esc closes). What he says follows your story.
+  drops. Natives keep the fires: Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the Waking Hollow, and
+  Hollis by the Grass Field's campfire. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or
+  a click; Esc closes). What they say follows your story.
 - **Quests:** NPCs offer quests at the end of what they say (Accept or Not now), and hand over what a step asks
   for the same way. Steps ask you to gather items, hand them over, go somewhere, talk to someone or win fights against
-  an enemy, and give items, lore and story progress. Hollis has the first chain: two boar hides, three boars, and
-  what he knows about the pads you wake on. The questbook (J, or the HUD's book; in fights too) has the main quest
+  an enemy, and give items, lore and story progress. The Hollow's short first chain (a first boar, meat for Tobin's
+  rack, then on to Hollis) leads into Hollis's: two boar hides, three boars, and what he knows about the pads you
+  wake on. Maren and Tobin each have a side quest further out (a Goblin Warlock in the Mistwood, a Kobold in the
+  Grass Field). The questbook (J, or the HUD's book; in fights too) has the main quest
   and side quests, each with its next step and a hint as the NPC gave it, and the lore found so far under the quest
   that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with

@@ -8,6 +8,7 @@ const PAINT = groundPainters({
   bed: { base: "#5a5340", dark: "#463f30", pebble: "#746c58", stone: "#8d846c", weed: "#46562f", foot: "#2f2a20" },
   wood: { base: "#6a4b30", dark: "#4a3322", light: "#836042", rail: "#3a281b" },
   stone: { base: "#6a6762", dark: "#4b4945", light: "#807c75", moss: "#53663c" },
+  pad: { base: "#8a867c", dark: "#5e5b54", light: "#a29d91", rune: "#9ad6cf" },
   petals: ["#d9d2bd", "#d6b45a", "#c57f92", "#8ea0c9"],
 });
 
@@ -22,4 +23,5 @@ export const GRASS_FIELD_TILES: TileLooks = {
   rock: { ground: PAINT.grass, props: { kinds: ["rock"], count: 1, scale: 0.75 } },
   water: { ground: PAINT.riverbed },
   ruinWall: { ground: PAINT.flagstones, props: { kinds: ["ruin"], count: 1, scale: 1 } },
+  pad: { ground: PAINT.pad },
 };

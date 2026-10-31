@@ -26,7 +26,7 @@ export interface LevelLayout extends LevelMap {
   npcs: PlacedNpc[];
 }
 
-export const NPC_IDS = ["hollis"] as const;
+export const NPC_IDS = ["hollis", "maren", "tobin"] as const;
 export type NpcId = (typeof NPC_IDS)[number];
 
 export interface PlacedNpc {

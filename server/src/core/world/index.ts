@@ -2,17 +2,18 @@ import type { ArenaDef } from "@infinite-tower/shared";
 import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA } from "./floors/1/arenas.js";
 import { GRASS_FIELD } from "./floors/1/grass-field.js";
 import { MISTWOOD } from "./floors/1/mistwood.js";
+import { WAKING_HOLLOW } from "./floors/1/waking-hollow.js";
 import type { LevelDef } from "./level.js";
 
 export const LEVELS: Readonly<Record<string, LevelDef>> = Object.fromEntries(
-  [GRASS_FIELD, MISTWOOD].map((l) => [l.layout.id, l]),
+  [WAKING_HOLLOW, GRASS_FIELD, MISTWOOD].map((l) => [l.layout.id, l]),
 );
 
 export const ARENAS: Record<string, ArenaDef> = Object.fromEntries(
   [GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA].map((a) => [a.id, a]),
 );
 
-export const START_LEVEL = GRASS_FIELD.layout.id;
+export const START_LEVEL = WAKING_HOLLOW.layout.id;
 
 export const levelOrStart = (id: string | null): string => id !== null && Object.hasOwn(LEVELS, id) ? id : START_LEVEL;
 

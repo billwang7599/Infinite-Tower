@@ -106,6 +106,13 @@
       "when": 1793392868591,
       "tag": "0014_story",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793409263467,
+      "tag": "0015_players-keep-their-level",
+      "breakpoints": true
     }
   ]
 }
