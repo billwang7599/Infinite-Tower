@@ -7,11 +7,12 @@ import type { Hand, Look } from "@infinite-tower/shared";
 import {
   render, type Art, type BattleFacing, type BattleFrame, type ChibiFacing, type Picture, type Sketch,
 } from "./art.js";
+import { TRACED_PICTURES } from "./base.js";
 import { leftHanded, type Pose, type SwordPose } from "./battle.js";
-import { BODY, BODY_TYPES } from "./body.js";
+import { BODIES, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
 import { FACE_SHAPES } from "./head.js";
-import { HAIR_STYLES } from "./hair/index.js";
+import { CROWN_CUTS, HAIR_STYLES } from "./hair/index.js";
 import { STARTER_CLOTHES, type Wear } from "./outfit.js";
 import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN, type Ramp } from "./palette.js";
 import { SWORD } from "./sword.js";
@@ -21,8 +22,9 @@ export { BATTLE_FACINGS, CHIBI_FACINGS, type BattleFacing, type ChibiFacing } fr
 
 function lookArts(look: Look, wear: Wear): (readonly [string, Art])[] {
   return [
-    ["base", BODY], ["base", FACE_SHAPES[look.face]], ["hair", HAIR_STYLES[look.hair]], ["eyes", EYE_TYPES[look.eyes]],
-    ["mouth", MOUTH_TYPES[look.mouth]], ...Object.entries(wear),
+    ["base", BODIES[look.body]], ["base", FACE_SHAPES[look.face]], ["base", CROWN_CUTS[look.hair]],
+    ["hair", HAIR_STYLES[look.hair]], ["eyes", EYE_TYPES[look.eyes]], ["mouth", MOUTH_TYPES[look.mouth]],
+    ...Object.entries(wear),
   ];
 }
 
@@ -53,6 +55,25 @@ export const drawPortrait = (look: Look, wear?: Wear): Picture => render(portrai
 export const drawChibi = (look: Look, facing: ChibiFacing, wear?: Wear): Picture =>
   render(chibiSketch(look, facing, wear));
 
+const TRACED_PARTS: Readonly<Record<string, Readonly<Record<string, Art>>>> = {
+  hair: HAIR_STYLES, eyes: EYE_TYPES, mouth: MOUTH_TYPES,
+};
+
+export function drawTraced(
+  part: keyof typeof TRACED_PICTURES, option: string, colors: Readonly<Record<string, Ramp>>,
+): Picture {
+  const body = part === "body" ? (option as Look["body"]) : "medium";
+  const face = part === "face" ? (option as Look["face"]) : "soft";
+  return render({
+    view: "portrait", frame: BODY_TYPES[body].portrait, colors: { ...FIXED, ...colors },
+    parts: [
+      ["base", BODIES[body].portrait], ["base", FACE_SHAPES[face].portrait],
+      ["base", part === "hair" ? CROWN_CUTS[option as Look["hair"]].portrait : undefined],
+      [part, TRACED_PARTS[part]?.[option]?.portrait],
+    ],
+  });
+}
+
 export function battleBody(
   look: Look, pose: Pose | SwordPose, frame: number, facing: BattleFacing, swordHand: Hand | null,
 ): BattleFrame {
@@ -64,7 +85,7 @@ export function battleBody(
 
 export const drawBattle = (...args: Parameters<typeof battleSketch>): Picture => render(battleSketch(...args));
 
-const colorsOf = (look: Look): Readonly<Record<string, Ramp>> => ({
+export const colorsOf = (look: Look): Readonly<Record<string, Ramp>> => ({
   ...FIXED, skin: SKIN[look.skin], hair: HAIR[look.hairColor], iris: EYES[look.eyeColor], cloth: DYES[look.outfit],
   accent: ACCENTS[look.accent],
 });

@@ -1,7 +1,8 @@
 # ART.md
 
 How the game's art should look, and how to make it. Read this before drawing anything. All the game's art is code:
-there are no image files in it, and nothing is painted by hand outside the source. Hand-drawn art is a plan for later
+the game loads no image files. The portrait is traced from Stable Diffusion pictures (`client/art/sd/`, dev only) into
+tone grids in the source; everything else is drawn in code. Hand-drawn art is a plan for later
 ([plan/art.md](plan/art.md)); the art lab's [pixel editor](#the-pixel-editor) draws it, but nothing it makes is in the
 game yet. [What to draw](#what-to-draw) says how much there would
 be to draw.
@@ -35,8 +36,9 @@ be to draw.
   the crown, the back of the head in shadow. Bangs stop at the lashes over the eyes and can come lower between them.
 - **Bodies are athletic**, every type: shoulders well wider than the neck, sloping from it into rounded deltoids.
   Never heavy.
-- **Face rows** (portrait): lashes on row 21, the lower lid 27, nose 30, mouth 33, chin 39. Shoulders start at row
-  45, so a short neck shows under the jaw: a long one makes the head look stuck on, none makes it look sunk in.
+- **Face rows** (portrait): brows on row 19, lashes 23 and 24, the lower lid 28, nose 30, mouth 35, chin 41 (40 on
+  the square face). The bodysuit's collar starts at row 39 behind the jaw and the shoulders at 44, so a short neck
+  shows under the jaw: a long one makes the head look stuck on, none makes it look sunk in.
   The chibi's neck is 4 pixels wide, about a quarter of its head; at 2 it reads as a stalk.
 - **The chibi's legs stand together**, one block of trousers with the right leg in shadow and a dark line where
   they meet, and a boot on each, its sole a pixel wider on the outside. Two thin legs apart under one wide boot
@@ -118,8 +120,9 @@ So something seen in every view and pose is 50 drawings. The axes that need draw
 | mouth type | smile, flat, grin, cat, pout | 3: the portrait's, the chibi's (facing side shows its first column) and the battle sprite's front. None facing back or in battle from behind |
 
 Gender (boy, girl) changes no art. The head is the same on every body type, and hair, eyes and mouths fit every
-face shape, so none of them multiply. In code the battle sprite's front head is the chibi's front one scaled up,
-with the chibi's own eyes and mouth, so it costs no drawings yet; drawn by hand it would be its own.
+face shape, so none of them multiply. The portrait's are Stable Diffusion pictures (one per option, as counted
+above), all repainted on one base so they line up. In code the battle sprite's front head is the chibi's front one
+scaled up, with the chibi's own eyes and mouth, so it costs no drawings yet; drawn by hand it would be its own.
 
 Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6) and accent (6) are ramps
 (`palette.ts`), and every drawing recolors with them.
@@ -180,12 +183,22 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   types few anyway: each is another shape gear must look right on. This holds for today's code-drawn pieces, which
   fit every body through its `Frame`; future artist-drawn wrap-around pieces would be one drawing per body type
   ([plan/art.md](plan/art.md)), which is why [What to draw](#what-to-draw) counts 150 for a chest piece.
-- **The portrait's head, face and hair are hand-drawn grids**: rows of letters, one per pixel, each a tone of a
-  material (`pen.grid`, with a legend). At 64x64 every pixel shows, so the parts that make a face read (eyes,
-  mouth, hair clumps) are placed by hand. Hair grids are full-width rows from the top of the picture, one file per
-  style (`hair/`); each eye type is a near-eye and a far-eye grid. The face's outline is a few rows of spans
-  (`spans()`). Grids hold tones, not colors, so every grid recolors with the player's picks.
-- **Bodies, clothes, the chibi and the battle sprite are shapes**: polygons, ellipses, `taper()` for a pointed
+- **The portrait is traced from Stable Diffusion** (SD 1.5 with the jrpg-v1 pixel LoRA at 1000 steps). The base is
+  one bald, faceless bust in a sleeveless bodysuit (medium build, soft face; the face wiped). Every other option is
+  that base repainted inside a mask (inpainting), so they all line up on it: the shoulders down for a body type, the
+  lower head for a face shape (from a rough jaw sketched in, which Stable Diffusion redraws: on its own it keeps the
+  base's chin), the hair, the eyes with their brows, the mouth. The pictures and masks are in `client/art/sd/`.
+  `client/scripts/trace-portraits.ts` (`npm run trace -w @infinite-tower/client`) turns them into tone grids in
+  `base.ts`: each pixel's material and tone is the nearest of the colors it reads them by (the base's own skin and
+  bodysuit colors; for hair and eyes, the ramp the picture fits best, the hair recentred on its base tone), and Stable
+  Diffusion's black outlines become each material's darkest tone. A part is what its picture changed inside its
+  mask; hair outside the base's outline is the back layer (under the body, so a wider body covers it), hair over it
+  the front, skin it darkened its shadow, and the bald crown it painted over with background is cut away. The body
+  layer holds the skin and the bodysuit (the portrait's clothing: the tunic doesn't show there), and the frame gear
+  is drawn against is read off it (`body.ts`). Traced grids carry their own outlines (`pen.traced`), so the outline
+  pass leaves them alone. A test fails if `base.ts` isn't what the script makes of the pictures, or if a part, drawn
+  alone on the base, strays from its picture. Don't edit `base.ts`: change a picture and run the script.
+- **Clothes, the chibi and the battle sprite are shapes**: polygons, ellipses, `taper()` for a pointed
   lock. Shading is done the same way every time: fill with the base tone, then retone parts of it (the far side, a
   band of light).
 - **Casting shadows**: a layer can darken the layers under it (`pen.castShadow`), as bangs do on the forehead and
@@ -196,7 +209,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 - **A look option** (hair style, eye type, mouth, face shape, a color): add its id to `LOOK_OPTIONS` in
   `shared/src/character/character.ts` (the server checks against it, the creation screen lists it), then its Art
   to its list (`HAIR_STYLES`, `EYE_TYPES`, `MOUTH_TYPES`, `FACE_SHAPES`) with a piece for every view and chibi
-  facing, or its ramp to `palette.ts`. Until the art exists it won't compile.
+  facing, or its ramp to `palette.ts`. Its portrait is a picture repainted on the base in its part's mask, saved as
+  `client/art/sd/<part>-<option>.png` and traced (above). Until the art exists it won't compile.
 - **Gear**: a new Art drawing on the layers of its slot (a chest piece: `torsowear`, maybe `armwear` for
   shoulders), against the frame it's handed. Fixed materials make it look the same on everyone; use `cloth` only
   for things the player dyes. `jerkin.ts` is the example.
@@ -210,7 +224,9 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 - **Check it** in the art lab: `npm run art`, then http://localhost:5175. Its Characters tab shows every option, the
   portrait, the chibi facing each way, the battle sprite in each pose and every sword-fight frame, the sample jerkin
   on and off, a mock dialogue and a crowd of random looks. The battle sprite is shown from behind and the front,
-  with the sword in either hand.
+  with the sword in either hand. Under the first portrait, each Stable Diffusion picture beside its part traced
+  (drawn alone on the base, in the picture's colors and in yours), then every body type with every hair style, eye
+  type, mouth and face shape.
 
 ### Don'ts
 

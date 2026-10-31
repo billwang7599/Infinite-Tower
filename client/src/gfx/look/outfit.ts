@@ -20,12 +20,6 @@ function columns(mask: Mask, y: number, width: number): [number, number] {
   return [first, last];
 }
 
-/** The collar behind the portrait's neck, standing up from the shoulders: all of it that shows round a V-neck. */
-function backCollar(neck: Mask, collarY: number): Mask {
-  const [, back] = columns(neck, collarY - 3, 64);
-  return polygon([[back - 1, collarY - 1], [back + 1, collarY - 5], [back + 4, collarY - 4], [back + 4.5, collarY]]);
-}
-
 function battleTunic(pen: Pen, tunic: Mask, middle: number, collarY: number, waistY: number): void {
   const hemY = waistY + 5;
   pen.fill(tunic, ink("cloth", BASE));
@@ -51,38 +45,10 @@ const battleSleeves: Draw<BattleFrame> = (pen, { arms, hands, middle, armpitY })
 };
 
 /**
- * A plain tunic, V-necked over a linen shirt, its collar standing up behind the neck, buttoned down the front.
- * Cel-shaded with the light from our left: the near side of the chest and the near arm in shadow, the light
- * along the tops of the shoulders.
+ * A plain tunic over a linen shirt, belted. Cel-shaded with the light from our left: the near side of the chest and
+ * the near arm in shadow. The portrait has none: there the bodysuit traced with the body (body.ts) is the clothing.
  */
 const TUNIC: Art = {
-  portrait: {
-    torsowear: (pen, { torso, neck, middle, collarY }) => {
-      const opening = vNeck(middle, collarY - 4, 10, 5);
-      const coat = minus(both(grow(torso), below(collarY - 3)), opening);
-      pen.fill(coat, ink("cloth", BASE));
-      pen.shade((x) => x > middle + 9, SHADOW);
-      pen.shade(farSide(coat, 3), DEEP);
-      pen.shade((x, y) => x <= middle + 9 && !coat(x, y - 2), LIGHT);
-      // The placket down the front, and its buttons.
-      pen.shade((x, y) => x === middle + 1 && y > collarY + 5, DEEP);
-      for (const y of [collarY + 10, collarY + 16]) pen.dot(middle, y, ink("brass", LIGHT));
-      // The linen shirt in the bottom of the V, open at the throat.
-      pen.fill(minus(both(opening, below(collarY + 1)), vNeck(middle, collarY - 4, 8, 2)), ink("linen", BASE));
-      pen.shade(both(opening, farSide(opening, 2)), SHADOW);
-      // Accent piping down both edges of the V: the one bright color on the clothes.
-      pen.fill((x, y) => coat(x, y) && (opening(x - 1, y) || opening(x + 1, y)), ink("accent", BASE));
-      const collar = backCollar(neck, collarY);
-      pen.fill(collar, ink("cloth", LIGHT));
-      pen.shade(farSide(collar, 2), BASE);
-    },
-    armwear: (pen, { arms, middle, armpitY }) => {
-      pen.fill(arms, ink("cloth", BASE)); // long sleeves, past the bottom of the picture
-      pen.blend(above(armpitY)); // sewn into the shoulder: no seam over the top of the arm
-      pen.shade((x) => x > middle + 9, SHADOW);
-      pen.shade(farSide(arms, 2), DEEP);
-    },
-  },
   chibi: {
     front: {
       torsowear: (pen, { torso, collarY, waistY }) => {

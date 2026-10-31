@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p . && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "trace": "tsx scripts/trace-portraits.ts"
   },
   "dependencies": {
     "@babylonjs/core": "^9.0.0",
