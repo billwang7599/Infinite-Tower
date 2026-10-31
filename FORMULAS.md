@@ -110,7 +110,9 @@ Example: a greatsword (heft 1.6) feels 1.3 at strength 20, 1.6 at 10 and 2.2 at 
 An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
 0.45 s (a heavy 0.35 s more), × its blade's heft; 0.5 s of recovery after a chain; it blocks walking up (from 0.3 s
-in), and perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`).
+in), and perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`). It feints 20%
+of its heavies (`heavyFeintShare`): 0.15 s before the blade would go live it pulls back into its block, ends the
+chain and waits its 1.2 s cooldown.
 
 Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35, 0.25 and 0.25 s (the reverse's
 0.25 can't go lower); damage 9, 11.25 and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
@@ -141,6 +143,9 @@ weapon's hit only hurts: no knockback, no hitstun.
   with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina (if it has a bar) and is staggered
   `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s before. Body blows can't be
   blocked perfectly.
+- **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
+  pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
+  the next 0.5 s's) and ends the chain. Lights and stabs can't be feinted.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP.
@@ -192,6 +197,7 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 | Holding a block | 5 a second | `HYBRID.block.holdStaminaPerSec` |
 | A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
 | Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |
+| Feinting a heavy | 10 | `HYBRID.feint.cost` |
 | Dodge | 22; heavy × 1.3 = 28.6; overloaded can't; Hasted × 0.7 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 

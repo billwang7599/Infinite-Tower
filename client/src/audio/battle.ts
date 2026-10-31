@@ -30,6 +30,7 @@ const CLOUD_GAIN = 0.5;
 const WINDUPS: readonly EnemyState[] = ["weaponWindup", "lungeWindup", "chargeWindup"];
 
 const HEAVY_VOICE = { rate: 0.85, gain: 1.25 } as const;
+const FEINT_VOICE = { rate: 1.4, gain: 0.7 } as const;
 
 export function swingVoice(massKg: number, attack: AttackKind): { rate: number; gain: number } {
   const heavier = massKg / ITEMS.sword.weight, heavy = attack === "heavy";
@@ -61,6 +62,7 @@ const EVENT_CUES: EventCues = {
     { sound: ev.perfect ? "parry" : "block", at: posOf(world, ev.target) },
     ...ev.broken ? [{ sound: "guard-break" as const, at: posOf(world, ev.target) }] : [],
   ],
+  feint: (ev, world) => [{ sound: "draw-blade", at: posOf(world, ev.by), ...FEINT_VOICE }],
   skill(ev) {
     const el = ELEMENT_SOUNDS[ev.elements[0] ?? "plain"];
     return [{ sound: ev.form === "nova" ? el.impact : el.cast, at: flat(ev.at), rate: el.rate }];

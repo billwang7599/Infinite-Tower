@@ -91,7 +91,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
-      def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, way: "tb",
+      def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, feint: false, way: "tb",
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

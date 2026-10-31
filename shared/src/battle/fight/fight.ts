@@ -96,7 +96,7 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(this.targets, this.events),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(this.events),
       skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),

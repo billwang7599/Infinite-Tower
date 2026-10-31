@@ -108,7 +108,11 @@ Decided by the user:
     16, a stab 12, a dodge 22. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
     costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the guard breaks,
     a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
-  - No kick and no feints.
+  - No kick. Only a heavy can be feinted (the user: "yea sure heavy only feints ... we swing heavy but can press
+    shift to cancel early to mess with their timing"): block pressed in a heavy's wind-up pulls it back into the
+    guard, for 10 stamina, but not in the last 0.15 s before the blade goes live. It opens no perfect block and ends
+    the chain. A light or a stab can't be feinted. The Kobold feints about 1 in 5 of its heavies ("sure add kobald
+    feint"), told only by sound and its blade snapping back to its guard.
   - The old momentum, with the old numbers: the reverse swing chains quickest, a perpendicular one slowest; a chain
     builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
   - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
@@ -512,6 +516,11 @@ them; treat them as changeable, and still ask before deciding new ones):
     the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
     answers at once with a quick swing. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
     few hits and loses (the bot test). The seeded rolls are the fight's, as for its other choices.
+  - Feints (numbers in `HYBRID.feint`; the Kobold's share is `heavyFeintShare`, 0.2): a feint's press counts as a
+    block press, so a press within 0.5 s after it gets no perfect window either; a player needs some stamina left
+    to feint, as for any attack. The Kobold pulls a feinted heavy back at the latest it may (0.15 s before it would go
+    live), straight into its held block; its chain ends there, it pays no stamina (its swings cost none), and it waits
+    its cooldown (1.2 s, with no recovery) before its next chain. A feint sounds as a quick, high blade-draw.
   - Drawn: the sprite takes the drawn swing nearest each way (the diagonals from below the side ones, the stab the
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the

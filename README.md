@@ -58,8 +58,9 @@ What's built so far:
   and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
   front for stamina and a chip, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
-  free, costing the attacker stamina and opening them. Stamina is the one bar for attacks, dodges and blocks. A
-  landed hit holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went.
+  free, costing the attacker stamina and opening them; pressed in your own heavy's wind-up it feints it. Stamina is
+  the one bar for attacks, dodges and blocks. A landed hit holds the picture for a beat (longer the heavier the
+  blade) and jolts its target the way the blade went.
   A dodge roll with i-frames, jump.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a

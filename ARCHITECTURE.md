@@ -397,9 +397,10 @@ main.ts
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
   player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on
   the old momentum chains (`Wielder.combo`, `comboTime`, `momentum`), and holds a block (the `block` action, draining
-  stamina in the controller), whose press opens a perfect block's window (`perfectBlockLeft`). A swordsman's brain is
-  its `WeaponAttack`'s (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a perfect block
-  it reads (`perfectBlockRead`) and the quick swing after it (`riposte`).
+  stamina in the controller), whose press opens a perfect block's window (`perfectBlockLeft`); pressed in a heavy's
+  wind-up it feints instead (`readSword`, the `feint` event). A swordsman's brain is its `WeaponAttack`'s
+  (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a perfect block it reads
+  (`perfectBlockRead`) and the quick swing after it (`riposte`), and seeded feints of its heavies (`feint`).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
   for a weapon, its way) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not
   physics. A hit is first asked of `defend` (`fight/weapons/defend.ts`): in front of the target, a weapon in its
@@ -975,7 +976,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
                        no attacks or block; no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
-                       aimed way, presses buffered, the perfect block's window; attackOrBlock: light / heavy / stab
+                       aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
+                       / heavy / stab
                        on the old momentum chains, the held block), use.ts (useSystem: a consumable used
                        once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
@@ -989,7 +991,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / death), lunge.ts, charge.ts, weapon.ts (the Kobold's brain: seeded
                        chains of ways or a stab, never the same twice running, a block held walking up, a read
-                       perfect block and the swing after it), skill.ts (casting: a quick-cast
+                       perfect block and the swing after it, seeded feints of its heavies), skill.ts (casting: a
+                       quick-cast
                        up close, a chant a word at a time from farther, backing away while it chants if kept away,
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
@@ -1613,8 +1616,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
-| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the perfect block, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
-| A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
+| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
+| A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |

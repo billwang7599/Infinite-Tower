@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, Health, HYBRID, Player, Stamina, Wielder, type EnemyDef, type PlayerInputData, type WeaponAttackDef,
+  Enemy, Health, HYBRID, lastFeintStep, Player, Stamina, WeaponAttack, Wielder, type EnemyDef, type PlayerInputData,
+  type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, FULL_HP, FULL_STAMINA, input, player, swings, SWORDSMAN } from "../fixtures.js";
@@ -71,5 +72,36 @@ describe("a swordsman", () => {
     assert.ok(held.events.some((e) => e.type === "block" && e.target === held.me));
     assert.ok(!held.events.some((e) => e.type === "hit" && e.target === held.me));
     assert.ok(HYBRID.block.chipFraction > 0 && held.fight.world.require(held.me, Health).hp < FULL_HP, "chipped");
+  });
+
+  test("feints its def's share of heavies: pulled back at the last moment into its guard, the chain over", () => {
+    const { fight, it } = play(kobold({ heavyShare: 1, heavyFeintShare: 1, blockReactTime: 0.3 }), 0);
+    const wielder = fight.world.require(it, Wielder), enemy = fight.world.require(it, Enemy);
+    let feints = 0, heavies = 0;
+    while (fight.steps < 900) {
+      const before = wielder.swing ? { ...wielder.swing } : null;
+      fight.step([input({ locked: 0 })]);
+      if (wielder.swing?.step === 1 && wielder.swing.attack === "heavy") heavies++;
+      if (!fight.events.some((e) => e.type === "feint" && e.by === it)) continue;
+      feints++;
+      assert.equal(before?.attack, "heavy");
+      assert.equal(before!.step, lastFeintStep(before!.liveAt));
+      assert.equal(wielder.swing, null);
+      assert.equal(enemy.state, "approach");
+      assert.ok(enemy.stateTime >= 0.3, "guarding at once");
+      assert.equal(fight.world.require(it, WeaponAttack).swingsLeft, 0);
+    }
+    assert.ok(feints > 0 && feints >= heavies - 1, `${feints} of ${heavies}`);
+  });
+
+  test("feints only some heavies, by the fight's seed, and never with no share", () => {
+    const count = (share: number) => {
+      const { events, it } = play(kobold({ heavyShare: 1, heavyFeintShare: share, cooldown: 0.2 }), 1500);
+      return events.filter((e) => e.type === "feint" && e.by === it).length;
+    };
+    assert.equal(count(0), 0);
+    const some = count(0.5);
+    assert.ok(some > 0, `${some}`);
+    assert.equal(count(0.5), some);
   });
 });

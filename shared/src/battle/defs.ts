@@ -55,6 +55,7 @@ export interface WeaponAttackDef {
   minChain: number;
   maxChain: number;
   heavyShare: number;
+  heavyFeintShare: number;
   /** Before another chain (after recovering), and before its first. */
   cooldown: number;
   firstDelay: number;
