@@ -1,8 +1,8 @@
 # The core: what's left
 
-Status: **the logic and saving are built** (PR 1). The rules the user decided are in AGENTS.md ("The core"), the
-agent's picks for what they left open in AGENTS.md's agent-decided list, and every number in FORMULAS.md ("Stats",
-"The core"). What's still to come:
+Status: **the logic and saving are built** (PR 1), and the character panel's stats chart. The rules the user
+decided are in AGENTS.md ("The core"), the agent's picks for what they left open in AGENTS.md's agent-decided list,
+and every number in FORMULAS.md ("Stats", "The core"). What's still to come:
 
 ## Next PRs
 
@@ -11,8 +11,6 @@ agent's picks for what they left open in AGENTS.md's agent-decided list, and eve
   nothing reads like XP. Each step the light grows bigger and brighter, and its colour changes with each realm, from
   fiery (Yan) to ethereal (Tian). Inside a step there's no number or bar: the light breathes (a slow pulse), and sparks
   show when a breakthrough is near. For now the HUD has a plain line of text (the realm and step) under the bars.
-- **The stats chart.** A polygon chart (like Pokémon's) with a small number under each stat; more stats can be added,
-  so it needn't stay a diamond. For now the character panel lists the stats, with + and − for free points.
 
 ## Later
 

@@ -89,7 +89,8 @@ What's built so far:
   2 s, anywhere, mid-fight too (a hit stops it, the essence kept), and a full step breaks through: every stat goes up
   and you get free points to place (taken back by a campfire). Stats are strength, agility, stamina, skillpower,
   vitality (HP), defense and special defense, plus hidden toughness, stamina recovery and health regen. Dying loses
-  the step's essence, or with none, a whole step. The HUD shows your realm and step, the character panel your stats.
+  the step's essence, or with none, a whole step. The HUD shows your realm and step, the character panel your stats
+  as a polygon chart, where free points are placed (hovering + or − previews the change).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the

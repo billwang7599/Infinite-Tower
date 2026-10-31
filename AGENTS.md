@@ -361,8 +361,9 @@ Decided by the user:
   that doubles each realm (1 in the first) and gives free points (2 in the first, doubling), placed in any stat and
   never locked in (taking them back costs some effort). HP comes only from vitality. On death the step's fill is lost,
   or with none, a whole step. Floors don't need a realm. Enemies' realms aren't shown (and come later, with floors).
-  The F1 admin panel adds and removes steps. Nothing about it should read like XP: the HUD's sphere and the stats
-  chart come later.
+  The F1 admin panel adds and removes steps. Nothing about it should read like XP: the HUD's sphere comes later. The
+  character panel shows the stats as a polygon chart (like Pokémon's) with a small number under each stat, for any
+  number of stats (more can be added), with + and − for free points; the hidden stats stay hidden.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -404,6 +405,16 @@ them; treat them as changeable, and still ask before deciding new ones):
     the seven shown stats with + and − (− only by a fire). The admin panel's step up / down is overworld only and
     empties the fill.
   - Saved in three columns (`core_steps`, `core_fill`, `stat_points`); players from before start at Early Yan, empty.
+- The stats chart (core PR 3; the user: "just make it. assume whatever you want"; tried headless, not hand-played):
+  - Its rim is the most any shown stat could be at your step (its value with no points placed, plus every free point
+    earned), and its centre 0: the rim stays put while points are placed, all of them in one stat reach it, and a
+    new core's stats all sit on it. Four rings, at quarters. Numbers: `client/src/ui/hud/character/chart.ts`.
+  - The stats go clockwise from the top in their usual order (strength at the top); special defense is "Sp. defense"
+    on the chart. Under each name, its number between − and +.
+  - A point is still placed or taken back at once, with no confirm step. Hovering + or − shows the polygon after it
+    (dashed) and the stat's effect now and after; hovering a stat shows what it does under the chart (the list's
+    lines are gone otherwise).
+  - The character panel is wider for it: 336 px (was 288).
 - Guard stances (the user asked for sword fights like For Honor's; the design is the main chat's, every detail below
   the agent's, none hand-played; numbers in `ATTACKS`, `COMBAT` and `ENEMY_GUARD` in `shared/src/weapons/weapons.ts`):
   - Locked on (fights start locked), with a sword in hand, you always hold a guard: left, top or right, as you see it.

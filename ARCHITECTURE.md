@@ -1222,11 +1222,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       portrait, the core's realm and step, the shown stats and what each does, free points placed with
-                       + and taken back with − (only by a campfire)), inventory/ (the bag screen: InventoryPanel.tsx
-                       lays out the equipment, an open pile over the cloth, and the bag, wires the mouse and the bag
-                       keys, and shows the selected item, the dragged ghost and the tooltip; BagGrid.tsx draws a grid
-                       (the bag, the cloth or a pile) and its
+                       portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
+                       between − (only by a campfire) and + for free points, hovering them previewing the change and
+                       what the stat does; chart.ts: chartPoints, the polygon's corners for any number of stats, and
+                       chartMax, its rim: the most a stat could be at the step), inventory/ (the bag screen:
+                       InventoryPanel.tsx lays out the equipment, an open pile over the cloth, and the bag, wires the
+                       mouse and the bag keys, and shows the selected item, the dragged ghost and the tooltip;
+                       BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
@@ -1578,6 +1580,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
+| The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `CHARACTER_PANEL_WIDTH_PX` in `client/src/ui/hud/layout.ts` |
 | Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |
