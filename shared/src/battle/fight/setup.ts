@@ -54,7 +54,7 @@ const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0 });
 
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({
-  hands, armReachM, swing: null, kick: null, combo: null, comboTime: 0, momentum: 0,
+  hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0,
 });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
@@ -66,9 +66,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, blockHeld: false, kickHeld: false, attackBuffer: 0, dodgeBuffer: 0,
-    kickBuffer: 0, castBuffer: 0, tapParryLeft: 0,
-    sinceBlockPress: HYBRID.block.retapTime, queued: null,
+    attackHeld: null, dodgeHeld: false, blockHeld: false, attackBuffer: 0, dodgeBuffer: 0,
+    castBuffer: 0, perfectBlockLeft: 0, sinceBlockPress: HYBRID.block.remashTime, queued: null,
     castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
@@ -92,7 +91,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
-      def, cooldown: def.firstDelay, swingsLeft: 0, parryRead: false, riposte: false, way: "tb", kickWait: 0,
+      def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, way: "tb",
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

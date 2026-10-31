@@ -54,19 +54,18 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.
-  Sword fights mix For Honor's readability, eight-way swings with momentum and Mordhau's block timing: the mouse (or
-  U I O / J L / M , .) aims one of eight sides, left and right click swing light and heavy from there, the wheel or
-  K stabs; chained swings hit harder (the reverse swing quickest) until a gap, block, dodge or hit taken, and a stab
-  spends it; a held block (left Shift) stops anything in front for stamina and a chip, broken by a heavy; tapped
-  just before a hit it parries, free, opening the attacker; the reverse swing just gone live parries too; G kicks
-  (shoves, or staggers a held block; in your own wind-up, feints). A ring of eight wedges round the locked foe shows
-  your aim and its swing coming. A landed hit holds the picture for a beat (longer the heavier the blade) and jolts
-  its target the way the blade went. A dodge roll with i-frames, jump, stamina.
+  Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the wheel or K stabs,
+  and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
+  quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
+  front for stamina and a chip, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
+  free, costing the attacker stamina and opening them. Stamina is the one bar for attacks, dodges and blocks. A
+  landed hit holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went.
+  A dodge roll with i-frames, jump.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
-  blows can only be blocked. The Kobold Swordsman swings the same eight ways in long-told chains, blocks as it walks
-  up, and now and then tap-parries you or kicks a block you hold too long. The Kobold Greatsword fights the same
+  blows can only be blocked. The Kobold Swordsman swings the same ways in long-told chains, blocks as it walks up, and
+  now and then perfect-blocks you. The Kobold Greatsword fights the same
   with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
@@ -76,9 +75,8 @@ What's built so far:
 - **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
-  the camera), Space jumps, F dodges; a quick flick of the mouse (or U I O / J L / M , .) aims, a left click is a
-  light attack and a right click a heavy one, the wheel or K stabs, Left Shift blocks and G kicks (in a wind-up,
-  feints).
+  the camera), Space jumps, F dodges; a quick flick of the mouse aims, a left click is a light attack and a right
+  click a heavy one, the wheel or K stabs, and Left Shift blocks.
   R opens the chant, and 1-4 quick-cast the skillbook's pages. H opens the questbook.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes

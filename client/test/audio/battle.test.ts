@@ -22,7 +22,7 @@ const SWORDED: EnemyDef = {
   attacks: {
     weapon: {
       triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
-      cooldown: 99, firstDelay: 99, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99, kickChance: 0,
+      cooldown: 99, firstDelay: 99, blockReactTime: 0, perfectBlockChance: 0,
     },
   },
 };
@@ -126,26 +126,12 @@ describe("the arena's ears", () => {
     assert.deepEqual(sounds(hear(ctx)!), ["block"]);
   });
 
-  test("a parry rings out where the parrier stands", () => {
+  test("a perfect block rings out where the blocker stands", () => {
     const { ctx, hear, world, player, enemy } = arena();
-    ctx.events = [{ step: 1, event: { type: "parry", by: player, target: enemy, attack: "heavy" } }];
+    ctx.events = [{ step: 1, event: { type: "block", by: enemy, target: player, perfect: true } }];
     const heard = hear(ctx)!, at = world.require(player, Body).pos;
     assert.deepEqual(sounds(heard), ["parry"]);
     assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
-  });
-
-  test("a feint is heard as the blade is pulled back", () => {
-    const { ctx, hear, player } = arena();
-    ctx.events = [{ step: 1, event: { type: "feint", by: player } }];
-    assert.deepEqual(sounds(hear(ctx)!), ["draw-blade"]);
-  });
-
-  test("a kick lunges with a whoosh as it starts", () => {
-    const { run } = arena();
-    run(1);
-    const heard = run(1, { kick: true });
-    assert.deepEqual(sounds(heard), ["grab"]);
-    assert.deepEqual(sounds(run(20)), []);
   });
 
   test("a heavy winding up is heard, low; a light isn't", () => {

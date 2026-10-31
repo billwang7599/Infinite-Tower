@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  CHAIN, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Player, Stamina, strikeCost, WEAPONS, Wielder,
+  CHAIN, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Stamina, strikeCost, WEAPONS, Wielder,
   type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -66,18 +66,18 @@ describe("the sword's attacks", () => {
   });
 
   test("a chain builds momentum, more damage each swing, and loses it after a gap", () => {
-    const p = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"]], 40);
+    const p = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"]], 85);
     assert.equal(momentumOf(p.fight), 2 * MOMENTUM.gain.reverse);
     assert.equal(p.damage.length, 3);
     assert.equal(p.damage[0], physicalDamage(SWORD.damage, STATS));
     assert.equal(p.damage[2], physicalDamage(SWORD.damage * momentumDamage(2 * MOMENTUM.gain.reverse), STATS));
-    chain(p.fight, [], 40 + Math.ceil((CHAIN.gapTime + CHAIN.recoverTime) * 60) + 2);
+    chain(p.fight, [], 85 + Math.ceil((CHAIN.gapTime + CHAIN.recoverTime) * 60) + 2);
     assert.equal(momentumOf(p.fight), 0);
   });
 
   test("a stab spends the momentum for more damage", () => {
     const fresh = chain(newFight(), [["stab", "lr"]], 40).damage[0]!;
-    const spent = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"], ["stab", "lr"]], 80);
+    const spent = chain(newFight(), [["light", "lr"], ["light", "rl"], ["light", "lr"], ["stab", "lr"]], 140);
     assert.equal(fresh, physicalDamage(SWORD.damage * HYBRID.stab.damageFactor, STATS));
     assert.ok(spent.damage[3]! > fresh);
     assert.equal(momentumOf(spent.fight), 0);
@@ -85,7 +85,7 @@ describe("the sword's attacks", () => {
 
   test("a dodge or a block breaks the chain", () => {
     for (const then of [{ dodge: true }, { block: true }]) {
-      const p = chain(newFight(), [["light", "lr"], ["light", "rl"]], 40, () => then);
+      const p = chain(newFight(), [["light", "lr"], ["light", "rl"]], 80, () => then);
       assert.equal(momentumOf(p.fight), 0, JSON.stringify(then));
     }
   });
@@ -99,19 +99,11 @@ describe("the sword's attacks", () => {
     assert.equal(stamina.value, before - strikeCost(SWORD, "heavy"));
   });
 
-  test("the kick in a heavy's wind-up feints it, for the feint's stamina; a light is too quick to feint", () => {
-    const fight = newFight(30), me = fight.players[0]!;
-    fight.step([input({ locked: 0, way: "tb", attack: "heavy" })]);
-    const stamina = fight.world.require(me, Stamina).value;
-    fight.step([input({ locked: 0, way: "tb", kick: true })]);
-    assert.equal(fight.world.require(me, Wielder).swing, null);
-    assert.equal(fight.world.require(me, Player).action, "none");
-    assert.equal(fight.world.require(me, Stamina).value, stamina - HYBRID.feint.cost);
-    assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
-
-    const quick = newFight(30);
-    quick.step([input({ locked: 0, way: "tb", attack: "light" })]);
-    quick.step([input({ locked: 0, way: "tb", kick: true })]);
-    assert.notEqual(quick.world.require(quick.players[0]!, Wielder).swing, null);
+  test("each strike costs its own stamina", () => {
+    for (const strike of ["light", "heavy", "stab"] as const) {
+      const fight = newFight(30), stamina = fight.world.require(fight.players[0]!, Stamina), before = stamina.value;
+      fight.step([input({ locked: 0, way: "tb", attack: strike })]);
+      assert.equal(stamina.value, before - strikeCost(SWORD, strike), strike);
+    }
   });
 });

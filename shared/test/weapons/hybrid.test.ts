@@ -1,19 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, chainKind, COUNTER_PARRY, HYBRID, MOMENTUM, momentumDamage, mirrorWay, parryShare, reverseOf, startupTime,
-  strikeCost, SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS,
+  CHAIN, chainKind, HYBRID, MOMENTUM, momentumDamage, mirrorWay, startupTime, strikeCost, SWING_DIRS, wayShape,
+  wayStepsAfter, WEAPONS, WAYS,
 } from "@infinite-tower/shared";
 
 describe("the sword's ways", () => {
-  test("a swing's reverse goes back along its line, twice is itself", () => {
-    for (const dir of SWING_DIRS) {
-      assert.notEqual(reverseOf(dir), dir);
-      assert.equal(reverseOf(reverseOf(dir)), dir);
-    }
+  test("no straight upward swing: rising cuts are only the diagonals", () => {
+    assert.ok(!(SWING_DIRS as readonly string[]).includes("bt"));
+    assert.ok(SWING_DIRS.includes("bltr") && SWING_DIRS.includes("trbl"));
   });
 
-  test("seen from in front, left and right swap; up and down and the stab don't", () => {
+  test("seen from in front, left and right swap; the top and the stab don't", () => {
     assert.equal(mirrorWay("lr"), "rl");
     assert.equal(mirrorWay("tlbr"), "trbl");
     assert.equal(mirrorWay("tb"), "tb");
@@ -21,25 +19,15 @@ describe("the sword's ways", () => {
     for (const way of WAYS) assert.equal(mirrorWay(mirrorWay(way)), way);
   });
 
-  test("a swing parries the one it meets head-on, either 45° neighbour for a share; a stab only a stab", () => {
-    assert.equal(parryShare("lr", "rl"), 1);
-    assert.equal(parryShare("tlbr", "rl"), COUNTER_PARRY.offAngleShare);
-    assert.equal(parryShare("bltr", "rl"), COUNTER_PARRY.offAngleShare);
-    assert.equal(parryShare("brtl", "lr"), COUNTER_PARRY.offAngleShare);
-    assert.equal(parryShare("tb", "rl"), 0);
-    assert.equal(parryShare("rl", "rl"), 0);
-    assert.equal(parryShare("stab", "stab"), 1);
-    assert.equal(parryShare("stab", "lr"), 0);
-    assert.equal(parryShare("lr", "stab"), 0);
-  });
-
   test("chains: back along its line a reverse, across it perpendicular, the first or after a stab an opening", () => {
     assert.equal(chainKind(null, "lr"), "opening");
     assert.equal(chainKind("stab", "lr"), "opening");
     assert.equal(chainKind("lr", "rl"), "reverse");
+    assert.equal(chainKind("tlbr", "brtl"), "reverse");
     assert.equal(chainKind("lr", "tb"), "perpendicular");
     assert.equal(chainKind("tlbr", "bltr"), "perpendicular");
     assert.equal(chainKind("lr", "tlbr"), "other");
+    assert.equal(chainKind("tb", "tb"), "other");
   });
 
   test("the reverse starts quickest and perpendicular slowest; momentum speeds them and adds damage, capped", () => {
@@ -51,6 +39,13 @@ describe("the sword's ways", () => {
     assert.equal(momentumDamage(99), MOMENTUM.maxDamage);
   });
 
+  test("no wind-up is ever quicker than the floor, however much momentum", () => {
+    for (const kind of ["opening", "reverse", "perpendicular", "other"] as const) {
+      assert.ok(startupTime(kind, MOMENTUM.max) >= CHAIN.minStartupTime, kind);
+    }
+    assert.ok(CHAIN.stabStartupTime >= CHAIN.minStartupTime);
+  });
+
   test("a heavy weapon stretches every part of a swing; a heavy's blade is live longer", () => {
     const sword = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false);
     const great = wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false);
@@ -60,9 +55,10 @@ describe("the sword's ways", () => {
     assert.equal(strikeCost(WEAPONS.greatsword, "heavy"), HYBRID.heavy.cost * WEAPONS.greatsword.heft);
   });
 
-  test("verticals reach furthest and narrowest, horizontals widest; the stab furthest of all", () => {
+  test("every swing reaches as far, verticals narrowest and horizontals widest; the stab further", () => {
     const reach = (way: (typeof WAYS)[number]) => wayShape(way, 0.8, WEAPONS.sword);
-    assert.ok(reach("tb").range > reach("lr").range && reach("tb").minDot > reach("lr").minDot);
+    for (const way of SWING_DIRS) assert.equal(reach(way).range, reach("lr").range, way);
+    assert.ok(reach("tb").minDot > reach("tlbr").minDot && reach("tlbr").minDot > reach("lr").minDot);
     assert.ok(reach("stab").range > reach("tb").range);
   });
 });

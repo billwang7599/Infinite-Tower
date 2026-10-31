@@ -29,7 +29,6 @@ import { windUpSystem } from "./skills/skilled.js";
 import { regenSystem, statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
-import { kickSystem } from "./weapons/kick.js";
 import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
@@ -102,7 +101,7 @@ export class Fight {
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), kickSystem(this.events),
+      playerGroundSystem(this.physics), combatSystem(this.events),
       statusSystem(),
       regenSystem(),
       skillSystem(ctx), useSystem(ctx),

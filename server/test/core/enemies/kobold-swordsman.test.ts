@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, Player, Wielder, type EnemyDef, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, Wielder, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
@@ -11,10 +11,10 @@ before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
 
-const TAP_LEAD_STEPS = 6;
+const PERFECT_LEAD_STEPS = 6;
 
 function reader(fight: Fight): PlayerInputData {
-  const at = fight.world.require(fight.players[0]!, Body).pos, me = fight.world.require(fight.players[0]!, Player);
+  const at = fight.world.require(fight.players[0]!, Body).pos;
   const kobold = fight.world.require(fight.enemies[0]!, Enemy), it = fight.world.require(fight.enemies[0]!, Body).pos;
   const swing = fight.world.require(fight.enemies[0]!, Wielder).swing;
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
@@ -24,12 +24,11 @@ function reader(fight: Fight): PlayerInputData {
     way: Math.floor(fight.steps / 20) % 2 === 0 ? "lr" : "rl",
   };
   if (swing && swing.step < swing.liveAt) {
-    input.block = swing.liveAt - swing.step <= TAP_LEAD_STEPS;
+    input.block = swing.liveAt - swing.step <= PERFECT_LEAD_STEPS;
     return input;
   }
   const even = fight.steps % 2 === 0;
   if (kobold.state === "staggered" || kobold.state === "weaponRecover") input.attack = even ? "light" : null;
-  else if (kobold.state === "approach" && me.action === "none") input.kick = even && dist < 1.6;
   return input;
 }
 
@@ -53,8 +52,8 @@ describe("the Kobold Swordsman", () => {
     }
   });
 
-  test("a player who only holds a block loses: it kicks the block open and cuts", () => {
-    const { fight } = play(1, (f) => ({ ...reader(f), block: true, attack: null, kick: false }));
+  test("a player who only holds a block loses: its blows wear the stamina down, the guard breaks and it cuts", () => {
+    const { fight } = play(1, (f) => ({ ...reader(f), block: true, attack: null }));
     assert.equal(fight.outcome.state, "lost");
   });
 

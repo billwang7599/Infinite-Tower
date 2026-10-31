@@ -7,9 +7,9 @@ import { IDLE_INPUT, MAX_INPUT_LEAD_STEPS, type PlayerInputData, type StepInput 
 
 export const SILENT_STOP_STEPS = 15;
 
-type Presses = Pick<PlayerInputData, "jump" | "attack" | "dodge" | "kick" | "cast" | "chantWords" | "use">;
+type Presses = Pick<PlayerInputData, "jump" | "attack" | "dodge" | "cast" | "chantWords" | "use">;
 const NO_PRESSES: Presses =
-  { jump: false, attack: null, dodge: false, kick: false, cast: null, chantWords: null, use: null };
+  { jump: false, attack: null, dodge: false, cast: null, chantWords: null, use: null };
 
 /** How late a player's inputs reach the server, in steps (negative: early), measured on their input up to a step. */
 export interface Lateness { lateSteps: number; heardStep: number }
@@ -71,8 +71,7 @@ export class InputTimeline {
     const { held, pressed } = this;
     const input = {
       ...(this.late ?? held), jump: held.jump || pressed.jump, attack: held.attack ?? pressed.attack,
-      dodge: held.dodge || pressed.dodge, kick: held.kick || pressed.kick,
-      cast: held.cast ?? pressed.cast, castHeld: held.castHeld,
+      dodge: held.dodge || pressed.dodge, cast: held.cast ?? pressed.cast, castHeld: held.castHeld,
       chantWords: held.chantWords ?? pressed.chantWords, use: held.use ?? pressed.use,
     };
     this.late = null;
@@ -85,14 +84,12 @@ export class InputTimeline {
   }
 
   private fold({ step: _madeFor, ...change }: StepInput): void {
-    const anyPress = change.jump || change.attack !== null || change.dodge || change.kick
-      || change.cast !== null;
+    const anyPress = change.jump || change.attack !== null || change.dodge || change.cast !== null;
     if (!this.late && anyPress) this.late = change;
     const pressed = this.pressed;
     pressed.jump ||= change.jump;
     pressed.attack ??= change.attack;
     pressed.dodge ||= change.dodge;
-    pressed.kick ||= change.kick;
     pressed.cast ??= change.cast;
     pressed.chantWords = change.chantWords ?? pressed.chantWords;
     pressed.use ??= change.use;

@@ -14,7 +14,7 @@ const challenge: ActionRef = { group: "overworld", action: "challenge" };
 const acceptChallenge: ActionRef = { group: "overworld", action: "acceptChallenge" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
-const aimTop: ActionRef = { group: "battle", action: "aimTop" };
+const stab: ActionRef = { group: "battle", action: "stab" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
 const lookUp: ActionRef = { group: "battle", action: "lookUp" };
 
@@ -275,11 +275,14 @@ describe("KeyBindings reset", () => {
 });
 
 describe("KeyBindings saved before the sword's ten actions", () => {
-  test("a dodge saved on I (the top aim's now) keeps it: the top aim is unbound, the rest kept", () => {
+  test("the aim keys and the kick saved from before are dropped, and their keys are free", () => {
     const b = new KeyBindings();
-    b.restore({ battle: { dodge: ["KeyK", "KeyI"], turnLeft: ["KeyH"] }, overworld: { up: ["KeyZ"] } });
-    assert.deepEqual(keysOf(b.get(), dodge), ["KeyK", "KeyI"]);
-    assert.deepEqual(keysOf(b.get(), aimTop), []);
+    b.restore({
+      battle: { aimTop: ["KeyI"], kick: ["KeyG"], dodge: ["KeyF", "KeyI"], turnLeft: ["KeyH"] },
+      overworld: { up: ["KeyZ"] },
+    });
+    assert.deepEqual(keysOf(b.get(), dodge), ["KeyF", "KeyI"]);
+    assert.deepEqual(keysOf(b.get(), stab), ["KeyK"]);
     assert.deepEqual(keysOf(b.get(), turnLeft), ["KeyH"]);
     assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"]);
   });

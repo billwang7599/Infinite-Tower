@@ -30,7 +30,7 @@ function playBlock(k: number, late = 0) {
   let blocked = false;
   for (let step = 1; step <= ITS.landsAt + 30; step++) {
     play(guarding(step), step === moveAt ? late : 0);
-    blocked ||= client.fight.events.some((e) => e.type === "block" || e.type === "parry");
+    blocked ||= client.fight.events.some((e) => e.type === "block");
   }
   for (let i = 0; i < late; i++) tick();
   const hp = (fight: Fight) => fight.world.require(fight.players[0]!, Health).hp;
@@ -42,7 +42,7 @@ describe("a block, on the client and on the server", () => {
     assert.ok(ITS.landsAt > 30, `lands at ${ITS.landsAt}`);
   });
 
-  test("on time: both decide the same block, tap parry or hit, and the whole fight is the same", () => {
+  test("on time: both decide the same block, perfect block or hit, and the whole fight is the same", () => {
     for (const k of [-2, 0, 1, 5, 20]) {
       const { blocked, client, server, room, clientFight } = playBlock(k);
       const inTime = k >= 0;

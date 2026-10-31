@@ -12,7 +12,6 @@ const SPARK_UP_M = 0.3;
 export const PARRY_HIT_STOP_MS = 140;
 const PARRY_BOUNCE_M = 0.3;
 const PARRY_BOUNCE_MS = 220;
-const SHOVE_HIT_STOP_MS = 70;
 const BROKEN_JOLT_M = 0.35;
 const BROKEN_JOLT_MS = 200;
 
@@ -63,21 +62,16 @@ export function clash(scene: ArenaScene, world: World, stopped: Entity, guard: E
   scene.skills.bursts.sparks(meeting(a, b));
 }
 
-export function parried(scene: ArenaScene, world: World, parrier: Entity, attacker: Entity): void {
-  const a = world.require(attacker, Body).pos, p = world.require(parrier, Body).pos, back = levelUnit(p, a);
+export function parried(scene: ArenaScene, world: World, blocker: Entity, attacker: Entity): void {
+  const a = world.require(attacker, Body).pos, p = world.require(blocker, Body).pos, back = levelUnit(p, a);
   const push = { x: back.x * PARRY_BOUNCE_M, y: 0, z: back.z * PARRY_BOUNCE_M };
-  scene.impacts.set(parrier, { ageMs: 0, stopMs: PARRY_HIT_STOP_MS, push: STILL, pushMs: 0 });
+  scene.impacts.set(blocker, { ageMs: 0, stopMs: PARRY_HIT_STOP_MS, push: STILL, pushMs: 0 });
   scene.impacts.set(attacker, { ageMs: 0, stopMs: PARRY_HIT_STOP_MS, push, pushMs: PARRY_BOUNCE_MS });
   scene.skills.bursts.parry(meeting(a, p));
 }
 
-export function shoved(scene: ArenaScene, world: World, by: Entity, target: Entity, broken: boolean): void {
+export function guardBroken(scene: ArenaScene, world: World, by: Entity, target: Entity): void {
   const t = world.require(target, Body).pos, away = levelUnit(world.require(by, Body).pos, t);
-  if (!broken) {
-    scene.impacts.set(by, { ageMs: 0, stopMs: SHOVE_HIT_STOP_MS, push: STILL, pushMs: 0 });
-    scene.impacts.set(target, { ageMs: 0, stopMs: SHOVE_HIT_STOP_MS, push: STILL, pushMs: 0 });
-    return;
-  }
   const push = { x: away.x * BROKEN_JOLT_M, y: 0, z: away.z * BROKEN_JOLT_M };
   scene.impacts.set(target, { ageMs: 0, stopMs: 0, push, pushMs: BROKEN_JOLT_MS });
   scene.skills.bursts.guardBroken({ x: t.x, y: t.y + SPARK_UP_M, z: t.z });

@@ -3,11 +3,7 @@ import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { HYBRID, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
-import {
-  Enemy, Player, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData,
-} from "../../components.js";
-import type { WeaponAttackDef } from "../../defs.js";
-import { inReach } from "../weapons/kick.js";
+import { Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData } from "../../components.js";
 import { bladeLive, startWaySwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
 
@@ -43,32 +39,21 @@ function swingStarts(world: World, enemy: EnemyData, target: Entity): boolean {
     && enemy.sense.facingDot > MIN_FACING_DOT;
 }
 
-const turtling = (world: World, target: Entity, def: WeaponAttackDef): boolean => {
-  const player = world.get(target, Player);
-  return player?.action === "block" && player.actionTime >= def.kickAfterTime;
-};
-
 export function weaponAttackSystem(): System {
   return (world, dt) => {
     for (const [e, attack, enemy, wielder] of world.query(WeaponAttack, Enemy, Wielder)) {
       const def = attack.def, sense = enemy.sense, move = enemy.move, swing = wielder.swing;
       const weapon = weaponIn(wielder.hands), target = sense.target;
       attack.cooldown -= dt;
-      attack.kickWait = Math.max(0, attack.kickWait - dt);
-      if (target !== null && swingStarts(world, enemy, target)) attack.parryRead = roll(enemy) < def.tapParryChance;
+      if (target !== null && swingStarts(world, enemy, target)) {
+        attack.perfectBlockRead = roll(enemy) < def.perfectBlockChance;
+      }
       switch (enemy.state) {
         case "approach": {
           if (!weapon || !sense.targetAlive || target === null) break;
           if (attack.riposte) {
             Object.assign(attack, { riposte: false, swingsLeft: 0 });
             windUp(world, e, enemy, attack, weapon, def.chainWindup);
-          } else if (turtling(world, target, def) && attack.kickWait <= 0
-            && inReach(world, e, target, HYBRID.kick)) {
-            attack.kickWait = def.kickAfterTime;
-            if (roll(enemy) < def.kickChance) {
-              enter(world, e, enemy, "kick");
-              wielder.kick = { step: 0 };
-            }
           } else if (attack.cooldown <= 0 && sense.dist < def.triggerDist && sense.facingDot > MIN_FACING_DOT) {
             attack.swingsLeft = def.minChain - 1 + Math.floor(roll(enemy) * (def.maxChain - def.minChain + 1));
             windUp(world, e, enemy, attack, weapon, def.windup);

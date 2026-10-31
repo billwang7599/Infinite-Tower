@@ -23,18 +23,17 @@ export type Pose = (typeof POSES)[number];
  * The sword fight's poses and how many frames each has, played in order.
  * A swing is named for the way the sword moves on screen (swing-tlbr: from the top left to the bottom right), in
  * three frames: wind-up, strike, follow-through. A guard holds the blade up on its side (guard-top: level over the
- * head). stagger: knocked back, then stumbling, off balance. grab: a guard break, the free hand reaching ahead, the
- * sword held low.
+ * head). stagger: knocked back, then stumbling, off balance.
  */
 export const SWORD_POSES = {
   "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-tlbr": 3, "swing-trbl": 3,
-  "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2, grab: 1,
+  "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2,
 } as const;
 export type SwordPose = keyof typeof SWORD_POSES;
 
 /** A swing drawn left-handed is its mirror image's pose, mirrored, so it still sweeps the same way on screen. */
 const MIRRORED_POSE: Record<Pose | SwordPose, Pose | SwordPose> = {
-  stand: "stand", slash: "slash", down: "down", stagger: "stagger", grab: "grab",
+  stand: "stand", slash: "slash", down: "down", stagger: "stagger",
   "swing-tb": "swing-tb", "swing-lr": "swing-rl", "swing-rl": "swing-lr", "swing-tlbr": "swing-trbl",
   "swing-trbl": "swing-tlbr", "guard-left": "guard-right", "guard-top": "guard-top", "guard-right": "guard-left",
 };

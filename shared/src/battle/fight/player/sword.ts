@@ -10,8 +10,9 @@ import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
-import { endChain, endSwing, lastFeintStep, startWaySwing } from "../weapons/swing.js";
-import { spend, startAction } from "./controller.js";
+import { spend } from "../combat.js";
+import { endChain, startWaySwing } from "../weapons/swing.js";
+import { startAction } from "./controller.js";
 
 export interface SwordTurn {
   world: World;
@@ -33,45 +34,24 @@ export function readSword(t: SwordTurn): void {
   const { player, input, wielder, weapon, dt } = t, swing = wielder.swing;
   const locked = swing !== null && swing.step < swing.liveUntil;
   const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
-  const kickPressed = input.kick && !player.kickHeld;
-  const feint = kickPressed && player.action === "attack" && swing !== null && swing.step <= lastFeintStep(swing);
   player.way = weapon ? input.way : null;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
-  if (kickPressed && !feint) player.kickBuffer = PLAYER.inputBuffer;
-  else if (!locked) player.kickBuffer = Math.max(0, player.kickBuffer - dt);
   if (input.block && !player.blockHeld) {
-    player.tapParryLeft = player.sinceBlockPress >= HYBRID.block.retapTime ? HYBRID.block.tapParryTime : 0;
+    player.perfectBlockLeft = player.sinceBlockPress >= HYBRID.block.remashTime ? HYBRID.block.perfectTime : 0;
     player.sinceBlockPress = 0;
   } else {
-    player.tapParryLeft = Math.max(0, player.tapParryLeft - dt);
+    player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
     player.sinceBlockPress += dt;
   }
   player.attackHeld = input.attack;
-  player.kickHeld = input.kick;
   player.blockHeld = input.block;
   if (wielder.combo !== null) {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);
   }
-  if (t.stunned) player.kickBuffer = 0;
-  else if (feint) {
-    endSwing(t.world, t.e);
-    spend(t.stamina, HYBRID.feint.cost);
-    player.action = "none";
-    t.events.push({ type: "feint", by: t.e });
-  }
-}
-
-export function startKick({ world, e, player, input, wielder, stamina, free }: SwordTurn): boolean {
-  if (!free || player.kickBuffer <= 0 || !player.grounded || stamina.value <= 0) return false;
-  startAction(world, e, player, "kick", input.aimX, input.aimZ);
-  wielder.kick = { step: 0 };
-  spend(stamina, HYBRID.kick.cost);
-  player.kickBuffer = 0;
-  return true;
 }
 
 function strike(t: SwordTurn, strike: Strike): void {

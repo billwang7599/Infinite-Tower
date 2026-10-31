@@ -1,5 +1,5 @@
 let pressCount = 0;
-export const nextPressOrder = (): number => ++pressCount;
+const nextPressOrder = (): number => ++pressCount;
 
 export class Buttons {
   private readonly down = new Set<string>();

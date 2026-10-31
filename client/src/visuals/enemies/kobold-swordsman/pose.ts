@@ -1,6 +1,6 @@
 import type { EnemyState, Vec3 } from "@infinite-tower/shared";
 import {
-  DRAWBACK, drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, type BladePose, type Cut, type WeaponMotion,
+  DRAWBACK, drawnBack, pullOf, REELING_BLADE, type BladePose, type Cut, type WeaponMotion,
 } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -12,8 +12,6 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 const HAND_PIVOT: Vec3 = { x: 0.2, y: 0.92, z: 0 };
 const HAND_ARC_M = 0.28;
 const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
-const GRAB_HAND: Vec3 = { x: -0.1, y: 0.85, z: 0.6 };
-const GRAB_LEAN_RAD = 0.25;
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;
@@ -74,10 +72,6 @@ export function koboldPose(
     case "weaponRecover":
       p.lean = 0.08 * (1 - k);
       break;
-    case "kick":
-      p.blade = GRAB_BLADE;
-      p.lean = GRAB_LEAN_RAD;
-      break;
     case "stunned":
     case "staggered":
       p.blade = REELING_BLADE;
@@ -104,7 +98,7 @@ export function koboldPose(
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
-    offHand: state === "kick" ? GRAB_HAND : OFF_HAND,
+    offHand: OFF_HAND,
     twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
     hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,

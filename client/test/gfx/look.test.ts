@@ -54,10 +54,10 @@ describe("look pictures", () => {
 });
 
 describe("the sword fight's poses", () => {
-  test("a swing has a wind-up, a strike and a follow-through; a guard and a grab one frame, a stagger two", () => {
+  test("a swing has a wind-up, a strike and a follow-through; a guard one frame, a stagger two", () => {
     assert.deepEqual(SWORD_POSES, {
       "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-tlbr": 3, "swing-trbl": 3,
-      "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2, grab: 1,
+      "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2,
     });
   });
 

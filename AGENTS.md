@@ -77,25 +77,32 @@ Decided by the user:
   weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
   planned ([plan/weapons.md](plan/weapons.md)).
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
-  everything else"): For Honor's readability, the game's old 8-way momentum swings, Mordhau's block timing and kicks.
-  For Honor's guard stances, heavy parries and guard breaks, the Combat style setting, and the Posture, One Strike
-  and Master Cuts styles are gone (their branches stay on GitHub). Its rules are the user's:
-  - The mouse aims one of 8 directions, and so do U I O / J L / M , . (rebindable); left click a light attack, right
-    click a heavy, the way aimed; the scroll wheel stabs (K too). Locked on, attacks go where you face.
-  - A ring of 8 wedges round the locked foe shows your aim and its swing coming (red through its wind-up, a centre dot
-    for a stab): the one attack-warning marker the user approved.
-  - Holding block (Shift) covers anything from the front, no direction to match, for stamina, chipping 20%; a heavy
-    into it breaks it (a stagger), a light doesn't. Tapped just before a hit lands (about 0.25 s), it parries: no
-    stamina, and a quick riposte window. Answering a swing with the reverse swing in time parries it too, as the old
-    rules did (45° off for a share; a stab only by a stab).
-  - A kick (G): short, no damage, costs stamina; it shoves someone not blocking, staggers a held block about 0.6 s,
-    and does nothing to someone mid-swing. G in your own wind-up feints (for stamina).
+  everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
+  heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
+  One Strike and Master Cuts styles are gone (their branches stay on GitHub). Its rules are the user's (the numbers
+  are first guesses, to tune):
+  - Left click a light attack, right click a heavy, the scroll wheel a stab (K too). The swing's way comes only from
+    the mouse, as flavour: a quick flick aims one of 7 ways (across, down from the top, and the four diagonals), a
+    horizontal swing wide and a vertical one narrow. There's no straight upward swing (a downward flick does
+    nothing) and no key aims. Locked on, attacks go where you face.
+  - Every swing reaches as far, 1.15 × (arm reach + blade), about 2.2 m with the sword; the stab 1.75 ×.
+  - Lights wind up readably: 0.35 s an opening swing, 0.25 a reverse, 0.45 a perpendicular, 0.3 any other; a heavy
+    0.35 s more. Momentum never takes a wind-up under 0.25 s. A heavy has no hyperarmor.
+  - Defence is one button (Sekiro's): holding block (Shift) stops any hit from the front, chipping 20% of it. Pressed
+    within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
+    the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry and
+    no counter-parry by the reverse swing.
+  - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); a light costs 10, a heavy
+    16, a stab 12, a dodge 22. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
+    costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the guard breaks,
+    a stagger of about 0.8 s. Enemies keep their poise as a hidden stagger meter.
+  - No kick and no feints.
   - The old momentum, with the old numbers: the reverse swing chains quickest, a perpendicular one slowest; a chain
     builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
-  - The Kobold Swordsman fights the same way: chains of 8-way swings, sometimes a tap parry, a kick for a player who
-    holds a block long; modest odds. The boar and the Goblin Warlock just keep working. The 3D player blade follows
-    the ways.
-  Every number and smaller rule is the agent's: "The Hybrid sword" under "Decided by the agent".
+  - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
+    by its own chances. The boar and the Goblin Warlock just keep working. The 3D player blade follows the ways.
+  - Swing steering isn't built ([plan/ideas.md](plan/ideas.md)).
+  Every smaller rule and the agent's numbers: "The Hybrid sword" under "Decided by the agent".
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -251,14 +258,14 @@ Decided by the user:
 - Hit-stop, the hit's jolt and the sparks are drawing only, to tune: `hitStopMs` in `WEAPON_LOOKS` and the top of
   `client/src/visuals/battle/impact.ts`.
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
-  fights by the sword's rules above, tap-parrying and kicking now and then. Its landed sword hits only hurt, with no
+  fights by the sword's rules above, perfect-blocking now and then. Its landed sword hits only hurt, with no
   stun or knockback (the boar's still stun). It drops only its essence. It holds its own Kobold blade (the sword's
   length, 14 damage), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
-  back and turns its body, with a wind-up sound (its blade drawn), both bigger and lower before a heavy; a kick is told
-  by its lunge (a whoosh, its free hand reaching out). There's no other attack-warning marker than the ring of 8
-  wedges (above); the lock-on diamond stays, since it shows which enemy you're locked onto.
+  back and turns its body, with a wind-up sound (its blade drawn), both bigger and lower before a heavy. There's no
+  attack-warning marker (the Hybrid's ring of 8 wedges is gone with the direction keys); the lock-on diamond stays,
+  since it shows which enemy you're locked onto.
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
   too"; not hand-played yet): a Longsword and a Greatsword, which every player has (the starter kit). The Kobold
@@ -288,9 +295,8 @@ Decided by the user:
   blocks, footsteps, dodges and jumps, the enemies' grunts when hit and on death (boar, Kobold, Warlock), skills (the
   cast, a loop while a Bolt or Beam flies, the impact), eating, picking up and moving items, UI clicks, resting, and
   the Kobold's wind-up as part of its tell (the boar's charge and lunge got a growl the same way, the agent's pick).
-  With parries and kicks (the agent's picks): a parry's clash, a kick's whoosh as it starts, a thud as it shoves, a
-  heavy crash as a block is kicked or broken, a clank when it does nothing, a feint's quick blade-draw, and a heavy's
-  wind-up told by a low blade-draw (a player's as it starts; the Kobold's tell lower before a heavy).
+  With blocks (the agent's picks): a perfect block's clash, a heavy crash as a guard breaks, and a heavy's wind-up told
+  by a low blade-draw (a player's as it starts; the Kobold's tell lower before a heavy).
   Ambient loops: flowing
   water near the river and the mire, louder the nearer the water (from the shared water map), and crackling near each
   campfire; the mire arena bubbles. Sounds come from where they happen: quieter further off, panned left or right, and
@@ -392,7 +398,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   unbound (Unbound in Settings) until they bind it or free the key. Only saved keys that clash with each other send
   a group back to its defaults.
 - Stats and the core's numbers (the user let the agent set them, in plan/core.md's table; all in FORMULAS.md's
-  "Stats" and "The core"): every stat starts at 10, where each is ×1. HP 10 × vitality, the stamina bar 10 × stamina,
+  "Stats" and "The core"): every stat starts at 10, where each is ×1. HP 10 × vitality, the stamina bar 15 × stamina,
   physical and skill damage × √(stat / 10), damage taken × 50 / (40 + defense or special defense), stuns × 10 /
   toughness, stamina refill × stamina recovery / 10, HP regen vitality × health regen / 200 a second, walking and
   dodging × (agility / 10)^¼, carry limit 60 × (strength / 10)^¼. Fill to finish step n: 100 × 2^((n − 1) / 3).
@@ -413,8 +419,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   - Death: the fill, or with none a step (back across a realm too: realms aren't floors you keep); Early Yan with
     nothing has nothing to lose. The lost step's points come off the stats with the most first. A disconnect
     mid-fight is a death here too (`LEAVING_LOSES`). A duel costs the core nothing, and what was absorbed in it stays.
-  - Toughness shortens a body blow's stun, an enemy's stagger and Lightning's stun, not the openings parries, kicks and
-    broken blocks leave (the counterplay's sure punish windows).
+  - Toughness shortens a body blow's stun, an enemy's stagger and Lightning's stun, not the openings a perfect block
+    or a broken guard leaves (the counterplay's sure punish windows).
   - Defense counts against weapon and body hits, special defense against skill hits and burns, before Warded and the
     Light shield.
   - HP regen runs for players only, on the overworld, in fights and in the arena after a win; in a fight it waits 5 s
@@ -463,47 +469,40 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The Hybrid sword (the user's design, above; every detail below the agent's, tried only in a headless browser, none
   hand-played; numbers in `shared/src/weapons/hybrid.ts`, the Kobold's in its `weapon` attack in
   `server/src/core/enemies/kobold-swordsman.ts`):
-  - Keys, in the arena's group: U I O / J L / M , . aim from that side of the grid (the swing goes across from there:
-    J from the left, U from the top left), K and the scroll wheel stab (one stab per turn of the wheel: a scroll that
-    rests 150 ms), left Shift blocks (a tap shorter than a step counts), G kicks. The questbook moved from J to H (J
-    aims). A flick of the mouse aims 8 ways (`FLICK`, below). The aim stays between attacks; a fight starts aimed from
-    the top; unlocked, attacks still go the aimed way. Keys saved in the old per-style groups (`hybrid`, `for-honor`)
-    are dropped.
-  - Attacks: a light is the old swing (to its blade going live: an opening 0.1 s, a reverse 0.05, a perpendicular
-    0.16, anything else 0.1; live 0.1 s, recovering 0.08; 16 stamina, poise 12). A heavy is the same plus 0.35 s of
-    wind-up, live 0.12 s, recovering 0.2 s, twice the damage, 24 stamina, poise 24. The stab: 0.14 s, 1.25 times the
-    damage, 20 stamina, poise 18, reaching 1.75 times as far (the old ray, now a 16° arc). A heavier weapon's heft
-    stretches every part. The hit shapes are the old ones by line (horizontal wide, vertical long).
+  - Keys, in the arena's group: K and the scroll wheel stab (one stab per turn of the wheel: a scroll that rests
+    150 ms), left Shift blocks (a tap shorter than a step counts). A flick of the mouse aims (`FLICK`, below): right
+    swings from the right, up from the top, down-left from below on the left, and so on; straight down aims nothing.
+    The aim stays between attacks; a fight starts aimed from the top; unlocked, attacks still go the aimed way. The
+    old aim keys and the kick are dropped from saved keys; the questbook stays on H.
+  - Attacks: a light winds up as the user set (above), is live 0.1 s and recovers 0.08 s, poise 12. A heavy: 0.35 s
+    more wind-up, live 0.12 s, recovering 0.2 s, twice the damage, poise 24. The stab: 0.3 s (the agent's pick, so it
+    isn't the quickest attack while reaching furthest), 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's
+    heft stretches every part. Arcs by line: 160° across, 110° on a diagonal, 60° down from the top.
   - Momentum, the old numbers: +1 a reverse, +0.5 any other, +0.25 a perpendicular, at most 4; each point 25% more
-    damage (×2 at most) and 10% sooner; a stab adds 50% per point and spends it. An attack chains if it starts during
-    the last one or within 0.25 s of its end; a dodge, a block, a cast, the chant, the bag, a hit taken or being
-    parried breaks it (a feint doesn't).
-  - The held block covers 140° in front, costs a player stamina by the damage (×1), and walks at 40%; stamina doesn't
-    refill while it's held (the old rules). Every weapon chips 20% (the old rule spared stabs); a body blow (the
-    boar's) chips nothing but pushes back 60%. A heavy breaks it (no stamina, still the chip), as does running short:
-    staggered 0.8 s. A blocked blade stops, with no recoil: the attacker may chain on.
-  - The tap parry: a block press opens a 0.25 s window, even let go again, as long as nothing else starts; a weapon
-    from in front lands in it parried, free, the attacker staggered 0.4 s (the riposte). A press within 0.5 s of the
-    last opens no window, so tapping can't stand in for holding. Body blows can't be parried.
-  - The counter-parry, the old rule: your swing's blade gone live at most 0.15 s before theirs lands, facing them
-    within 60°; 45° off gives half the stagger and knockback. A parried enemy staggers 1 s and slides back 1.5 m; a
-    parried player staggers 0.5 s, knocked back at 6 m/s. The old 1.5× damage on a parried enemy isn't kept.
-  - The kick: 15 stamina, from idle or blocking, on the ground, no sword needed; it lands 0.2 s in on the nearest foe
-    within 1.4 m (centre to edge) and 45° in front, and is over at 0.5 s. A block kicked: staggered 0.6 s; anyone
-    else not mid-attack or dodging: shoved, staggered 0.25 s and pushed at 7 m/s (the boar and the Warlock too). The
-    feint: G with more than 0.15 s of your wind-up left, 10 stamina, so only heavies in practice.
-  - Openings (the counter-parry's, the tap parry's, a kick's) aren't shortened by toughness.
+    damage (×2 at most) and 10% sooner (never under 0.25 s); a stab adds 50% per point and spends it. A swing down from
+    the top has no reverse. An attack chains if it starts during the last one or within 0.25 s of its end; a dodge, a
+    block, a cast, the chant, the bag, a hit taken or a perfect block against it breaks it.
+  - The held block covers 140° in front and walks at 40%; held, it drains 5 stamina a second. A blocked hit costs a
+    player its damage in stamina (a heavy twice), chips 20% (a stab too), and stops the blade with no recoil: the
+    attacker may chain on. A body blow (the boar's) chips nothing but pushes back 60%. A blocked hit that takes the
+    last of the stamina (or more) breaks the guard: staggered 0.8 s. The drain alone never breaks it; it leaves
+    nothing for the next hit. An enemy's held block costs it the hit's poise instead, and out of poise it staggers as
+    when hit.
+  - The perfect block: a block press opens a 0.2 s window, even let go again, as long as nothing else starts; a weapon
+    from in front lands in it blocked perfectly: no stamina, no chip; the attacker loses 10 stamina (if it has a bar)
+    and recoils 0.4 s (a stagger, its chain lost), so the blocker gets in first. A press within 0.5 s of the last opens
+    no window. Body blows can't be blocked perfectly.
+  - Openings (a perfect block's recoil, a broken guard) aren't shortened by toughness.
   - The Kobold (the Greatsword too): a swing winds up 1.1 s, chained ones 0.45 s (its old, approved numbers), a heavy
-    0.35 s more; any of the 8 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s
-    of recovery after a chain, then its cooldown. Walking up it holds a block (from 0.3 s in), broken by heavies and
-    kicks. It tap-parries 25% of the swings a player starts at it in reach, and ripostes at once; a player who holds a
-    block 1 s in kick reach gets kicked half the time (it tries again each second), and it follows up a block it
-    kicked open. The seeded rolls are the fight's, as for its other choices.
-  - Drawn: the ring at chest height, yours inside in gold, theirs outside in red, drawn over the bodies. The sprite
-    takes the drawn swing nearest each way (bottom-up the top-down one, the diagonals from below the side ones, the
-    stab the overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the
-    blade is held on that side (the guard-left / top / right poses); blocking, up top; kicking, reaching out (the
-    `grab` frame; the Kobold's off hand). Sounds: a kick whooshes; a shove thuds, a block kicked or broken crashes.
+    0.35 s more; any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s
+    of recovery after a chain, then its cooldown. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of
+    the swings a player starts at it in reach while it's walking up (a read, so its block needn't be up yet), and
+    answers at once with a quick swing. Its poise is 80 (was 40), so a player spamming lights doesn't stagger it every
+    few hits and loses (the bot test). The seeded rolls are the fight's, as for its other choices.
+  - Drawn: the sprite takes the drawn swing nearest each way (the diagonals from below the side ones, the stab the
+    overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
+    held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the
+    old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -658,7 +657,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   leaves or starts another fight. One open challenge per player, either side: challenging while yours is open, or
   someone in one, is refused with a notice. Range is checked when challenging, not when accepting. Accepted, both go
   into one fight in the level's duel arena (the Grass Field's stone ruins), 12 m apart facing each other
-  (`DUEL_STARTS`), each locked on the other. Everything works both ways: attacks, blocks, parries, kicks and skills,
+  (`DUEL_STARTS`), each locked on the other. Everything works both ways: attacks, blocks, perfect blocks and skills,
   each way named as its swinger sees it (a duelist's swing from the left comes from the other's right). Weapon hits
   only hurt, as the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
   both, at the time limit), no death, nothing lost or gained, no wins, and both come back where they stood with the
