@@ -1,12 +1,13 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, Posture, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder,
+  Body, clamp, damp, Health, OneStrike, Player, PLAYER, Posture, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder,
   type Entity, type World,
 } from "@infinite-tower/shared";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { dropBlade, holdBlade, placeBlade, type HeldBlade } from "./blade.js";
+import { strikeBlade } from "./lines.js";
 import { facingSeen, playerBlade, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
@@ -19,6 +20,7 @@ const TRAIL_WIDTH = 2.2;
 const SHADOW_REACH = 30;
 const SHADOW_LENGTH_M = 1.1;
 const HEAVY_WINDUP_STRETCH = 0.9;
+const PICKUP_STRETCH = 0.75;
 
 /** Where the sprite's center sits above the body's, so its bottom edge stays on the feet. */
 const spriteY = (stretch: number, bob: number): number => -PLAYER.height / 2 + (SPRITE_SIZE / 2) * stretch + bob;
@@ -120,6 +122,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   const targetStretch = !alive ? 1
     : player.action === "dodge" ? 0.72
     : !player.grounded ? 1 + clamp(Math.abs(vel.y) * 0.015, -0.12, 0.15)
+    : player.action === "pickup" ? PICKUP_STRETCH
     : swing?.attack === "heavy" && swing.step < swing.liveAt ? HEAVY_WINDUP_STRETCH
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
@@ -145,13 +148,17 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     sprite.blade = weapon && holdBlade(ctx, e, sprite.node, weapon, faceYaw);
   }
   const hand = look?.handAt(sprite.facing, pose.pose, pose.frame) ?? null;
-  sprite.blade?.root.setEnabled(hand !== null && sprite.plane.isVisible);
+  const lines = world.get(e, OneStrike);
+  sprite.blade?.root.setEnabled(hand !== null && sprite.plane.isVisible && !lines?.loose);
   if (sprite.blade && motion && hand) {
     const { position } = sprite.plane, across = hand[0] / VIEWS.battle.width - 0.5;
     const up = 0.5 - hand[1] / VIEWS.battle.height;
+    const held = lines && alive && !STAGGERED.includes(player.action)
+      ? strikeBlade(lines, swing, WEAPONS[sprite.blade.weapon].heft)
+      : playerBlade(player, wielder, alive, motion, world.has(e, Posture));
     placeBlade(sprite.blade, ctx.camera, {
       x: position.x + across * SPRITE_SIZE * pose.scaleX, y: position.y + up * SPRITE_SIZE * pose.scaleY,
-    }, faceYaw, playerBlade(player, wielder, alive, motion, world.has(e, Posture)), dt);
+    }, faceYaw, held, dt);
   }
 
   const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);

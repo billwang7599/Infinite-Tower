@@ -15,7 +15,7 @@ const newFight = () => new Fight({
 
 const SWING: SwingData = {
   attack: "light", side: "left", way: null, chain: 0, dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
-  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, posture: 0, perilous: null,
+  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12, posture: 0, perilous: null, line: null, punch: false,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -126,7 +126,7 @@ describe("a fight's hash", () => {
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
         dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, attack: null,
-        side: "top", way: null, posture: 0, perilous: null, alreadyHit: new Set<number>(),
+        side: "top", way: null, posture: 0, perilous: null, line: null, alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [

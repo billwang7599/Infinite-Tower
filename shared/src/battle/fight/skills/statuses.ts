@@ -1,5 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { SKILL_EFFECTS, REACTIONS, STATUSES, type Reaction, type Status } from "../../../skills/effects.js";
+import { ONE_STRIKE } from "../../../weapons/one-strike.js";
 import { Health, Player, Statuses, type StatusData } from "../../components.js";
 import {
   FighterStats, HP_REGEN_PAUSE_TIME, hpRegenPerSec, physicalTakenFactor, skillTakenFactor,
@@ -70,5 +71,6 @@ export function siphon(world: World, e: Entity, damage: number): void {
 export function statusMoveFactor(s: StatusData | undefined): number {
   if (!s) return 1;
   return (s.left.rooted > 0 ? 1 - SKILL_EFFECTS.elements.earth.rootSlow : 1)
-    * (s.left.hasted > 0 ? SKILL_EFFECTS.self.air.moveFactor : 1);
+    * (s.left.hasted > 0 ? SKILL_EFFECTS.self.air.moveFactor : 1)
+    * (s.left.lamed > 0 ? ONE_STRIKE.lameMoveFactor : 1);
 }

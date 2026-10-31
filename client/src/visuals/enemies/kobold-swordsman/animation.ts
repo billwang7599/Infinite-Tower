@@ -1,10 +1,11 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, Posture, WeaponAttack, weaponItemIn, WEAPONS, Wielder,
-  wrapAngle, type WeaponAttackData,
+  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, OneStrike, Posture, WeaponAttack, weaponIn, weaponItemIn, WEAPONS,
+  Wielder, wrapAngle, type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
+import { strikeBlade } from "../../battle/lines.js";
 import {
   cutOf, lerpBlade, MOTIONS, POSTURE_GUARD_BLADE, REST_BLADE, strokeOf, swingCut, WEAPON_LOOKS, type BladePose,
   type WeaponMotion,
@@ -40,13 +41,16 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.legs[0].rotation.x = Math.sin(nodes.gait) * amp;
     nodes.legs[1].rotation.x = -Math.sin(nodes.gait) * amp;
 
-    const swing = world.require(e, Wielder).swing, guard = world.get(e, WeaponAttack);
+    const { swing, hands } = world.require(e, Wielder), guard = world.get(e, WeaponAttack);
+    const lines = world.get(e, OneStrike), held = lines && strikeBlade(lines, swing, weaponIn(hands)?.heft ?? 1);
+    for (const mesh of nodes.sword) mesh.setEnabled(!lines?.loose);
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const cut = swing ? swingCut(swing, true) : cutOf("light", guard?.guard ?? "top", true);
     const heavy = (swing?.attack ?? (enemy.state === "weaponWindup" ? guard?.next : null)) === "heavy";
-    const held = world.has(e, Posture) ? POSTURE_GUARD : heldGuard(nodes.motion, guard);
+    const guarding = held ?? (world.has(e, Posture) ? POSTURE_GUARD : heldGuard(nodes.motion, guard));
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
-      swing ? strokeOf(swing) : null, held, heavy);
+      swing && !lines ? strokeOf(swing) : null, guarding, heavy);
+    if (held?.exact) pose.bladeExact = true;
     nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);

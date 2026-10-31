@@ -80,7 +80,8 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 };
 
 /** Unit vector in the wielder's frame, +z ahead. */
-export interface BladePose { blade: Vec3; handZ: number }
+/** `handY` (m) lifts the hand off its arc (One Strike's high line holds the hilt by the head). */
+export interface BladePose { blade: Vec3; handZ: number; handY?: number }
 
 export const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
 export const REELING_BLADE = norm({ x: 0.6, y: -0.5, z: -0.2 });

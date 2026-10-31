@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, type Character, type StepInput,
+  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, type Character, type CombatStyle,
+  type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer, withStarterKit } from "../../../src/core/content/player.js";
@@ -154,7 +155,8 @@ describe("a duel", () => {
   });
 
   test("is fought in the challenger's combat style, for both", async () => {
-    for (const [mine, theirs] of [["hybrid", "for-honor"], ["for-honor", "hybrid"], ["posture", "hybrid"]] as const) {
+    const pairs = [["hybrid", "for-honor"], ["for-honor", "hybrid"], ["posture", "hybrid"], ["one-strike", "posture"]];
+    for (const [mine, theirs] of pairs as [CombatStyle, CombatStyle][]) {
       const { a, b } = await players();
       a.session.setSettings({ combat: { style: mine } });
       b.session.setSettings({ combat: { style: theirs } });

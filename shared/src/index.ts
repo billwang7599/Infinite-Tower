@@ -22,6 +22,7 @@ export * from "./skills/effects.js";
 export * from "./weapons/weapons.js";
 export * from "./weapons/hybrid.js";
 export * from "./weapons/posture.js";
+export * from "./weapons/one-strike.js";
 export * from "./world/layout.js";
 export * from "./world/tiles.js";
 export * from "./world/arena.js";

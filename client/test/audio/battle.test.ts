@@ -6,7 +6,9 @@ import {
   type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
-import { fightEars, PERILOUS_CUE, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
+import {
+  fightEars, LINE_VOICES, PERILOUS_CUE, STRIDE_M, swingVoice, type FightToHear,
+} from "../../src/audio/battle.js";
 import { ELEMENT_SOUNDS, ENEMY_SOUNDS, STEP_SOUNDS } from "../../src/audio/sounds.js";
 import type { StepEvent } from "../../src/modes/battle/sync.js";
 
@@ -31,6 +33,10 @@ const SWORDED: EnemyDef = {
         windupTime: 9, chainWindupTime: 9, delayTime: 0, delayChance: 0, minString: 1, maxString: 1,
         perilousChance: 0, ends: { thrust: 1, sweep: 0, grab: 0 }, recoverTime: 1, deflectChance: 0,
         thrustDeflectChance: 0, sweepStepBackChance: 0, backOffShare: 2, backOffM: 0,
+      },
+      oneStrike: {
+        thrustWindupTime: 9, reactTime: 0.3, reactJitterTime: 0, measureM: 0.2, decideMinTime: 99, decideMaxTime: 99,
+        matched: { thrust: 0, beat: 0, wait: 1 }, followChance: 0, disarmChance: 0, stepBackChance: 0,
       },
     },
   },
@@ -174,6 +180,27 @@ describe("the arena's ears", () => {
     const heard = hear(ctx)!;
     assert.deepEqual(sounds(heard), ["guard-break", "guard-break", "parry", "hit-body", "parry"]);
     assert.ok(heard.cues[4]!.gain! < 1 && heard.cues[4]!.rate! > 1, "soft and high");
+  });
+
+  test("in One Strike a thrust's wind-up draws the blade, higher for a high line, lower for a low one", () => {
+    const rates: number[] = [];
+    for (const line of ["high", "middle", "low"] as const) {
+      const { run } = arena(undefined, STANDER, "one-strike");
+      run(12, { line });
+      const drawn = run(1, { line, attack: "light" }).cues.filter((c) => c.sound === "draw-blade");
+      assert.equal(drawn.length, 1, line);
+      assert.equal(drawn[0]!.rate, LINE_VOICES[line].rate);
+      rates.push(drawn[0]!.rate!);
+      assert.equal(run(40, { line }).cues.filter((c) => c.sound === "draw-blade").length, 0, `${line}: once`);
+    }
+    assert.ok(rates[0]! > rates[1]! && rates[1]! > rates[2]!);
+  });
+
+  test("One Strike's moments: a clash and a disarm ring, a disarm's blade clatters, a beat knocks", () => {
+    const { ctx, hear, player, enemy } = arena(undefined, STANDER, "one-strike");
+    const whats = ["clash", "disarm", "beat", "offLine", "impale", "pickup"] as const;
+    ctx.events = whats.map((what, i) => ({ step: 1 + i, event: { type: "strike", by: player, target: enemy, what } }));
+    assert.deepEqual(sounds(hear(ctx)!), ["parry", "parry", "drop", "block", "block", "hit-body", "pickup"]);
   });
 
   test("a feint is heard as the blade is pulled back", () => {

@@ -47,6 +47,8 @@ export function kindOf(world: World, e: Entity): VisualKind | null {
   return world.get(e, Enemy)?.def.id ?? world.get(e, SkillObject)?.kind ?? null;
 }
 
+const STRIKE_SHAKE = { clash: 0.08, disarm: 0.14, beat: 0.05, impale: 0.22 } as const;
+
 const shake = (scene: ArenaScene, amount: number) => {
   scene.shake = Math.max(scene.shake, amount);
 };
@@ -88,6 +90,15 @@ export const EFFECTS: Effects = {
     shake(scene, ev.what === "deathblow" ? 0.22 : ev.what === "broken" ? 0.16 : 0.1);
     if (ev.what === "mikiri") parried(scene, world, ev.by, ev.target);
     else grabbed(scene, world, ev.by, ev.target, ev.what !== "jumpKick");
+  },
+  strike(scene, ev, world) {
+    if (ev.what === "pickup" || ev.what === "offLine") return;
+    shake(scene, STRIKE_SHAKE[ev.what]);
+    if (ev.what === "disarm") return parried(scene, world, ev.by, ev.target);
+    if (ev.what === "impale") return grabbed(scene, world, ev.by, ev.target, true);
+    // clash() bounces only a blade holder: a clashed boar bounces off the player instead.
+    const armed = world.has(ev.by, Wielder);
+    clash(scene, world, armed ? ev.by : ev.target, armed ? ev.target : ev.by);
   },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);

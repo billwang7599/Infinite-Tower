@@ -11,6 +11,7 @@ import type { Visual } from "../visuals.js";
 import { aimRing } from "./aimRing.js";
 import { drawChantWords, dropChantWords, type ChantWords } from "./chantWords.js";
 import { impactPose } from "./impact.js";
+import { looseBlades } from "./lines.js";
 import type { ArenaScene } from "./scene.js";
 import { drawChantCircle, dropChantCircle, type ChantCircle } from "./skills.js";
 
@@ -149,6 +150,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
   marker.material = material;
   marker.isPickable = false;
   const ring = aimRing(ctx.scene);
+  const loose = looseBlades(ctx);
   const piles = new Map<number, Mesh>();
 
   const drawPiles = () => {
@@ -191,6 +193,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
       ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
       ctx.sky.frame(Date.now(), ctx.camera.position);
       drawPiles();
+      loose.frame(world, dt);
 
       const lock = ctx.battle.lock;
       ring.frame(world, lock, ctx.battle.fight?.style === "hybrid");

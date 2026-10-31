@@ -147,7 +147,7 @@ describe("starting a battle", () => {
   });
 
   test("is fought in the player's combat style (settings), For Honor when they've picked none", () => {
-    for (const style of ["hybrid", "posture", "for-honor", undefined] as const) {
+    for (const style of ["hybrid", "posture", "one-strike", "for-honor", undefined] as const) {
       const settings = style ? { combat: { style } } : {};
       const { session, link } = startSession({ dev: true, saved: { settings } });
       session.cheat({ kind: "encounter", enemy: "kobold-swordsman" });

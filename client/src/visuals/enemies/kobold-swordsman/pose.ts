@@ -14,6 +14,7 @@ const HAND_ARC_M = 0.28;
 const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
 const GRAB_HAND: Vec3 = { x: -0.1, y: 0.85, z: 0.6 };
 const GRAB_LEAN_RAD = 0.25;
+const PICKUP = { leanRad: 0.45, dropM: -0.15 };
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;
@@ -74,6 +75,10 @@ export function koboldPose(
     case "weaponRecover":
       p.lean = 0.08 * (1 - k);
       break;
+    case "pickup":
+      p.lean = PICKUP.leanRad;
+      p.yOff = PICKUP.dropM;
+      break;
     case "guardBreak":
     case "kick":
       p.blade = GRAB_BLADE;
@@ -104,7 +109,7 @@ export function koboldPose(
   return {
     ...p,
     hand: {
-      x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
+      x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M + (p.handY ?? 0),
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
     offHand: state === "guardBreak" || state === "kick" ? GRAB_HAND : OFF_HAND,

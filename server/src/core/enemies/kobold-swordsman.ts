@@ -34,6 +34,11 @@ export const KOBOLD_SWORDSMAN: Enemy = {
           perilousChance: 0.3, ends: { thrust: 0.45, sweep: 0.3, grab: 0.25 }, recoverTime: 0.6, deflectChance: 0.3,
           thrustDeflectChance: 0.2, sweepStepBackChance: 0.3, backOffShare: 0.7, backOffM: 2,
         },
+        oneStrike: {
+          thrustWindupTime: 0.4, reactTime: 0.3, reactJitterTime: 0.08, measureM: 0.2, decideMinTime: 0.6,
+          decideMaxTime: 1.4, matched: { thrust: 0.4, beat: 0.3, wait: 0.3 }, followChance: 0.6, disarmChance: 0.35,
+          stepBackChance: 0.4,
+        },
       },
     },
     wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },

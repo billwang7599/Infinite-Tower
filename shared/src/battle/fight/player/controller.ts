@@ -12,6 +12,7 @@ import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec } from "../../stats.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
+import { ONE_STRIKE } from "../../../weapons/one-strike.js";
 import { COMBAT, weaponIn } from "../../../weapons/weapons.js";
 import { breakOff } from "../combat.js";
 import type { FightEvent } from "../context.js";
@@ -43,7 +44,9 @@ export function spend(stamina: StaminaData, cost: number): void {
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
-function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: number, speed: number): void {
+function locomotion(
+  player: PlayerData, input: PlayerInputData, v: Vec3, dt: number, speed: number, lamed: boolean,
+): void {
   let ix = input.moveX, iz = input.moveZ;
   const len = Math.hypot(ix, iz);
   if (len > 1) { ix /= len; iz /= len; }
@@ -53,7 +56,7 @@ function locomotion(player: PlayerData, input: PlayerInputData, v: Vec3, dt: num
 
   const pressed = input.jump && !player.jumpHeld;
   player.jumpBuffer = pressed ? PLAYER.jumpBuffer : Math.max(0, player.jumpBuffer - dt);
-  const canJump = player.grounded || player.airTime < PLAYER.coyoteTime;
+  const canJump = !lamed && (player.grounded || player.airTime < PLAYER.coyoteTime);
   if (player.jumpBuffer > 0 && canJump) {
     v.y = PLAYER.jumpSpeed;
     player.jumpBuffer = 0;
@@ -91,7 +94,7 @@ function controlPlayer(
   const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
   const v = body.vel;
   const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden) * statusMoveFactor(statuses);
-  const alive = health.hp > 0;
+  const alive = health.hp > 0, lamed = (statuses?.left.lamed ?? 0) > 0;
 
   const swing = wielder.swing, locked = swing !== null && swing.step < swing.liveUntil;
   const weapon = weaponIn(wielder.hands), skillbook = heldIn(wielder.hands, "skillbook") !== null;
@@ -152,7 +155,8 @@ function controlPlayer(
     // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
     const dodgeable = free || chanting || inBag || usingNow || player.action === "cast"
       || player.action === "beam";
-    if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
+    const canDodge = dodgeStamina !== null && player.grounded && stamina.value > 0 && !lamed;
+    if (dodgeable && player.dodgeBuffer > 0 && canDodge) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
       if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
@@ -197,8 +201,9 @@ function controlPlayer(
       case "attack": {
         const swing = wielder.swing;
         if (swing && bladeLive(swing)) {
-          v.x = dir.x * COMBAT.lungeSpeed;
-          v.z = dir.z * COMBAT.lungeSpeed;
+          const lunge = swing.line !== null ? ONE_STRIKE.thrust.stepInSpeed : COMBAT.lungeSpeed;
+          v.x = dir.x * lunge;
+          v.z = dir.z * lunge;
         } else shuffle(input, v, dt, walkSpeed * COMBAT.moveFactor);
         if (!swing || swing.step >= swing.endAt) player.action = "none";
         break;
@@ -221,6 +226,8 @@ function controlPlayer(
         break;
       case "grab":
       case "kick":
+      case "beat":
+      case "pickup":
       case "chant":
       case "write":
       case "bag":
@@ -229,7 +236,7 @@ function controlPlayer(
         v.z = approach(v.z, 0, PLAYER.accel * dt);
         break;
       case "none":
-        locomotion(player, input, v, dt, walkSpeed);
+        locomotion(player, input, v, dt, walkSpeed, lamed);
         break;
     }
     player.actionTime += dt;

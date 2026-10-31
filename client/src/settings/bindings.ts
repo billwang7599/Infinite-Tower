@@ -5,7 +5,7 @@
  * the overworld's and the arena's only there; so a general key is on nothing else, but the overworld and the arena
  * may share keys. Each combat style has a group of its own (named as the style), working in the arena with the
  * arena's in a fight of that style, so two styles may share keys; a style's mouse button comes before the arena's
- * (Posture's right click guards). In the arena the left hand is on WASD and the
+ * (Posture's right click guards, One Strike's beats). In the arena the left hand is on WASD and the
  * right on the mouse: its buttons attack, and a flick moves the guard, or aims (core/actions.ts).
  */
 import { COMBAT_STYLE_IDS, MAX_KEYS_PER_ACTION, type CombatStyle, type SavedSettings } from "@infinite-tower/shared";
@@ -86,6 +86,12 @@ export const ACTIONS = {
     guard: { label: "Guard (hold; pressed just before a hit: deflect)", keys: [], mouse: [2] },
     perilousThrust: { label: "Perilous thrust (unguardable)", keys: ["ShiftLeft"] },
     perilousSweep: { label: "Perilous sweep (unguardable; jumped over)", keys: ["KeyG"] },
+  },
+  "one-strike": {
+    raiseLine: { label: "Raise the blade a line (or flick the mouse up)", keys: ["KeyI"] },
+    lowerLine: { label: "Lower the blade a line (or flick down)", keys: ["KeyK"] },
+    thrust: { label: "Thrust at your line (disarmed: punch)", keys: [], mouse: [0] },
+    beat: { label: "Beat their blade aside", keys: [], mouse: [2] },
   },
 } as const satisfies Record<string, Record<string, ActionDef>> & Record<CombatStyle, Record<string, ActionDef>>;
 

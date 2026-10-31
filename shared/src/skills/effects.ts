@@ -6,7 +6,7 @@ export type Reaction = (typeof REACTIONS)[number];
 
 export const HARMFUL_STATUSES = ["burning", "wet", "rooted", "shocked", "marked", "cursed"] as const;
 export const STATUSES = [
-  ...HARMFUL_STATUSES, "shielded", "empowered", "warded", "hasted", "charged", "siphoning",
+  ...HARMFUL_STATUSES, "shielded", "empowered", "warded", "hasted", "charged", "siphoning", "lamed",
 ] as const;
 export type Status = (typeof STATUSES)[number];
 

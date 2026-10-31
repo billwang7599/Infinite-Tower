@@ -1,7 +1,7 @@
 import {
   Body, Enemy, FIXED_DT, Health, ITEMS, Player, Posture, Skilled, SkillObject, WeaponAttack, weaponItemIn, Wielder,
-  type AttackKind, type EnemyState, type Entity, type SkillObjectData, type SkillObjectKind, type Vec2, type Vec3,
-  type World,
+  type AttackKind, type EnemyState, type Entity, type Line, type SkillObjectData, type SkillObjectKind, type Vec2,
+  type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../modes/battle/context.js";
@@ -44,6 +44,19 @@ const POSTURE_CUES: Record<PostureMoment, Omit<Cue, "at">> = {
   zanshin: { sound: "parry", rate: 2.4, gain: 0.35 },
 };
 
+export const LINE_VOICES: Record<Line, { rate: number }> = {
+  high: { rate: 1.25 }, middle: { rate: 1 }, low: { rate: 0.8 },
+};
+type StrikeMoment = Extract<FightEvent, { type: "strike" }>["what"];
+const STRIKE_CUES: Record<StrikeMoment, Omit<Cue, "at">[]> = {
+  clash: [{ sound: "parry", rate: 1.1 }],
+  disarm: [{ sound: "parry", rate: 1.3 }, { sound: "drop" }],
+  beat: [{ sound: "block", rate: 1.4 }],
+  offLine: [{ sound: "block", rate: 0.8, gain: 0.6 }],
+  impale: [{ sound: "hit-body", rate: 0.8, gain: 1.3 }],
+  pickup: [{ sound: "pickup" }],
+};
+
 export function swingVoice(massKg: number, attack: AttackKind): { rate: number; gain: number } {
   const heavier = massKg / ITEMS.sword.weight, heavy = attack === "heavy";
   return {
@@ -79,6 +92,7 @@ const EVENT_CUES: EventCues = {
   guardBreak: (ev, world) => [{ sound: GRAB_SOUNDS[ev.result], at: posOf(world, ev.target) }],
   kick: (ev, world) => [{ sound: KICK_SOUNDS[ev.result], at: posOf(world, ev.target) }],
   posture: (ev, world) => [{ ...POSTURE_CUES[ev.what], at: posOf(world, ev.target) }],
+  strike: (ev, world) => STRIKE_CUES[ev.what].map((cue) => ({ ...cue, at: posOf(world, ev.target) })),
   skill(ev) {
     const el = ELEMENT_SOUNDS[ev.elements[0] ?? "plain"];
     return [{ sound: ev.form === "nova" ? el.impact : el.cast, at: flat(ev.at), rate: el.rate }];
@@ -115,11 +129,14 @@ function hearFighters(fight: Fight, fighters: Map<Entity, Fighter>, begun: Map<s
     }
     if (player?.action === "grab" || player?.action === "kick") once("grab", since(player.actionTime), "grab");
     if (swing?.perilous && swing.step < swing.liveAt) once("perilous", steps - swing.step, RING, RING_VOICE);
+    if (swing?.line && swing.step < swing.liveAt) {
+      once("thrust", steps - swing.step, "draw-blade", LINE_VOICES[swing.line]);
+    }
     const grabbing = enemy?.state === "guardBreak" && world.has(e, Posture);
     if (grabbing) once("perilous", since(enemy.stateTime), RING, RING_VOICE);
     if (enemy) {
       const { windup, death } = ENEMY_SOUNDS[enemy.def.id];
-      if (windup && WINDUPS.includes(enemy.state)) {
+      if (windup && WINDUPS.includes(enemy.state) && !swing?.line) {
         const next = enemy.state !== "weaponWindup" ? "light"
           : swing?.attack ?? world.get(e, WeaponAttack)?.next ?? "light";
         once(enemy.state, since(enemy.stateTime), windup, swingVoice(massKg, next));

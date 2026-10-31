@@ -24,6 +24,7 @@ export interface KoboldModel {
   tail: TransformNode;
   /** The sword is in swordArm's hand, along its +y. */
   swordArm: Arm;
+  sword: Mesh[];
   offArm: Arm;
   twoHanded: boolean;
   /** Hip pivots: left, right. */
@@ -181,10 +182,9 @@ export function buildKobold(
   });
   const swordArm = arm(1), offArm = arm(-1);
   const twoHanded = weapon?.twoHanded ?? false;
-  if (weapon) {
-    const steel = mat("kobold-steel", weapon.blade.color);
-    parts.push(...buildBlade(scene, swordArm.hand, weapon, { grip: leather, guard: brass, steel }));
-  }
+  const steel = weapon && mat("kobold-steel", weapon.blade.color);
+  const sword = weapon && steel ? buildBlade(scene, swordArm.hand, weapon, { grip: leather, guard: brass, steel }) : [];
+  parts.push(...sword);
 
   const stars = node("k-stars", model, 0, 1.72, 0);
   const starMat = mat("kobold-star", "#ffd84a");
@@ -203,7 +203,7 @@ export function buildKobold(
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
-    root, model, hips, chest, head, tail, swordArm, offArm, twoHanded, legs, stars, materials, baseEmissive, gait: 0,
-    visualYaw: yaw,
+    root, model, hips, chest, head, tail, swordArm, sword, offArm, twoHanded, legs, stars, materials, baseEmissive,
+    gait: 0, visualYaw: yaw,
   };
 }

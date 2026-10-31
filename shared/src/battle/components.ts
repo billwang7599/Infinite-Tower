@@ -3,6 +3,7 @@ import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
+import type { Line } from "../weapons/one-strike.js";
 import type { Perilous, PerilousEnd } from "../weapons/posture.js";
 import type { AttackKind, GuardSide } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
@@ -18,11 +19,11 @@ import type { PageWrite } from "./input.js";
  * "recoil": an attack of theirs was blocked; "stagger": parried or guard broken (both in hitstun). "grab": guard
  * breaking; "grabbed": being guard broken, still able to counter it. "write": writing a page, from the chant or the
  * bag. "bag": the bag screen open. "use": using an item from the bag. "block" and "kick": the hybrid style's
- * ("block" is Posture's guard too).
+ * ("block" is Posture's guard too). "beat" and "pickup": One Strike's.
  */
 export type PlayerAction =
   | "none" | "attack" | "dodge" | "recoil" | "stagger" | "grab" | "grabbed" | "cast" | "chant" | "write" | "beam"
-  | "bag" | "use" | "block" | "kick";
+  | "bag" | "use" | "block" | "kick" | "beat" | "pickup";
 
 export interface PlayerData {
   grounded: boolean;
@@ -109,6 +110,8 @@ export interface SwingData {
   poiseDamage: number;
   posture: number;
   perilous: Perilous | null;
+  line: Line | null;
+  punch: boolean;
 }
 
 export interface GrabData {
@@ -193,6 +196,19 @@ export interface PostureData {
   connected: boolean;
 }
 export const Posture = defineComponent<PostureData>("Posture");
+
+export interface OneStrikeData {
+  line: Line;
+  to: Line;
+  want: Line;
+  moveSteps: number;
+  offLineSteps: number;
+  stillSteps: number;
+  beatStep: number | null;
+  pickupStep: number | null;
+  loose: Vec2 | null;
+}
+export const OneStrike = defineComponent<OneStrikeData>("OneStrike");
 export const Stamina = defineComponent<StaminaData>("Stamina");
 
 /** Code moves a body by setting `vel`; the physics step moves the collider and writes back `pos` and `vel`. */
@@ -225,6 +241,7 @@ export interface ActiveHitData {
   poiseDamage: number;
   posture: number;
   perilous: Perilous | null;
+  line: Line | null;
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
@@ -255,7 +272,7 @@ export type EnemyState =
   | "approach" | "stunned" | "recoil" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "weaponWindup" | "weapon" | "weaponRecover" | "guardBreak" | "grabbed" | "kick"
+  | "weaponWindup" | "weapon" | "weaponRecover" | "guardBreak" | "grabbed" | "kick" | "beat" | "pickup"
   | "skillChant" | "skillCast"
   | "sidestep";
 
@@ -299,7 +316,13 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   way: Way;
   kickWait: number;
   perilousEnd: PerilousEnd | null;
+  reaction: StrikeReaction | null;
+  reactSteps: number;
+  reactLine: Line;
+  seenWant: Line | null;
 }
+
+export type StrikeReaction = "follow" | "disarm" | "back";
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {
   toSay: Word[];

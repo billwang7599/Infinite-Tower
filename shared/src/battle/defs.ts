@@ -5,6 +5,7 @@
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 import type { Modifier, Segment, SkillElement } from "../skills/skill.js";
+import type { Line } from "../weapons/one-strike.js";
 import type { Stats } from "./stats.js";
 
 /** Damage is at strength 10. */
@@ -31,6 +32,7 @@ export interface LungeDef extends AttackDef {
   /** How long the hit is live. */
   active: number;
   speed: number;
+  line?: Line;
 }
 
 /** A long straight rush. Slamming into the arena wall stuns the attacker: the punish window. */
@@ -83,6 +85,21 @@ export interface PostureSwordsmanDef {
   backOffM: number;
 }
 
+export interface OneStrikeSwordsmanDef {
+  thrustWindupTime: number;
+  reactTime: number;
+  reactJitterTime: number;
+  /** Past its thrust's reach (m), from its centre to the target's edge. */
+  measureM: number;
+  decideMinTime: number;
+  decideMaxTime: number;
+  /** Matched in reach: shares that add up to 1. */
+  matched: Record<"thrust" | "beat" | "wait", number>;
+  followChance: number;
+  disarmChance: number;
+  stepBackChance: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -99,6 +116,7 @@ export interface WeaponAttackDef {
   counters?: WeaponCounters;
   hybrid: HybridSwordsmanDef;
   posture: PostureSwordsmanDef;
+  oneStrike: OneStrikeSwordsmanDef;
 }
 
 /**
@@ -149,6 +167,8 @@ export interface EnemyDef {
   poiseRegen: number;
   staggerTime: number;
   posture: number;
+  /** One Strike: its low line is its head, a high thrust passes over it. */
+  beast?: boolean;
   attacks: EnemyAttacks;
   wielder?: { hands: Partial<Record<Hand, ItemId>>; armReachM: number };
   sidestep?: SidestepDef;

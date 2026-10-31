@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { STRIKES, SWING_DIRS } from "../weapons/hybrid.js";
+import { LINES } from "../weapons/one-strike.js";
 import { PERILOUS } from "../weapons/posture.js";
 import { COMBAT_STYLE_IDS, GUARD_SIDES } from "../weapons/weapons.js";
 import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
@@ -66,6 +67,7 @@ const StepInputSchema = z.object({
   block: z.boolean(),
   kick: z.boolean(),
   perilous: z.enum(PERILOUS).nullable(),
+  line: z.enum(LINES).nullable(),
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),

@@ -4,8 +4,8 @@ Three more ways to fight with a sword, picked with the per-player Combat style s
 Hybrid. The user: "come up with some other combat styles that feel fun and realistic. im thinking we have to both
 read the opponent and also reward good weapon play. search online for existing games and their mechanics. we can also
 add in/mix in stuff", and "make any assumptions you want". Everything below is the agent's design, built overnight
-one PR per style in the order given, for the user to play and retune. Posture is built (its rules are in AGENTS.md's
-"The Posture style" and FORMULAS.md); One Strike and Master Cuts aren't yet.
+one PR per style in the order given, for the user to play and retune. Posture and One Strike are built (their rules
+are in AGENTS.md's "The Posture style" and "The One Strike style", and FORMULAS.md); Master Cuts isn't yet.
 
 ## Survey
 
@@ -53,8 +53,9 @@ Liechtenauer with KCD. Absolver's decks and physics swordplay are under "Not now
 - **Keys are slots, each style says what they do.** Mouse buttons stay fixed; keys stay rebindable. One new action,
   `guardDown` (K, and a downward flick, which the flick reader now drops), shared by One Strike and Master Cuts.
   Posture took a simpler road than slots: its group has actions of its own (`guard` on right click, `perilousThrust`,
-  `perilousSweep`), and a style's group is read before the arena's, so its mouse button wins; the next two can do
-  the same, each action named for what it does in that style.
+  `perilousSweep`), and a style's group is read before the arena's, so its mouse button wins. One Strike did the same
+  (`raiseLine` on I and a flick up, `lowerLine` on K and a flick down, `thrust` and `beat` on the clicks), so no
+  `guardDown` was added; Master Cuts can do the same, each action named for what it does in that style.
 
   | Slot (action) | Default | Posture | One Strike | Master Cuts |
   |---|---|---|---|---|
@@ -95,73 +96,24 @@ jump the sweep, dodge the grab). What it does now is in AGENTS.md ("The Posture 
 - **Feel.** Every number is a first guess and none was hand-played; the Kobold beats a bot that only guards and loses
   to one that reads it (`server/test/core/enemies/kobold-swordsman-posture.test.ts`), with about half its HP left.
 
-## 2. One Strike (Bushido Blade, Nidhogg, Hellish Quart)
+## 2. One Strike (Bushido Blade, Nidhogg, Hellish Quart): built
 
-**The idea.** Blades kill. You hold your point at one of three lines, high, middle or low, and the opponent can see
-it. A thrust at the line their blade holds is stopped; at any other it lands, and where it lands decides everything:
-the head kills, the body nearly does, the legs lame you. Moving your blade into the line of their thrust disarms
-them. Fights are spacing and nerve: who changes line first, who follows, who's inside the other's point. Weapon play
-is length against speed: the greatsword's point reaches first, the sword is quicker and wins once inside.
+Blades kill: three lines (high, middle, low) the opponent can see, a thrust stopped by a blade holding its line and
+landing anywhere else for its zone (the head kills, the body nearly does, the legs lame), moving into a thrust's line
+as it lands disarms its thrower, a beat knocks a matched blade aside, disarmed you punch and walk to your blade, and a
+boar charging onto a set low blade impales itself. What it does now is in AGENTS.md ("The One Strike style") and
+FORMULAS.md. Still open:
 
-**Controls.** I (or a flick up) raises the blade a line, K (or a flick down) lowers it; and the wheel, if the Hybrid
-has made it an input. Left click thrusts at your line. Right click beats their blade aside. Disarmed, left click
-punches.
-
-**Numbers** (`ONE_STRIKE`; times × heft):
-
-- Lines: a move of one line takes 0.1 s (high to low is two moves, passing the middle). Fights start at the middle.
-- Thrust: windup 0.3 s, live 0.1, recovery 0.35 (0.5 if it hit nothing); you step in at 5 m/s while live; reach is
-  arm + blade + 0.3 m, within 12° either side; 8 stamina. A target closer than half the blade's length is inside the
-  point and can't be hit by it.
-- Where a thrust lands, as a share of the target's most HP, through `hurt` (so defense still trims it): high (head)
-  100%, middle (body) 60%, low (legs) 20% and lamed for the rest of the fight (walking ×0.5, no dodge or jump).
-  Strength and the weapon's damage stat don't count here; its length and heft do.
-- Clash: a thrust at the line the target's blade holds, facing it, is stopped. Both are pushed apart (4 m/s for
-  0.15 s) and the thruster recoils 0.25 s. Two thrusts that both land on one step both hit (a double, as in Hellish
-  Quart).
-- Disarm: a blade already moving to the line of a foe's thrust when it lands, within its reach, disarms the thruster
-  as it arrives, and the thrust doesn't land. So the whole windup is the time to react. Two blades moving to each
-  other's line just clash. A still blade is never disarmed.
-- Beat (right click): windup 0.18 s, at a foe whose blade holds your line, within the shorter of your two reaches +
-  0.3 m. It knocks their blade off line for 0.45 s (no line, no thrust, no line change). If their line changed or
-  they left reach before it lands, you're off line yourself for 0.35 s. 15 stamina.
-- Disarmed: your blade lands 3 m away, away from the disarmer (inside the wall). Unarmed, left click punches (windup
-  0.15, live 0.08, recovery 0.3, reach arm + 0.3 m, 4 damage × strength, staggers 0.3 s). Walking within 0.6 m of
-  your own blade picks it up (0.35 s, standing still); nobody else can. The item never leaves the hand slot, so gear
-  and saves don't change.
-- The boar's low line is its head (100%), its middle its back (60%); a high thrust passes over it. Its lunge comes on
-  the low line, so a low blade facing it clashes it (it recoils 0.4 s). Charging onto a blade held low for at least
-  0.3 s, facing it within 30°, by someone standing (not dodging), it impales itself: a head hit, and you're pushed
-  back 1 m unhurt (how a boar spear is set). The Warlock has a person's lines; its poke is a middle thrust; it can't
-  be disarmed.
-
-**The Kobold.** Reacts after 0.3 s (±0.08 from the fight's seed) and fights at its own measure (its reach + 0.2 m).
-Matched with you in reach, every 0.6-1.4 s it changes line and thrusts (40%), beats (30%) or waits (30%); facing a
-mismatched blade in reach, it thrusts. When you change line in its reach it follows 60% of the time. When you thrust
-at another line it tries the disarm 35% (only if it can start moving before the thrust lands) or steps back 40%.
-Disarmed, it walks to its blade. The Kobold Greatsword keeps you at the end of its longer, slower point.
-
-**PvP.** Symmetric, and the purest read of the three: staying matched is safe against thrusts but loses to a beat;
-moving off line beats a beat but invites a thrust; a thrust at a mismatched foe lands unless they move into its line
-in time and disarm you. Every thrust takes 0.3 s to land, so it plays at normal ping. It's still a spar: a head hit
-just ends the duel.
-
-**Drawn and heard.** The 3D blade's three lines: high (hilt by the head, point at the face), middle (point at the
-chest), low (point at the knees); each move eased over its 0.1 s. Poses: the thrust (arm out, a lunge step), the beat
-(a short sharp knock), the clash (both blades jolt), punching, crouching for the blade, a limp when lamed. The
-disarmed blade spins away and lies on the floor (the 3D blade's mesh, a fight entity). Sounds: a clash ring, a beat's
-knock, a disarm's clatter, a punch. No new HUD.
-
-**Reuses.** `startSwing` and `attackShape` (a thrust is a narrow attack kind with its own steps), the clash through
-`blocked()`, `knock`, `stagger()`, `Statuses` for the lame (`statusMoveFactor`), the sidestep behavior, the input's
-held-guard pattern for the line. New: `lineOf` (like `guardOf`), the line clock and arrivals, the disarm and the loose
-blade entity, zones by target (people, the boar), unarmed punches, the boar's set charge.
-
-**Tests first.** A thrust blocked at the same line and landing at each other line for its share; inside the point;
-the double; disarming a thrust by moving to its line before it lands, never a still blade, and two blades moving to
-each other's lines clashing; the beat landing and whiffing; the loose blade, punching and picking it up; the lame;
-the boar's zones, its lunge clashed and its charge impaled only when set; the Kobold's seeded follows and disarm
-tries; a duel both ways.
+- **Art.** No new drawings: the sprite's overhead swing frames stand in for the thrust, its stand frame for the beat,
+  a squash for crouching to the blade; no limp when lamed, no punching frame. Wanted: the three line stances, the
+  thrust (arm out, a lunge step), the beat, punching, crouching for the blade, a limp. Then ART.md's "What to draw".
+- **Seeing the foe's low line.** Locked on, your own sprite can hide the lower half of a foe straight ahead, its low
+  line with it; the camera, or a cue on the foe, may need a look.
+- **Feel.** Every number is a first guess and none was hand-played; the Kobold loses to a bot that follows its line,
+  moves into its thrusts and punishes its beats, and beats one that stands at one line
+  (`server/test/core/enemies/kobold-swordsman-one-strike.test.ts`). The disarm's window is the line's move time,
+  0.1 s with a sword: tight.
+- **The Kobold Greatsword** keeps its longer measure by the same rules; nothing of its own.
 
 ## 3. Master Cuts (Liechtenauer and Kingdom Come)
 
@@ -228,8 +180,8 @@ a duel both ways.
 
 1. **Posture** (built): the most different from For Honor and the Hybrid (no directions at all), the simplest
    controls, strong against every enemy we have.
-2. **One Strike**: the most novel feel (lethal, footsies, disarms) and the best PvP read; more new parts (the line
-   clock, disarms, the loose blade, zones, the lame).
+2. **One Strike** (built): the most novel feel (lethal, footsies, disarms) and the best PvP read; more new parts
+   (the line clock, disarms, the loose blade, zones, the lame).
 3. **Master Cuts**: the cheapest on top of For Honor's code, but the closest to it in feel, so last.
 
 ## Not now

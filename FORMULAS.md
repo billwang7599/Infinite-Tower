@@ -17,6 +17,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Parries, guard breaks and feints](#parries-guard-breaks-and-feints)
 - [The hybrid style](#the-hybrid-style)
 - [The Posture style](#the-posture-style)
+- [The One Strike style](#the-one-strike-style)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -251,6 +252,52 @@ posture × the attacker's heft. Poise isn't used by its swings: posture is.
 Example: the Kobold's three-swing string, each deflected: it takes 15, 20 and 25 (60 posture), you 3 each. Four of
 your swings into its guard (12 each) before it recovers break it (108); your next light is a deathblow of
 160 × 0.35 = 56 HP.
+
+## The One Strike style
+
+A fight in the One Strike style plays by `ONE_STRIKE` in `shared/src/weapons/one-strike.ts`; the rules in
+`shared/src/battle/fight/styles/one-strike/`. Every time × the heft (a punch's × 1). A thrust's damage is a share of
+the target's most HP, through `hurt` (defense, Warded and shields still count); strength, the weapon's damage stat,
+Empowered and Cursed don't. Poise and stamina regen work as everywhere.
+
+| Move | Wind-up | Live | Recovery | Reach (centre to their edge) | Stamina |
+|---|---|---|---|---|---|
+| line change (one line) | 0.1 | | | | 0 |
+| thrust | 0.3 | 0.1, stepping in at 5 m/s | 0.5, or 0.35 if it landed | arm + blade + 0.3 m, 12° either side | 8 × heft |
+| beat | 0.18 (then free at once) | | | the shorter of the two thrust reaches + 0.3 m, 45° | 15 × heft |
+| punch (disarmed) | 0.15 | 0.08 | 0.3 | arm + 0.3 m, 30° either side | 0 |
+
+- **Lines:** high, middle, low; a fight starts at the middle, high to low is two moves. Moving, knocked off line or
+  lying loose, a blade holds no line; staggered or grabbed neither. It doesn't move while its own thrust or beat runs.
+- **A thrust** at the line the target's blade holds, the target facing it (140°), clashes: both pushed apart at 4 m/s,
+  the thruster recoils 0.25 s × heft, the target 0.15 s. At any other line it lands: a person's high (head) 100%,
+  middle (body) 60%, low (legs) 20% and lamed for the rest of the fight (walking × 0.5, no dodge or jump); the boar's
+  low (head) 100%, middle (back) 60%, high passes over. A landed thrust staggers 0.25 s (× 10 / toughness) unless the
+  target's own blade is out, so two blades out at once both land (a double). A target closer than half the blade's
+  length (centre to its edge) is inside the point: no hit.
+- **The disarm:** a blade still moving toward the thrust's line as it lands, facing it, disarms the thruster: no hit,
+  the thruster recoils 0.25 s, and its blade lands 3 m beyond it, away from the disarmer, at least 0.4 m inside the
+  wall. With a 0.1 s move that's a press in the last 0.1 s before it lands (0.2 s for two lines); sooner, the blade is
+  there in time and it clashes.
+- **The beat:** lands 0.18 s after the press on the nearest foe within its reach whose blade holds your line: their
+  blade off line 0.45 s (no thrust, no line change; a thrust or beat still winding up ends). Their line moved or out
+  of reach, your own blade is off line 0.35 s.
+- **Disarmed:** a punch deals 4 × √(strength / 10) and staggers 0.3 s (× 10 / toughness); standing within 0.6 m of
+  your blade (centre to it) picks it up in 0.35 s, standing still. Nobody else can.
+- **The boar:** its lunge comes on the low line (a low blade facing it clashes it: it recoils 0.4 s); charging onto a
+  blade held low for 0.3 s by someone facing it (30°) and not dodging, it takes 100% of its most HP and the holder
+  is pushed back about 1 m (7 m/s easing off over 0.3 s), unhurt. **The Warlock's** poke comes on the middle line and
+  can be clashed, never disarmed; its body takes a person's zones.
+- **The Kobold** (`oneStrike` in its weapon attack): thrusts wind up 0.4 s × heft; it reacts 0.3 s ± 0.08 after
+  what it sees; it holds its measure, its thrust's reach + 0.2 m (± 0.15). Matched in reach, every 0.6-1.4 s it
+  changes line (then thrusts once there, if you didn't follow) 40%, beats 30%, waits 30%; facing a mismatched blade
+  in reach it thrusts. You changing line in reach: it follows 60%. You thrusting at another line: it tries the
+  disarm 35% (only if it can be moving in time; it times the move for the last moment), steps back 40% (its
+  sidestep, 0.3 s at 8 m/s). Disarmed, it walks to its blade.
+
+Example: a sword thrust at the middle line of a Kobold holding high lands for 160 × 0.6 = 96 HP (its defense 10:
+× 1). The same thrust at a player's low line takes 100 × 0.2 = 20 HP and lames them; at the Kobold's high, it
+clashes.
 
 ## Poise and stagger (enemies)
 

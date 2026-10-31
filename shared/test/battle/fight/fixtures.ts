@@ -1,8 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
-  Health, LungeAttack, maxHpOf, newCore, PERILOUS, Player, PLAYER, PlayerInput, Posture, Sidestep, SkillAttack, Skilled,
-  SkillObject,
+  Health, LINES, LungeAttack, maxHpOf, newCore, OneStrike, PERILOUS, Player, PLAYER, PlayerInput, Posture, Sidestep,
+  SkillAttack, Skilled, SkillObject,
   Stamina, staminaMaxOf, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
@@ -67,6 +67,10 @@ export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
     perilousChance: 0, ends: { thrust: 1, sweep: 0, grab: 0 }, recoverTime: 0.8, deflectChance: 0,
     thrustDeflectChance: 0, sweepStepBackChance: 0, backOffShare: 2, backOffM: 2,
   },
+  oneStrike: {
+    thrustWindupTime: 0.4, reactTime: 0.3, reactJitterTime: 0, measureM: 0.2, decideMinTime: 99, decideMaxTime: 99,
+    matched: { thrust: 0, beat: 0, wait: 1 }, followChance: 0, disarmChance: 0, stepBackChance: 0,
+  },
   ...over,
 });
 
@@ -100,8 +104,8 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, guardBreak: false,
-  way: null, block: false, kick: false, perilous: null, cast: null, castHeld: false, chant: false, chantWords: null,
-  write: null, locked: null, bag: false, gear: null, use: null,
+  way: null, block: false, kick: false, perilous: null, line: null, cast: null, castHeld: false, chant: false,
+  chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -117,6 +121,13 @@ export function busyPosture(step: number): PlayerInputData {
   return input({
     ...busy(step), guard: null, attack: step % 9 < 2 ? "light" : null, block: step % 37 > 25,
     perilous: step % 61 < 2 ? PERILOUS[Math.floor(step / 61) % PERILOUS.length]! : null,
+  });
+}
+
+export function busyOneStrike(step: number): PlayerInputData {
+  return input({
+    ...busy(step), guard: null, line: LINES[Math.floor(step / 17) % LINES.length]!,
+    attack: step % 9 < 2 ? (step % 27 < 9 ? "heavy" : "light") : null,
   });
 }
 
@@ -165,6 +176,7 @@ export function dumpState(fight: Fight): string {
       hit: hit && { ...hit, alreadyHit: [...hit.alreadyHit] },
       statuses: fight.world.get(e, Statuses),
       posture: fight.world.get(e, Posture),
+      oneStrike: fight.world.get(e, OneStrike),
     };
   });
   const shots = [...fight.world.query(SkillObject)].map(([, shot]) => shot);

@@ -5,6 +5,7 @@ import type { ItemId } from "../items/items.js";
 
 export const COMBAT_STYLES = {
   "for-honor": { name: "For Honor" }, hybrid: { name: "Hybrid" }, posture: { name: "Posture" },
+  "one-strike": { name: "One Strike" },
 } as const;
 export type CombatStyle = keyof typeof COMBAT_STYLES;
 export const COMBAT_STYLE_IDS = Object.keys(COMBAT_STYLES) as [CombatStyle, ...CombatStyle[]];

@@ -74,6 +74,11 @@ What's built so far:
   guards, deflects and hits fill, full it breaks and the next hit is a deathblow. Left Shift is a perilous thrust
   (dodge into it: Mikiri), G a perilous sweep (jump it, then kick off the sweeper); guard on the beat after a hit for
   Zanshin. The Kobold walks up guarding, deflects, delays swings and ends strings in a thrust, a sweep or a grab.
+  Or to **One Strike** (Bushido Blade, Nidhogg): blades kill. You hold your point high, middle or low (I / K or a
+  flick); left click thrusts at your line, stopped by a blade holding it and landing anywhere else (the head kills,
+  the body nearly, the legs lame); move your blade into a thrust's line as it lands to disarm its thrower; right
+  click beats a matched blade aside. Disarmed, you punch and walk to your blade. A boar charging onto a set low
+  blade impales itself. The Kobold keeps its measure, changes line, follows yours and tries to disarm you.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its

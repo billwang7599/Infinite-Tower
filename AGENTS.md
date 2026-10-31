@@ -108,7 +108,9 @@ Decided by the user:
   A third, **Posture** (Sekiro's, with Nioh's Ki Pulse), is the agent's design from the user's ask ("come up with some
   other combat styles that feel fun and realistic… read the opponent and also reward good weapon play… make any
   assumptions you want"; [plan/combat-styles.md](plan/combat-styles.md)), every rule of it under "The Posture style"
-  in "Decided by the agent". Not hand-played yet.
+  in "Decided by the agent". Not hand-played yet. A fourth, **One Strike** (Bushido Blade, Nidhogg, Hellish Quart:
+  three lines, lethal thrusts, disarms), is the agent's design from the same ask, every rule of it under "The One
+  Strike style" in "Decided by the agent". Not hand-played yet.
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -642,6 +644,58 @@ them; treat them as changeable, and still ask before deciding new ones):
     ahead, a sweep's draws it low and across; the sprite's top-guard frame and the stagger frames stand in for the
     plan's guard, broken and deathblow poses. A break, a deathblow and a jump kick jolt like a broken guard, Mikiri
     holds like a parry.
+- The One Strike style (the agent's design, plan/combat-styles.md; tried only in tests and a headless browser, none
+  hand-played; numbers in `ONE_STRIKE`, `shared/src/weapons/one-strike.ts`, the Kobold's in `oneStrike` in its weapon
+  attack, a lunge's `line`, the boar's `beast`):
+  - Keys: a "Battle: One Strike style" group: raise the blade a line (I, or a flick up), lower it (K, or a flick
+    down), thrust (left click) and beat (right click), the clicks fixed. No wheel. The input gained one held field,
+    `line`: the line wanted, counted by the client from the middle at each fight's start.
+  - A blade holds no line while it moves, is knocked off line or lies loose, nor while its holder is staggered or
+    grabbed (a recoil keeps it). It doesn't change line while its own thrust (wind-up to the end of recovery) or beat
+    runs, or while reeling. Line moves take the heft's time too.
+  - A thrust needs a still blade at the wanted line: pressed while it moves, or with a line key, it waits for it (the
+    0.2 s press buffer, held while the blade moves or a swing runs). No chains: the next waits out the recovery (a
+    dodge still cuts it, as everywhere). It steps in at the plan's 5 m/s. Thrusts and beats cost stamina × heft, like
+    For Honor's attacks; punches cost none, and only a disarmed fighter punches (no sword at all: no attacks).
+  - The beat has no recovery: its 0.18 s wind-up is the whole move, so a thrust right after lands before the beaten
+    blade is back (0.18 + 0.3 < 0.45 s). Its reach is the shorter of the two thrust reaches + 0.3 m (the plan's
+    "reach" read as the thrust's), at the nearest foe within 45° in front; landing on a blade still winding up a
+    thrust or a beat, it knocks that aside. No blade holder there, moved off the line or out of reach: your own blade
+    is off line 0.35 s.
+  - A clash needs the target facing the thrust within 140° (the guards' arc); the thruster recoils 0.25 s × heft, the
+    target is held 0.15 s (the push), as a recoil.
+  - The disarm: the blade moving, its wanted line the thrust's, facing it within 140°, as the thrust lands (not when
+    the blade arrives); no reach check (the blades meet where the thrust reaches you). The disarmed recoil 0.25 s.
+    With a still blade needed to thrust, the plan's "two blades moving to each other's line" can't happen.
+  - A landed thrust staggers 0.25 s (× 10 / toughness) unless the target's own blade is out: that is the double (two
+    blades out at once both land; one landing first stops the other's wind-up). The usual 0.6 s hurt invulnerability
+    and Siphoning still apply; Empowered and Cursed don't, nor strength or the weapon's damage. Inside the point is
+    measured from the thruster's centre to the target's edge.
+  - The lame is a `lamed` status set for the fight's time limit (`MAX_FIGHT_TIME`); Light's cleanse doesn't lift it;
+    a lamed Kobold walks at half pace too.
+  - A disarmed blade lands 3 m beyond its holder, away from the disarmer, at least 0.4 m inside the wall. Picking it
+    up starts by itself when you stand within 0.6 m of it (centre to it), idle on the ground; a hit breaks it off.
+    Punches reach 30° either side and staggers are × 10 / toughness.
+  - The boar: a clashed lunge recoils it 0.4 s and restarts its lunge's cooldown; the impaler is pushed back at 7 m/s
+    easing off over 0.3 s (about 1 m), as a recoil. Zones by a `beast` flag on an enemy's def; the line a lunge comes
+    on by `line` on its def (the boar's low, the Warlock's middle); a blade moving to the Warlock's poke's line clashes
+    it too (never a disarm).
+  - The Kobold: its thrusts wind up 0.4 s × heft (its own, to read; the plan gave none); its measure has 0.15 m of
+    slack, and "in reach" is within it, facing you; its reactions are 0.3 s ± 0.08 (the fight's seed), at least a
+    step, and while it reads one it doesn't thrust at a mismatch; a disarm try is timed as late as still disarms, only
+    from a still blade; stepping back is its sidestep (0.3 s at 8 m/s, straight away); "change line and thrust" changes
+    line, then thrusts as its blade arrives unless you followed. Its beat costs nothing (it has no stamina). It never
+    punches; disarmed it walks to its blade facing you and picks it up in 0.35 s.
+  - No new HUD. Sounds, no new files: a thrust's wind-up draws the blade, pitched by its line (high ×1.25, low ×0.8;
+    the Kobold's usual wind-up sound skipped for it); a clash and a disarm the parry's clang (a disarm higher, with the
+    drop sound); a beat the block's knock, high; a missed beat a soft low knock; an impale a heavy body hit; a pickup
+    the pickup sound.
+  - Drawn, no new drawings: the 3D blade angled up for high (the Kobold's hilt lifted by its head), level for middle,
+    down for low, across the body so a point aimed at the camera still shows, eased over each move; a thrust draws the
+    hand in and drives it out along its line; a beat cocks the blade aside; off line it points out to the side; a
+    disarmed blade flies 0.35 s, spinning, to where it lies, its holder's hand empty. Picking it up, a player crouches
+    (a squash) and a Kobold bends down. The sprite's overhead swing frames stand in for the thrust. A clash sparks, a
+    disarm holds like a parry, an impale jolts like a broken guard.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -917,9 +971,9 @@ tests say what was agreed. Where tests go and how they're written:
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
   `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same;
-  `window.settings.combat.setStyle("hybrid")` or `("posture")` first for those styles) and, in a fight,
-  `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
-  goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
+  `window.settings.combat.setStyle("hybrid")`, `("posture")` or `("one-strike")` first for those styles) and, in a
+  fight, `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the
+  pages goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
   (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). Headless Chromium has
   no pointer lock, so mouse buttons don't count there: fake it with a context init script (a `pointerLockElement`

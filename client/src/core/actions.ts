@@ -50,6 +50,7 @@ const FLICKS: Record<CombatStyle, readonly (WorldAction | null)[]> = {
     "aimRight", "aimBottomRight", "aimBottom", "aimBottomLeft", "aimLeft", "aimTopLeft", "aimTop", "aimTopRight",
   ],
   posture: [],
+  "one-strike": [null, "lowerLine", null, "raiseLine"],
 };
 
 export interface Polled {

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { copyInput, IDLE_INPUT, type GuardSide, type SwingDir } from "@infinite-tower/shared";
+import { copyInput, IDLE_INPUT, type GuardSide, type Line, type SwingDir } from "@infinite-tower/shared";
 import { Actions, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
-import { pickedGuard, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
+import { pickedGuard, pickedLine, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
@@ -52,7 +52,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   };
   const read = () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, { guard: null, way: null }, input);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: null }, input);
     return input;
   };
   const attack = () => read().attack;
@@ -886,6 +886,58 @@ describe("Actions: a Posture fight", () => {
   });
 });
 
+describe("Actions: a One Strike fight", () => {
+  const oneStrike = () => {
+    const s = setup();
+    s.actions.setCombatStyle("one-strike");
+    const line = (was: Line = "middle") => pickedLine(s.actions.poll(), was);
+    return { ...s, line };
+  };
+
+  test("I raises the blade a line, K lowers it, one line a press, no further than high or low", () => {
+    const { line, press } = oneStrike();
+    const after = (key: string, was: Line) => {
+      press(key);
+      return line(was);
+    };
+    assert.equal(after("KeyI", "middle"), "high");
+    assert.equal(after("KeyI", "low"), "middle");
+    assert.equal(after("KeyI", "high"), "high");
+    assert.equal(after("KeyK", "middle"), "low");
+    assert.equal(after("KeyK", "low"), "low");
+    press("KeyI");
+    press("KeyK");
+    assert.equal(line("middle"), "middle", "both in one step: up, then down");
+  });
+
+  test("a flick up raises it, a flick down lowers it; sideways does nothing", () => {
+    for (const [x, y, want] of [[0, -1, "high"], [0, 1, "low"], [-1, 0, "middle"], [1, 0, "middle"]] as const) {
+      const { line, move } = oneStrike();
+      move(x * FAR, y * FAR);
+      assert.equal(line(), want, `${x},${y}`);
+    }
+  });
+
+  test("left click thrusts (a light attack), right click beats (a heavy one); no guard keys", () => {
+    const { read, click, press, actions } = oneStrike();
+    click(0);
+    assert.equal(read().attack, "light");
+    click(2);
+    assert.equal(read().attack, "heavy");
+    press("KeyU");
+    press("ShiftLeft");
+    const polled = actions.poll();
+    assert.deepEqual(polled.pressed, []);
+  });
+
+  test("the line read into the input is the one picked", () => {
+    const { actions } = oneStrike();
+    const input = copyInput(IDLE_INPUT);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: "low" }, input);
+    assert.equal(input.line, "low");
+  });
+});
+
 describe("Actions: a hybrid fight", () => {
   const hybrid = () => {
     const s = setup();
@@ -893,7 +945,7 @@ describe("Actions: a hybrid fight", () => {
     const aim = (was: SwingDir = "tb") => pickedWay(s.actions.poll(), was);
     const readHybrid = () => {
       const input = copyInput(IDLE_INPUT);
-      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr" }, input);
+      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr", line: null }, input);
       return input;
     };
     return { ...s, aim, readHybrid };
