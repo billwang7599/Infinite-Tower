@@ -404,7 +404,9 @@ main.ts
   (`perfectBlockRead`) and the quick swing after it (`riposte`), and seeded feints of its heavies (`feint`).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
   for a weapon, its way) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not
-  physics. A hit is first asked of `defend` (`fight/weapons/defend.ts`): in front of the target, a weapon in its
+  physics. A weapon's hit is first asked of `parries` (`fight/weapons/parry.ts`): a swing meeting the target's own
+  swing at a parry angle is deflected, deflects it or clashes, by whose blade went live first. Then of `defend`
+  (`fight/weapons/defend.ts`): in front of the target, a weapon in its
   perfect block's window costs the attacker stamina and staggers it (`stagger`: a player's "stagger" action in
   hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
   enemy's poise), the guard breaking when it runs out; a body blow is only blocked, pushing the defender back.
@@ -1000,7 +1002,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
-                       block, the held block and its stamina or poise; blocking, facingOf)
+                       block, the held block and its stamina or poise; blocking, facingOf), parry.ts (parries: a
+                       swing parried by a swing, or two clashing; the recoil by the swings' weights)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)

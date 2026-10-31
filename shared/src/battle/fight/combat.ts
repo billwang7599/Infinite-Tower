@@ -17,6 +17,7 @@ import { enter } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
 import { defend } from "./weapons/defend.js";
+import { parries } from "./weapons/parry.js";
 import { endChain, endSwing } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
@@ -76,11 +77,14 @@ export function combatSystem(events: FightEvent[]): System {
     for (const [attacker, hit, attackerBody, attackerFighter] of world.query(ActiveHit, Body, Fighter)) {
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
         if (targetFighter.side === attackerFighter.side || targetHealth.hp <= 0) continue;
-        if (hit.alreadyHit.has(target) || targetHealth.invuln > 0) continue;
+        if (hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
         if (player?.action === "dodge"
           && player.actionTime >= PLAYER.dodge.iframeStart && player.actionTime < PLAYER.dodge.iframeEnd) continue;
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
+        // Before hurt invulnerability: a blade meeting a blade isn't a hit.
+        if (parries(world, events, attacker, hit, target)) break;
+        if (targetHealth.invuln > 0) continue;
 
         hit.alreadyHit.add(target);
         if (defend(world, events, attacker, hit, target)) {

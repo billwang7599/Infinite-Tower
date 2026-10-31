@@ -56,7 +56,8 @@ export const BOAR: EnemyDef = {
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
   triggerDist: 3, windup: 0.6, chainWindup: 0.4, speed: 0, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
-  heavyFeintShare: 0, cooldown: 99, firstDelay: 0, blockReactTime: 0, perfectBlockChance: 0, ...over,
+  heavyFeintShare: 0, cooldown: 99, firstDelay: 0, blockReactTime: 0, perfectBlockChance: 0, parryChance: 0,
+  ...over,
 });
 
 export const SWORDSMAN: EnemyDef = {

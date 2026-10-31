@@ -22,7 +22,7 @@ const SWORDED: EnemyDef = {
   attacks: {
     weapon: {
       triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
-      heavyFeintShare: 0, cooldown: 99, firstDelay: 99, blockReactTime: 0, perfectBlockChance: 0,
+      heavyFeintShare: 0, cooldown: 99, firstDelay: 99, blockReactTime: 0, perfectBlockChance: 0, parryChance: 0,
     },
   },
 };
@@ -132,6 +132,16 @@ describe("the arena's ears", () => {
     const heard = hear(ctx)!, at = world.require(player, Body).pos;
     assert.deepEqual(sounds(heard), ["parry"]);
     assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
+  });
+
+  test("a swing parried or two clashing ring out where the parrier stands", () => {
+    for (const clash of [false, true]) {
+      const { ctx, hear, world, player, enemy } = arena();
+      ctx.events = [{ step: 1, event: { type: "parry", by: player, target: enemy, clash } }];
+      const heard = hear(ctx)!, at = world.require(player, Body).pos;
+      assert.deepEqual(sounds(heard), ["parry"]);
+      assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
+    }
   });
 
   test("a feint is heard where the feinter stands, as its blade is snapped back", () => {

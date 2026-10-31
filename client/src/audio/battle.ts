@@ -62,6 +62,7 @@ const EVENT_CUES: EventCues = {
     { sound: ev.perfect ? "parry" : "block", at: posOf(world, ev.target) },
     ...ev.broken ? [{ sound: "guard-break" as const, at: posOf(world, ev.target) }] : [],
   ],
+  parry: (ev, world) => [{ sound: "parry", at: posOf(world, ev.by) }],
   feint: (ev, world) => [{ sound: "draw-blade", at: posOf(world, ev.by), ...FEINT_VOICE }],
   skill(ev) {
     const el = ELEMENT_SOUNDS[ev.elements[0] ?? "plain"];

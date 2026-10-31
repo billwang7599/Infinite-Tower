@@ -22,6 +22,7 @@ export type FightEvent =
   | { type: "slam"; enemy: Entity }
   | { type: "block"; by: Entity; target: Entity; broken?: boolean; perfect?: boolean }
   | { type: "feint"; by: Entity }
+  | { type: "parry"; by: Entity; target: Entity; clash: boolean }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId; brokeThrough: boolean };
