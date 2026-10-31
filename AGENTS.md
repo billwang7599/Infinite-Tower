@@ -530,6 +530,14 @@ them; treat them as changeable, and still ask before deciding new ones):
   lore "Kobolds") and Maren's "The Old Tongue" (after the Road East: reach the Mistwood, slay a Goblin Warlock, tell
   her; 3 boar meat, lore "The old tongue"). Hollis's pad lines now fit the new start: the stone you woke on is a
   summoning pad, the Grass Field's is south-west of his fire, and you wake on the pad of the place you fell.
+- More natives (the user: "more content… add more quests", "make any assumptions you want"): Corwin, who keeps the
+  Grass Field's east road for Valdris (the Oath), south of it near the Mistwood gap; and Ilse, Nyra's weaver, by the
+  Mistwood's path east of the lake's bridge. Each has a side chain of two that waits on nothing else (no lock-outs):
+  Corwin's "A Blind on the East Road" (gather and hand over 2 boar hides; 2 boar meat, lore "The Oath") then "The
+  Count" (slay 2 Kobold Swordsmen, back to him; 3 boar meat, lore "Where beasts come from"); Ilse's "Weights for the
+  Loom" (gather and hand over 2 boar tusks; 2 boar meat, lore "Nyra's loom" and "The five realms") then "The Snapped
+  Thread" (reach the Mistwood's north-east ruins, slay a Kobold Swordsman, tell her; 3 boar meat, lore "The snapped
+  tether"). Their names, looks, spots, lines, rewards and lore are the agent's.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

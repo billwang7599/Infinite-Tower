@@ -44,6 +44,40 @@ export const LORE = {
       + "Ithra's tongue, after the god of words. Your kind picks them up as if it had always known them, and the "
       + "goblins of the Mistwood chant them too. Nobody Maren knows can say who taught them.",
   },
+  "the-oath": {
+    title: "The Oath",
+    text: "Corwin keeps the Grass Field's east road for Valdris, king of the gods' court, and holds to the Oath: "
+      + "every soul belongs to its own world, and the old laws hold for all of them. Bind your kind by its word, keep "
+      + "it in its place, and in time send it home. He doesn't hate avatars. He thinks a guest should keep the peace, "
+      + "keep his word and go home when he's called. Maren would say the world needs you too badly to send you "
+      + "anywhere.",
+  },
+  "pooled-soul": {
+    title: "Where beasts come from",
+    text: "Corwin has counted the Kobolds for years, and they never run out. The land holds loose soul, he says, and "
+      + "where it pools long enough it clumps into a beast; put one down and the pool starts filling again. Part of "
+      + "what the beast held goes into whoever killed it, and the rest sinks back into the land. It's what everyone "
+      + "believes: the world leaks soul, and the leak clumps into beasts. Where the leak goes, nobody can tell him.",
+  },
+  "nyras-loom": {
+    title: "Nyra's loom",
+    text: "Nyra, the god of fate, keeps a loom, and every life in this world is a thread on it: every native, every "
+      + "boar. Her weavers read them. Avatars have none. Ilse, who weaves for her in the Mistwood, says whatever sends "
+      + "your kind here isn't on the loom at all, and that Nyra has studied the summoning longer than any other god.",
+  },
+  "the-realms": {
+    title: "The five realms",
+    text: "Natives say an avatar carries a small sun inside, and that it grows as the avatar does: Yan, a flame, at "
+      + "first, then Sol, Lux, Ling and Tian, each further from fire, each climbed in three steps, early, middle and "
+      + "peak. A native's light doesn't grow that way. Some say a soul that breaks past Tian takes a seat beside a "
+      + "god; nobody living has seen one.",
+  },
+  "snapped-tether": {
+    title: "The snapped tether",
+    text: "A story the hunters tell: some beasts were avatars once, and their tether snapped. Cut loose from the one "
+      + "behind their eyes, they went wild, and they've been eating ever since. Ilse went looking for a beast with no "
+      + "thread on Nyra's loom. The Mistwood's Kobold had one, thin and knotted, which proves nothing either way.",
+  },
 } satisfies Record<string, LoreEntry>;
 
 export type LoreId = keyof typeof LORE;

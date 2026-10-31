@@ -1,7 +1,8 @@
 # NPCs
 
-Status: **next big step**. Hollis by the Grass Field's fire, and Maren and Tobin in the Waking Hollow (the starting
-area, where their short chain sends you on to Hollis), are the NPCs. Quests, the questbook, lines that follow your
+Status: **next big step**. Hollis by the Grass Field's fire, Maren and Tobin in the Waking Hollow (the starting
+area, where their short chain sends you on to Hollis), Corwin on the Grass Field's east road and Ilse by the
+Mistwood's lake (each with a side chain of two) are the NPCs. Quests, the questbook, lines that follow your
 story and stops (where an NPC stands, by the story, per player) are built (AGENTS.md, ARCHITECTURE.md); Hollis's first
 chain ends with "meet me in the Mistwood", but he has only the fire's stop for now. The plan below grows from there.
 

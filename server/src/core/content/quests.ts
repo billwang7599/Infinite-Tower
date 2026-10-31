@@ -169,4 +169,89 @@ export const QUESTS: Quests = {
       },
     ],
   },
+  "corwin-blind": {
+    title: "A Blind on the East Road",
+    half: "side",
+    steps: [
+      {
+        id: "gather",
+        task: { kind: "gather", item: "boar-hide", count: 2 },
+        text: "Gather 2 boar hides.",
+        hint: "Corwin said the Grass Field's boars root about in its tall grass, and not every one gives a hide.",
+      },
+      {
+        id: "bring",
+        task: { kind: "deliver", item: "boar-hide", count: 2, to: "corwin" },
+        text: "Bring the 2 boar hides to Corwin.",
+        hint: "Corwin keeps the Grass Field's east road, just south of it, near the gap to the Mistwood.",
+        reward: { items: { "boar-meat": 2 }, lore: ["the-oath"] },
+      },
+    ],
+  },
+  "corwin-count": {
+    title: "The Count",
+    half: "side",
+    when: { done: "corwin-blind" },
+    steps: [
+      {
+        id: "kobolds",
+        task: { kind: "kill", enemy: "kobold-swordsman", count: 2 },
+        text: "Slay 2 Kobold Swordsmen.",
+        hint: "Corwin said they come up out of the Grass Field's south-east corner, south-west of where he keeps "
+          + "watch.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "corwin" },
+        text: "Go back to Corwin.",
+        hint: "He keeps the Grass Field's east road, near the gap to the Mistwood.",
+        reward: { items: { "boar-meat": 3 }, lore: ["pooled-soul"] },
+      },
+    ],
+  },
+  "ilse-weights": {
+    title: "Weights for the Loom",
+    half: "side",
+    steps: [
+      {
+        id: "gather",
+        task: { kind: "gather", item: "boar-tusk", count: 2 },
+        text: "Gather 2 boar tusks.",
+        hint: "Ilse said the boars carry them, the Mistwood's and the Grass Field's alike, though few give one up.",
+      },
+      {
+        id: "bring",
+        task: { kind: "deliver", item: "boar-tusk", count: 2, to: "ilse" },
+        text: "Bring the 2 boar tusks to Ilse.",
+        hint: "She sits by the Mistwood's path where it comes off the lake's bridge, on the east shore.",
+        reward: { items: { "boar-meat": 2 }, lore: ["nyras-loom", "the-realms"] },
+      },
+    ],
+  },
+  "ilse-snapped": {
+    title: "The Snapped Thread",
+    half: "side",
+    when: { done: "ilse-weights" },
+    steps: [
+      {
+        id: "ruins",
+        task: { kind: "reach", level: "mistwood", area: { x: 11, z: 12, w: 9, h: 5 } },
+        text: "Go to the broken walls north of the lake.",
+        hint: "Ilse said they stand in the Mistwood's north-east, up the path from where she sits.",
+      },
+      {
+        id: "kobold",
+        task: { kind: "kill", enemy: "kobold-swordsman", count: 1 },
+        text: "Slay a Kobold Swordsman.",
+        hint: "Ilse said one keeps the broken walls, and fights like nothing else in the wood.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "ilse" },
+        text: "Tell Ilse how it fought.",
+        hint: "She sits by the Mistwood's path on the lake's east shore, where the bridge comes in.",
+        reward: { items: { "boar-meat": 3 }, lore: ["snapped-tether"] },
+      },
+    ],
+  },
 };

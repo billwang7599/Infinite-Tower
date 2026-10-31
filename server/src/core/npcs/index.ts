@@ -1,6 +1,8 @@
 import type { Heading, NpcId, Vec2 } from "@infinite-tower/shared";
 import type { When } from "../game/story.js";
+import { CORWIN } from "./corwin.js";
 import { HOLLIS } from "./hollis.js";
+import { ILSE } from "./ilse.js";
 import { MAREN } from "./maren.js";
 import { TOBIN } from "./tobin.js";
 
@@ -27,4 +29,6 @@ export const NPCS: Record<NpcId, Npc> = {
   hollis: HOLLIS,
   maren: MAREN,
   tobin: TOBIN,
+  corwin: CORWIN,
+  ilse: ILSE,
 };
