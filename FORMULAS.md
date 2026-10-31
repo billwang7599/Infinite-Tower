@@ -14,6 +14,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
 - [Blocks](#blocks)
+- [Swing parries](#swing-parries)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -153,6 +154,23 @@ weapon's hit only hurts: no knockback, no hitstun.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP.
+
+## Swing parries
+
+`HYBRID.parry` in `hybrid.ts`; `fight/weapons/parry.ts`.
+
+- **Angle:** the exact reverse of the incoming way (as you see it) is a full parry, within 45° a partial one; stabs
+  never count.
+- **Timing:** when a blade would land, the defender's swing went live up to its window before (`perfectBlockTime`:
+  sword 0.2, longsword 0.25, greatsword 0.35 s, and while its swing lasts) and it parries; or it goes live up to the
+  attacker's window after, and the attacker's blade parries it. Within `clashTime` 0.05 s of each other: a clash.
+- **Weight:** heft × √(strength / 10), × `heavyWeightFactor` 2 for a heavy.
+- **Recoil** of the parried: base (`fullRecoilTime` 0.8 s, `partialRecoilTime` 0.5 s) × clamp(parrier's weight /
+  parried's, `minRatio` 0.5, `maxRatio` 2), never under `minRecoilTime` 0.2 s. A clash staggers both the base time.
+- **The Kobold** parries `parryChance` 15% of the swings it reads (those it doesn't perfect-block).
+
+Example: a sword heavy fully parrying a sword light: weights 2 and 1, the light recoils 0.8 × 2 = 1.6 s; a light
+partly parrying a heavy: 0.5 × 0.5 = 0.25 s.
 
 ## Poise and stagger (enemies)
 

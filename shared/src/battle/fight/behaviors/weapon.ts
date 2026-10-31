@@ -1,9 +1,11 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
-import { HYBRID, lastFeintStep, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
-import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
-import { Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData } from "../../components.js";
+import { toSteps } from "../../../core/time.js";
+import { HYBRID, isSwing, lastFeintStep, parryWay, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
+import { feltHeft, weaponIn, type Weapon } from "../../../weapons/weapons.js";
+import { Enemy, WeaponAttack, Wielder, type EnemyData, type SwingData, type WeaponAttackData } from "../../components.js";
+import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { bladeLive, startWaySwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
@@ -13,6 +15,8 @@ const MIN_FACING_DOT = 0.8;
 /** Keeps turning toward the target while winding up, this fast. */
 const WINDUP_TURN_RAD_PER_SEC = 2.5;
 const STEP_ACCEL = 40;
+// Its parrying blade goes live this long before the player's: past a clash, inside the window.
+const PARRY_LEAD_STEPS = toSteps(HYBRID.parry.clashTime) + 2;
 
 const facing = (enemy: EnemyData) => ({ x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) });
 
@@ -23,9 +27,10 @@ function pickWay(enemy: EnemyData, last: Way): Way {
 
 function windUp(
   world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, windupTime: number,
+  parrying: Way | null = null,
 ): void {
-  const way = pickWay(enemy, attack.way);
-  const strike: Strike = way === "stab" ? "stab" : roll(enemy) < attack.def.heavyShare ? "heavy" : "light";
+  const way = parrying ?? pickWay(enemy, attack.way);
+  const strike: Strike = way === "stab" ? "stab" : !parrying && roll(enemy) < attack.def.heavyShare ? "heavy" : "light";
   attack.way = way;
   attack.feint = strike === "heavy" && roll(enemy) < attack.def.heavyFeintShare;
   const extra = strike === "heavy" ? HYBRID.heavy.extraTime : 0;
@@ -39,6 +44,17 @@ function swingStarts(world: World, enemy: EnemyData, target: Entity): boolean {
   const swing = world.get(target, Wielder)?.swing;
   return swing?.step === 0 && enemy.sense.dist < enemy.def.attacks.weapon!.triggerDist
     && enemy.sense.facingDot > MIN_FACING_DOT;
+}
+
+function parry(
+  world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, weapon: Weapon, theirs: SwingData,
+): boolean {
+  const heft = feltHeft(weapon, world.require(e, FighterStats).strength);
+  const windupTime = (theirs.liveAt - PARRY_LEAD_STEPS) * FIXED_DT / heft;
+  if (!isSwing(theirs.way) || windupTime <= 0) return false;
+  attack.swingsLeft = 0;
+  windUp(world, e, enemy, attack, weapon, windupTime, parryWay(theirs.way));
+  return true;
 }
 
 function feint(world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, events: FightEvent[]): void {
@@ -56,6 +72,9 @@ export function weaponAttackSystem(events: FightEvent[]): System {
       attack.cooldown -= dt;
       if (target !== null && swingStarts(world, enemy, target)) {
         attack.perfectBlockRead = roll(enemy) < def.perfectBlockChance;
+        const theirs = world.require(target, Wielder).swing!;
+        if (weapon && !attack.perfectBlockRead && def.parryChance > 0 && enemy.state === "approach"
+          && roll(enemy) < def.parryChance && parry(world, e, enemy, attack, weapon, theirs)) continue;
       }
       switch (enemy.state) {
         case "approach": {

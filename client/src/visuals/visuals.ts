@@ -70,6 +70,12 @@ export const EFFECTS: Effects = {
     clash(scene, world, ev.by, ev.target);
     if (ev.broken) guardBroken(scene, world, ev.by, ev.target);
   },
+  parry(scene, ev, world) {
+    shake(scene, 0.14);
+    if (!ev.clash) return parried(scene, world, ev.by, ev.target);
+    clash(scene, world, ev.by, ev.target);
+    clash(scene, world, ev.target, ev.by);
+  },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);
     else if (ev.form === "self") bursts.self(ev.elements, ev.at);

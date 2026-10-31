@@ -1,4 +1,5 @@
-import { physicalDamage, type Stats } from "../battle/stats.js";
+import { AVERAGE_STAT, physicalDamage, type Stats } from "../battle/stats.js";
+import { clamp } from "../core/math.js";
 import { toSteps } from "../core/time.js";
 import { feltHeft, type AttackSteps, type HitShape, type Weapon } from "./weapons.js";
 
@@ -78,6 +79,10 @@ export const HYBRID = {
     perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17,
   },
   feint: { cutoffTime: 0.15, cost: 10 },
+  parry: {
+    fullRecoilTime: 0.8, partialRecoilTime: 0.5, minRecoilTime: 0.2, clashTime: 0.05, minRatio: 0.5, maxRatio: 2,
+    heavyWeightFactor: 2,
+  },
   /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
@@ -87,6 +92,27 @@ export const perfectBlockTime = (weapon: Weapon): number =>
 
 export const guardRaiseTime = (weapon: Weapon, strength: number): number =>
   HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft;
+
+export type ParryKind = "full" | "partial";
+
+export function parryKind(own: Way, seen: Way): ParryKind | null {
+  if (!isSwing(own) || !isSwing(seen)) return null;
+  const a = SCREEN_DIR[own], b = SCREEN_DIR[seen];
+  // Facing each other the other's way is mirrored (x flips), and meeting it head on reverses it: only y flips.
+  const dot = a.x * b.x - a.y * b.y;
+  return dot > 0.99 ? "full" : dot > 0.7 ? "partial" : null;
+}
+
+export function parryWay(seen: SwingDir): SwingDir {
+  const b = SCREEN_DIR[seen], meets = (way: SwingDir) => SCREEN_DIR[way].x * b.x - SCREEN_DIR[way].y * b.y;
+  return SWING_DIRS.reduce((best, way) => (meets(way) > meets(best) ? way : best));
+}
+
+export const swingWeight = (weapon: Weapon, strength: number, heavy: boolean): number =>
+  weapon.heft * Math.sqrt(strength / AVERAGE_STAT) * (heavy ? HYBRID.parry.heavyWeightFactor : 1);
+
+export const parryRecoilTime = (baseTime: number, weightRatio: number): number => Math.max(
+  HYBRID.parry.minRecoilTime, baseTime * clamp(weightRatio, HYBRID.parry.minRatio, HYBRID.parry.maxRatio));
 
 export const lastFeintStep = (liveAt: number): number => liveAt - toSteps(HYBRID.feint.cutoffTime) - 1;
 

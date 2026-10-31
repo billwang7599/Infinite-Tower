@@ -152,10 +152,10 @@ describe("the perfect block", () => {
     assert.ok(events.some((e) => e.type === "block" && !e.perfect));
   });
 
-  test("a swing answered by a swing isn't parried: both land", () => {
+  test("a swing answered by a swing that isn't at a parry angle isn't blocked: both land", () => {
     const fight = pvp();
     const events = play(fight, hitAt + 30, (s) => ({ way: "lr", attack: s === PRESS ? "light" : null }),
-      (s) => ({ way: "lr", attack: s === PRESS - 2 ? "light" : null }));
+      (s) => ({ way: "rl", attack: s === PRESS - 2 ? "light" : null }));
     assert.ok(!events.some((e) => e.type === "block"));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[0]));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[1]));

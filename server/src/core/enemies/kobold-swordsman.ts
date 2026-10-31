@@ -20,7 +20,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
       weapon: {
         triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, speed: 3, recover: 0.5, minChain: 2, maxChain: 3,
         heavyShare: 0.3, heavyFeintShare: 0.2, cooldown: 1.2, firstDelay: 1.5, blockReactTime: 0.3,
-        perfectBlockChance: 0.3,
+        perfectBlockChance: 0.3, parryChance: 0.15,
       },
     },
     wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },

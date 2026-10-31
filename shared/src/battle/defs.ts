@@ -61,6 +61,7 @@ export interface WeaponAttackDef {
   firstDelay: number;
   blockReactTime: number;
   perfectBlockChance: number;
+  parryChance: number;
 }
 
 /**

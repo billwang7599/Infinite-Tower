@@ -102,8 +102,18 @@ Decided by the user:
     0.35 s more. Momentum never takes a wind-up under 0.25 s. A heavy has no hyperarmor.
   - Defence is one button (Sekiro's): holding block (Shift) stops any hit from the front, chipping 20% of it. Pressed
     within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
-    the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry and
-    no counter-parry by the reverse swing.
+    the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry.
+  - Blocking is the safe option, the swing parry the risky one (the user: "so our system is a blocking system and a
+    parry system. the timing for parrys also scale with/against size"): your swing parries a swing meeting it, the
+    exact reverse a full parry, within 45° of it a partial one. Whichever blade goes live first meets the other, if
+    the other's goes live within the first's window (by its blade length, as the perfect block's: sword 0.2 s); the
+    parried attack does no damage and recoils (0.8 s full, 0.5 s partial), and the parrier's swing ends with no
+    recovery. Parries deflect, they don't stun. Blades live within about 0.05 s of each other clash: both recoil the
+    base time. Stabs neither parry nor are parried. A swing's weight is its heft × √(strength / 10), × 2 a heavy, and
+    the recoil goes × the parrier's weight over the parried one's (0.5 to 2, never under 0.2 s) ("parry heavy with
+    heavy is the same effect. but parrying light with heavy should give heavy some advantage"). No stamina for being
+    parried. The Kobold parries too, by a seeded share of the swings a player starts at it, with a real swing the
+    parrying way.
   - Blocking goes by the blade (the user: small fast blades and big slow ones play differently): the perfect window
     grows with the blocker's blade length (0.2 s × length / 1.1: sword 0.2, longsword ~0.25, greatsword ~0.35), and
     raising the guard takes time that grows with the heft its wielder feels (sword 0.05 s, greatsword ~0.15 s at
@@ -521,7 +531,19 @@ them; treat them as changeable, and still ask before deciding new ones):
     as nothing else starts; a weapon from in front lands in it blocked perfectly: no stamina, no chip; the attacker
     loses 10 stamina (if it has a bar) and recoils 0.4 s (a stagger, its chain lost), so the blocker gets in first. A
     press within 0.5 s of the last opens no window. Body blows can't be blocked perfectly.
-  - Openings (a perfect block's recoil, a broken guard) aren't shortened by toughness.
+  - Openings (a perfect block's recoil, a broken guard, a parry's recoil) aren't shortened by toughness.
+  - Swing parries (numbers in `HYBRID.parry`, `fight/weapons/parry.ts`): checked when a blade would land, before hurt
+    invulnerability, on a defender whose swing is aimed at the attacker (within the block's 140°). The window counts
+    from the parrier's blade going live. In reach, its blade lands first and the parry is settled then, against the
+    other's blade still to come; out of its reach, the window holds only while its swing lasts (a sword light's
+    ~0.17 s). The swing that parries does no damage
+    either, and a parrying player's chain goes on. A clash is any two blades live within 3 steps (0.05 s) of each
+    other. Felt by angle: facing each other the other's way is mirrored, so the same named way (lr against lr) meets
+    head on; the straight-down swing has no exact reverse (no upward swing) and is only ever partly parried, by a
+    rising diagonal. The Kobold (the Greatsword too) reads 15% of the swings a player starts at it while walking up and
+    not perfect-blocking (`parryChance`), and swings the meeting way (light) so its blade goes live 5 steps before the
+    player's; after any parry it answers at once with a quick swing, as after a perfect block. Sounds and shows as a
+    perfect block does (the clang, the hold, sparks); a clash bounces both with sparks.
   - The Kobold (the Greatsword too): a swing winds up 1.1 s, chained ones 0.45 s (its old, approved numbers), a heavy
     0.35 s more; any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s
     of recovery after a chain, then its cooldown. Walking up it holds a block (from 0.3 s in). It perfect-blocks 30% of

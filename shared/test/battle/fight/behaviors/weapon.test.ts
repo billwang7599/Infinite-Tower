@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, Player, Stamina, WeaponAttack, Wielder, type EnemyDef, type PlayerInputData,
+  CHAIN, Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, parryWay, Player, Stamina,
+  WeaponAttack, Wielder, wayStepsAfter, type EnemyDef, type PlayerInputData, type SwingDir,
   type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -125,5 +126,51 @@ describe("a swordsman", () => {
     assert.ok(blocks(holding("sword", at - raise("sword") - 2 * FIXED_DT)), "up");
     assert.ok(lands(holding("greatsword", at - raise("sword") - 2 * FIXED_DT)), "a greatsword's still rising");
     assert.ok(blocks(holding("greatsword", at - raise("greatsword") - 2 * FIXED_DT)), "a greatsword's up");
+  });
+});
+
+describe("a swordsman's parries", () => {
+  test("reads a player's swing by its share and parries it with the way that meets it, then answers at once", () => {
+    const { events, fight, me, it } = play(kobold({ parryChance: 1, firstDelay: 99 }), 45,
+      (s) => ({ way: "lr", attack: s === 20 ? "light" : null }));
+    const parry = events.find((e) => e.type === "parry");
+    assert.ok(parry?.type === "parry" && !parry.clash && parry.by === it && parry.target === me, JSON.stringify(parry));
+    assert.ok(!events.some((e) => e.type === "hit"));
+    assert.equal(fight.world.require(me, Health).hp, FULL_HP);
+    assert.equal(fight.world.require(me, Player).action, "stagger");
+    assert.notEqual(fight.world.require(it, Wielder).swing, null, "its answer");
+  });
+
+  test("never parries with no share, and parries only some swings by the fight's seed", () => {
+    const count = (chance: number) => {
+      const { events, it } = play(kobold({ parryChance: chance, firstDelay: 99 }), 1200,
+        (s) => ({ way: "lr", attack: s % 50 === 20 ? "light" : null }));
+      return events.filter((e) => e.type === "parry" && e.by === it).length;
+    };
+    assert.equal(count(0), 0);
+    const some = count(0.5);
+    assert.ok(some > 0 && some < 24, `${some}`);
+    assert.equal(count(0.5), some);
+  });
+
+  test("a player's reverse swing in time parries its swing: it recoils", () => {
+    const { fight, me, it } = play(kobold({ firstDelay: 0 }), 0);
+    const wielder = fight.world.require(it, Wielder);
+    const liveIn = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, STATS.strength).liveAt;
+    let press: number | null = null, answer: SwingDir = "lr";
+    const events: FightEvent[] = [];
+    while (fight.steps < 600 && !events.some((e) => e.type === "parry")) {
+      const s = fight.steps + 1;
+      fight.step([input({ locked: 0, way: answer, attack: s === press ? "light" : null })]);
+      events.push(...fight.events);
+      const swing = wielder.swing;
+      if (press === null && swing?.step === 1 && swing.way !== "stab") {
+        answer = parryWay(swing.way);
+        press = fight.steps + (swing.liveAt - 1) - 5 - liveIn + 1;
+      }
+    }
+    const parry = events.find((e) => e.type === "parry");
+    assert.ok(parry?.type === "parry" && parry.by === me && parry.target === it, JSON.stringify(parry));
+    assert.equal(fight.world.require(it, Enemy).state, "staggered");
   });
 });
