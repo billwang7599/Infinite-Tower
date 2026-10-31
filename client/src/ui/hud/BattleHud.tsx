@@ -1,4 +1,6 @@
-import { coreStats, NO_PILE, type Gear, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
+import {
+  coreStats, NO_PILE, type Gear, type Skill, type Spot, type UseSpot, type WeaponId,
+} from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
@@ -53,6 +55,7 @@ interface BagProps {
   settingsScreen: Store<SettingsScreenState>;
   skillbookScreen: Store<{ open: boolean }>;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
+  tooWeak: (item: WeaponId) => void;
   useItem: (at: UseSpot) => void;
 }
 
@@ -116,7 +119,7 @@ function BattleBag(props: BattleBagProps) {
     <>
       <InventoryPanel
         gear={gear} stats={stats} canHeal={!fullHp} using={afterFight ? usingServed : usingInFight} input={input}
-        settingsScreen={props.settingsScreen} use={props.useItem} move={props.moveItem}
+        settingsScreen={props.settingsScreen} use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak}
         openSkillbook={() => skillbookScreen.set({ open: true })} close={props.close}
       />
       {bookOpen && (

@@ -234,7 +234,8 @@ export class GameSession {
     if (!this.inOverworld && !inArena) return;
     this.followPile();
     const onCloth = from.in === "cloth" || to.in === "cloth";
-    const moved = this.using || (inArena && onCloth) ? null : moveGear(this.gear, from, to, turned);
+    const refused = this.using || (inArena && onCloth);
+    const moved = refused ? null : moveGear(this.gear, from, to, turned, this.stats.strength);
     if (moved) {
       this.gear = moved;
       if (from.in === "pile" && this.pileOpen !== null) this.overworld.setPileItems(this.pileOpen, moved.pile);

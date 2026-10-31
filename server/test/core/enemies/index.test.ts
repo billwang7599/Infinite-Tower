@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ENEMY_IDS, itemDef, type EnemyId, type ItemEffect, type ItemId } from "@infinite-tower/shared";
+import {
+  canWield, ENEMY_IDS, isWeapon, itemDef, type EnemyId, type ItemEffect, type ItemId, type WeaponId,
+} from "@infinite-tower/shared";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
@@ -10,6 +12,17 @@ const essenceOf = (item: string): number => {
   const effects: readonly ItemEffect[] = itemDef(item as ItemId).consumable?.effects ?? [];
   return effects.reduce((sum, effect) => sum + ("essence" in effect ? effect.essence : 0), 0);
 };
+
+describe("enemies' weapons", () => {
+  test("every enemy is strong enough for the weapon it holds", () => {
+    for (const id of ENEMY_IDS) {
+      const { stats, wielder } = ENEMIES[id].def;
+      for (const item of Object.values(wielder?.hands ?? {}).filter((held) => isWeapon(held ?? null))) {
+        assert.ok(canWield(item as WeaponId, stats.strength), `${id}: ${item}`);
+      }
+    }
+  });
+});
 
 describe("rollDrops", () => {
   test("a lowest roll drops boar meat, a hide and a tusk from a wild boar", () => {

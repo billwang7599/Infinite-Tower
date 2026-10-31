@@ -5,7 +5,7 @@
  */
 import {
   carryLimit, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type Cell, type Gear, type GearMove,
-  type GridName, type GridSpot, type Slot, type Spot, type Stats, type UseSpot,
+  type GridName, type GridSpot, type Slot, type Spot, type Stats, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
@@ -35,6 +35,7 @@ interface PanelProps {
   settingsScreen: Store<SettingsScreenState>;
   use: (at: UseSpot) => void;
   move: (from: Spot, to: Spot, turned: boolean) => void;
+  tooWeak: (item: WeaponId) => void;
   openSkillbook: () => void;
   close: () => void;
 }
@@ -54,7 +55,8 @@ const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
-  const { gear, stats, canHeal, using, input, settingsScreen, use, move, openSkillbook, close } = props;
+  const { gear, stats, canHeal, using, input, settingsScreen, use, move, tooWeak, openSkillbook, close } = props;
+  const strength = stats?.strength ?? 0;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
@@ -130,11 +132,12 @@ export function InventoryPanel(props: PanelProps) {
   });
 
   const up = (p: Pointer) => {
-    const { mouse: next, move: moved } = pointerUp(current(), gear, p, performance.now());
+    const { mouse: next, move: moved, tooWeak: refused } = pointerUp(current(), gear, p, performance.now(), strength);
     set(next);
     send(moved);
+    if (refused) tooWeak(refused);
   };
-  const fits = canDrop(mouse, gear);
+  const fits = canDrop(mouse, gear, strength);
   const { drag, pointer } = mouse;
   const dragged = drag && (drag.from.in === "slot"
     ? { item: drag.item, count: 1, x: 0, y: 0, turned: false }
@@ -171,7 +174,7 @@ export function InventoryPanel(props: PanelProps) {
       >
         <div className="flex items-start" style={{ gap: INVENTORY_GAP_PX }}>
           <Column title="Equipment">
-            <EquipmentSlots gear={gear} mouse={mouse} area={area} />
+            <EquipmentSlots gear={gear} mouse={mouse} fits={fits} area={area} />
           </Column>
           {(gear.pile.cols > 0 || gear.cloth.cols > 0) && (
             <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>

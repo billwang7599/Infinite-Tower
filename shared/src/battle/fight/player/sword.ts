@@ -8,6 +8,7 @@ import type { Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
 import type { PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
+import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { spend } from "../combat.js";
@@ -81,7 +82,7 @@ export function attackOrBlock(t: SwordTurn): boolean {
   const { world, e, player, input, wielder, stamina, weapon } = t;
   if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
     strike(t, player.queued);
-    spend(stamina, strikeCost(weapon, player.queued));
+    spend(stamina, strikeCost(weapon, player.queued, world.require(e, FighterStats).strength));
     player.attackBuffer = 0;
     return true;
   }

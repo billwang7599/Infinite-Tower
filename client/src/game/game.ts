@@ -4,8 +4,9 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type DayChange,
+  bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type DayChange,
   type DialogueOffer, type EnemyId, type ServerMsgOf, type ShownStat, type Skill, type Spot, type UseSpot,
+  type WeaponId,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -39,6 +40,7 @@ export interface Game {
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
+  tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
   sendChat(text: string): void;
@@ -252,10 +254,14 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       if (!transition) audio.play(bagSound(from, to));
       if (mode === "battle" && !transition && !afterFight()) battle.ctx.gearMoves.push({ from, to, turned });
       if ((mode !== "overworld" && !afterFight()) || transition || !net) return;
-      const moved = moveGear(ui.overworld.get().gear, from, to, turned);
+      const { gear, core } = ui.overworld.get();
+      const moved = core && moveGear(gear, from, to, turned, coreStats(core).strength);
       if (!moved) return;
       overworld.setGear(moved);
       net.send({ t: "moveItem", from, to, turned });
+    },
+    tooWeak(item) {
+      say(ui.notifications, { kind: "tooWeak", item });
     },
     castSkill(skill) {
       if (mode === "battle" && !transition) battle.ctx.casts.push(skill);

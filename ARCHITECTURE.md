@@ -408,7 +408,10 @@ main.ts
   enemy's poise), the guard breaking when it runs out; a body blow is only blocked, pushing the defender back.
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is in `shared/src/weapons/weapons.ts`: `WEAPONS`
-  (each weapon by item id: its `kind`, the moveset it swings with, its length, damage and heft). The sword's rules
+  (each weapon by item id: its `kind`, the moveset it swings with, its length, damage, heft and minimum strength;
+  `feltHeft` is the heft a wielder's strength feels, `canWield` whether it's enough). Equipping a weapon is refused
+  below its minimum by the shared gear rules (`moveGear`), on the server, in a fight and in the bag screen alike.
+  The sword's rules
   and numbers are in `shared/src/weapons/hybrid.ts`: the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and
   momentum (`CHAIN`, `MOMENTUM`), the strikes and the block (`HYBRID`), the hit shapes (`wayShape`: one reach from
   the wielder's own arm reach plus the weapon's length, the arc by line), and `wayStepsAfter`,
@@ -1012,8 +1015,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    the order they're chanted <-> a skill), effects.ts (SKILL_EFFECTS: what skills
                    do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
                    applied in order)
-  weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft; weaponIn,
-                   weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the
+  weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft and
+                   minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the
                    stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind, CHAIN, MOMENTUM; HYBRID (light, heavy, stab,
                    the block and perfect block, the lunge); wayShape, wayStepsAfter, strikeCost, strikeDamage)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
@@ -1537,7 +1540,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
   that reveals it; the questbook lists it under that quest once the step is done.
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand), its row in `WEAPONS`
-  (`shared/src/weapons/weapons.ts`: kind, length, damage, heft), its bag picture (`client/src/gfx/items/items.ts`)
+  (`shared/src/weapons/weapons.ts`: kind, length, damage, heft, minimum strength), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
   the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its
@@ -1609,7 +1612,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | What | Where |
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, damage, heft) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
+| Weapons: the arsenal (length, damage, heft, minimum strength) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the perfect block, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |

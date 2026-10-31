@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, wayStepsAfter, WEAPONS, Wielder,
-  type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
+  AVERAGE_STAT, Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, wayStepsAfter,
+  WEAPONS, Wielder, type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
@@ -272,8 +272,8 @@ describe("Swift", () => {
     for (const f of [plain, swift]) f.step([input({ attack: "light" })]);
     const liveAt = (f: Fight) => f.world.require(f.players[0]!, Wielder).swing?.liveAt;
     const opening = CHAIN.startupTime.opening;
-    assert.equal(liveAt(plain), wayStepsAfter(WEAPONS.sword, opening, false).liveAt);
-    assert.equal(liveAt(swift), wayStepsAfter(WEAPONS.sword, opening / (1 + A.swift), false).liveAt);
+    assert.equal(liveAt(plain), wayStepsAfter(WEAPONS.sword, opening, false, AVERAGE_STAT).liveAt);
+    assert.equal(liveAt(swift), wayStepsAfter(WEAPONS.sword, opening / (1 + A.swift), false, AVERAGE_STAT).liveAt);
   });
 });
 

@@ -1,6 +1,6 @@
 import { physicalDamage, type Stats } from "../battle/stats.js";
 import { toSteps } from "../core/time.js";
-import type { AttackSteps, HitShape, Weapon } from "./weapons.js";
+import { feltHeft, type AttackSteps, type HitShape, type Weapon } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
 // from its first letters' side; facing each other, one fighter's left is the other's right (`mirrorWay`).
@@ -95,15 +95,17 @@ export function wayShape(way: Way, armReachM: number, weapon: Pick<Weapon, "leng
 
 const DRAW_SHARE = 0.6;
 
-export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean): AttackSteps {
+export function wayStepsAfter(weapon: Weapon, windup: number, heavy: boolean, strength: number): AttackSteps {
   const live = heavy ? HYBRID.heavy.activeTime : CHAIN.activeTime;
   const recover = heavy ? HYBRID.heavy.recoverTime : CHAIN.recoverTime;
-  const liveAt = toSteps(windup * weapon.heft), liveUntil = liveAt + toSteps(live * weapon.heft);
-  const endAt = liveUntil + toSteps(recover * weapon.heft);
-  return { driveAt: toSteps(windup * weapon.heft * DRAW_SHARE), liveAt, liveUntil, endAt };
+  const heft = feltHeft(weapon, strength);
+  const liveAt = toSteps(windup * heft), liveUntil = liveAt + toSteps(live * heft);
+  const endAt = liveUntil + toSteps(recover * heft);
+  return { driveAt: toSteps(windup * heft * DRAW_SHARE), liveAt, liveUntil, endAt };
 }
 
-export const strikeCost = (weapon: Weapon, strike: Strike): number => HYBRID[strike].cost * weapon.heft;
+export const strikeCost = (weapon: Weapon, strike: Strike, strength: number): number =>
+  HYBRID[strike].cost * feltHeft(weapon, strength);
 
 export const strikeDamage = (weapon: Weapon, strike: Strike, power: number, stats: Stats): number =>
   physicalDamage(weapon.damage * HYBRID[strike].damageFactor * power, stats);

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, chainKind, HYBRID, MOMENTUM, momentumDamage, mirrorWay, startupTime, strikeCost, SWING_DIRS, wayShape,
-  wayStepsAfter, WEAPONS, WAYS,
+  AVERAGE_STAT, CHAIN, chainKind, feltHeft, HYBRID, MOMENTUM, momentumDamage, mirrorWay, startupTime, strikeCost,
+  SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS,
 } from "@infinite-tower/shared";
 
 describe("the sword's ways", () => {
@@ -47,12 +47,26 @@ describe("the sword's ways", () => {
   });
 
   test("a heavy weapon stretches every part of a swing; a heavy's blade is live longer", () => {
-    const sword = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false);
-    const great = wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false);
+    const sword = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT);
+    const great = wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false, AVERAGE_STAT);
     assert.ok(great.liveAt > sword.liveAt && great.endAt > sword.endAt);
-    const heavy = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, true);
+    const heavy = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, true, AVERAGE_STAT);
     assert.ok(heavy.liveUntil - heavy.liveAt >= sword.liveUntil - sword.liveAt);
-    assert.equal(strikeCost(WEAPONS.greatsword, "heavy"), HYBRID.heavy.cost * WEAPONS.greatsword.heft);
+    assert.equal(strikeCost(WEAPONS.greatsword, "heavy", AVERAGE_STAT), HYBRID.heavy.cost * WEAPONS.greatsword.heft);
+  });
+
+  test("a stronger wielder swings a heavy weapon sooner and for less stamina; a weaker one later and for more", () => {
+    const steps = (strength: number) => wayStepsAfter(WEAPONS.greatsword, CHAIN.startupTime.opening, false, strength);
+    const weak = steps(AVERAGE_STAT / 2), average = steps(AVERAGE_STAT), strong = steps(AVERAGE_STAT * 2);
+    for (const part of ["liveAt", "liveUntil", "endAt"] as const) {
+      assert.ok(weak[part] > average[part] && average[part] > strong[part], part);
+    }
+    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
+      assert.equal(strikeCost(WEAPONS.greatsword, "light", strength),
+        HYBRID.light.cost * feltHeft(WEAPONS.greatsword, strength), `${strength}`);
+      assert.deepEqual(wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, strength),
+        wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT), `${strength}`);
+    }
   });
 
   test("every swing reaches as far, verticals narrowest and horizontals widest; the stab further", () => {

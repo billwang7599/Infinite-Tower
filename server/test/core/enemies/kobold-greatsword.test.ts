@@ -21,6 +21,7 @@ describe("the Kobold Greatsword", () => {
 
   test("its heavy blade swings slower: the same wind-ups, stretched by the greatsword's heft", () => {
     const fight = fightWith(GREATSWORD, 1), e = fight.enemies[0]!, def = GREATSWORD.attacks.weapon!;
+    const { strength } = GREATSWORD.stats;
     let seen = 0;
     for (let i = 0; i < 30 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
       fight.step([IDLE_INPUT]);
@@ -28,10 +29,10 @@ describe("the Kobold Greatsword", () => {
       if (swing?.step !== 1) continue;
       const heavy = swing.attack === "heavy", extra = heavy ? HYBRID.heavy.extraTime : 0;
       const windups = [def.windup + extra, def.chainWindup + extra];
-      const steps = (t: number) => wayStepsAfter(WEAPONS["kobold-greatsword"], t, heavy).liveAt;
+      const steps = (t: number) => wayStepsAfter(WEAPONS["kobold-greatsword"], t, heavy, strength).liveAt;
       const at = windups.findIndex((t) => steps(t) === swing.liveAt);
       assert.ok(at >= 0, `live at ${swing.liveAt}`);
-      assert.ok(swing.liveAt > wayStepsAfter(WEAPONS["kobold-blade"], windups[at]!, heavy).liveAt);
+      assert.ok(swing.liveAt > wayStepsAfter(WEAPONS["kobold-blade"], windups[at]!, heavy, strength).liveAt);
       seen++;
     }
     assert.ok(seen > 2);

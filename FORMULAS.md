@@ -72,7 +72,10 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
 
 `CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`, with
 each weapon's numbers in `WEAPONS` (`weapons.ts`); the rules in `fight/player/sword.ts` and `fight/weapons/`. Damage
-goes × √(strength / 10), and every time × the weapon's heft.
+goes × √(strength / 10), and every time and stamina cost × the heft the wielder feels (`feltHeft`): 1 + (heft − 1) ×
+10 / strength. Strength 10 feels a weapon's heft as it is, 20 half the extra, 5 twice it; a sword (heft 1) feels the
+same to everyone. Below a weapon's `minStrength` it can't be wielded at all (sword 0, longsword 6, greatsword 9; the
+Kobolds' blades as theirs).
 
 - **Wind-up** (press to the blade going live): a light `CHAIN.startupTime` by how it follows the last swing (an
   opening or after a stab 0.35 s, the reverse 0.25 s, another line 0.3 s, a perpendicular one 0.45 s) ×
@@ -100,6 +103,9 @@ By weapon, at strength 10, an opening swing (light / heavy; times in seconds):
 | Greatsword | 1.6 | 16 / 32 | 0.56 / 1.12 | 16 / 25.6 / 19.2 |
 | Kobold blade | 1 | 14 / 28 | (its own, below) | none |
 | Kobold greatsword | 1.6 | 14 / 28 | (its own, below) | none |
+
+Example: a greatsword (heft 1.6) feels 1.3 at strength 20, 1.6 at 10 and 2.2 at 5: an opening light winds up 0.46,
+0.56 or 0.77 s and costs 13, 16 or 22 stamina.
 
 An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
@@ -182,7 +188,7 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 | Action | Cost at strength 10 | Where |
 |---|---|---|
-| Light / heavy / stab | 10 / 16 / 12 × heft: longsword 12 / 19.2 / 14.4, greatsword 16 / 25.6 / 19.2 | `HYBRID`, `strikeCost` |
+| Light / heavy / stab | 10 / 16 / 12 × felt heft: longsword 12 / 19.2 / 14.4, greatsword 16 / 25.6 / 19.2 | `HYBRID`, `strikeCost` |
 | Holding a block | 5 a second | `HYBRID.block.holdStaminaPerSec` |
 | A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
 | Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |

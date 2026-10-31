@@ -17,10 +17,11 @@ export function startWaySwing(
   world: World, e: Entity, weapon: Weapon, strike: Strike, way: Way, windupTime: number, power: number, dir: Vec2,
 ): void {
   world.remove(e, ActiveHit);
+  const stats = world.require(e, FighterStats);
   world.require(e, Wielder).swing = {
     attack: strike === "heavy" ? "heavy" : "light", way, dir, step: 0,
-    ...wayStepsAfter(weapon, windupTime, strike === "heavy"),
-    damage: strikeDamage(weapon, strike, power, world.require(e, FighterStats)),
+    ...wayStepsAfter(weapon, windupTime, strike === "heavy", stats.strength),
+    damage: strikeDamage(weapon, strike, power, stats),
     poiseDamage: HYBRID[strike].poiseDamage,
   };
 }

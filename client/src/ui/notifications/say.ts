@@ -3,8 +3,8 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  coreName, itemDef, MAX_CHAT_CHARS, type ChallengeNews, type CoreState, type EnemyDef, type ItemCounts, type ItemId,
-  type QuestNews, type ServerMsgOf,
+  coreName, itemDef, MAX_CHAT_CHARS, WEAPONS, type ChallengeNews, type CoreState, type EnemyDef, type ItemCounts,
+  type ItemId, type QuestNews, type ServerMsgOf, type WeaponId,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -19,6 +19,7 @@ export type GameEvent =
   | { kind: "challenge"; news: ChallengeNews }
   | { kind: "rested" }
   | { kind: "itemUsed"; item: ItemId }
+  | { kind: "tooWeak"; item: WeaponId }
   | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "given"; item: ItemId; count: number; left: number }
   | { kind: "healed" }
@@ -47,6 +48,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   challenge:    { where: "corner", lines: ({ news }) => challengeLines(news) },
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
+  tooWeak:      { where: "corner", lines: ({ item }) => [tooWeakLine(item)] },
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
   given:        { where: "corner", lines: givenLines },
   healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
@@ -97,6 +99,11 @@ function challengeLines(news: ChallengeNews): string[] {
 function itemUsedLine(item: ItemId): string {
   const def = itemDef(item);
   return `You ${def.consumable?.verb.toLowerCase() ?? "use"} the ${def.name.toLowerCase()}.`;
+}
+
+function tooWeakLine(item: WeaponId): string {
+  const name = itemDef(item).name.toLowerCase();
+  return `You aren't strong enough to wield the ${name}: it needs ${WEAPONS[item].minStrength} strength.`;
 }
 
 function givenLines({ item, count, left }: EventOf<"given">): string[] {

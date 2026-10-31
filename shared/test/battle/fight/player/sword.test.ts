@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  CHAIN, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Stamina, strikeCost, WEAPONS, Wielder,
-  type PlayerInputData, type Strike, type SwingDir,
+  AVERAGE_STAT, CHAIN, emptyBag, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Stamina, starterEquipment,
+  strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -96,14 +96,34 @@ describe("the sword's attacks", () => {
     assert.equal(heavy.damage[0], light.damage[0]! * HYBRID.heavy.damageFactor);
     const fight = newFight(), stamina = fight.world.require(fight.players[0]!, Stamina), before = stamina.value;
     fight.step([input({ locked: 0, way: "tb", attack: "heavy" })]);
-    assert.equal(stamina.value, before - strikeCost(SWORD, "heavy"));
+    assert.equal(stamina.value, before - strikeCost(SWORD, "heavy", AVERAGE_STAT));
   });
 
   test("each strike costs its own stamina", () => {
     for (const strike of ["light", "heavy", "stab"] as const) {
       const fight = newFight(30), stamina = fight.world.require(fight.players[0]!, Stamina), before = stamina.value;
       fight.step([input({ locked: 0, way: "tb", attack: strike })]);
-      assert.equal(stamina.value, before - strikeCost(SWORD, strike), strike);
+      assert.equal(stamina.value, before - strikeCost(SWORD, strike, AVERAGE_STAT), strike);
     }
+  });
+
+  test("a greatsword is swung by its wielder's strength: the strong sooner and for less", () => {
+    const swingAs = (strength: number) => {
+      const fight = new Fight({
+        arena: { ...ARENA, radius: 40 },
+        players: [player({ x: 0, y: 0.05, z: 0 }, {
+          vitals: { hp: 100, stamina: 1000 }, stats: { ...STATS, stamina: 1000, strength },
+          gear: { bag: emptyBag(), equipment: { ...starterEquipment(), rightHand: "greatsword" } },
+        })],
+        enemies: [enemy({ ...STATUE, maxHp: 100_000 }, { x: 0, y: 0.05, z: 30 })],
+      });
+      const me = fight.players[0]!, stamina = fight.world.require(me, Stamina), before = stamina.value;
+      fight.step([input({ locked: 0, way: "tb", attack: "light" })]);
+      return { spent: before - stamina.value, liveAt: fight.world.require(me, Wielder).swing!.liveAt };
+    };
+    const strong = swingAs(AVERAGE_STAT * 2), average = swingAs(AVERAGE_STAT);
+    assert.equal(strong.spent, strikeCost(WEAPONS.greatsword, "light", AVERAGE_STAT * 2));
+    assert.equal(average.spent, strikeCost(WEAPONS.greatsword, "light", AVERAGE_STAT));
+    assert.ok(strong.liveAt < average.liveAt);
   });
 });

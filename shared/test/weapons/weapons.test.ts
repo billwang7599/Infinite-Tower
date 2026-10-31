@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ITEMS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS } from "@infinite-tower/shared";
+import {
+  AVERAGE_STAT, canWield, feltHeft, ITEMS, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS,
+} from "@infinite-tower/shared";
 
 describe("the arsenal", () => {
   test("a weapon in either hand is found, the right hand's first; other things in hand are no weapon", () => {
@@ -28,5 +30,24 @@ describe("the arsenal", () => {
       assert.equal(ITEMS[id as keyof typeof WEAPONS].wearable.on, "hand", id);
       assert.ok(WEAPON_KINDS.includes(weapon.kind), id);
     }
+  });
+
+  test("strength scales a weapon's heft: the average feels it as it is, twice that half the extra, half twice", () => {
+    const { heft } = WEAPONS.greatsword;
+    assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT), heft);
+    assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT * 2), 1 + (heft - 1) / 2);
+    assert.equal(feltHeft(WEAPONS.greatsword, AVERAGE_STAT / 2), 1 + (heft - 1) * 2);
+    for (const strength of [AVERAGE_STAT / 2, AVERAGE_STAT, AVERAGE_STAT * 2]) {
+      assert.equal(feltHeft(WEAPONS.sword, strength), 1, `${strength}`);
+    }
+  });
+
+  test("a weapon can be wielded from its minimum strength up, not below", () => {
+    for (const [id, weapon] of Object.entries(WEAPONS)) {
+      assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength), true, id);
+      if (weapon.minStrength > 0) assert.equal(canWield(id as keyof typeof WEAPONS, weapon.minStrength - 1), false, id);
+    }
+    assert.ok(WEAPONS.greatsword.minStrength > WEAPONS.longsword.minStrength);
+    assert.ok(WEAPONS.longsword.minStrength > WEAPONS.sword.minStrength);
   });
 });

@@ -4,8 +4,8 @@
  * what to ask the server for.
  */
 import {
-  footprint, itemDef, moveGear, stackIn, type BagItem, type Cell, type Gear, type GearMove, type GridSpot, type ItemId,
-  type Spot, type UseSpot,
+  canWield, fitsSlot, footprint, isWeapon, itemDef, moveGear, moveItem, stackIn, type BagItem, type Cell, type Gear,
+  type GearMove, type GridSpot, type ItemId, type Spot, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 
 /** How far a press on an item moves before it's a drag rather than a click. */
@@ -103,18 +103,22 @@ export function pointerDown(m: BagMouse, gear: Gear, p: Pointer): BagMouse {
  * (clicking the selected one again, or empty space).
  */
 export function pointerUp(
-  m: BagMouse, gear: Gear, p: Pointer, nowMs: number,
-): { mouse: BagMouse; move: GearMove | null } {
+  m: BagMouse, gear: Gear, p: Pointer, nowMs: number, strength: number,
+): { mouse: BagMouse; move: GearMove | null; tooWeak: WeaponId | null } {
   const at = { ...m, pointer: p, press: null, drag: null };
   if (m.drag) {
-    const to = landing({ ...m, pointer: p }, gear);
-    const fits = !!to && canDrop({ ...m, pointer: p }, gear) && !isWhereItWas(m.drag, to, gear);
+    const to = landing({ ...m, pointer: p }, gear), item = m.drag.item;
+    const fits = !!to && canDrop({ ...m, pointer: p }, gear, strength) && !isWhereItWas(m.drag, to, gear);
     const move = fits ? { from: m.drag.from, to: to!, turned: m.drag.turned } : null;
-    const after = move ? moveGear(gear, move.from, move.to, move.turned) ?? gear : gear;
-    return { mouse: point({ ...at, selected: move?.to ?? m.drag.from }, after, p, nowMs), move };
+    const after = move ? moveGear(gear, move.from, move.to, move.turned, strength) ?? gear : gear;
+    const tooWeak = to?.in === "slot" && fitsSlot(item, to.slot) && isWeapon(item) && !canWield(item, strength);
+    return {
+      mouse: point({ ...at, selected: move?.to ?? m.drag.from }, after, p, nowMs), move, tooWeak: tooWeak ? item : null,
+    };
   }
   const clicked = m.press && (same(m.press.stack, m.selected) ? null : m.press.stack);
-  return { mouse: point({ ...at, selected: m.press ? clicked : m.selected }, gear, p, nowMs), move: null };
+  const mouse = point({ ...at, selected: m.press ? clicked : m.selected }, gear, p, nowMs);
+  return { mouse, move: null, tooWeak: null };
 }
 
 /** Where the dragged item would land: its top-left kept inside the grid under it, or the slot. null over neither. */
@@ -136,10 +140,10 @@ const isWhereItWas = (drag: Drag, to: Spot, gear: Gear) =>
   same(drag.from, to) && (to.in === "slot" || stackAt(gear, drag.from)?.turned === drag.turned);
 
 /** Whether the dragged item can go down where it would land. */
-export function canDrop(m: BagMouse, gear: Gear): boolean {
+export function canDrop(m: BagMouse, gear: Gear, strength: number): boolean {
   const to = landing(m, gear);
   if (!m.drag || !to) return false;
-  return isWhereItWas(m.drag, to, gear) || moveGear(gear, m.drag.from, to, m.drag.turned) !== null;
+  return isWhereItWas(m.drag, to, gear) || moveGear(gear, m.drag.from, to, m.drag.turned, strength) !== null;
 }
 
 /** Drop the drag (and a press) without moving anything: the item stays where it was. */
@@ -151,9 +155,9 @@ export const cancel = (m: BagMouse): BagMouse => (m.drag || m.press ? { ...m, dr
  */
 export function turnInPlace(gear: Gear, spot: Spot): GearMove | null {
   const s = stackIn(gear, spot);
-  if (!s || spot.in === "slot" || isSquare(s.item)) return null;
-  const at = keyOf(spot, s);
-  return moveGear(gear, at, at, !s.turned) ? { from: at, to: at, turned: !s.turned } : null;
+  if (!s || spot.in === "slot" || spot.in === "pile" || isSquare(s.item)) return null;
+  const at = { in: spot.in, x: s.x, y: s.y };
+  return moveItem(gear[at.in], at, at, !s.turned) ? { from: at, to: at, turned: !s.turned } : null;
 }
 
 type Turned = { mouse: BagMouse; move: GearMove | null };

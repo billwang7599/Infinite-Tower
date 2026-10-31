@@ -1,4 +1,5 @@
 import { bagWeight, fits, itemAt, moveItem, type Bag, type BagItem } from "./bag.js";
+import { canWield, isWeapon } from "../weapons/weapons.js";
 import { itemDef, ITEMS, type ItemId, type WornOn } from "./items.js";
 
 export const SLOTS = ["rightHand", "leftHand", "head", "body", "legs", "boots"] as const;
@@ -60,7 +61,7 @@ function lift(gear: Gear, spot: GridSpot): Gear {
   return withGrid(gear, spot.in, { ...grid, items: grid.items.filter((_, k) => k !== i) });
 }
 
-export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gear | null {
+export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean, strength: number): Gear | null {
   const moving = stackIn(gear, from);
   if (!moving || to.in === "pile") return null;
   if (from.in !== "slot" && to.in === from.in) {
@@ -69,6 +70,7 @@ export function moveGear(gear: Gear, from: Spot, to: Spot, turned: boolean): Gea
   }
   if (to.in === "slot") {
     if (!fitsSlot(moving.item, to.slot) || moving.count !== 1) return null;
+    if (isWeapon(moving.item) && !canWield(moving.item, strength)) return null;
     if (from.in !== "slot") {
       if (gear.equipment[to.slot]) return null;
       return { ...lift(gear, from), equipment: { ...gear.equipment, [to.slot]: moving.item } };
