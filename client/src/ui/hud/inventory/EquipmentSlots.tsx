@@ -1,6 +1,6 @@
 import { itemDef, type Gear, type Slot } from "@infinite-tower/shared";
 import type { ReactNode } from "react";
-import { canDrop, landing, same, type BagMouse } from "./bagMouse.js";
+import { landing, same, type BagMouse } from "./bagMouse.js";
 import { ItemPicture } from "./BagGrid.js";
 import { SLOT_COLUMNS, SLOT_GAP_PX, SLOT_PX } from "./grid.js";
 
@@ -37,12 +37,13 @@ const LAYOUT: { slot: Slot; label: string; outline: ReactNode; mirrored?: boolea
 interface SlotsProps {
   gear: Gear;
   mouse: BagMouse;
+  fits: boolean;
   area: (slot: Slot) => (el: HTMLDivElement | null) => void;
 }
 
-export function EquipmentSlots({ gear, mouse, area }: SlotsProps) {
+export function EquipmentSlots({ gear, mouse, fits, area }: SlotsProps) {
   const spot = landing(mouse, gear);
-  const edge = canDrop(mouse, gear) ? "border-stamina" : "border-hp";
+  const edge = fits ? "border-stamina" : "border-hp";
   return (
     <div
       id="equipment" className="grid select-none"

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, dodgeCost, emptyBag, Player, Stamina, starterEquipment, strikeCost, wayStepsAfter, WEAPONS, type Hand,
-  type PlayerAction, type PlayerInputData, type Vitals,
+  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, Player, Stamina, starterEquipment, strikeCost, wayStepsAfter, WEAPONS,
+  type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
 import { ARENA, dumpState, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE } from "../fixtures.js";
@@ -14,7 +14,7 @@ type Script = (step: number) => PlayerInputData;
 
 const SWING_AT = 5;
 
-const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveUntil;
+const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false, AVERAGE_STAT).liveUntil;
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
@@ -60,7 +60,8 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
       assert.deepEqual(actions.slice(SWING_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("attack"),
         `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
-      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - strikeCost(WEAPONS.sword, "light") - dodgeCost("light")!,
+      const spent = strikeCost(WEAPONS.sword, "light", AVERAGE_STAT) + dodgeCost("light")!;
+      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - spent,
         `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });

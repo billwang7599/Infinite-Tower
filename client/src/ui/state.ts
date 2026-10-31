@@ -7,7 +7,7 @@
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
   type DayChange, type DialogueOffer, type GameServer, type Gear, type Look, type QuestView,
-  type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type Word,
+  type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type WeaponId, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -175,6 +175,7 @@ export interface UiActions {
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
+  tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
   sendChat(text: string): void;

@@ -49,6 +49,11 @@ options, before you build it. That includes:
 This applies to defaults that seem obvious, too. If you notice that something already built implies a mechanic
 nobody approved, say so and ask. When the user decides something, add it to the list below.
 
+The world as it stands is a test world (the user: "the starter stuff is just to test things. dont assume the world we
+have right now is permanent. its just a testing world + testing items."): the levels, items, starter kit and their
+numbers are there to try things with. Their numbers may be tweaked freely for testing; don't build on them as if they
+were the real game.
+
 Decided by the user:
 
 - Never lock a player out (the user: "core game is like a semi-sandbox in terms of rpg. we never want to lock a
@@ -76,6 +81,13 @@ Decided by the user:
   fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
   weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
   planned ([plan/weapons.md](plan/weapons.md)).
+- Heft scales everything and strength scales heft down (the user: "heft scales everything which is realistic", "a
+  stronger person would use a greatsword well, while a weaker person wouldn't"): a weapon's wind-up, live time,
+  recovery and stamina costs go × the heft its wielder feels, 1 + (heft − 1) × (10 / strength), players and enemies
+  alike (strength 10 feels the listed heft; a heft-1 sword feels the same to everyone). Each weapon has a minimum
+  strength: below it you can't wield it at all (option a): it won't go into a hand, the server refusing it, and the
+  bag screen says why. The test numbers: sword 0, longsword 6, greatsword 9. Two-handed grips, halving the heft
+  penalty, come later ([plan/weapons.md](plan/weapons.md)).
 - One sword system, the Hybrid (the user tried five and kept it: "ok i like the hybrid one the most. get rid of
   everything else"), then made simpler (the user: simple to learn, deep to master, like Souls or Sekiro: a light, a
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
@@ -477,7 +489,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   - Attacks: a light winds up as the user set (above), is live 0.1 s and recovers 0.08 s, poise 12. A heavy: 0.35 s
     more wind-up, live 0.12 s, recovering 0.2 s, twice the damage, poise 24. The stab: 0.3 s (the agent's pick, so it
     isn't the quickest attack while reaching furthest), 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's
-    heft stretches every part. Arcs by line: 160° across, 110° on a diagonal, 60° down from the top.
+    heft, as its wielder's strength feels it, stretches every part. Arcs by line: 160° across, 110° on a diagonal, 60°
+    down from the top.
   - Momentum, the old numbers: +1 a reverse, +0.5 any other, +0.25 a perpendicular, at most 4; each point 25% more
     damage (×2 at most) and 10% sooner (never under 0.25 s); a stab adds 50% per point and spends it. A swing down from
     the top has no reverse. An attack chains if it starts during the last one or within 0.25 s of its end; a dodge, a

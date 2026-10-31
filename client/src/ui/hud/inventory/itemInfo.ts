@@ -1,5 +1,7 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
-import { footprint, isWeapon, itemDef, type BagItem, type ItemEffect, type ItemId } from "@infinite-tower/shared";
+import {
+  footprint, isWeapon, itemDef, WEAPONS, type BagItem, type ItemEffect, type ItemId, type WeaponId,
+} from "@infinite-tower/shared";
 
 const WIELDED = "In a hand: light and heavy attacks, and a guard.";
 const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
@@ -22,6 +24,11 @@ export const effectsText = (effects: readonly ItemEffect[]): string => effects
 /** One decimal place at most: "12", "12.5". */
 export const formatWeight = (weight: number): string => String(Math.round(weight * 10) / 10);
 
+function wieldedText(item: WeaponId): string {
+  const need = WEAPONS[item].minStrength;
+  return need > 0 ? `${WIELDED} Needs ${need} strength.` : WIELDED;
+}
+
 export function itemInfo(stack: BagItem): ItemInfo {
   const def = itemDef(stack.item), use = def.consumable;
   const { cols, rows } = footprint(stack.item, stack.turned);
@@ -32,6 +39,6 @@ export function itemInfo(stack: BagItem): ItemInfo {
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`
-      : isWeapon(stack.item) ? WIELDED : HELD[stack.item] ?? null,
+      : isWeapon(stack.item) ? wieldedText(stack.item) : HELD[stack.item] ?? null,
   };
 }

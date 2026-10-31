@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { ITEMS, type BagItem, type ItemId } from "@infinite-tower/shared";
+import { ITEMS, WEAPONS, type BagItem, type ItemId } from "@infinite-tower/shared";
 import { formatWeight, itemInfo } from "../../../../src/ui/hud/inventory/itemInfo.js";
 
 const stack = (item: ItemId, count = 1, turned = false): BagItem => ({ item, count, x: 0, y: 0, turned });
@@ -42,6 +42,11 @@ describe("itemInfo (the tooltip)", () => {
   test("the sword and the skillbook say what holding them lets you do", () => {
     assert.equal(itemInfo(stack("sword")).effect, "In a hand: light and heavy attacks, and a guard.");
     assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
+  });
+
+  test("a weapon that needs strength says how much", () => {
+    assert.ok(itemInfo(stack("greatsword")).effect?.endsWith(`Needs ${WEAPONS.greatsword.minStrength} strength.`));
+    assert.ok(!itemInfo(stack("sword")).effect?.includes("strength"));
   });
 
   test("weights show one decimal place at most", () => {

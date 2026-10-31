@@ -115,7 +115,8 @@ What's built so far:
   keep a Beam going). For now everyone knows every word. Dying keeps the pages and the words.
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
   a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
-  block; without the skillbook you can't quick-cast. Worn things count toward the weight.
+  block; without the skillbook you can't quick-cast. Worn things count toward the weight. A heavier weapon swings
+  slower and costs more stamina, less so the stronger you are, and too heavy for your strength it can't be wielded.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying,
   resting, eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the

@@ -25,6 +25,21 @@ stats)."
   (`planSwing` in git history); the Posture, One Strike and Master Cuts styles were tried and dropped (their PRs,
   #192-#194, are closed, the branches kept).
 
+- Strength against heft: every time and stamina cost of a swing goes × the heft its wielder feels, 1 + (heft − 1) ×
+  (10 / strength) (`feltHeft`). Below a weapon's `minStrength` it can't be wielded: `moveGear` won't put it in a
+  hand. Test numbers: sword 0, longsword 6, greatsword 9; the Kobold blade 0 and the Kobold greatsword 9 (the
+  Kobolds have strength 10).
+
+## Later: two-handed grips
+
+The user: "an option to use 2 hands for weapons (with long enough hilt--eventually) ... a stronger person + 2 hands
+would probably wield the great sword similar to a normal person." Decided: holding a weapon in both hands halves the
+heft penalty, 1 + (heft − 1) × (10 / strength) × 0.5, and only a weapon with a long enough hilt can be held so.
+
+Open: which weapons have the hilt for it (or which hilts, with weapons from parts); how a grip is chosen (both hands
+on one weapon in the slots, or a key that switches); whether the minimum strength is lower two-handed; what the free
+hand gives up (no skillbook in hand, so no quick-casting).
+
 ## Later: the Kobolds' AI
 
 Reading the player: answering the way a swing comes from, chains that mix ways to bait a block. Open: how quick its

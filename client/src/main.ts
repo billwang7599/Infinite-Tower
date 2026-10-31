@@ -142,6 +142,7 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   answerChallenge: (accept) => void preparing.then((game) => game.answerChallenge(accept)),
   useItem: (at) => void preparing.then((game) => game.useItem(at)),
   moveItem: (from, to, turned) => void preparing.then((game) => game.moveItem(from, to, turned)),
+  tooWeak: (item) => void preparing.then((game) => game.tooWeak(item)),
   castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
   saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),
   sendChat: (text) => void preparing.then((game) => game.sendChat(text)),

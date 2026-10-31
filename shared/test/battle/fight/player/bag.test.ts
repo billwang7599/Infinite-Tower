@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, Wielder, type Bag, type Carried,
+  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, WEAPONS, Wielder, type Bag, type Carried,
   type GearMove, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
+import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, skill, STATS, STATUE } from "../fixtures.js";
 
 await initPhysics();
 
@@ -75,6 +75,25 @@ describe("the bag in a fight", () => {
     moveInBag(fight, EQUIP_SWORD);
     assert.equal(playerOf(fight).gear.equipment.rightHand, "sword");
     assert.equal(swings(fight), true);
+  });
+
+  test("a weapon too heavy for the player's strength stays in the bag", () => {
+    const need = WEAPONS.greatsword.minStrength;
+    const weakling = (strength: number) => new Fight({
+      arena: ARENA, enemies: [enemy(STATUE, at(0, 6))],
+      players: [player(at(0, -4), {
+        stats: { ...STATS, strength },
+        gear: { bag: { ...emptyBag(), items: [{ item: "greatsword", count: 1, x: 0, y: 0, turned: false }] },
+          equipment: { ...starterEquipment(), rightHand: null } },
+      })],
+    });
+    for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
+      const fight = weakling(strength);
+      run(fight, 0.3);
+      moveInBag(fight, { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false });
+      assert.equal(playerOf(fight).gear.equipment.rightHand, held, `${strength}`);
+      assert.equal(handsOf(fight).rightHand, held, `${strength}`);
+    }
   });
 
   test("the skillbook put away, the chant still opens: it needs no book", () => {

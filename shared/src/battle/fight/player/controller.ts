@@ -227,7 +227,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
 
     const move = input.gear;
     if (gearPressed && move && player.action === "bag" && carried(move.from) && carried(move.to)) {
-      const moved = moveGear({ ...player.gear, cloth: emptyCloth(), pile: NO_PILE }, move.from, move.to, move.turned);
+      const gear = { ...player.gear, cloth: emptyCloth(), pile: NO_PILE };
+      const moved = moveGear(gear, move.from, move.to, move.turned, stats.strength);
       if (moved) {
         player.gear = { bag: moved.bag, equipment: moved.equipment };
         wielder.hands = handsOf(moved.equipment);

@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  bagWeight, BASE_STATS, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear,
-  NO_PILE, SLOTS, starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId,
+  AVERAGE_STAT, bagWeight, BASE_STATS, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS,
+  moveGear as moveGearWith, NO_PILE, SLOTS, starterEquipment, WEAPONS, type Bag, type BagItem, type Equipment,
+  type Gear, type ItemId, type Spot,
 } from "@infinite-tower/shared";
 
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
 const grid = (cols: number, rows: number, ...items: BagItem[]): Bag => ({ cols, rows, items });
+const moveGear = (g: Gear, from: Spot, to: Spot, turned: boolean) => moveGearWith(g, from, to, turned, AVERAGE_STAT);
 const NOTHING: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
 
 /** Deep-frozen, so a function that changes its input throws. */
@@ -114,6 +116,15 @@ describe("moveGear", () => {
     const on = moveGear(off, { in: "bag", x: 2, y: 1 }, { in: "slot", slot: "leftHand" }, false)!;
     assert.equal(on.equipment.leftHand, "sword");
     assert.deepEqual(on.bag.items, []);
+  });
+
+  test("a weapon goes into a hand only with its minimum strength", () => {
+    const need = WEAPONS.greatsword.minStrength;
+    const g = gear({ bag: grid(6, 4, stack("greatsword", 0, 0)), equipment: NOTHING });
+    const equip = (strength: number) =>
+      moveGearWith(g, { in: "bag", x: 0, y: 0 }, { in: "slot", slot: "rightHand" }, false, strength);
+    assert.equal(equip(need - 1), null);
+    assert.equal(equip(need)?.equipment.rightHand, "greatsword");
   });
 
   test("a hand-to-hand move swaps what the hands hold", () => {

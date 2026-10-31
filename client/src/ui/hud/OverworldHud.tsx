@@ -1,4 +1,4 @@
-import { coreStats, type ShownStat, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
+import { coreStats, type ShownStat, type Skill, type Spot, type UseSpot, type WeaponId } from "@infinite-tower/shared";
 import { useMemo, type ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
@@ -33,6 +33,7 @@ interface OverworldHudProps extends HudProps {
   interact: () => void;
   useItem: (at: UseSpot) => void;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
+  tooWeak: (item: WeaponId) => void;
   skills: Store<SkillsState>;
   skillbookScreen: Store<{ open: boolean }>;
   saveSkill: (page: number, skill: Skill) => void;
@@ -90,7 +91,8 @@ export function OverworldHud(props: OverworldHudProps) {
       {panel === "inventory" && (
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
-          use={props.useItem} move={props.moveItem} openSkillbook={() => showBook(true)} close={close}
+          use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
+          close={close}
         />
       )}
       {panel === "inventory" && bookOpen && (

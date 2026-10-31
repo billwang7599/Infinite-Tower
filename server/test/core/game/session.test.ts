@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, REST_RANGE_TILES,
-  starterEquipment, useSteps, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
+  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, REST_RANGE_TILES,
+  starterEquipment, useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
@@ -269,6 +269,20 @@ describe("equipment", () => {
     t.mock.timers.tick(5000);
     assert.equal(saves.at(-1)?.equipment.rightHand, null);
     assert.equal(saves.at(-1)?.bag.items[0]?.item, "sword");
+  });
+
+  test("a weapon goes into a hand only with its minimum strength; the server answers with the gear as it is", () => {
+    const need = WEAPONS.greatsword.minStrength;
+    for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
+      const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT } };
+      const equipment = { ...starterEquipment(), rightHand: null };
+      const bag = { ...emptyBag(), items: [{ item: "greatsword" as const, count: 1, x: 0, y: 0, turned: false }] };
+      const { session, link } = startSession({ saved: { core, equipment, bag } });
+      assert.equal(session.stats.strength, strength);
+      session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
+      assert.equal(session.gear.equipment.rightHand, held, `${strength}`);
+      assert.deepEqual(link.last("gear")?.gear, session.gear);
+    }
   });
 
   test("what's worn weighs on you: a bag at the limit with the sword in hand is heavy", () => {
