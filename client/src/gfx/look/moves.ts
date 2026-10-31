@@ -66,6 +66,7 @@ const KEYS: Record<SwordPose, readonly Key[]> = {
   "guard-left": [{ hand: [-18, 1], tip: [-11, -12], lean: -1 }],
   "guard-top": [{ hand: [8, -15], tip: [-22, -2], off: [-8, -15], swordLayer: "headwear", crouch: 1 }],
   "guard-right": [{ hand: [6, 0], elbow: [7, 6], tip: [8, -14], lean: 1 }],
+  grab: [{ hand: [5, 7], tip: [8, 12], off: [9, -13], swordLayer: "hairBack", crouch: 2, head: [0, 1] }],
   stagger: [
     { hand: [10, -7], tip: [13, 8], off: [-10, 3], lean: -2, head: [-1, 3], feet: [[0, 0], [1, -2]] },
     { hand: [9, 9], tip: [8, 13], off: [-11, -5], lean: 3, head: [1, 2], feet: [[-2, -3], [1, 0]] },

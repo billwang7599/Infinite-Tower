@@ -1,4 +1,4 @@
-import type { AttackKind, GuardSide, PlayerData, Vec2, WielderData } from "@infinite-tower/shared";
+import type { AttackKind, GuardSide, PlayerAction, PlayerData, Vec2, WielderData } from "@infinite-tower/shared";
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import { swingFrame } from "./weapons.js";
@@ -8,6 +8,7 @@ const ATTACK_POSES: Record<AttackKind, Record<GuardSide, SwordPose>> = {
   heavy: { left: "swing-tlbr", top: "swing-tb", right: "swing-trbl" },
 };
 const GUARD_POSES: Record<GuardSide, SwordPose> = { left: "guard-left", top: "guard-top", right: "guard-right" };
+export const STAGGERED: readonly PlayerAction[] = ["recoil", "stagger", "grabbed"];
 
 /** Its frames: gfx/look/battle.ts. */
 type PlayerPose = "stand" | "down" | SwordPose;
@@ -32,10 +33,11 @@ export function spritePose(
   const attacking = swing !== null && swing.step < swing.endAt;
   const pose: PlayerPose = !alive ? "down"
     : attacking ? ATTACK_POSES[swing.attack][swing.side]
-    : player.action === "recoil" ? "stagger"
+    : STAGGERED.includes(player.action) ? "stagger"
+    : player.action === "grab" ? "grab"
     : player.guard ? GUARD_POSES[player.guard]
     : "stand";
-  const frame = pose === "stagger" ? (stagger.left > stagger.of / 2 ? 0 : 1)
+  const frame = pose === "stagger" ? (player.action === "grabbed" || stagger.left > stagger.of / 2 ? 0 : 1)
     : attacking && alive ? swingFrame(swing)
     : 0;
   return { pose, frame, scaleX: 1 / stretch, scaleY: stretch };

@@ -10,8 +10,8 @@ import { swingAt, swingSteps } from "../../fixtures/swings.js";
 
 function playerDoing(action: PlayerAction, t: number, guard: GuardSide | null = null): PlayerData {
   return {
-    grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false,
-    jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
+    grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, guardBreakHeld: false,
+    jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
     writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false, writing: null, using: null,
     book: [],
     burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
@@ -63,11 +63,25 @@ describe("the player's sprite", () => {
     assert.deepEqual(spritePose(ATTACKING, holding(swingAt("light", "left", 3)), false, 1).pose, "down");
   });
 
+  test("parried or guard broken, it staggers as when recoiling; held by a guard break, knocked back throughout", () => {
+    const of = 0.6;
+    for (const [left, frame] of [[of * 0.6, 0], [of * 0.4, 1]] as const) {
+      const { pose, frame: shown } = spritePose(playerDoing("stagger", 0.1), holding(null), true, 1, { left, of });
+      assert.deepEqual([pose, shown], ["stagger", frame]);
+    }
+    const held = spritePose(playerDoing("grabbed", 0.1, "left"), holding(null), true, 1);
+    assert.deepEqual([held.pose, held.frame], ["stagger", 0]);
+  });
+
+  test("guard breaking, it reaches out to grab", () => {
+    assert.equal(spritePose(playerDoing("grab", 0.1, "top"), holding(null), true, 1).pose, "grab");
+  });
+
   test("every frame it picks is drawn", () => {
     const all = ATTACK_KINDS.flatMap((attack) => GUARD_SIDES.flatMap((side) => swingSteps(attack, side)))
       .map((swing) => spritePose(ATTACKING, holding(swing), true, 1));
     for (const guard of [...GUARD_SIDES, null]) {
-      for (const action of ["recoil", "none"] as const) {
+      for (const action of ["recoil", "stagger", "grabbed", "grab", "none"] as const) {
         for (const left of [0, 0.2, 0.4, 0.8]) {
           all.push(spritePose(playerDoing(action, 0.1, guard), holding(null), true, 1, { left, of: 0.8 }));
         }

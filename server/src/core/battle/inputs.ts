@@ -54,16 +54,18 @@ export class InputTimeline {
    */
   take(step: number): PlayerInputData {
     let late: PlayerInputData | null = null;
-    const pressed: Pick<PlayerInputData, "jump" | "attack" | "dodge" | "cast" | "chantWords" | "use"> =
-      { jump: false, attack: null, dodge: false, cast: null, chantWords: null, use: null };
+    const pressed: Pick<PlayerInputData, "jump" | "attack" | "dodge" | "guardBreak" | "cast" | "chantWords" | "use"> =
+      { jump: false, attack: null, dodge: false, guardBreak: false, cast: null, chantWords: null, use: null };
     while (this.waiting[0] && this.waiting[0].step <= step) {
       const { step: madeFor, ...change } = this.waiting.shift()!;
       if (madeFor < step) {
-        const anyPress = change.jump || change.attack !== null || change.dodge || change.cast !== null;
+        const anyPress = change.jump || change.attack !== null || change.dodge || change.guardBreak
+          || change.cast !== null;
         if (!late && anyPress) late = change;
         pressed.jump ||= change.jump;
         pressed.attack ??= change.attack;
         pressed.dodge ||= change.dodge;
+        pressed.guardBreak ||= change.guardBreak;
         pressed.cast ??= change.cast;
         pressed.chantWords = change.chantWords ?? pressed.chantWords;
         pressed.use ??= change.use;
@@ -73,7 +75,7 @@ export class InputTimeline {
     const base = late ?? this.held;
     const input = {
       ...base, jump: this.held.jump || pressed.jump, attack: this.held.attack ?? pressed.attack,
-      dodge: this.held.dodge || pressed.dodge,
+      dodge: this.held.dodge || pressed.dodge, guardBreak: this.held.guardBreak || pressed.guardBreak,
       cast: this.held.cast ?? pressed.cast, castHeld: this.held.castHeld,
       chantWords: this.held.chantWords ?? pressed.chantWords, use: this.held.use ?? pressed.use,
     };

@@ -12,11 +12,13 @@ import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { PageWrite } from "./input.js";
 
 /**
- * "recoil": an attack of theirs was blocked (in hitstun). "write": writing a page, from the chant or the bag. "bag":
- * the bag screen open. "use": using an item from the bag.
+ * "recoil": an attack of theirs was blocked; "stagger": parried or guard broken (both in hitstun). "grab": guard
+ * breaking; "grabbed": being guard broken, still able to counter it. "write": writing a page, from the chant or the
+ * bag. "bag": the bag screen open. "use": using an item from the bag.
  */
 export type PlayerAction =
-  "none" | "attack" | "dodge" | "recoil" | "cast" | "chant" | "write" | "beam" | "bag" | "use";
+  | "none" | "attack" | "dodge" | "recoil" | "stagger" | "grab" | "grabbed" | "cast" | "chant" | "write" | "beam"
+  | "bag" | "use";
 
 export interface PlayerData {
   grounded: boolean;
@@ -26,6 +28,7 @@ export interface PlayerData {
   /** The attack held on the last step: a different one is a new press. */
   attackHeld: AttackKind | null;
   dodgeHeld: boolean;
+  guardBreakHeld: boolean;
   writeHeld: boolean;
   gearHeld: boolean;
   useHeld: boolean;
@@ -36,6 +39,7 @@ export interface PlayerData {
   jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
+  guardBreakBuffer: number;
   castBuffer: number;
   queued: AttackKind | null;
   castQueued: Skill | null;
@@ -86,10 +90,18 @@ export interface SwingData {
   poiseDamage: number;
 }
 
+export interface GrabData {
+  step: number;
+  target: Entity | null;
+  techAt: number | null;
+}
+
 export interface WielderData {
   hands: Record<Hand, ItemId | null>;
   armReachM: number;
   swing: SwingData | null;
+  grab: GrabData | null;
+  grabImmuneTime: number;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
 
@@ -183,6 +195,7 @@ interface EnemySense {
   /** cos(angle between where the enemy faces and the target): 1 = looking right at it. */
   facingDot: number;
   targetAlive: boolean;
+  target: Entity | null;
 }
 
 /** What the behaviors want this step; the motor turns it into velocity. */
@@ -200,7 +213,7 @@ export type EnemyState =
   | "approach" | "stunned" | "recoil" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "weaponWindup" | "weapon" | "weaponRecover"
+  | "weaponWindup" | "weapon" | "weaponRecover" | "guardBreak" | "grabbed"
   | "skillChant" | "skillCast"
   | "sidestep";
 
@@ -238,6 +251,9 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   guardFrom: GuardSide;
   guardMoveTime: number;
   guardHoldTime: number;
+  parryRead: boolean;
+  feint: boolean;
+  riposte: boolean;
 }
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {

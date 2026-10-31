@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, emptyBag, Enemy, IDLE_INPUT, ITEMS, Player, PLAYER, SkillObject, starterEquipment, type EnemyDef,
+  Body, emptyBag, Enemy, IDLE_INPUT, WeaponAttack, ITEMS, Player, PLAYER, SkillObject, starterEquipment, type EnemyDef,
   type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
@@ -15,6 +15,15 @@ const STATS = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
 const STANDER: EnemyDef = {
   id: "kobold-swordsman", name: "Stander", maxHp: 100, stats: STATS, radius: 0.6, walkSpeed: 0, turnRate: 3,
   poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+};
+const SWORDED: EnemyDef = {
+  ...STANDER, wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },
+  attacks: {
+    weapon: {
+      triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
+      cooldown: 99, firstDelay: 99,
+    },
+  },
 };
 const FIRE_BOLT: Skill = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] };
 const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER): FightSetup => ({
@@ -114,6 +123,53 @@ describe("the arena's ears", () => {
     const { ctx, hear, player, enemy } = arena();
     ctx.events = [{ step: 1, event: { type: "block", by: enemy, target: player } }];
     assert.deepEqual(sounds(hear(ctx)!), ["block"]);
+  });
+
+  test("a parry rings out where the parrier stands; a guard break's grab thuds, its break crashes, its counter clanks",
+    () => {
+      const { ctx, hear, world, player, enemy } = arena();
+      ctx.events = [{ step: 1, event: { type: "parry", by: player, target: enemy, attack: "heavy" } }];
+      const heard = hear(ctx)!, at = world.require(player, Body).pos;
+      assert.deepEqual(sounds(heard), ["parry"]);
+      assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
+      const results = ["grabbed", "broken", "teched"] as const;
+      ctx.events = results.map((result, i) =>
+        ({ step: 2 + i, event: { type: "guardBreak", by: enemy, target: player, result } }));
+      assert.deepEqual(sounds(hear(ctx)!), ["hit-body", "guard-break", "block"]);
+    });
+
+  test("a feint is heard as the blade is pulled back", () => {
+    const { ctx, hear, player } = arena();
+    ctx.events = [{ step: 1, event: { type: "feint", by: player } }];
+    assert.deepEqual(sounds(hear(ctx)!), ["draw-blade"]);
+  });
+
+  test("a guard break lunges with a whoosh as it starts", () => {
+    const { run } = arena();
+    run(1);
+    const heard = run(1, { guardBreak: true });
+    assert.deepEqual(sounds(heard), ["grab"]);
+    assert.deepEqual(sounds(run(20)), []);
+  });
+
+  test("a heavy winding up is heard, low; a light isn't", () => {
+    const heavy = arena(), light = arena();
+    heavy.run(1);
+    light.run(1);
+    const cue = heavy.run(1, { attack: "heavy" }).cues.find((c) => c.sound === "draw-blade");
+    assert.ok(cue && cue.rate! < 1 && cue.gain! > 1);
+    assert.equal(sounds(light.run(1, { attack: "light" })).includes("draw-blade"), false);
+  });
+
+  test("the Kobold's heavy tell is lower and louder than its light one", () => {
+    const tell = (next: "light" | "heavy") => {
+      const { run, world, enemy } = arena(undefined, SWORDED);
+      run(1);
+      Object.assign(world.require(enemy, WeaponAttack), { next });
+      Object.assign(world.require(enemy, Enemy), { state: "weaponWindup", stateTime: 0 });
+      return run(0).cues[0]!;
+    };
+    assert.ok(tell("heavy").rate! < tell("light").rate! && tell("heavy").gain! > (tell("light").gain ?? 1));
   });
 
   test("an enemy's wind-up is heard as it starts: the Kobold's blade drawn back", () => {

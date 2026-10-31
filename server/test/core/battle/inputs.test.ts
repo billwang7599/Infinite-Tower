@@ -51,6 +51,15 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK, "and let go after");
   });
 
+  test("a late guard break is kept, as a press is", () => {
+    const timeline = new InputTimeline();
+    timeline.receive(2, [at(1, WALK)], 0);
+    takeRange(timeline, 1, 5);
+    timeline.receive(7, [at(3, { ...WALK, guardBreak: true }), at(4, WALK)], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, guardBreak: true });
+    assert.deepEqual(timeline.take(7), WALK);
+  });
+
   test("a late cast is kept, as a press is", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);

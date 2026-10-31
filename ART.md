@@ -71,7 +71,7 @@ have a few frames each, played in order: `drawBattle(look, pose, frame)`. Five s
 moves on screen (`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through: the lights across
 from either side and down from the top, the heavies cleaving down and across from either side (the top's heavy uses
 the light's); three guards of a frame each, the blade held up on the left, level over the head, or up on the right;
-a stagger. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
+a stagger; and a guard break's grab, the free hand reaching ahead and the sword held low. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
 right hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
 the body is hidden by it, so the strike shows the blade where it comes out beside the head; a frame's `swordLayer` puts
 the sword under the body (in front of the player) or over the head (the top guard). From the front what's in
@@ -104,13 +104,13 @@ How many drawings each thing needs, for whoever draws it. Read from the code: th
 | --- | --- | --- | --- |
 | portrait | 64x64 | 1 | three-quarters to our left; flipped to face right, no extra drawing |
 | chibi | 32x32 | 3: front, back, side | side is drawn facing left; facing right is its mirror image |
-| battle | 64x64 | 46: stand, slash, down, and 20 sword-fight frames, from behind and from the front | in code the front's outline is the back's mirrored, but what's on it is drawn for the front |
+| battle | 64x64 | 48: stand, slash, down, and 21 sword-fight frames, from behind and from the front | in code the front's outline is the back's mirrored, but what's on it is drawn for the front |
 
-So something seen in every view and pose is 50 drawings. The axes that need drawings of their own:
+So something seen in every view and pose is 52 drawings. The axes that need drawings of their own:
 
 | Axis | Options | Each option needs |
 | --- | --- | --- |
-| body type | skinny, medium, wide | its body in every view and pose (50), and its own drawing of every wrap-around piece |
+| body type | skinny, medium, wide | its body in every view and pose (52), and its own drawing of every wrap-around piece |
 | face shape | soft, sharp, square | 3: the portrait's jaw, the chibi's front jaw and the battle sprite's front jaw (the chibi's back and side, and battle from behind, are shared) |
 | hair style | short, bob, long, ponytail | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose: it moves with the head). Hair behind the head is a second layer (`hairBack`): in the chibi's front and the battle sprite's, and the portrait's for long and ponytail |
 | eye type | round, sharp, sleepy, cat | 4: the portrait's near eye and far eye, one chibi eye (mirrored for the other; facing side shows its first two columns) and one for the battle sprite's front. None facing back or in battle from behind |
@@ -126,10 +126,10 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | Piece of gear | Drawings |
 | --- | --- |
 | on the head (a helmet) | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose); the same on every body |
-| held (the sword, battle only) | 46: a pose or frame each, from each side, since each holds it at its own angle |
+| held (the sword, battle only) | 48: a pose or frame each, from each side, since each holds it at its own angle |
 | rigid on the body (a pair of shoulder guards) | 6: a view each, for both shoulders, placed at each body type's landmark |
-| wrap-around top (a chest piece) | 150: 3 body types x 50 |
-| wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
+| wrap-around top (a chest piece) | 156: 3 body types x 52 |
+| wrap-around legs (trousers) | 147: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 48 battle frames |
 
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the skillbook. Of what's
 worn, only the sword is drawn on the character, in the arena: in the hand that holds it, or not at all. In the left

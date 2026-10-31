@@ -9,6 +9,12 @@ const JOLT_AWAY_SHARE = 0.5;
 const BOUNCE_M = 0.12;
 const BOUNCE_MS = 120;
 const SPARK_UP_M = 0.3;
+export const PARRY_HIT_STOP_MS = 140;
+const PARRY_BOUNCE_M = 0.3;
+const PARRY_BOUNCE_MS = 220;
+const GRAB_HIT_STOP_MS = 70;
+const BROKEN_JOLT_M = 0.35;
+const BROKEN_JOLT_MS = 200;
 
 export interface Impact { ageMs: number; stopMs: number; push: Vec3; pushMs: number }
 
@@ -45,11 +51,34 @@ export function strike(scene: ArenaScene, world: World, by: Entity, target: Enti
   scene.impacts.set(target, { ageMs: 0, stopMs, push, pushMs: JOLT_MS });
 }
 
+const meeting = (a: Vec3, b: Vec3): Vec3 =>
+  ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 + SPARK_UP_M, z: (a.z + b.z) / 2 });
+
 export function clash(scene: ArenaScene, world: World, stopped: Entity, guard: Entity): void {
   const hands = world.get(stopped, Wielder)?.hands;
   if (!hands || !weaponItemIn(hands)) return;
   const a = world.require(stopped, Body).pos, b = world.require(guard, Body).pos, back = levelUnit(b, a);
   const push = { x: back.x * BOUNCE_M, y: 0, z: back.z * BOUNCE_M };
   scene.impacts.set(stopped, { ageMs: 0, stopMs: 0, push, pushMs: BOUNCE_MS });
-  scene.skills.bursts.sparks({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 + SPARK_UP_M, z: (a.z + b.z) / 2 });
+  scene.skills.bursts.sparks(meeting(a, b));
+}
+
+export function parried(scene: ArenaScene, world: World, parrier: Entity, attacker: Entity): void {
+  const a = world.require(attacker, Body).pos, p = world.require(parrier, Body).pos, back = levelUnit(p, a);
+  const push = { x: back.x * PARRY_BOUNCE_M, y: 0, z: back.z * PARRY_BOUNCE_M };
+  scene.impacts.set(parrier, { ageMs: 0, stopMs: PARRY_HIT_STOP_MS, push: STILL, pushMs: 0 });
+  scene.impacts.set(attacker, { ageMs: 0, stopMs: PARRY_HIT_STOP_MS, push, pushMs: PARRY_BOUNCE_MS });
+  scene.skills.bursts.parry(meeting(a, p));
+}
+
+export function grabbed(scene: ArenaScene, world: World, by: Entity, target: Entity, broken: boolean): void {
+  const t = world.require(target, Body).pos, away = levelUnit(world.require(by, Body).pos, t);
+  if (!broken) {
+    scene.impacts.set(by, { ageMs: 0, stopMs: GRAB_HIT_STOP_MS, push: STILL, pushMs: 0 });
+    scene.impacts.set(target, { ageMs: 0, stopMs: GRAB_HIT_STOP_MS, push: STILL, pushMs: 0 });
+    return;
+  }
+  const push = { x: away.x * BROKEN_JOLT_M, y: 0, z: away.z * BROKEN_JOLT_M };
+  scene.impacts.set(target, { ageMs: 0, stopMs: 0, push, pushMs: BROKEN_JOLT_MS });
+  scene.skills.bursts.guardBroken({ x: t.x, y: t.y + SPARK_UP_M, z: t.z });
 }

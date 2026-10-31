@@ -22,13 +22,15 @@ stats)."
   (heft), chains of three, a recoil when blocked, the guard widget, the Kobolds holding and switching a guard. The
   rules are in AGENTS.md ("Guard stances") and the numbers in FORMULAS.md. It replaced the inertia-based swings (their
   equations are in git history, `planSwing` before this PR).
+- Parries, guard breaks and feints, PR 2: a heavy just before an attack lands parries it, a guard break grabs through
+  a guard (countered by one of your own in time), a heavy can be feinted early in its wind-up, and the Kobolds use all
+  three now and then, from the fight's seed. The rules are in AGENTS.md ("Parries, guard breaks and feints") and the
+  numbers in FORMULAS.md.
 
-## Next: parries, guard breaks and feints (PR 2)
+## Open after PR 2
 
-The main chat's plan, its details still open: a parry (timed against an attack's hit), a guard break (a throw-like
-move that opens a turtling guard), and feints (a heavy cancelled before it lands). Open: their timings and windows,
-what each costs and gives (stun, damage, stamina), whether a blocked heavy chips, how the Kobold uses them, and the
-sounds (the old parry and guard-break sounds were removed with PR 1 and can come back from git history).
+- Whether a blocked heavy chips; a throw (moving the one guard broken) instead of only opening them; unblockable or
+  undodgeable attacks; a stamina-out state (For Honor's "exhausted"). None is built.
 
 ## Later: the Kobolds' stance AI
 

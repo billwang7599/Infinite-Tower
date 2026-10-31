@@ -5,7 +5,7 @@ import {
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
-import { facingSeen, spritePose } from "./pose.js";
+import { facingSeen, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
 import { MOTIONS } from "./weapons.js";
@@ -16,6 +16,7 @@ const TRAIL_WIDTH = 2.2;
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
 const SHADOW_LENGTH_M = 1.1;
+const HEAVY_WINDUP_STRETCH = 0.9;
 
 /** Where the sprite's center sits above the body's, so its bottom edge stays on the feet. */
 const spriteY = (stretch: number, bob: number): number => -PLAYER.height / 2 + (SPRITE_SIZE / 2) * stretch + bob;
@@ -115,9 +116,10 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   const targetStretch = !alive ? 1
     : player.action === "dodge" ? 0.72
     : !player.grounded ? 1 + clamp(Math.abs(vel.y) * 0.015, -0.12, 0.15)
+    : swing?.attack === "heavy" && swing.step < swing.liveAt ? HEAVY_WINDUP_STRETCH
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
-  sprite.staggerTime = player.action === "recoil" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
+  sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
   sprite.facing = facingSeen(ctx.battle.view.eye, p, world.require(e, Skilled).aim, sprite.facing);
   const look = ctx.looks.get(e);

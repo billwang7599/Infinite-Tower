@@ -46,6 +46,7 @@ export const ACTIONS = {
     guardLeft: { label: "Guard left (or flick the mouse left)", keys: ["KeyU"] },
     guardTop: { label: "Guard top (or flick the mouse up)", keys: ["KeyI"] },
     guardRight: { label: "Guard right (or flick the mouse right)", keys: ["KeyO"] },
+    guardBreak: { label: "Guard break (in a heavy's wind-up: feint; grabbed: counter)", keys: ["ShiftLeft"] },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Lock on / off", keys: ["KeyQ"] },

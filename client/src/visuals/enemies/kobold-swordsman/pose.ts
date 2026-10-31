@@ -10,6 +10,8 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 const HAND_PIVOT: Vec3 = { x: 0.2, y: 0.92, z: 0 };
 const HAND_ARC_M = 0.28;
 const OFF_HAND: Vec3 = { x: -0.32, y: 0.62, z: 0.2 };
+const GRAB_HAND: Vec3 = { x: -0.1, y: 0.85, z: 0.6 };
+const GRAB_LEAN_RAD = 0.25;
 /** The chest turns toward where the blade will be this much later (in the stroke's turns, or the wind-up's share). */
 const LEAD_TURN = 0.2;
 const LEAD_SET = 0.3;
@@ -20,9 +22,11 @@ const BEND_RAD = 0.15;
 /**
  * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, the body
  * `leanRad` back; the chest turns `turnRad` toward the blade's side and bends `bendRad` toward its height; eased off
- * by `goneByTurn`, the turn a stroke goes live on.
+ * by `goneByTurn`, the turn a stroke goes live on. A heavy's draw-back and lean are `heavyFactor` times as big.
  */
-export const KOBOLD_DRAWBACK = { swingRad: 1.1, leanRad: 0.2, turnRad: 0.5, bendRad: 0.25, goneByTurn: 1 / 3 };
+export const KOBOLD_DRAWBACK = {
+  swingRad: 1.1, leanRad: 0.2, turnRad: 0.5, bendRad: 0.25, goneByTurn: 1 / 3, heavyFactor: 1.6,
+};
 
 const smooth = (s: number): number => s * s * (3 - 2 * s);
 
@@ -63,8 +67,9 @@ export interface KoboldPose {
 
 export function koboldPose(
   state: EnemyState, t: number, k: number, cut: Cut, motion: WeaponMotion,
-  stroke: { set: number; turn: number } | null, held: BladePose,
+  stroke: { set: number; turn: number } | null, held: BladePose, heavy = false,
 ): KoboldPose {
+  const tell = heavy ? KOBOLD_DRAWBACK.heavyFactor : 1;
   const p = {
     ...held, bladeExact: false, lean: 0, roll: 0, rollRate: state === "dead" ? 6 : 12, yOff: 0,
     stars: state === "stunned",
@@ -76,7 +81,7 @@ export function koboldPose(
   }
   switch (state) {
     case "weaponWindup":
-      p.lean = -0.12 * k;
+      p.lean = -0.12 * k * tell;
       break;
     case "weapon":
       p.lean = stroke && stroke.turn < 1 / 3 ? -0.12 : 0.15;
@@ -84,7 +89,12 @@ export function koboldPose(
     case "weaponRecover":
       p.lean = 0.08 * (1 - k);
       break;
+    case "guardBreak":
+      p.blade = norm({ x: 0.7, y: -0.4, z: 0.3 });
+      p.lean = GRAB_LEAN_RAD;
+      break;
     case "recoil":
+    case "grabbed":
     case "stunned":
     case "staggered":
       p.blade = norm({ x: 0.6, y: -0.5, z: -0.2 });
@@ -97,7 +107,7 @@ export function koboldPose(
       p.yOff = 0.25;
       break;
   }
-  const handBlade = p.blade, pull = swinging ? drawback(stroke) : 0;
+  const handBlade = p.blade, pull = swinging ? drawback(stroke) * tell : 0;
   if (pull > 0) {
     p.blade = turnedBack(p.blade, KOBOLD_DRAWBACK.swingRad * pull);
     p.lean -= KOBOLD_DRAWBACK.leanRad * pull;
@@ -113,7 +123,7 @@ export function koboldPose(
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
-    offHand: OFF_HAND,
+    offHand: state === "guardBreak" ? GRAB_HAND : OFF_HAND,
     twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
     hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,

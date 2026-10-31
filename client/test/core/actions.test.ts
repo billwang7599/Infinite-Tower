@@ -50,16 +50,17 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
     });
     return { got, stop };
   };
-  const attack = () => {
+  const read = () => {
     const input = copyInput(IDLE_INPUT);
     readPlayerInput(actions.poll(), 0, null, input);
-    return input.attack;
+    return input;
   };
+  const attack = () => read().attack;
   const guard = (was: GuardSide = "top") => pickedGuard(actions.poll(), was);
   const guards = () => actions.poll().pressed.filter((a) => a.startsWith("guard"));
   let clockMs = 1000;
   return {
-    bindings, actions, mouseSettings, listen, attack, guard, guards, canvas, doc,
+    bindings, actions, mouseSettings, listen, read, attack, guard, guards, canvas, doc,
     move: (movementX: number, movementY: number, afterMs = 10) =>
       send(doc, "mousemove", { movementX, movementY }, clockMs += afterMs),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
@@ -716,6 +717,16 @@ describe("Actions: the mouse moves the guard and attacks", () => {
     assert.equal(attack(), "light");
     click(2);
     assert.equal(attack(), "heavy");
+  });
+
+  test("left Shift guard breaks, a tap shorter than a step too", () => {
+    const { read, press, release } = setup();
+    press("ShiftLeft");
+    release("ShiftLeft");
+    assert.equal(read().guardBreak, true);
+    assert.equal(read().guardBreak, false);
+    press("ShiftLeft");
+    assert.equal(read().guardBreak, true, "held");
   });
 
   test("small or slow movement never flicks", () => {

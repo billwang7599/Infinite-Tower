@@ -316,10 +316,11 @@ describe("KeyBindings saved before the mouse swung the sword", () => {
     assert.deepEqual(b.toSaved(), { battle: { jump: ["KeyX"] } });
   });
 
-  test("the old block's keys are dropped, and left Shift is free", () => {
+  test("the old block's keys are dropped; left Shift saved on another action stays there, guard break unbound", () => {
     const b = new KeyBindings();
     b.restore({ battle: { block: ["ShiftLeft"], jump: ["ShiftLeft"] } });
     assert.deepEqual(keysOf(b.get(), jump), ["ShiftLeft"]);
+    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "guardBreak" }), []);
     assert.deepEqual(b.toSaved(), { battle: { jump: ["ShiftLeft"] } });
   });
 });

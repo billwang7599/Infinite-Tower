@@ -1,8 +1,9 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Vec2 } from "../../../core/math.js";
+import { toSteps } from "../../../core/time.js";
 import type { Equipment } from "../../../items/gear.js";
 import {
-  attackDamage, attackShape, attackSteps, ATTACKS, weaponIn, type AttackKind, type GuardSide, type Weapon,
+  attackDamage, attackShape, attackSteps, ATTACKS, FEINT, weaponIn, type AttackKind, type GuardSide, type Weapon,
 } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
 import { FighterStats } from "../../stats.js";
@@ -12,6 +13,9 @@ export const handsOf = (equipment: Equipment): WielderData["hands"] =>
   ({ rightHand: equipment.rightHand, leftHand: equipment.leftHand });
 
 export const bladeLive = (swing: SwingData): boolean => swing.step >= swing.liveAt && swing.step < swing.liveUntil;
+
+export const lastFeintStep = (swing: SwingData): number => swing.liveAt - toSteps(FEINT.cutoffTime) - 1;
+export const feintable = (swing: SwingData): boolean => swing.attack === "heavy" && swing.step <= lastFeintStep(swing);
 
 export function startSwing(
   world: World, e: Entity, weapon: Weapon, attack: AttackKind, side: GuardSide, chain: number, dir: Vec2, swift = 1,

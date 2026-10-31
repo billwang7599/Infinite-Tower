@@ -13,8 +13,8 @@ const TOP_GUARD = MOTIONS.sword.held(TB);
 const poseOf = (
   state: EnemyState, t: number, k: number, cut: Cut, stroke: { set: number; turn: number } | null = {
     set: k, turn: 0,
-  }, held: BladePose = TOP_GUARD,
-) => koboldPose(state, t, k, cut, MOTIONS.sword, stroke, held);
+  }, held: BladePose = TOP_GUARD, heavy = false,
+) => koboldPose(state, t, k, cut, MOTIONS.sword, stroke, held, heavy);
 
 describe("the kobold's pose", () => {
   test("an attack's wind-up turns the blade to where its cut starts", () => {
@@ -98,6 +98,23 @@ describe("the kobold's pose", () => {
   test("a high wind-up rears the chest back", () => {
     const high = poseOf("weapon", 0.5, 0.95, TB, { set: 1, turn: 0 });
     assert.ok(high.bend < -KOBOLD_DRAWBACK.bendRad, `${high.bend}`);
+  });
+
+  test("a heavy's tell is bigger: held, it rears back further; wound up, the blade is drawn further back", () => {
+    assert.ok(poseOf("weaponWindup", 0.5, 1, TB, null, TOP_GUARD, true).lean
+      < poseOf("weaponWindup", 0.5, 1, TB, null, TOP_GUARD, false).lean);
+    for (const cut of [TLBR, TRBL]) {
+      const at = (heavy: boolean) => poseOf("weapon", 0.5, 0.9, cut, { set: 0.9, turn: 0 }, TOP_GUARD, heavy);
+      assert.ok(at(true).blade.z < at(false).blade.z, JSON.stringify(cut));
+      assert.ok(at(true).lean < at(false).lean, JSON.stringify(cut));
+    }
+  });
+
+  test("guard breaking, its free hand reaches out ahead and it leans in; grabbed, it reels", () => {
+    const grab = poseOf("guardBreak", 0.1, 0, TB, null), guard = poseOf("approach", 0.1, 0, TB, null);
+    assert.ok(grab.offHand.z > guard.offHand.z + 0.2);
+    assert.ok(grab.lean > 0);
+    assert.deepEqual(poseOf("grabbed", 0.1, 0, TB, null).blade, poseOf("recoil", 0.1, 0, TB, null).blade);
   });
 
   test("dead it falls over; stunned it sees stars, but not just recoiling", () => {

@@ -50,7 +50,8 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
-const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({ hands, armReachM, swing: null });
+const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
+  ({ hands, armReachM, swing: null, grab: null, grabImmuneTime: 0 });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
   const e = world.spawn();
@@ -61,7 +62,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null,
+    attackHeld: null, dodgeHeld: false, guardBreakHeld: false, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0,
+    castBuffer: 0, queued: null,
     castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
@@ -85,7 +87,8 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
       def, cooldown: def.firstDelay, swingsLeft: 0, chain: 0, next: "light",
-      guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime,
+      guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime, parryRead: false,
+      feint: false, riposte: false,
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },
@@ -98,7 +101,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Body, { pos, vel: { x: 0, y: 0, z: 0 }, centerHeight: def.radius, collider });
   world.add(e, Enemy, {
     def, state: "approach", stateTime: 0, duration: 0, yaw, poise: def.poise, armored: false,
-    sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false },
+    sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false, target: null },
     move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false }, rng: seed >>> 0,
   });
   for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {

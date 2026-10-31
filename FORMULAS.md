@@ -13,6 +13,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
 - [Guards](#guards)
+- [Parries, guard breaks and feints](#parries-guard-breaks-and-feints)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -120,6 +121,36 @@ hurts: no knockback, no hitstun.
 Example: a boar's charge into a top guard: no HP, no stamina, pushed at 9 m/s. A Kobold's light into the right guard
 from its left: nothing lands, and it recoils 0.3 s.
 
+## Parries, guard breaks and feints
+
+`PARRY`, `GUARD_BREAK`, `FEINT`, `parryOpenTime`, `guardBreakOpenTime` in `weapons.ts`; the parry in `combat.ts`, the
+guard break in `fight/weapons/guard-break.ts`, the feint in the player's controller and `feintable` (`swing.ts`).
+
+- **Parry:** a heavy pressed at most `PARRY.windowTime` 0.25 s before a weapon's attack lands (the step it lands
+  counts), from the guard across it (as a block would be) and facing within 70°, parries it. The heavy is spent, its
+  stamina given back; the attack ends, unhurt. The attacker is opened (no guard, no control) for the parrier's light's
+  land time × heft + `openMarginTime` (a parried light 0.15 s, a heavy 0.45 s). Body blows can't be parried.
+- **Guard break:** costs `GUARD_BREAK.cost` 10. `grabTime` 0.15 s after the press it takes the nearest foe within
+  `reachM` 1.9 m (centre to its edge) and 45° of where you face (`minDot` 0.7), through any guard, if it holds a blade
+  and isn't mid-attack (winding up or live), dodging, guard breaking, held or opened. Nobody taken, you're busy until
+  0.6 s (`whiffTime`), unguarded. Taken, it's held `techTime` 0.4 s: a guard break pressed by it then (not before)
+  counters it, both pushed apart at 5 m/s. Not countered, it's opened for the grabber's heavy's land time × heft +
+  `openMarginTime` 0.2 s, and can't be guard broken again until `immuneTime` 0.6 s after that.
+- **Feint:** guard break pressed during your heavy's wind-up while more than `FEINT.cutoffTime` 0.15 s of it is left
+  ends it for `FEINT.cost` 10 more stamina; you're free (and guarding) at once. A light can't be feinted.
+- An opened enemy's next attack waits out the opening, not its cooldown too.
+
+| With | A light parried opens for | A heavy parried | Guard broken | Feintable until (heavy) |
+|---|---|---|---|---|
+| Sword (heft 1) | 0.6 s | 0.9 s | 1.05 s | 0.68 s after the press |
+| Longsword (1.2) | 0.69 s | 0.99 s | 1.22 s | 0.85 s |
+| Greatsword (1.6) | 0.87 s | 1.17 s | 1.56 s | 1.2 s |
+
+Example: a Kobold's heavy (0.85 s) is parried by a sword heavy pressed 0.2 s before it lands: 20 stamina spent and
+given back, nobody hurt, and the Kobold is open 0.9 s; your light, pressed at once, lands 0.45 s later. A guard
+break on a guarding Kobold grabs it 0.15 s after the press; 0.4 s later its guard breaks (unless it countered: 30%),
+and it's open 1.05 s, long enough for your heavy (0.85 s).
+
 ## Poise and stagger (enemies)
 
 `enemyBrainSystem` (`fight/behaviors/brain.ts`), with `poise`, `poiseRegen` and `staggerTime` in each enemy's def.
@@ -139,7 +170,8 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 `PLAYER` in `shared/src/battle/player.ts`; `combat.ts`.
 
 - **Hitstun** (no control): a body blow 0.25 + 0.02 × knockback; recoiling from a blocked attack 0.3 s (light) or
-  0.5 s (heavy). Weapon hits and skills give none.
+  0.5 s (heavy); parried or guard broken, the opening above (and none while held by a guard break, 0.4 s at most).
+  Weapon hits and skills give none.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
 - **Dodge i-frames:** from `dodge.iframeStart` 0 to `iframeEnd` 0.32 s of the 0.42 s dodge, weapon and body hits miss.
 - Neither stops a skill: Bolts, Beams, Novas, clouds and burning hurt through them, and through a guard.
@@ -161,6 +193,9 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 | Action | Cost at strength 10 | Where |
 |---|---|---|
 | Light / heavy attack | 12 / 20 × heft: sword 12 / 20, longsword 14.4 / 24, greatsword 19.2 / 32 | `ATTACKS`, `attackCost` |
+| A heavy that parries | nothing: its cost is given back | `parried` in `combat.ts` |
+| Guard break | 10 | `GUARD_BREAK.cost` |
+| Feint | 10, on top of the heavy's | `FEINT.cost` |
 | Dodge | 22; heavy × 1.3 = 28.6; overloaded can't; Hasted × 0.7 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 
@@ -270,7 +305,12 @@ Each in `server/src/core/enemies/<id>.ts`.
 - **Kobolds:** a chain of 2 or 3 (even odds), each attack heavy 30% of the time; before each, its guard moves to one of
   the other two sides (0.3 s) and holds there, 0.5 s in all before the first and 0.35 s before the others, then it
   attacks from there at its weapon's timings, stepping in at 3 m/s while live; then 0.9 s to recover and 1.2 s more
-  before the next chain; first after 1.5 s. On guard it changes side every 1.5-3 s. A Bolt aimed within about 26° of it is
+  before the next chain; first after 1.5 s. On guard it changes side every 1.5-3 s. Its counters, each rolled from
+  the fight's seed: a player's heavy winding up at it within its attack reach is parried 35% of the time (rolled as the
+  heavy starts; it presses its own heavy 0.2 s before yours would land, so a feint after that baits it); 25% of its
+  heavies are feints (at the cutoff); 25% of the times it would attack an idle player within guard break reach, it
+  guard breaks instead; 30% of guard breaks on it are countered, 0.25 s in. Having opened you (a parry or a guard
+  break), it strikes a light at once. A Bolt aimed within about 26° of it is
   side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and
