@@ -321,6 +321,12 @@ main.ts
   goes to the client in `state`. A fight's core comes back with its result (`Kept`): a death runs `coreAfterDeath` on
   it (the fill, or a step) and says what went (`coreLost`); a duel keeps what was absorbed and loses nothing. Every
   enemy drops its own essence (its drops in its file), an item whose `essence` effect is its worth.
+  The HUD shows it on the back of the portrait card, bottom left in both modes (`ui/hud/CoreCard.tsx`, a click turns
+  it): the soul as a smoky glass sphere with light growing from its centre, painted per pixel by `gfx/core/`, with no
+  number or bar. Each step the light is brighter and, within a realm, bigger; each realm has its own colour and shape
+  (`REALM_LOOKS`); it breathes, and sparks show from `SPARKS_FROM` of the step's fill. A breakthrough is told by `say`,
+  and the card listens to `notifications.said` for it: it turns to the core, the light gathers, flashes (the new step
+  showing from then), settles (`BREAKTHROUGH`) and turns back. In a fight it draws the fight's core (`ui.battle`).
 - **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
   `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
   (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
@@ -829,7 +835,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes, known
   words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a word that
   doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
-  back), the bag screen's mouse (bagMouse.ts: hover, select, drag
+  back), the core's sphere (`gfx/core.test.ts`: brighter every step, bigger every step of a realm, each realm's colour,
+  sparks only near a breakthrough, a breakthrough showing the old step until its flash), the bag screen's mouse
+  (bagMouse.ts: hover, select, drag
   between the bag, the cloth and the slots and from an open pile, turn, use) and tooltip (itemInfo.ts), the item
   pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose from
@@ -911,7 +919,8 @@ name (`MAX_BODY_BYTES`).
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   index.ts         Re-exports everything but the fight (import from "@infinite-tower/shared")
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
-                   math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom, nextRandom),
+                   math.ts (Vec2/3, clamp, smoothstep, approach, damp, distXZ, wrapAngle, turnToward, seededRandom,
+                   nextRandom),
                    time.ts (FIXED_DT, toSteps)
   world/           The tower's places. layout.ts (LevelMap: what the client may see of a level, its floor, tile
                    map and campfires; LevelLayout: a LevelMap as one player is sent it, with the NPCs standing there
@@ -1173,14 +1182,18 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      (HudSettings: show ping, the same way), audio.ts (AudioSettings: the master, effects,
                      ambient and music volumes, 0 to 1 on the slider's step, each saved only if changed)
     gfx/             Pictures drawn in code onto plain pixels, no Babylon (the UI uses them too)
+      core/            The core as a sphere (the HUD's card): light.ts (REALM_LOOKS: each realm's glyph, glass smoke,
+                       glow, colour ramps, halo and light shape; coreLight: the light's size and brightness by step;
+                       nearness and sparksPerSec, from SPARKS_FROM; the noise), sphere.ts (CoreSphere: the core shown,
+                       a breakthrough's gather, flash and settle, the sparks, and paint into SPHERE_PX² RGBA pixels)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
-                       character panel, later dialogue), a 32x32 chibi facing front, back or side (the world) and a
-                       64x64 battle sprite from behind and the front in each pose (the arena), in code. art.ts
-                       (VIEWS, CHIBI_FACINGS, BATTLE_FACINGS, layers, Frame, render), pixels.ts (Pen, masks),
-                       palette.ts (ramps), body.ts (body types), battle.ts (POSES, SWORD_POSES, the front as the back
-                       mirrored, leftHanded, frontHead), moves.ts (the sword fight's frames),
+                       character panel, dialogue, the HUD's card), a 32x32 chibi facing front, back or side (the
+                       world) and a 64x64 battle sprite from behind and the front in each pose (the arena), in
+                       code. art.ts (VIEWS, CHIBI_FACINGS, BATTLE_FACINGS, layers, Frame, render), pixels.ts (Pen,
+                       masks), palette.ts (ramps), body.ts (body types), battle.ts (POSES, SWORD_POSES, the front as
+                       the back mirrored, leftHanded, frontHead), moves.ts (the sword fight's frames),
                        head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
                        (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
@@ -1210,10 +1223,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
-                       PlayerBars.tsx (HP + stamina and the core's realm and step, in the same corner on both
-                       HUDs), styles.ts (BUTTON, TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space /
-                       Enter stay with the game), useAction.ts (a component listening for actions), LookPicture.tsx
-                       (a look on a canvas: the portrait, or the chibi facing front)
+                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), styles.ts (BUTTON,
+                       TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
+                       useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
+                       portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
@@ -1221,7 +1234,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        BattleHud.tsx (the guard widget: yours and the locked foe's sides; and the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
-                       the leave popup), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
+                       the leave popup), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left in both
+                       modes, under the chat: your portrait and name, turned by a click, or on a breakthrough for its
+                       moment, to your core, gfx/core/'s sphere painted at most 30 times a second while it shows, and
+                       the realm and step), character/ (CharacterPanel.tsx: the
                        portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
                        between − (only by a campfire) and + for free points, hovering them previewing the change and
                        what the stat does; chart.ts: chartPoints, the polygon's corners for any number of stats, and
@@ -1232,11 +1248,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
-                       box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
-                       clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
-      chat/            Chat.tsx (the chat, bottom left in both modes: the log's last lines, or, open, all of it and
-                       the field it's typed in; / opens it or focuses it again, Enter sends, Esc closes; unfocused,
-                       the field is dimmed with "Press / to chat", the key read from the bindings)
+                       box), layout.ts (the side panels' widths, the core card's and the Rest button's place, which
+                       the notices keep clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
+      chat/            Chat.tsx (the chat, bottom left in both modes, above the core card: the log's last lines,
+                       or, open, all of it and the field it's typed in; / opens it or focuses it again, Enter sends,
+                       Esc closes; unfocused, the field is dimmed with "Press / to chat", the key read from the
+                       bindings)
       dialogue/        Dialogue.tsx (an NPC talking, bottom centre over the Interact button: its portrait, name and
                        the line, and with the last line an offer: Accept or Hand over, and Not now; Enter or a click
                        goes on, Esc closes)
@@ -1581,6 +1598,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
 | The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `CHARACTER_PANEL_WIDTH_PX` in `client/src/ui/hud/layout.ts` |
+| How the core's sphere looks: each realm's colours and light, the light's size and brightness by step, its breath, when sparks start, a breakthrough's timing, how long the card shows it | `REALM_LOOKS`, `LIGHT`, `SPARKS_FROM` in `client/src/gfx/core/light.ts`; `BREAKTHROUGH`, `BREATH_TIME` in `client/src/gfx/core/sphere.ts`; `BREAKTHROUGH_SHOWN_MS` in `client/src/ui/hud/CoreCard.tsx` |
 | Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |

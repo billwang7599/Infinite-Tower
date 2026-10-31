@@ -89,8 +89,10 @@ What's built so far:
   2 s, anywhere, mid-fight too (a hit stops it, the essence kept), and a full step breaks through: every stat goes up
   and you get free points to place (taken back by a campfire). Stats are strength, agility, stamina, skillpower,
   vitality (HP), defense and special defense, plus hidden toughness, stamina recovery and health regen. Dying loses
-  the step's essence, or with none, a whole step. The HUD shows your realm and step, the character panel your stats
-  as a polygon chart, where free points are placed (hovering + or − previews the change).
+  the step's essence, or with none, a whole step. Click your portrait (bottom left) to turn it over to your core: a
+  glass sphere whose light grows brighter every step and changes colour every realm, fiery Yan to ethereal Tian, with
+  no bar or number; sparks show as a breakthrough nears, and a breakthrough flashes. The character panel shows your
+  stats as a polygon chart, where free points are placed (hovering + or − previews the change).
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
@@ -115,10 +117,10 @@ What's built so far:
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
   a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
   guard; without the skillbook you can't quick-cast. Worn things count toward the weight.
-- **HUD:** HP and stamina bars, your realm and step, foes beaten, the level's name, the ping, and buttons for the
-  character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying, resting,
-  eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the big banner
-  in the middle.
+- **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
+  buttons for the character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying,
+  resting, eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the
+  big banner in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further

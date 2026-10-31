@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  approach, clamp, damp, distXZ, roundTo, seededRandom, turnToward, wrapAngle,
+  approach, clamp, damp, distXZ, roundTo, seededRandom, smoothstep, turnToward, wrapAngle,
 } from "@infinite-tower/shared";
 
 const close = (actual: number, expected: number) =>
@@ -22,6 +22,13 @@ test("clamp", () => {
   assert.equal(clamp(-1, 0, 5), 0);
   assert.equal(clamp(9, 0, 5), 5);
   assert.equal(clamp(3, 0, 5), 3);
+});
+
+test("smoothstep eases from 0 at lo to 1 at hi, flat outside", () => {
+  assert.equal(smoothstep(2, 4, 1), 0);
+  assert.equal(smoothstep(2, 4, 3), 0.5);
+  assert.equal(smoothstep(2, 4, 5), 1);
+  assert.ok(smoothstep(2, 4, 2.5) < 0.25);
 });
 
 describe("angles", () => {

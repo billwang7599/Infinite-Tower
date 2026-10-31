@@ -53,7 +53,7 @@ Every character is one look drawn several ways. All views have a transparent bac
 
 | View | Size | Drawn by | What it's for |
 | --- | --- | --- | --- |
-| portrait | 64x64 | `drawPortrait(look)` | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed) and creation |
+| portrait | 64x64 | `drawPortrait(look)` | head and shoulders, three-quarter view; dialogue (speaker lit, listener dimmed), creation, the character panel and the HUD's card |
 | chibi | 32x32 | `drawChibi(look, facing)` | the world, about 1.7 heads tall; facing front, back or side (to the left), the way it walks |
 | battle | 64x64 | `drawBattle(look, pose, frame, facing)` | the arena, from behind or the front, sword in hand; the figure is 48 wide, the sides are room for the sword |
 

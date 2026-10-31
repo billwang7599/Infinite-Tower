@@ -184,10 +184,9 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
-  const core = useStore(hud, (s) => s.core);
   return (
     <div className="absolute top-3 left-4">
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} core={core} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
     </div>
   );
 }

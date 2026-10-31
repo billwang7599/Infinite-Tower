@@ -11,6 +11,11 @@ export function clamp(x: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, x));
 }
 
+export function smoothstep(lo: number, hi: number, x: number): number {
+  const t = clamp((x - lo) / (hi - lo), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 /** Wrap an angle into (-π, π]. */
 export function wrapAngle(a: number): number {
   return Math.atan2(Math.sin(a), Math.cos(a));
