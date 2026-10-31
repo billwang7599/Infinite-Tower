@@ -77,14 +77,14 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
     const places: [string, Vec2][] = [
       ["the start", level.spawn],
       ...layout.campfires.map((c, i): [string, Vec2] => [`campfire ${i}`, c]),
-      ...NPC_IDS.flatMap((npc) => NPCS[npc].stops.filter((s) => s.level === layout.id).map((s): [string, Vec2] =>
-        [npc, s.at])),
+      ...NPC_IDS.flatMap((npc) => NPCS[npc].stops.filter((s) => s.level === layout.id).flatMap((s): [string, Vec2][] =>
+        [[npc, s.at], ...s.trace ? [[`${npc}'s trace`, s.trace.at] as [string, Vec2]] : []])),
       ...level.spawns.flatMap((s): [string, Vec2][] => [
         [s.enemy, s.at], [`${s.enemy} (mirrored)`, { x: -s.at.x, z: s.at.z }],
       ]),
     ];
 
-    test("the start, the campfires, the NPCs and every spawn stand clear of solid tiles", () => {
+    test("the start, the campfires, the NPCs, their traces and every spawn stand clear of solid tiles", () => {
       for (const [name, at] of places) assert.ok(fitsAt(layout, at), name);
     });
 

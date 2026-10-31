@@ -16,7 +16,7 @@ import { bagWith, pileAt, startSession, tick, winFight } from "./helpers.js";
 before(() => initPhysics());
 
 const STOP = stopFor(newStory(), NPCS.hollis)!;
-const OPENING = dialogueOf(NPCS.hollis, newStory(), emptyBag())!;
+const OPENING = dialogueOf(STOP.talk, newStory(), emptyBag())!;
 assert.ok(OPENING.offer?.kind === "quest", "Hollis offers a quest the first time");
 const FIRST = OPENING.offer.quest;
 const SECOND = Object.keys(QUESTS).find((id) => {
@@ -63,7 +63,7 @@ describe("Hollis's quests", () => {
     const { session, link } = started();
     session.talk();
     assert.deepEqual(link.last("dialogue"), {
-      t: "dialogue", npc: "hollis", lines: OPENING.lines,
+      t: "dialogue", npc: "hollis", trace: false, lines: OPENING.lines,
       offer: { kind: "quest", quest: FIRST, title: first.title, step: first.steps[0]!.text },
     });
   });
@@ -173,7 +173,7 @@ describe("Hollis's quests", () => {
 
   test("the talk step: Hollis tells what it reveals, and it's done with its reward; then he says what's next", () => {
     const { session, link } = started({ story: on(SECOND, TALK_STEP) });
-    const told = dialogueOf(NPCS.hollis, session.story, session.bag)!;
+    const told = dialogueOf(STOP.talk, session.story, session.bag)!;
     const forStep = STOP.talk.find((t) => isDeepStrictEqual(t.when, { quest: SECOND, step: TALK_STEP.id }));
     assert.equal(told.lines, forStep?.lines, "his lines for that step");
     session.talk();

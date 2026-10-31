@@ -538,6 +538,21 @@ them; treat them as changeable, and still ask before deciding new ones):
   Loom" (gather and hand over 2 boar tusks; 2 boar meat, lore "Nyra's loom" and "The five realms") then "The Snapped
   Thread" (reach the Mistwood's north-east ruins, slay a Kobold Swordsman, tell her; 3 boar meat, lore "The snapped
   tether"). Their names, looks, spots, lines, rewards and lore are the agent's.
+- Hollis moves on (the user: a recurring NPC moves on with the story, leaving a trace; Hollis to the Mistwood once his
+  first chain is done; "make any assumptions you want"). With `hollis-to-mistwood` set he stands by the Mistwood's
+  pad (1.5 tiles east of it, between it and the campfire, facing it), per player. Where each player sees an NPC is
+  fixed as they enter a level: done by the fire, he stays there for the rest of that visit saying goodbye ("meet me in
+  the Mistwood ... I'll be by its pad"), and is gone the next time they come (another level, a reconnect). His trace
+  is a bedroll, rolled and tied, where he stood by the fire, drawn as a small sprite; Interact ("Look") reads it,
+  titled "Hollis's bedroll" with no portrait: it was left for whoever needs the fire, with a note saying he's gone on
+  to the Mistwood's pad through the gap at the field's east edge. It lies there for good, does no quest step, and
+  every trace is drawn as a bedroll until a second kind is needed. In the Mistwood he has new lines (the pad is the
+  same stone as the field's, nobody remembers it laid) and one small main quest, "The Pad and the Loom": ask Ilse what
+  her loom makes of the pad (she says no thread runs to it or out of it), then back to him; 3 boar meat and the lore
+  entry "The threadless pads" (whoever laid the pads isn't on Nyra's loom, any more than what sends avatars; Hollis
+  wagers the same hands), then lines for after it. Ilse's line for that step comes first in her talk, so it wins over
+  her own quests' for that one talk. No routines, sleep or friendship yet; Maren's and Corwin's lines don't mention his
+  move.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).
@@ -613,8 +628,8 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Quests (the user: "just go with your recommendations"): Hollis's first chain, main quest, is "Hides for the Fire"
   (gather 2 boar hides, then hand them to him: 2 boar meat and the lore entry "Avatars") and then "Where You Woke"
   (slay 3 wild boars, then go back to him: he tells you about the summoning pads, gives 3 boar meat and the lore entry
-  "The summoning pads", sets the flag `hollis-to-mistwood`, and says "meet me in the Mistwood"; he stays at the fire
-  until PR 2 moves him). Numbers and words are in `server/src/core/content/quests.ts`, `content/lore.ts` and
+  "The summoning pads", sets the flag `hollis-to-mistwood`, and says "meet me in the Mistwood"; then he moves on,
+  below). Numbers and words are in `server/src/core/content/quests.ts`, `content/lore.ts` and
   `npcs/hollis.ts`, for the user to edit. A won fight counts every enemy in it, for each winner; a kill step counts
   only kills after it began, and a talk, a fight or a handover does one step at most. A reward that doesn't fit in the
   bag is left in a pile at your feet. An NPC offers one thing at most, the offer of the lines it says (the order in

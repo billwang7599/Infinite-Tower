@@ -1,6 +1,6 @@
 import {
-  faceToward, type ActorSnap, type Character, type Entity, type LevelLayout, type PileSnap, type PlayerSnap,
-  type World,
+  faceToward, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type PileSnap,
+  type PlayerSnap, type Vec2, type World,
 } from "@infinite-tower/shared";
 import { Npc, OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
 import { headingFromSide } from "./facing.js";
@@ -9,7 +9,7 @@ export class ActorMirror {
   /** Server id -> local entity. */
   private readonly local = new Map<number, Entity>();
   private readonly characters = new Map<number, Character>();
-  private npcs: Entity[] = [];
+  private placed: Entity[] = [];
 
   constructor(private readonly world: World) {}
 
@@ -44,19 +44,26 @@ export class ActorMirror {
 
   enter(level: LevelLayout): void {
     this.clear();
-    this.npcs = level.npcs.map(({ npc, at, heading }) => {
+    const place = (at: Vec2, kind: "npc" | "trace", heading: Heading) => {
       const e = this.world.spawn();
       this.world.add(e, OverworldPos, { x: at.x, z: at.z });
-      this.world.add(e, OverworldActor, { kind: "npc", vx: 0, vz: 0, heading, alert: false });
-      this.world.add(e, Npc, { id: npc });
+      this.world.add(e, OverworldActor, { kind, vx: 0, vz: 0, heading, alert: false });
       return e;
-    });
+    };
+    this.placed = [
+      ...level.npcs.map(({ npc, at, heading }) => {
+        const e = place(at, "npc", heading);
+        this.world.add(e, Npc, { id: npc });
+        return e;
+      }),
+      ...level.traces.map((at) => place(at, "trace", "west")),
+    ];
   }
 
   clear(): void {
     for (const [id, e] of this.local) this.remove(id, e);
-    for (const e of this.npcs) this.world.destroy(e);
-    this.npcs = [];
+    for (const e of this.placed) this.world.destroy(e);
+    this.placed = [];
     this.characters.clear();
     this.world.flush();
   }

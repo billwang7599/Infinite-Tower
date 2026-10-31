@@ -18,7 +18,7 @@ import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
 import { stateMsg } from "./snapshot.js";
 import { progressStory, questbookOf, type Story } from "./story.js";
-import { handOver, npcsOn, takeQuest, talkTo } from "./talk.js";
+import { handOver, placeFor, takeQuest, talkTo, type Placed } from "./talk.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
@@ -59,6 +59,7 @@ export class GameSession {
   skillbook: Skillbook;
   /** Kept on death, like the words they know. */
   story: Story;
+  placed: Placed = { npcs: [], traces: [] };
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
   private held: Gear;
@@ -398,7 +399,7 @@ export class GameSession {
     this.levelId = id;
     this.introduced.clear();
     this.gear = this.held;
-    const level = { ...overworld.level.layout, npcs: npcsOn(id, this.story) };
+    const level = { ...overworld.level.layout, ...placeFor(this, id) };
     this.link.send({ t: "level", level, me: overworld.playerPos(me) });
   }
 }

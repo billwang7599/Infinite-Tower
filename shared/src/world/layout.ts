@@ -24,6 +24,7 @@ export interface LevelMap {
 /** A level as one player is sent it: the NPCs standing there depend on their story. */
 export interface LevelLayout extends LevelMap {
   npcs: PlacedNpc[];
+  traces: Vec2[];
 }
 
 export const NPC_IDS = ["hollis", "maren", "tobin", "corwin", "ilse"] as const;

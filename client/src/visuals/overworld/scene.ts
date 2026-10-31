@@ -22,6 +22,7 @@ export interface OverworldScene {
     alert: StandardMaterial;
     fighting: StandardMaterial;
     pile: StandardMaterial;
+    bedroll: StandardMaterial;
     blob: StandardMaterial;
   };
   state: OverworldState;
@@ -55,6 +56,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
       alert: sprite("overworld-alert", drawAlert),
       fighting: sprite("overworld-fighting", drawCrossedSwords),
       pile: sprite("overworld-pile", drawPile),
+      bedroll: sprite("overworld-bedroll", drawBedroll),
       blob: blobMaterial(scene),
     },
   };
@@ -98,6 +100,29 @@ export const drawPile: SpriteDraw = (px) => {
   px(6, 3, 1, 3, glint);
   px(5, 4, 3, 1, glint);
   px(19, 8, 1, 1, glint);
+};
+
+const drawBedroll: SpriteDraw = (px) => {
+  const outline = "#1b1b2a", wool = "#5f6b3a", light = "#7a8750", shade = "#434c28", end = "#8a9660";
+  const stripe = "#c8642a", cord = "#4a2f1c", paper = "#efe6cf", ink = "#6b6258";
+  px(4, 13, 15, 10, outline);
+  px(3, 14, 17, 8, outline);
+  px(18, 14, 4, 8, outline);
+  px(19, 13, 2, 10, outline);
+  px(4, 14, 15, 8, wool);
+  px(4, 14, 15, 2, light);
+  px(4, 20, 15, 2, shade);
+  px(9, 14, 2, 8, stripe);
+  px(19, 14, 2, 8, end);
+  px(18, 15, 4, 6, end);
+  px(19, 16, 2, 4, shade);
+  px(20, 17, 1, 2, end);
+  px(6, 13, 1, 10, cord);
+  px(15, 13, 1, 10, cord);
+  px(12, 8, 5, 7, outline);
+  px(13, 9, 3, 5, paper);
+  px(13, 10, 3, 1, ink);
+  px(13, 12, 2, 1, ink);
 };
 
 function blobMaterial(scene: Scene): StandardMaterial {

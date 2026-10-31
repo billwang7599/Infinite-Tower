@@ -1,7 +1,7 @@
 /** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
 import {
   bagCounts, HEADING_WAY, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
-  type NpcId, type PlacedNpc, type System, type Vec2,
+  type System, type Vec2,
 } from "@infinite-tower/shared";
 import type { LevelDef, SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
@@ -139,11 +139,7 @@ export class Overworld implements OverworldContext {
     return this.inView(player, piles)?.pile ?? null;
   }
 
-  npcInView(player: Entity, npcs: readonly PlacedNpc[]): NpcId | null {
-    return this.inView(player, npcs.map(({ npc, at }) => ({ npc, ...at })))?.npc ?? null;
-  }
-
-  private inView<T extends Vec2>(player: Entity, things: readonly T[]): T | null {
+  inView<T extends Vec2>(player: Entity, things: readonly T[]): T | null {
     return inViewWithSlack(this.playerPos(player), HEADING_WAY[this.playerData(player).heading], things);
   }
 

@@ -39,16 +39,18 @@ What's built so far:
   drops. Natives live along the way: Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the Waking Hollow,
   Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the Mistwood's lake.
   Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes). What they say
-  follows your story.
+  follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the Mistwood's
+  pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own story
+  puts him).
 - **Quests:** NPCs offer quests at the end of what they say (Accept or Not now), and hand over what a step asks
   for the same way. Steps ask you to gather items, hand them over, go somewhere, talk to someone or win fights against
   an enemy, and give items, lore and story progress. The Hollow's short first chain (a first boar, meat for Tobin's
   rack, then on to Hollis) leads into Hollis's: two boar hides, three boars, and what he knows about the pads you
-  wake on. Maren and Tobin each have a side quest further out (a Goblin Warlock in the Mistwood, a Kobold in the
-  Grass Field), and Corwin and Ilse two each (hides for a blind and a count of Kobolds; tusks for a loom and the
-  Kobold in the Mistwood's ruins). The questbook (J, or the HUD's book; in fights too) has the main quest
-  and side quests, each with its next step and a hint as the NPC gave it, and the lore found so far under the quest
-  that revealed it. Your story is yours alone and kept on death.
+  wake on; then, in the Mistwood, what Ilse's loom makes of its pad. Maren and Tobin each have a side quest further
+  out (a Goblin Warlock in the Mistwood, a Kobold in the Grass Field), and Corwin and Ilse two each (hides for a
+  blind and a count of Kobolds; tusks for a loom and the Kobold in the Mistwood's ruins). The questbook (J, or the
+  HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
+  it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.

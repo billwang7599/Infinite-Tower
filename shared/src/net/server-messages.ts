@@ -127,7 +127,7 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
-  | { t: "dialogue"; npc: NpcId; lines: readonly string[]; offer: DialogueOffer | null }
+  | { t: "dialogue"; npc: NpcId; trace: boolean; lines: readonly string[]; offer: DialogueOffer | null }
   | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }
   /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
   | { t: "healed"; vitals: Vitals }

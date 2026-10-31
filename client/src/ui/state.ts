@@ -57,7 +57,7 @@ export interface OverworldHudState {
   using: UseSpot | null;
 }
 
-export type Interaction = "rest" | "joinFight" | "openPile" | "talk";
+export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look";
 
 export interface BattleHudState {
   hpFraction: number;
@@ -245,7 +245,7 @@ export class UiState {
   readonly hearChat = (lines: readonly ChatLine[]): void =>
     this.chat.set({ lines: [...this.chat.get().lines, ...lines].slice(-CHAT_LOG_LINES) });
   readonly openDialogue = (
-    name: string, look: Look, lines: readonly string[], offer: DialogueOffer | null = null,
+    name: string, look: Look | null, lines: readonly string[], offer: DialogueOffer | null = null,
   ): void => this.dialogue.set({ open: true, name, look, lines, line: 0, offer });
   readonly nextLine = (): DialogueOffer | null => {
     const { line, lines, offer } = this.dialogue.get();

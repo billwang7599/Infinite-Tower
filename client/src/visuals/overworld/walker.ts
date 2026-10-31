@@ -28,6 +28,7 @@ const BLOB_LENGTH_SHARE = 0.6;
 const BLOB_WIDTH_SHARE = 0.4;
 const PLAYER_SIZE_TILES = 1.6;
 const PILE_SIZE_TILES = 1.4;
+const BEDROLL_SIZE_TILES = 1.4;
 const NAME_WIDTH_TILES = 2.4;
 const NAME_HEIGHT_TILES = 0.4;
 const NAME_TEXTURE_PX = { width: 384, height: 64 };
@@ -114,6 +115,7 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
   peer: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: true }),
   npc: walker({ material: (v) => v.materials.player.front, sizeTiles: PLAYER_SIZE_TILES, glide: false }),
   pile: walker({ material: (v) => v.materials.pile, sizeTiles: PILE_SIZE_TILES, glide: false }),
+  trace: walker({ material: (v) => v.materials.bedroll, sizeTiles: BEDROLL_SIZE_TILES, glide: false }),
   ...byEnemy(({ sprite }, id) => walker({
     material: (v) => v.materials.enemies[id], sizeTiles: sprite.sizeTiles, glide: true, alert: true,
   })),

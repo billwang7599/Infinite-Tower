@@ -8,6 +8,15 @@ export const ILSE: Npc = {
       heading: "west",
       talk: [
         {
+          when: { quest: "hollis-loom", step: "ilse" },
+          lines: [
+            "Hollis sent you about the pad. He's asked me twice a day since he came.",
+            "I've stood on it and looked, the way I look at you. Nothing. No thread runs to it, and none runs out.",
+            "Whoever laid that stone isn't on the loom. Tell him that, and tell him it's the same nothing I see in "
+              + "you.",
+          ],
+        },
+        {
           when: { done: "ilse-snapped" },
           lines: [
             "Still no thread. I've stopped expecting one.",

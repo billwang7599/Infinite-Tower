@@ -8,7 +8,7 @@ import {
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
 
 export interface OverworldActorData {
-  kind: ActorSnap["kind"] | "player" | "peer" | "pile" | "npc";
+  kind: ActorSnap["kind"] | "player" | "peer" | "pile" | "npc" | "trace";
   vx: number;
   vz: number;
   heading: Heading;

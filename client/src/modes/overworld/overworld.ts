@@ -33,6 +33,7 @@ export function interactionAt(
   const faced = inView(at, HEADING_WAY[heading], [
     ...piles.map((pile) => ({ what: "openPile" as const, ...pile })),
     ...level.npcs.map((npc) => ({ what: "talk" as const, ...npc.at })),
+    ...level.traces.map((trace) => ({ what: "look" as const, ...trace })),
   ]);
   const reachable: [Interaction, readonly Vec2[], number][] = [
     ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
@@ -49,7 +50,7 @@ export function interactionAt(
 }
 
 const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile" | "talk"> = {
-  rest: "rest", joinFight: "joinBattle", openPile: "openPile", talk: "talk",
+  rest: "rest", joinFight: "joinBattle", openPile: "openPile", talk: "talk", look: "talk",
 };
 
 const SPEECH_TIME = 6;
