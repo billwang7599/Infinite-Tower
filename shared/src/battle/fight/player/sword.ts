@@ -2,7 +2,7 @@ import type { Entity, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { shotOf } from "../../../skills/effects.js";
 import {
-  CHAIN, chainKind, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
+  CHAIN, chainKind, guardRaiseTime, HYBRID, lastFeintStep, perfectBlockTime, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import type { Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
@@ -44,8 +44,9 @@ export function readSword(t: SwordTurn): void {
   const feint = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   if (blockPressed) {
-    player.perfectBlockLeft = !feint && player.sinceBlockPress >= HYBRID.block.remashTime
-      ? HYBRID.block.perfectTime : 0;
+    const strength = t.world.require(t.e, FighterStats).strength;
+    player.perfectBlockLeft = weapon && !feint && player.sinceBlockPress >= HYBRID.block.remashTime
+      ? guardRaiseTime(weapon, strength) + perfectBlockTime(weapon) : 0;
     player.sinceBlockPress = 0;
   } else {
     player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);

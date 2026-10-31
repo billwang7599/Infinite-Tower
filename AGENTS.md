@@ -104,6 +104,11 @@ Decided by the user:
     within about 0.2 s before a hit lands it's a perfect block: no stamina, no chip, the blocker recovers sooner, and
     the attacker loses stamina. A press within 0.5 s of the last gets no perfect window (no mashing). No tap parry and
     no counter-parry by the reverse swing.
+  - Blocking goes by the blade (the user: small fast blades and big slow ones play differently): the perfect window
+    grows with the blocker's blade length (0.2 s × length / 1.1: sword 0.2, longsword ~0.25, greatsword ~0.35), and
+    raising the guard takes time that grows with the heft its wielder feels (sword 0.05 s, greatsword ~0.15 s at
+    strength 10); a hit landing while it comes up isn't blocked. Enemies raise theirs the same way. No close-range
+    penalty for big weapons.
   - Stamina is a player's only bar (no player poise): 150 to start (15 a stamina point); a light costs 10, a heavy
     16, a stab 12, a dodge 22. Holding block drains it slowly and it doesn't refill while blocking. A blocked hit
     costs stamina, a heavy twice its damage, and doesn't break the block by itself; at 0 stamina the guard breaks,
@@ -505,10 +510,13 @@ them; treat them as changeable, and still ask before deciding new ones):
     last of the stamina (or more) breaks the guard: staggered 0.8 s. The drain alone never breaks it; it leaves
     nothing for the next hit. An enemy's held block costs it the hit's poise instead, and out of poise it staggers as
     when hit.
-  - The perfect block: a block press opens a 0.2 s window, even let go again, as long as nothing else starts; a weapon
-    from in front lands in it blocked perfectly: no stamina, no chip; the attacker loses 10 stamina (if it has a bar)
-    and recoils 0.4 s (a stagger, its chain lost), so the blocker gets in first. A press within 0.5 s of the last opens
-    no window. Body blows can't be blocked perfectly.
+  - The guard comes up in 0.05 s + 0.17 s for each point of felt heft over 1 (`raiseTime`, `raiseTimePerHeft`):
+    longsword 0.08, greatsword 0.15 at strength 10. The perfect window opens once it's up, so a heavier blade has to
+    be pressed earlier. An enemy's comes up after its `blockReactTime`, a feint's too.
+  - The perfect block: a block press opens a window (0.2 s with the sword, by blade length), even let go again, as long
+    as nothing else starts; a weapon from in front lands in it blocked perfectly: no stamina, no chip; the attacker
+    loses 10 stamina (if it has a bar) and recoils 0.4 s (a stagger, its chain lost), so the blocker gets in first. A
+    press within 0.5 s of the last opens no window. Body blows can't be blocked perfectly.
   - Openings (a perfect block's recoil, a broken guard) aren't shortened by toughness.
   - The Kobold (the Greatsword too): a swing winds up 1.1 s, chained ones 0.45 s (its old, approved numbers), a heavy
     0.35 s more; any of the 7 swings or the stab, never the same twice running, 30% heavies, chains of 2 or 3; 0.5 s

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, Health, HYBRID, lastFeintStep, Player, Stamina, WeaponAttack, Wielder, type EnemyDef, type PlayerInputData,
+  Enemy, FIXED_DT, guardRaiseTime, Health, HYBRID, WEAPONS, lastFeintStep, Player, Stamina, WeaponAttack, Wielder, type EnemyDef, type PlayerInputData,
   type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, FULL_HP, FULL_STAMINA, input, player, swings, SWORDSMAN } from "../fixtures.js";
+import { ARENA, enemy, FULL_HP, FULL_STAMINA, input, player, STATS, swings, SWORDSMAN } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -103,5 +103,27 @@ describe("a swordsman", () => {
     const some = count(0.5);
     assert.ok(some > 0, `${some}`);
     assert.equal(count(0.5), some);
+  });
+
+  test("raises its guard in its blade's time once it reacts: a hit landing before that isn't blocked", () => {
+    const swing = (s: number) => ({ attack: s === 20 ? "light" as const : null });
+    const holding = (blade: "sword" | "greatsword", blockReactTime: number) => {
+      const def = kobold({ firstDelay: 99, blockReactTime });
+      return play({ ...def, wielder: { ...def.wielder!, hands: { rightHand: blade } } }, 60, swing);
+    };
+    const blocks = (r: ReturnType<typeof play>) => r.events.some((e) => e.type === "block" && e.target === r.it);
+    const lands = (r: ReturnType<typeof play>) => r.events.some((e) => e.type === "hit" && e.target === r.it);
+    const reactedFor = play(kobold({ firstDelay: 99, blockReactTime: 99 }), 0);
+    let at = 0;
+    while (!reactedFor.events.some((e) => e.type === "hit")) {
+      reactedFor.fight.step([input({ locked: 0, ...swing(reactedFor.fight.steps + 1) })]);
+      reactedFor.events.push(...reactedFor.fight.events);
+      at = reactedFor.fight.world.require(reactedFor.it, Enemy).stateTime;
+    }
+    const raise = (blade: "sword" | "greatsword") => guardRaiseTime(WEAPONS[blade], STATS.strength);
+    assert.ok(lands(holding("sword", at - raise("sword") + 2 * FIXED_DT)), "rising");
+    assert.ok(blocks(holding("sword", at - raise("sword") - 2 * FIXED_DT)), "up");
+    assert.ok(lands(holding("greatsword", at - raise("sword") - 2 * FIXED_DT)), "a greatsword's still rising");
+    assert.ok(blocks(holding("greatsword", at - raise("greatsword") - 2 * FIXED_DT)), "a greatsword's up");
   });
 });

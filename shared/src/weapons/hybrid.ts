@@ -74,12 +74,19 @@ export const HYBRID = {
   stab: { cost: 12, damageFactor: 1.25, poiseDamage: 18 },
   block: {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
-    brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, remashTime: 0.5, perfectDrain: 10, perfectRecoilTime: 0.4,
+    brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, perfectAtLengthM: 1.1, remashTime: 0.5, perfectDrain: 10,
+    perfectRecoilTime: 0.4, raiseTime: 0.05, raiseTimePerHeft: 0.17,
   },
   feint: { cutoffTime: 0.15, cost: 10 },
   /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
+
+export const perfectBlockTime = (weapon: Weapon): number =>
+  HYBRID.block.perfectTime * weapon.length / HYBRID.block.perfectAtLengthM;
+
+export const guardRaiseTime = (weapon: Weapon, strength: number): number =>
+  HYBRID.block.raiseTime + (feltHeft(weapon, strength) - 1) * HYBRID.block.raiseTimePerHeft;
 
 export const lastFeintStep = (liveAt: number): number => liveAt - toSteps(HYBRID.feint.cutoffTime) - 1;
 

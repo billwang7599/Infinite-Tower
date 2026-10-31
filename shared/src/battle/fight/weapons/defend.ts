@@ -1,7 +1,10 @@
 import type { Entity, World } from "../../../core/ecs.js";
 import type { Vec2 } from "../../../core/math.js";
-import { HYBRID } from "../../../weapons/hybrid.js";
+import { FIXED_DT, toSteps } from "../../../core/time.js";
+import { guardRaiseTime, HYBRID } from "../../../weapons/hybrid.js";
+import { weaponIn } from "../../../weapons/weapons.js";
 import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData } from "../../components.js";
+import { FighterStats } from "../../stats.js";
 import { faces, knock, spend, stagger } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { damageDealtFactor, hurt } from "../skills/statuses.js";
@@ -14,16 +17,27 @@ export function facingOf(world: World, e: Entity): Vec2 {
   return { x: Math.sin(yaw), z: Math.cos(yaw) };
 }
 
+function guardUp(world: World, e: Entity, raisingTime: number): boolean {
+  const weapon = weaponIn(world.require(e, Wielder).hands);
+  if (!weapon) return false;
+  return toSteps(raisingTime) >= toSteps(guardRaiseTime(weapon, world.require(e, FighterStats).strength));
+}
+
 export function blocking(world: World, e: Entity): boolean {
   const player = world.get(e, Player);
-  if (player) return player.action === "block";
+  // The controller has already counted this step into actionTime.
+  if (player) return player.action === "block" && guardUp(world, e, player.actionTime - FIXED_DT);
   const enemy = world.get(e, Enemy), attack = world.get(e, WeaponAttack);
-  return enemy?.state === "approach" && attack !== undefined && enemy.stateTime >= attack.def.blockReactTime;
+  return enemy?.state === "approach" && attack !== undefined
+    && guardUp(world, e, enemy.stateTime - attack.def.blockReactTime);
 }
 
 function blocksPerfectly(world: World, target: Entity): boolean {
   const player = world.get(target, Player);
-  if (player) return (player.action === "block" || player.action === "none") && player.perfectBlockLeft > 0;
+  if (player) {
+    return (player.action === "block" || player.action === "none") && player.perfectBlockLeft > 0
+      && guardUp(world, target, player.sinceBlockPress);
+  }
   return (world.get(target, WeaponAttack)?.perfectBlockRead ?? false) && world.get(target, Enemy)?.state === "approach";
 }
 

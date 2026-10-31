@@ -395,10 +395,11 @@ main.ts
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
   controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
-  player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on
-  the old momentum chains (`Wielder.combo`, `comboTime`, `momentum`), and holds a block (the `block` action, draining
-  stamina in the controller), whose press opens a perfect block's window (`perfectBlockLeft`); pressed in a heavy's
-  wind-up it feints instead (`readSword`, the `feint` event). A swordsman's brain is its `WeaponAttack`'s
+  player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on the
+  old momentum chains (`Wielder.combo`, `comboTime`, `momentum`), and holds a block (the `block` action, draining
+  stamina in the controller), whose press raises the guard in a time by the blade's felt heft (`guardRaiseTime`) and
+  opens a perfect block's window by its length (`perfectBlockTime`, `perfectBlockLeft`); pressed in a heavy's wind-up it
+  feints instead (`readSword`, the `feint` event). A swordsman's brain is its `WeaponAttack`'s
   (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a perfect block it reads
   (`perfectBlockRead`) and the quick swing after it (`riposte`), and seeded feints of its heavies (`feint`).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
@@ -693,7 +694,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina),
   the defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double
   cost, running out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost
-  stamina and recoil, getting in first, too early, mashing; no parry by a swing), the swordsman
+  stamina and recoil, getting in first, too early, mashing; no parry by a swing; the guard rising by heft and the
+  window by blade length), the swordsman
   (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
   block and the swing after, chains by its seed and through a save, its landed hits only hurting), whole
   fights won and lost,
@@ -1021,7 +1023,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft and
                    minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the
                    stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind, CHAIN, MOMENTUM; HYBRID (light, heavy, stab,
-                   the block and perfect block, the lunge); wayShape, wayStepsAfter, strikeCost, strikeDamage)
+                   the block and perfect block, the lunge); wayShape, wayStepsAfter, strikeCost, strikeDamage,
+                   guardRaiseTime, perfectBlockTime)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1616,7 +1619,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft, minimum strength) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
-| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
+| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
