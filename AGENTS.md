@@ -122,6 +122,10 @@ Decided by the user:
     builds damage and speed until a gap, a block, a dodge or a hit taken; a stab spends it.
   - The Kobold Swordsman fights by the same rules: chains of swings, holding a block and now and then perfect-blocking,
     by its own chances. The boar and the Goblin Warlock just keep working. The 3D player blade follows the ways.
+  - A ring round you shows your aim all the time, For Honor style (the user: "it should bring back the ring (with the
+    bottom ring missing) to consistently show what stance we're using. not just the indication on attack. similar to
+    for honor style"): 7 wedges, none at the bottom, the aimed way's lit as soon as you flick. Only you see yours;
+    enemies and other players get no ring, and their swings no marker.
   - Swing steering isn't built ([plan/ideas.md](plan/ideas.md)).
   Every smaller rule and the agent's numbers: "The Hybrid sword" under "Decided by the agent".
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
@@ -533,6 +537,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     overhead one) while its 3D blade sweeps the real way; a stab points ahead and leaves no trail. Aimed, the blade is
     held on that side (the guard-left / top / right poses); blocking, up top. A perfect block shows and sounds as the
     old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
+  - The aim ring: 7 faint wedges 0.8 m round the chest, the aimed one gold, over everything, and a gold diamond on the
+    chest while a stab winds up; hidden with no sword in hand, once you're down and once the fight is decided
+    (`client/src/visuals/battle/aimRing.ts`).
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
