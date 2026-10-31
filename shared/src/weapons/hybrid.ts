@@ -76,9 +76,12 @@ export const HYBRID = {
     minDot: 0.34, chipFraction: 0.2, heavyStaminaFactor: 2, holdStaminaPerSec: 5, pushbackFactor: 0.6,
     brokenTime: 0.8, moveFactor: 0.4, perfectTime: 0.2, remashTime: 0.5, perfectDrain: 10, perfectRecoilTime: 0.4,
   },
+  feint: { cutoffTime: 0.15, cost: 10 },
   /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
   swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
+
+export const lastFeintStep = (liveAt: number): number => liveAt - toSteps(HYBRID.feint.cutoffTime) - 1;
 
 const REACH_FACTOR = { swing: 1.15, stab: 1.75 } as const;
 const ARC_DEG: Record<SwingLine | "stab", number> = {

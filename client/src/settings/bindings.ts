@@ -45,7 +45,9 @@ export const ACTIONS = {
     lightAttack: { label: "Light attack", keys: [], mouse: [0] },
     heavyAttack: { label: "Heavy attack", keys: [], mouse: [2] },
     stab: { label: "Stab", keys: ["KeyK"], wheel: true },
-    block: { label: "Block (hold; pressed just before a hit: a perfect block)", keys: ["ShiftLeft"] },
+    block: {
+      label: "Block (hold; just before a hit: a perfect block; in a heavy's wind-up: a feint)", keys: ["ShiftLeft"],
+    },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Lock on / off", keys: ["KeyQ"] },

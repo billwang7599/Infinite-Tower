@@ -245,6 +245,7 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   swingsLeft: number;
   perfectBlockRead: boolean;
   riposte: boolean;
+  feint: boolean;
   way: Way;
 }
 

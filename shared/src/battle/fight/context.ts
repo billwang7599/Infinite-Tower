@@ -21,6 +21,7 @@ export type FightEvent =
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
   | { type: "block"; by: Entity; target: Entity; broken?: boolean; perfect?: boolean }
+  | { type: "feint"; by: Entity }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId; brokeThrough: boolean };

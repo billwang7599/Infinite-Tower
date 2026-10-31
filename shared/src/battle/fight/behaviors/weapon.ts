@@ -1,9 +1,10 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { FIXED_DT } from "../../../core/time.js";
-import { HYBRID, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
+import { HYBRID, lastFeintStep, WAYS, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
 import { Enemy, WeaponAttack, Wielder, type EnemyData, type WeaponAttackData } from "../../components.js";
+import type { FightEvent } from "../context.js";
 import { bladeLive, startWaySwing } from "../weapons/swing.js";
 import { enter, roll } from "./common.js";
 
@@ -26,6 +27,7 @@ function windUp(
   const way = pickWay(enemy, attack.way);
   const strike: Strike = way === "stab" ? "stab" : roll(enemy) < attack.def.heavyShare ? "heavy" : "light";
   attack.way = way;
+  attack.feint = strike === "heavy" && roll(enemy) < attack.def.heavyFeintShare;
   const extra = strike === "heavy" ? HYBRID.heavy.extraTime : 0;
   startWaySwing(world, e, weapon, strike, way, windupTime + extra, 1, facing(enemy));
   // Not `enter`: that would end the swing.
@@ -39,7 +41,14 @@ function swingStarts(world: World, enemy: EnemyData, target: Entity): boolean {
     && enemy.sense.facingDot > MIN_FACING_DOT;
 }
 
-export function weaponAttackSystem(): System {
+function feint(world: World, e: Entity, enemy: EnemyData, attack: WeaponAttackData, events: FightEvent[]): void {
+  enter(world, e, enemy, "approach");
+  enemy.stateTime = attack.def.blockReactTime;
+  Object.assign(attack, { feint: false, swingsLeft: 0, cooldown: attack.def.cooldown });
+  events.push({ type: "feint", by: e });
+}
+
+export function weaponAttackSystem(events: FightEvent[]): System {
   return (world, dt) => {
     for (const [e, attack, enemy, wielder] of world.query(WeaponAttack, Enemy, Wielder)) {
       const def = attack.def, sense = enemy.sense, move = enemy.move, swing = wielder.swing;
@@ -62,6 +71,10 @@ export function weaponAttackSystem(): System {
         }
         case "weaponWindup":
         case "weapon":
+          if (swing && attack.feint && swing.step >= lastFeintStep(swing.liveAt)) {
+            feint(world, e, enemy, attack, events);
+            break;
+          }
           if (swing && swing.step < swing.liveAt) {
             enemy.yaw = turnToward(enemy.yaw, sense.toYaw, WINDUP_TURN_RAD_PER_SEC * dt);
             swing.dir = facing(enemy);

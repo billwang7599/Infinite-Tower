@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, emptyBag, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Stamina, starterEquipment,
-  strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
+  AVERAGE_STAT, CHAIN, emptyBag, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage, Player, Stamina,
+  starterEquipment, strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE } from "../fixtures.js";
@@ -125,5 +125,53 @@ describe("the sword's attacks", () => {
     assert.equal(strong.spent, strikeCost(WEAPONS.greatsword, "light", AVERAGE_STAT * 2));
     assert.equal(average.spent, strikeCost(WEAPONS.greatsword, "light", AVERAGE_STAT));
     assert.ok(strong.liveAt < average.liveAt);
+  });
+});
+
+describe("a feint", () => {
+  const blockAt = (strike: Strike, swingStep: (liveAt: number) => number) => {
+    const fight = newFight(30), me = fight.players[0]!, wielder = fight.world.require(me, Wielder);
+    fight.step([input({ locked: 0, way: "lr", attack: strike })]);
+    const target = swingStep(wielder.swing!.liveAt);
+    while (wielder.swing!.step < target) fight.step([input({ locked: 0, way: "lr" })]);
+    const stamina = fight.world.require(me, Stamina).value;
+    fight.step([input({ locked: 0, way: "lr", block: true })]);
+    return { fight, me, wielder, stamina };
+  };
+
+  test("block pressed in a heavy's wind-up pulls it back into a guard, for the feint's stamina", () => {
+    const { fight, me, wielder, stamina } = blockAt("heavy", () => 1);
+    assert.equal(wielder.swing, null);
+    assert.equal(fight.world.require(me, Player).action, "block");
+    const holdCost = HYBRID.block.holdStaminaPerSec * Fight.STEP_SECONDS;
+    assert.ok(Math.abs(fight.world.require(me, Stamina).value - (stamina - HYBRID.feint.cost - holdCost)) < 1e-9);
+    assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
+  });
+
+  test("opens no perfect block and ends the chain", () => {
+    const fight = newFight(30), me = fight.players[0]!, wielder = fight.world.require(me, Wielder);
+    fight.step([input({ locked: 0, way: "lr", attack: "light" })]);
+    fight.step([input({ locked: 0, way: "rl" })]);
+    fight.step([input({ locked: 0, way: "rl", attack: "heavy" })]);
+    while (wielder.swing?.attack !== "heavy") fight.step([input({ locked: 0, way: "rl" })]);
+    assert.ok(wielder.momentum > 0);
+    fight.step([input({ locked: 0, way: "rl", block: true })]);
+    assert.equal(wielder.swing, null);
+    assert.equal(fight.world.require(me, Player).perfectBlockLeft, 0);
+    assert.equal(wielder.momentum, 0);
+    assert.equal(wielder.combo, null);
+  });
+
+  test("can't pull back a light, a stab, or a heavy in its last moment", () => {
+    for (const strike of ["light", "stab"] as const) {
+      const { fight, wielder } = blockAt(strike, () => 1);
+      assert.notEqual(wielder.swing, null, strike);
+      assert.ok(!fight.events.some((e) => e.type === "feint"), strike);
+    }
+    const late = blockAt("heavy", (liveAt) => lastFeintStep(liveAt) + 1);
+    assert.equal(late.wielder.swing?.attack, "heavy");
+    assert.ok(!late.fight.events.some((e) => e.type === "feint"));
+    const last = blockAt("heavy", lastFeintStep);
+    assert.equal(last.wielder.swing, null);
   });
 });

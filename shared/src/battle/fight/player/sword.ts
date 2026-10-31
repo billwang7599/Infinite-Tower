@@ -2,7 +2,7 @@ import type { Entity, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { shotOf } from "../../../skills/effects.js";
 import {
-  CHAIN, chainKind, HYBRID, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
+  CHAIN, chainKind, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import type { Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
@@ -12,7 +12,7 @@ import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { spend } from "../combat.js";
-import { endChain, startWaySwing } from "../weapons/swing.js";
+import { endChain, endSwing, startWaySwing } from "../weapons/swing.js";
 import { startAction } from "./controller.js";
 
 export interface SwordTurn {
@@ -40,8 +40,12 @@ export function readSword(t: SwordTurn): void {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
-  if (input.block && !player.blockHeld) {
-    player.perfectBlockLeft = player.sinceBlockPress >= HYBRID.block.remashTime ? HYBRID.block.perfectTime : 0;
+  const blockPressed = input.block && !player.blockHeld;
+  const feint = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
+    && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
+  if (blockPressed) {
+    player.perfectBlockLeft = !feint && player.sinceBlockPress >= HYBRID.block.remashTime
+      ? HYBRID.block.perfectTime : 0;
     player.sinceBlockPress = 0;
   } else {
     player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
@@ -52,6 +56,14 @@ export function readSword(t: SwordTurn): void {
   if (wielder.combo !== null) {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);
+  }
+  if (feint) {
+    endSwing(t.world, t.e);
+    endChain(wielder);
+    spend(t.stamina, HYBRID.feint.cost);
+    player.action = "none";
+    player.attackBuffer = 0;
+    t.events.push({ type: "feint", by: t.e });
   }
 }
 
