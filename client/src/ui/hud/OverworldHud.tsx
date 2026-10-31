@@ -1,5 +1,5 @@
-import type { Skill, Spot, UseSpot } from "@infinite-tower/shared";
-import type { ReactNode } from "react";
+import { coreStats, type ShownStat, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
+import { useMemo, type ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
 import { NO_FOCUS } from "../components/noFocus.js";
@@ -40,6 +40,7 @@ interface OverworldHudProps extends HudProps {
   challengeNearest: () => void;
   answerChallenge: (accept: boolean) => void;
   toggleQuestbook: () => void;
+  statPoint: (stat: ShownStat, add: boolean) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -48,7 +49,8 @@ export function OverworldHud(props: OverworldHudProps) {
   const panel = useStore(panels, (s) => s.open);
   const bookOpen = useStore(props.skillbookScreen, (s) => s.open);
   const gear = useStore(hud, (s) => s.gear);
-  const stats = useStore(hud, (s) => s.stats);
+  const core = useStore(hud, (s) => s.core);
+  const stats = useMemo(() => core && coreStats(core), [core]);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const using = useStore(hud, (s) => s.using);
   const interaction = useStore(hud, (s) => s.interaction);
@@ -84,7 +86,7 @@ export function OverworldHud(props: OverworldHudProps) {
       </div>
       <InteractButton interaction={interaction} interact={interact} />
       <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
-      {panel === "character" && <CharacterPanel hud={hud} close={close} />}
+      {panel === "character" && <CharacterPanel hud={hud} statPoint={props.statPoint} close={close} />}
       {panel === "inventory" && (
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
@@ -103,10 +105,11 @@ function PlayerStatus({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
   const wins = useStore(hud, (s) => s.wins);
+  const core = useStore(hud, (s) => s.core);
   return (
     <div className="absolute top-3 left-4">
       {name && <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} core={core} />
       <div id="overworld-wins" className="text-[13px] font-normal">
         Foes defeated: <span className="font-semibold text-victory">{wins}</span>
       </div>

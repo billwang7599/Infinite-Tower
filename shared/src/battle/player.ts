@@ -17,7 +17,7 @@ export const PLAYER = {
   radius: 0.35,
   height: 1.4,
 
-  maxHp: 100,
+  /** At stamina recovery 10. */
   staminaRegenPerSec: 45,
   /** Stamina starts refilling this long after an action ends. */
   staminaRegenDelay: 0.6,
@@ -38,7 +38,6 @@ export const PLAYER = {
   },
 } as const;
 
-/** Carried from one fight to the next; max stamina is `Stats.stamina`. */
 export interface Vitals {
   hp: number;
   stamina: number;

@@ -173,8 +173,8 @@ Decided by the user:
   first pick, by the same rules as the enemy's drops; what's left goes to the overworld pile where the fight began
   when the arena empties, and a solo loss sends it all there at once.
 - Dying is hardcore: all you carry but the starter kit drops where you fell (above), for anyone to take. The
-  skillbook's pages are kept (the user: the saved spells survive death). Stats go back to their defaults, but they
-  can't change yet, so for now nothing else is reset.
+  skillbook's pages are kept (the user: the saved spells survive death). The core loses the fill inside its step, or
+  with none, a whole step (the core, below); the words and the story are kept.
 - The starter kit (the user: "for the new players give them all the spells for now and weapons. they dont lose them
   on death"): for now every player knows every skill word and has the sword, the longsword, the greatsword and the
   skillbook (`STARTER_KIT` in `server/src/core/content/player.ts`; the Kobolds' own blades aren't in it, the agent's
@@ -184,7 +184,7 @@ Decided by the user:
   This is temporary, so the user and friends can play around. In the real game dying loses everything on you: the
   avatar disintegrates and leaves it all behind, for anyone to pick up for a while, as death drops are (plan/lore.md).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
-  sword and the skillbook.
+  sword and the skillbook, and each monster's essence.
 - Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
   overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
   battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
@@ -238,7 +238,7 @@ Decided by the user:
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
   fights by the guard rules below, parrying, feinting and guard breaking now and then, its full stance AI still to
   come. Its landed sword hits only hurt, with no stun or
-  knockback (the boar's still stun). It drops nothing yet. It holds its own Kobold blade (the sword's length, 14
+  knockback (the boar's still stun). It drops only its essence. It holds its own Kobold blade (the sword's length, 14
   damage), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
@@ -249,9 +249,9 @@ Decided by the user:
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
   too"; not hand-played yet): a Longsword and a Greatsword, which every player has (the starter kit). The Kobold
   Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
-  Field), dropping nothing.
-- The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops nothing; about 40 HP. It
-  keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
+  Field), dropping only its essence.
+- The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
+  40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
   fight's seed picks, as for the Kobold's swings): quick-cast within about 6 m, chanted from farther through the same
   `startCast` / `chant` / `releaseChant` as yours, its words always shown in front of it. Its interrupts are yours (a
@@ -349,6 +349,20 @@ Decided by the user:
   (the main lore: the soul, the tower, the gods, the Maker) and side quests (side lore). Each quest shows its next
   step and a hint (where to go, only as the NPC told you), and the lore it revealed is listed under it. It holds only
   what your character has found out, revealed slowly, AQW-style. No map markers and no minimap.
+- The core: progression without levels, like the Murim manhwas and The Beginning After the End
+  ([plan/core.md](plan/core.md) has what's still open). 5 realms of 3 steps, named (the user's pick, fiery to ethereal)
+  Yan, Sol, Lux, Ling and Tian, and Early, Middle and Peak ("Middle Yan"). A step has a fill; full, it breaks through
+  to the next on its own (maybe a minigame later). It's filled with monster essence: beaten monsters drop it, each its
+  own worth (a Kobold's more than a boar's), and it's absorbed from the bag anywhere, mid-fight too, as a 2 s use, the
+  same on the overworld and in a fight. No mana: one stamina pool for physical and magical, growing with the core.
+  Stats: strength, agility, stamina, skillpower, vitality (HP), defense (cuts physical damage) and special defense
+  (cuts skill damage), and three hidden ones, toughness (stun recovery), stamina recovery and health regen (HP coming
+  back on its own), +1 every step in every realm, no free points into them. A step raises every stat by a flat amount
+  that doubles each realm (1 in the first) and gives free points (2 in the first, doubling), placed in any stat and
+  never locked in (taking them back costs some effort). HP comes only from vitality. On death the step's fill is lost,
+  or with none, a whole step. Floors don't need a realm. Enemies' realms aren't shown (and come later, with floors).
+  The F1 admin panel adds and removes steps. Nothing about it should read like XP: the HUD's sphere and the stats
+  chart come later.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -357,13 +371,39 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Key bindings: a new default key that a player's saved keys already use stays theirs, and the new action is left
   unbound (Unbound in Settings) until they bind it or free the key. Only saved keys that clash with each other send
   a group back to its defaults.
-- Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
-  spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
-  arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's × its fourth root:
-  see "Guard stances" below) and the carry limit. HP stays separate. They apply
-  only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10 (the Goblin Warlock's skillpower 10).
-  Everyone has the same player stats, so they
-  aren't saved.
+- Stats and the core's numbers (the user let the agent set them, in plan/core.md's table; all in FORMULAS.md's
+  "Stats" and "The core"): every stat starts at 10, where each is ×1. HP 10 × vitality, the stamina bar 10 × stamina,
+  physical and skill damage × √(stat / 10), damage taken × 50 / (40 + defense or special defense), stuns × 10 /
+  toughness, stamina refill × stamina recovery / 10, HP regen vitality × health regen / 200 a second, walking and
+  dodging × (agility / 10)^¼, carry limit 60 × (strength / 10)^¼. Fill to finish step n: 100 × 2^((n − 1) / 3).
+  Essence: boar 20, Kobold Swordsman 40, Kobold Greatsword 50, Goblin Warlock 30. Boar meat heals 35% of the most HP.
+  Enemies: every stat 10 but skillpower (0, the warlock's 10) and health regen (0); their HP stays their own.
+- The core, built (PR 1 of it; the user: "go make more content… make any assumptions you want"; none hand-played
+  beyond a headless check):
+  - Finishing a step gives its gains; finishing the 15th (Peak Tian) leaves the core whole: no more essence, still
+    named Peak Tian. Essence past a step's fill carries into the next, through as many steps as it fills.
+  - Essence is one item per monster (1 x 1, stacks of 10, weight 0.1), always dropped (one each, into the fight's pile
+    like the rest of its drops), absorbed by the shared use rule like eating ("Absorb", 2 s): standing still, a hit or
+    a dodge stops it with the essence kept, refused only by a whole core (so at full HP too).
+  - A breakthrough counts at once, mid-fight too: the fight's stats grow by the step's gains and the HP and stamina
+    bars by theirs, what's in them by as much. When stats shrink (a point taken back), a bar only cuts what's in it to
+    fit. A breakthrough is a corner notice.
+  - Free points are placed one at a time, free, outside fights (on the overworld); the effort to take one back is
+    being by a campfire (Rest's reach and slack). No other cost.
+  - Death: the fill, or with none a step (back across a realm too: realms aren't floors you keep); Early Yan with
+    nothing has nothing to lose. The lost step's points come off the stats with the most first. A disconnect
+    mid-fight is a death here too (`LEAVING_LOSES`). A duel costs the core nothing, and what was absorbed in it stays.
+  - Toughness shortens a body blow's stun, an enemy's stagger and Lightning's stun, not the recoil from a block nor a
+    parry's or guard break's opening (the counterplay's sure punish windows).
+  - Defense counts against weapon and body hits, special defense against skill hits and burns, before Warded and the
+    Light shield.
+  - HP regen runs for players only, on the overworld, in fights and in the arena after a win; in a fight it waits 5 s
+    after any damage (a burn's tick too). The server sends HP in `state` while it comes back.
+  - Agility speeds overworld walking too (one rule set).
+  - The HUD shows the realm and step under the bars, in both modes; the character panel shows it, the free points and
+    the seven shown stats with + and − (− only by a fire). The admin panel's step up / down is overworld only and
+    empties the fill.
+  - Saved in three columns (`core_steps`, `core_fill`, `stat_points`); players from before start at Early Yan, empty.
 - Guard stances (the user asked for sword fights like For Honor's; the design is the main chat's, every detail below
   the agent's, none hand-played; numbers in `ATTACKS`, `COMBAT` and `ENEMY_GUARD` in `shared/src/weapons/weapons.ts`):
   - Locked on (fights start locked), with a sword in hand, you always hold a guard: left, top or right, as you see it.
@@ -467,9 +507,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
   you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
   respawn point or bring back defeated boars; dying still wakes you at the level's start.
-- Items: boar meat heals 35 HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
+- Items: boar meat heals 35% of the most HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
-  own. The carry limit is 30 + 3 × strength (60 for everyone now). Over it, a dodge costs 30% more stamina. A new
+  own. The carry limit is 60 × (strength / 10)^¼ (60 at the start). Over it, a dodge costs 30% more stamina. A new
   bag is empty. The server checks every move with the shared bag rules (mid-fight, the fight does).
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
@@ -652,8 +692,8 @@ npm run db:generate -- --name <what-changed>  # after editing server/src/db/sche
 docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postgres, on 127.0.0.1:8787 (README "Hosting")
 ```
 
-In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a fight
-with any enemy, items into the bag.
+In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a core
+step up or down, a fight with any enemy, items into the bag.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
@@ -708,8 +748,8 @@ tests say what was agreed. Where tests go and how they're written:
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
-  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`). A new account has no character: make one first. Skip this
-  when the user says it isn't needed.
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). A new account has no
+  character: make one first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

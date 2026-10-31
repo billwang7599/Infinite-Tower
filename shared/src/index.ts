@@ -10,6 +10,7 @@ export * from "./battle/defs.js";
 export * from "./battle/input.js";
 export * from "./battle/netcode.js";
 export * from "./battle/stats.js";
+export * from "./soul/core.js";
 export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";

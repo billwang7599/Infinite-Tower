@@ -12,6 +12,7 @@ import {
 } from "../components.js";
 import type { Word } from "../../skills/skill.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
+import { FighterStats, type Stats } from "../stats.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
 import { handsOf } from "./weapons/swing.js";
@@ -19,7 +20,7 @@ import { handsOf } from "./weapons/swing.js";
 interface FighterSnapshot {
   pos: Vec3;
   vel: Vec3;
-  health: Omit<HealthData, "max">;
+  health: HealthData;
   statuses: StatusData;
   wielder: {
     swing: SwingData | null; grab: (Omit<GrabData, "target"> & { target: number }) | null; grabImmuneTime: number;
@@ -31,7 +32,8 @@ interface PlayerSnapshot extends FighterSnapshot {
   player: Omit<PlayerData, "burden">;
   /** The input the player's last step ran with (what they hold). */
   input: PlayerInputData;
-  stamina: Omit<StaminaData, "max">;
+  stamina: StaminaData;
+  stats: Stats;
 }
 
 interface EnemySnapshot extends FighterSnapshot {
@@ -86,10 +88,10 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighters = fightersOf(fight);
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
-    const { max: _, ...health } = world.require(e, Health);
     const { words, aim, target, ...skilled } = world.require(e, Skilled);
     return {
-      pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)),
+      pos: { ...pos }, vel: { ...vel }, health: { ...world.require(e, Health) },
+      statuses: copyStatuses(world.require(e, Statuses)),
       wielder: saveWielder(world.get(e, Wielder), fighters),
       skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
     };
@@ -99,9 +101,9 @@ export function saveFight(fight: Fight): FightSnapshot {
     outcome: { ...fight.outcome },
     players: fight.players.map((e) => {
       const { burden: _, actionDir, ...player } = world.require(e, Player);
-      const { max: _max, ...stamina } = world.require(e, Stamina);
+      const stamina = { ...world.require(e, Stamina) }, stats = { ...world.require(e, FighterStats) };
       const input = copyInput(world.require(e, PlayerInput));
-      return { ...fighter(e), player: { ...player, actionDir: { ...actionDir } }, input, stamina };
+      return { ...fighter(e), player: { ...player, actionDir: { ...actionDir } }, input, stamina, stats };
     }),
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
@@ -159,6 +161,7 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.require(e, Wielder).hands = handsOf(s.player.gear.equipment);
     Object.assign(world.require(e, PlayerInput), copyInput(s.input));
     Object.assign(world.require(e, Stamina), s.stamina);
+    Object.assign(world.require(e, FighterStats), s.stats);
   });
   fight.enemies.forEach((e, i) => {
     const s = snap.enemies[i]!;

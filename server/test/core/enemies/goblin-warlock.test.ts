@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, PLAYER, type PlayerInputData } from "@infinite-tower/shared";
+import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, type PlayerInputData } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
-import { fightWith } from "../../fixtures/fight.js";
+import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -28,7 +28,7 @@ describe("the Goblin Warlock", () => {
     }
     const hp = fight.world.require(fight.players[0]!, Health).hp;
     assert.ok(closest > WARLOCK.keepAway!.nearM, `came within ${closest} m`);
-    assert.ok(hp < PLAYER.maxHp - 20, `${hp} HP left`);
+    assert.ok(hp < FULL.hp - 20, `${hp} HP left`);
   });
 
   test("a player who runs it down beats it, whatever its seed", () => {
@@ -54,7 +54,7 @@ describe("the Goblin Warlock", () => {
     for (const damage of pokes) assert.equal(damage, WARLOCK.attacks.lunge!.damage);
   });
 
-  test("drops nothing, even on the lowest roll", () => {
-    assert.deepEqual(rollDrops("goblin-warlock", () => 0), {});
+  test("drops only its essence, even on the lowest roll", () => {
+    assert.deepEqual(rollDrops("goblin-warlock", () => 0), { "goblin-warlock-essence": 1 });
   });
 });

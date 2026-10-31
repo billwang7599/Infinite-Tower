@@ -27,10 +27,16 @@ describe("itemInfo (the tooltip)", () => {
   test("says what it does: food how much it heals and how long it takes to eat; other things nothing", () => {
     const food = itemInfo(stack("boar-meat")).effect ?? "";
     const { useTime, effects } = ITEMS["boar-meat"].consumable;
-    assert.match(food, new RegExp(`Heals ${effects[0].healHp} HP`));
+    assert.match(food, new RegExp(`Heals ${effects[0].healShare * 100}% of your HP`));
     assert.match(food, new RegExp(`Takes ${useTime} s`));
     assert.doesNotMatch(food, /mid-fight/);
     assert.equal(itemInfo(stack("boar-hide")).effect, null);
+  });
+
+  test("essence says it's absorbed into the core, and how long that takes", () => {
+    const essence = itemInfo(stack("boar-essence")).effect ?? "";
+    assert.match(essence, /into your core/);
+    assert.match(essence, new RegExp(`Takes ${ITEMS["boar-essence"].consumable.useTime} s`));
   });
 
   test("the sword and the skillbook say what holding them lets you do", () => {

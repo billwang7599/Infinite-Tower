@@ -4,7 +4,7 @@ import {
   attackCost, attackSteps, FEINT, FIXED_DT, Player, Stamina, WEAPONS, Wielder, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, STATS, STATUE } from "../fixtures.js";
+import { ARENA, enemy, FULL_STAMINA, input, player, STATUE } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -40,7 +40,7 @@ describe("a feint", () => {
         assert.ok(p.events.some((e) => e.type === "feint"), `${after} steps in`);
         assert.equal(p.swing, null);
         assert.equal(p.player.action, "none");
-        assert.equal(p.stamina, STATS.stamina - attackCost(WEAPONS.sword, "heavy") - FEINT.cost);
+        assert.equal(p.stamina, FULL_STAMINA - attackCost(WEAPONS.sword, "heavy") - FEINT.cost);
         assert.equal(play(PRESS + HEAVY.endAt, feinting("heavy", after)).hits, 0, `${after} steps in`);
       }
     });

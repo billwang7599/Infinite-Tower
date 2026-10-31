@@ -23,7 +23,7 @@ export function startSwing(
   world.remove(e, ActiveHit);
   world.require(e, Wielder).swing = {
     attack, side, chain, dir, step: 0, ...attackSteps(weapon, attack, chain, swift),
-    damage: attackDamage(weapon, attack, world.require(e, FighterStats).strength),
+    damage: attackDamage(weapon, attack, world.require(e, FighterStats)),
     poiseDamage: ATTACKS[attack].poiseDamage,
   };
 }

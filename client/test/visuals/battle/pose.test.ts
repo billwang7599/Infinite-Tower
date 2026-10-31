@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, starterEquipment, type GuardSide, type PlayerAction, type PlayerData,
-  type SwingData,
+  ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, newCore, starterEquipment, type GuardSide, type PlayerAction,
+  type PlayerData, type SwingData,
 } from "@infinite-tower/shared";
 import { facingSeen, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
@@ -14,7 +14,7 @@ function playerDoing(action: PlayerAction, t: number, guard: GuardSide | null = 
     jumpBuffer: 0, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0, castBuffer: 0, queued: null, castQueued: null,
     writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false, writing: null, using: null,
     book: [],
-    burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() },
+    burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, core: newCore(),
     action, actionTime: t, actionDir: { x: 0, z: 1 }, guard, invulnerable: false, leftArena: false,
   };
 }

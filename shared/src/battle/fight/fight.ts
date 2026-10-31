@@ -26,7 +26,7 @@ import { playerControllerSystem } from "./player/controller.js";
 import { useSystem } from "./player/use.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
-import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
+import { regenSystem, statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { guardBreakSystem } from "./weapons/guard-break.js";
@@ -103,6 +103,7 @@ export class Fight {
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
       playerGroundSystem(this.physics), combatSystem(this.events), guardBreakSystem(this.events), statusSystem(),
+      regenSystem(),
       skillSystem(ctx), useSystem(ctx),
       outcomeSystem(this.outcome, this.duel),
     ];

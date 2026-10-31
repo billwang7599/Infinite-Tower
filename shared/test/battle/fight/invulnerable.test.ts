@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Health, Player, PLAYER, type EnemyDef } from "@infinite-tower/shared";
+import {
+  Health, Player, type EnemyDef,
+} from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, CASTER, enemy, player, run } from "./fixtures.js";
+import { ARENA, BITER, CASTER, enemy, FULL_HP, player, run } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -21,16 +23,16 @@ describe("an invulnerable player", () => {
     const hurt = fightAgainst(BITER, false, 2), spared = fightAgainst(BITER, true, 2);
     run(hurt, 3);
     run(spared, 3);
-    assert.ok(hpOf(hurt) < PLAYER.maxHp);
-    assert.equal(hpOf(spared), PLAYER.maxHp);
+    assert.ok(hpOf(hurt) < FULL_HP);
+    assert.equal(hpOf(spared), FULL_HP);
   });
 
   test("takes no damage from skills, burning included", () => {
     const hurt = fightAgainst(CASTER, false, 6), spared = fightAgainst(CASTER, true, 6);
     run(hurt, 6);
     run(spared, 6);
-    assert.ok(hpOf(hurt) < PLAYER.maxHp);
-    assert.equal(hpOf(spared), PLAYER.maxHp);
+    assert.ok(hpOf(hurt) < FULL_HP);
+    assert.equal(hpOf(spared), FULL_HP);
   });
 
   test("is part of the fight's state: saved, loaded and hashed", () => {

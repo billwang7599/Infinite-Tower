@@ -6,7 +6,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, castNow, enemy, IDLE, input, player, run, segment, skill, STATS, STATUE,
+  ARENA, BITER, castNow, enemy, FULL_HP, IDLE, input, player, run, segment, skill, STATS, STATUE,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -43,8 +43,8 @@ describe("each element", () => {
     });
   }
 
-  test("D grows with skillpower", () => {
-    const fight = fightWith([NEAR], STATUE, STATS.skillpower * 2);
+  test("D grows with skillpower, by its square root", () => {
+    const fight = fightWith([NEAR], STATUE, STATS.skillpower * 4);
     nova(fight, "fire");
     close(hitFor(fight, 0), E.fire.damage * D * 2);
   });
@@ -147,7 +147,7 @@ describe("each element", () => {
       const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
       if (curse) statusesOf(fight, 0).left.cursed = 10;
       run(fight, 1);
-      return PLAYER.maxHp - fight.world.require(fight.players[0]!, Health).hp;
+      return FULL_HP - fight.world.require(fight.players[0]!, Health).hp;
     };
     close(bite(true), bite(false) * E.darkness.cursedDamageFactor);
   });
@@ -244,7 +244,7 @@ describe("Self", () => {
     const from = fight.world.require(fight.players[0]!, Body).pos.z;
     run(fight, 0.8);
     const me = fight.world.require(fight.players[0]!, Body).pos.z;
-    return { lost: PLAYER.maxHp - fight.world.require(fight.players[0]!, Health).hp, moved: Math.abs(me - from) };
+    return { lost: FULL_HP - fight.world.require(fight.players[0]!, Health).hp, moved: Math.abs(me - from) };
   }
 
   test("Water clears your harmful statuses and heals you", () => {

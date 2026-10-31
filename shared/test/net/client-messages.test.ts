@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, DEFAULT_LOOK, GUARD_SIDES, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES,
-  SKILLBOOK_PAGES, type StepInput,
+  ATTACK_KINDS, DEFAULT_LOOK, GUARD_SIDES, HIDDEN_STATS, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
+  OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, type StepInput,
 } from "@infinite-tower/shared";
 import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
@@ -53,6 +53,8 @@ describe("parseClientMsg", () => {
       { t: "cheat", cheat: { kind: "invulnerable", on: true } },
       { t: "cheat", cheat: { kind: "give", item: "boar-meat", count: 5 } },
       { t: "cheat", cheat: { kind: "heal" } },
+      { t: "cheat", cheat: { kind: "coreStep", add: false } },
+      { t: "statPoint", stat: "specialDefense", add: true },
       { t: "ping", id: 0 },
       { t: "chat", text: "hello there" },
     ];
@@ -316,5 +318,14 @@ describe("parseClientMsg", () => {
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: 1.5 }), null);
     assert.equal(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT + 1 }), null);
     assert.notEqual(cheat({ kind: "give", item: "boar-meat", count: MAX_GIVE_COUNT }), null);
+    assert.equal(cheat({ kind: "coreStep" }), null);
+  });
+
+  test("statPoint: a shown stat only, placed or taken back", () => {
+    const point = (stat: unknown, add: unknown) => parse({ t: "statPoint", stat, add });
+    for (const stat of SHOWN_STATS) assert.notEqual(point(stat, true), null, stat);
+    for (const stat of HIDDEN_STATS) assert.equal(point(stat, true), null, stat);
+    assert.equal(point("luck", true), null);
+    assert.equal(point("strength", 1), null);
   });
 });

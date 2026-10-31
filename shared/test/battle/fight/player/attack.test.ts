@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  attackCost, attackShape, attackSteps, ATTACKS, COMBAT, Enemy, Player, PLAYER, Stamina, WEAPONS, Wielder,
+  attackCost, attackShape, attackSteps, ATTACKS, COMBAT, Enemy, Player, PLAYER, Stamina, STAMINA_PER_POINT, WEAPONS,
+  Wielder,
   type AttackKind, type EnemyDef, type GuardSide, type PlayerInputData, type SwingData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, STATS, STATUE } from "../fixtures.js";
+import { ARENA, enemy, FULL_HP, input, player, STATS, STATUE } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -17,7 +18,7 @@ const LOCKED = { locked: 0 } as const;
 const newFight = () => new Fight({
   arena: { ...ARENA, radius: NEAR + 4 },
   players: [player({ x: 0, y: 0.05, z: 0 }, {
-    vitals: { hp: PLAYER.maxHp, stamina: 1000 }, stats: { ...STATS, stamina: 1000 },
+    vitals: { hp: FULL_HP, stamina: 1000 }, stats: { ...STATS, stamina: 1000 / STAMINA_PER_POINT },
   })],
   enemies: [enemy(TOUGH, { x: 0, y: 0.05, z: NEAR })],
 });

@@ -31,6 +31,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.writingPage = me[4].writing?.page ?? null;
       patch.carried = me[4].gear;
       patch.using = me[4].using?.at ?? null;
+      patch.core = me[4].core;
       const facing = { x: Math.sin(ctx.view.yaw), z: Math.cos(ctx.view.yaw) };
       patch.dropInView = afterFight && inView(me[6].pos, facing, ctx.drops) !== null;
     }

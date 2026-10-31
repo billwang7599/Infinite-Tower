@@ -5,16 +5,17 @@ import type { Character } from "../../character/character.js";
 import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
+import type { CoreState } from "../../soul/core.js";
 import { ENEMY_GUARD } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
-  WeaponAttack, Wielder, type WielderData,
+  WeaponAttack, Wielder, type HealthData, type WielderData,
 } from "../components.js";
 import type { EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
-import { FighterStats, type Stats } from "../stats.js";
+import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { newSkilled } from "./skills/skilled.js";
 import { noStatuses } from "./skills/statuses.js";
@@ -35,10 +36,9 @@ export function joinStart(arena: ArenaDef, seat: number): Vec3 {
   return { x: Math.sin(angle) * r, y: 0.05, z: -Math.cos(angle) * r };
 }
 
-/** `who` is for drawing only: the fight doesn't read it. */
 export interface PlayerSetup {
-  at: Vec3; vitals: Vitals; stats: Stats; burden: Burden; gear: Carried; book: Skillbook; seed?: number;
-  invulnerable?: boolean; who?: { name: string; character: Character };
+  at: Vec3; vitals: Vitals; stats: Stats; core: CoreState; burden: Burden; gear: Carried; book: Skillbook;
+  seed?: number; invulnerable?: boolean; who?: { name: string; character: Character };
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -49,6 +49,9 @@ const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
 const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
+
+const fresh = (maxHp: number): HealthData =>
+  ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0 });
 
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
   ({ hands, armReachM, swing: null, grab: null, grabImmuneTime: 0 });
@@ -68,12 +71,12 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     writing: null, using: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, guard: null, burden: setup.burden, gear: setup.gear,
-    invulnerable: setup.invulnerable ?? false, leftArena: false,
+    core: setup.core, invulnerable: setup.invulnerable ?? false, leftArena: false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
   world.add(e, Wielder, wielder(handsOf(setup.gear.equipment), PLAYER.armReachM));
-  world.add(e, Health, { hp: setup.vitals.hp, max: PLAYER.maxHp, invuln: 0, hitstun: 0, flash: 0 });
-  world.add(e, Stamina, { value: setup.vitals.stamina, max: setup.stats.stamina, regenDelay: 0 });
+  world.add(e, Health, { ...fresh(maxHpOf(setup.stats)), hp: setup.vitals.hp });
+  world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
   world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius });
   world.add(e, Statuses, noStatuses());
@@ -111,10 +114,11 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   if (def.wielder) {
     world.add(e, Wielder, wielder({ rightHand: null, leftHand: null, ...def.wielder.hands }, def.wielder.armReachM));
   }
-  world.add(e, Health, { hp: def.maxHp, max: def.maxHp, invuln: 0, hitstun: 0, flash: 0 });
+  world.add(e, Health, fresh(def.maxHp));
   world.add(e, Fighter, { team: "enemy", side: -1, radius: def.radius });
   world.add(e, FighterStats, { ...def.stats });
-  if (def.attacks.skill) world.add(e, Stamina, { value: def.stats.stamina, max: def.stats.stamina, regenDelay: 0 });
+  const stamina = staminaMaxOf(def.stats);
+  if (def.attacks.skill) world.add(e, Stamina, { value: stamina, max: stamina, regenDelay: 0 });
   world.add(e, Statuses, noStatuses());
   world.add(e, Skilled, newSkilled({ x: Math.sin(yaw), z: Math.cos(yaw) }, seed));
   return e;

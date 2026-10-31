@@ -1,15 +1,16 @@
 # Formulas
 
 Every calculation that decides how the game plays, as the code does it today: the formula, what each term is, where
-its numbers live, and a worked example at the default stats (strength, agility and skillpower 10, a stamina bar of
-100: everyone has these for now). Units: seconds, metres and m/s in the arena, tiles and tiles/s on the overworld; HP,
-stamina, poise and item weight have none. A fight runs in steps of 1/60 s (`FIXED_DT`), so its times round to those.
+its numbers live, and a worked example at the starting stats (every stat 10: Early Yan with no points placed).
+Units: seconds, metres and m/s in the arena, tiles and tiles/s on the overworld; HP, stamina, poise and item weight
+have none. A fight runs in steps of 1/60 s (`FIXED_DT`), so its times round to those.
 The other knobs (looks, camera, netcode) are in ARCHITECTURE.md's
 [Where to tune things](ARCHITECTURE.md#where-to-tune-things).
 
 Keep it current: a PR that changes a calculation or its numbers changes it here too.
 
 - [Stats](#stats)
+- [The core](#the-core)
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
 - [Guards](#guards)
@@ -27,22 +28,46 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 
 ## Stats
 
-`Stats` and its formulas are in `shared/src/battle/stats.ts`; the player's numbers are `PLAYER_STATS`
-(`server/src/core/content/player.ts`), an enemy's are in its file in `server/src/core/enemies/`. They count only in
-fights, apart from strength's carry limit. HP isn't a stat.
+`Stats` and its formulas are in `shared/src/battle/stats.ts`. A player's come from their core (`coreStats`, below);
+an enemy's are in its file in `server/src/core/enemies/`. Every one is ×1 at 10 (`AVERAGE_STAT`).
 
-| Stat | Player | Formula | Where |
+| Stat | Start | Formula | Where |
 |---|---|---|---|
-| stamina | 100 | the stamina bar's size | `Stamina.max` from the setup |
-| strength | 10 | a body blow's damage = base × strength / 10; a weapon's goes by its fourth root (below) | `physicalDamage`, `attackDamage` |
-| agility | 10 | arena walking speed = base × agility / 10 | `moveSpeed` |
-| skillpower | 10 | a skill's base damage D = 10 × skillpower / 10 | `skillDamage`, `SKILL_EFFECTS.damage` |
+| strength | 10 | physical damage × √(strength / 10); carry limit 60 × (strength / 10)^¼ | `physicalDamage`, `carryLimit` |
+| agility | 10 | walking and dodging × (agility / 10)^¼, in the arena and on the overworld | `moveSpeed` |
+| stamina | 10 | the stamina bar = 10 × stamina | `staminaMaxOf` |
+| skillpower | 10 | skill damage × √(skillpower / 10) | `skillDamage` |
+| vitality | 10 | the most HP = 10 × vitality | `maxHpOf` |
+| defense | 10 | physical damage taken × 50 / (40 + defense) | `physicalTakenFactor` |
+| special defense | 10 | skill damage taken × 50 / (40 + special defense) | `skillTakenFactor` |
+| toughness (hidden) | 10 | a stun or stagger × 10 / toughness | `stunTime` |
+| stamina recovery (hidden) | 10 | stamina refill × stamina recovery / 10 | `staminaRegenPerSec` |
+| health regen (hidden) | 10 | HP a second = vitality × health regen / 200 | `hpRegenPerSec` |
 
-Enemies have 100 / 0 / 10 / 10 (stamina, skillpower, agility, strength), but the Goblin Warlock's skillpower is 10.
-Only an enemy that casts (the warlock) has a stamina bar.
+Enemies have every stat at 10 but skillpower 0 (the Goblin Warlock's 10) and health regen 0. An enemy's HP is its own
+`maxHp`, not its vitality (enemy realms come later). Only an enemy that casts (the warlock) has a stamina bar.
 
-HP: the player's `PLAYER.maxHp` is 100; an enemy's is its `maxHp`. HP and stamina carry from one fight to the next
-(`Vitals`).
+HP and stamina carry from one fight to the next (`Vitals`). When the stats change (a breakthrough, a point placed), a
+bar that grows adds what it grew to what's in it, and one that shrinks only cuts what's in it to fit (`grownVitals`).
+
+## The core
+
+`CORE` and its rules in `shared/src/soul/core.ts`. Five realms (Yan, Sol, Lux, Ling, Tian) of three steps (Early,
+Middle, Peak): 15 steps, each finished by filling it with essence.
+
+- **Fill to finish step n** (1-15) = round(100 × 2^((n − 1) / 3)) (`fillToFinish`): 100, 126, 159, 200, ... 2540;
+  11,927 in all. Essence past a step's fill carries into the next; finishing step 15 leaves the core whole, taking no
+  more.
+- **What a step gives:** every shown stat + 1 × 2^realm (1, 2, 4, 8, 16), the hidden three + 1, and 2 × 2^realm free
+  points. After all 15: 103 each before points, the hidden 25, and 186 points.
+- **Free points** go into the shown stats, one at a time, outside fights; taken back one at a time only by a campfire.
+- **Essence** (an item's `essence` effect in `ITEMS`): boar 20, Kobold Swordsman 40, Kobold Greatsword 50, Goblin
+  Warlock 30. Absorbing takes 2 s (`useTime`). The first step is 5 boars.
+- **Death:** the step's fill is lost; with none, the step (and its gains); points over what's left are taken back off
+  the stats with the most first (`coreAfterDeath`).
+
+Example: Early Yan, 90 in: a boar's essence (20) breaks through to Middle Yan with 10 in. Every shown stat is 11, the
+hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, and HP and stamina each 10 more than before.
 
 ## Weapon attacks
 
@@ -55,7 +80,7 @@ weapon always takes the same time and deals the same damage.
 | wind-up | `landTime` × heft (a chain's 2nd and 3rd: `chainLandTime` × heft), ÷ an Air Imbue's swift factor | from the press to the blade going live; drawn back for the first 60% (`drawShare`), driven for the rest |
 | live | `liveTime` × heft | the hitbox is up |
 | recovery | `recoverTime` × heft | walking at 25% (`moveFactor`); the next attack in the chain can start in it |
-| damage | the weapon's `damage` × `damageFactor` × (strength / 10)^¼ | light 1, heavy 2 |
+| damage | the weapon's `damage` × `damageFactor` × √(strength / 10) | light 1, heavy 2 |
 | poise damage | `poiseDamage` | light 12, heavy 24 |
 | stamina | `cost` × heft | light 12, heavy 20 |
 
@@ -77,7 +102,7 @@ By weapon, at strength 10 (light / heavy; times in seconds):
 | Kobold blade | 1 | 14 / 28 | 0.45 / 0.85 | 0.4 / 0.7 | none |
 | Kobold greatsword | 1.6 | 14 / 28 | 0.72 / 1.36 | 0.64 / 1.12 | none |
 
-Strength: a sword light at strength 20 deals 9 × 2^¼ = 10.7; strength doesn't change times or costs.
+Strength: a sword light at strength 20 deals 9 × √2 = 12.7; strength doesn't change times or costs.
 
 **Reach** (`attackShape`): (arm reach + L) × the side's factor, to the target's surface; arcs by angle to its centre
 (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also 0.8).
@@ -95,10 +120,10 @@ first (`windup` before a chain's first, `chainWindup` before the next: `fight/be
 
 ## Body blows
 
-An enemy's lunge or charge (`addHitAhead`): damage = its `damage` × strength / 10. Landing on a player who isn't
+An enemy's lunge or charge (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a player who isn't
 blocking, it knocks them back at its `knockback` m/s (plus `lift` up; not while Warded) and takes control away
-(hitstun) for `HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback (`combat.ts`). A weapon's hit only
-hurts: no knockback, no hitstun.
+(hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness (`combat.ts`). A
+weapon's hit only hurts: no knockback, no hitstun.
 
 | Blow | Damage | Knockback (m/s) | Hitstun (s) |
 |---|---|---|---|
@@ -157,9 +182,10 @@ and it's open 1.05 s, long enough for your heavy (0.85 s).
 
 - A hit takes its poise damage: a light 12, a heavy 24, an Earth skill 20 × the hit's share.
 - Poise comes back at `poiseRegen` a second (not while staggered), up to `poise`.
-- At 0 or less it's staggered for `staggerTime` and its poise refills; not while charging, stunned, recoiling or
-  already staggered.
-- Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s (`elements.lightning`).
+- At 0 or less it's staggered for `staggerTime` × 10 / toughness and its poise refills; not while charging, stunned,
+  recoiling or already staggered.
+- Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s × 10 / toughness
+  (`elements.lightning`).
 - Enemies have no hurt invulnerability, and a hit doesn't stun them.
 
 Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword lights 0.5 s apart: 36 − 3 × 12 + 8 × 1
@@ -169,8 +195,9 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 `PLAYER` in `shared/src/battle/player.ts`; `combat.ts`.
 
-- **Hitstun** (no control): a body blow 0.25 + 0.02 × knockback; recoiling from a blocked attack 0.3 s (light) or
-  0.5 s (heavy); parried or guard broken, the opening above (and none while held by a guard break, 0.4 s at most).
+- **Hitstun** (no control): a body blow (0.25 + 0.02 × knockback) × 10 / toughness; recoiling from a blocked attack
+  0.3 s (light) or 0.5 s (heavy); parried or guard broken, the opening above (and none while held by a guard break,
+  0.4 s at most). Toughness shortens only the body blow's: the counterplay's openings stay as they are.
   Weapon hits and skills give none.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
 - **Dodge i-frames:** from `dodge.iframeStart` 0 to `iframeEnd` 0.32 s of the 0.42 s dodge, weapon and body hits miss.
@@ -183,10 +210,10 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 `PLAYER` and the player's controller (`fight/player/controller.ts`).
 
-- The bar is the stamina stat (100). It refills at `staminaRegenPerSec` 45 a second (× 1.5 while Charged), from
-  `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging, casting or recoiling, but
-  while standing, walking, chanting, writing or in the bag. Empty to full: 0.6 + 100 / 45 = 2.8 s. It doesn't refill on
-  the overworld.
+- The bar is 10 × the stamina stat (100). It refills at `staminaRegenPerSec` 45 × stamina recovery / 10 a second
+  (× 1.5 while Charged), from `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging, casting or
+  recoiling, but while standing, walking, chanting, writing or in the bag. Empty to full: 0.6 + 100 / 45 = 2.8 s. It
+  doesn't refill on the overworld.
 - Any stamina above 0 starts an attack or a dodge; its cost may take the bar down to 0. A skill needs its whole cost
   to start, and pays it on release. A guard costs nothing.
 
@@ -203,23 +230,23 @@ The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds
 
 ## Movement
 
-- **Arena walking:** `PLAYER.moveSpeed` 6 × agility / 10 × burden pace (0.5 overloaded) × statuses (Rooted 0.4,
+- **Arena walking:** `PLAYER.moveSpeed` 6 × (agility / 10)^¼ × burden pace (0.5 overloaded) × statuses (Rooted 0.4,
   Hasted 1.3) = 6 m/s; × 25% attacking, × 40% winding up a cast (`castMoveFactor`); accel 60 m/s²
   (25 in the air).
-- **Dodge:** 12 + (3 − 12) × (t / 0.42)² m/s for 0.42 s (`dodge.speed`, `endSpeed`, `duration`): about 3.8 m, where
-  the walk keys point (backwards with none).
+- **Dodge:** (12 + (3 − 12) × (t / 0.42)²) × (agility / 10)^¼ m/s for 0.42 s (`dodge.speed`, `endSpeed`,
+  `duration`): about 3.8 m, where the walk keys point (backwards with none).
 - **Jump:** `jumpSpeed` 8.5 m/s against `GRAVITY` 24 m/s²: 1.5 m high, 0.71 s up and down.
-- **Enemies** (`approachSpeed`): `walkSpeed` × agility / 10 × max(0, cos of the angle to the target) ×
+- **Enemies** (`approachSpeed`): `walkSpeed` × (agility / 10)^¼ × max(0, cos of the angle to the target) ×
   clamp(distance − 2.2, 0, 1) (or − its `keepAway.farM`); inside `keepAway.nearM` it backs off at that speed ×
   clamp(nearM − distance, 0, 1). Rooted slows them too.
-- **Overworld:** the level's `playerSpeed` (5 tiles/s on the Grass Field) × burden pace; agility doesn't count.
+- **Overworld:** the level's `playerSpeed` (5 tiles/s on the Grass Field) × burden pace × (agility / 10)^¼
+  (`overworldPace`).
 
 ## Carry limit and burden
 
-`CARRY` in `shared/src/battle/stats.ts`, `BURDEN` in `shared/src/items/burden.ts`.
+`CARRY_LIMIT_AT_AVERAGE` in `shared/src/battle/stats.ts`, `BURDEN` in `shared/src/items/burden.ts`.
 
-- limit = `CARRY.base` 30 + `perStrength` 3 × strength = 60; weight = the bag's and the equipment's items (the cloth
-  weighs nothing).
+- limit = 60 × (strength / 10)^¼ = 60; weight = the bag's and the equipment's items (the cloth weighs nothing).
 - light up to the limit; heavy over it (a dodge × 1.3); overloaded over `overloadedAt` 1.2 × it, 72 (no dodging,
   walking × `overloadedPace` 0.5, in the arena and on the overworld).
 - A new player carries 17: sword 3, longsword 4.5, greatsword 8, skillbook 1.5.
@@ -232,7 +259,7 @@ The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds
 - **Cost:** (Σ over segments of form 3 + 2 per element + 1 per modifier) × `chainGrowth` 2^(segments − 1). Bolt Fire
   5; Bolt Fire Split Split 7; Bolt Fire, then Nova Lightning: (5 + 5) × 2 = 20.
 - **Release time:** 0.3 + 0.1 × words (every form, element and modifier). Bolt Fire 0.5 s.
-- **D** = `SKILL_EFFECTS.damage` 10 × skillpower / 10 × the caster's damage dealt (Empowered 1.2, Cursed 0.85).
+- **D** = `SKILL_EFFECTS.damage` 10 × √(skillpower / 10) × the caster's damage dealt (Empowered 1.2, Cursed 0.85).
 - **A hit** = Σ over its elements share × D × factor × (1 − resist) (no enemy resists yet); with no element,
   0.6 D. factor = Amplify 1.5 per word × Split 0.9 per word × the form's share (a Beam tick 0.5, a cloud pulse 0.4,
   an Imbue hit 0.5). Statuses go on in full whatever the factor.
@@ -285,7 +312,8 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 `hurt` and `damageDealtFactor` in `fight/skills/statuses.ts`.
 
 - Dealt = damage × the attacker's Empowered 1.2 × Cursed 0.85 (weapon, body and skill hits alike).
-- Taken = dealt × Warded 0.7, less what the Light shield absorbs, off HP (never below 0).
+- Taken = dealt × 50 / (40 + defense) for a weapon or body hit, × 50 / (40 + special defense) for a skill's (a burn
+  too), × Warded 0.7, less what the Light shield absorbs, off HP (never below 0). Any damage stops HP regen for 5 s.
 - Siphoning heals the attacker 10% of what was taken. A player with the dev cheat on takes nothing.
 
 ## Enemies
@@ -325,16 +353,19 @@ Each in `server/src/core/enemies/<id>.ts`.
   every 16.7 tiles (3.3 s). None for `safeTime` 2 s after a fight.
 - **Overworld enemies** come back `respawnTime` after their fight is over: the boar 8 s, the others 12 s.
 - **Drops** (`rollDrops`): each row rolled on its own, once per fallen enemy for the whole fight (the winners share
-  it). A boar: meat 0.6, hide 0.35, tusk 0.25, so nothing 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on
-  average. The Kobolds and the warlock drop nothing.
+  it). Every enemy drops its own essence, always (chance 1). A boar, besides: meat 0.6, hide 0.35, tusk 0.25, so
+  none of those 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on average. The Kobolds and the warlock drop
+  only their essence.
 
 ## Healing and refills
 
-- **Boar meat:** +35 HP (its `consumable`'s `healHp`), up to 100, once its `useTime` (1 s) is up, on the overworld
-  or in a fight; refused at full HP.
-- **Campfire:** within `REST_RANGE_TILES` 1.6 (+ `LAG_SLACK_TILES` 0.6 on the server): HP and stamina to full (100,
-  and the stamina stat).
-- **After a fight:** won, what it left you, at least 1 HP; lost, full HP and stamina at the level's start; a duel
-  gives back what you came in with.
+- **Boar meat:** + 35% of the most HP (its `consumable`'s `healShare`; 35 at the start), once its `useTime` (1 s) is
+  up, on the overworld or in a fight; refused at full HP.
+- **HP regen:** vitality × health regen / 200 HP a second (0.5 at the start: empty to full in 200 s), on the
+  overworld, in fights and in the arena after a win; in a fight, not for 5 s after any damage (`HP_REGEN_PAUSE_TIME`).
+  Players only: enemies' health regen is 0.
+- **Campfire:** within `REST_RANGE_TILES` 1.6 (+ `LAG_SLACK_TILES` 0.6 on the server): HP and stamina to full.
+- **After a fight:** won, what it left you, at least 1 HP; lost, full HP and stamina (by the core after the death) at
+  the level's start; a duel gives back what you came in with.
 - **In a fight:** meat (above), and skills: Self Water 0.3 D, Darkness 20% of its hit, Siphoning 10% of the
   damage you deal.

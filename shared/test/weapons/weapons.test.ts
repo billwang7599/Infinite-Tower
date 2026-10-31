@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, ATTACKS, attackCost, attackDamage, attackShape, attackSteps, blocks, COMBAT, FIXED_DT, GUARD_SIDES,
-  ITEMS, mirrorSide, PLAYER, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS, type Weapon,
+  ATTACK_KINDS, ATTACKS, attackCost, attackDamage, attackShape, attackSteps, BASE_STATS, blocks, COMBAT, FIXED_DT,
+  GUARD_SIDES, ITEMS, mirrorSide, PLAYER, WEAPON_KINDS, weaponIn, weaponItemIn, WEAPONS, type Weapon,
 } from "@infinite-tower/shared";
 
 const sword = WEAPONS.sword;
@@ -71,15 +71,16 @@ describe("an attack's timing: fixed per kind and weapon, the same every time", (
 });
 
 describe("what an attack deals and costs", () => {
-  test("the weapon's damage for a light, the heavy's factor more, at strength 10; no other variance", () => {
+  test("the weapon's damage for a light, the heavy's factor more, at the base stats; no other variance", () => {
     for (const weapon of Object.values(WEAPONS) as Weapon[]) {
-      assert.equal(attackDamage(weapon, "light", 10), weapon.damage);
-      assert.equal(attackDamage(weapon, "heavy", 10), weapon.damage * ATTACKS.heavy.damageFactor);
+      assert.equal(attackDamage(weapon, "light", BASE_STATS), weapon.damage);
+      assert.equal(attackDamage(weapon, "heavy", BASE_STATS), weapon.damage * ATTACKS.heavy.damageFactor);
     }
   });
 
-  test("strength adds a little, by its fourth root", () => {
-    assert.equal(attackDamage(sword, "light", 160), sword.damage * 2);
+  test("strength adds by its square root, as every physical hit does", () => {
+    const strong = { ...BASE_STATS, strength: 4 * BASE_STATS.strength };
+    assert.equal(attackDamage(sword, "light", strong), sword.damage * 2);
   });
 
   test("stamina: the kind's cost, times the weapon's heft", () => {

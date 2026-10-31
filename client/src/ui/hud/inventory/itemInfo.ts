@@ -14,8 +14,10 @@ export interface ItemInfo {
   effect: string | null;
 }
 
-export const effectsText = (effects: readonly ItemEffect[]): string =>
-  effects.map((effect) => `Heals ${effect.healHp} HP.`).join(" ");
+export const effectsText = (effects: readonly ItemEffect[]): string => effects
+  .map((effect) => ("healShare" in effect ? `Heals ${Math.round(effect.healShare * 100)}% of your HP.`
+    : "Absorbed into your core."))
+  .join(" ");
 
 /** One decimal place at most: "12", "12.5". */
 export const formatWeight = (weight: number): string => String(Math.round(weight * 10) / 10);

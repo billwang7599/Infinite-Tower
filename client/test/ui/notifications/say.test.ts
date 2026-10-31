@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { itemDef, MAX_CHAT_CHARS, type QuestNews } from "@infinite-tower/shared";
+import { coreName, itemDef, MAX_CHAT_CHARS, newCore, type QuestNews } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 import { EVENT_MESSAGES, say } from "../../../src/ui/notifications/say.js";
 import { Notifications } from "../../../src/ui/notifications/state.js";
 
-const WIN: BattleOutcome = { won: true, lost: {} };
-const LOSS: BattleOutcome = { won: false, lost: {} };
+const WIN: BattleOutcome = { won: true, lost: {}, core: newCore(), coreLost: null };
+const LOSS: BattleOutcome = { won: false, lost: {}, core: newCore(), coreLost: null };
 
 const notices = (to: Notifications) => to.notices.get().items.map((n) => n.text);
 const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
@@ -94,6 +94,13 @@ describe("say", () => {
     const to = new Notifications();
     say(to, { kind: "itemUsed", item: "boar-meat" });
     assert.deepEqual(notices(to), [`You eat the ${itemDef("boar-meat").name.toLowerCase()}.`]);
+    assert.equal(banner(to), null);
+  });
+
+  test("a breakthrough is a notice naming the step the core reached", () => {
+    const to = new Notifications(), core = { ...newCore(), steps: 1 };
+    say(to, { kind: "breakthrough", core });
+    assert.deepEqual(notices(to), [`Your core breaks through: ${coreName(core)}.`]);
     assert.equal(banner(to), null);
   });
 

@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { ENEMY_IDS, itemDef, type EnemyId, type ItemEffect, type ItemId } from "@infinite-tower/shared";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
 import { testOverworld } from "../overworld/helpers.js";
+
+const essenceOf = (item: string): number => {
+  const effects: readonly ItemEffect[] = itemDef(item as ItemId).consumable?.effects ?? [];
+  return effects.reduce((sum, effect) => sum + ("essence" in effect ? effect.essence : 0), 0);
+};
 
 describe("rollDrops", () => {
   test("a lowest roll drops boar meat, a hide and a tusk from a wild boar", () => {
@@ -11,8 +17,26 @@ describe("rollDrops", () => {
     for (const item of ["boar-meat", "boar-hide", "boar-tusk"] as const) assert.ok((loot[item] ?? 0) >= 1, item);
   });
 
-  test("a highest roll drops nothing", () => {
-    assert.deepEqual(rollDrops("wild-boar", () => 0.999), {});
+  test("a highest roll drops only the boar's essence", () => {
+    assert.deepEqual(rollDrops("wild-boar", () => 0.999), { "boar-essence": 1 });
+  });
+
+  test("every enemy always drops one essence of its own", () => {
+    const seen = new Set<string>();
+    for (const id of ENEMY_IDS) {
+      const always = Object.entries(rollDrops(id, () => 0.999));
+      assert.equal(always.length, 1, id);
+      const [item, count] = always[0]!;
+      assert.equal(count, 1, id);
+      assert.ok(essenceOf(item) > 0, `${id}: ${item} is essence`);
+      seen.add(item);
+    }
+    assert.equal(seen.size, ENEMY_IDS.length, "each its own");
+  });
+
+  test("a Kobold's essence is worth more than a boar's", () => {
+    const worth = (id: EnemyId) => essenceOf(Object.keys(rollDrops(id, () => 0.999))[0]!);
+    assert.ok(worth("kobold-swordsman") > worth("wild-boar"));
   });
 
   test("returns fresh counts each time", () => {

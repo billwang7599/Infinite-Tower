@@ -1,12 +1,12 @@
 /** Builders for the game tests: a started session with fakes around it, and the overworld's boar. */
 import assert from "node:assert/strict";
 import {
-  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, IDLE_INPUT, type Bag, type EnemyId, type Entity,
-  type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
+  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag, type EnemyId,
+  type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
-import { newPlayer } from "../../../src/core/content/player.js";
+import { newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { Chat } from "../../../src/core/game/chat.js";
 import { Duels } from "../../../src/core/game/duels.js";
 import { GameSession } from "../../../src/core/game/session.js";
@@ -37,6 +37,11 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   session.start();
   return { session, link, saves, overworldOf };
 }
+
+export const regenOver = (ticks: number, stats = PLAYER_STATS): number => hpRegenPerSec(stats) * ticks * FIXED_DT;
+
+export const near = (actual: number, expected: number, what = ""): void =>
+  assert.ok(Math.abs(actual - expected) < 1e-6, `${what} ${actual} vs ${expected}`);
 
 export function tick(session: GameSession, times = 1): void {
   for (let i = 0; i < times; i++) {

@@ -1,7 +1,7 @@
 import {
-  distXZ, gearBurden, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M, PLAYER,
-  REST_RANGE_TILES, START_HEADING, walkPace, type Gear, type Heading, type LevelLayout, type ServerMsgOf,
-  type Stats, type Vec2, type Vitals, type World,
+  coreStats, distXZ, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M, maxHpOf,
+  nearCampfire, overworldPace, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState, type Gear,
+  type Heading, type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
@@ -24,6 +24,7 @@ export interface Overworld {
   /** Rested, or used an item. */
   setVitals(vitals: Vitals): void;
   setGear(gear: Gear): void;
+  setCore(core: CoreState): void;
   interact(): Interaction | null;
 }
 
@@ -75,8 +76,9 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   let net: Net | null = null;
   /** Until back from the arena with the result: no walking, and `state` is ignored. */
   let inBattle = false;
-  /** From `welcome`: stats don't change during a session. */
   let stats: Stats | null = null;
+  let vitals: Vitals = { hp: 0, stamina: 0 };
+  let gear: Gear | null = null;
 
   const playerPos = () => world.require(player, OverworldPos);
   const interaction = (): Interaction | null => {
@@ -92,11 +94,20 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
     return what;
   };
   const hush = () => { for (const [e] of world.query(Speech)) world.remove(e, Speech); };
-  const setVitals = (v: Vitals) =>
-    hud.set({ hpFraction: v.hp / PLAYER.maxHp, staminaFraction: v.stamina / (stats?.stamina ?? 1) });
-  const setGear = (gear: Gear) => {
-    hud.set({ gear });
-    if (prediction && stats) prediction.pace = walkPace(gearBurden(gear, stats));
+  const setVitals = (v: Vitals) => {
+    vitals = v;
+    if (stats) hud.set({ hpFraction: v.hp / maxHpOf(stats), staminaFraction: v.stamina / staminaMaxOf(stats) });
+  };
+  const setGear = (next: Gear) => {
+    gear = next;
+    hud.set({ gear: next });
+    if (prediction && stats) prediction.pace = overworldPace(next, stats);
+  };
+  const setCore = (core: CoreState) => {
+    stats = coreStats(core);
+    hud.set({ core });
+    if (gear) setGear(gear);
+    setVitals(vitals);
   };
 
   let accumulator = 0;
@@ -106,10 +117,10 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       net = joinedNet;
       prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
-      stats = welcome.stats;
-      hud.set({ levelName: "…", levelFloor: null, wins: welcome.wins, stats: welcome.stats });
-      setGear(welcome.gear);
-      setVitals(welcome.vitals);
+      hud.set({ levelName: "…", levelFloor: null, wins: welcome.wins });
+      vitals = welcome.vitals;
+      gear = welcome.gear;
+      setCore(welcome.core);
       joinedNet.on("level", (msg) => {
         actors.enter(msg.level);
         state.level = msg.level;
@@ -121,6 +132,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         if (inBattle) return;
         prediction?.reconcile(msg.ack, msg.me);
         actors.apply(msg.actors, msg.players, msg.piles);
+        if (msg.hp !== vitals.hp) setVitals({ ...vitals, hp: msg.hp });
       });
       joinedNet.on("encounter", (msg) => {
         inBattle = true;
@@ -157,16 +169,19 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       }
       for (const [e, speech] of world.query(Speech)) if ((speech.remainingTime -= dt) <= 0) world.remove(e, Speech);
       state.cameraTurns = camera.get().overworldTurns;
-      hud.set({ interaction: interaction() });
+      const byFire = !inBattle && state.level !== null && nearCampfire(state.level, playerPos());
+      hud.set({ interaction: interaction(), byFire });
     },
     onBattleResult(msg) {
       inBattle = false;
       prediction?.reset(msg.me);
       hud.set({ wins: msg.wins });
+      setCore(msg.core);
       setVitals(msg.vitals);
     },
     setVitals,
     setGear,
+    setCore,
     interact,
   };
 }

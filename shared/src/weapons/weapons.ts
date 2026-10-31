@@ -1,3 +1,4 @@
+import { physicalDamage, type Stats } from "../battle/stats.js";
 import { toSteps } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
@@ -103,9 +104,8 @@ export function attackSteps(weapon: Weapon, kind: AttackKind, chain: number, swi
   return { driveAt: toSteps(windup * COMBAT.drawShare), liveAt, liveUntil, endAt };
 }
 
-const AVERAGE_STRENGTH = 10;
-export const attackDamage = (weapon: Weapon, kind: AttackKind, strength: number): number =>
-  weapon.damage * ATTACKS[kind].damageFactor * Math.sqrt(Math.sqrt(strength / AVERAGE_STRENGTH));
+export const attackDamage = (weapon: Weapon, kind: AttackKind, stats: Stats): number =>
+  physicalDamage(weapon.damage * ATTACKS[kind].damageFactor, stats);
 export const attackCost = (weapon: Weapon, kind: AttackKind): number => ATTACKS[kind].cost * weapon.heft;
 
 const SHAPES: Record<GuardSide, { reachFactor: number; arcDeg: number }> = {

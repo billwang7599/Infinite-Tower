@@ -120,7 +120,7 @@ describe("starting a battle", () => {
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
-      at: PLAYER_START, vitals: HURT, stats: session.stats, burden: "light",
+      at: PLAYER_START, vitals: HURT, stats: session.stats, core: session.core, burden: "light",
       gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), seed: playerSeed,
       invulnerable: false, who: { name: session.name, character: session.character! },
     }]);
@@ -185,8 +185,9 @@ describe("the server runs the fight", () => {
     const before = session.overworld.playerPos(session.me);
     win(session);
     const last = link.last("battleSync").fight.players[0]!;
-    assert.deepEqual(session.vitals, { hp: last.health.hp, stamina: last.stamina.value });
-    assert.deepEqual(link.last("battleResult").vitals, session.vitals);
+    assert.deepEqual(link.last("battleResult").vitals, { hp: last.health.hp, stamina: last.stamina.value });
+    assert.equal(session.vitals.stamina, last.stamina.value);
+    assert.ok(session.vitals.hp - last.health.hp < 0.1, "only what's come back on its own since");
     assert.deepEqual(session.overworld.playerPos(session.me), before);
   });
 
@@ -446,7 +447,9 @@ describe("the bag in a fight", () => {
     play(session, () => ({ ...BAG, use: { in: "bag", x: 0, y: 0 } }), 1);
     play(session, () => BAG, useSteps("boar-meat"));
     const fight = fightOf(session), me = fight.players[0]!;
-    assert.equal(fight.world.require(me, Health).hp, HURT.hp + ITEMS["boar-meat"].consumable.effects[0].healHp);
+    const healed = HURT.hp + ITEMS["boar-meat"].consumable.effects[0].healShare * FULL.hp;
+    const regen = fight.world.require(me, Health).hp - healed;
+    assert.ok(regen >= 0 && regen < 1, "healed, and a little came back on its own");
     win(session);
     assert.equal(link.last("battleResult").gear.bag.items.find((s) => s.item === "boar-meat")?.count, 1);
   });
@@ -455,7 +458,8 @@ describe("the bag in a fight", () => {
     const { session, link } = inBattle(CARRIED);
     session.useItem({ in: "bag", x: 0, y: 0 });
     play(session, () => IDLE_INPUT, useSteps("boar-meat") + 2);
-    assert.equal(fightOf(session).world.require(fightOf(session).players[0]!, Health).hp, HURT.hp);
+    const hp = fightOf(session).world.require(fightOf(session).players[0]!, Health).hp;
+    assert.ok(hp < HURT.hp + 1, "nothing eaten, only what comes back on its own");
     assert.equal(link.all("using").length, 0);
   });
 

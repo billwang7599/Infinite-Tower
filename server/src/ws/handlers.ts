@@ -24,4 +24,5 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   answerChallenge: (msg, s) => s.answerChallenge(msg.accept),
   joinBattle: (_msg, s) => s.joinBattle(),
   chat: (msg, s) => s.chat(msg.text),
+  statPoint: (msg, s) => s.statPoint(msg.stat, msg.add),
 };

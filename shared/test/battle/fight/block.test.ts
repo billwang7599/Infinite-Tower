@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACKS, Body, Enemy, GUARD_SIDES, Health, mirrorSide, PLAYER, Stamina, Wielder, type EnemyDef, type GuardSide,
+  ATTACKS, Body, Enemy, GUARD_SIDES, Health, mirrorSide, Stamina, Wielder, type EnemyDef, type GuardSide,
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, BOAR, enemy, input, player, STATS, SWORDSMAN } from "./fixtures.js";
+import { ARENA, BITER, BOAR, enemy, FULL_HP, FULL_STAMINA, input, player, SWORDSMAN } from "./fixtures.js";
 
 // Before the module's constants: they run a fight.
 await initPhysics();
@@ -52,8 +52,8 @@ const ITS = (() => {
 describe("a guard, locked on", () => {
   test("on the side the attack comes from, as the defender sees it: blocked, unhurt, for no stamina", () => {
     const p = play(SWORDSMAN, 2, 1.5, guarding(mirrorSide(ITS.side)));
-    assert.equal(me(p).hp, PLAYER.maxHp);
-    assert.equal(me(p).stamina, STATS.stamina);
+    assert.equal(me(p).hp, FULL_HP);
+    assert.equal(me(p).stamina, FULL_STAMINA);
     assert.ok(p.events.some((e) => e.type === "block" && e.target === p.fight.players[0]));
   });
 
@@ -67,13 +67,13 @@ describe("a guard, locked on", () => {
 
   test("on either other side, the attack lands", () => {
     for (const guard of GUARD_SIDES.filter((g) => g !== mirrorSide(ITS.side))) {
-      assert.ok(me(play(SWORDSMAN, 2, 1.5, guarding(guard))).hp < PLAYER.maxHp, guard);
+      assert.ok(me(play(SWORDSMAN, 2, 1.5, guarding(guard))).hp < FULL_HP, guard);
     }
   });
 
   test("unlocked, there's no guard: the attack lands", () => {
     const p = play(SWORDSMAN, 2, 1.5, () => ({ guard: mirrorSide(ITS.side) }));
-    assert.ok(me(p).hp < PLAYER.maxHp);
+    assert.ok(me(p).hp < FULL_HP);
   });
 
   test("attacking, the player isn't guarding: the attack lands", () => {
@@ -81,12 +81,12 @@ describe("a guard, locked on", () => {
     const p = play(SWORDSMAN, 2, 1.5, (step) => ({
       ...guarding(mirrorSide(ITS.side))(), attack: step === pressAt ? "light" : null,
     }));
-    assert.ok(me(p).hp < PLAYER.maxHp);
+    assert.ok(me(p).hp < FULL_HP);
   });
 
   test("only in front: turned away, the attack lands", () => {
     const p = play(SWORDSMAN, 2, 1.5, () => ({ ...guarding(mirrorSide(ITS.side))(), aimX: 0, aimZ: -1 }));
-    assert.ok(me(p).hp < PLAYER.maxHp);
+    assert.ok(me(p).hp < FULL_HP);
   });
 });
 
@@ -95,13 +95,13 @@ describe("a boar's blows come from the top", () => {
     for (const [def, z, seconds] of [[BITER, 2.4, 0.7], [CHARGER, 9, 2]] as const) {
       const p = play(def, z, seconds, guarding("top"));
       const { hp, stamina, z: at } = me(p);
-      assert.equal(hp, PLAYER.maxHp, def === BITER ? "bite" : "charge");
-      assert.equal(stamina, STATS.stamina);
+      assert.equal(hp, FULL_HP, def === BITER ? "bite" : "charge");
+      assert.equal(stamina, FULL_STAMINA);
       assert.ok(at < -0.2, `pushed back to ${at.toFixed(2)}`);
     }
   });
 
   test("a side guard doesn't", () => {
-    assert.ok(me(play(BITER, 2.4, 0.7, guarding("left"))).hp < PLAYER.maxHp);
+    assert.ok(me(play(BITER, 2.4, 0.7, guarding("left"))).hp < FULL_HP);
   });
 });

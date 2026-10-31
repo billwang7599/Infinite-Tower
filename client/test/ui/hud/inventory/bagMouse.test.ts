@@ -270,8 +270,10 @@ describe("use", () => {
     assert.equal(itemToUse(NO_MOUSE, BAG, false), null, "nothing selected");
   });
 
-  test("food does nothing at full HP", () => {
+  test("food does nothing at full HP; essence is absorbed all the same", () => {
     assert.equal(itemToUse(click(NO_MOUSE, 0, 0), BAG, true), null);
+    const withEssence = bag(6, 4, stack("boar-essence", 0, 0));
+    assert.deepEqual(itemToUse(click(NO_MOUSE, 0, 0, withEssence), withEssence, true), at(0, 0));
   });
 
   test("not while dragging", () => {

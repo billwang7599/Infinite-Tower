@@ -2,7 +2,7 @@ import type { System } from "../../../core/ecs.js";
 import { turnToward } from "../../../core/math.js";
 import { skillCost, wordsOf, type Skill } from "../../../skills/skill.js";
 import { Enemy, SkillAttack, SkillObject, Skilled, Stamina } from "../../components.js";
-import { FighterStats } from "../../stats.js";
+import { FighterStats, staminaRegenPerSec } from "../../stats.js";
 import { PLAYER } from "../../player.js";
 import { chant, interrupt, releaseChant, startCast } from "../skills/skilled.js";
 import { approachSpeed } from "./brain.js";
@@ -63,7 +63,10 @@ export function skillAttackSystem(): System {
       // Stamina comes back as a player's does: not while winding up, and only a while after.
       if (enemy.state === "skillCast") stamina.regenDelay = PLAYER.staminaRegenDelay;
       else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
-      else stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * dt);
+      else {
+        const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats);
+        stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
+      }
     }
   };
 }

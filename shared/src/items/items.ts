@@ -2,7 +2,7 @@
 
 export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
 
-export type ItemEffect = { healHp: number };
+export type ItemEffect = { healShare: number } | { essence: number };
 
 export interface Consumable {
   verb: string;
@@ -28,11 +28,24 @@ export interface ItemDef {
   wearable?: Wearable;
 }
 
+const ABSORB_TIME = 2;
+
+const essence = <const Worth extends number>(name: string, description: string, worth: Worth) => ({
+  name, description, cols: 1, rows: 1, stackSize: 10, weight: 0.1,
+  consumable: { verb: "Absorb", useTime: ABSORB_TIME, effects: [{ essence: worth }] as const },
+});
+
 export const ITEMS = {
   "boar-meat": {
     name: "Boar meat", description: "Tough, but filling.", cols: 1, rows: 1, stackSize: 5, weight: 0.5,
-    consumable: { verb: "Eat", useTime: 1, effects: [{ healHp: 35 }] },
+    consumable: { verb: "Eat", useTime: 1, effects: [{ healShare: 0.35 }] },
   },
+  "boar-essence": essence("Boar essence", "A warm ember of a boar's soul.", 20),
+  "kobold-swordsman-essence": essence("Kobold swordsman essence", "A quick, sharp spark of a kobold's soul.", 40),
+  "kobold-greatsword-essence": essence(
+    "Kobold greatsword essence", "A heavy, smouldering spark of a kobold's soul.", 50,
+  ),
+  "goblin-warlock-essence": essence("Goblin warlock essence", "A flickering wisp of a goblin's soul.", 30),
   "boar-hide": {
     name: "Boar hide", description: "A stiff, bristly pelt. Bulky, but light.", cols: 2, rows: 2, stackSize: 1,
     weight: 2,

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, skillCost, starterEquipment, type Modifier,
-  type Skill, type StepInput,
+  blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, newCore, skillCost, staminaMaxOf,
+  starterEquipment, type Modifier, type Skill, type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
@@ -24,6 +24,7 @@ const SAVED: PlayerSave = withStarterKit({
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
   equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: START_LEVEL,
+  core: newCore(),
 });
 
 /** Lets a pending store load (and what follows it) finish. */
@@ -195,7 +196,7 @@ describe("game sockets", () => {
     const { sockets } = setup();
     const beam = (modifiers: Modifier[]): Skill => ({ segments: [{ form: "beam", elements: ["fire"], modifiers }] });
     const modifiers: Modifier[] = [];
-    while (skillCost(beam([...modifiers, "amplify"])) <= PLAYER_STATS.stamina) modifiers.push("amplify");
+    while (skillCost(beam([...modifiers, "amplify"])) <= staminaMaxOf(PLAYER_STATS)) modifiers.push("amplify");
     const inputs: StepInput[] = Array.from({ length: MAX_INPUTS_PER_MESSAGE }, (_, i) => ({
       ...IDLE_INPUT, step: i + 1, aimX: Math.sin(i / 10), aimZ: Math.cos(i / 10),
       cast: i === 0 ? beam(modifiers) : null, castHeld: i > 0,

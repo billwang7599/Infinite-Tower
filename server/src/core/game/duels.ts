@@ -1,6 +1,6 @@
-import { FIXED_DT, type Carried, type ChallengeNews, type Skillbook, type Vitals } from "@infinite-tower/shared";
+import { FIXED_DT, type ChallengeNews, type Vitals } from "@infinite-tower/shared";
 import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
-import { BattleRoom } from "../battle/room.js";
+import { BattleRoom, type Kept } from "../battle/room.js";
 import { getArena } from "../world/index.js";
 import { fighterOf, newDrops, seatInBattle } from "./battle.js";
 import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
@@ -82,7 +82,7 @@ function startDuel(a: GameSession, b: GameSession): void {
   };
   const room = new BattleRoom(setup, duelists.map((s, i) => {
     const before = { ...s.vitals }, opponent = duelists[1 - i]!.name;
-    return { link: s.link, onEnd: (result, _after, book, gear) => settleDuel(s, result, before, opponent, book, gear) };
+    return { link: s.link, onEnd: (result, _after, kept) => settleDuel(s, result, before, opponent, kept) };
   }));
   duelists.forEach((s, seat) => {
     s.overworld.enterFight(s.me);
@@ -91,19 +91,20 @@ function startDuel(a: GameSession, b: GameSession): void {
 }
 
 function settleDuel(
-  session: GameSession, result: PlayerResult, before: Vitals, opponent: string, book: Skillbook, gear: Carried,
+  session: GameSession, result: PlayerResult, before: Vitals, opponent: string, { book, gear, core }: Kept,
 ): void {
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
   session.skillbook = book;
   session.gear = { ...session.gear, ...gear };
+  session.core = core;
   session.vitals = before;
   session.save();
   if (result === "left") return;
   session.link.send({
     t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
     vitals: session.vitals, lost: {}, gear: session.gear, skillbook: session.skillbook, afterFightMs: null,
-    duel: opponent,
+    core: session.core, coreLost: null, duel: opponent,
   });
 }

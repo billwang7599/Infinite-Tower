@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, GUARD_BREAK, guardBreakOpenTime, Health, mirrorSide, Player, PLAYER, Stamina, WeaponAttack,
-  WEAPONS, Wielder, type EnemyDef, type PlayerInputData,
+  Body, Enemy, FIXED_DT, GUARD_BREAK, guardBreakOpenTime, Health, mirrorSide, Player, Stamina, WeaponAttack, WEAPONS,
+  Wielder, type EnemyDef, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent, type FightSnapshot } from "@infinite-tower/shared/fight";
 import {
-  ARENA, dumpState, enemy, GUARDIAN, input, player, STATS, STATUE, swings, SWORDSMAN,
+  ARENA, dumpState, enemy, FULL_HP, FULL_STAMINA, GUARDIAN, input, player, STATUE, swings, SWORDSMAN,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -66,7 +66,7 @@ describe("a guard break", () => {
   test("costs stamina, and the grabber stands unguarded until it's done", () => {
     const p = play(TOUGH, 2, 6, breaking(5));
     const me = p.fight.players[0]!;
-    assert.equal(p.fight.world.require(me, Stamina).value, STATS.stamina - GUARD_BREAK.cost);
+    assert.equal(p.fight.world.require(me, Stamina).value, FULL_STAMINA - GUARD_BREAK.cost);
     assert.equal(p.fight.world.require(me, Player).action, "grab");
   });
 
@@ -97,7 +97,7 @@ describe("a guard break", () => {
   test("a foe mid-attack can't be grabbed", () => {
     const attacker: EnemyDef = { ...SWORDSMAN, maxHp: 1000, attacks: { weapon: swings({ windup: 0, firstDelay: 0 }) } };
     const fight = new Fight({ arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, {
-      vitals: { hp: 1000, stamina: STATS.stamina } })], enemies: [enemy(attacker, { x: 0, y: 0.05, z: 2 })] });
+      vitals: { hp: 1000, stamina: FULL_STAMINA } })], enemies: [enemy(attacker, { x: 0, y: 0.05, z: 2 })] });
     const swing = () => fight.world.require(fight.enemies[0]!, Wielder).swing;
     while (!swing()) fight.step([input({})]);
     const p = play(attacker, 2, fight.steps + GRAB_STEPS + 2, breaking(fight.steps + 1), fight);
@@ -138,7 +138,7 @@ describe("a guard break in a duel", () => {
     const { fight, events } = duel(brokenAt + 70, (s) => ({ ...breaking(5)(s), attack: s === brokenAt + 1
       ? "heavy" : null }), () => ({ locked: 0, guard: "top" }));
     assert.deepEqual(results(events), ["grabbed", "broken"]);
-    assert.ok(fight.world.require(fight.players[1]!, Health).hp < PLAYER.maxHp);
+    assert.ok(fight.world.require(fight.players[1]!, Health).hp < FULL_HP);
     assert.ok(!events.some((e) => e.type === "block"));
   });
 

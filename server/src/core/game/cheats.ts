@@ -1,4 +1,4 @@
-import { addItem, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
+import { addItem, coreAtStep, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
 import { fullVitals } from "../content/player.js";
 import type { GameSession } from "./session.js";
 
@@ -24,6 +24,11 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       session.link.send({ t: "given", item: cheat.item, count: cheat.count - left, left, gear: session.gear });
       return;
     }
+    case "coreStep":
+      if (!session.inOverworld) return;
+      session.takeCore(coreAtStep(session.core, session.core.steps + (cheat.add ? 1 : -1)));
+      session.save();
+      return;
     case "heal":
       if (battle) {
         battle.room.edit(battle.seat, (world, me) => {

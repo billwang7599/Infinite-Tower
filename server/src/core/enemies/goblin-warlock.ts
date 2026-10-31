@@ -1,3 +1,4 @@
+import { BASE_STATS } from "@infinite-tower/shared";
 import { chaseOnSight } from "../overworld/behaviors/chase.js";
 import { encounterOnTouch } from "../overworld/behaviors/touch.js";
 import { wander } from "../overworld/behaviors/wander.js";
@@ -8,7 +9,7 @@ export const GOBLIN_WARLOCK: Enemy = {
     id: "goblin-warlock",
     name: "Goblin Warlock",
     maxHp: 40,
-    stats: { stamina: 100, skillpower: 10, agility: 10, strength: 10 },
+    stats: { ...BASE_STATS, healthRegen: 0 },
     radius: 0.45,
     walkSpeed: 2.4,
     turnRate: 4,
@@ -30,7 +31,7 @@ export const GOBLIN_WARLOCK: Enemy = {
       },
     },
   },
-  drops: [],
+  drops: [{ item: "goblin-warlock-essence", chance: 1, count: 1 }],
   overworld: () => [
     wander({ speed: 1.2 }),
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),

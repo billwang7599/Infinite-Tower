@@ -9,7 +9,7 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
 import { Body, Enemy, Health, Player, type EnemyData } from "../../components.js";
-import { FighterStats, moveSpeed, type Stats } from "../../stats.js";
+import { FighterStats, moveSpeed, stunTime, type Stats } from "../../stats.js";
 import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
@@ -48,7 +48,7 @@ export function enemyBrainSystem(): System {
       if (health.hp <= 0) {
         if (enemy.state !== "dead") enter(world, e, enemy, "dead");
       } else if (enemy.poise <= 0 && !enemy.armored && !UNSTAGGERABLE.has(enemy.state)) {
-        enter(world, e, enemy, "staggered", def.staggerTime);
+        enter(world, e, enemy, "staggered", stunTime(def.staggerTime, stats));
         enemy.poise = def.poise;
       }
       enemy.armored = false;

@@ -15,6 +15,7 @@ import {
   type ActiveHitData, type PlayerData, type SkilledData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
+import { FighterStats, stunTime } from "../stats.js";
 import type { FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
 import { turnGuard } from "./behaviors/weapon.js";
@@ -185,11 +186,12 @@ function hitPlayer(
 ): void {
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health);
-  const dealt = hurt(world, target, hit.damage * damageDealtFactor(world, attacker));
+  const dealt = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
   if (hit.attack === null) {
-    health.hitstun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
+    const stun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
+    health.hitstun = stunTime(stun, world.require(target, FighterStats));
     const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
     if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, { x: hit.dirX, z: hit.dirZ });
   }
@@ -210,7 +212,7 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
 
 function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
-  const damage = hurt(world, target, hit.damage * damageDealtFactor(world, attacker));
+  const damage = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
   const guard = world.get(target, WeaponAttack);

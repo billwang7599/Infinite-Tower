@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, FIXED_DT, Health, PLAYER, SkillObject, Skilled, skillCost, Stamina, wordsOf, type EnemyDef, type Skill,
-  type Vec3,
+  Enemy, FIXED_DT, Health, PLAYER, SkillObject, Skilled, skillCost, Stamina, STAMINA_PER_POINT, staminaMaxOf,
+  wordsOf, type EnemyDef, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, bodyOf, CASTER, casts, enemy, flatDist, IDLE, input, player, run } from "../fixtures.js";
@@ -157,17 +157,17 @@ describe("casting at the player", () => {
 
   test("it pays its skills' stamina like a player, and gets it back the same way", () => {
     const fight = fightWith(CASTER, 3);
-    const stamina = fight.world.require(them(fight), Stamina);
-    assert.equal(stamina.max, CASTER.stats.stamina);
+    const stamina = fight.world.require(them(fight), Stamina), full = staminaMaxOf(CASTER.stats);
+    assert.equal(stamina.max, full);
     const cast = firstCast(fight)!;
     while (skilledOf(fight).casting) fight.step([IDLE]);
-    assert.equal(stamina.value, CASTER.stats.stamina - skillCost(cast));
+    assert.equal(stamina.value, full - skillCost(cast));
     run(fight, PLAYER.staminaRegenDelay + 0.2);
-    assert.ok(stamina.value > CASTER.stats.stamina - skillCost(cast));
+    assert.ok(stamina.value > full - skillCost(cast));
   });
 
   test("short of stamina, it doesn't cast", () => {
-    const tired: EnemyDef = { ...CASTER, stats: { ...CASTER.stats, stamina: 1 } };
+    const tired: EnemyDef = { ...CASTER, stats: { ...CASTER.stats, stamina: 1 / STAMINA_PER_POINT } };
     for (const gapM of [3, SKILL.quickCastM + 2]) {
       const fight = fightWith(tired, gapM);
       run(fight, 3);
@@ -205,6 +205,6 @@ describe("casting at the player", () => {
     };
     assert.equal(hurtBy(0), 0);
     assert.ok(hurtBy(10) > 0);
-    assert.ok(Math.abs(hurtBy(20) - 2 * hurtBy(10)) < 1e-6);
+    assert.ok(Math.abs(hurtBy(40) - 2 * hurtBy(10)) < 1e-6, "by its square root");
   });
 });
