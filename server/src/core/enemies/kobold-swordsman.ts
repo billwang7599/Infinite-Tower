@@ -18,16 +18,9 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     staggerTime: 0.8,
     attacks: {
       weapon: {
-        triggerDist: 2.6, windup: 0.5, chainWindup: 0.35, speed: 3, recover: 0.9, minChain: 2, maxChain: 3,
-        heavyShare: 0.3, cooldown: 1.2, firstDelay: 1.5,
-        counters: {
-          parryChance: 0.35, parryLeadTime: 0.2, feintChance: 0.25, guardBreakChance: 0.25, techChance: 0.3,
-          reactTime: 0.25,
-        },
-        hybrid: {
-          windupTime: 1.1, chainWindupTime: 0.45, recoverTime: 0.5, blockReactTime: 0.3, tapParryChance: 0.25,
-          kickAfterTime: 1, kickChance: 0.5,
-        },
+        triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, speed: 3, recover: 0.5, minChain: 2, maxChain: 3,
+        heavyShare: 0.3, cooldown: 1.2, firstDelay: 1.5, blockReactTime: 0.3, tapParryChance: 0.25, kickAfterTime: 1,
+        kickChance: 0.5,
       },
     },
     wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },

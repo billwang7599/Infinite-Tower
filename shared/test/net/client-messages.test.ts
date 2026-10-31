@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  COMBAT_STYLE_IDS, DEFAULT_LOOK, GUARD_SIDES, HIDDEN_STATS, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
+  DEFAULT_LOOK, HIDDEN_STATS, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION,
   OVERWORLD_CAMERA_ANGLES, SHOWN_STATS, SKILLBOOK_PAGES, STRIKES, SWING_DIRS, type StepInput,
 } from "@infinite-tower/shared";
 import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
@@ -12,9 +12,9 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
-  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null,
-  guardBreak: false, way: null, block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null,
-  write: null, locked: null, bag: false, gear: null, use: null,
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null,
+  block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
+  bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
 const casting = (...segments: unknown[]) => ({ ...STEP, cast: { segments } });
@@ -28,15 +28,14 @@ describe("parseClientMsg", () => {
   test("accepts every kind of message", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
-      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "heavy", guard: "left" }] },
-      { t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, guardBreak: true }] },
+      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "heavy", way: "lr" }] },
+      { t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, kick: true }] },
       { t: "battleInput", upTo: 7, inputs: [] },
       { t: "battleResync" },
       { t: "leaveBattle" },
       { t: "settings", settings: { bindings: { overworld: { up: ["KeyW"] } }, camera: { sensitivity: 1.5 } } },
       { t: "settings", settings: {} },
       { t: "settings", settings: { mouse: { autoLock: false } } },
-      { t: "settings", settings: { combat: { style: "hybrid" } } },
       {
         t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, attack: "stab", way: "tlbr", block: true, kick: true }],
       },
@@ -116,24 +115,14 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "yes" }), null);
     assert.equal(battleInput({ ...STEP, attack: true }), null, "the old single attack");
-    assert.equal(battleInput({ ...STEP, guard: "bottom" }), null);
     assert.equal(battleInput({ ...STEP, dodge: 1 }), null);
-    assert.equal(battleInput({ ...STEP, guardBreak: "yes" }), null);
     assert.equal(battleInput({ ...STEP, moveX: "1" }), null);
     assert.equal(battleInput({ ...STEP, aimZ: null }), null);
   });
 
-  test("settings: the combat style is one of the styles", () => {
-    for (const style of COMBAT_STYLE_IDS) assert.ok(parse({ t: "settings", settings: { combat: { style } } }), style);
-    assert.equal(parse({ t: "settings", settings: { combat: { style: "mordhau" } } }), null);
-  });
-
-  test("battleInput: the attack is light, heavy, a stab or none; the guard a side, the hybrid's aim a swing", () => {
+  test("battleInput: the attack is light, heavy, a stab or none; the aim a swing", () => {
     for (const attack of [...STRIKES, null]) {
       assert.deepEqual(battleInput({ ...STEP, attack }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, attack }] });
-    }
-    for (const guard of [...GUARD_SIDES, null]) {
-      assert.deepEqual(battleInput({ ...STEP, guard }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, guard }] });
     }
     for (const way of [...SWING_DIRS, null]) {
       assert.deepEqual(battleInput({ ...STEP, way }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, way }] });

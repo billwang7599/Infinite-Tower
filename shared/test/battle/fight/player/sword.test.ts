@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  CHAIN, FEINT, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Player, Stamina, strikeCost, WEAPONS, Wielder,
+  CHAIN, HYBRID, MOMENTUM, momentumDamage, physicalDamage, Player, Stamina, strikeCost, WEAPONS, Wielder,
   type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, input, player, STATS, STATUE } from "../../fixtures.js";
+import { ARENA, enemy, input, player, STATS, STATUE } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -13,7 +13,7 @@ const SWORD = WEAPONS.sword;
 const NEAR = 2;
 
 const newFight = (at = NEAR) => new Fight({
-  arena: { ...ARENA, radius: 40 }, style: "hybrid",
+  arena: { ...ARENA, radius: 40 },
   players: [
     player({ x: 0, y: 0.05, z: 0 }, { vitals: { hp: 100, stamina: 1000 }, stats: { ...STATS, stamina: 1000 } }),
   ],
@@ -49,7 +49,7 @@ function chain(fight: Fight, presses: [Strike, SwingDir][], to = 150,
 
 const momentumOf = (fight: Fight) => fight.world.require(fight.players[0]!, Wielder).momentum;
 
-describe("the hybrid's attacks", () => {
+describe("the sword's attacks", () => {
   test("go the aimed way, a stab straight ahead", () => {
     const p = chain(newFight(), [["light", "trbl"]], 3);
     assert.equal(p.fight.world.require(p.fight.players[0]!, Wielder).swing?.way, "trbl");
@@ -106,7 +106,7 @@ describe("the hybrid's attacks", () => {
     fight.step([input({ locked: 0, way: "tb", kick: true })]);
     assert.equal(fight.world.require(me, Wielder).swing, null);
     assert.equal(fight.world.require(me, Player).action, "none");
-    assert.equal(fight.world.require(me, Stamina).value, stamina - FEINT.cost);
+    assert.equal(fight.world.require(me, Stamina).value, stamina - HYBRID.feint.cost);
     assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
 
     const quick = newFight(30);

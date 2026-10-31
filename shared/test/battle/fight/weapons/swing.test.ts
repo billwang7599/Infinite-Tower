@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, attackShape, Health, physicalDamage, WEAPONS, Wielder, type EnemyDef, type WeaponId,
+  ActiveHit, Health, physicalDamage, wayShape, WEAPONS, Wielder, type EnemyDef, type WeaponId,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, IDLE, player, SWORDSMAN } from "../fixtures.js";
@@ -50,7 +50,7 @@ describe("an enemy wielding a weapon", () => {
       }
     }
     assert.ok(seen.includes(true) && seen.includes(false), "it wound up and swung");
-    assert.equal(hitbox?.range, attackShape(hitbox!.side, ARM, WEAPONS.sword).range, "its arm and the sword's reach");
+    assert.equal(hitbox?.range, wayShape(hitbox!.way!, ARM, WEAPONS.sword).range, "its arm and the sword's reach");
     assert.equal(hitbox?.attack, "light");
     assert.ok(fight.world.require(fight.players[0]!, Health).hp < fight.world.require(fight.players[0]!, Health).max);
   });
@@ -76,6 +76,6 @@ describe("an enemy wielding a weapon", () => {
 
   test("reaches as far as its own arm plus the blade", () => {
     const { hitbox } = firstHit(holding({ rightHand: "sword" }, ARM + 0.3));
-    assert.equal(hitbox?.range, attackShape(hitbox!.side, ARM + 0.3, WEAPONS.sword).range);
+    assert.equal(hitbox?.range, wayShape(hitbox!.way!, ARM + 0.3, WEAPONS.sword).range);
   });
 });

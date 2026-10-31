@@ -74,13 +74,10 @@ export function koboldPose(
     case "weaponRecover":
       p.lean = 0.08 * (1 - k);
       break;
-    case "guardBreak":
     case "kick":
       p.blade = GRAB_BLADE;
       p.lean = GRAB_LEAN_RAD;
       break;
-    case "recoil":
-    case "grabbed":
     case "stunned":
     case "staggered":
       p.blade = REELING_BLADE;
@@ -107,7 +104,7 @@ export function koboldPose(
       x: HAND_PIVOT.x + handBlade.x * HAND_ARC_M, y: HAND_PIVOT.y + handBlade.y * HAND_ARC_M,
       z: HAND_PIVOT.z + p.handZ + handBlade.z * HAND_ARC_M,
     },
-    offHand: state === "guardBreak" || state === "kick" ? GRAB_HAND : OFF_HAND,
+    offHand: state === "kick" ? GRAB_HAND : OFF_HAND,
     twist: dead ? 0 : TWIST_RAD * chestAt.x + coilTwist,
     hipTwist: dead ? 0 : HIP_SHARE * (TWIST_RAD * hipsAt.x + coilTwist),
     bend: dead ? 0 : -BEND_RAD * chestAt.y - KOBOLD_DRAWBACK.bendRad * pull * coil.y,

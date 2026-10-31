@@ -110,16 +110,16 @@ describe("the kobold's pose", () => {
     }
   });
 
-  test("guard breaking, its free hand reaches out ahead and it leans in; grabbed, it reels", () => {
-    const grab = poseOf("guardBreak", 0.1, 0, TB, null), guard = poseOf("approach", 0.1, 0, TB, null);
-    assert.ok(grab.offHand.z > guard.offHand.z + 0.2);
-    assert.ok(grab.lean > 0);
-    assert.deepEqual(poseOf("grabbed", 0.1, 0, TB, null).blade, poseOf("recoil", 0.1, 0, TB, null).blade);
+  test("kicking, its free hand reaches out ahead and it leans in", () => {
+    const kick = poseOf("kick", 0.1, 0, TB, null), guard = poseOf("approach", 0.1, 0, TB, null);
+    assert.ok(kick.offHand.z > guard.offHand.z + 0.2);
+    assert.ok(kick.lean > 0);
   });
 
-  test("dead it falls over; stunned it sees stars, but not just recoiling", () => {
+  test("dead it falls over; stunned it sees stars, but not just staggered", () => {
     assert.equal(poseOf("dead", 0, 0, LR).roll, Math.PI / 2);
     assert.equal(poseOf("stunned", 0.1, 0, LR).stars, true);
-    assert.equal(poseOf("recoil", 0.1, 0, LR).stars, false);
+    assert.equal(poseOf("staggered", 0.1, 0, LR).stars, false);
+    assert.deepEqual(poseOf("staggered", 0.1, 0, TB, null).blade, poseOf("stunned", 0.1, 0, TB, null).blade);
   });
 });

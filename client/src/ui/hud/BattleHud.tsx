@@ -1,6 +1,4 @@
-import {
-  coreStats, GUARD_SIDES, NO_PILE, type Gear, type GuardSide, type Skill, type Spot, type UseSpot,
-} from "@infinite-tower/shared";
+import { coreStats, NO_PILE, type Gear, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
@@ -70,7 +68,6 @@ export function BattleHud(props: BattleHudProps) {
       <div className="absolute top-3 right-4">
         <Ping ping={ping} hud={hudSettings} />
       </div>
-      <GuardWidget hud={hud} />
       <BossBar hud={hud} />
       <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
@@ -188,27 +185,6 @@ function Vitals({ hud }: HudProps) {
     <div className="absolute top-3 left-4">
       <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
     </div>
-  );
-}
-
-const GUARD_TURN_DEG: Record<GuardSide, number> = { left: -90, top: 0, right: 90 };
-
-function GuardWidget({ hud }: HudProps) {
-  const mine = useStore(hud, (s) => s.guard);
-  const foe = useStore(hud, (s) => s.foeGuard);
-  return (
-    <svg
-      id="guard-widget" data-mine={mine ?? ""} data-foe={foe ?? ""} viewBox="0 0 96 64"
-      className={`absolute bottom-18 left-1/2 w-24 -translate-x-1/2 ${mine || foe ? "opacity-100" : "opacity-0"}`}
-    >
-      {GUARD_SIDES.map((side) => (
-        <g key={side} transform={`rotate(${GUARD_TURN_DEG[side]} 48 44)`} fill="none" strokeWidth={4}
-          strokeLinecap="round" strokeLinejoin="round">
-          <path d="M32 18 L48 5 L64 18" className={foe === side ? "stroke-died" : "stroke-white/15"} />
-          <path d="M36 28 L48 18 L60 28" className={mine === side ? "stroke-victory" : "stroke-white/15"} />
-        </g>
-      ))}
-    </svg>
   );
 }
 

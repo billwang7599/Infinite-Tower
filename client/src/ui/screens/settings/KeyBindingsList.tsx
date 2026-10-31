@@ -15,10 +15,7 @@ import { keyName, mouseName, WHEEL_NAME } from "../../keyNames.js";
 import { useStore } from "../../useStore.js";
 import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
-const GROUP_TITLES: Record<Group, string> = {
-  general: "General", overworld: "Overworld", battle: "Battle", "for-honor": "Battle: For Honor style",
-  hybrid: "Battle: Hybrid style",
-};
+const GROUP_TITLES: Record<Group, string> = { general: "General", overworld: "Overworld", battle: "Battle" };
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */
 interface Waiting {

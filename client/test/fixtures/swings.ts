@@ -1,23 +1,19 @@
 import {
-  attackSteps, CHAIN, sideOfWay, wayStepsAfter, WEAPONS, type AttackKind, type GuardSide, type SwingData, type Way,
+  CHAIN, HYBRID, wayStepsAfter, WEAPONS, type AttackKind, type SwingData, type Way,
 } from "@infinite-tower/shared";
 
-export function swingAt(attack: AttackKind, side: GuardSide, step: number, aimYaw = 0): SwingData {
+export function swingAt(attack: AttackKind, way: Way, step: number, aimYaw = 0): SwingData {
+  const heavy = attack === "heavy", windup = CHAIN.startupTime.opening + (heavy ? HYBRID.heavy.extraTime : 0);
   return {
-    attack, side, way: null, chain: 0, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
-    ...attackSteps(WEAPONS.sword, attack, 0), damage: 9, poiseDamage: 12,
+    attack, way, dir: { x: Math.sin(aimYaw), z: Math.cos(aimYaw) }, step,
+    ...wayStepsAfter(WEAPONS.sword, windup, heavy), damage: 9, poiseDamage: 12,
   };
 }
 
-export function waySwingAt(way: Way, step: number): SwingData {
-  return {
-    attack: "light", side: sideOfWay(way), way, chain: 0, dir: { x: 0, z: 1 }, step,
-    ...wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false), damage: 9, poiseDamage: 12,
-  };
-}
+export const waySwingAt = (way: Way, step: number): SwingData => swingAt("light", way, step);
 
-export function swingSteps(attack: AttackKind, side: GuardSide, aimYaw = 0): SwingData[] {
-  const out = [swingAt(attack, side, 0, aimYaw)];
-  while (out.length < out[0]!.endAt) out.push(swingAt(attack, side, out.length, aimYaw));
+export function swingSteps(attack: AttackKind, way: Way, aimYaw = 0): SwingData[] {
+  const out = [swingAt(attack, way, 0, aimYaw)];
+  while (out.length < out[0]!.endAt) out.push(swingAt(attack, way, out.length, aimYaw));
   return out;
 }

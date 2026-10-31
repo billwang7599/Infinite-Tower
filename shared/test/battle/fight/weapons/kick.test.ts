@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { Body, Health, HYBRID, Player, Stamina, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, FULL_HP, FULL_STAMINA, input, player } from "../../fixtures.js";
+import { ARENA, FULL_HP, FULL_STAMINA, input, player } from "../fixtures.js";
 
 before(() => initPhysics());
 
 const pvp = (gap = 1.2) => new Fight({
-  arena: ARENA, duel: true, enemies: [], style: "hybrid",
+  arena: ARENA, duel: true, enemies: [],
   players: [player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: gap })],
 });
 type Script = (s: number) => Partial<PlayerInputData>;
@@ -26,7 +26,7 @@ const kicking: Script = (s) => ({ kick: s === KICK_AT });
 const kicks = (events: FightEvent[]) => events.filter((e) => e.type === "kick");
 const STEPS = KICK_AT + Math.round(HYBRID.kick.contactTime * 60) + 2;
 
-describe("the hybrid's kick", () => {
+describe("a kick", () => {
   test("costs stamina, deals no damage, and shoves someone standing there", () => {
     const fight = pvp(), them = fight.players[1]!;
     const events = play(fight, STEPS, kicking);

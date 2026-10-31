@@ -17,25 +17,17 @@ stats)."
   starter kit), and dying never takes them.
 - The client picks a weapon's look by item (`WEAPON_LOOKS`) and its motion by kind (`MOTIONS`), both in
   `client/src/visuals/battle/weapons.ts`.
-- Sword fights like For Honor's (the user: "make the sword combat closer to for honour"), PR 1: guard stances (left,
-  top, right) that block free from across, light and heavy attacks from the guard's side at fixed times per weapon
-  (heft), chains of three, a recoil when blocked, the guard widget, the Kobolds holding and switching a guard. The
-  rules are in AGENTS.md ("Guard stances") and the numbers in FORMULAS.md. It replaced the inertia-based swings (their
-  equations are in git history, `planSwing` before this PR).
-- Parries, guard breaks and feints, PR 2: a heavy just before an attack lands parries it, a guard break grabs through
-  a guard (countered by one of your own in time), a heavy can be feinted early in its wind-up, and the Kobolds use all
-  three now and then, from the fight's seed. The rules are in AGENTS.md ("Parries, guard breaks and feints") and the
-  numbers in FORMULAS.md.
+- One sword system, the Hybrid (the user tried five and kept it): 8-way aimed swings on the old momentum chains, a
+  held block that a tap turns into a parry, the counter-parry by the reverse swing, a kick, a feint. The rules are in
+  AGENTS.md (the "One sword system" bullet and "The Hybrid sword") and the numbers in FORMULAS.md. It replaced For
+  Honor's guard stances, parries and guard breaks (PRs #178 and #182) and the inertia-based swings before them
+  (`planSwing` in git history); the Posture, One Strike and Master Cuts styles were tried and dropped (their PRs,
+  #192-#194, are closed, the branches kept).
 
-## Open after PR 2
+## Later: the Kobolds' AI
 
-- Whether a blocked heavy chips; a throw (moving the one guard broken) instead of only opening them; unblockable or
-  undodgeable attacks; a stamina-out state (For Honor's "exhausted"). None is built.
-
-## Later: the Kobolds' stance AI
-
-Reading the player's guard and attacks: blocking by reacting to the side an attack comes from (with a reaction time),
-switching to an open side, chains that mix sides. Open: how quick its reactions are, and how it differs by enemy.
+Reading the player: answering the way a swing comes from, chains that mix ways to bait a block. Open: how quick its
+reactions are, and how it differs by enemy.
 
 ## Later: weapons from parts
 
@@ -48,3 +40,4 @@ weapon's kind comes from its blade, and how a built weapon is saved (an item id 
 ## Open
 
 - Armour as a percentage cut (blunt beats armour).
+- Unblockable or undodgeable attacks; a stamina-out state. None is built.

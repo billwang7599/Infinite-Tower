@@ -4,13 +4,13 @@ import {
   COUNTER_PARRY, Health, HYBRID, Player, Stamina, Wielder, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, FULL_HP, FULL_STAMINA, input, player } from "../../fixtures.js";
+import { ARENA, FULL_HP, FULL_STAMINA, input, player } from "../fixtures.js";
 
 // Before the describes: they run fights to find when the attacks land.
 await initPhysics();
 
 const pvp = () => new Fight({
-  arena: ARENA, duel: true, enemies: [], style: "hybrid",
+  arena: ARENA, duel: true, enemies: [],
   players: [player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: 1.6 })],
 });
 const FACING_1 = { aimX: 0, aimZ: -1, locked: 0 };
@@ -40,7 +40,7 @@ function landsAt(at: number, strike: "light" | "heavy" | "stab" = "light", way =
 }
 const PRESS = 40;
 
-describe("the hybrid's held block", () => {
+describe("the held block", () => {
   test("stops a weapon from in front, whatever its way, for stamina and a chip of its damage", () => {
     for (const way of ["lr", "tb", "brtl"] as const) {
       const fight = pvp();
@@ -74,7 +74,7 @@ describe("the hybrid's held block", () => {
 
   test("running out of stamina breaks it", () => {
     const fight = new Fight({
-      arena: ARENA, duel: true, enemies: [], style: "hybrid",
+      arena: ARENA, duel: true, enemies: [],
       players: [
         player({ x: 0, y: 0.05, z: 0 }), player({ x: 0, y: 0.05, z: 1.6 }, { vitals: { hp: 100, stamina: 1 } }),
       ],
@@ -92,7 +92,7 @@ describe("the hybrid's held block", () => {
   });
 });
 
-describe("the hybrid's tap parry", () => {
+describe("the tap parry", () => {
   const hitAt = landsAt(PRESS);
   const tapAt = (step: number): Script => (s) => ({ block: s >= step });
 
@@ -141,7 +141,7 @@ describe("the hybrid's tap parry", () => {
   });
 });
 
-describe("the hybrid's counter-parry", () => {
+describe("the counter-parry", () => {
   const hitAt = landsAt(PRESS, "light", "lr");
   const answer = (way: Partial<PlayerInputData>["way"] | "stab", step: number): Script => (s) =>
     way === "stab" ? { attack: s === step ? "stab" : null } : { way, attack: s === step ? "light" : null };

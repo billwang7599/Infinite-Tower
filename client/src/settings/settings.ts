@@ -7,7 +7,6 @@ import type { Net } from "../net/net.js";
 import { AudioSettings } from "./audio.js";
 import { KeyBindings } from "./bindings.js";
 import { CameraSettings } from "./camera.js";
-import { CombatSettings } from "./combat.js";
 import { HudSettings } from "./hud.js";
 import { MouseSettings } from "./mouse.js";
 
@@ -17,7 +16,6 @@ export interface Settings {
   mouse: MouseSettings;
   hud: HudSettings;
   audio: AudioSettings;
-  combat: CombatSettings;
 }
 
 /** A burst of changes (dragging the slider) goes to the server as one message. */
@@ -26,7 +24,7 @@ const SEND_AFTER_MS = 400;
 export function createSettings(): Settings {
   return {
     bindings: new KeyBindings(), camera: new CameraSettings(), mouse: new MouseSettings(), hud: new HudSettings(),
-    audio: new AudioSettings(), combat: new CombatSettings(),
+    audio: new AudioSettings(),
   };
 }
 
@@ -36,13 +34,12 @@ export function restoreSettings(settings: Settings, saved: SavedSettings): void 
   settings.mouse.restore(saved.mouse);
   settings.hud.restore(saved.hud);
   settings.audio.restore(saved.audio);
-  settings.combat.restore(saved.combat);
 }
 
 function toSaved(settings: Settings): SavedSettings {
   return {
     bindings: settings.bindings.toSaved(), camera: settings.camera.toSaved(), mouse: settings.mouse.toSaved(),
-    hud: settings.hud.toSaved(), audio: settings.audio.toSaved(), combat: settings.combat.toSaved(),
+    hud: settings.hud.toSaved(), audio: settings.audio.toSaved(),
   };
 }
 

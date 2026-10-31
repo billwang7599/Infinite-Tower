@@ -1,6 +1,4 @@
-import type {
-  Entity, GearMove, GuardSide, PageWrite, PileSnap, Skill, SwingDir, UseSpot, Vec3,
-} from "@infinite-tower/shared";
+import type { Entity, GearMove, PageWrite, PileSnap, Skill, SwingDir, UseSpot, Vec3 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
@@ -24,7 +22,6 @@ export interface BattleContext {
   /** The camera's orbit. Unlocked, its yaw is also the aim, and movement is camera-relative. */
   view: ArenaView;
   lock: Entity | null;
-  guard: GuardSide;
   way: SwingDir;
   who: PlayerSetup["who"][];
   /** Your own copy, from the encounter until the player leaves the arena. */

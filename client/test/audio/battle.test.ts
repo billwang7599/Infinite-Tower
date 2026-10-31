@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, WeaponAttack, ITEMS, newCore, Player, SkillObject,
+  BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, ITEMS, newCore, Player, SkillObject, Wielder,
   starterEquipment, type EnemyDef, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
 import { fightEars, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
 import { ELEMENT_SOUNDS, ENEMY_SOUNDS, STEP_SOUNDS } from "../../src/audio/sounds.js";
 import type { StepEvent } from "../../src/modes/battle/sync.js";
+import { swingAt } from "../fixtures/swings.js";
 
 before(() => initPhysics());
 
@@ -21,11 +22,7 @@ const SWORDED: EnemyDef = {
   attacks: {
     weapon: {
       triggerDist: 0, windup: 9, chainWindup: 9, speed: 0, recover: 1, minChain: 1, maxChain: 1, heavyShare: 0,
-      cooldown: 99, firstDelay: 99,
-      hybrid: {
-        windupTime: 9, chainWindupTime: 9, recoverTime: 1, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99,
-        kickChance: 0,
-      },
+      cooldown: 99, firstDelay: 99, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99, kickChance: 0,
     },
   },
 };
@@ -129,18 +126,13 @@ describe("the arena's ears", () => {
     assert.deepEqual(sounds(hear(ctx)!), ["block"]);
   });
 
-  test("a parry rings out where the parrier stands; a guard break's grab thuds, its break crashes, its counter clanks",
-    () => {
-      const { ctx, hear, world, player, enemy } = arena();
-      ctx.events = [{ step: 1, event: { type: "parry", by: player, target: enemy, attack: "heavy" } }];
-      const heard = hear(ctx)!, at = world.require(player, Body).pos;
-      assert.deepEqual(sounds(heard), ["parry"]);
-      assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
-      const results = ["grabbed", "broken", "teched"] as const;
-      ctx.events = results.map((result, i) =>
-        ({ step: 2 + i, event: { type: "guardBreak", by: enemy, target: player, result } }));
-      assert.deepEqual(sounds(hear(ctx)!), ["hit-body", "guard-break", "block"]);
-    });
+  test("a parry rings out where the parrier stands", () => {
+    const { ctx, hear, world, player, enemy } = arena();
+    ctx.events = [{ step: 1, event: { type: "parry", by: player, target: enemy, attack: "heavy" } }];
+    const heard = hear(ctx)!, at = world.require(player, Body).pos;
+    assert.deepEqual(sounds(heard), ["parry"]);
+    assert.deepEqual(heard.cues[0]!.at, { x: at.x, z: at.z });
+  });
 
   test("a feint is heard as the blade is pulled back", () => {
     const { ctx, hear, player } = arena();
@@ -148,10 +140,10 @@ describe("the arena's ears", () => {
     assert.deepEqual(sounds(hear(ctx)!), ["draw-blade"]);
   });
 
-  test("a guard break lunges with a whoosh as it starts", () => {
+  test("a kick lunges with a whoosh as it starts", () => {
     const { run } = arena();
     run(1);
-    const heard = run(1, { guardBreak: true });
+    const heard = run(1, { kick: true });
     assert.deepEqual(sounds(heard), ["grab"]);
     assert.deepEqual(sounds(run(20)), []);
   });
@@ -169,7 +161,7 @@ describe("the arena's ears", () => {
     const tell = (next: "light" | "heavy") => {
       const { run, world, enemy } = arena(undefined, SWORDED);
       run(1);
-      Object.assign(world.require(enemy, WeaponAttack), { next });
+      world.require(enemy, Wielder).swing = swingAt(next, "tb", 0);
       Object.assign(world.require(enemy, Enemy), { state: "weaponWindup", stateTime: 0 });
       return run(0).cues[0]!;
     };

@@ -7,7 +7,6 @@
 import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
-import type { CombatStyle } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import { Body, Enemy, Health, Player, SkillObject, Statuses } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
@@ -19,6 +18,7 @@ import { chargeAttackSystem } from "./behaviors/charge.js";
 import { lungeAttackSystem } from "./behaviors/lunge.js";
 import { sidestepSystem } from "./behaviors/sidestep.js";
 import { skillAttackSystem } from "./behaviors/skill.js";
+import { weaponAttackSystem } from "./behaviors/weapon.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
@@ -27,9 +27,9 @@ import { useSystem } from "./player/use.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
 import { regenSystem, statusMoveFactor, statusSystem } from "./skills/statuses.js";
-import { spawnEnemy, spawnPlayer, styleOf, type FightSetup, type PlayerSetup } from "./setup.js";
+import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
-import { STYLES } from "./styles/styles.js";
+import { kickSystem } from "./weapons/kick.js";
 import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
@@ -73,7 +73,6 @@ export class Fight {
   private readonly seated: Entity[];
   readonly enemies: readonly Entity[];
   readonly duel: boolean;
-  readonly style: CombatStyle;
   /** What an input's `locked` indexes: the enemies, or in a duel the players. */
   readonly targets: readonly Entity[];
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
@@ -89,8 +88,6 @@ export class Fight {
     this.arena = { ...setup.arena };
     this.physics = new ArenaPhysics(this.arena.radius);
     this.duel = setup.duel ?? false;
-    this.style = styleOf(setup);
-    const style = STYLES[this.style];
     this.seated = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
     this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
     this.targets = this.duel ? this.players : this.enemies;
@@ -99,13 +96,13 @@ export class Fight {
       outcome: this.outcome,
     };
     this.systems = [
-      playerControllerSystem(this.targets, this.events, style),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), style.swordsman(this.events),
+      playerControllerSystem(this.targets, this.events),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(),
       skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events, style.defend), style.after(this.events),
+      playerGroundSystem(this.physics), combatSystem(this.events), kickSystem(this.events),
       statusSystem(),
       regenSystem(),
       skillSystem(ctx), useSystem(ctx),

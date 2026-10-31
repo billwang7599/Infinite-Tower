@@ -1,11 +1,11 @@
 /**
- * Hits, checked after each physics step with plain math, not physics triggers. The fight's style decides first
- * whether a hit is parried or blocked (fight/styles/); whatever it doesn't stop lands.
+ * Hits, checked after each physics step with plain math, not physics triggers. A weapon hit may be parried or blocked
+ * first (weapons/defend.ts); whatever isn't stopped lands.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
 import type { Way } from "../../weapons/hybrid.js";
-import { mirrorSide, type AttackKind, type GuardSide, type HitShape } from "../../weapons/weapons.js";
+import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type PlayerData, type SkilledData,
@@ -14,9 +14,9 @@ import { PLAYER } from "../player.js";
 import { FighterStats, stunTime } from "../stats.js";
 import type { FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
-import { turnGuard } from "./behaviors/weapon.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
+import { defend } from "./weapons/defend.js";
 import { endChain, endSwing } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
@@ -27,9 +27,6 @@ const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
 
 export type Defended = "parried" | "blocked" | null;
-export type Defend = (
-  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity,
-) => Defended;
 
 export interface HitSpec extends HitShape {
   damage: number;
@@ -37,7 +34,6 @@ export interface HitSpec extends HitShape {
   lift?: number;
   poiseDamage?: number;
   attack?: AttackKind | null;
-  side?: GuardSide;
   way?: Way | null;
 }
 
@@ -45,7 +41,7 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
   world.add(e, ActiveHit, {
     dirX, dirZ, range: attack.range, minDot: attack.minDot, damage: attack.damage, knockback: attack.knockback ?? 0,
     lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null,
-    side: attack.side ?? "top", way: attack.way ?? null, alreadyHit: new Set(),
+    way: attack.way ?? null, alreadyHit: new Set(),
   });
 }
 
@@ -71,7 +67,7 @@ export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0
 }
 
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
-export function combatSystem(events: FightEvent[], defend: Defend): System {
+export function combatSystem(events: FightEvent[]): System {
   return (world, dt) => {
     for (const [, h] of world.query(Health)) {
       h.invuln = Math.max(0, h.invuln - dt);
@@ -154,8 +150,6 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   const damage = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
-  const guard = world.get(target, WeaponAttack);
-  if (guard && hit.attack !== null && enemy.state === "approach") turnGuard(enemy, guard, mirrorSide(hit.side));
   siphon(world, attacker, damage);
   events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
 }

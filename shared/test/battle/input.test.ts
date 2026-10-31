@@ -16,7 +16,7 @@ describe("sameInput", () => {
   test("any field that differs makes it a change (sent to the server)", () => {
     const changes: Partial<PlayerInputData>[] = [
       { moveX: 0.5 }, { moveZ: -1 }, { aimX: 1, aimZ: 0 }, { jump: true }, { attack: "light" }, { dodge: true },
-      { guard: "left" }, { guardBreak: true }, { bag: true }, { use: { in: "bag", x: 1, y: 0 } },
+      { way: "lr" }, { block: true }, { kick: true }, { bag: true }, { use: { in: "bag", x: 1, y: 0 } },
     ];
     for (const o of changes) assert.equal(sameInput(IDLE_INPUT, input(o)), false, JSON.stringify(o));
   });

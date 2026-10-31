@@ -14,7 +14,7 @@ const newFight = () => new Fight({
 });
 
 const SWING: SwingData = {
-  attack: "light", side: "left", way: null, chain: 0, dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
+  attack: "light", way: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
   liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12,
 };
 
@@ -66,15 +66,11 @@ describe("a fight's hash", () => {
       ["the player's hitstun", (f) => { f.world.require(f.players[0]!, Health).hitstun += 0.1; }],
       ["the player's action", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.action = p.action === "dodge" ? "recoil" : "dodge";
+        p.action = p.action === "dodge" ? "stagger" : "dodge";
       }],
       ["the queued attack", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.queued = p.queued === "heavy" ? "light" : "heavy";
-      }],
-      ["the player's guard", (f) => {
-        const p = f.world.require(f.players[0]!, Player);
-        p.guard = p.guard === "left" ? "right" : "left";
       }],
       ["having a swing going", (f) => {
         const w = f.world.require(f.players[0]!, Wielder);
@@ -82,35 +78,28 @@ describe("a fight's hash", () => {
       }],
       ["the action's clock", (f) => { f.world.require(f.players[0]!, Player).actionTime += 0.05; }],
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
-      ["a buffered guard break", (f) => { f.world.require(f.players[0]!, Player).guardBreakBuffer += 0.05; }],
-      ["a held guard break", (f) => {
+      ["a buffered kick", (f) => { f.world.require(f.players[0]!, Player).kickBuffer += 0.05; }],
+      ["a held block", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.guardBreakHeld = !p.guardBreakHeld;
+        p.blockHeld = !p.blockHeld;
       }],
-      ["a guard break under way", (f) => {
-        const w = f.world.require(f.players[0]!, Wielder);
-        w.grab = w.grab ? null : { step: 3, target: f.enemies[0]!, techAt: null };
-      }],
-      ["whom a guard break holds", (f) => {
-        f.world.require(f.players[0]!, Wielder).grab = { step: 3, target: f.enemies[0]!, techAt: null };
-        const before = f.hash();
-        f.world.require(f.players[0]!, Wielder).grab!.target = null;
-        assert.notEqual(f.hash(), before);
-      }],
-      ["being safe from a guard break", (f) => { f.world.require(f.players[0]!, Wielder).grabImmuneTime += 0.05; }],
       ["a swing's way", (f) => { f.world.require(f.players[0]!, Wielder).swing = { ...SWING, way: "brtl" }; }],
       ["a kick under way", (f) => { f.world.require(f.players[0]!, Wielder).kick = { step: 2 }; }],
       ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).combo = "lr"; }],
+      ["the chain's momentum", (f) => { f.world.require(f.players[0]!, Wielder).momentum += 0.5; }],
       ["the time left to chain", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
-      ["the aimed way", (f) => { f.world.require(f.players[0]!, Player).way = "tb"; }],
+      ["the aimed way", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.way = p.way === "tb" ? "lr" : "tb";
+      }],
       ["a tap parry's window", (f) => { f.world.require(f.players[0]!, Player).tapParryLeft += 0.05; }],
       ["a held button", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.attackHeld = p.attackHeld ? null : "heavy";
       }],
-      ["a held guard", (f) => {
+      ["a held block key", (f) => {
         const i = f.world.require(f.players[0]!, PlayerInput);
-        i.guard = i.guard === "top" ? "left" : "top";
+        i.block = !i.block;
       }],
       ["being on the ground", (f) => { const p = f.world.require(f.players[0]!, Player); p.grounded = !p.grounded; }],
       ["the player's input", (f) => { f.world.require(f.players[0]!, PlayerInput).moveX += 0.5; }],
@@ -126,36 +115,22 @@ describe("a fight's hash", () => {
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
         dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, attack: null,
-        side: "top", way: null, alreadyHit: new Set<number>(),
+        way: null, alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
       ["the random numbers", (f) => { f.world.require(f.enemies[0]!, Enemy).rng += 1; }],
       ["its weapon attack's cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).cooldown += 0.05; }],
       ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).swingsLeft += 1; }],
-      ["its place in the chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).chain += 1; }],
-      ["the attack it winds up for", (f) => {
+      ["its last way", (f) => {
         const w = f.world.require(f.enemies[0]!, WeaponAttack);
-        w.next = w.next === "light" ? "heavy" : "light";
+        w.way = w.way === "lr" ? "rl" : "lr";
       }],
-      ["its guard's side", (f) => {
-        const w = f.world.require(f.enemies[0]!, WeaponAttack);
-        w.guard = w.guard === "left" ? "right" : "left";
-      }],
-      ["the side it guards while moving", (f) => {
-        const w = f.world.require(f.enemies[0]!, WeaponAttack);
-        w.guardFrom = w.guardFrom === "left" ? "right" : "left";
-      }],
-      ["its guard's move", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardMoveTime += 0.05; }],
-      ["how long it holds its guard", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardHoldTime += 0.05; }],
-      ["recoiling", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "recoil"; }],
+      ["its wait before another kick", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).kickWait += 0.05; }],
+      ["kicking", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "kick"; }],
       ["a parry it read", (f) => {
         const w = f.world.require(f.enemies[0]!, WeaponAttack);
         w.parryRead = !w.parryRead;
-      }],
-      ["a feint it means", (f) => {
-        const w = f.world.require(f.enemies[0]!, WeaponAttack);
-        w.feint = !w.feint;
       }],
       ["a riposte it owes", (f) => {
         const w = f.world.require(f.enemies[0]!, WeaponAttack);
@@ -174,8 +149,7 @@ describe("a fight's hash", () => {
 
     const swingChanges: [string, (s: SwingData) => void][] = [
       ["its attack", (s) => { s.attack = "heavy"; }],
-      ["its side", (s) => { s.side = "right"; }],
-      ["its place in a chain", (s) => { s.chain = 2; }],
+      ["its way", (s) => { s.way = s.way === "tb" ? "bt" : "tb"; }],
       ["its aim", (s) => { s.dir.x += 0.05; }],
       ["its clock", (s) => { s.step += 1; }],
       ["when its blade goes live", (s) => { s.liveAt += 1; }],

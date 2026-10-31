@@ -17,7 +17,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [inventory.md](inventory.md): the rest of the grid inventory (drawing what's worn, armour, splitting stacks) | being built |
 | [drops.md](drops.md): loot and death drops as piles of items, in the arena and on the overworld (3 PRs) | being built |
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
-| [weapons.md](weapons.md): the arsenal and guard stances (built); parries, guard breaks and feints next; weapons from parts | being built |
+| [weapons.md](weapons.md): the arsenal and the sword (built); the Kobolds' AI and weapons from parts next | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
 | [overworld-2d.md](overworld-2d.md): the flat 2D overworld, archived at a git tag, and what bringing it back takes | archived |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
