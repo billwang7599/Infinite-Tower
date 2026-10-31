@@ -26,7 +26,7 @@ import { Ping } from "./Ping.js";
 type HudProps = { hud: Store<BattleHudState> };
 
 /** The dark band behind the result, fading out above and below. */
-const RESULT_BAND = "bg-[linear-gradient(transparent_38%,#000b_45%,#000b_58%,transparent_65%)]";
+const RESULT_BAND = "bg-[linear-gradient(transparent,#000b_25%,#000b_75%,transparent)]";
 
 interface BattleHudProps extends HudProps {
   bindings: KeyBindings;
@@ -74,7 +74,7 @@ export function BattleHud(props: BattleHudProps) {
       <BossBar hud={hud} />
       <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
-      <ArenaTimer hud={hud} />
+      <ArenaTimer hud={hud} bindings={bindings} />
       <InteractButton interaction={dropInView ? "openPile" : null} interact={props.interact} />
       <ChantPopup
         chant={props.chant} skills={skills} hud={hud} input={props.input} cast={props.castSkill} save={props.saveSkill}
@@ -131,14 +131,18 @@ function BattleBag(props: BattleBagProps) {
   );
 }
 
-function ArenaTimer({ hud }: HudProps) {
+function ArenaTimer({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   const afterFight = useStore(hud, (s) => s.afterFight);
   const secondsLeft = useStore(hud, (s) => s.arenaSecondsLeft);
+  const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);
   if (!afterFight) return null;
   const clock = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
   return (
-    <div id="arena-timer" className="absolute top-3 left-1/2 -translate-x-1/2 font-title text-lg tracking-wide">
-      The arena closes in <span className="text-victory">{clock}</span>
+    <div id="arena-timer" className="absolute top-3 left-1/2 -translate-x-1/2 text-center">
+      <div className="font-title text-lg tracking-wide">
+        The arena closes in <span className="text-victory">{clock}</span>
+      </div>
+      {leaveKey && <div className="text-xs opacity-70">Press {keyName(leaveKey)} to leave</div>}
     </div>
   );
 }
@@ -231,11 +235,11 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   const died = result === "lost";
   return (
     <div
-      className={`absolute inset-0 flex flex-col items-center justify-center ${RESULT_BAND} transition-opacity ${
+      className={`absolute inset-x-0 top-[10%] flex flex-col items-center py-5 ${RESULT_BAND} transition-opacity ${
         show ? "opacity-100" : "opacity-0"
       } duration-1200`}
     >
-      <div className={`font-title text-6xl font-normal tracking-[6px] ${died ? "text-died" : "text-victory"}`}>
+      <div className={`font-title text-4xl font-normal tracking-[4px] ${died ? "text-died" : "text-victory"}`}>
         {duel ? (died ? "DEFEATED" : "VICTORY") : died ? "YOU DIED" : "PREY SLAUGHTERED"}
       </div>
       {leaveKey && <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>}
