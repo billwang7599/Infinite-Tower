@@ -54,11 +54,10 @@ describe("look pictures", () => {
 });
 
 describe("the sword fight's poses", () => {
-  test("a swing has a wind-up, a strike and a follow-through; a stab three frames, a block and a stagger two", () => {
+  test("a swing has a wind-up, a strike and a follow-through; a guard one frame, a stagger two", () => {
     assert.deepEqual(SWORD_POSES, {
-      "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-bt": 3,
-      "swing-tlbr": 3, "swing-brtl": 3, "swing-trbl": 3, "swing-bltr": 3,
-      stab: 3, block: 2, stagger: 2,
+      "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-tlbr": 3, "swing-trbl": 3,
+      "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2,
     });
   });
 
@@ -117,7 +116,7 @@ describe("the sword fight's poses", () => {
   });
 
   test("there's no frame past a pose's last", () => {
-    assert.throws(() => drawBattle(DEFAULT_LOOK, "block", SWORD_POSES.block), RangeError);
+    assert.throws(() => drawBattle(DEFAULT_LOOK, "stagger", SWORD_POSES.stagger), RangeError);
     assert.throws(() => drawBattle(DEFAULT_LOOK, "stand", 1), RangeError);
   });
 

@@ -22,21 +22,20 @@ export type Pose = (typeof POSES)[number];
 /**
  * The sword fight's poses and how many frames each has, played in order.
  * A swing is named for the way the sword moves on screen (swing-tlbr: from the top left to the bottom right), in
- * three frames: wind-up, strike, follow-through. stab: drawn back, thrust into the screen, lunged. block: raising
- * the sword, then braced behind it. stagger: knocked back, then stumbling, off balance.
+ * three frames: wind-up, strike, follow-through. A guard holds the blade up on its side (guard-top: level over the
+ * head). stagger: knocked back, then stumbling, off balance.
  */
 export const SWORD_POSES = {
-  "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-bt": 3,
-  "swing-tlbr": 3, "swing-brtl": 3, "swing-trbl": 3, "swing-bltr": 3,
-  stab: 3, block: 2, stagger: 2,
+  "swing-lr": 3, "swing-rl": 3, "swing-tb": 3, "swing-tlbr": 3, "swing-trbl": 3,
+  "guard-left": 1, "guard-top": 1, "guard-right": 1, stagger: 2,
 } as const;
 export type SwordPose = keyof typeof SWORD_POSES;
 
 /** A swing drawn left-handed is its mirror image's pose, mirrored, so it still sweeps the same way on screen. */
 const MIRRORED_POSE: Record<Pose | SwordPose, Pose | SwordPose> = {
-  stand: "stand", slash: "slash", down: "down", stab: "stab", block: "block", stagger: "stagger",
-  "swing-tb": "swing-tb", "swing-bt": "swing-bt", "swing-lr": "swing-rl", "swing-rl": "swing-lr",
-  "swing-tlbr": "swing-trbl", "swing-trbl": "swing-tlbr", "swing-brtl": "swing-bltr", "swing-bltr": "swing-brtl",
+  stand: "stand", slash: "slash", down: "down", stagger: "stagger",
+  "swing-tb": "swing-tb", "swing-lr": "swing-rl", "swing-rl": "swing-lr", "swing-tlbr": "swing-trbl",
+  "swing-trbl": "swing-tlbr", "guard-left": "guard-right", "guard-top": "guard-top", "guard-right": "guard-left",
 };
 
 const W = 64, M = 32;

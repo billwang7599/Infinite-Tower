@@ -64,7 +64,7 @@ function brawler(session: GameSession): () => PlayerInputData {
     const it = fight.world.require(fight.enemies[0]!, Body).pos;
     const dx = it.x - me.x, dz = it.z - me.z, dist = Math.hypot(dx, dz) || 1;
     const aimX = dx / dist, aimZ = dz / dist, far = dist > 2.6;
-    const attack = !far && step++ % 2 === 0 ? (step % 4 === 1 ? "lr" : "rl") : null;
+    const attack = !far && step++ % 2 === 0 ? "light" : null;
     return { ...IDLE_INPUT, aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack };
   };
 }
@@ -201,7 +201,7 @@ describe("the server runs the fight", () => {
     play(session, () => IDLE_INPUT, 30);
     session.leaveBattle();
     session.battleResync();
-    session.battleInput(31, [{ step: 31, ...IDLE_INPUT, attack: "lr" }]);
+    session.battleInput(31, [{ step: 31, ...IDLE_INPUT, attack: "light" }]);
     play(session, () => IDLE_INPUT, 30);
     assert.equal(link.all("battleResult").length, 0);
     assert.equal(fightOf(session).outcome.state, "fighting");
@@ -408,10 +408,10 @@ describe("the bag in a fight", () => {
     play(session, () => IDLE_INPUT, 2);
     moveInBag(session, SWORD_AWAY);
     assert.equal(action(session).gear.equipment.rightHand, null);
-    play(session, () => ({ ...IDLE_INPUT, attack: "lr" }), 3);
+    play(session, () => ({ ...IDLE_INPUT, attack: "light" }), 3);
     assert.notEqual(action(session).action, "attack");
     moveInBag(session, SWORD_BACK);
-    play(session, () => ({ ...IDLE_INPUT, attack: "lr" }), 3);
+    play(session, () => ({ ...IDLE_INPUT, attack: "light" }), 3);
     assert.equal(action(session).action, "attack");
   });
 

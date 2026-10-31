@@ -1,7 +1,7 @@
 /**
  * Every fighter's stats, owned by the server (server/src/core/content/). Stamina is the bar's size; skillpower scales
  * skill damage, agility arena movement and strength a body blow's damage, each × stat / 10; strength also sets the
- * carry limit, and a weapon's damage by its fourth root (planSwing). HP isn't a stat.
+ * carry limit, and a weapon's damage by its fourth root (attackDamage). HP isn't a stat.
  */
 import { defineComponent } from "../core/ecs.js";
 

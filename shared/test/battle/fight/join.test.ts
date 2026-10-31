@@ -51,7 +51,7 @@ describe("a player joining a fight under way", () => {
       arena: ARENA, enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],
       players: [player({ x: 0, y: 0.05, z: -1 }), player({ x: 0, y: 0.05, z: 0.2 })],
     });
-    for (let i = 0; i < 60; i++) fight.step([input({ attack: i % 20 === 0 ? "lr" : null }), input({})]);
+    for (let i = 0; i < 60; i++) fight.step([input({ attack: i % 20 === 0 ? "light" : null }), input({})]);
     assert.equal(fight.world.require(fight.players[1]!, Health).hp, fight.world.require(fight.players[1]!, Health).max);
   });
 });

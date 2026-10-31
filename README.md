@@ -45,33 +45,27 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.
-  A sword with eight swings (one per way across
-  the screen) and a stab, a held block, a dodge roll with i-frames, jump, stamina. Horizontal swings hit wide and
-  short, vertical ones narrow and long, the stab a long thin line. Swings follow the blade's inertia: they start slow
-  and carry on by momentum, so a swing on the way the blade already goes comes round quicker and hits harder (the HUD
-  shows the combo), and stamina goes by the effort (reversing costs most); weapons have mass and
-  balance (a longsword and a greatsword swing slower and hit harder), and strength sets how fast you swing. A block
-  stops what hits it from in front for stamina, and breaks,
-  staggering you, when the stamina runs out. A blocked or parried blade stops dead in sparks, and a
-  landed hit holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went.
+  Sword fights like For Honor's: locked on, you hold a guard left, top or right, and it blocks, free, whatever comes
+  from that side while you're idle; light and heavy attacks come from your guard's side, at fixed times (a heavier
+  sword slower), chained up to three, each maybe from another side. A blocked attack bounces off in sparks and its
+  attacker recoils. A small widget shows your guard and your foe's; a landed hit holds the picture for a beat (longer
+  the heavier the blade) and jolts its target the way the blade went. A dodge roll with i-frames, jump, stamina.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
-  telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits. The
-  Kobold Swordsman swings in chains of two or three (any way, or a stab), each with a wind-up to read: the reverse swing
-  just before one lands parries it (the Kobold is stunned and takes more damage; a swing 45° off the reverse parries
-  for half the stun), and a stab just before its stab lands parries that.
-  On guard it parries your swings and blocks your stabs, so hit it while it recovers from a chain or is stunned. The
-  Kobold Greatsword fights the same with a much heavier blade. The
+  telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
+  blows come from the top. The Kobold Swordsman holds a guard of its own: hit it from another side, or while it
+  recovers; before each attack its guard moves to the side it will come from. The Kobold Greatsword fights the same
+  with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
-  sprite winds up, strikes and follows through on every swing and the stab, holds the sword out where a swing left it,
-  raises its guard to block, and reels when staggered. Another player facing your camera (in a duel, say) shows their
+  sprite holds its blade on its guard's side, winds up, strikes and follows through on every attack, and reels when
+  blocked. Another player facing your camera (in a duel, say) shows their
   front, face and all.
 - **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
-  lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a right-button drag turn
-  the camera), Space jumps, F dodges, Left Shift blocks; a quick flick of the mouse swings the way it moves (one of
-  eight), and a left click stabs. R opens the chant, and 1-4 quick-cast the skillbook's pages.
+  lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
+  the camera), Space jumps, F dodges; a quick flick of the mouse left, up or right (or U, I, O) moves your guard, a left
+  click is a light attack and a right click a heavy one. R opens the chant, and 1-4 quick-cast the skillbook's pages.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes
   back to typing. Lines show in a log at the bottom left and, in the overworld, in a bubble over the
@@ -99,13 +93,13 @@ What's built so far:
   bag screen (Open on the book in hand) or in a fight (2 s, standing still), and quick-cast with 1-4 (hold the key to
   keep a Beam going). For now everyone knows every word. Dying keeps the pages and the words.
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
-  a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't swing, stab or
-  block; without the skillbook you can't quick-cast. Worn things count toward the weight.
+  a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
+  guard; without the skillbook you can't quick-cast. Worn things count toward the weight.
 - **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
   inventory, the questbook and Settings. Small notices (loot, a full bag, dying, resting, eating, quests) stack in
   the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
-- **Sound:** sound effects for swings (lower and heavier with a heavier blade), hits, blocks and parries, footsteps,
-  dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
+- **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
+  footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further
   away, and to the left or right. Looping music on the title, in each level and in fights (the mire has its own),
   crossfading from one to the next. Every file is CC0 ([SOUNDS.md](SOUNDS.md)).

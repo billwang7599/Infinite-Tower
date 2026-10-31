@@ -31,8 +31,7 @@ One stacked PR each, in this order (each on the one below, joined with `gh stack
 4. `duels` (built; not yet played by hand) (PvP): stand within 2 tiles of another player and press Challenge (`T`,
    overworld group, rebindable). They get a notice with Accept / Decline (buttons, and `Y` / `N`, rebindable); it
    expires after 15 s; one open challenge per player. On accept both go to their own isolated arena (stone ruins look),
-   facing each other. Everything that hits enemies hits players: swings, stabs, blocks, parries (the same `PARRY` rules,
-   both ways), skills. A duel is a spar: it ends when one reaches 0 HP (no death), nothing is lost or gained, no wins
+   facing each other. Everything that hits enemies hits players: attacks, guards (the same rules, both ways), skills. A duel is a spar: it ends when one reaches 0 HP (no death), nothing is lost or gained, no wins
    counted, and both come back with the HP and stamina they had before it. Leaving or disconnecting forfeits, with no
    loss. Netcode: the server relays each player's confirmed inputs to the others; a client predicts another player as
    repeating their last input and rolls back and replays when the real one arrives (another player may lag on your

@@ -1,41 +1,16 @@
-import { clamp } from "../core/math.js";
 import { FIXED_DT } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
-import { ITEMS, type ItemId } from "../items/items.js";
-import type { SwingData } from "../battle/components.js";
+import type { ItemId } from "../items/items.js";
 
-// Named by their way across the screen as the player sees it ("tlbr": top-left to bottom-right), an enemy's too, so
-// a swing is parried by its reverse ("lr" by "rl"), or its 45° neighbours: the blades meet.
-export const SWING_DIRS = ["lr", "rl", "tb", "bt", "tlbr", "brtl", "trbl", "bltr"] as const;
-export type SwingDir = (typeof SWING_DIRS)[number];
-export const ATTACK_KINDS = [...SWING_DIRS, "stab"] as const;
+export const GUARD_SIDES = ["left", "top", "right"] as const;
+export type GuardSide = (typeof GUARD_SIDES)[number];
+export const ATTACK_KINDS = ["light", "heavy"] as const;
 export type AttackKind = (typeof ATTACK_KINDS)[number];
 
-type SwingLine = "horizontal" | "vertical" | "falling" | "rising";
-
-const LINE: Record<SwingDir, SwingLine> = {
-  lr: "horizontal", rl: "horizontal", tb: "vertical", bt: "vertical",
-  tlbr: "falling", brtl: "falling", trbl: "rising", bltr: "rising",
-};
-const REVERSE: Record<SwingDir, SwingDir> = {
-  lr: "rl", rl: "lr", tb: "bt", bt: "tb", tlbr: "brtl", brtl: "tlbr", trbl: "bltr", bltr: "trbl",
-};
-
-/** As the player sees it: x right, y up. */
-export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
-  lr: { x: 1, y: 0 }, rl: { x: -1, y: 0 }, tb: { x: 0, y: -1 }, bt: { x: 0, y: 1 },
-  tlbr: { x: Math.SQRT1_2, y: -Math.SQRT1_2 }, brtl: { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
-  trbl: { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }, bltr: { x: Math.SQRT1_2, y: Math.SQRT1_2 },
-};
-
-export const isSwing = (attack: AttackKind): attack is SwingDir => attack !== "stab";
-export const lineOf = (dir: SwingDir): SwingLine => LINE[dir];
-export const reverseOf = (dir: SwingDir): SwingDir => REVERSE[dir];
-const MIRROR: Record<AttackKind, AttackKind> = {
-  lr: "rl", rl: "lr", tb: "tb", bt: "bt", tlbr: "trbl", trbl: "tlbr", brtl: "bltr", bltr: "brtl", stab: "stab",
-};
-/** A swing as someone facing the swinger sees it: its left and right swapped. */
-export const mirrorOf = <A extends AttackKind>(attack: A): A => MIRROR[attack] as A;
+const MIRRORED: Record<GuardSide, GuardSide> = { left: "right", top: "top", right: "left" };
+/** Facing each other, one fighter's left is the other's right. */
+export const mirrorSide = (side: GuardSide): GuardSide => MIRRORED[side];
+export const blocks = (guard: GuardSide | null, attackFrom: GuardSide): boolean => guard === MIRRORED[attackFrom];
 
 export const WEAPON_KINDS = ["sword"] as const;
 export type WeaponKind = (typeof WEAPON_KINDS)[number];
@@ -44,21 +19,16 @@ export interface Weapon {
   kind: WeaponKind;
   /** The blade (m): every attack's reach grows with it. */
   length: number;
-  mass: number;
-  /** From the hand to its centre of mass (m). */
-  balanceM: number;
-  /** At the starter sword's momentum. */
   damage: number;
+  heft: number;
 }
 
 export const WEAPONS = {
-  sword: { kind: "sword", length: 1.1, mass: ITEMS.sword.weight, balanceM: 0.25, damage: 9 },
-  "kobold-blade": { kind: "sword", length: 1.1, mass: ITEMS["kobold-blade"].weight, balanceM: 0.25, damage: 14 },
-  longsword: { kind: "sword", length: 1.4, mass: ITEMS.longsword.weight, balanceM: 0.3, damage: 11 },
-  greatsword: { kind: "sword", length: 1.9, mass: ITEMS.greatsword.weight, balanceM: 0.45, damage: 16 },
-  "kobold-greatsword": {
-    kind: "sword", length: 1.9, mass: ITEMS["kobold-greatsword"].weight, balanceM: 0.45, damage: 14,
-  },
+  sword: { kind: "sword", length: 1.1, damage: 9, heft: 1 },
+  "kobold-blade": { kind: "sword", length: 1.1, damage: 14, heft: 1 },
+  longsword: { kind: "sword", length: 1.4, damage: 11, heft: 1.2 },
+  greatsword: { kind: "sword", length: 1.9, damage: 16, heft: 1.6 },
+  "kobold-greatsword": { kind: "sword", length: 1.9, damage: 14, heft: 1.6 },
 } as const satisfies Partial<Record<ItemId, Weapon>>;
 export type WeaponId = keyof typeof WEAPONS;
 
@@ -74,186 +44,58 @@ export function weaponIn(hands: Record<Hand, ItemId | null>): Weapon | null {
 }
 
 /**
- * Each line's hit shape: its reach as a share of arm plus blade, and its arc (degrees, all of it). Horizontal
- * swings are wide and short, vertical ones narrow and long; the stab is a ray `STAB_WIDTH` either side.
+ * Every attack's numbers, with a heft-1 weapon: seconds from the press to the blade going live (a chain's first, and
+ * the ones after it), live, then recovering; stamina, damage (× the weapon's) and poise damage.
  */
-const SHAPES: Record<SwingLine, { reachFactor: number; arcDeg: number }> = {
-  horizontal: { reachFactor: 1, arcDeg: 160 },
-  falling: { reachFactor: 1.15, arcDeg: 110 },
-  rising: { reachFactor: 1.15, arcDeg: 110 },
-  vertical: { reachFactor: 1.3, arcDeg: 60 },
-};
-const STAB_REACH_FACTOR = 1.75;
-const STAB_WIDTH = 0.15;
-
-/**
- * What an attack hits. An arc: targets whose surface is within `range` of the attacker's center, no more than the
- * angle `minDot` (a cosine) off the aim. A ray: within `width` of the line from the center `range` along the aim.
- */
-export interface HitShape { shape: "arc" | "ray"; range: number; minDot: number; width: number }
-
-export function attackShape(attack: AttackKind, armReachM: number, weapon: Pick<Weapon, "length">): HitShape {
-  const reach = armReachM + weapon.length;
-  if (!isSwing(attack)) return { shape: "ray", range: reach * STAB_REACH_FACTOR, minDot: 1, width: STAB_WIDTH };
-  const { reachFactor, arcDeg } = SHAPES[LINE[attack]];
-  return { shape: "arc", range: reach * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)), width: 0 };
-}
-
-/** The starter sword's at strength 10, × the time factor: from rest a swing is set, then driven to impact. */
-export const SWING = {
-  setTime: 0.15,
-  driveTime: 0.2,
-  stabDrawTime: 0.2,
-  /** A blade moving its way loops round to the swing's start this long, at its own from-rest impact speed. */
-  loopTime: 0.1,
-  activeTime: 0.1,
-  gapTime: 0.25,
-  maxFlow: 1.25,
-  /** Braking a blade costs this share of what giving it as much energy would. */
-  brakeEffort: 0.5,
-  minTimeFactor: 0.5,
-  maxTimeFactor: 3,
+export const ATTACKS = {
+  light: {
+    landTime: 0.45, chainLandTime: 0.4, liveTime: 0.1, recoverTime: 0.35, recoilTime: 0.3,
+    cost: 12, damageFactor: 1, poiseDamage: 12,
+  },
+  heavy: {
+    landTime: 0.85, chainLandTime: 0.7, liveTime: 0.12, recoverTime: 0.55, recoilTime: 0.5,
+    cost: 20, damageFactor: 2, poiseDamage: 24,
+  },
 } as const;
 
-/** In the screen plane: ±1 a swing's ends, 0 the guard; velocity in shares of the weapon's from-rest impact speed. */
-export interface Blade { x: number; y: number; vx: number; vy: number }
-export const restingBlade = (): Blade => ({ x: 0, y: 0, vx: 0, vy: 0 });
+export const COMBAT = {
+  maxChain: 3,
+  drawShare: 0.6,
+  /** The attacker steps forward at this speed (m/s) while the blade is live, and walks at this share otherwise. */
+  lungeSpeed: 4,
+  moveFactor: 0.25,
+  /** A guard covers attackers within this cosine of where its holder faces (0.34: 140°). */
+  guardMinDot: 0.34,
+  pushbackFactor: 0.6,
+} as const;
 
-export function followingBlade(attack: AttackKind, speed: number): Blade {
-  if (!isSwing(attack)) return restingBlade();
-  const way = SCREEN_DIR[attack];
-  return { x: way.x, y: way.y, vx: way.x * speed, vy: way.y * speed };
+export const ENEMY_GUARD = { minHoldTime: 1.5, maxHoldTime: 3, moveTime: 0.3 } as const;
+
+const steps = (seconds: number): number => Math.round(seconds / FIXED_DT);
+
+export interface AttackSteps { driveAt: number; liveAt: number; liveUntil: number; endAt: number }
+
+export function attackSteps(weapon: Weapon, kind: AttackKind, chain: number, swift = 1): AttackSteps {
+  const a = ATTACKS[kind], windup = ((chain > 0 ? a.chainLandTime : a.landTime) * weapon.heft) / swift;
+  const liveAt = steps(windup), liveUntil = liveAt + steps(a.liveTime * weapon.heft);
+  const endAt = liveUntil + steps(a.recoverTime * weapon.heft);
+  return { driveAt: steps(windup * COMBAT.drawShare), liveAt, liveUntil, endAt };
 }
 
-const STARTER: Weapon = WEAPONS.sword;
 const AVERAGE_STRENGTH = 10;
-// About the hand: the balance point's mass, plus the blade's own as a rod.
-const inertiaOf = (w: Weapon): number => w.mass * (w.balanceM * w.balanceM + (w.length * w.length) / 12);
+export const attackDamage = (weapon: Weapon, kind: AttackKind, strength: number): number =>
+  weapon.damage * ATTACKS[kind].damageFactor * Math.sqrt(Math.sqrt(strength / AVERAGE_STRENGTH));
+export const attackCost = (weapon: Weapon, kind: AttackKind): number => ATTACKS[kind].cost * weapon.heft;
 
-export interface SwingPlan {
-  windupTime: number;
-  driveTime: number;
-  followTime: number;
-  timeFactor: number;
-  /** In shares of the from-rest impact speed, as is `flow`. */
-  startSpeed: number;
-  flow: number;
-  /** Against the starter sword's opening swing at strength 10, as is `effort` (energy added, braking too). */
-  momentum: number;
-  effort: number;
+const SHAPES: Record<GuardSide, { reachFactor: number; arcDeg: number }> = {
+  left: { reachFactor: 1, arcDeg: 160 },
+  top: { reachFactor: 1.3, arcDeg: 60 },
+  right: { reachFactor: 1, arcDeg: 160 },
+};
+
+export interface HitShape { range: number; minDot: number }
+
+export function attackShape(side: GuardSide, armReachM: number, weapon: Pick<Weapon, "length">): HitShape {
+  const { reachFactor, arcDeg } = SHAPES[side];
+  return { range: (armReachM + weapon.length) * reachFactor, minDot: Math.cos((arcDeg / 2) * (Math.PI / 180)) };
 }
-
-/** From a speed of u the drive ends at √(u² + 1), capped at maxFlow. */
-export function planSwing(weapon: Weapon, strength: number, blade: Blade, attack: AttackKind): SwingPlan {
-  const inertia = inertiaOf(weapon) / inertiaOf(STARTER);
-  const rawTimeFactor = Math.sqrt(inertia / (strength / AVERAGE_STRENGTH));
-  const timeFactor = clamp(rawTimeFactor, SWING.minTimeFactor, SWING.maxTimeFactor);
-  const massRatio = weapon.mass / STARTER.mass;
-  const speedFactor = Math.sqrt(Math.sqrt(strength / AVERAGE_STRENGTH)) / Math.sqrt(massRatio);
-  // Too heavy to swing in the clamped time: the wielder pays for the speed it lacks.
-  const lacking = Math.max(1, rawTimeFactor / timeFactor);
-  const heft = inertia * speedFactor * speedFactor * lacking * lacking;
-  const speed = Math.hypot(blade.vx, blade.vy), { driveTime } = SWING;
-  const plan = (prep: number, startSpeed: number, braked: number): SwingPlan => {
-    const flow = Math.max(startSpeed, Math.min(SWING.maxFlow, Math.hypot(startSpeed, 1)));
-    const drive = driveTime / (startSpeed + flow);
-    return {
-      windupTime: (prep + drive) * timeFactor, driveTime: drive * timeFactor, followTime: flow * driveTime * timeFactor,
-      timeFactor, startSpeed, flow, momentum: massRatio * speedFactor * flow,
-      effort: heft * (1 + SWING.brakeEffort * braked * braked),
-    };
-  };
-
-  const travelTime = (x: number, y: number): number => SWING.setTime * Math.sqrt(Math.hypot(x, y));
-  if (!isSwing(attack)) return plan(speed * driveTime + travelTime(blade.x, blade.y) + SWING.stabDrawTime, 0, speed);
-  const way = SCREEN_DIR[attack];
-  const stopped = plan(speed * driveTime + travelTime(way.x + blade.x, way.y + blade.y), 0, speed);
-  const carried = blade.vx * way.x + blade.vy * way.y;
-  if (carried <= 0) return stopped;
-  const sideways = Math.hypot(blade.vx - way.x * carried, blade.vy - way.y * carried);
-  const looped = plan(sideways * driveTime + SWING.loopTime / carried, carried, sideways);
-  return looped.windupTime < stopped.windupTime ? looped : stopped;
-}
-
-/** `turn`: share of the half-turn from start to far side (from rest: a third driven, live, follow-through each). */
-export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
-  const step = Math.min(swing.step, swing.stoppedAt ?? Infinity);
-  const { driveAt, liveAt, liveUntil, endAt, startSpeed: u, flow: v } = swing;
-  const driveSteps = Math.max(1, liveAt - driveAt), stroke = ((u + v) / 2) * driveSteps;
-  if (step < driveAt) return { set: step / driveAt, turn: 0, follow: 0 };
-  const s = Math.min(1, (step - driveAt) / driveSteps);
-  let gone = (u * s + ((v - u) / 2) * s * s) * driveSteps;
-  const live = Math.min(step, liveUntil) - liveAt;
-  if (live > 0) gone += v * live;
-  const followSteps = Math.max(1, endAt - liveUntil), f = clamp((step - liveUntil) / followSteps, 0, 1);
-  if (f > 0) gone += v * followSteps * (f - (f * f) / 2);
-  return { set: 1, turn: gone / stroke / 3, follow: f };
-}
-
-export function stoppedBlade(swing: SwingData): Blade {
-  if (!isSwing(swing.attack)) return restingBlade();
-  const way = SCREEN_DIR[swing.attack], along = -Math.cos(Math.PI * strokeOf(swing).turn);
-  return { x: way.x * along, y: way.y * along, vx: 0, vy: 0 };
-}
-
-/** The step of an attack (0 is the step it starts on) its blade goes live on, for a start of `startup` seconds. */
-export const liveStep = (startup: number): number => Math.round(startup / FIXED_DT);
-
-/** The first step on which a clock counted up by FIXED_DT from 0 reaches `seconds` (as a state's clock does). */
-export function stepsUntil(seconds: number): number {
-  let t = 0, steps = 0;
-  for (; t < seconds; steps++) t += FIXED_DT;
-  return steps;
-}
-
-export const PARRY = {
-  /** An attack is parried when the parrying one's blade went live no more than this long before it lands. */
-  window: 0.15,
-  /** × the blades' momentum ratio, clamped. Knocked back this far (m), taking this much more damage. */
-  stunTime: 1,
-  minStunScale: 0.5,
-  maxStunScale: 2,
-  knockbackDist: 1.5,
-  bonusDamage: 1.5,
-  /** How fast (m/s²) the knocked-back attacker slides to a stop. */
-  slideDecel: 30,
-  /** A player parried by an enemy is staggered this long, knocked back at this speed (m/s). */
-  playerStaggerTime: 0.5,
-  playerKnockbackSpeed: 6,
-  /** Only an attacker within this cosine of where the parrier faces can be parried. */
-  minDot: 0.5,
-  /** Met 45° off head-on, a parry's stun, stagger and knockback are scaled by this. */
-  offAngleShare: 0.5,
-} as const;
-
-/** Sides as the player sees them: 0 is the right, then anticlockwise. */
-export const GUARD = {
-  sides: 8,
-  minHoldTime: 1.5,
-  maxHoldTime: 3,
-  moveTime: 0.3,
-  /** In the blade's screen units: 1 is a swing's end. */
-  bladeOut: 0.8,
-} as const;
-
-const SIDE_RAD = (2 * Math.PI) / GUARD.sides;
-
-export function swingSide(dir: SwingDir): number {
-  const way = SCREEN_DIR[dir];
-  return (Math.round(Math.atan2(-way.y, -way.x) / SIDE_RAD) + GUARD.sides) % GUARD.sides;
-}
-
-export function guardShare(side: number, dir: SwingDir): number {
-  const apart = Math.abs(swingSide(dir) - side) % GUARD.sides;
-  const sides = Math.min(apart, GUARD.sides - apart);
-  return sides === 0 ? 1 : sides === 1 ? PARRY.offAngleShare : 0;
-}
-
-export function parryShare(own: AttackKind, hit: AttackKind): number {
-  if (!isSwing(own) || !isSwing(hit)) return own === hit ? 1 : 0;
-  return guardShare(swingSide(reverseOf(own)), hit);
-}
-
-export const guardBlade = (side: number): Blade => ({
-  x: Math.cos(side * SIDE_RAD) * GUARD.bladeOut, y: Math.sin(side * SIDE_RAD) * GUARD.bladeOut, vx: 0, vy: 0,
-});

@@ -14,7 +14,7 @@ describe("the Goblin Warlock", () => {
     const at = fight.world.require(fight.players[0]!, Body).pos, it = fight.world.require(fight.enemies[0]!, Body).pos;
     const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
     const aimX = dx / dist, aimZ = dz / dist, close = dist < 1.4;
-    const attack = swings && close && fight.steps % 2 === 0 ? (fight.steps % 4 === 0 ? "lr" : "rl") : null;
+    const attack = swings && close && fight.steps % 2 === 0 ? "light" : null;
     return { ...IDLE_INPUT, moveX: close ? 0 : aimX, moveZ: close ? 0 : aimZ, aimX, aimZ, attack };
   }
 

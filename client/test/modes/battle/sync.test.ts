@@ -31,8 +31,8 @@ const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_IN
 const WALK = input({ moveX: Math.SQRT1_2, moveZ: Math.SQRT1_2, aimX: Math.sin(0.3), aimZ: Math.cos(0.3) });
 /** Something new every few steps. */
 const script = (step: number): PlayerInputData => input({
-  moveX: step % 40 < 20 ? 1 : -1, moveZ: step % 24 < 12 ? 0.5 : -0.5, attack: step % 11 === 0 ? "lr" : null,
-  block: step % 50 > 44,
+  moveX: step % 40 < 20 ? 1 : -1, moveZ: step % 24 < 12 ? 0.5 : -0.5, attack: step % 11 === 0 ? "light" : null,
+  locked: 0, guard: step % 50 > 44 ? "right" : "top",
 });
 
 /** The server's side, honest and on time: its fight runs each change from its step, until the next. */
@@ -93,11 +93,11 @@ const resyncsSent = (sent: ClientMsg[]) => sent.filter((m) => m.t === "battleRes
 describe("the client's own copy of the fight", () => {
   test("sends only changes, each with its step, rounded for the wire, and how far it has got", () => {
     const { net, step } = setup();
-    for (const next of [WALK, WALK, IDLE_INPUT, IDLE_INPUT, input({ attack: "lr" }), IDLE_INPUT]) step(next);
+    for (const next of [WALK, WALK, IDLE_INPUT, IDLE_INPUT, input({ attack: "light" }), IDLE_INPUT]) step(next);
     assert.deepEqual(inputsSent(net.sent), [
       { t: "battleInput", upTo: 1, inputs: [{ step: 1, ...quantizeInput(WALK) }] },
       { t: "battleInput", upTo: 3, inputs: [{ step: 3, ...IDLE_INPUT }] },
-      { t: "battleInput", upTo: 5, inputs: [{ step: 5, ...input({ attack: "lr" }) }] },
+      { t: "battleInput", upTo: 5, inputs: [{ step: 5, ...input({ attack: "light" }) }] },
       { t: "battleInput", upTo: 6, inputs: [{ step: 6, ...IDLE_INPUT }] },
     ]);
   });
@@ -333,7 +333,7 @@ describe("a duel: the other player's inputs come from the server", () => {
   };
   const theirs = (step: number): PlayerInputData => input({
     moveX: step % 30 < 15 ? -1 : 1, moveZ: step % 36 < 18 ? -0.5 : 0.5, aimZ: -1,
-    attack: step % 17 === 0 ? "rl" : null, block: step % 60 > 52,
+    attack: step % 17 === 0 ? "heavy" : null, locked: step % 60 > 20 ? 0 : null, guard: step % 50 > 25 ? "left" : "top",
   });
   const changesUpTo = (to: number): StepInput[] => {
     const changes: StepInput[] = [];

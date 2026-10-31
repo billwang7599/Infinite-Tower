@@ -1,10 +1,13 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, Health, strokeOf, weaponItemIn, WEAPONS, Wielder, wrapAngle,
+  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, WeaponAttack, weaponItemIn, WEAPONS, Wielder, wrapAngle,
+  type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
-import { MOTIONS, WEAPON_LOOKS, type WeaponMotion } from "../../battle/weapons.js";
+import {
+  cutOf, lerpBlade, MOTIONS, strokeOf, WEAPON_LOOKS, type BladePose, type WeaponMotion,
+} from "../../battle/weapons.js";
 import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
 } from "./model.js";
@@ -36,10 +39,11 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.legs[0].rotation.x = Math.sin(nodes.gait) * amp;
     nodes.legs[1].rotation.x = -Math.sin(nodes.gait) * amp;
 
-    const wielder = world.require(e, Wielder), swing = wielder.swing;
+    const swing = world.require(e, Wielder).swing, guard = world.get(e, WeaponAttack);
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
-    const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, swing?.attack ?? "lr", nodes.motion,
-      swing ? strokeOf(swing) : null, wielder.blade);
+    const cut = cutOf(swing?.attack ?? "light", swing?.side ?? guard?.guard ?? "top", true);
+    const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
+      swing ? strokeOf(swing) : null, heldGuard(nodes.motion, guard));
     nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
@@ -78,5 +82,12 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     }
   },
 });
+
+function heldGuard(motion: WeaponMotion, guard: WeaponAttackData | undefined): BladePose {
+  const to = motion.held(cutOf("light", guard?.guard ?? "top", true));
+  if (!guard || guard.guardMoveTime <= 0) return to;
+  const from = motion.held(cutOf("light", guard.guardFrom, true));
+  return { ...to, blade: lerpBlade(from.blade, to.blade, 1 - guard.guardMoveTime / ENEMY_GUARD.moveTime) };
+}
 
 export const koboldSwordsmanVisual = koboldVisual(SWORDSMAN_BUILD);

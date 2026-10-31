@@ -1,7 +1,6 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  attackShape, Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponIn, Wielder, type Entity,
-  type World,
+  Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponIn, Wielder, type Entity, type World,
 } from "@infinite-tower/shared";
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
@@ -29,9 +28,6 @@ interface PlayerSprite {
   /** Turned to the aim and the swing's line; the crescent under it sweeps along that line. */
   trail: TransformNode;
   slash: Mesh;
-  /** Turned to the aim: the stab's streak, and the block's guard. */
-  thrust: TransformNode;
-  guard: TransformNode;
   /** Accumulated walk-cycle phase, for bobbing. */
   walkPhase: number;
   /** Smoothed squash/stretch factor. */
@@ -76,31 +72,9 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
   slash.renderingGroupId = 1;
   trail.setEnabled(false);
 
-  const thrust = new TransformNode(`thrust-${e}`, scene);
-  const streak = MeshBuilder.CreateCylinder(
-    `streak-${e}`, { height: 1, diameterTop: 0.02, diameterBottom: 0.12, tessellation: 8 }, scene,
-  );
-  streak.parent = thrust;
-  streak.rotation.x = Math.PI / 2;
-  streak.position.z = 0.5;
-  streak.material = materials.slashFx;
-  streak.isPickable = false;
-  streak.renderingGroupId = 1;
-  thrust.setEnabled(false);
-
-  // The block: a pale disc held up in front, drawn over the sprite.
-  const guard = new TransformNode(`guard-${e}`, scene);
-  const disc = MeshBuilder.CreateDisc(`guard-disc-${e}`, { radius: 0.6, tessellation: 24 }, scene);
-  disc.parent = guard;
-  disc.position.set(0, 0.25, 0.6);
-  disc.material = materials.guardFx;
-  disc.isPickable = false;
-  disc.renderingGroupId = 1;
-  guard.setEnabled(false);
-
   return {
-    ctx, node, plane, shadows, trail, slash, thrust, guard, walkPhase: 0, stretch: 1, staggerTime: 0, fading: null,
-    facing: "back", sword: materials.slashFx,
+    ctx, node, plane, shadows, trail, slash, walkPhase: 0, stretch: 1, staggerTime: 0, fading: null, facing: "back",
+    sword: materials.slashFx,
   };
 }
 
@@ -122,13 +96,13 @@ function fadingCopy(sprite: PlayerSprite, picture: StandardMaterial): StandardMa
 function dispose(sprite: PlayerSprite): void {
   sprite.shadows.dispose();
   sprite.fading?.dispose();
-  for (const node of [sprite.trail, sprite.thrust, sprite.guard]) node.dispose();
+  sprite.trail.dispose();
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
   const { ctx } = sprite;
   const body = world.require(e, Body), player = world.require(e, Player), health = world.require(e, Health);
-  const wielder = world.require(e, Wielder), { swing, hands, armReachM } = wielder, weapon = weaponIn(hands);
+  const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponIn(hands);
   const motion = weapon && MOTIONS[weapon.kind];
   const p = sprite.node.position, vel = body.vel;
   const alive = health.hp > 0;
@@ -143,7 +117,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     : !player.grounded ? 1 + clamp(Math.abs(vel.y) * 0.015, -0.12, 0.15)
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
-  sprite.staggerTime = player.action === "stagger" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
+  sprite.staggerTime = player.action === "recoil" ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
   sprite.facing = facingSeen(ctx.battle.view.eye, p, world.require(e, Skilled).aim, sprite.facing);
   const look = ctx.looks.get(e);
@@ -169,17 +143,6 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     sprite.slash.scaling.x = -trail.from * trail.reach;
     sprite.slash.visibility = trail.visibility;
   }
-  const thrust = weapon && motion && motion.thrust(swing, attackShape("stab", armReachM, weapon).range);
-  sprite.thrust.setEnabled(thrust !== null);
-  if (thrust) {
-    sprite.thrust.position.set(p.x, p.y + 0.25, p.z);
-    sprite.thrust.rotation.y = aimYaw;
-    sprite.thrust.scaling.set(1, 1, thrust.reachM);
-    for (const mesh of sprite.thrust.getChildMeshes()) mesh.visibility = thrust.visibility;
-  }
-  sprite.guard.setEnabled(alive && player.action === "block");
-  sprite.guard.position.set(p.x, p.y, p.z);
-  sprite.guard.rotation.y = aimYaw;
 
   const below = ctx.battle.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;
   if (below !== null) {
@@ -200,6 +163,5 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   if (sword !== sprite.sword) {
     sprite.sword = sword;
     sprite.slash.material = sword;
-    for (const mesh of sprite.thrust.getChildMeshes()) mesh.material = sword;
   }
 }

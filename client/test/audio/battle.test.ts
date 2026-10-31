@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, emptyBag, Enemy, IDLE_INPUT, Player, PLAYER, SkillObject, starterEquipment, WEAPONS, type EnemyDef,
+  Body, emptyBag, Enemy, IDLE_INPUT, ITEMS, Player, PLAYER, SkillObject, starterEquipment, type EnemyDef,
   type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
@@ -63,11 +63,11 @@ describe("the arena's ears", () => {
     assert.deepEqual(run(1).ears, { x: ctx.view.at.x, z: ctx.view.at.z, yaw: 1.2 });
   });
 
-  test("a swing whooshes once, as its blade sets off, where its wielder is", () => {
+  test("an attack whooshes once, as its blade sets off, where its wielder is", () => {
     const { run, world, player } = arena();
     const swings = [];
     for (let i = 0; i < 60; i++) {
-      const swing = run(1, { attack: "lr" }).cues.find((c) => c.sound === "swing");
+      const swing = run(1, { attack: "light" }).cues.find((c) => c.sound === "swing");
       const at = world.require(player, Body).pos;
       if (swing) swings.push(swing);
       if (swing) assert.deepEqual(swing.at, { x: at.x, z: at.z });
@@ -76,11 +76,12 @@ describe("the arena's ears", () => {
     assert.equal(sounds(run(60)).includes("swing"), false);
   });
 
-  test("a heavier blade whooshes lower and louder, and a swing with more momentum louder", () => {
-    const sword = swingVoice(WEAPONS.sword.mass, 1), great = swingVoice(WEAPONS.greatsword.mass, 1);
+  test("a heavier blade whooshes lower and louder, and a heavy attack lower and louder than a light", () => {
+    const sword = swingVoice(ITEMS.sword.weight, "light"), great = swingVoice(ITEMS.greatsword.weight, "light");
     assert.ok(great.rate < sword.rate && great.gain > sword.gain);
     assert.equal(sword.rate, 1);
-    assert.ok(swingVoice(WEAPONS.sword.mass, 1.3).gain > sword.gain);
+    const heavy = swingVoice(ITEMS.sword.weight, "heavy");
+    assert.ok(heavy.rate < sword.rate && heavy.gain > sword.gain);
   });
 
   test("a hit sounds as its kind, and the enemy hit grunts; a killing blow is its death instead", () => {
@@ -109,14 +110,10 @@ describe("the arena's ears", () => {
     assert.deepEqual(sounds(hear(ctx)!), ["slam"]);
   });
 
-  test("a parry clangs, a block clanks, a broken guard crashes", () => {
+  test("a block clanks", () => {
     const { ctx, hear, player, enemy } = arena();
-    ctx.events = [
-      { step: 1, event: { type: "parry", by: player, target: enemy } },
-      { step: 1, event: { type: "block", by: enemy, target: player, guardBreak: false } },
-      { step: 2, event: { type: "block", by: enemy, target: player, guardBreak: true } },
-    ];
-    assert.deepEqual(sounds(hear(ctx)!), ["parry", "block", "guard-break"]);
+    ctx.events = [{ step: 1, event: { type: "block", by: enemy, target: player } }];
+    assert.deepEqual(sounds(hear(ctx)!), ["block"]);
   });
 
   test("an enemy's wind-up is heard as it starts: the Kobold's blade drawn back", () => {
@@ -151,7 +148,7 @@ describe("the arena's ears", () => {
     Object.assign(world.require(enemy, Enemy), { state: "weaponWindup", stateTime: 0 });
     const [windup] = run(0).cues;
     assert.equal(windup?.sound, ENEMY_SOUNDS["kobold-greatsword"].windup);
-    assert.equal(windup?.rate, swingVoice(WEAPONS["kobold-greatsword"].mass, 1).rate);
+    assert.equal(windup?.rate, swingVoice(ITEMS["kobold-greatsword"].weight, "light").rate);
     assert.ok(windup!.rate! < 1);
   });
 

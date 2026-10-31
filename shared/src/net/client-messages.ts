@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
-import { ATTACK_KINDS } from "../weapons/weapons.js";
+import { ATTACK_KINDS, GUARD_SIDES } from "../weapons/weapons.js";
 import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
 import { ITEM_IDS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
@@ -57,7 +57,7 @@ const StepInputSchema = z.object({
   jump: z.boolean(),
   attack: z.enum(ATTACK_KINDS).nullable(),
   dodge: z.boolean(),
-  block: z.boolean(),
+  guard: z.enum(GUARD_SIDES).nullable(),
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),
@@ -102,7 +102,7 @@ const SavedSettingsSchema = z.object({
     overworldTurns: z.number().int().min(0).max(OVERWORLD_CAMERA_ANGLES - 1).optional(),
   }).optional(),
   /** Left out means on: saves from before it existed have no such field. */
-  mouse: z.object({ autoLock: z.boolean().optional(), swingSensitivity: z.number().optional() }).optional(),
+  mouse: z.object({ autoLock: z.boolean().optional(), flickSensitivity: z.number().optional() }).optional(),
   /** Left out means on, as with `mouse.autoLock`. */
   hud: z.object({ showPing: z.boolean().optional() }).optional(),
   audio: z.object({ master: VOLUME, effects: VOLUME, ambient: VOLUME, music: VOLUME }).optional(),

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SKILLBOOK_PAGES,
-  type StepInput,
+  ATTACK_KINDS, DEFAULT_LOOK, GUARD_SIDES, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES,
+  SKILLBOOK_PAGES, type StepInput,
 } from "@infinite-tower/shared";
 import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
@@ -12,7 +12,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
-  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false,
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null,
   cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
   use: null,
 };
@@ -28,7 +28,7 @@ describe("parseClientMsg", () => {
   test("accepts every kind of message", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
-      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "tlbr", block: true }] },
+      { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "heavy", guard: "left" }] },
       { t: "battleInput", upTo: 7, inputs: [] },
       { t: "battleResync" },
       { t: "leaveBattle" },
@@ -109,18 +109,21 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "yes" }), null);
     assert.equal(battleInput({ ...STEP, attack: true }), null, "the old single attack");
-    assert.equal(battleInput({ ...STEP, block: "held" }), null);
+    assert.equal(battleInput({ ...STEP, guard: "bottom" }), null);
     assert.equal(battleInput({ ...STEP, dodge: 1 }), null);
     assert.equal(battleInput({ ...STEP, moveX: "1" }), null);
     assert.equal(battleInput({ ...STEP, aimZ: null }), null);
   });
 
-  test("battleInput: the attack is one of the ten things a sword does (blocking is its own field), or none", () => {
+  test("battleInput: the attack is light, heavy or none; the guard a side or none", () => {
     for (const attack of [...ATTACK_KINDS, null]) {
       assert.deepEqual(battleInput({ ...STEP, attack }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, attack }] });
     }
-    assert.equal(battleInput({ ...STEP, attack: "block" }), null);
-    assert.equal(battleInput({ ...STEP, attack: "LR" }), null);
+    for (const guard of [...GUARD_SIDES, null]) {
+      assert.deepEqual(battleInput({ ...STEP, guard }), { t: "battleInput", upTo: 1, inputs: [{ ...STEP, guard }] });
+    }
+    assert.equal(battleInput({ ...STEP, attack: "lr" }), null, "the old swings");
+    assert.equal(battleInput({ ...STEP, attack: "stab" }), null);
   });
 
   test("battleInput: the bag is open or not, and a gear move goes between two spots", () => {
@@ -206,11 +209,11 @@ describe("parseClientMsg", () => {
     for (const autoLock of ["false", 0, null]) assert.equal(settings({ mouse: { autoLock } }), null);
   });
 
-  test("settings: the swing sensitivity is kept as saved, and must be a number", () => {
+  test("settings: the flick sensitivity is kept as saved, and must be a number", () => {
     const settings = (mouse: object) => parse({ t: "settings", settings: { mouse } });
-    const mouse = { autoLock: true, swingSensitivity: 1.5 };
+    const mouse = { autoLock: true, flickSensitivity: 1.5 };
     assert.deepEqual(settings(mouse), { t: "settings", settings: { mouse } });
-    for (const swingSensitivity of ["1", null]) assert.equal(settings({ swingSensitivity }), null);
+    for (const flickSensitivity of ["1", null]) assert.equal(settings({ flickSensitivity }), null);
   });
 
   test("settings: the overworld camera's turns are kept as saved, a whole number of quarter turns", () => {

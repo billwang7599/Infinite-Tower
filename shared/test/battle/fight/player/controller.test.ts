@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  dodgeCost, emptyBag, Player, PLAYER, Stamina, starterEquipment, stepsUntil, SWING,
+  attackCost, attackSteps, dodgeCost, emptyBag, Player, PLAYER, Stamina, starterEquipment, WEAPONS,
   type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -12,17 +12,13 @@ await initPhysics();
 /** What the player does on each step (1 is the fight's first). */
 type Script = (step: number) => PlayerInputData;
 
-/** The swing's first step (the player has landed by then). */
 const SWING_AT = 5;
 
-/** Steps from a swing's first step to the first one on which it lets another action start (once its blade is done). */
-const LOCKED_STEPS = stepsUntil((SWING.setTime + SWING.driveTime) + SWING.activeTime);
-/** The first step a dodge can start on after the swing at SWING_AT. */
+const LOCKED_STEPS = attackSteps(WEAPONS.sword, "light", 0).liveUntil;
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
-/** Swinges on SWING_AT; `presses` says what else is pressed on which step (a tap: held that step only). */
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
-  (step) => input({ ...(step === SWING_AT ? { attack: "lr" } : {}), ...presses[step] });
+  (step) => input({ ...(step === SWING_AT ? { attack: "light" } : {}), ...presses[step] });
 
 const newFight = (vitals?: Vitals) => new Fight({
   arena: ARENA, players: [player({ x: 0, y: 0.05, z: 0 }, vitals ? { vitals } : {})],
@@ -50,7 +46,7 @@ function play(script: Script, to = 90, fight = newFight()): Played {
 /** Through JSON, as it goes over the wire. */
 const wire = (snap: FightSnapshot): FightSnapshot => JSON.parse(JSON.stringify(snap));
 
-describe("a dodge pressed during a swing (the user's call: it waits for the swing, then goes)", () => {
+describe("a dodge pressed during an attack (the user's call: it waits for the swing, then goes)", () => {
   test("the setup: a swing on SWING_AT that lets go some steps later", () => {
     const { actions, dodgeStarts } = play(swingThen({}));
     assert.equal(actions[SWING_AT - 1], "attack");
@@ -64,7 +60,7 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
       assert.deepEqual(actions.slice(SWING_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("attack"),
         `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
-      assert.equal(staminas[LET_GO_AT - 1], STATS.stamina - PLAYER.swing.cost - dodgeCost("light")!,
+      assert.equal(staminas[LET_GO_AT - 1], STATS.stamina - attackCost(WEAPONS.sword, "light") - dodgeCost("light")!,
         `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });
@@ -77,7 +73,7 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
 
   test("held through the swing, or tapped twice in it, it's still one dodge", () => {
     const held: Script = (step) =>
-      input({ attack: step === SWING_AT ? "lr" : null, dodge: step > SWING_AT && step < 80 });
+      input({ attack: step === SWING_AT ? "light" : null, dodge: step > SWING_AT && step < 80 });
     assert.deepEqual(play(held).dodgeStarts, [LET_GO_AT]);
     const twice = swingThen({ [SWING_AT + 1]: { dodge: true }, [LET_GO_AT - 2]: { dodge: true } });
     assert.deepEqual(play(twice).dodgeStarts, [LET_GO_AT]);
@@ -85,7 +81,7 @@ describe("a dodge pressed during a swing (the user's call: it waits for the swin
 
   test("with another swing buffered too, the dodge goes first and the swing isn't kept for after it", () => {
     for (const attackAt of [SWING_AT + 2, LET_GO_AT - 1]) {
-      const script = swingThen({ [SWING_AT + 1]: { dodge: true }, [attackAt]: { attack: "lr" } });
+      const script = swingThen({ [SWING_AT + 1]: { dodge: true }, [attackAt]: { attack: "light" } });
       const { actions, dodgeStarts } = play(script);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `swing pressed on ${attackAt}`);
       assert.ok(!actions.slice(LET_GO_AT).includes("attack"), `swing pressed on ${attackAt}`);
@@ -141,22 +137,24 @@ describe("what the player holds", () => {
     return new Set(play(held, 40, fight).actions);
   };
 
-  test("no sword: no swing, no stab and no block", () => {
-    for (const press of [{ attack: "lr" }, { attack: "stab" }, { block: true }] as const) {
+  test("no sword: no attack and no guard", () => {
+    for (const press of [{ attack: "light" }, { attack: "heavy" }] as const) {
       const seen = actionsOf(unarmed({ sword: null, skillbook: "leftHand" }), press);
       assert.deepEqual([...seen], ["none"], JSON.stringify(press));
     }
+    const fight = unarmed({ sword: null, skillbook: "leftHand" });
+    play(() => input({ locked: 0, guard: "left" }), 10, fight);
+    assert.equal(fight.world.require(fight.players[0]!, Player).guard, null);
   });
 
   test("no skillbook: no casting, but the sword still swings", () => {
     const cast = { segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] } as const;
     assert.deepEqual([...actionsOf(unarmed({ sword: "rightHand", skillbook: null }), { cast })], ["none"]);
-    assert.ok(actionsOf(unarmed({ sword: "rightHand", skillbook: null }), { attack: "lr" }).has("attack"));
+    assert.ok(actionsOf(unarmed({ sword: "rightHand", skillbook: null }), { attack: "light" }).has("attack"));
   });
 
   test("with both, the same presses do what they always did", () => {
     const both = { sword: "rightHand", skillbook: "leftHand" } as const;
-    assert.ok(actionsOf(unarmed(both), { attack: "lr" }).has("attack"));
-    assert.ok(actionsOf(unarmed(both), { block: true }).has("block"));
+    assert.ok(actionsOf(unarmed(both), { attack: "light" }).has("attack"));
   });
 });

@@ -27,37 +27,6 @@ export const PLAYER = {
   /** From the center to the hilt: a weapon's length goes on from there. */
   armReachM: 0.8,
 
-  swing: {
-    /** For the starter sword's opening swing at strength 10; others × their effort. */
-    cost: 16,
-    poiseDamage: 12,
-    /** The swing carries you forward at this speed while its blade is live. */
-    lungeSpeed: 4,
-    /** Fraction of move speed allowed while swinging. */
-    moveFactor: 0.25,
-  },
-  stab: {
-    cost: 20,
-    damageFactor: 1.25,
-    poiseDamage: 18,
-    lungeSpeed: 4,
-  },
-  /** Held: stops what hits from in front for stamina. */
-  block: {
-    /** cos of half the guarded arc in front of the aim: 0.34 is 140°. */
-    minDot: 0.34,
-    /** A swing blocked still does this share of its damage; a stab or a body blow does none. */
-    chipFraction: 0.2,
-    /** Per the starter sword's impact momentum: a Kobold blow's block cost before inertia. */
-    staminaPerMomentum: 14,
-    staminaPerDamage: 1,
-    /** A blocked hit's knockback pushes the player back at this share of it. */
-    pushbackFactor: 0.6,
-    /** Staggered this long when the guard breaks. */
-    guardBreakTime: 0.8,
-    /** Fraction of move speed while blocking. */
-    moveFactor: 0.4,
-  },
   dodge: {
     cost: 22,
     duration: 0.42,

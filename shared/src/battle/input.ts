@@ -2,7 +2,7 @@ import { defineComponent } from "../core/ecs.js";
 import { roundTo } from "../core/math.js";
 import type { Spot, UseSpot } from "../items/gear.js";
 import type { Skill, Word } from "../skills/skill.js";
-import type { AttackKind } from "../weapons/weapons.js";
+import type { AttackKind, GuardSide } from "../weapons/weapons.js";
 
 /** What an arena fighter does this step: from the keys in the browser, from `battleInput` on the server. */
 export interface PlayerInputData {
@@ -16,7 +16,7 @@ export interface PlayerInputData {
   jump: boolean;
   attack: AttackKind | null;
   dodge: boolean;
-  block: boolean;
+  guard: GuardSide | null;
   /** Pressed: the skill only on the step its cast key goes down, and `castHeld` while the key stays down after. */
   cast: Skill | null;
   castHeld: boolean;
@@ -42,20 +42,20 @@ export interface StepInput extends PlayerInputData { step: number }
 export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, cast: null,
   castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
   moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-  block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant, chantWords: i.chantWords, write: i.write,
+  guard: i.guard, cast: i.cast, castHeld: i.castHeld, chant: i.chant, chantWords: i.chantWords, write: i.write,
   locked: i.locked, bag: i.bag, gear: i.gear, use: i.use,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ && a.jump === b.jump
-  && a.attack === b.attack && a.dodge === b.dodge && a.block === b.block && a.cast === b.cast
+  && a.attack === b.attack && a.dodge === b.dodge && a.guard === b.guard && a.cast === b.cast
   && a.castHeld === b.castHeld && a.chant === b.chant && a.chantWords === b.chantWords && a.write === b.write
   && a.locked === b.locked
   && a.bag === b.bag && a.gear === b.gear && a.use === b.use;

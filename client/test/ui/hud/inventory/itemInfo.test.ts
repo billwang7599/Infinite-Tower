@@ -34,7 +34,7 @@ describe("itemInfo (the tooltip)", () => {
   });
 
   test("the sword and the skillbook say what holding them lets you do", () => {
-    assert.equal(itemInfo(stack("sword")).effect, "In a hand: swing, stab and block.");
+    assert.equal(itemInfo(stack("sword")).effect, "In a hand: light and heavy attacks, and a guard.");
     assert.equal(itemInfo(stack("skillbook")).effect, "In a hand: quick-cast skills.");
   });
 

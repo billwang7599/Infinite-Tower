@@ -1,4 +1,3 @@
-// Shared by every Buttons and the swipes, so presses from the keyboard and the mouse can be put in order.
 let pressCount = 0;
 export const nextPressOrder = (): number => ++pressCount;
 

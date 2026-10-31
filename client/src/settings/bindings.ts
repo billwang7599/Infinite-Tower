@@ -3,7 +3,8 @@
  * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed;
  * they're listed so the settings screen can show them. Three groups: general works in the overworld and in the
  * arena, the other two only there; so a general key is on nothing else, but the overworld and the arena may share
- * keys. In the arena the left hand is on WASD and the right on the mouse, which swings the sword (core/actions.ts).
+ * keys. In the arena the left hand is on WASD and the right on the mouse: its buttons attack, and a flick left, up or
+ * right moves the guard there (core/actions.ts).
  */
 import { MAX_KEYS_PER_ACTION, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
@@ -40,8 +41,11 @@ export const ACTIONS = {
     declineChallenge: { label: "Decline a duel challenge", keys: ["KeyN"] },
   },
   battle: {
-    stab: { label: "Stab", keys: [], mouse: [0] },
-    block: { label: "Block (hold)", keys: ["ShiftLeft"] },
+    lightAttack: { label: "Light attack", keys: [], mouse: [0] },
+    heavyAttack: { label: "Heavy attack", keys: [], mouse: [2] },
+    guardLeft: { label: "Guard left (or flick the mouse left)", keys: ["KeyU"] },
+    guardTop: { label: "Guard top (or flick the mouse up)", keys: ["KeyI"] },
+    guardRight: { label: "Guard right (or flick the mouse right)", keys: ["KeyO"] },
     dodge: { label: "Dodge", keys: ["KeyF"] },
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Lock on / off", keys: ["KeyQ"] },
@@ -50,7 +54,7 @@ export const ACTIONS = {
     turnRight: { label: "Turn camera right (locked: next target right)", keys: ["ArrowRight"] },
     lookUp: { label: "Tilt camera up (locked: next target up)", keys: ["ArrowUp"] },
     lookDown: { label: "Tilt camera down (locked: next target down)", keys: ["ArrowDown"] },
-    dragCamera: { label: "Turn camera (hold and drag, unlocked)", keys: [], mouse: [2] },
+    dragCamera: { label: "Turn camera (hold and drag, unlocked)", keys: [], mouse: [1] },
     chant: { label: "Chant a skill (open / close)", keys: ["KeyR"] },
     skill1: { label: "Quick-cast the skillbook's page 1", keys: ["Digit1"] },
     skill2: { label: "Quick-cast the skillbook's page 2", keys: ["Digit2"] },

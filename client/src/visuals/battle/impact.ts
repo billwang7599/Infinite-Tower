@@ -1,10 +1,7 @@
-import {
-  Body, isSwing, SCREEN_DIR, weaponItemIn, Wielder, type AttackKind, type Entity, type Vec3, type World,
-} from "@infinite-tower/shared";
+import { Body, LocalPlayer, weaponItemIn, Wielder, type Entity, type Vec3, type World } from "@infinite-tower/shared";
 import type { ArenaScene } from "./scene.js";
-import { WEAPON_LOOKS } from "./weapons.js";
+import { cutOf, WEAPON_LOOKS, type Cut } from "./weapons.js";
 
-export const PARRY_HIT_STOP_MS = 120;
 export const JOLT_M = 0.18;
 const JOLT_MS = 140;
 // The push away from the attacker, as a share of the push along the swing.
@@ -23,8 +20,8 @@ export function impactPose({ ageMs, stopMs, push, pushMs }: Impact): { frozen: b
 }
 
 /** `away` and `right` (the camera's) are unit and level. */
-export function joltOf(attack: AttackKind | null, away: Vec3, right: Vec3): Vec3 {
-  const way = attack && isSwing(attack) ? SCREEN_DIR[attack] : { x: 0, y: 0 };
+export function joltOf(cut: Cut | null, away: Vec3, right: Vec3): Vec3 {
+  const way = cut ?? { x: 0, y: 0 };
   const x = away.x * JOLT_AWAY_SHARE + right.x * way.x, z = away.z * JOLT_AWAY_SHARE + right.z * way.x, y = way.y;
   const k = JOLT_M / Math.hypot(x, y, z);
   return { x: x * k, y: y * k, z: z * k };
@@ -42,17 +39,17 @@ export function strike(scene: ArenaScene, world: World, by: Entity, target: Enti
   const stopMs = WEAPON_LOOKS[item].hitStopMs, { eye, at } = scene.battle.view;
   const ahead = levelUnit(eye, at), right = { x: ahead.z, y: 0, z: -ahead.x };
   const away = levelUnit(world.require(by, Body).pos, world.require(target, Body).pos);
-  const push = joltOf(world.get(by, Wielder)?.swing?.attack ?? null, away, right);
+  const swing = world.get(by, Wielder)?.swing;
+  const push = joltOf(swing ? cutOf(swing.attack, swing.side, !world.has(by, LocalPlayer)) : null, away, right);
   scene.impacts.set(by, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
   scene.impacts.set(target, { ageMs: 0, stopMs, push, pushMs: JOLT_MS });
 }
 
-export function clash(scene: ArenaScene, world: World, stopped: Entity, guard: Entity, stopMs: number): void {
+export function clash(scene: ArenaScene, world: World, stopped: Entity, guard: Entity): void {
   const hands = world.get(stopped, Wielder)?.hands;
   if (!hands || !weaponItemIn(hands)) return;
   const a = world.require(stopped, Body).pos, b = world.require(guard, Body).pos, back = levelUnit(b, a);
   const push = { x: back.x * BOUNCE_M, y: 0, z: back.z * BOUNCE_M };
-  scene.impacts.set(stopped, { ageMs: 0, stopMs, push, pushMs: BOUNCE_MS });
-  if (stopMs > 0) scene.impacts.set(guard, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
+  scene.impacts.set(stopped, { ageMs: 0, stopMs: 0, push, pushMs: BOUNCE_MS });
   scene.skills.bursts.sparks({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 + SPARK_UP_M, z: (a.z + b.z) / 2 });
 }

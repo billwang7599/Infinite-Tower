@@ -96,7 +96,7 @@ describe("casting", () => {
 
   test("a cast pressed mid-swing waits for the swing to let go, then winds up", () => {
     const fight = fightWith([at(0, 6)]);
-    fight.step([input({ attack: "lr" })]);
+    fight.step([input({ attack: "light" })]);
     fight.step([input({ cast: BOLT_FIRE })]);
     const player = fight.world.require(me(fight), Player);
     assert.equal(player.action, "attack");

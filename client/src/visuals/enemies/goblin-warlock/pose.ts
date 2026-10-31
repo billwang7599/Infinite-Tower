@@ -21,7 +21,7 @@ export interface GoblinPose {
 export function goblinPose(state: EnemyState, t: number, wordsSaid: number): GoblinPose {
   const p: GoblinPose = {
     staffPitch: 0.25, handY: 0.62, handZ: 0.22, offHand: OFF_HAND, lean: 0, roll: 0, rollRate: state === "dead" ? 6 : 12, yOff: 0,
-    stars: state === "parried" || state === "stunned" || state === "staggered", glow: 0.15,
+    stars: state === "stunned" || state === "staggered", glow: 0.15,
   };
   switch (state) {
     case "skillChant":
@@ -42,7 +42,6 @@ export function goblinPose(state: EnemyState, t: number, wordsSaid: number): Gob
     case "lungeRecover":
       Object.assign(p, { staffPitch: 0.9, handZ: 0.3, lean: 0.05 });
       break;
-    case "parried":
     case "stunned":
     case "staggered":
       p.staffPitch = 0.7;

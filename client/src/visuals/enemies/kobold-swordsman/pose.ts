@@ -1,5 +1,5 @@
-import { clamp, isSwing, type AttackKind, type Blade, type EnemyState, type Vec3 } from "@infinite-tower/shared";
-import type { WeaponMotion } from "../../battle/weapons.js";
+import { clamp, type EnemyState, type Vec3 } from "@infinite-tower/shared";
+import type { BladePose, Cut, WeaponMotion } from "../../battle/weapons.js";
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
   const l = Math.hypot(x, y, z);
@@ -18,13 +18,11 @@ const TWIST_RAD = 0.6;
 const HIP_SHARE = 0.4;
 const BEND_RAD = 0.15;
 /**
- * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, a stab's
- * hand `stabM` further back, the body `leanRad` back; the chest turns `turnRad` toward the blade's side (a stab's:
- * the sword's) and bends `bendRad` toward its height; eased off by `goneByTurn`, the turn a stroke goes live on.
+ * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, the body
+ * `leanRad` back; the chest turns `turnRad` toward the blade's side and bends `bendRad` toward its height; eased off
+ * by `goneByTurn`, the turn a stroke goes live on.
  */
-export const KOBOLD_DRAWBACK = {
-  swingRad: 1.1, stabM: 0.25, leanRad: 0.2, turnRad: 0.5, bendRad: 0.25, goneByTurn: 1 / 3,
-};
+export const KOBOLD_DRAWBACK = { swingRad: 1.1, leanRad: 0.2, turnRad: 0.5, bendRad: 0.25, goneByTurn: 1 / 3 };
 
 const smooth = (s: number): number => s * s * (3 - 2 * s);
 
@@ -32,8 +30,7 @@ function drawback(stroke: { set: number; turn: number }): number {
   return stroke.set < 1 ? smooth(stroke.set) : 1 - smooth(clamp(stroke.turn / KOBOLD_DRAWBACK.goneByTurn, 0, 1));
 }
 
-function coilToward(attack: AttackKind, blade: Vec3): { x: number; y: number } {
-  if (!isSwing(attack)) return { x: 1, y: 0 };
+function coilToward(blade: Vec3): { x: number; y: number } {
   const flat = Math.hypot(blade.x, blade.y);
   return flat < 1e-6 ? { x: 0, y: 0 } : { x: blade.x / flat, y: blade.y / flat };
 }
@@ -64,19 +61,17 @@ export interface KoboldPose {
   stars: boolean;
 }
 
-/** `k`: the share of the state's duration gone; `stroke`: its swing's, while it has one (strokeOf). */
 export function koboldPose(
-  state: EnemyState, t: number, k: number, attack: AttackKind, motion: WeaponMotion,
-  stroke: { set: number; turn: number } | null, blade: Blade,
+  state: EnemyState, t: number, k: number, cut: Cut, motion: WeaponMotion,
+  stroke: { set: number; turn: number } | null, held: BladePose,
 ): KoboldPose {
-  const held = motion.held(blade);
   const p = {
-    ...held, bladeExact: false, lean: 0, roll: 0,
-    rollRate: state === "dead" ? 6 : 12, yOff: 0, stars: state === "parried" || state === "stunned",
+    ...held, bladeExact: false, lean: 0, roll: 0, rollRate: state === "dead" ? 6 : 12, yOff: 0,
+    stars: state === "stunned",
   };
-  const swinging = stroke !== null && (state === "weaponWindup" || state === "weapon" || state === "weaponRecover");
+  const swinging = stroke !== null && (state === "weapon" || state === "weaponRecover");
   if (swinging) {
-    Object.assign(p, stroke.set < 1 ? motion.windup(attack, stroke.set, held) : motion.stroke(attack, stroke.turn));
+    Object.assign(p, stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn));
     p.bladeExact = stroke.set >= 1;
   }
   switch (state) {
@@ -84,12 +79,12 @@ export function koboldPose(
       p.lean = -0.12 * k;
       break;
     case "weapon":
-      p.lean = 0.15;
+      p.lean = stroke && stroke.turn < 1 / 3 ? -0.12 : 0.15;
       break;
     case "weaponRecover":
       p.lean = 0.08 * (1 - k);
       break;
-    case "parried":
+    case "recoil":
     case "stunned":
     case "staggered":
       p.blade = norm({ x: 0.6, y: -0.5, z: -0.2 });
@@ -104,14 +99,13 @@ export function koboldPose(
   }
   const handBlade = p.blade, pull = swinging ? drawback(stroke) : 0;
   if (pull > 0) {
-    if (isSwing(attack)) p.blade = turnedBack(p.blade, KOBOLD_DRAWBACK.swingRad * pull);
-    else p.handZ -= KOBOLD_DRAWBACK.stabM * pull;
+    p.blade = turnedBack(p.blade, KOBOLD_DRAWBACK.swingRad * pull);
     p.lean -= KOBOLD_DRAWBACK.leanRad * pull;
   }
   const lead = (ahead: number): Vec3 => !swinging || !stroke ? p.blade : stroke.set < 1
-    ? motion.windup(attack, Math.min(1, stroke.set + LEAD_SET * ahead), held).blade
-    : motion.stroke(attack, stroke.turn + LEAD_TURN * ahead).blade;
-  const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2), coil = coilToward(attack, chestAt);
+    ? motion.windup(cut, Math.min(1, stroke.set + LEAD_SET * ahead), held).blade
+    : motion.stroke(cut, stroke.turn + LEAD_TURN * ahead).blade;
+  const dead = state === "dead", chestAt = lead(1), hipsAt = lead(2), coil = coilToward(chestAt);
   const coilTwist = KOBOLD_DRAWBACK.turnRad * pull * coil.x;
   return {
     ...p,

@@ -34,7 +34,7 @@ function moveInBag(fight: Fight, move: GearMove): void {
 }
 const swings = (fight: Fight): boolean => {
   fight.step([IDLE]);
-  run(fight, 0.1, (i) => input({ attack: i === 0 ? "lr" : null }));
+  run(fight, 0.1, (i) => input({ attack: i === 0 ? "light" : null }));
   return playerOf(fight).action === "attack";
 };
 

@@ -67,15 +67,16 @@ mirrored (their right hand on our left), with the front of the clothes, and the 
 scaled up to fill the hair seen from behind (`frontHead`), with the chibi's eyes and mouth where it puts them.
 
 The sword fight's poses (`SWORD_POSES` in `battle.ts`, drawn in `moves.ts`, played by `visuals/battle/pose.ts`)
-have a few frames each, played in order: `drawBattle(look, pose, frame)`. Eight swings, named for the way the blade
-moves on screen (`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through; a stab, a block, a
-stagger. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
+have a few frames each, played in order: `drawBattle(look, pose, frame)`. Five swings, named for the way the blade
+moves on screen (`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through: the lights across
+from either side and down from the top, the heavies cleaving down and across from either side (the top's heavy uses
+the light's); three guards of a frame each, the blade held up on the left, level over the head, or up on the right;
+a stagger. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
 right hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
 the body is hidden by it, so the strike shows the blade where it comes out beside the head; a frame's `swordLayer` puts
-the sword under the body (in front of the player) or over the head (the overhead block). From the front what's in
+the sword under the body (in front of the player) or over the head (the top guard). From the front what's in
 front of the body is over it: an arm across the chest shows, and a blade in front of the player is drawn over
-everything. A blade pointing at us points down the screen, so a key can say what differs from the front (`front` in
-`moves.ts`): the stab thrusts its point down at us.
+everything.
 
 The chibi faces the way it walks (`CHIBI_FACINGS` in `art.ts`): walking down the screen it faces front, up it faces
 back, and to a side it faces side (drawn facing left; the game mirrors it for walking right). Front and back share
@@ -103,13 +104,13 @@ How many drawings each thing needs, for whoever draws it. Read from the code: th
 | --- | --- | --- | --- |
 | portrait | 64x64 | 1 | three-quarters to our left; flipped to face right, no extra drawing |
 | chibi | 32x32 | 3: front, back, side | side is drawn facing left; facing right is its mirror image |
-| battle | 64x64 | 68: stand, slash, down, and 31 sword-fight frames, from behind and from the front | in code the front's outline is the back's mirrored, but what's on it is drawn for the front |
+| battle | 64x64 | 46: stand, slash, down, and 20 sword-fight frames, from behind and from the front | in code the front's outline is the back's mirrored, but what's on it is drawn for the front |
 
-So something seen in every view and pose is 72 drawings. The axes that need drawings of their own:
+So something seen in every view and pose is 50 drawings. The axes that need drawings of their own:
 
 | Axis | Options | Each option needs |
 | --- | --- | --- |
-| body type | skinny, medium, wide | its body in every view and pose (72), and its own drawing of every wrap-around piece |
+| body type | skinny, medium, wide | its body in every view and pose (50), and its own drawing of every wrap-around piece |
 | face shape | soft, sharp, square | 3: the portrait's jaw, the chibi's front jaw and the battle sprite's front jaw (the chibi's back and side, and battle from behind, are shared) |
 | hair style | short, bob, long, ponytail | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose: it moves with the head). Hair behind the head is a second layer (`hairBack`): in the chibi's front and the battle sprite's, and the portrait's for long and ponytail |
 | eye type | round, sharp, sleepy, cat | 4: the portrait's near eye and far eye, one chibi eye (mirrored for the other; facing side shows its first two columns) and one for the battle sprite's front. None facing back or in battle from behind |
@@ -125,18 +126,18 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | Piece of gear | Drawings |
 | --- | --- |
 | on the head (a helmet) | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose); the same on every body |
-| held (the sword, battle only) | 68: a pose or frame each, from each side, since each holds it at its own angle |
+| held (the sword, battle only) | 46: a pose or frame each, from each side, since each holds it at its own angle |
 | rigid on the body (a pair of shoulder guards) | 6: a view each, for both shoulders, placed at each body type's landmark |
-| wrap-around top (a chest piece) | 216: 3 body types x 72 |
-| wrap-around legs (trousers) | 207: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 68 battle frames |
+| wrap-around top (a chest piece) | 150: 3 body types x 50 |
+| wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
 
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the skillbook. Of what's
 worn, only the sword is drawn on the character, in the arena: in the hand that holds it, or not at all. In the left
 hand the body is the right-handed frame flipped (a swing uses its mirror image's), so it needs no drawings of its own.
 
-Adding a body type adds a full set to every wrap-around piece (72 for a chest piece); adding a view or chibi facing
+Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and
-body type to each (34 per body type), one to every hair style and helmet, and 34 to every held piece; adding a
+body type to each (23 per body type), one to every hair style and helmet, and 23 to every held piece; adding a
 battle pose (every animation frame is one) adds two per body type to each, one from each side, and two to every held
 piece. Face shapes, hair styles, eye and
 mouth types add only their own row.

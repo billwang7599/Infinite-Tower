@@ -1,5 +1,6 @@
 import {
-  Body, Enemy, Health, heldIn, LocalPlayer, inView, Player, roundTo, Stamina, Wielder,
+  Body, Enemy, Health, heldIn, LocalPlayer, inView, mirrorSide, Player, roundTo, Stamina, WeaponAttack, Wielder,
+  type Entity, type GuardSide, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { BattleHudState } from "../../ui/state.js";
@@ -23,8 +24,8 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
     if (me) {
       patch.hpFraction = fraction(me[2].hp, me[2].max);
       patch.staminaFraction = fraction(me[3].value, me[3].max);
-      patch.comboMultiplier = roundTo(me[5].swing?.flow ?? 1, 2);
-      patch.stunned = me[2].hitstun > 0 || me[4].action === "stagger";
+      patch.guard = me[4].guard;
+      patch.stunned = me[2].hitstun > 0 || me[4].action === "recoil";
       patch.skillbookInHand = heldIn(me[5].hands, "skillbook") !== null;
       patch.brokenOff = me[4].brokenOff;
       patch.writingPage = me[4].writing?.page ?? null;
@@ -44,11 +45,15 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.enemyName = (duel ? ctx.who[rival]?.name : enemy?.[1].def.name) ?? "";
       patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
     }
-    patch.cue = enemy?.[1].state === "parried" && patch.enemyAlive ? "parried"
-      : me?.[4].action === "stagger" ? "staggered" : "none";
+    const foeGuard = ctx.lock === null ? null : guardSideOf(world, ctx.lock);
+    patch.foeGuard = foeGuard && mirrorSide(foeGuard);
 
     hud.set(patch);
   };
+}
+
+function guardSideOf(world: World, e: Entity): GuardSide | null {
+  return world.get(e, Player)?.guard ?? world.get(e, WeaponAttack)?.guard ?? null;
 }
 
 /** 0..1, rounded to 0.1% so changes too small to see don't re-render the HUD. */

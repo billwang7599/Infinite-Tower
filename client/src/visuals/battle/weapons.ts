@@ -1,15 +1,37 @@
 import {
-  clamp, isSwing, SCREEN_DIR, strokeOf, WEAPONS, type AttackKind, type Blade, type SwingData, type SwingDir, type Vec3,
-  type WeaponId, type WeaponKind,
+  clamp, mirrorSide, WEAPONS, type AttackKind, type GuardSide, type SwingData, type Vec3, type WeaponId,
+  type WeaponKind,
 } from "@infinite-tower/shared";
 import type { Art } from "../../gfx/look/art.js";
 import { SWORD, swordArt } from "../../gfx/look/sword.js";
 
-/** In shares of a stroke's half-turn: frames switch, and the trail and thrust show, from these. */
 const LIVE_FRAME_TURN = 0.25;
 const FOLLOW_FRAME_TURN = 0.75;
 const TRAIL_FROM_TURN = 0.2;
 const TRAIL_GROW_TURN = 0.45;
+
+export interface Cut { x: number; y: number }
+
+const D = Math.SQRT1_2;
+const CUTS: Record<AttackKind, Record<GuardSide, Cut>> = {
+  light: { left: { x: 1, y: 0 }, top: { x: 0, y: -1 }, right: { x: -1, y: 0 } },
+  heavy: { left: { x: D, y: -D }, top: { x: 0, y: -1 }, right: { x: -D, y: -D } },
+};
+
+export const cutOf = (attack: AttackKind, side: GuardSide, facing = false): Cut =>
+  CUTS[attack][facing ? mirrorSide(side) : side];
+
+export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
+  const { step, driveAt, liveAt, liveUntil, endAt } = swing;
+  if (step < driveAt) return { set: step / driveAt, turn: 0, follow: 0 };
+  if (step < liveAt) {
+    const s = (step - driveAt) / (liveAt - driveAt);
+    return { set: 1, turn: (s * s) / 3, follow: 0 };
+  }
+  if (step < liveUntil) return { set: 1, turn: (1 + (step - liveAt) / (liveUntil - liveAt)) / 3, follow: 0 };
+  const f = clamp((step - liveUntil) / Math.max(1, endAt - liveUntil), 0, 1);
+  return { set: 1, turn: (2 + f * (2 - f)) / 3, follow: f };
+}
 
 export function swingFrame(swing: SwingData): 0 | 1 | 2 {
   const { turn } = strokeOf(swing);
@@ -26,38 +48,22 @@ export interface TrailPose {
   visibility: number;
 }
 
-/** The trail's line and the end it starts from (+1: the right end), from the swing's way across the screen. */
-function trailLine(dir: SwingDir): { rollRad: number; from: 1 | -1 } {
-  const { x, y } = SCREEN_DIR[dir];
+function trailLine({ x, y }: Cut): { rollRad: number; from: 1 | -1 } {
   const angle = Math.atan2(y, x);
-  // Fold the angle into (-90°, 90°]: the line's right end; a swing going leftward starts from that end.
+  // Fold the angle into (-90°, 90°]: the line's right end; a cut going leftward starts from that end.
   if (angle > Math.PI / 2 + 1e-9) return { rollRad: angle - Math.PI, from: 1 };
   if (angle <= -Math.PI / 2 + 1e-9) return { rollRad: angle + Math.PI, from: 1 };
   return { rollRad: angle, from: -1 };
 }
 
 function trailPose(swing: SwingData | null): TrailPose | null {
-  if (!swing || !isSwing(swing.attack) || swing.stoppedAt !== null) return null;
+  if (!swing) return null;
   const { turn, follow } = strokeOf(swing);
   if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
   return {
-    ...trailLine(swing.attack), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
+    ...trailLine(cutOf(swing.attack, swing.side)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
     visibility: 1 - follow * follow,
   };
-}
-
-export interface ThrustPose {
-  /** How far out it is (m). */
-  reachM: number;
-  visibility: number;
-}
-
-function thrustPose(swing: SwingData | null, stabRangeM: number): ThrustPose | null {
-  if (!swing || isSwing(swing.attack)) return null;
-  const { turn, follow } = strokeOf(swing);
-  if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
-  const reach = Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN);
-  return { reachM: reach * stabRangeM, visibility: 1 - follow * follow };
 }
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -68,60 +74,44 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 /** Unit vector in the wielder's frame, +z ahead. */
 export interface BladePose { blade: Vec3; handZ: number }
 
-const GUARD_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
-/** The blade drawn back before a stab, and as it thrusts. */
-const STAB_DIR = norm({ x: 0, y: 0.08, z: 1 });
+const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
+const GUARD_OUT = 0.8;
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;
 const STROKE_LEAN = 0.15;
 
-const lerp = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
+export const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
   x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k,
 });
 
-/** Where the blade is held at rest: the guard at the fight's blade 0, where a stroke ends at its ends. */
-function heldBlade(at: Blade): BladePose {
-  const out = Math.min(1, Math.hypot(at.x, at.y));
-  return { blade: lerp(GUARD_BLADE.blade, norm({ x: -at.x, y: at.y, z: STROKE_LEAN }), out), handZ: GUARD_BLADE.handZ };
-}
-
 /** Seen from in front, so the wielder's x is the screen's mirrored. */
-function swingStart(attack: AttackKind): Vec3 {
-  if (!isSwing(attack)) return STAB_DIR;
-  const { x, y } = SCREEN_DIR[attack];
-  return { x, y: -y, z: 0 };
+const cutStart = ({ x, y }: Cut): Vec3 => ({ x, y: -y, z: 0 });
+
+function heldBlade(cut: Cut): BladePose {
+  const start = cutStart(cut);
+  return { blade: lerpBlade(REST_BLADE.blade, { ...start, z: STROKE_LEAN }, GUARD_OUT), handZ: REST_BLADE.handZ };
 }
 
-function windupBlade(attack: AttackKind, k: number, from: BladePose): BladePose {
-  const start = swingStart(attack);
-  const to = isSwing(attack) ? { x: start.x, y: start.y, z: WINDUP_LEAN } : STAB_DIR;
-  return { blade: lerp(from.blade, to, k), handZ: isSwing(attack) ? from.handZ : from.handZ - 0.3 * k };
+function windupBlade(cut: Cut, k: number, from: BladePose): BladePose {
+  return { blade: lerpBlade(from.blade, { ...cutStart(cut), z: WINDUP_LEAN }, k), handZ: from.handZ };
 }
 
 /** `turn` as in strokeOf; past 1 it runs on. */
-function strokeBlade(attack: AttackKind, turn: number): BladePose {
-  if (!isSwing(attack)) {
-    const a = Math.PI * Math.min(1, turn), back = clamp(3 * turn - 2, 0, 1);
-    const handZ = GUARD_BLADE.handZ + (turn < 0.5 ? 0.75 * Math.sin(a) - 0.3 : 0.45 * Math.sin(a));
-    return { blade: back > 0 ? lerp(STAB_DIR, GUARD_BLADE.blade, back) : STAB_DIR, handZ };
-  }
-  const start = swingStart(attack), a = Math.PI * turn;
+function strokeBlade(cut: Cut, turn: number): BladePose {
+  const start = cutStart(cut), a = Math.PI * turn;
   const blade = norm({ x: start.x * Math.cos(a), y: start.y * Math.cos(a), z: Math.sin(a) + STROKE_LEAN });
-  return { blade, handZ: GUARD_BLADE.handZ };
+  return { blade, handZ: REST_BLADE.handZ };
 }
 
 export interface WeaponMotion {
   trail(swing: SwingData | null): TrailPose | null;
-  thrust(swing: SwingData | null, stabRangeM: number): ThrustPose | null;
-  held(at: Blade): BladePose;
-  windup(attack: AttackKind, k: number, from: BladePose): BladePose;
-  stroke(attack: AttackKind, turn: number): BladePose;
+  held(cut: Cut): BladePose;
+  windup(cut: Cut, k: number, from: BladePose): BladePose;
+  stroke(cut: Cut, turn: number): BladePose;
 }
 
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
-  sword: {
-    trail: trailPose, thrust: thrustPose, held: heldBlade, windup: windupBlade, stroke: strokeBlade,
-  },
+  sword: { trail: trailPose, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
 };
 
 /** `blade`: a 3D model's, from the guard up; `twoHanded`: a 3D model holds it with its off hand too. */

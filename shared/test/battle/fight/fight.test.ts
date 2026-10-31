@@ -15,7 +15,7 @@ function brawler(fight: Fight) {
     const me = bodyOf(fight, fight.players[0]!).pos, it = bodyOf(fight, fight.enemies[0]!).pos;
     const dx = it.x - me.x, dz = it.z - me.z, dist = Math.hypot(dx, dz) || 1;
     const aimX = dx / dist, aimZ = dz / dist, far = dist > 2.6;
-    const attack = step % 4 === 0 ? "lr" : step % 4 === 2 ? "rl" : null;
+    const attack = step % 4 === 0 ? "light" : step % 4 === 2 ? "heavy" : null;
     return input({ aimX, aimZ, moveX: far ? aimX : 0, moveZ: far ? aimZ : 0, attack });
   };
 }
