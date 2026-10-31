@@ -1,6 +1,6 @@
 import { physicalDamage, type Stats } from "../battle/stats.js";
 import { toSteps } from "../core/time.js";
-import type { AttackSteps, GuardSide, HitShape, Weapon } from "./weapons.js";
+import type { AttackSteps, HitShape, Weapon } from "./weapons.js";
 
 // Named by their way across the screen as their swinger sees it ("tlbr": top left to bottom right), so a swing comes
 // from its first letters' side; facing each other, one fighter's left is the other's right (`mirrorWay`).
@@ -36,11 +36,6 @@ export const SCREEN_DIR: Record<SwingDir, { x: number; y: number }> = {
   tlbr: { x: Math.SQRT1_2, y: -Math.SQRT1_2 }, brtl: { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
   trbl: { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }, bltr: { x: Math.SQRT1_2, y: Math.SQRT1_2 },
 };
-
-const SIDES: Record<SwingDir, GuardSide> = {
-  lr: "left", tlbr: "left", bltr: "left", rl: "right", trbl: "right", brtl: "right", tb: "top", bt: "top",
-};
-export const sideOfWay = (way: Way): GuardSide => (isSwing(way) ? SIDES[way] : "top");
 
 export type ChainKind = "opening" | "reverse" | "perpendicular" | "other";
 
@@ -84,6 +79,9 @@ export const HYBRID = {
   kick: {
     cost: 15, contactTime: 0.2, time: 0.5, reachM: 1.4, minDot: 0.7, staggerTime: 0.6, shoveSpeed: 7, shoveTime: 0.25,
   },
+  feint: { cutoffTime: 0.15, cost: 10 },
+  /** The attacker steps forward at `lungeSpeed` (m/s) while the blade is live, and walks at `moveFactor` otherwise. */
+  swinging: { lungeSpeed: 4, moveFactor: 0.25 },
 } as const;
 
 export const COUNTER_PARRY = {

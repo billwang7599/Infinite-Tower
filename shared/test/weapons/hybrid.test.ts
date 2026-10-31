@@ -1,21 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  CHAIN, chainKind, COMBAT_STYLES, COUNTER_PARRY, DEFAULT_COMBAT_STYLE, HYBRID, isCombatStyle, MOMENTUM,
-  momentumDamage, mirrorWay, parryShare, reverseOf, sideOfWay, startupTime, strikeCost, SWING_DIRS, wayShape,
-  wayStepsAfter, WEAPONS, WAYS,
+  CHAIN, chainKind, COUNTER_PARRY, HYBRID, MOMENTUM, momentumDamage, mirrorWay, parryShare, reverseOf, startupTime,
+  strikeCost, SWING_DIRS, wayShape, wayStepsAfter, WEAPONS, WAYS,
 } from "@infinite-tower/shared";
 
-describe("combat styles", () => {
-  test("For Honor is the default, and the hybrid is a style", () => {
-    assert.equal(DEFAULT_COMBAT_STYLE, "for-honor");
-    assert.ok(isCombatStyle("hybrid") && isCombatStyle("for-honor"));
-    assert.ok(!isCombatStyle("mordhau") && !isCombatStyle(null));
-    assert.equal(COMBAT_STYLES.hybrid.name, "Hybrid");
-  });
-});
-
-describe("the hybrid's ways", () => {
+describe("the sword's ways", () => {
   test("a swing's reverse goes back along its line, twice is itself", () => {
     for (const dir of SWING_DIRS) {
       assert.notEqual(reverseOf(dir), dir);
@@ -29,14 +19,6 @@ describe("the hybrid's ways", () => {
     assert.equal(mirrorWay("tb"), "tb");
     assert.equal(mirrorWay("stab"), "stab");
     for (const way of WAYS) assert.equal(mirrorWay(mirrorWay(way)), way);
-  });
-
-  test("each comes from the For Honor side nearest its start, the stab from the top", () => {
-    assert.equal(sideOfWay("lr"), "left");
-    assert.equal(sideOfWay("bltr"), "left");
-    assert.equal(sideOfWay("trbl"), "right");
-    assert.equal(sideOfWay("bt"), "top");
-    assert.equal(sideOfWay("stab"), "top");
   });
 
   test("a swing parries the one it meets head-on, either 45° neighbour for a share; a stab only a stab", () => {

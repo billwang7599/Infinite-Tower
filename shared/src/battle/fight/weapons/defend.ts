@@ -1,27 +1,33 @@
-import type { Entity, World } from "../../../../core/ecs.js";
-import type { Vec3 } from "../../../../core/math.js";
-import { toSteps } from "../../../../core/time.js";
-import { COUNTER_PARRY, HYBRID, mirrorWay, parryShare } from "../../../../weapons/hybrid.js";
+import type { Entity, World } from "../../../core/ecs.js";
+import type { Vec2, Vec3 } from "../../../core/math.js";
+import { toSteps } from "../../../core/time.js";
+import { COUNTER_PARRY, HYBRID, mirrorWay, parryShare } from "../../../weapons/hybrid.js";
 import {
   Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData,
-} from "../../../components.js";
-import { PLAYER } from "../../../player.js";
-import { faces, knock, stagger, type Defended } from "../../combat.js";
-import type { FightEvent } from "../../context.js";
-import { damageDealtFactor, hurt } from "../../skills/statuses.js";
-import { facingOf } from "../../weapons/guard-break.js";
-import { endChain, endSwing } from "../../weapons/swing.js";
+} from "../../components.js";
+import { PLAYER } from "../../player.js";
+import { faces, knock, stagger, type Defended } from "../combat.js";
+import type { FightEvent } from "../context.js";
+import { damageDealtFactor, hurt } from "../skills/statuses.js";
+import { endChain, endSwing } from "./swing.js";
 
 const COUNTER_STEPS = toSteps(COUNTER_PARRY.windowTime);
+
+export function facingOf(world: World, e: Entity): Vec2 {
+  const player = world.get(e, Player);
+  if (player) return player.actionDir;
+  const yaw = world.require(e, Enemy).yaw;
+  return { x: Math.sin(yaw), z: Math.cos(yaw) };
+}
 
 export function blocking(world: World, e: Entity): boolean {
   const player = world.get(e, Player);
   if (player) return player.action === "block";
   const enemy = world.get(e, Enemy), attack = world.get(e, WeaponAttack);
-  return enemy?.state === "approach" && attack !== undefined && enemy.stateTime >= attack.def.hybrid.blockReactTime;
+  return enemy?.state === "approach" && attack !== undefined && enemy.stateTime >= attack.def.blockReactTime;
 }
 
-export function hybridDefend(
+export function defend(
   world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity,
 ): Defended {
   const from = world.require(attacker, Body).pos, at = world.require(target, Body).pos;
@@ -48,7 +54,7 @@ export function hybridDefend(
 
 function counterShare(world: World, hit: ActiveHitData, target: Entity, from: Vec3): number {
   const own = world.get(target, Wielder)?.swing;
-  if (!own?.way || hit.way === null) return 0;
+  if (!own || hit.way === null) return 0;
   const share = parryShare(own.way, mirrorWay(hit.way));
   if (share === 0 || !faces(world.require(target, Body).pos, own.dir, from, COUNTER_PARRY.minDot)) return 0;
   // The weapon system ran this step: the swing's clock is one step on.

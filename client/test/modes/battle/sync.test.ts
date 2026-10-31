@@ -34,7 +34,7 @@ const WALK = input({ moveX: Math.SQRT1_2, moveZ: Math.SQRT1_2, aimX: Math.sin(0.
 /** Something new every few steps. */
 const script = (step: number): PlayerInputData => input({
   moveX: step % 40 < 20 ? 1 : -1, moveZ: step % 24 < 12 ? 0.5 : -0.5, attack: step % 11 === 0 ? "light" : null,
-  locked: 0, guard: step % 50 > 44 ? "right" : "top",
+  locked: 0, way: step % 50 > 44 ? "rl" : "tb",
 });
 
 /** The server's side, honest and on time: its fight runs each change from its step, until the next. */
@@ -336,7 +336,7 @@ describe("a duel: the other player's inputs come from the server", () => {
   };
   const theirs = (step: number): PlayerInputData => input({
     moveX: step % 30 < 15 ? -1 : 1, moveZ: step % 36 < 18 ? -0.5 : 0.5, aimZ: -1,
-    attack: step % 17 === 0 ? "heavy" : null, locked: step % 60 > 20 ? 0 : null, guard: step % 50 > 25 ? "left" : "top",
+    attack: step % 17 === 0 ? "heavy" : null, locked: step % 60 > 20 ? 0 : null, way: step % 50 > 25 ? "lr" : "tb",
   });
   const changesUpTo = (to: number): StepInput[] => {
     const changes: StepInput[] = [];

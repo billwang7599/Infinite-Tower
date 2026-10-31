@@ -54,39 +54,31 @@ What's built so far:
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
   its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
   shadows follow them, and glowing mushrooms light the mire.
-  Sword fights like For Honor's: locked on, you hold a guard left, top or right, and it blocks, free, whatever comes
-  from that side while you're idle; light and heavy attacks come from your guard's side, at fixed times (a heavier
-  sword slower), chained up to three, each maybe from another side. A blocked attack bounces off in sparks and its
-  attacker recoils. A heavy pressed just before an attack lands, from the guard that would block it, parries it and
-  opens the attacker; a guard break grabs a foe through its guard and opens it unless they counter with their own in
-  time; a heavy can be feinted early in its wind-up. A small widget shows your guard and your foe's; a landed hit
-  holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went. A dodge
-  roll with i-frames, jump, stamina.
-  A **Combat style** setting (Settings, or the F1 admin panel) switches the fights you start, and the duels you
-  challenge to, to the **Hybrid** style: the mouse (or U I O / J L / M , .) aims one of eight sides, left and right
-  click swing light and heavy from there, the wheel or K stabs; the old momentum chains (the reverse swing quickest,
-  a chain hitting harder until a gap, block, dodge or hit taken; a stab spends it); a held block (left Shift) stops
-  anything in front for stamina and a chip, broken by a heavy; tapped just before a hit it parries, free, opening the
-  attacker; the reverse swing just gone live parries too; G kicks (shoves, or staggers a held block; in your own
-  wind-up, feints). A ring of eight wedges round the locked foe shows your aim and its swing coming. The Kobold
-  fights the hybrid's way in a hybrid fight.
+  Sword fights mix For Honor's readability, eight-way swings with momentum and Mordhau's block timing: the mouse (or
+  U I O / J L / M , .) aims one of eight sides, left and right click swing light and heavy from there, the wheel or
+  K stabs; chained swings hit harder (the reverse swing quickest) until a gap, block, dodge or hit taken, and a stab
+  spends it; a held block (left Shift) stops anything in front for stamina and a chip, broken by a heavy; tapped
+  just before a hit it parries, free, opening the attacker; the reverse swing just gone live parries too; G kicks
+  (shoves, or staggers a held block; in your own wind-up, feints). A ring of eight wedges round the locked foe shows
+  your aim and its swing coming. A landed hit holds the picture for a beat (longer the heavier the blade) and jolts
+  its target the way the blade went. A dodge roll with i-frames, jump, stamina.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
-  blows come from the top. The Kobold Swordsman holds a guard of its own: hit it from another side, or while it
-  recovers; before each attack its guard moves to the side it will come from, and now and then it parries a heavy,
-  feints its own or guard breaks you. The Kobold Greatsword fights the same
+  blows can only be blocked. The Kobold Swordsman swings the same eight ways in long-told chains, blocks as it walks
+  up, and now and then tap-parries you or kicks a block you hold too long. The Kobold Greatsword fights the same
   with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
-  sprite holds its blade on its guard's side, winds up, strikes and follows through on every attack, and reels when
-  blocked. Another player facing your camera (in a duel, say) shows their
+  sprite holds its blade on the side you aim from, winds up, strikes and follows through on every attack, and reels
+  when staggered. Another player facing your camera (in a duel, say) shows their
   front, face and all.
 - **Controls:** keyboard + mouse or trackpad, which is required (a fight captures the mouse as it starts, or on a
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
-  the camera), Space jumps, F dodges; a quick flick of the mouse left, up or right (or U, I, O) moves your guard, a left
-  click is a light attack and a right click a heavy one, and Left Shift guard breaks (in a heavy's wind-up, feints).
+  the camera), Space jumps, F dodges; a quick flick of the mouse (or U I O / J L / M , .) aims, a left click is a
+  light attack and a right click a heavy one, the wheel or K stabs, Left Shift blocks and G kicks (in a wind-up,
+  feints).
   R opens the chant, and 1-4 quick-cast the skillbook's pages. H opens the questbook.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes
@@ -125,7 +117,7 @@ What's built so far:
   keep a Beam going). For now everyone knows every word. Dying keeps the pages and the words.
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
   a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
-  guard; without the skillbook you can't quick-cast. Worn things count toward the weight.
+  block; without the skillbook you can't quick-cast. Worn things count toward the weight.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying,
   resting, eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the

@@ -21,7 +21,7 @@ export function wedgeOf(way: SwingDir): number {
 export interface RingLights { mine: number | null; foe: number | null; stab: boolean }
 
 export function ringLights(mine: SwingDir | null, foe: SwingData | null): RingLights {
-  const coming = foe?.way && foe.step < foe.liveUntil ? mirrorWay(foe.way) : null;
+  const coming = foe && foe.step < foe.liveUntil ? mirrorWay(foe.way) : null;
   return {
     mine: mine && wedgeOf(mine), foe: coming && isSwing(coming) ? wedgeOf(coming) : null, stab: coming === "stab",
   };
@@ -36,7 +36,7 @@ function glow(scene: Scene, name: string, color: Color3, alpha: number): Standar
   return m;
 }
 
-export function aimRing(scene: Scene): { frame(world: World, lock: Entity | null, shown: boolean): void } {
+export function aimRing(scene: Scene): { frame(world: World, lock: Entity | null): void } {
   const root = new TransformNode("aim-ring", scene);
   root.billboardMode = TransformNode.BILLBOARDMODE_ALL;
   const dim = glow(scene, "aim-dim", new Color3(1, 1, 1), 0.16);
@@ -62,10 +62,10 @@ export function aimRing(scene: Scene): { frame(world: World, lock: Entity | null
   root.setEnabled(false);
 
   return {
-    frame(world, lock, shown) {
+    frame(world, lock) {
       const body = lock === null ? undefined : world.get(lock, Body);
-      root.setEnabled(shown && body !== undefined);
-      if (!shown || !body || lock === null) return;
+      root.setEnabled(body !== undefined);
+      if (!body || lock === null) return;
       root.position.set(body.pos.x, body.pos.y - body.centerHeight + HEIGHT_M, body.pos.z);
       const me = world.first(LocalPlayer, Player);
       const lights = ringLights(me?.[2].way ?? null, world.get(lock, Wielder)?.swing ?? null);

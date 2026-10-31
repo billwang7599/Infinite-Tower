@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  attackCost, attackSteps, dodgeCost, emptyBag, Player, Stamina, starterEquipment, WEAPONS, type Hand,
+  CHAIN, dodgeCost, emptyBag, Player, Stamina, starterEquipment, strikeCost, wayStepsAfter, WEAPONS, type Hand,
   type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -14,7 +14,7 @@ type Script = (step: number) => PlayerInputData;
 
 const SWING_AT = 5;
 
-const LOCKED_STEPS = attackSteps(WEAPONS.sword, "light", 0).liveUntil;
+const LOCKED_STEPS = wayStepsAfter(WEAPONS.sword, CHAIN.startupTime.opening, false).liveUntil;
 const LET_GO_AT = SWING_AT + LOCKED_STEPS;
 
 const swingThen = (presses: Record<number, Partial<PlayerInputData>>): Script =>
@@ -60,7 +60,7 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
       assert.deepEqual(actions.slice(SWING_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("attack"),
         `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
-      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - attackCost(WEAPONS.sword, "light") - dodgeCost("light")!,
+      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - strikeCost(WEAPONS.sword, "light") - dodgeCost("light")!,
         `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });
@@ -137,14 +137,12 @@ describe("what the player holds", () => {
     return new Set(play(held, 40, fight).actions);
   };
 
-  test("no sword: no attack and no guard", () => {
+  test("no sword: no attack and no block", () => {
     for (const press of [{ attack: "light" }, { attack: "heavy" }] as const) {
       const seen = actionsOf(unarmed({ sword: null, skillbook: "leftHand" }), press);
       assert.deepEqual([...seen], ["none"], JSON.stringify(press));
     }
-    const fight = unarmed({ sword: null, skillbook: "leftHand" });
-    play(() => input({ locked: 0, guard: "left" }), 10, fight);
-    assert.equal(fight.world.require(fight.players[0]!, Player).guard, null);
+    assert.deepEqual([...actionsOf(unarmed({ sword: null, skillbook: "leftHand" }), { block: true })], ["none"]);
   });
 
   test("no skillbook: no casting, but the sword still swings", () => {

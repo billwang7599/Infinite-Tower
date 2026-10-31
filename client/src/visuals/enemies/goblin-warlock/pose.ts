@@ -43,7 +43,6 @@ export function goblinPose(state: EnemyState, t: number, wordsSaid: number): Gob
       Object.assign(p, { staffPitch: 0.9, handZ: 0.3, lean: 0.05 });
       break;
     case "stunned":
-    case "grabbed":
     case "staggered":
       p.staffPitch = 0.7;
       p.lean = -0.3;

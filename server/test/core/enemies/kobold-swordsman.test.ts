@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, GUARD_BREAK, GUARD_SIDES, Health, IDLE_INPUT, mirrorSide, Player, WeaponAttack,
-  Wielder,
-  type EnemyDef, type GuardSide, type PlayerInputData, type Skill,
+  Body, Enemy, FIXED_DT, Health, IDLE_INPUT, Player, Wielder, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
@@ -13,98 +11,56 @@ before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
 
-const TECH_AT = Math.round((GUARD_BREAK.grabTime + KOBOLD.attacks.weapon!.counters!.reactTime) / FIXED_DT);
+const TAP_LEAD_STEPS = 6;
 
-/**
- * Keeps about a sword's length away, locked on. Holds the guard that blocks the Kobold's (across from its side, as it
- * sees it) whenever it might attack, attacks from another side only while it's walking up, recovering or reeling,
- * and counters its guard breaks a human reaction late.
- */
-function watchful(fight: Fight): PlayerInputData {
-  const me = fight.world.require(fight.players[0]!, Player), at = fight.world.require(fight.players[0]!, Body).pos;
+function reader(fight: Fight): PlayerInputData {
+  const at = fight.world.require(fight.players[0]!, Body).pos, me = fight.world.require(fight.players[0]!, Player);
   const kobold = fight.world.require(fight.enemies[0]!, Enemy), it = fight.world.require(fight.enemies[0]!, Body).pos;
-  const guard = fight.world.require(fight.enemies[0]!, WeaponAttack);
+  const swing = fight.world.require(fight.enemies[0]!, Wielder).swing;
   const dx = it.x - at.x, dz = it.z - at.z, dist = Math.hypot(dx, dz) || 1;
-  const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.3 ? 1 : dist < 1.5 ? -1 : 0;
-  const blocking = mirrorSide(guard.guard);
+  const aimX = dx / dist, aimZ = dz / dist, toward = dist > 2.2 ? 1 : dist < 1.4 ? -1 : 0;
   const input: PlayerInputData = {
-    ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, locked: 0, guard: blocking,
+    ...IDLE_INPUT, moveX: aimX * toward, moveZ: aimZ * toward, aimX, aimZ, locked: 0,
+    way: Math.floor(fight.steps / 20) % 2 === 0 ? "lr" : "rl",
   };
-  const open = kobold.state === "weaponRecover" || kobold.state === "recoil" || kobold.state === "staggered"
-    || (kobold.state === "approach" && guard.guardMoveTime === 0 && guard.cooldown > 1);
-  if (open && me.action === "none" && fight.steps % 2 === 0) {
-    input.guard = GUARD_SIDES.find((side) => side !== blocking)!;
-    input.attack = "light";
+  if (swing && swing.step < swing.liveAt) {
+    input.block = swing.liveAt - swing.step <= TAP_LEAD_STEPS;
+    return input;
   }
-  input.guardBreak = fight.world.require(fight.enemies[0]!, Wielder).grab?.step === TECH_AT;
+  const even = fight.steps % 2 === 0;
+  if (kobold.state === "staggered" || kobold.state === "weaponRecover") input.attack = even ? "light" : null;
+  else if (kobold.state === "approach" && me.action === "none") input.kick = even && dist < 1.6;
   return input;
 }
 
+const play = (seed: number, next: (fight: Fight) => PlayerInputData) => {
+  const fight = fightWith(KOBOLD, seed);
+  while (fight.outcome.state === "fighting" && fight.steps < 180 / FIXED_DT) fight.step([next(fight)]);
+  return { fight, hp: fight.world.require(fight.players[0]!, Health).hp };
+};
+
 describe("the Kobold Swordsman", () => {
-  test("a player who reads its guard beats it, whatever its seed", () => {
+  test("winds up its swings as long as it used to: the first a long tell, the ones after it shorter", () => {
+    assert.equal(KOBOLD.attacks.weapon!.windup, 1.1);
+    assert.equal(KOBOLD.attacks.weapon!.chainWindup, 0.45);
+  });
+
+  test("a player who reads it beats it, whatever its seed", () => {
     for (const seed of [1, 2, 3, 1234, 99999]) {
-      const fight = fightWith(KOBOLD, seed);
-      while (fight.outcome.state === "fighting" && fight.steps < 180 / FIXED_DT) fight.step([watchful(fight)]);
-      const hp = fight.world.require(fight.players[0]!, Health).hp;
-      console.log(`seed ${seed}: ${fight.outcome.state} in ${(fight.steps / 60).toFixed(1)} s, ${hp} HP left`);
+      const { fight, hp } = play(seed, reader);
       assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-      assert.ok(hp > FULL.hp / 3, `seed ${seed}: ${hp} HP left`);
+      assert.ok(hp > FULL.hp / 4, `seed ${seed}: ${hp} HP left`);
     }
   });
 
-  test("a player who never moves their guard loses to it", () => {
-    const fight = fightWith(KOBOLD, 1);
-    while (fight.outcome.state === "fighting" && fight.steps < 180 / FIXED_DT) {
-      fight.step([{ ...watchful(fight), guard: "top", attack: null }]);
-    }
+  test("a player who only holds a block loses: it kicks the block open and cuts", () => {
+    const { fight } = play(1, (f) => ({ ...reader(f), block: true, attack: null, kick: false }));
     assert.equal(fight.outcome.state, "lost");
   });
 
-  function attackAtGuard(def: EnemyDef, side: (guarded: GuardSide) => GuardSide) {
-    const fight = fightWith(def, 1), e = fight.enemies[0]!, guard = fight.world.require(e, WeaponAttack);
-    let blocked = 0, landed = 0;
-    for (let i = 0; i < 20 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
-      const input = watchful(fight), kobold = fight.world.require(e, Enemy);
-      const settled = kobold.state === "approach" && guard.guardMoveTime === 0 && guard.guardHoldTime > 1
-        && guard.cooldown > 1;
-      const free = fight.world.require(fight.players[0]!, Player).action === "none";
-      input.attack = null;
-      if (settled && free && i % 2 === 0) Object.assign(input, { guard: side(guard.guard), attack: "light" });
-      fight.step([input]);
-      for (const event of fight.events) {
-        if (event.type === "block" && event.target === e) blocked++;
-        if (event.type === "hit" && event.target === e) landed++;
-      }
-    }
-    return { blocked, landed };
-  }
-
-  for (const id of ["kobold-swordsman", "kobold-greatsword"] as const) {
-    test(`${id}: attacking from across its guard gets you blocked; from another side, it lands`, () => {
-      const def = ENEMIES[id].def;
-      const across = attackAtGuard(def, mirrorSide);
-      assert.ok(across.blocked > 0);
-      assert.equal(across.landed, 0);
-      const other = attackAtGuard(def, (guarded) => GUARD_SIDES.find((s) => s !== mirrorSide(guarded))!);
-      assert.equal(other.blocked, 0);
-      assert.ok(other.landed > 0);
-    });
-  }
-
-  test("each chained attack holds its whole chain wind-up first, its tell", () => {
-    const def = KOBOLD.attacks.weapon!;
-    assert.ok(def.chainWindup < def.windup, "the opener's is longer still");
-    for (const seed of [1, 2, 3]) {
-      const fight = fightWith(KOBOLD, seed), it = () => fight.world.require(fight.enemies[0]!, Enemy);
-      const chained: number[] = [];
-      for (let i = 0; i < 30 / FIXED_DT && fight.outcome.state === "fighting"; i++) {
-        const was = it().state;
-        fight.step([IDLE_INPUT]);
-        if (was === "weapon" && it().state === "weaponWindup") chained.push(it().duration);
-      }
-      assert.ok(chained.length > 2, `seed ${seed}`);
-      for (const t of chained) assert.equal(t, def.chainWindup, `seed ${seed}: ${chained.join(", ")}`);
-    }
+  test("a player who only swings at it loses", () => {
+    const { fight } = play(1, (f) => ({ ...reader(f), block: false, attack: f.steps % 2 === 0 ? "light" : null }));
+    assert.equal(fight.outcome.state, "lost");
   });
 
   test("its own blade never drops, even on the lowest roll", () => {

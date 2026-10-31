@@ -24,7 +24,6 @@ export type FightEvent =
   | { type: "block"; by: Entity; target: Entity; broken?: boolean }
   | { type: "parry"; by: Entity; target: Entity; attack: AttackKind }
   | { type: "feint"; by: Entity }
-  | { type: "guardBreak"; by: Entity; target: Entity; result: "grabbed" | "teched" | "broken" }
   | { type: "kick"; by: Entity; target: Entity; result: "staggered" | "shoved" | "nothing" }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }

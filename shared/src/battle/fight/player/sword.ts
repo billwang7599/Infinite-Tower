@@ -1,18 +1,35 @@
-import { FIXED_DT } from "../../../../core/time.js";
-import { shotOf } from "../../../../skills/effects.js";
+import type { Entity, World } from "../../../core/ecs.js";
+import { FIXED_DT } from "../../../core/time.js";
+import { shotOf } from "../../../skills/effects.js";
 import {
   CHAIN, chainKind, HYBRID, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
-} from "../../../../weapons/hybrid.js";
-import { FEINT } from "../../../../weapons/weapons.js";
-import { PLAYER } from "../../../player.js";
-import { spend, startAction } from "../../player/controller.js";
-import { imbueOf } from "../../skills/cast.js";
-import { endChain, endSwing, lastFeintStep, startWaySwing } from "../../weapons/swing.js";
-import type { Style, SwordTurn } from "../styles.js";
+} from "../../../weapons/hybrid.js";
+import type { Weapon } from "../../../weapons/weapons.js";
+import type { PlayerData, StaminaData, WielderData } from "../../components.js";
+import type { PlayerInputData } from "../../input.js";
+import { PLAYER } from "../../player.js";
+import type { FightEvent } from "../context.js";
+import { imbueOf } from "../skills/cast.js";
+import { endChain, endSwing, lastFeintStep, startWaySwing } from "../weapons/swing.js";
+import { spend, startAction } from "./controller.js";
+
+export interface SwordTurn {
+  world: World;
+  e: Entity;
+  dt: number;
+  events: FightEvent[];
+  player: PlayerData;
+  input: PlayerInputData;
+  wielder: WielderData;
+  stamina: StaminaData;
+  weapon: Weapon | null;
+  stunned: boolean;
+  free: boolean;
+}
 
 const UNAIMED = "tb";
 
-function read(t: SwordTurn): void {
+export function readSword(t: SwordTurn): void {
   const { player, input, wielder, weapon, dt } = t, swing = wielder.swing;
   const locked = swing !== null && swing.step < swing.liveUntil;
   const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
@@ -42,13 +59,13 @@ function read(t: SwordTurn): void {
   if (t.stunned) player.kickBuffer = 0;
   else if (feint) {
     endSwing(t.world, t.e);
-    spend(t.stamina, FEINT.cost);
+    spend(t.stamina, HYBRID.feint.cost);
     player.action = "none";
     t.events.push({ type: "feint", by: t.e });
   }
 }
 
-function kick({ world, e, player, input, wielder, stamina, free }: SwordTurn): boolean {
+export function startKick({ world, e, player, input, wielder, stamina, free }: SwordTurn): boolean {
   if (!free || player.kickBuffer <= 0 || !player.grounded || stamina.value <= 0) return false;
   startAction(world, e, player, "kick", input.aimX, input.aimZ);
   wielder.kick = { step: 0 };
@@ -80,7 +97,7 @@ function strike(t: SwordTurn, strike: Strike): void {
   if (wielder.combo !== null) wielder.comboTime = wielder.swing!.endAt * FIXED_DT + CHAIN.gapTime;
 }
 
-function attackOrBlock(t: SwordTurn): boolean {
+export function attackOrBlock(t: SwordTurn): boolean {
   const { world, e, player, input, wielder, stamina, weapon } = t;
   if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
     strike(t, player.queued);
@@ -97,5 +114,3 @@ function attackOrBlock(t: SwordTurn): boolean {
   endChain(wielder);
   return true;
 }
-
-export const HYBRID_PLAYER: Pick<Style, "read" | "first" | "last"> = { read, first: kick, last: attackOrBlock };

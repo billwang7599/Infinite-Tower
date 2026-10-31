@@ -1,4 +1,3 @@
-import { DEFAULT_COMBAT_STYLE, type CombatStyle } from "@infinite-tower/shared";
 import {
   actionDef, actionsOf, GROUPS, keysOf, MENUS, type Action, type Group, type KeyBindings, type KeyMap,
   type MenuAction,
@@ -31,7 +30,7 @@ interface LayerActions {
   skillbook: MenuAction<"skillbook">;
   chat: MenuAction<"chat">;
   overworld: OverworldAction;
-  battle: Action<"general" | "battle" | CombatStyle>;
+  battle: Action<"general" | "battle">;
 }
 export type Layer = keyof LayerActions;
 export type ActionName = LayerActions[Layer];
@@ -44,12 +43,9 @@ const AXES = {
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
 // By screen angle in equal steps from moving right, clockwise (y grows down).
-const FLICKS: Record<CombatStyle, readonly (WorldAction | null)[]> = {
-  "for-honor": ["guardRight", null, "guardLeft", "guardTop"],
-  hybrid: [
-    "aimRight", "aimBottomRight", "aimBottom", "aimBottomLeft", "aimLeft", "aimTopLeft", "aimTop", "aimTopRight",
-  ],
-};
+const FLICKS: readonly WorldAction[] = [
+  "aimRight", "aimBottomRight", "aimBottom", "aimBottomLeft", "aimLeft", "aimTopLeft", "aimTop", "aimTopRight",
+];
 
 export interface Polled {
   held: ReadonlySet<WorldAction>;
@@ -93,7 +89,6 @@ export class Actions {
   private sweep: { dx: number; dy: number; atMs: number }[] = [];
   private flickedWay: { x: number; y: number } | null = null;
   private lastMoveMs = -Infinity;
-  private style: CombatStyle = DEFAULT_COMBAT_STYLE;
 
   constructor(
     private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, private readonly mouse: Mouse,
@@ -111,10 +106,6 @@ export class Actions {
     for (const d of this.devices) d.clearPressed();
     this.flicks = [];
     this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
-  }
-
-  setCombatStyle(style: CombatStyle & Group): void {
-    this.style = style;
   }
 
   on(action: ActionName, handle: Handler): () => void {
@@ -169,8 +160,8 @@ export class Actions {
     const x = this.sweep.reduce((sum, m) => sum + m.dx, 0), y = this.sweep.reduce((sum, m) => sum + m.dy, 0);
     const length = Math.hypot(x, y);
     if (length < FLICK.distancePx / this.mouseSettings.get().flickSensitivity) return;
-    const ways = FLICKS[this.style], turn = (2 * Math.PI) / ways.length;
-    const flicked = ways[(Math.round(Math.atan2(y, x) / turn) + ways.length) % ways.length];
+    const turn = (2 * Math.PI) / FLICKS.length;
+    const flicked = FLICKS[(Math.round(Math.atan2(y, x) / turn) + FLICKS.length) % FLICKS.length];
     if (flicked) this.flicks.push([flicked, nextPressOrder()]);
     this.flickedWay = { x: x / length, y: y / length };
     this.sweep = [];
@@ -183,8 +174,7 @@ export class Actions {
   private of(layer: Layer, key: string): ActionName | undefined {
     const fixed = FIXED.get(layer)?.get(key);
     if (fixed) return fixed;
-    const groups = layer === "battle" ? ["battle", this.style] as const : GROUPS_OF[layer] ?? [];
-    for (const group of groups) {
+    for (const group of GROUPS_OF[layer] ?? []) {
       const action = this.actionOf(group, key) as ActionName | undefined;
       if (action && (KEPT[layer]?.includes(action) ?? true)) return action;
     }

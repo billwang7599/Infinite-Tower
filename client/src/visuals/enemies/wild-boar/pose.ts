@@ -55,7 +55,6 @@ export function boarPose(state: EnemyState, t: number, lunge?: LungeDef, charge?
     case "stunned":
       Object.assign(p, { headPitch: 0.55, roll: Math.sin(t * 5) * 0.12 });
       break;
-    case "grabbed":
     case "staggered":
       Object.assign(p, { headPitch: -0.45, lean: -0.15, roll: Math.sin(t * 14) * 0.08 });
       break;

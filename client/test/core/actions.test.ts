@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { copyInput, IDLE_INPUT, type GuardSide, type SwingDir } from "@infinite-tower/shared";
+import { copyInput, IDLE_INPUT, type SwingDir } from "@infinite-tower/shared";
 import { Actions, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
-import { pickedGuard, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
+import { pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
@@ -52,12 +52,12 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   };
   const read = () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, { guard: null, way: null }, input);
+    readPlayerInput(actions.poll(), 0, "lr", input);
     return input;
   };
   const attack = () => read().attack;
-  const guard = (was: GuardSide = "top") => pickedGuard(actions.poll(), was);
-  const guards = () => actions.poll().pressed.filter((a) => a.startsWith("guard"));
+  const aim = (was: SwingDir = "tb") => pickedWay(actions.poll(), was);
+  const aims = () => actions.poll().pressed.filter((a) => a.startsWith("aim"));
   let clockMs = 1000;
   let buttons = 0;
   const BIT = [1, 4, 2];
@@ -68,7 +68,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
     return send(buttons === 0 ? win : doc, buttons === 0 ? "pointerup" : "pointermove", { button: b, buttons });
   };
   return {
-    bindings, actions, mouseSettings, listen, read, attack, guard, guards, canvas, doc,
+    bindings, actions, mouseSettings, listen, read, attack, aim, aims, canvas, doc,
     move: (movementX: number, movementY: number, afterMs = 10) =>
       send(doc, "pointermove", { button: -1, buttons, movementX, movementY }, clockMs += afterMs),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
@@ -478,7 +478,7 @@ describe("Actions: skills", () => {
     assert.equal(settings.got.length, 0);
   });
 
-  test("under the chant only a dodge and its way reach the fight: nothing guards, attacks or casts a page", () => {
+  test("under the chant only a dodge and its way reach the fight: nothing aims, attacks or casts a page", () => {
     const { actions, press, move } = setup("battle", "chant");
     press("KeyW");
     press("KeyU");
@@ -715,27 +715,31 @@ describe("Actions: the mouse", () => {
   });
 });
 
-const FLICKS: [number, number, GuardSide | null][] = [[-1, 0, "left"], [0, -1, "top"], [1, 0, "right"], [0, 1, null]];
 const FAR = FLICK.distancePx;
 
-describe("Actions: the mouse moves the guard and attacks", () => {
-  test("a quick move left, up or right moves the guard there; down does nothing; it snaps to the nearest", () => {
-    for (const [x, y, side] of FLICKS) {
-      const { guard, move } = setup();
+describe("Actions: the mouse aims and attacks", () => {
+  test("a flick aims eight ways: the side it moves toward, the nearest of them", () => {
+    const flicks = [
+      [-1, 0, "lr"], [1, 0, "rl"], [0, -1, "tb"], [0, 1, "bt"], [-1, -1, "tlbr"], [1, -1, "trbl"], [-1, 1, "bltr"],
+      [1, 1, "brtl"],
+    ] as const;
+    for (const [x, y, way] of flicks) {
+      const { aim, move } = setup();
       move(x * FAR / 2, y * FAR / 2);
       move(x * FAR / 2, y * FAR / 2);
-      assert.equal(guard(), side ?? "top", `${x},${y}`);
+      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, `${x},${y}`);
     }
-    const { guard, move } = setup();
-    move(-FAR, -FAR * 0.8);
-    assert.equal(guard(), "left", "39° above level is still left");
   });
 
-  test("the guard keys do the same: U left, I top, O right", () => {
-    for (const [key, side] of [["KeyU", "left"], ["KeyI", "top"], ["KeyO", "right"]] as const) {
-      const { guard, press } = setup();
+  test("U I O / J L / M , . aim from their side of the grid: the swing goes from there across", () => {
+    const grid = [
+      ["KeyU", "tlbr"], ["KeyI", "tb"], ["KeyO", "trbl"], ["KeyJ", "lr"], ["KeyL", "rl"], ["KeyM", "bltr"],
+      ["Comma", "bt"], ["Period", "brtl"],
+    ] as const;
+    for (const [key, way] of grid) {
+      const { aim, press } = setup();
       press(key);
-      assert.equal(guard(side === "top" ? "left" : "top"), side, key);
+      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, key);
     }
   });
 
@@ -747,152 +751,25 @@ describe("Actions: the mouse moves the guard and attacks", () => {
     assert.equal(attack(), "heavy");
   });
 
-  test("left Shift guard breaks, a tap shorter than a step too", () => {
+  test("K stabs, left Shift blocks (a tap shorter than a step too), G kicks; the aim goes with them", () => {
     const { read, press, release } = setup();
-    press("ShiftLeft");
-    release("ShiftLeft");
-    assert.equal(read().guardBreak, true);
-    assert.equal(read().guardBreak, false);
-    press("ShiftLeft");
-    assert.equal(read().guardBreak, true, "held");
-  });
-
-  test("small or slow movement never flicks", () => {
-    const { guards, move } = setup();
-    move(FAR - 1, 0);
-    for (let i = 0; i < 20; i++) move(FAR / 4, 0, i === 0 ? FLICK.windowMs : FLICK.windowMs / 3);
-    assert.deepEqual(guards(), []);
-  });
-
-  test("one long sweep, however long, is one flick", () => {
-    const { guards, move } = setup();
-    for (let i = 0; i < 40; i++) move(FAR / 4, i % 3 === 0 ? 2 : 0, 8);
-    assert.deepEqual(guards(), ["guardRight"]);
-  });
-
-  test("turning back at once flicks the other way, with no pause needed", () => {
-    const { guards, move } = setup();
-    move(FAR, 0);
-    move(-FAR / 2, 0);
-    move(-FAR / 2, 0);
-    assert.deepEqual(guards(), ["guardRight", "guardLeft"]);
-  });
-
-  test("after a rest, a move the same way flicks again", () => {
-    const { guards, move } = setup();
-    move(FAR, 0);
-    move(FAR, 0, FLICK.restMs + 1);
-    assert.deepEqual(guards(), ["guardRight", "guardRight"]);
-  });
-
-  test("the sensitivity scales the distance", () => {
-    const { guards, move, mouseSettings } = setup();
-    mouseSettings.setFlickSensitivity(2);
-    move(FAR / 2, 0);
-    assert.deepEqual(guards(), ["guardRight"]);
-    mouseSettings.setFlickSensitivity(0.5);
-    move(0, -FAR, FLICK.restMs + 1);
-    assert.deepEqual(guards(), []);
-    move(0, -FAR);
-    assert.deepEqual(guards(), ["guardTop"]);
-  });
-
-  test("a middle-button drag turns the camera and never flicks", () => {
-    const { actions, guards, move, click, unclick } = setup();
-    click(1);
-    move(FAR, 0);
-    unclick(1);
-    assert.deepEqual(guards(), []);
-    assert.deepEqual(actions.lookDelta(), { dx: FAR, dy: 0 });
-  });
-
-  test("only in the arena, with nothing over it", () => {
-    for (const layers of [["overworld"], ["battle", "settings"], ["overworld", "bag"]] as Layer[][]) {
-      const { actions, guards, move } = setup(...layers);
-      move(FAR, 0);
-      actions.setLayers(["battle"]);
-      assert.deepEqual(guards(), [], layers.join());
-    }
-  });
-
-  test("a flick and a key in one tick: the later of the two", () => {
-    const { guard, press, move } = setup();
-    move(FAR, 0);
-    press("KeyU");
-    assert.equal(guard(), "left");
-    const other = setup();
-    other.press("KeyU");
-    other.move(FAR, 0);
-    assert.equal(other.guard(), "right");
-  });
-
-  test("a flick is in one poll only", () => {
-    const { guards, move } = setup();
-    move(FAR, 0);
-    assert.deepEqual(guards(), ["guardRight"]);
-    assert.deepEqual(guards(), []);
-  });
-});
-
-describe("Actions: a hybrid fight", () => {
-  const hybrid = () => {
-    const s = setup();
-    s.actions.setCombatStyle("hybrid");
-    const aim = (was: SwingDir = "tb") => pickedWay(s.actions.poll(), was);
-    const readHybrid = () => {
-      const input = copyInput(IDLE_INPUT);
-      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr" }, input);
-      return input;
-    };
-    return { ...s, aim, readHybrid };
-  };
-
-  test("U I O / J L / M , . aim from their side of the grid: the swing goes from there across", () => {
-    const grid = [
-      ["KeyU", "tlbr"], ["KeyI", "tb"], ["KeyO", "trbl"], ["KeyJ", "lr"], ["KeyL", "rl"], ["KeyM", "bltr"],
-      ["Comma", "bt"], ["Period", "brtl"],
-    ] as const;
-    for (const [key, way] of grid) {
-      const { aim, press } = hybrid();
-      press(key);
-      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, key);
-    }
-  });
-
-  test("a flick aims eight ways: the side it moves toward, the nearest of them", () => {
-    const flicks = [
-      [-1, 0, "lr"], [1, 0, "rl"], [0, -1, "tb"], [0, 1, "bt"], [-1, -1, "tlbr"], [1, -1, "trbl"], [-1, 1, "bltr"],
-      [1, 1, "brtl"],
-    ] as const;
-    for (const [x, y, way] of flicks) {
-      const { aim, move } = hybrid();
-      move(x * FAR, y * FAR);
-      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, `${x},${y}`);
-    }
-  });
-
-  test("K stabs, the clicks attack, left Shift blocks (a tap shorter than a step too), G kicks", () => {
-    const { readHybrid, press, release, click } = hybrid();
     press("KeyK");
-    assert.equal(readHybrid().attack, "stab");
-    click(0);
-    assert.equal(readHybrid().attack, "light");
+    assert.equal(read().attack, "stab");
     press("ShiftLeft");
     release("ShiftLeft");
-    const tapped = readHybrid();
-    assert.equal(tapped.block, true);
-    assert.equal(tapped.guardBreak, false, "not For Honor's guard break");
+    assert.equal(read().block, true);
     press("ShiftLeft");
-    assert.equal(readHybrid().block, true, "held");
+    assert.equal(read().block, true, "held");
     release("ShiftLeft");
-    assert.equal(readHybrid().block, false);
+    assert.equal(read().block, false);
     press("KeyG");
-    assert.equal(readHybrid().kick, true);
-    assert.equal(readHybrid().way, "lr");
+    const kicked = read();
+    assert.equal(kicked.kick, true);
+    assert.equal(kicked.way, "lr");
   });
 
   test("the scroll wheel stabs, once per turn of it however many events it sends", () => {
-    const { readHybrid, canvas } = hybrid();
+    const { read, canvas } = setup();
     const wheel = (atMs: number) => {
       const event = Object.assign(new Event("wheel", { cancelable: true }), { deltaY: 40 });
       Object.defineProperty(event, "timeStamp", { value: atMs });
@@ -901,20 +778,87 @@ describe("Actions: a hybrid fight", () => {
     wheel(1000);
     wheel(1020);
     wheel(1040);
-    assert.equal(readHybrid().attack, "stab");
-    assert.equal(readHybrid().attack, null);
+    assert.equal(read().attack, "stab");
+    assert.equal(read().attack, null);
     wheel(1060);
-    assert.equal(readHybrid().attack, null, "still the same turn");
+    assert.equal(read().attack, null, "still the same turn");
     wheel(2000);
-    assert.equal(readHybrid().attack, "stab");
+    assert.equal(read().attack, "stab");
   });
 
-  test("For Honor's keys don't aim, and the hybrid's don't guard", () => {
-    const { actions, aim, press } = hybrid();
+  test("small or slow movement never flicks", () => {
+    const { aims, move } = setup();
+    move(FAR - 1, 0);
+    for (let i = 0; i < 20; i++) move(FAR / 4, 0, i === 0 ? FLICK.windowMs : FLICK.windowMs / 3);
+    assert.deepEqual(aims(), []);
+  });
+
+  test("one long sweep, however long, is one flick", () => {
+    const { aims, move } = setup();
+    for (let i = 0; i < 40; i++) move(FAR / 4, i % 3 === 0 ? 2 : 0, 8);
+    assert.deepEqual(aims(), ["aimRight"]);
+  });
+
+  test("turning back at once flicks the other way, with no pause needed", () => {
+    const { aims, move } = setup();
+    move(FAR, 0);
+    move(-FAR / 2, 0);
+    move(-FAR / 2, 0);
+    assert.deepEqual(aims(), ["aimRight", "aimLeft"]);
+  });
+
+  test("after a rest, a move the same way flicks again", () => {
+    const { aims, move } = setup();
+    move(FAR, 0);
+    move(FAR, 0, FLICK.restMs + 1);
+    assert.deepEqual(aims(), ["aimRight", "aimRight"]);
+  });
+
+  test("the sensitivity scales the distance", () => {
+    const { aims, move, mouseSettings } = setup();
+    mouseSettings.setFlickSensitivity(2);
+    move(FAR / 2, 0);
+    assert.deepEqual(aims(), ["aimRight"]);
+    mouseSettings.setFlickSensitivity(0.5);
+    move(0, -FAR, FLICK.restMs + 1);
+    assert.deepEqual(aims(), []);
+    move(0, -FAR);
+    assert.deepEqual(aims(), ["aimTop"]);
+  });
+
+  test("a middle-button drag turns the camera and never flicks", () => {
+    const { actions, aims, move, click, unclick } = setup();
+    click(1);
+    move(FAR, 0);
+    unclick(1);
+    assert.deepEqual(aims(), []);
+    assert.deepEqual(actions.lookDelta(), { dx: FAR, dy: 0 });
+  });
+
+  test("only in the arena, with nothing over it", () => {
+    for (const layers of [["overworld"], ["battle", "settings"], ["overworld", "bag"]] as Layer[][]) {
+      const { actions, aims, move } = setup(...layers);
+      move(FAR, 0);
+      actions.setLayers(["battle"]);
+      assert.deepEqual(aims(), [], layers.join());
+    }
+  });
+
+  test("a flick and a key in one tick: the later of the two", () => {
+    const { aim, press, move } = setup();
+    move(FAR, 0);
     press("KeyU");
-    assert.equal(aim("tb"), "tlbr");
-    actions.setCombatStyle("for-honor");
-    press("KeyJ");
-    assert.equal(aim("tb"), "tb", "J does nothing in a For Honor fight");
+    assert.equal(aim(), "tlbr");
+    const other = setup();
+    other.press("KeyU");
+    other.move(FAR, 0);
+    assert.equal(other.aim(), "rl");
+  });
+
+  test("a flick is in one poll only", () => {
+    const { aims, move } = setup();
+    move(FAR, 0);
+    assert.deepEqual(aims(), ["aimRight"]);
+    assert.deepEqual(aims(), []);
   });
 });

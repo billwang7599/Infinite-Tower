@@ -97,13 +97,12 @@ describe("syncSettings", () => {
     settings.mouse.setAutoLock(false);
     settings.hud.setShowPing(false);
     settings.audio.setVolume("ambient", 0.4);
-    settings.combat.setStyle("hybrid");
     t.mock.timers.tick(LATER_MS);
     const expected = {
       t: "settings",
       settings: {
         bindings: { battle: { jump: ["Space", "KeyX"] } }, camera: { sensitivity: 2 }, mouse: { autoLock: false },
-        hud: { showPing: false }, audio: { ambient: 0.4 }, combat: { style: "hybrid" },
+        hud: { showPing: false }, audio: { ambient: 0.4 },
       },
     };
     assert.deepEqual(net.sent, [expected]);
@@ -117,7 +116,7 @@ describe("syncSettings", () => {
     settings.camera.reset();
     t.mock.timers.tick(LATER_MS);
     assert.deepEqual(net.sent.at(-1), {
-      t: "settings", settings: { bindings: {}, camera: {}, mouse: {}, hud: {}, audio: {}, combat: {} },
+      t: "settings", settings: { bindings: {}, camera: {}, mouse: {}, hud: {}, audio: {} },
     });
   });
 

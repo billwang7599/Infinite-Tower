@@ -51,12 +51,12 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK, "and let go after");
   });
 
-  test("a late guard break is kept, as a press is", () => {
+  test("a late kick is kept, as a press is", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);
     takeRange(timeline, 1, 5);
-    timeline.receive(7, [at(3, { ...WALK, guardBreak: true }), at(4, WALK)], 6);
-    assert.deepEqual(timeline.take(6), { ...WALK, guardBreak: true });
+    timeline.receive(7, [at(3, { ...WALK, kick: true }), at(4, WALK)], 6);
+    assert.deepEqual(timeline.take(6), { ...WALK, kick: true });
     assert.deepEqual(timeline.take(7), WALK);
   });
 
@@ -113,7 +113,7 @@ describe("InputTimeline", () => {
 
   test("a step it doesn't know yet repeats the player's input; silent for long, they stop moving", () => {
     const timeline = new InputTimeline();
-    const held: PlayerInputData = { ...WALK, aimX: 1, aimZ: 0, attack: "light", guard: "left" };
+    const held: PlayerInputData = { ...WALK, aimX: 1, aimZ: 0, attack: "light", way: "lr" };
     timeline.receive(1, [at(1, held)], 0);
     timeline.take(1);
     const guessed = takeRange(timeline, 2, 2 + SILENT_STOP_STEPS - 1);

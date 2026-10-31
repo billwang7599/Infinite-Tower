@@ -1,6 +1,6 @@
 import { Body, LocalPlayer, weaponItemIn, Wielder, type Entity, type Vec3, type World } from "@infinite-tower/shared";
 import type { ArenaScene } from "./scene.js";
-import { swingCut, WEAPON_LOOKS, type Cut } from "./weapons.js";
+import { WEAPON_LOOKS, wayCut, type Cut } from "./weapons.js";
 
 export const JOLT_M = 0.18;
 const JOLT_MS = 140;
@@ -12,7 +12,7 @@ const SPARK_UP_M = 0.3;
 export const PARRY_HIT_STOP_MS = 140;
 const PARRY_BOUNCE_M = 0.3;
 const PARRY_BOUNCE_MS = 220;
-const GRAB_HIT_STOP_MS = 70;
+const SHOVE_HIT_STOP_MS = 70;
 const BROKEN_JOLT_M = 0.35;
 const BROKEN_JOLT_MS = 200;
 
@@ -46,7 +46,7 @@ export function strike(scene: ArenaScene, world: World, by: Entity, target: Enti
   const ahead = levelUnit(eye, at), right = { x: ahead.z, y: 0, z: -ahead.x };
   const away = levelUnit(world.require(by, Body).pos, world.require(target, Body).pos);
   const swing = world.get(by, Wielder)?.swing;
-  const push = joltOf(swing ? swingCut(swing, !world.has(by, LocalPlayer)) : null, away, right);
+  const push = joltOf(swing ? wayCut(swing.way, !world.has(by, LocalPlayer)) : null, away, right);
   scene.impacts.set(by, { ageMs: 0, stopMs, push: STILL, pushMs: 0 });
   scene.impacts.set(target, { ageMs: 0, stopMs, push, pushMs: JOLT_MS });
 }
@@ -71,11 +71,11 @@ export function parried(scene: ArenaScene, world: World, parrier: Entity, attack
   scene.skills.bursts.parry(meeting(a, p));
 }
 
-export function grabbed(scene: ArenaScene, world: World, by: Entity, target: Entity, broken: boolean): void {
+export function shoved(scene: ArenaScene, world: World, by: Entity, target: Entity, broken: boolean): void {
   const t = world.require(target, Body).pos, away = levelUnit(world.require(by, Body).pos, t);
   if (!broken) {
-    scene.impacts.set(by, { ageMs: 0, stopMs: GRAB_HIT_STOP_MS, push: STILL, pushMs: 0 });
-    scene.impacts.set(target, { ageMs: 0, stopMs: GRAB_HIT_STOP_MS, push: STILL, pushMs: 0 });
+    scene.impacts.set(by, { ageMs: 0, stopMs: SHOVE_HIT_STOP_MS, push: STILL, pushMs: 0 });
+    scene.impacts.set(target, { ageMs: 0, stopMs: SHOVE_HIT_STOP_MS, push: STILL, pushMs: 0 });
     return;
   }
   const push = { x: away.x * BROKEN_JOLT_M, y: 0, z: away.z * BROKEN_JOLT_M };

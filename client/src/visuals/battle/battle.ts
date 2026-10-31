@@ -193,7 +193,7 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
       drawPiles();
 
       const lock = ctx.battle.lock;
-      ring.frame(world, lock, ctx.battle.fight?.style === "hybrid");
+      ring.frame(world, lock);
       const body = lock === null ? undefined : world.get(lock, Body);
       marker.setEnabled(body !== undefined);
       if (!body) return;

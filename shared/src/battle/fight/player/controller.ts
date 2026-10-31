@@ -12,16 +12,16 @@ import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec } from "../../stats.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
-import { COMBAT, weaponIn } from "../../../weapons/weapons.js";
+import { weaponIn } from "../../../weapons/weapons.js";
 import { breakOff } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { statusMoveFactor } from "../skills/statuses.js";
-import type { Style, SwordTurn } from "../styles/styles.js";
 import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
+import { attackOrBlock, readSword, startKick, type SwordTurn } from "./sword.js";
 
 const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
-const STUNNED: readonly PlayerAction[] = ["recoil", "stagger", "grabbed"];
+const STUNNED: readonly PlayerAction[] = ["stagger"];
 const STILL: readonly PlayerAction[] = ["none", "chant", "write", "bag", "use"];
 
 export function startAction(
@@ -75,17 +75,15 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
  * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks go where the player aims (the
  * camera's facing, or the locked enemy); a dodge goes where they move, or backwards standing still.
  */
-export function playerControllerSystem(targets: readonly Entity[], events: FightEvent[], style: Style): System {
+export function playerControllerSystem(targets: readonly Entity[], events: FightEvent[]): System {
   return (world, dt) => {
     for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats, Wielder, Skilled)) {
-      controlPlayer(world, e, dt, targets, events, style);
+      controlPlayer(world, e, dt, targets, events);
     }
   };
 }
 
-function controlPlayer(
-  world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[], style: Style,
-): void {
+function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[]): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
   const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
@@ -95,9 +93,9 @@ function controlPlayer(
 
   const swing = wielder.swing, locked = swing !== null && swing.step < swing.liveUntil;
   const weapon = weaponIn(wielder.hands), skillbook = heldIn(wielder.hands, "skillbook") !== null;
-  const stunned = !alive || health.hitstun > 0 || player.action === "grabbed";
+  const stunned = !alive || health.hitstun > 0;
   const turn: SwordTurn = { world, e, dt, events, player, input, wielder, stamina, weapon, stunned, free: false };
-  style.read(turn);
+  readSword(turn);
   const dodgePressed = input.dodge && !player.dodgeHeld;
   const castPressed = input.cast !== null && !skilled.held;
   if (dodgePressed) player.dodgeBuffer = PLAYER.inputBuffer;
@@ -161,7 +159,7 @@ function controlPlayer(
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
       endChain(wielder);
-    } else if (style.first(turn)) {
+    } else if (startKick(turn)) {
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
       && stamina.value >= skillCost(queuedCast)) {
       startCast(world, e, queuedCast);
@@ -189,7 +187,7 @@ function controlPlayer(
       startAction(world, e, player, "bag", input.aimX, input.aimZ);
       endChain(wielder);
     } else {
-      style.last(turn);
+      attackOrBlock(turn);
     }
 
     const t = player.actionTime, dir = player.actionDir;
@@ -197,9 +195,9 @@ function controlPlayer(
       case "attack": {
         const swing = wielder.swing;
         if (swing && bladeLive(swing)) {
-          v.x = dir.x * COMBAT.lungeSpeed;
-          v.z = dir.z * COMBAT.lungeSpeed;
-        } else shuffle(input, v, dt, walkSpeed * COMBAT.moveFactor);
+          v.x = dir.x * HYBRID.swinging.lungeSpeed;
+          v.z = dir.z * HYBRID.swinging.lungeSpeed;
+        } else shuffle(input, v, dt, walkSpeed * HYBRID.swinging.moveFactor);
         if (!swing || swing.step >= swing.endAt) player.action = "none";
         break;
       }
@@ -219,7 +217,6 @@ function controlPlayer(
         player.actionDir = { x: input.aimX, z: input.aimZ };
         shuffle(input, v, dt, walkSpeed * HYBRID.block.moveFactor);
         break;
-      case "grab":
       case "kick":
       case "chant":
       case "write":

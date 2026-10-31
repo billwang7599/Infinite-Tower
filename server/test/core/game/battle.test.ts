@@ -146,16 +146,6 @@ describe("starting a battle", () => {
     assert.equal(link.last("encounter").setup.players[0]!.burden, "heavy");
   });
 
-  test("is fought in the player's combat style (settings), For Honor when they've picked none", () => {
-    for (const style of ["hybrid", "for-honor", undefined] as const) {
-      const settings = style ? { combat: { style } } : {};
-      const { session, link } = startSession({ dev: true, saved: { settings } });
-      session.cheat({ kind: "encounter", enemy: "kobold-swordsman" });
-      assert.equal(link.last("encounter").setup.style, style ?? "for-honor");
-      assert.equal(fightOf(session).style, style ?? "for-honor");
-    }
-  });
-
   test("touching the overworld boar starts a battle against it", () => {
     const { session, link } = startSession();
     const { boar, pos } = findBoar(session);

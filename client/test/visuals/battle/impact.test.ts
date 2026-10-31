@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { ITEMS, WEAPONS, type Vec3, type WeaponId } from "@infinite-tower/shared";
 import { impactPose, JOLT_M, joltOf, type Impact } from "../../../src/visuals/battle/impact.js";
-import { cutOf, WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
+import { wayCut, WEAPON_LOOKS } from "../../../src/visuals/battle/weapons.js";
 
 const len = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
 const AWAY = { x: 0, y: 0, z: 1 }, RIGHT = { x: 1, y: 0, z: 0 };
@@ -35,8 +35,8 @@ describe("hit-stop", () => {
 
 describe("the jolt of a hit", () => {
   test("goes away from the attacker and the way the cut went across the screen", () => {
-    const lr = joltOf(cutOf("light", "left"), AWAY, RIGHT), rl = joltOf(cutOf("light", "right"), AWAY, RIGHT);
-    const tb = joltOf(cutOf("light", "top"), AWAY, RIGHT);
+    const lr = joltOf(wayCut("lr"), AWAY, RIGHT), rl = joltOf(wayCut("rl"), AWAY, RIGHT);
+    const tb = joltOf(wayCut("tb"), AWAY, RIGHT);
     assert.ok(lr.x > 0 && lr.z > 0, `lr ${JSON.stringify(lr)}`);
     assert.ok(rl.x < 0 && rl.z > 0, `rl ${JSON.stringify(rl)}`);
     assert.ok(tb.y < 0 && Math.abs(tb.x) < 1e-9, `tb ${JSON.stringify(tb)}`);

@@ -1,6 +1,6 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
+  ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy,
   Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject,
   Stamina, staminaMaxOf, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
@@ -55,13 +55,8 @@ export const BOAR: EnemyDef = {
 };
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
-  triggerDist: 3, windup: 0.3, chainWindup: 0.3, speed: 0, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
-  cooldown: 99, firstDelay: 0,
-  hybrid: {
-    windupTime: 0.6, chainWindupTime: 0.4, recoverTime: 0.8, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99,
-    kickChance: 0,
-  },
-  ...over,
+  triggerDist: 3, windup: 0.6, chainWindup: 0.4, speed: 0, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
+  cooldown: 99, firstDelay: 0, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99, kickChance: 0, ...over,
 });
 
 export const SWORDSMAN: EnemyDef = {
@@ -93,19 +88,11 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, guardBreak: false,
-  way: null, block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null,
-  locked: null, bag: false, gear: null, use: null,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null, block: false, kick: false,
+  cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
+  use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
-
-export function busyHybrid(step: number): PlayerInputData {
-  return input({
-    ...busy(step), guard: null, way: SWING_DIRS[Math.floor(step / 13) % SWING_DIRS.length]!,
-    attack: step % 9 < 2 ? STRIKES[Math.floor(step / 9) % STRIKES.length]! : null,
-    block: step % 71 > 50, kick: step % 59 === 3,
-  });
-}
 
 /** Steps `seconds` of fight, the one player giving `next(step)` each step. */
 export function run(fight: Fight, seconds: number, next: (step: number) => PlayerInputData = () => IDLE): void {
@@ -159,16 +146,16 @@ export function dumpState(fight: Fight): string {
 
 /**
  * A busy player that only looks at the step number, so two fights get the same inputs whatever happens in them:
- * turning, running in every direction (into the wall too: the arena is small), every attack in turn from every side,
- * locking on and off, dodging and jumping.
+ * turning, running in every direction (into the wall too: the arena is small), every strike in turn from every way,
+ * blocking and kicking, locking on and off, dodging and jumping.
  */
 export function busy(step: number): PlayerInputData {
   const turn = step * 0.05, run = Math.floor(step / 40) * 1.3;
   return input({
     aimX: Math.round(Math.sin(turn) * 1000) / 1000, aimZ: Math.round(Math.cos(turn) * 1000) / 1000,
     moveX: Math.round(Math.sin(run) * 1000) / 1000, moveZ: Math.round(Math.cos(run) * 1000) / 1000,
-    attack: step % 9 < 2 ? ATTACK_KINDS[Math.floor(step / 9) % ATTACK_KINDS.length]! : null,
-    dodge: step % 47 === 0, jump: step % 83 < 10,
-    locked: step % 101 > 30 ? 0 : null, guard: GUARD_SIDES[Math.floor(step / 23) % GUARD_SIDES.length]!,
+    attack: step % 9 < 2 ? STRIKES[Math.floor(step / 9) % STRIKES.length]! : null,
+    way: SWING_DIRS[Math.floor(step / 13) % SWING_DIRS.length]!, block: step % 71 > 50, kick: step % 59 === 3,
+    dodge: step % 47 === 0, jump: step % 83 < 10, locked: step % 101 > 30 ? 0 : null,
   });
 }

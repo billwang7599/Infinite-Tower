@@ -62,7 +62,7 @@ describe("the core's stats in a fight", () => {
       run(fight, 0.2);
       const e = fight.enemies[0]!;
       for (let i = 0; i < 120 && fight.world.require(e, Enemy).state !== "staggered"; i++) {
-        fight.step([input({ attack: i === 0 ? "light" : null, guard: "top", locked: 0 })]);
+        fight.step([input({ attack: i === 0 ? "light" : null, locked: 0 })]);
       }
       return fight.world.require(e, Enemy).duration;
     };

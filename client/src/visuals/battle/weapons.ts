@@ -1,6 +1,6 @@
 import {
-  clamp, isSwing, mirrorSide, mirrorWay, SCREEN_DIR, WEAPONS, type AttackKind, type GuardSide, type SwingData,
-  type Vec3, type Way, type WeaponId, type WeaponKind,
+  clamp, isSwing, mirrorWay, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
+  type WeaponKind,
 } from "@infinite-tower/shared";
 
 const LIVE_FRAME_TURN = 0.25;
@@ -10,15 +10,6 @@ const TRAIL_GROW_TURN = 0.45;
 
 export interface Cut { x: number; y: number }
 
-const D = Math.SQRT1_2;
-const CUTS: Record<AttackKind, Record<GuardSide, Cut>> = {
-  light: { left: { x: 1, y: 0 }, top: { x: 0, y: -1 }, right: { x: -1, y: 0 } },
-  heavy: { left: { x: D, y: -D }, top: { x: 0, y: -1 }, right: { x: -D, y: -D } },
-};
-
-export const cutOf = (attack: AttackKind, side: GuardSide, facing = false): Cut =>
-  CUTS[attack][facing ? mirrorSide(side) : side];
-
 const STAB_CUT: Cut = { x: 0, y: 0 };
 
 export function wayCut(way: Way, facing = false): Cut {
@@ -26,8 +17,6 @@ export function wayCut(way: Way, facing = false): Cut {
   return isSwing(seen) ? SCREEN_DIR[seen] : STAB_CUT;
 }
 
-export const swingCut = (swing: Pick<SwingData, "attack" | "side" | "way">, facing = false): Cut =>
-  swing.way ? wayCut(swing.way, facing) : cutOf(swing.attack, swing.side, facing);
 
 export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
   const { step, driveAt, liveAt, liveUntil, endAt } = swing;
@@ -69,7 +58,7 @@ function trailPose(swing: SwingData | null): TrailPose | null {
   const { turn, follow } = strokeOf(swing);
   if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
   return {
-    ...trailLine(swingCut(swing)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
+    ...trailLine(wayCut(swing.way)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
     visibility: 1 - follow * follow,
   };
 }
@@ -90,7 +79,7 @@ const GUARD_OUT = 0.8;
 const WINDUP_LEAN = 0.35;
 const STROKE_LEAN = 0.15;
 
-export const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
+const lerpBlade = (a: Vec3, b: Vec3, k: number): Vec3 => norm({
   x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k,
 });
 

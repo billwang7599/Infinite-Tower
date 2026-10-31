@@ -70,9 +70,10 @@ The sword fight's poses (`SWORD_POSES` in `battle.ts`, drawn in `moves.ts`, play
 have a few frames each, played in order: `drawBattle(look, pose, frame)`. Five swings, named for the way the blade
 moves on screen (`swing-tlbr`: top left to bottom right), each a wind-up, strike and follow-through: the lights across
 from either side and down from the top, the heavies cleaving down and across from either side (the top's heavy uses
-the light's); three guards of a frame each, the blade held up on the left, level over the head, or up on the right;
-a stagger; and a guard break's grab, the free hand reaching ahead and the sword held low. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is mirrored: the sword stays in the
-right hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
+the light's); three guards of a frame each (held while aiming from that side, and the top one while blocking), the
+blade held up on the left, level over the head, or up on the right; a stagger; and a grab (the kick), the free hand
+reaching ahead and the sword held low. A wind-up cocks the elbow, a follow-through straightens the arm. Nothing is
+mirrored: the sword stays in the right hand. Seen from behind and above, a blade pointing away is short and points up the screen, and what's in front of
 the body is hidden by it, so the strike shows the blade where it comes out beside the head; a frame's `swordLayer` puts
 the sword under the body (in front of the player) or over the head (the top guard). From the front what's in
 front of the body is over it: an arm across the chest shows, and a blade in front of the player is drawn over
