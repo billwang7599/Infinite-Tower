@@ -2,6 +2,7 @@
 import {
   addItem, blankSkillbook, emptyBag, PLAYER, SLOTS, starterEquipment, WORDS, type ItemId, type Stats, type Vitals,
 } from "@infinite-tower/shared";
+import { newStory } from "../game/story.js";
 import type { PlayerSave } from "../ports.js";
 
 export const PLAYER_STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
@@ -14,7 +15,7 @@ export const fullVitals = (stats: Stats): Vitals => ({ hp: PLAYER.maxHp, stamina
 /** A player the store has never saved. */
 export const newPlayer = (): PlayerSave => ({
   vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
-  equipment: starterEquipment(), skillbook: blankSkillbook(), level: null,
+  equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: null,
 });
 
 export function withStarterKit(save: PlayerSave): PlayerSave {

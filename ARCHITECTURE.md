@@ -54,7 +54,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save, tops it up with the starter kit
    (`withStarterKit`: every word, and each kit item not carried) and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages). With no
+   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages, the
+   questbook). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
    `character` message (only one: a character is kept for good); then it sends `level`.
@@ -278,18 +279,51 @@ main.ts
   it as a `gear`. A `moveItem` from the pile runs the shared `moveGear` on the overworld's pile as it is now (first come
   first served) and writes it back; `moveGear` puts nothing onto a pile. The pile closes with the bag (`closeBag`), on
   walking and when a fight starts.
-- **NPCs** are kept like enemies, by id (`NpcId`, `shared/src/world/layout.ts`): what one says is its file on the
-  server (`core/npcs/<id>.ts`, in `NPCS`), its name and look a folder on the client (`visuals/npcs/<id>/`, in
-  `NPC_LOOKS`), and a level only places it (`LevelLayout.npcs`: which, where, the way it faces), so the client knows
-  where each stands from the `level` message while the lines stay on the server until someone talks. The client puts
-  each in its world as an actor of kind `"npc"` with an `Npc` holding its id (`ActorMirror.enter`); the walker draws
-  it like another player from its `NPC_LOOKS` entry: the chibi in its look, its name over its head. Talking is
-  Interact on one in view (`inView`, as a pile; `interactionAt` picks it when it's the nearest thing in reach), which
-  sends `talk`; the session checks the NPC in view of its copy (`Overworld.npcInView`, with the slack) and answers
-  `dialogue` with its id and its `NPCS` lines. `game.ts` opens the dialogue box (`ui.dialogue`,
-  `ui/dialogue/Dialogue.tsx`) with the name and portrait from `NPC_LOOKS`. Its keys are a layer of their own
-  (`dialogue`), so you stand still while it's open: Enter, the interact key or a click go on a line, past the last one
-  it closes, and Esc closes it; a change of mode closes it too. Talking changes nothing.
+- **NPCs** are kept like enemies, by id (`NpcId`, `shared/src/world/layout.ts`): where one stands and what it says is
+  its file on the server (`core/npcs/<id>.ts`, in `NPCS`), its name and look a folder on the client
+  (`visuals/npcs/<id>/`, in `NPC_LOOKS`). An NPC is a list of `stops` (a level, a spot, the way it faces, a condition on
+  the story), each with its `talk` there: lines, each with a condition, and maybe an offer (`{ start: quest }` or `{
+  deliver: quest }`). For each player (`core/game/talk.ts`) it stands at its first stop whose condition holds
+  (`stopFor`, so the last stop has none) and says the first talk there that holds (so the last talk has none). Levels
+  don't place NPCs: the session fills the `level` message's `npcs` with the ones whose stop for this player is on that
+  level (`npcsOn`, as it enters one), so two players can see an NPC in different places; the lines stay on the server
+  until someone talks. The client puts each in its world as an actor of kind `"npc"` with an `Npc` holding its id
+  (`ActorMirror.enter`); the walker draws it like another player from its `NPC_LOOKS` entry: the chibi in its look, its
+  name over its head. Talking is Interact on one in view (`inView`, as a pile; `interactionAt` picks it when it's the
+  nearest thing in reach), which sends `talk`; the session checks for one of the player's NPCs in view of its copy
+  (`Overworld.npcInView`, with the slack) and answers `dialogue` with its id, its lines and its offer, if the offer
+  stands (`dialogueOf`: a quest that can start; a handover on that quest's deliver step, with enough in the bag).
+  `game.ts` opens the dialogue box (`ui.dialogue`, `ui/dialogue/Dialogue.tsx`) with the name and portrait from
+  `NPC_LOOKS`. Its keys are a layer of their own (`dialogue`), so you stand still while it's open: Enter, the interact
+  key or a click go on a line (all through `game.interact`), past the last one it closes, and Esc closes it; a change of
+  mode closes it too. An offer shows with the last line, with Accept (or Hand over) and Not now; going on past the last
+  line takes it (`UiState.nextLine` returns it, `game.takeOffer` sends it).
+- **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
+  `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
+  (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
+  deliver, reach, talk, kill), the questbook's text and hint, and its `reward` (items, story flags, lore ids). Quests
+  hold no lines and name no giver: an NPC's talk offers them. Lore entries are one table by id. Each player's `Story`
+  (on the `GameSession`, saved with the player) is the step each quest taken is on, by its id (null once done), the
+  kills counted toward a kill step, and the flags set. One condition type, `When` (a flag, a quest on a step, a quest
+  done, a quest that can start), is checked by `holds` for quests, stops and talk alike. One function changes a story,
+  `unfold`: it applies the effects (`{ start }`: the first step; `{ advance }`: the step done, a deliver step taking its
+  items from the bag or refusing if short), then does every gather, reach or kill step the world already meets (`Seen`:
+  the level, where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its
+  reward (what doesn't fit is `dropped`) and each change is told (`news`). It's pure over a story, a bag and a quest
+  table (as are `holds`, `questbookOf`, `keptStory`, and `stopFor` and `dialogueOf` in `talk.ts`), so tests bring their
+  own quests and NPCs. A talk does each talk step to that NPC once, and a fight's kills count only toward the step they
+  began on. The session's side is `talkTo` in `talk.ts` (the dialogue as the story stood, then `{ advance }` for each
+  talk step to that NPC), `takeQuest` (`acceptQuest`: only the quest the dialogue of the NPC in view offers) and
+  `handOver` (`deliver`: only the handover it asks for), both through `progressStory`, which every tick on the overworld
+  (and in the arena after a win) also checks gather and reach steps, and `settleBattle` calls with a win's enemies.
+  Anything done or counted saves, leaves what didn't fit in a pile at the player's feet (`Overworld.dropPile`), sends
+  `gear` if it changed and `questbook`: `questbookOf` (only taken quests, open ones first: the step on with its hint and
+  a `Tally`, and the lore its done steps revealed) and the `news` (taken, a kill counted, a step done with what it
+  gave). Death doesn't touch the story. The client keeps the questbook in `ui.questbook` and tells each piece of news
+  with `say`; `QuestbookScreen` (`ui/screens/questbook/`) is a layer of its own (`questbook`, over either mode, like
+  Settings: you stand still, the world goes on), opened by J (the general action `questbook`) or the HUD's book; J, Esc
+  or × close it, and a change of mode does. An item step's tally is counted from the bag on the client (`tallyText`), a
+  kill step's is the server's.
 - **The arena after a win** (`core/game/battle.ts`): every `Battle` of a room shares its `ArenaDrops`: where the fight
   began (`home`), the piles lying in the arena with where (`ArenaPile`), and when it closes. As the room is won (its
   `onOver`), each enemy's drops are rolled once for the fight (`dropInArena`), whoever won, into a pile `DROP_GAP_M`
@@ -493,6 +527,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
 | `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the one in view beside the bag |
 | `talk` | Interact (or the HUD's "Talk") facing an NPC: the server checks it's in reach and in view |
+| `acceptQuest {quest}` | Accept (or going on past the last line) on a quest offer: only the quest the NPC in view offers |
+| `deliver {quest}` | Hand over on a handover offer: only what the NPC in view asks that quest's step for, with enough in the bag |
 | `saveSkill {page, skill}` | write a skill on a page of the skillbook, outside fights or after a win (mid-fight it's a `write` fight input); refused mid-battle, without the book in hand or with a word the player doesn't know |
 | `battleInput {upTo, inputs}` | in a fight, once a frame: each change of input with its step (a cast carries its skill on its first step only, and the chant its words when they change, either dropped by the server if the player doesn't know its words; a gear move its two spots, a use its bag cell), and the last step run |
 | `battleResync` | in a fight: your copy didn't match the server's hash; send the whole fight |
@@ -507,9 +543,9 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, `dev` |
+| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev` |
 | `character` | your character, as saved |
-| `level` | entering a level: its layout (what the client may see of it) and where you are |
+| `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you) and where you are |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
@@ -523,7 +559,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
 | `using` | `useItem` started using what's at `at` (its `useTime`, then `itemUsed`), or `at` null: it stopped, nothing used (the bag closed, a fight started) |
 | `rested`, `itemUsed` | what resting or eating did |
-| `dialogue` | after a `talk`: the NPC's id and what it says |
+| `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null |
+| `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
 | `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
@@ -588,10 +625,12 @@ round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
 equipment (items gone from the game or in the wrong slot are dropped on load), the skill words they know
-(`knownWords`) and the skillbook's 4 pages (`skillbook`, each a skill or null), keyed by account; words not in the
-shared `WORDS` are dropped on load, and so is a page that's no longer a skill of known words. The `GameSession` saves
-after every fight (the moment it's decided, or lost by leaving it), rest, item use and making a character, on
-disconnect, and within a second of a settings change, a move in the bag or a page written. The cloth and an open
+(`knownWords`), the skillbook's 4 pages (`skillbook`, each a skill or null) and the story (`story`, one `jsonb`: the
+quests taken and their steps by id, kills counted, flags), keyed by account; words not in the shared `WORDS` are
+dropped on load, and so is a page that's no longer a skill of known words, and a quest gone from `QUESTS` or on a step
+it no longer has (`keptStory`: forgotten, so it's offered again). The `GameSession` saves after every fight (the
+moment it's decided, or lost by leaving it), rest, item use, quest progress and making a character, on disconnect,
+and within a second of a settings change, a move in the bag or a page written. The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them).
 Position and level aren't saved (you start at the level's start), and stats aren't either (everyone has the same).
 
@@ -663,9 +702,25 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   client's is; opening one (in reach and looked at, not one behind or off to the side, the one nearest the way they
   face, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not
   opened, closing it (the bag, walking, a fight, its vanishing), and two players at one pile (each seeing the other's
-  take, the same item going to the first). NPCs (`talk.test.ts`, `npcs/index.test.ts`): talking to one in reach and
-  looked at (each with its slack, the way they last walked), not mid-fight, sending only its lines and changing
-  nothing; each with something to say, standing in a level, clear and once, and one by the start level's fire. The
+  take, the same item going to the first). NPCs (`talk.test.ts`, `npcs/index.test.ts`): sent with the level their stop
+  is on for the player and not another, talking to one in reach and looked at (each with its slack, the way they last
+  walked), not on another level, not mid-fight, with no step to it sending only its lines and changing nothing; with
+  NPCs the test owns, the stop it stands at and the talk said there, offers only while they stand; each real one always
+  standing somewhere (its last stop unconditional, every stop on a level) with something to say there (its last talk
+  unconditional), clear of solid tiles, and one by the start level's fire for a new player. The story engine
+  (`story.test.ts`, with quests the tests own): each condition, `start` and `advance` (told, rewards given once each,
+  what doesn't fit dropped, a deliver step's items taken or refused), each kind of step the world meets (gather kept,
+  reach on the level and in its area, kills of that kind counted across fights but not from before the step, one fight
+  doing one step, what's already true the next, talk and deliver waiting), nothing done giving the same objects, the
+  questbook (only taken quests, open first, tallies, lore from done steps), and what a save keeps (`keptStory`).
+  Hollis's quests through the session (`quests.test.ts`, numbers read from `QUESTS`): the offer after his lines,
+  accepting (told and saved; only from him in reach and in view, only what he offers, not mid-fight), gathering on the
+  tick, the handover (the items gone, the reward in, the next quest offered; refused with too few, for another quest or
+  out of reach), a reward that doesn't fit left at your feet, won fights counting kills (told each time), the talk step
+  (his lines for it, flags and lore), the story kept on death, and the questbook in `welcome`. The story's data
+  (`content/quests.test.ts`, `content/lore.test.ts`): step ids unique, real items, enemies, NPCs and levels, a quest
+  waiting only on one listed earlier, every condition naming real quests, steps and flags, every quest offered by
+  someone, a talk step's NPC with lines for it and a deliver step's asking for it, every lore entry revealed. The
   arena after a win
   (`arena-drops.test.ts`, and the room's and the joined battle's tests): the room running on for the winners (their
   inputs and hashes, no second result), leaving it no loss, freed when the last leaves, a loss or a duel freed at once,
@@ -694,7 +749,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   player's pose, sword trail and thrust, the boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, what Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
-  level's NPCs), the dialogue (a line at a time, closing after the last; its keys over either mode), the fight's
+  level's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
+  over either mode), the questbook (J in either mode, J and Esc only over it, a saved J keeping it unbound; its step
+  tallies), quest news' words, the fight's
   sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
@@ -790,8 +847,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom, nextRandom),
                    time.ts
-  world/           The tower's places. layout.ts (LevelLayout: what the client may see of a level, its floor, tile
-                   map, campfires and NPCs (PlacedNpc, by NpcId from NPC_IDS); moveWalker, the one collision rule, and
+  world/           The tower's places. layout.ts (LevelMap: what the client may see of a level, its floor, tile
+                   map and campfires; LevelLayout: a LevelMap as one player is sent it, with the NPCs standing there
+                   for them (PlacedNpc, by NpcId from NPC_IDS); moveWalker, the one collision rule, and
                    stepWalker on it for
                    prediction + replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES; Heading, START_HEADING,
                    HEADING_WAY and faceToward: the way a walker faces, turned by its moves on both sides), interact.ts
@@ -871,7 +929,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    planSwing: a swing from the blade's inertia; liveStep, stepsUntil; PARRY; GUARD)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
-                   MAX_CHAT_CHARS), handlers.ts
+                   MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
                    (Handlers<Msg> map + dispatch by `t`, the server's), api.ts (the HTTP API's types: username /
                    password rules, Credentials, AccountInfo, GameServer, ApiError), api-requests.ts (its Zod schemas;
                    server-only import), text-rules.ts (TextRules for the
@@ -901,7 +959,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        save, their walker in their level's overworld (`me`), the battle they're in; a method per
                        thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
                        nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
-                       rest; the pile they have open, followed every tick; `talk`, an NPC's NPCS lines; in the arena
+                       rest; the pile they have open, followed every tick; their `story`; `talk`, `acceptQuest`,
+                       `deliver` (talk.ts); in the arena
                        after a win (`afterFight`):
                        the drops sent as they change, and sent out when it closes; LAG_SLACK_TILES),
                        cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
@@ -919,6 +978,10 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        AFTER_FIGHT_MS, DROP_GAP_M), snapshot.ts (the state
                        message: only actors, other players and piles within VIEW_RADIUS_TILES, each player's
                        character sent once),
+                       story.ts (the story engine, for quests and NPCs: Story, newStory; When and holds; Effect,
+                       Seen and unfold; stepOn; questbookOf; keptStory; progressStory, the session's side),
+                       talk.ts (NPCs over the engine: stopFor, npcsOn, dialogueOf; the session's side: talkTo,
+                       takeQuest, handOver),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -932,7 +995,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
                        systems and spawner; dropPile, holdPile / landPile (an arena's), pileInView and npcInView
-                       (the one a player faces),
+                       (the one a player faces; npcInView among the NPCs placed for that player),
                        pileItems, setPileItems), components.ts
                        (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading, character and
                        whether they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
@@ -945,16 +1008,20 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
-                       layout, spawn point, spawns (each may name its own arenaId), encounter table, arenaId,
-                       duelArenaId, exits (ExitDef: edge tiles that take you to another level, and where you land);
-                       rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL, levelOrStart, getLevel, getArena)
-        floors/1/        Floor 1's levels, a file each: grass-field.ts (Hollis by the fire), mistwood.ts (tile map,
-                         spawns, exits, where its NPCs stand), and arenas.ts (the floor's ArenaDefs)
+                       layout (a LevelMap: no NPCs), spawn point, spawns (each may name its own arenaId), encounter
+                       table, arenaId, duelArenaId, exits (ExitDef: edge tiles that take you to another level, and
+                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL, levelOrStart,
+                       getLevel, getArena)
+        floors/1/        Floor 1's levels, a file each: grass-field.ts, mistwood.ts (tile map, campfires, spawns,
+                         exits), and arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
-      npcs/            One file per NPC, by its NpcId: hollis.ts (what it says). index.ts (Npc; NPCS, one line each)
-      content/         player.ts (PLAYER_STATS, STARTER_KIT, fullVitals, newPlayer, withStarterKit)
+      npcs/            One file per NPC, by its NpcId: hollis.ts (its stops: where it stands and what it says
+                       there, by the story). index.ts (Npc, Stop, Talk; NPCS, one line each)
+      content/         player.ts (PLAYER_STATS, STARTER_KIT, fullVitals, newPlayer, withStarterKit), quests.ts
+                       (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore entry, by
+                       id; LoreId)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1013,7 +1080,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      it to the game and the UI; `welcome` restores the player's, syncSettings sends each change
                      back), bindings.ts (ACTIONS: every action in general, overworld or battle, label, default
                      keys, fixed mouse buttons; MENUS: the title's, creation's, the bag's, the chant's, the
-                     skillbook's and the chat's fixed keys; KeyBindings:
+                     skillbook's, the chat's, the dialogue's and the questbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now; a new default on
                      a saved key is left unbound), camera.ts (CameraSettings: sensitivity, the
@@ -1038,19 +1105,23 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      front, in either hand, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
-                       banner, the fade between modes (game/transition.ts sets it), Settings, character creation, title
+                       banner, the fade between modes (game/transition.ts sets it), the questbook, Settings, character
+                       creation, title
                        screen (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as
                        a game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
                        `chant`, `battleBag`, `leaveArena`, `skillbookScreen`, `admin`, `challenge`, `chat` (open,
-                       focused, and the log: hearChat keeps the last CHAT_LOG_LINES) and `dialogue` (who's talking,
-                       their lines and the one shown: openDialogue, nextLine, closeDialogue) (the UI writes them too,
+                       focused, and the log: hearChat keeps the last CHAT_LOG_LINES), `dialogue` (who's talking,
+                       their lines and the one shown, the offer: openDialogue, nextLine (past the last line, the offer
+                       to take), closeDialogue) and `questbook` (open, the server's quests: toggleQuestbook,
+                       closeQuestbook) (the UI writes them too,
                        the game watches them;
                        `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
                        of the game: signIn, logOut, play, interact, leaveArena, challenge, answerChallenge, useItem,
-                       moveItem, castSkill, saveSkill, sendChat, saveCharacter, returnToTitle, cheat, setDayClock).
+                       moveItem, castSkill, saveSkill, sendChat, takeOffer, saveCharacter, returnToTitle, cheat,
+                       setDayClock).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -1075,12 +1146,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
                        box), layout.ts (the side panels' widths and the Rest button's place, which the notices keep
-                       clear of), icons.tsx, Ping.tsx (both HUDs' ping)
+                       clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
       chat/            Chat.tsx (the chat, bottom left in both modes: the log's last lines, or, open, all of it and
                        the field it's typed in; / opens it or focuses it again, Enter sends, Esc closes; unfocused,
                        the field is dimmed with "Press / to chat", the key read from the bindings)
       dialogue/        Dialogue.tsx (an NPC talking, bottom centre over the Interact button: its portrait, name and
-                       the line; Enter or a click goes on, Esc closes)
+                       the line, and with the last line an offer: Accept or Hand over, and Not now; Enter or a click
+                       goes on, Esc closes)
       skills/          chant.ts (ChantState with the kind being picked from; the carousel's rules: what the next
                        square takes, `choices` with why a known word doesn't fit, KINDS and kindOpen, `numbered` and
                        pickNumber (a kind, then its word, or a search's match), addWord, `back`, skillText),
@@ -1108,6 +1180,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          world.ts (tiles, tower, its shadow, crystals), light.ts (moon, the tower's own light,
                          glint, rim, fog into dark / light, tone map), path.ts (the camera through the sequence),
                          space.ts
+        questbook/       QuestbookScreen.tsx (the questbook over either mode: the main quest and side quests side
+                         by side, each quest's step, hint and tally, or done, and the lore it revealed; J, Esc or ×
+                         close it), tally.ts (tallyText: a step's "1 / 3", items counted in the bag)
         admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats; the time of day and its speed set
                          through `setDayClock`), admin.ts (its times, speeds and counts)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
@@ -1316,10 +1391,23 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `shared/src/battle/fight/behaviors/`, listed in `fight.ts`, its state in `fight/state.ts`. A new overworld
   behavior: component + factory + system in `server/src/core/overworld/behaviors/`.
 - **An NPC.** Its id in `NPC_IDS` (`shared/src/world/layout.ts`); a file named by it in `server/src/core/npcs/`
-  (its lines) and its line in `NPCS`; a folder named by it in `client/src/visuals/npcs/` (`look.ts`: its name and a
-  look from `LOOK_OPTIONS`) and its line in `NPC_LOOKS`; and where it stands in a level's `layout.npcs` (`{ npc, at,
-  heading }`). The tests check it has something to say, stands in a level, clear and walkable to; talking and drawing
-  it need nothing more.
+  (its `stops`, the last with no `when`, each `{ level, at, heading, talk }` with its talk there, the last with no
+  `when`) and its line in `NPCS`; a folder named by it in `client/src/visuals/npcs/` (`look.ts`: its name and a look
+  from `LOOK_OPTIONS`) and its line in `NPC_LOOKS`. The tests check it always stands somewhere with something to
+  say, clear and walkable to; placing, talking and drawing it need nothing more.
+- **An NPC moving on.** A stop above its old one in its file, with a condition (`when: { flag: ... }`, a flag a quest
+  step's reward sets) and its own talk; each player sees it at the first stop whose condition holds.
+- **A quest.** A row in `QUESTS` (`server/src/core/content/quests.ts`): its title, half, a `when` to start it (for a
+  chain, `{ done: <the one before> }`, listed earlier), and its steps, each with an `id` (saved with players: renaming
+  one forgets the quest for anyone on it), a `Task`, the questbook's text and hint (only what the NPC told) and its
+  `reward` (`items`, `flags`, `lore` ids). Then, in the NPC's file, at the stop where it's given: a talk `when: {
+  canStart: <quest> }` with `offer: { start: <quest> }`; a talk `when: { quest, step }` for each step that needs its
+  own words; on a deliver step, one with `offer: { deliver: <quest> }`; and on a talk step, the lines the NPC says as
+  it's done. The data tests check every item, enemy, NPC, level, condition and lore id is real, every quest is
+  offered, and every talk and deliver step has its NPC's lines. A new kind of task is a member of `Task`, a case in
+  `met` (`server/src/core/game/story.ts`, or `false` if an NPC does it) and, if it counts something, a `Tally`.
+- **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
+  that reveals it; the questbook lists it under that quest once the step is done.
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand), its row in `WEAPONS`
   (`shared/src/weapons/weapons.ts`: kind, length, damage, speed), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
@@ -1414,8 +1502,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back a Kobold draws its blade (and leans, turns and bends) before a swing or stab, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
 | Hit-stop by weapon; a parry's, the hit's jolt and a stopped blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
-| Levels: map, spawns, encounter tables, campfires, where NPCs stand, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
-| What an NPC says; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
+| Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
+| Where an NPC stands and what it says, by the story; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
+| Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's colour grade and camera (its turn time), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts` |

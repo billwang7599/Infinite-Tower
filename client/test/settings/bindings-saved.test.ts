@@ -6,6 +6,7 @@ const forward: ActionRef = { group: "general", action: "forward" };
 const back: ActionRef = { group: "general", action: "back" };
 const character: ActionRef = { group: "general", action: "character" };
 const inventory: ActionRef = { group: "general", action: "inventory" };
+const questbook: ActionRef = { group: "general", action: "questbook" };
 const interact: ActionRef = { group: "overworld", action: "interact" };
 const turnItem: ActionRef = { group: "overworld", action: "turnItem" };
 const useItem: ActionRef = { group: "overworld", action: "useItem" };
@@ -116,6 +117,18 @@ describe("KeyBindings saving", () => {
 });
 
 describe("KeyBindings saved before a new default key", () => {
+  test("J, the questbook's: a player who saved J on an action in any group keeps it, the questbook unbound", () => {
+    for (const saved of [{ battle: { dodge: ["KeyJ"] } }, { overworld: { interact: ["KeyJ"] } }]) {
+      const b = new KeyBindings();
+      b.restore(saved);
+      assert.deepEqual(keysOf(b.get(), questbook), [], JSON.stringify(saved));
+      assert.deepEqual(b.toSaved(), saved, "nothing else changes");
+    }
+    const b = new KeyBindings();
+    b.restore({ battle: { dodge: ["KeyG"] } });
+    assert.deepEqual(keysOf(b.get(), questbook), ["KeyJ"], "J free: the questbook has it");
+  });
+
   test("a general key saved on a new overworld default keeps it: that action is unbound, nothing else changes", () => {
     const b = new KeyBindings();
     b.restore({ general: { inventory: ["KeyT"], forward: ["KeyZ"] }, overworld: { interact: ["KeyV"] } });

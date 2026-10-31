@@ -9,7 +9,6 @@ import {
   type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { fullVitals, PLAYER_STATS } from "../content/player.js";
-import { NPCS } from "../npcs/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { levelOrStart } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
@@ -18,6 +17,8 @@ import type { Chat } from "./chat.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
 import { stateMsg } from "./snapshot.js";
+import { progressStory, questbookOf, type Story } from "./story.js";
+import { handOver, npcsOn, takeQuest, talkTo } from "./talk.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
@@ -56,6 +57,8 @@ export class GameSession {
   settings: SavedSettings;
   character: Character | null;
   skillbook: Skillbook;
+  /** Kept on death, like the words they know. */
+  story: Story;
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
   private held: Gear;
@@ -85,6 +88,7 @@ export class GameSession {
     this.gear = this.held;
     this.knownWords = saved.knownWords;
     this.skillbook = saved.skillbook;
+    this.story = saved.story;
     this.levelId = levelOrStart(saved.level);
   }
 
@@ -105,7 +109,7 @@ export class GameSession {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
-      chat: this.others.chat.recent(), dev: this.dev,
+      chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev,
     });
     if (this.character) this.enterLevel(this.levelId);
   }
@@ -238,9 +242,15 @@ export class GameSession {
   }
 
   talk(): void {
-    if (!this.inOverworld) return;
-    const npc = this.overworld.npcInView(this.me);
-    if (npc) this.link.send({ t: "dialogue", npc, lines: NPCS[npc].lines });
+    talkTo(this);
+  }
+
+  acceptQuest(quest: string): void {
+    takeQuest(this, quest);
+  }
+
+  deliver(quest: string): void {
+    handOver(this, quest);
   }
 
   closeBag(): void {
@@ -271,7 +281,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      level: this.levelId,
+      story: this.story, level: this.levelId,
     });
   }
 
@@ -319,6 +329,7 @@ export class GameSession {
       return;
     }
     this.tickUse();
+    progressStory(this);
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
   }
@@ -332,6 +343,7 @@ export class GameSession {
       return;
     }
     this.tickUse();
+    progressStory(this);
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     const piles = arenaPiles(battle.drops, this.overworld);
     if (piles === battle.shownDrops) return;
@@ -386,6 +398,7 @@ export class GameSession {
     this.levelId = id;
     this.introduced.clear();
     this.gear = this.held;
-    this.link.send({ t: "level", level: overworld.level.layout, me: overworld.playerPos(me) });
+    const level = { ...overworld.level.layout, npcs: npcsOn(id, this.story) };
+    this.link.send({ t: "level", level, me: overworld.playerPos(me) });
   }
 }

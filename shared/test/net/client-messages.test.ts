@@ -4,7 +4,7 @@ import {
   ATTACK_KINDS, DEFAULT_LOOK, MAX_INPUTS_PER_MESSAGE, MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES, SKILLBOOK_PAGES,
   type StepInput,
 } from "@infinite-tower/shared";
-import { MAX_GIVE_COUNT, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
+import { MAX_GIVE_COUNT, MAX_QUEST_ID_CHARS, parseClientMsg } from "@infinite-tower/shared/net/client-messages";
 
 const parse = (msg: unknown) => parseClientMsg(JSON.stringify(msg));
 const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = "boy") =>
@@ -44,6 +44,8 @@ describe("parseClientMsg", () => {
       { t: "moveItem", from: { in: "pile", x: 1, y: 2 }, to: { in: "bag", x: 0, y: 0 }, turned: false },
       { t: "openPile" },
       { t: "talk" },
+      { t: "acceptQuest", quest: "hollis-hides" },
+      { t: "deliver", quest: "hollis-hides" },
       { t: "closeBag" },
       { t: "saveSkill", page: 3, skill: { segments: [{ form: "bolt", elements: ["fire"], modifiers: ["swift"] }] } },
       { t: "cheat", cheat: { kind: "encounter", enemy: "kobold-swordsman" } },
@@ -242,6 +244,16 @@ describe("parseClientMsg", () => {
     for (const text of ["", "   ", 5, null]) assert.equal(parse({ t: "chat", text }), null, JSON.stringify(text));
     assert.equal(parse({ t: "chat" }), null);
     assert.deepEqual(parse({ t: "chat", text: "hi", from: "Admin" }), { t: "chat", text: "hi" }, "no name of its own");
+  });
+
+  test("acceptQuest and deliver: a quest's id, a short string (the server checks it's a quest)", () => {
+    for (const t of ["acceptQuest", "deliver"]) {
+      assert.equal(parse({ t }), null, t);
+      assert.equal(parse({ t, quest: "" }), null, t);
+      assert.equal(parse({ t, quest: 3 }), null, t);
+      assert.equal(parse({ t, quest: "x".repeat(MAX_QUEST_ID_CHARS + 1) }), null, t);
+      assert.ok(parse({ t, quest: "x".repeat(MAX_QUEST_ID_CHARS) }), t);
+    }
   });
 
   test("ping: its id is a whole number from 0", () => {

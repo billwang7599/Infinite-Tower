@@ -1,9 +1,24 @@
-import type { NpcId } from "@infinite-tower/shared";
+import type { Heading, NpcId, Vec2 } from "@infinite-tower/shared";
+import type { When } from "../game/story.js";
 import { HOLLIS } from "./hollis.js";
 
-export interface Npc {
-  /** Sent only when someone talks to them. */
+export interface Talk {
+  when?: When;
   lines: readonly string[];
+  offer?: { start: string } | { deliver: string };
+}
+
+export interface Stop {
+  when?: When;
+  level: string;
+  at: Vec2;
+  heading: Heading;
+  talk: readonly Talk[];
+}
+
+/** Each player sees an NPC at its first stop whose condition holds, saying the first talk there that holds. */
+export interface Npc {
+  stops: readonly Stop[];
 }
 
 export const NPCS: Record<NpcId, Npc> = {

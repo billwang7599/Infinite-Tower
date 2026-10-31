@@ -1,5 +1,5 @@
 /** A level. Only `layout` is sent to the client; the rest stays here so a player can't read or change it. */
-import type { EnemyId, LevelLayout, Rect, Vec2 } from "@infinite-tower/shared";
+import type { EnemyId, LevelMap, Rect, Vec2 } from "@infinite-tower/shared";
 
 export interface SpawnDef {
   enemy: EnemyId;
@@ -27,7 +27,7 @@ export interface ExitDef {
 }
 
 export interface LevelDef {
-  layout: LevelLayout;
+  layout: LevelMap;
   /** Where you appear when you enter, and wake up after losing a fight. */
   spawn: Vec2;
   arenaId: string;

@@ -207,7 +207,7 @@ Decided by the user:
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
   bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. B and Esc close it, and you
   stand still while it's open (the world doesn't pause).
-- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating) go in
+- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating, quest news) go in
   the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
   (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end, smaller and near the top). Messages
   wrap rather than run off screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
@@ -356,6 +356,29 @@ Decided by the user:
   who joins the last 50. A line is at most 500 characters, and a player at most 10 lines in 5 s; past either, the
   line is dropped and the sender told with a small notice (`MAX_CHAT_CHARS` in `shared/src/net/server-messages.ts`;
   the rest in `server/src/core/game/chat.ts`).
+
+- Quests: NPCs give them, and the story runs through chains of them. An NPC offers one at the end of what it says,
+  and you pick Accept or Not now; there are no other dialogue choices. A step asks you to gather (have N of an item),
+  deliver (hand N over, taken from the bag), go somewhere (a level, or an area of it), talk to someone, or kill N of
+  an enemy kind (counted from won fights). Rewards are items, story progress (flags) and lore entries only (no
+  essence or friendship yet). Each player's story is their own (no party sharing), kept on death like the words, and
+  saved with the player as one `jsonb` (`story`). The server decides all progress; the client only asks (accept,
+  deliver: Zod-checked) and draws.
+- The story is data run by one engine (the user: "a dialogue api, so what they say is just from the character data,
+  and also a quest thing, where it helps build the lore and quest"; "it might be simpler and more reasonable for the
+  npc to display dialogue based off of where they are + quest"). Quests are one table on the server
+  (`server/src/core/content/quests.ts`): named steps (saved by name) and what each gives (items, flags, lore ids), no
+  lines. Lore entries are one table by id (`server/src/core/content/lore.ts`). An NPC's own file
+  (`server/src/core/npcs/<id>.ts`) holds where it stands and what it says: its stops (a level and a spot, with a
+  condition on the story), each with its lines by the story (a quest's step, a quest that can start or is done, a
+  flag) and what they offer. The server places each NPC per player at its first stop that holds (two players may see
+  it in different places), and it says the first lines there that hold. One engine (`server/src/core/game/story.ts`)
+  checks the conditions and applies the effects for quests and NPCs alike.
+- The questbook is always yours (not a bag item, never lost), its own screen on J (a general key, so it opens in
+  the arena too; J was picked by the agent: journal, as in Skyrim and The Witcher). It has two halves: the main quest
+  (the main lore: the soul, the tower, the gods, the Maker) and side quests (side lore). Each quest shows its next
+  step and a hint (where to go, only as the NPC told you), and the lore it revealed is listed under it. It holds only
+  what your character has found out, revealed slowly, AQW-style. No map markers and no minimap.
 
 Decided by the agent while the user was away (the user asked for these to be decided and listed, and will review
 them; treat them as changeable, and still ask before deciding new ones):
@@ -513,16 +536,14 @@ them; treat them as changeable, and still ask before deciding new ones):
   everyone in it, and the fight can still be joined: every player in it has the crossed swords, not just the host.
   The joiner hears "You join <host>'s fight!" in the centre banner, the others "<name> joins the fight." in a corner.
 - The first NPC (the user: "make an npc ... use all your own judgement"): Hollis, a native of the tower who keeps the
-  Grass Field's campfire, standing about 3 tiles east of it, facing the fire. Talk only: Interact (E) or the HUD's
+  Grass Field's campfire, standing about 3 tiles east of it, facing the fire. Interact (E) or the HUD's
   "Talk", next to Hollis and looking at Hollis, by the same reach and look as a pile (`INTERACT_RANGE_M`,
-  `INTERACT_LOOK_RAD`; the server checks it with the same slack). Seven short lines, a line at a time: who avatars are
-  to the natives, resting at the fire, the soul leaking into beasts, the core's realms (Yan, Sol, Lux, Ling, Tian), what
-  dying costs (the lore's, not today's starter kit), the Kobolds in the ruins east of the river and the Mistwood's gap
-  to the east. Enter, E or a click go on, Esc closes, and you stand still while it's open (the world doesn't pause). No
-  shop, quests or rewards: talking changes nothing and isn't saved. The lines live on the server and come only when you
-  talk. NPCs are kept like enemies (the user: "their sprites and interaction and stuff should be saved like
-  monsters"): one server file per NPC for what it says (`server/src/core/npcs/<id>.ts`), one client folder for its name
-  and look (`client/src/visuals/npcs/<id>/`), and a level only places it by id.
+  `INTERACT_LOOK_RAD`; the server checks it with the same slack), a line at a time: Enter, E or a click go on, Esc
+  closes, and you stand still while it's open (the world doesn't pause). What he says follows your story (the quests,
+  above). No shop. The lines live on the server and come only when you talk. NPCs are kept like enemies (the user:
+  "their sprites and interaction and stuff should be saved like monsters"): one server file per NPC for where it
+  stands and what it says (`server/src/core/npcs/<id>.ts`) and one client folder for its name and look
+  (`client/src/visuals/npcs/<id>/`); levels don't place NPCs.
 - Still and running water (the user: "water should not be flowing if it has nowhere to flow to ... lakes and stuff
   shouldnt flow. they can ripple if they have things in it"): only water that runs off the map flows. A body touching
   the map's edge (or the woods, rocks and walls joined to it) in two separate places runs from one to the other (the
@@ -533,6 +554,17 @@ them; treat them as changeable, and still ask before deciding new ones):
   in the water should be random (spot) and sporatic (timing). make them more sparse in both timing and spot"). Looks
   only: water stays solid. Numbers: `client/src/modes/overworld/water.ts`, `RINGS` in
   `client/src/visuals/water/water.ts`.
+- Quests (the user: "just go with your recommendations"): Hollis's first chain, main quest, is "Hides for the Fire"
+  (gather 2 boar hides, then hand them to him: 2 boar meat and the lore entry "Avatars") and then "Where You Woke"
+  (slay 3 wild boars, then go back to him: he tells you about the summoning pads, gives 3 boar meat and the lore entry
+  "The summoning pads", sets the flag `hollis-to-mistwood`, and says "meet me in the Mistwood"; he stays at the fire
+  until PR 2 moves him). Numbers and words are in `server/src/core/content/quests.ts`, `content/lore.ts` and
+  `npcs/hollis.ts`, for the user to edit. A won fight counts every enemy in it, for each winner; a kill step counts
+  only kills after it began, and a talk, a fight or a handover does one step at most. A reward that doesn't fit in the
+  bag is left in a pile at your feet. An NPC offers one thing at most, the offer of the lines it says (the order in
+  its file decides). Going on past the last line (Enter, E or a click) takes the offer, as Accept does; Esc or Not now
+  leaves it. Quests can't be abandoned. The questbook opens over the world like Settings: you stand still while it's
+  open (the world, a fight too, goes on), and J, Esc or its × close it; a change of mode closes it.
 
 ## Commands
 

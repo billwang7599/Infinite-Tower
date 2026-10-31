@@ -24,6 +24,7 @@ export const ACTIONS = {
     right: { label: "Move right", keys: ["KeyD"] },
     character: { label: "Character panel", keys: ["KeyC"] },
     inventory: { label: "Inventory", keys: ["KeyB"] },
+    questbook: { label: "Questbook", keys: ["KeyJ"] },
     adminPanel: { label: "Admin panel (dev servers only)", keys: ["F1"] },
     openChat: { label: "Open the chat", keys: ["Slash"] },
   },
@@ -85,6 +86,7 @@ export const MENUS = {
   skillbook: { ...WORD_KEYS, writePage: ["Enter"], closeSkillbook: ["Escape"] },
   chat: { sendChat: ["Enter"], closeChat: ["Escape"] },
   dialogue: { nextLine: ["Enter"], closeDialogue: ["Escape"] },
+  questbook: { closeQuestbook: ["Escape"] },
 } as const satisfies Record<string, Record<string, readonly string[]>>;
 
 export type MenuAction<M extends keyof typeof MENUS> = keyof (typeof MENUS)[M] & string;

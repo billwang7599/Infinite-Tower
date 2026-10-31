@@ -27,6 +27,7 @@ interface LayerActions {
   battleBag: MenuAction<"battleBag"> | (typeof BATTLE_BAG_ACTIONS)[number];
   leaveArena: MenuAction<"leaveArena"> | "leave";
   dialogue: MenuAction<"dialogue"> | "interact";
+  questbook: MenuAction<"questbook"> | "questbook";
   skillbook: MenuAction<"skillbook">;
   chat: MenuAction<"chat">;
   overworld: OverworldAction;
@@ -60,10 +61,11 @@ type Handler = (repeat: boolean) => boolean | void;
 const GROUPS_OF: Partial<Record<Layer, readonly Group[]>> = {
   settings: ["general"], admin: ["general"], bag: ["overworld"], overworld: ["overworld"], battle: ["battle"],
   chant: ["battle"], battleBag: ["overworld", "battle"], leaveArena: ["battle"], dialogue: ["overworld", "battle"],
+  questbook: ["general"],
 };
 const KEPT: Partial<Record<Layer, readonly ActionName[]>> = {
   settings: ["menu"], admin: ["adminPanel"], bag: BAG_ACTIONS, chant: CHANT_ACTIONS, battleBag: BATTLE_BAG_ACTIONS,
-  leaveArena: ["leave"], dialogue: ["interact"],
+  leaveArena: ["leave"], dialogue: ["interact"], questbook: ["questbook"],
 };
 const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as Layer, new Map(
   Object.entries<readonly string[]>(actions).flatMap(([action, keys]) => keys.map((k) => [k, action as ActionName])),

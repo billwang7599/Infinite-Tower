@@ -1,12 +1,13 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
  * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `leaveArena`,
- * `skillbookScreen`, `chat`, `dialogue` and the title's `pickedSocket` too, and the game watches them. `UiActions` is
- * the other direction.
+ * `skillbookScreen`, `chat`, `dialogue`, `questbook` and the title's `pickedSocket` too, and the game watches them.
+ * `UiActions` is the other direction.
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
-  type GameServer, type Gear, type Look, type Skill, type Skillbook, type Spot, type Stats, type UseSpot, type Word,
+  type DialogueOffer, type GameServer, type Gear, type Look, type QuestView, type Skill, type Skillbook, type Spot,
+  type Stats, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -118,6 +119,12 @@ export interface DialogueState {
   look: Look | null;
   lines: readonly string[];
   line: number;
+  offer: DialogueOffer | null;
+}
+
+export interface QuestbookState {
+  open: boolean;
+  quests: readonly QuestView[];
 }
 
 /** The overworld's side panels; one is open at a time. Neither pauses the world. */
@@ -145,6 +152,7 @@ export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
   }
   if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");
   if (ui.dialogue.get().open) layers.push("dialogue");
+  if (ui.questbook.get().open) layers.push("questbook");
   if (ui.chat.get().focused) layers.push("chat");
   if (ui.admin.get().open) layers.push("admin");
   if (ui.settingsScreen.get().open) layers.push("settings");
@@ -173,6 +181,7 @@ export interface UiActions {
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
   sendChat(text: string): void;
+  takeOffer(offer: DialogueOffer): void;
   saveCharacter(character: Character): void;
   returnToTitle(): void;
   cheat(cheat: Cheat): void;
@@ -216,7 +225,10 @@ export class UiState {
   readonly leaveArena = new Store<{ asking: boolean }>({ asking: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
   readonly chat = new Store<ChatState>({ open: false, focused: false, lines: [] });
-  readonly dialogue = new Store<DialogueState>({ open: false, name: "", look: null, lines: [], line: 0 });
+  readonly dialogue = new Store<DialogueState>({
+    open: false, name: "", look: null, lines: [], line: 0, offer: null,
+  });
+  readonly questbook = new Store<QuestbookState>({ open: false, quests: [] });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
@@ -235,14 +247,21 @@ export class UiState {
   };
   readonly hearChat = (lines: readonly ChatLine[]): void =>
     this.chat.set({ lines: [...this.chat.get().lines, ...lines].slice(-CHAT_LOG_LINES) });
-  readonly openDialogue = (name: string, look: Look, lines: readonly string[]): void =>
-    this.dialogue.set({ open: true, name, look, lines, line: 0 });
-  readonly nextLine = (): void => {
-    const { line, lines } = this.dialogue.get();
-    if (line + 1 < lines.length) this.dialogue.set({ line: line + 1 });
-    else this.closeDialogue();
+  readonly openDialogue = (
+    name: string, look: Look, lines: readonly string[], offer: DialogueOffer | null = null,
+  ): void => this.dialogue.set({ open: true, name, look, lines, line: 0, offer });
+  readonly nextLine = (): DialogueOffer | null => {
+    const { line, lines, offer } = this.dialogue.get();
+    if (line + 1 < lines.length) {
+      this.dialogue.set({ line: line + 1 });
+      return null;
+    }
+    this.closeDialogue();
+    return offer;
   };
   readonly closeDialogue = (): void => this.dialogue.set({ open: false });
+  readonly toggleQuestbook = (): void => this.questbook.set({ open: !this.questbook.get().open });
+  readonly closeQuestbook = (): void => this.questbook.set({ open: false });
   readonly closeOverworldPanel = (): void => {
     this.overworldPanel.set({ open: null });
     this.skillbookScreen.set({ open: false });

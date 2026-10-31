@@ -549,6 +549,33 @@ describe("Actions: talking", () => {
   });
 });
 
+describe("Actions: the questbook", () => {
+  test("J opens it from the overworld and the arena", () => {
+    for (const layer of ["overworld", "battle"] as const) {
+      const { press, listen } = setup(layer);
+      const questbook = listen("questbook");
+      press("KeyJ");
+      assert.equal(questbook.got.length, 1, layer);
+    }
+  });
+
+  test("over either, only J and Esc work, and close it (no Settings, bag or interact); the world reads nothing", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { actions, press, listen } = setup(mode, "questbook");
+      const questbook = listen("questbook"), close = listen("closeQuestbook");
+      const others = (["menu", "inventory", "interact", "openChat"] as const).map((a) => listen(a));
+      press("KeyW");
+      press("KeyJ");
+      press("Escape");
+      for (const key of ["KeyB", "KeyE", "Slash"]) press(key);
+      assert.deepEqual([questbook.got.length, close.got.length], [1, 1], mode);
+      assert.deepEqual(others.map((o) => o.got.length), [0, 0, 0, 0], mode);
+      const polled = actions.poll();
+      assert.deepEqual([polled.pressed, [...polled.held]], [[], []], mode);
+    }
+  });
+});
+
 describe("Actions: chat", () => {
   test("/ opens the chat in the overworld and the arena, kept from the page so it isn't typed", () => {
     for (const layer of ["overworld", "battle"] as const) {

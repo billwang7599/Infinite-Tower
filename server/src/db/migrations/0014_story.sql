@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "story" jsonb DEFAULT '{"quests":{},"flags":[]}'::jsonb NOT NULL;

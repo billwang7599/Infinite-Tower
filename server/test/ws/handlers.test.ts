@@ -25,6 +25,8 @@ function fakeSession() {
     closeBag: record("closeBag"),
     openPile: record("openPile"),
     talk: record("talk"),
+    acceptQuest: record("acceptQuest"),
+    deliver: record("deliver"),
     cheat: record("cheat"),
     challenge: record("challenge"),
     answerChallenge: record("answerChallenge"),
@@ -96,6 +98,11 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "talk" }), [["talk"]]);
   });
 
+  test("acceptQuest and deliver name the quest", () => {
+    assert.deepEqual(handle({ t: "acceptQuest", quest: "a-quest" }), [["acceptQuest", "a-quest"]]);
+    assert.deepEqual(handle({ t: "deliver", quest: "a-quest" }), [["deliver", "a-quest"]]);
+  });
+
   test("cheat passes the cheat on (the session ignores it unless on a dev server)", () => {
     const cheat = { kind: "give", item: "boar-meat", count: 2 } as const;
     assert.deepEqual(handle({ t: "cheat", cheat }), [["cheat", cheat]]);
@@ -113,7 +120,8 @@ describe("message handlers", () => {
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "openPile", "talk", "saveSkill", "cheat", "challenge", "answerChallenge", "joinBattle", "chat",
+      "closeBag", "openPile", "talk", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge", "answerChallenge",
+      "joinBattle", "chat",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

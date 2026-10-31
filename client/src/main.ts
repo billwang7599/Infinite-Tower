@@ -145,6 +145,7 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
   saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),
   sendChat: (text) => void preparing.then((game) => game.sendChat(text)),
+  takeOffer: (offer) => void preparing.then((game) => game.takeOffer(offer)),
   returnToTitle: () => void backToTitle(),
   cheat: (cheat) => void preparing.then((game) => game.cheat(cheat)),
   setDayClock: (change) => void preparing.then((game) => game.setDayClock(change)),

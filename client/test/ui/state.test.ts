@@ -41,6 +41,21 @@ describe("UiState overworld panels", () => {
   });
 });
 
+describe("UiState questbook", () => {
+  test("its key opens it and closes it again; closing closes it, and keeps what's in it", () => {
+    const ui = new UiState();
+    ui.questbook.set({ quests: [{ id: "q", title: "Q", half: "main", step: null, lore: [] }] });
+    ui.toggleQuestbook();
+    assert.equal(ui.questbook.get().open, true);
+    ui.toggleQuestbook();
+    assert.equal(ui.questbook.get().open, false);
+    ui.toggleQuestbook();
+    ui.closeQuestbook();
+    assert.equal(ui.questbook.get().open, false);
+    assert.equal(ui.questbook.get().quests.length, 1);
+  });
+});
+
 describe("UiState chat", () => {
   const line = (i: number) => ({ from: "Tester", text: `line ${i}` });
 
@@ -61,11 +76,25 @@ describe("UiState dialogue", () => {
   test("opens on its first line, goes on a line at a time, and closes after the last", () => {
     const ui = new UiState();
     ui.openDialogue("Hollis", DEFAULT_LOOK, LINES);
-    assert.deepEqual(ui.dialogue.get(), { open: true, name: "Hollis", look: DEFAULT_LOOK, lines: LINES, line: 0 });
+    assert.deepEqual(ui.dialogue.get(), {
+      open: true, name: "Hollis", look: DEFAULT_LOOK, lines: LINES, line: 0, offer: null,
+    });
     ui.nextLine();
     ui.nextLine();
     assert.equal(ui.dialogue.get().line, 2);
-    ui.nextLine();
+    assert.equal(ui.nextLine(), null, "no offer to take");
+    assert.equal(ui.dialogue.get().open, false);
+  });
+
+  test("an offer comes with the last line: going on past it closes the box and takes it; closing doesn't", () => {
+    const offer = { kind: "quest", quest: "q", title: "Q", step: "Do it" } as const;
+    const ui = new UiState();
+    ui.openDialogue("Hollis", DEFAULT_LOOK, LINES, offer);
+    assert.deepEqual([ui.nextLine(), ui.nextLine()], [null, null]);
+    assert.equal(ui.nextLine(), offer);
+    assert.equal(ui.dialogue.get().open, false);
+    ui.openDialogue("Hollis", DEFAULT_LOOK, LINES, offer);
+    ui.closeDialogue();
     assert.equal(ui.dialogue.get().open, false);
   });
 
@@ -194,6 +223,16 @@ describe("whoHasTheKeys", () => {
       assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "dialogue"]);
       ui.openSettings();
       assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "dialogue", "settings"]);
+    }
+  });
+
+  test("the questbook is over the world, in either mode: you stand still while it's open; Settings over it", () => {
+    for (const mode of ["overworld", "battle"] as const) {
+      const { ui } = playing(mode);
+      ui.toggleQuestbook();
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "questbook"]);
+      ui.openSettings();
+      assert.deepEqual(whoHasTheKeys(ui, mode), [mode, "questbook", "settings"]);
     }
   });
 
