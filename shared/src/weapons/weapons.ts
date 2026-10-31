@@ -1,4 +1,4 @@
-import { FIXED_DT } from "../core/time.js";
+import { toSteps } from "../core/time.js";
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 
@@ -71,15 +71,36 @@ export const COMBAT = {
 
 export const ENEMY_GUARD = { minHoldTime: 1.5, maxHoldTime: 3, moveTime: 0.3 } as const;
 
-const steps = (seconds: number): number => Math.round(seconds / FIXED_DT);
+/**
+ * A heavy at most `windowTime` before an attack lands parries it; the attacker is open until the parrier's light
+ * would land plus `openMarginTime`.
+ */
+export const PARRY = { windowTime: 0.25, openMarginTime: { light: 0.15, heavy: 0.45 } } as const;
+
+/**
+ * `reachM`: the grabber's centre to the target's edge. The target may counter for `techTime`; if not, it's open until
+ * the grabber's heavy would land plus `openMarginTime`, then safe from another for `immuneTime`.
+ */
+export const GUARD_BREAK = {
+  cost: 10, reachM: 1.9, minDot: 0.7, grabTime: 0.15, techTime: 0.4, whiffTime: 0.6, openMarginTime: 0.2,
+  immuneTime: 0.6, techPushSpeed: 5,
+} as const;
+
+/** A heavy can be feinted while more than `cutoffTime` of its wind-up is left, for `cost` on top of the heavy's. */
+export const FEINT = { cutoffTime: 0.15, cost: 10 } as const;
+
+export const parryOpenTime = (parrier: Weapon, parried: AttackKind): number =>
+  ATTACKS.light.landTime * parrier.heft + PARRY.openMarginTime[parried];
+export const guardBreakOpenTime = (grabber: Weapon): number =>
+  ATTACKS.heavy.landTime * grabber.heft + GUARD_BREAK.openMarginTime;
 
 export interface AttackSteps { driveAt: number; liveAt: number; liveUntil: number; endAt: number }
 
 export function attackSteps(weapon: Weapon, kind: AttackKind, chain: number, swift = 1): AttackSteps {
   const a = ATTACKS[kind], windup = ((chain > 0 ? a.chainLandTime : a.landTime) * weapon.heft) / swift;
-  const liveAt = steps(windup), liveUntil = liveAt + steps(a.liveTime * weapon.heft);
-  const endAt = liveUntil + steps(a.recoverTime * weapon.heft);
-  return { driveAt: steps(windup * COMBAT.drawShare), liveAt, liveUntil, endAt };
+  const liveAt = toSteps(windup), liveUntil = liveAt + toSteps(a.liveTime * weapon.heft);
+  const endAt = liveUntil + toSteps(a.recoverTime * weapon.heft);
+  return { driveAt: toSteps(windup * COMBAT.drawShare), liveAt, liveUntil, endAt };
 }
 
 const AVERAGE_STRENGTH = 10;

@@ -58,6 +58,7 @@ const StepInputSchema = z.object({
   attack: z.enum(ATTACK_KINDS).nullable(),
   dodge: z.boolean(),
   guard: z.enum(GUARD_SIDES).nullable(),
+  guardBreak: z.boolean(),
   cast: SkillSchema.nullable(),
   castHeld: z.boolean(),
   chant: z.boolean(),

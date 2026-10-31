@@ -66,14 +66,14 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(general.questbook, ["KeyJ"]);
   });
 
-  test("the arena: a left click is a light attack, a right click a heavy one; U, I and O guard; F dodges", () => {
+  test("the arena: left click light, right heavy; U, I and O guard; left Shift guard breaks; F dodges", () => {
     const battle = new KeyBindings().get().battle;
     assert.deepEqual([battle.lightAttack, battle.heavyAttack], [[], []]);
     assert.deepEqual([ACTIONS.battle.lightAttack.mouse, ACTIONS.battle.heavyAttack.mouse], [[0], [2]]);
     assert.equal(isFixed({ group: "battle", action: "lightAttack" }), true, "attacks stay on the mouse");
     assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1], "the camera drags on the middle button");
     assert.deepEqual([battle.guardLeft, battle.guardTop, battle.guardRight], [["KeyU"], ["KeyI"], ["KeyO"]]);
-    assert.equal(Object.values(battle).flat().includes("ShiftLeft"), false, "left Shift is free");
+    assert.deepEqual(battle.guardBreak, ["ShiftLeft"]);
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.deepEqual(battle.leave, ["Enter"]);

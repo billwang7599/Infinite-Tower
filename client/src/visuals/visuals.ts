@@ -9,7 +9,7 @@ import type { BattleContext } from "../modes/battle/context.js";
 import { FiredEffects } from "../modes/battle/fired.js";
 import { OverworldActor, type OverworldActorData, type OverworldState } from "../modes/overworld/components.js";
 import { arenaStage } from "./battle/battle.js";
-import { clash, strike } from "./battle/impact.js";
+import { clash, grabbed, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
@@ -64,6 +64,19 @@ export const EFFECTS: Effects = {
   block(scene, ev, world) {
     shake(scene, 0.08);
     clash(scene, world, ev.by, ev.target);
+  },
+  parry(scene, ev, world) {
+    shake(scene, 0.14);
+    parried(scene, world, ev.by, ev.target);
+  },
+  guardBreak(scene, ev, world) {
+    if (ev.result === "teched") {
+      shake(scene, 0.06);
+      clash(scene, world, ev.by, ev.target);
+      return;
+    }
+    shake(scene, ev.result === "broken" ? 0.16 : 0.05);
+    grabbed(scene, world, ev.by, ev.target, ev.result === "broken");
   },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);

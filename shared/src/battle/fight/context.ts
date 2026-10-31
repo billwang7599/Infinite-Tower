@@ -2,6 +2,7 @@
 import type { Entity, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { ItemId } from "../../items/items.js";
+import type { AttackKind } from "../../weapons/weapons.js";
 import type { Form, SkillElement } from "../../skills/skill.js";
 import type { ArenaDef } from "../../world/arena.js";
 import type { TeamId } from "../components.js";
@@ -21,6 +22,9 @@ export type FightEvent =
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
   | { type: "block"; by: Entity; target: Entity }
+  | { type: "parry"; by: Entity; target: Entity; attack: AttackKind }
+  | { type: "feint"; by: Entity }
+  | { type: "guardBreak"; by: Entity; target: Entity; result: "grabbed" | "teched" | "broken" }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId };

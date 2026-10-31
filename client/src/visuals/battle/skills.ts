@@ -262,6 +262,8 @@ interface Bursts {
   impact(elements: readonly SkillElement[], at: Vec3): void;
   reaction(reaction: Reaction, at: Vec3): void;
   sparks(at: Vec3): void;
+  parry(at: Vec3): void;
+  guardBroken(at: Vec3): void;
   tick(dtS: number): void;
   clear(): void;
 }
@@ -357,6 +359,13 @@ function createBursts(
     },
     sparks(at) {
       particles.burst("sparks", at, SPARK_COUNT, 0.05);
+    },
+    parry(at) {
+      fade("sphere", "shell", "light", at, { lifeS: 0.22, fromScale: 0.15, toScale: 0.9 });
+      particles.burst("sparks", at, SPARK_COUNT * 3, 0.1, 1.6);
+    },
+    guardBroken(at) {
+      fade("sphere", "shell", "none", at, { lifeS: 0.3, fromScale: 0.6, toScale: 1.4, alpha: 0.7 });
     },
     tick(dtS) {
       for (let i = fading.length - 1; i >= 0; i--) {

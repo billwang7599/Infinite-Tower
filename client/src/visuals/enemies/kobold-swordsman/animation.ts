@@ -42,8 +42,9 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const swing = world.require(e, Wielder).swing, guard = world.get(e, WeaponAttack);
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const cut = cutOf(swing?.attack ?? "light", swing?.side ?? guard?.guard ?? "top", true);
+    const heavy = (swing?.attack ?? (enemy.state === "weaponWindup" ? guard?.next : null)) === "heavy";
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
-      swing ? strokeOf(swing) : null, heldGuard(nodes.motion, guard));
+      swing ? strokeOf(swing) : null, heldGuard(nodes.motion, guard), heavy);
     nodes.hips.rotation.y = damp(nodes.hips.rotation.y, pose.hipTwist, 14, dt);
     nodes.chest.rotation.y = damp(nodes.chest.rotation.y, pose.twist, 14, dt);
     nodes.chest.rotation.x = damp(nodes.chest.rotation.x, pose.bend, 12, dt);
@@ -61,7 +62,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     poseArm(nodes.swordArm, nodes.handAt);
 
     const off = nodes.offArm;
-    if (nodes.twoHanded) {
+    if (nodes.twoHanded && enemy.state !== "guardBreak") {
       Vector3.Up().applyRotationQuaternionToRef(hand.rotationQuaternion, bladeDir);
       hand.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
       off.hand.rotationQuaternion ??= new Quaternion();

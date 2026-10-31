@@ -48,13 +48,17 @@ What's built so far:
   Sword fights like For Honor's: locked on, you hold a guard left, top or right, and it blocks, free, whatever comes
   from that side while you're idle; light and heavy attacks come from your guard's side, at fixed times (a heavier
   sword slower), chained up to three, each maybe from another side. A blocked attack bounces off in sparks and its
-  attacker recoils. A small widget shows your guard and your foe's; a landed hit holds the picture for a beat (longer
-  the heavier the blade) and jolts its target the way the blade went. A dodge roll with i-frames, jump, stamina.
+  attacker recoils. A heavy pressed just before an attack lands, from the guard that would block it, parries it and
+  opens the attacker; a guard break grabs a foe through its guard and opens it unless they counter with their own in
+  time; a heavy can be feinted early in its wind-up. A small widget shows your guard and your foe's; a landed hit
+  holds the picture for a beat (longer the heavier the blade) and jolts its target the way the blade went. A dodge
+  roll with i-frames, jump, stamina.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
   blows come from the top. The Kobold Swordsman holds a guard of its own: hit it from another side, or while it
-  recovers; before each attack its guard moves to the side it will come from. The Kobold Greatsword fights the same
+  recovers; before each attack its guard moves to the side it will come from, and now and then it parries a heavy,
+  feints its own or guard breaks you. The Kobold Greatsword fights the same
   with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
@@ -65,7 +69,7 @@ What's built so far:
   click with Auto mouse lock off). Every key can be rebound in Settings. In a fight: WASD move, Q toggles the
   lock, Right Shift locks the closest enemy, the arrows switch target (unlocked, they or a middle-button drag turn
   the camera), Space jumps, F dodges; a quick flick of the mouse left, up or right (or U, I, O) moves your guard, a left
-  click is a light attack and a right click a heavy one. R opens the chant, and 1-4 quick-cast the skillbook's pages.
+  click is a light attack and a right click a heavy one, and Left Shift guard breaks (in a heavy's wind-up, feints). R opens the chant, and 1-4 quick-cast the skillbook's pages.
 - **Chat:** one chat for the whole server, in the overworld and in fights. / opens it (you stand still while you
   type), Enter sends, Esc closes; a click on the game gives it the keys back with the chat still open, and / goes
   back to typing. Lines show in a log at the bottom left and, in the overworld, in a bubble over the

@@ -22,5 +22,6 @@ export function readPlayerInput(polled: Polled, yaw: number, guard: GuardSide | 
   input.attack = polled.pressed.flatMap((action) => ATTACKS[action] ?? []).at(-1) ?? null;
   // A tap shorter than a step still dodges.
   input.dodge = polled.pressed.includes("dodge") || polled.held.has("dodge");
+  input.guardBreak = polled.pressed.includes("guardBreak") || polled.held.has("guardBreak");
   input.guard = guard;
 }

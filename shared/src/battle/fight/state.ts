@@ -8,7 +8,7 @@ import {
   ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillAttack, SkillObject, Skilled,
   Stamina, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
-  type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
+  type GrabData, type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
 import type { Word } from "../../skills/skill.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
@@ -21,7 +21,9 @@ interface FighterSnapshot {
   vel: Vec3;
   health: Omit<HealthData, "max">;
   statuses: StatusData;
-  wielder: Omit<WielderData, "hands" | "armReachM"> | null;
+  wielder: {
+    swing: SwingData | null; grab: (Omit<GrabData, "target"> & { target: number }) | null; grabImmuneTime: number;
+  } | null;
   skilled: Omit<SkilledData, "target"> & { target: number };
 }
 
@@ -66,12 +68,14 @@ export interface FightSnapshot {
 const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }, cooldown: { ...s.cooldown } });
 const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: { ...s.dir } };
 
-function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
-  return wielder ? { swing: copySwing(wielder.swing) } : null;
-}
-
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
 const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e === null ? -1 : fighters.indexOf(e));
+
+function saveWielder(wielder: WielderData | undefined, fighters: readonly Entity[]): FighterSnapshot["wielder"] {
+  if (!wielder) return null;
+  const grab = wielder.grab && { ...wielder.grab, target: indexIn(fighters, wielder.grab.target) };
+  return { swing: copySwing(wielder.swing), grab, grabImmuneTime: wielder.grabImmuneTime };
+}
 
 function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
   return state;
@@ -86,7 +90,7 @@ export function saveFight(fight: Fight): FightSnapshot {
     const { words, aim, target, ...skilled } = world.require(e, Skilled);
     return {
       pos: { ...pos }, vel: { ...vel }, health, statuses: copyStatuses(world.require(e, Statuses)),
-      wielder: saveWielder(world.get(e, Wielder)),
+      wielder: saveWielder(world.get(e, Wielder), fighters),
       skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
     };
   };
@@ -136,7 +140,12 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     Object.assign(world.require(e, Health), s.health);
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
-    if (wielder && s.wielder) wielder.swing = copySwing(s.wielder.swing);
+    if (wielder && s.wielder) {
+      wielder.swing = copySwing(s.wielder.swing);
+      const grab = s.wielder.grab;
+      wielder.grab = grab && { ...grab, target: fighterAt(grab.target) };
+      wielder.grabImmuneTime = s.wielder.grabImmuneTime;
+    }
     const { words, aim, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };
     Object.assign(world.require(e, Skilled), skilled, copied);

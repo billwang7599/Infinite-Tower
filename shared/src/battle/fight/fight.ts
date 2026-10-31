@@ -29,6 +29,7 @@ import { windUpSystem } from "./skills/skilled.js";
 import { statusMoveFactor, statusSystem } from "./skills/statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
+import { guardBreakSystem } from "./weapons/guard-break.js";
 import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
@@ -95,12 +96,14 @@ export class Fight {
       outcome: this.outcome,
     };
     this.systems = [
-      playerControllerSystem(this.targets),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(), skillAttackSystem(),
+      playerControllerSystem(this.targets, this.events),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(this.events),
+      skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), statusSystem(), skillSystem(ctx), useSystem(ctx),
+      playerGroundSystem(this.physics), combatSystem(this.events), guardBreakSystem(this.events), statusSystem(),
+      skillSystem(ctx), useSystem(ctx),
       outcomeSystem(this.outcome, this.duel),
     ];
   }

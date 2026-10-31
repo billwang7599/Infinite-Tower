@@ -78,9 +78,9 @@ Decided by the user:
   planned ([plan/weapons.md](plan/weapons.md)).
 - Sword fights are like For Honor's (the user: "make the sword combat closer to for honour. right now i think its too
   much unpredectable, especially pvp."), replacing the inertia-based swings, the eight mouse swings, the stab, the
-  held block and the parry. The rules (guard stances, fixed-time light and heavy attacks) are the main chat's design,
-  with the details the agent's: "Guard stances" under "Decided by the agent" below. Parries, guard breaks and feints
-  come next ([plan/weapons.md](plan/weapons.md)).
+  held block and the parry. The rules (guard stances, fixed-time light and heavy attacks; then parries, guard breaks
+  and feints, with the Kobold using them now and then) are the main chat's design, with the details the agent's:
+  "Guard stances" and "Parries, guard breaks and feints" under "Decided by the agent" below.
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -235,12 +235,14 @@ Decided by the user:
 - Hit-stop, the hit's jolt and the sparks are drawing only, to tune: `hitStopMs` in `WEAPON_LOOKS` and the top of
   `client/src/visuals/battle/impact.ts`.
 - The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
-  fights by the guard rules below, its full stance AI still to come. Its landed sword hits only hurt, with no stun or
+  fights by the guard rules below, parrying, feinting and guard breaking now and then, its full stance AI still to
+  come. Its landed sword hits only hurt, with no stun or
   knockback (the boar's still stun). It drops nothing yet. It holds its own Kobold blade (the sword's length, 14
   damage), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
-  back and turns its body, with a wind-up sound (its blade drawn). There's no attack-warning marker; the lock-on
+  back and turns its body, with a wind-up sound (its blade drawn), both bigger and lower before a heavy; a guard break
+  is told by its lunge (a whoosh, its free hand reaching out). There's no attack-warning marker; the lock-on
   diamond stays, since it shows which enemy you're locked onto, and the guard widget shows sides only, never an attack.
   Numbers: `server/src/core/enemies/kobold-swordsman.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
@@ -271,6 +273,9 @@ Decided by the user:
   blocks, footsteps, dodges and jumps, the enemies' grunts when hit and on death (boar, Kobold, Warlock), skills (the
   cast, a loop while a Bolt or Beam flies, the impact), eating, picking up and moving items, UI clicks, resting, and
   the Kobold's wind-up as part of its tell (the boar's charge and lunge got a growl the same way, the agent's pick).
+  With parries and guard breaks (the agent's picks, PR 2): a parry's clash, a guard break's whoosh as it starts, a thud
+  as it grabs, a heavy crash as the guard breaks, a clank when it's countered, a feint's quick blade-draw, and a heavy's
+  wind-up told by a low blade-draw (a player's as it starts; the Kobold's tell lower before a heavy).
   Ambient loops: flowing
   water near the river and the mire, louder the nearer the water (from the shared water map), and crackling near each
   campfire; the mire arena bubbles. Sounds come from where they happen: quieter further off, panned left or right, and
@@ -387,9 +392,39 @@ them; treat them as changeable, and still ask before deciding new ones):
     Before every attack, its guard moves to one of the other two sides and holds (0.5 s before a chain's first, 0.35 s
     before the next), then attacks from there at the fixed timings, 30% of them heavy, in chains of two or three.
     Recovering, recoiling or staggered, it doesn't guard. The full stance AI comes later.
-  - Gone: the eight swings, the stab, momentum and inertia, chain timing by angle, the held block (left Shift is free)
-    and its stamina cost, chip damage and guard break, the parry and the Kobold's parries, the combo counter and the
-    "Parried!" / "Staggered" words. The sounds only they used (stab, parry, guard break) were removed.
+  - Gone: the eight swings, the stab, momentum and inertia, chain timing by angle, the held block and its stamina
+    cost, chip damage and the old guard break, the old parry and the Kobold's parries, the combo counter and the
+    "Parried!" / "Staggered" words. Parries and guard breaks came back For Honor's way (below), with their sounds.
+- Parries, guard breaks and feints (the main chat's design, For Honor's; every detail below the agent's, none
+  hand-played; numbers in `PARRY`, `GUARD_BREAK` and `FEINT` in `shared/src/weapons/weapons.ts`, the Kobold's in
+  `counters` in `server/src/core/enemies/kobold-swordsman.ts`):
+  - Parry: a heavy pressed at most 0.25 s before a weapon's attack lands (that step counts too), with your guard on
+    its side (the guard that would block it) and facing it. Nobody's hurt, the heavy is spent and its stamina given
+    back, and the attacker is opened (no guard, no control) until the parrier's light would land plus 0.15 s for a
+    parried light, 0.45 s for a heavy (sword: 0.6 s and 0.9 s), so a light is sure and a parried heavy leaves more.
+    Pressed early, the heavy is just a heavy; a light can't parry, and a body blow (the boar's) can't be parried.
+  - Guard break: a new rebindable key, left Shift (where the old block was). It costs 10 stamina; 0.15 s after the
+    press it grabs the nearest foe within 1.9 m (centre to edge) and 45° in front, through its guard, if it holds a
+    blade and isn't mid-attack (winding up or live), dodging, guard breaking, held or opened. Missing, you stand
+    unguarded until 0.6 s. Grabbed, the foe can't act for 0.4 s, and pressing guard break then (a press made before
+    doesn't count) counters it, both pushed apart, nothing lost. Not countered, it's opened until the grabber's heavy
+    would land plus 0.2 s (sword: 1.05 s), and can't be guard broken again until 0.6 s after that. The boar and the
+    Warlock (no blade) can't be guard broken. A guard break starts from idle or an attack's recovery, on the ground.
+  - Feint: guard break pressed in a heavy's wind-up while more than 0.15 s of it is left ends it for 10 stamina on top
+    of the heavy's 20; you're free and guarding at once. Later than that, the press waits for the heavy's blade and
+    guard breaks. Lights can't be feinted.
+  - An opened (parried or guard broken) Kobold attacks again once its opening is over, not its opening plus its
+    cooldown (a blocked one still waits both).
+  - The Kobold, each a chance from the fight's seed: it parries 35% of a player's heavies wound up at it within its
+    attack reach, pressing its own heavy 0.2 s before yours lands (a feint later than that baits it: its heavy comes
+    anyway); 25% of its heavies are feints, at the cutoff; when it would attack an idle player within guard break reach,
+    it guard breaks instead 25% of the time; it counters 30% of guard breaks on it, 0.25 s in. Having opened you, it
+    strikes a light at once.
+  - Seen and heard: a parry holds both fighters 140 ms, throws the attacker back a little and sprays gold sparks; a
+    guard break's grabber reaches out with its free hand (a new player sprite frame, `grab`; the Kobold's off hand),
+    the grab catches both a moment, and a broken guard jolts its holder back in a flash of light; a heavy winding up
+    crouches the player's sprite and draws the Kobold's blade further back. Held by a guard break, a player shows the
+    stagger frame. Sounds: above.
 - A flick is a mouse move of 40 px within 150 ms (the flick sensitivity, 0.5 to 2, default 1, divides the 40);
   slower or smaller movement is dropped. Once a move flicks, more movement the same way is the same flick until the
   mouse rests 100 ms; turning away flicks again at once. The numbers are `FLICK` in `client/src/core/actions.ts`, to

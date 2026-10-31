@@ -11,14 +11,19 @@ import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skill
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed } from "../../stats.js";
-import { attackCost, COMBAT, weaponIn, type AttackKind, type Weapon } from "../../../weapons/weapons.js";
+import {
+  attackCost, COMBAT, FEINT, GUARD_BREAK, weaponIn, type AttackKind, type Weapon,
+} from "../../../weapons/weapons.js";
 import { breakOff } from "../combat.js";
+import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { statusMoveFactor } from "../skills/statuses.js";
-import { bladeLive, endSwing, handsOf, startSwing } from "../weapons/swing.js";
+import { startGrab } from "../weapons/guard-break.js";
+import { bladeLive, endSwing, feintable, handsOf, startSwing } from "../weapons/swing.js";
 
 const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
+const STUNNED: readonly PlayerAction[] = ["recoil", "stagger", "grabbed"];
 
 function startAction(world: World, e: Entity, player: PlayerData, action: PlayerAction, x: number, z: number): void {
   endSwing(world, e);
@@ -81,15 +86,15 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
  * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks go where the player aims (the
  * camera's facing, or the locked enemy); a dodge goes where they move, or backwards standing still.
  */
-export function playerControllerSystem(targets: readonly Entity[]): System {
+export function playerControllerSystem(targets: readonly Entity[], events: FightEvent[]): System {
   return (world, dt) => {
     for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats, Wielder, Skilled)) {
-      controlPlayer(world, e, dt, targets);
+      controlPlayer(world, e, dt, targets, events);
     }
   };
 }
 
-function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[]): void {
+function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[]): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
   const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
@@ -102,6 +107,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   const weapon = weaponIn(wielder.hands), skillbook = heldIn(wielder.hands, "skillbook") !== null;
   const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
   const dodgePressed = input.dodge && !player.dodgeHeld;
+  const guardBreakPressed = input.guardBreak && !player.guardBreakHeld;
+  const feint = guardBreakPressed && player.action === "attack" && swing !== null && feintable(swing);
   const castPressed = input.cast !== null && !skilled.held;
   if (!locked) player.guard = weapon && input.locked !== null ? input.guard : null;
   if (attackPressed) {
@@ -110,6 +117,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   } else if (!locked && !chainSpent) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
   if (dodgePressed) player.dodgeBuffer = PLAYER.inputBuffer;
   else if (!locked) player.dodgeBuffer = Math.max(0, player.dodgeBuffer - dt);
+  if (guardBreakPressed && !feint) player.guardBreakBuffer = PLAYER.inputBuffer;
+  else if (!locked) player.guardBreakBuffer = Math.max(0, player.guardBreakBuffer - dt);
   if (castPressed) {
     player.castQueued = input.cast;
     player.castBuffer = PLAYER.inputBuffer;
@@ -120,6 +129,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   if (input.chantWords !== null && !player.wordsHeld) skilled.words = [...input.chantWords];
   player.attackHeld = input.attack;
   player.dodgeHeld = input.dodge;
+  player.guardBreakHeld = input.guardBreak;
   skilled.held = input.cast !== null || input.castHeld;
   player.writeHeld = input.write !== null;
   player.gearHeld = input.gear !== null;
@@ -130,20 +140,26 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   skilled.target = lockedOn === e ? null : lockedOn;
   if (!input.chant && !input.bag) player.brokenOff = false;
 
-  if (!alive || health.hitstun > 0) {
-    // Knocked back, staggered or dead: no control, slide to a stop on the ground.
-    if (player.action !== "none" && player.action !== "recoil") {
+  if (!alive || health.hitstun > 0 || player.action === "grabbed") {
+    if (player.action !== "none" && !STUNNED.includes(player.action)) {
       breakOff(player, skilled);
       endSwing(world, e);
     }
     player.attackBuffer = player.dodgeBuffer = player.castBuffer = 0;
+    player.guardBreakBuffer = player.action === "grabbed" && guardBreakPressed ? PLAYER.inputBuffer : 0;
     if (player.grounded) {
       const slowdown = PLAYER.accel * 0.4 * dt;
       v.x = approach(v.x, 0, slowdown);
       v.z = approach(v.z, 0, slowdown);
     }
   } else {
-    if (player.action === "recoil") player.action = "none";
+    if (STUNNED.includes(player.action)) player.action = "none";
+    if (feint) {
+      endSwing(world, e);
+      spend(stamina, FEINT.cost);
+      player.action = "none";
+      events.push({ type: "feint", by: e });
+    }
     const dodge = PLAYER.dodge, burdenCost = dodgeCost(player.burden);
     const dodgeStamina = burdenCost === null ? null
       : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? SKILL_EFFECTS.self.air.dodgeCostFactor : 1);
@@ -168,6 +184,11 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       startAction(world, e, player, "dodge", dx, dz);
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
+    } else if (free && weapon && player.guardBreakBuffer > 0 && player.grounded && stamina.value > 0) {
+      startAction(world, e, player, "grab", input.aimX, input.aimZ);
+      startGrab(wielder);
+      spend(stamina, GUARD_BREAK.cost);
+      player.guardBreakBuffer = 0;
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
       && stamina.value >= skillCost(queuedCast)) {
       startCast(world, e, queuedCast);
@@ -220,6 +241,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       case "beam":
         shuffle(input, v, dt, walkSpeed * SKILL_EFFECTS.castMoveFactor);
         break;
+      case "grab":
       case "chant":
       case "write":
       case "bag":

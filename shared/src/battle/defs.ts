@@ -45,6 +45,15 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
+export interface WeaponCounters {
+  parryChance: number;
+  parryLeadTime: number;
+  feintChance: number;
+  guardBreakChance: number;
+  techChance: number;
+  reactTime: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -58,6 +67,7 @@ export interface WeaponAttackDef {
   /** Before another chain (after recovering), and before its first. */
   cooldown: number;
   firstDelay: number;
+  counters?: WeaponCounters;
 }
 
 /**

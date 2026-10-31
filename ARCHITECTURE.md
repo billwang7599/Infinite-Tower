@@ -162,7 +162,7 @@ main.ts
   that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, `arm.ts` for a
   3D humanoid's arms, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst, a weapon hit's hit-stop and jolt, a blocked blade's bounce
-  and sparks); each fires once per step and event (`FiredEffects`, `modes/battle/fired.ts`), so
+  and sparks, a parry's and a guard break's); each fires once per step and event (`FiredEffects`, `modes/battle/fired.ts`), so
   a step replayed after a resync doesn't fire it again. Hit-stop is drawing only (`visuals/battle/impact.ts`): the
   fight runs on, the two fighters' drawings hold still for the weapon's `hitStopMs` and then ease after their bodies.
   The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
@@ -362,11 +362,20 @@ main.ts
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and
   the side it comes from; a body blow comes from the top) to the attacker; `combatSystem` (`fight/combat.ts`) resolves
-  hits with plain math, not physics. A hit is blocked when the target's guard (`guardOf`: a player's while idle, a
-  swordsman's while it walks up or winds up) is on the side across from it and faces the attacker: a blocked weapon
-  attack ends and its wielder recoils (a player's "recoil" action in hitstun, an enemy's "recoil" state), a blocked
-  body blow pushes the defender back. Anything else lands; a swordsman hit while walking up turns its guard to cover
-  that side (`turnGuard`).
+  hits with plain math, not physics. A weapon's hit is parried first when the target's heavy began within
+  `PARRY.windowTime` from the side across it, facing the attacker: the heavy is spent (its stamina given back) and the
+  attacker is opened (`stagger`: a player's "stagger" action in hitstun, an enemy's "staggered" state). A hit is
+  blocked when the target's guard (`guardOf`: a player's while idle, a swordsman's while it walks up or winds up) is
+  on the side across from it and faces the attacker: a blocked weapon attack ends and its wielder recoils (a player's
+  "recoil" action in hitstun, an enemy's "recoil" state), a blocked body blow pushes the defender back. Anything else
+  lands; a swordsman hit while walking up turns its guard to cover that side (`turnGuard`).
+- **Guard breaks are grabs, not hits** (`fight/weapons/guard-break.ts`). A wielder's `grab` (started by the player's
+  controller or a swordsman's weapon attack) reaches out after `GUARD_BREAK.grabTime`; `guardBreakSystem`, after the
+  hits, takes the nearest foe in reach in front if it's `grabbable` (a blade in hand, not mid-attack, dodging, held,
+  opened or just guard broken), holds it ("grabbed") through the tech window, then opens it with `stagger`; a guard
+  break pressed by a player held (or an enemy's seeded counter) ends it instead, both pushed apart. Its target is a
+  fighter index in the snapshot, like a skill's. A feint is the controller's (and a swordsman's): a heavy ended while
+  `feintable` (`swing.ts`).
 - **Weapons are a system of their own, like skills.** The rules and numbers are in `shared/src/weapons/weapons.ts`:
   `WEAPONS`, the arsenal (each weapon by item id: its `kind`, the moveset it swings with, its length, damage and heft),
   the guard sides (`GUARD_SIDES`, `mirrorSide`, `blocks`), the attack kinds and their table (`ATTACKS`: light and
@@ -638,7 +647,14 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   each attack's reach and
   shape by side, its fixed timing, chain, damage, poise and cost (`player/attack.test.ts`), the guard (the side an
   attack comes from, frozen while the blade is out, none unlocked; blocking free from across, only in front, only
-  idle, the attacker recoiling, a boar's blows from the top pushing back: `block.test.ts`), whole fights won and lost,
+  idle, the attacker recoiling, a boar's blows from the top pushing back: `block.test.ts`), parries (a heavy in the
+  window from across, its stamina back, the attacker opened long enough for a light, a light's opening shorter than a
+  heavy's; too early, the wrong side, a light or a body blow not parrying; in a duel: `parry.test.ts`), guard breaks
+  (grabbing through a guard, the tech window, the opening, whiffs, nobody mid-attack or bladeless, no second one
+  straight after; countered and not in a duel: `weapons/guard-break.test.ts`), feints (up to the cutoff, their cost,
+  not a light: `player/feint.test.ts`), the Kobold's counters (parrying a heavy and its light after, baited by a late
+  feint, feinting, guard breaking and countered, countering, through a save: `behaviors/counters.test.ts`), whole
+  fights won and lost,
   the time limit and leaving (down only mid-fight, gone from the arena either way, through a save), which pile is in
   view (`inView`), a walker's heading
   (`faceToward`), a fight's whole state
@@ -672,12 +688,13 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   dropping inputs too far ahead, a silent client's fight going on (and still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; blocking the Kobold's attack the same way; the Kobold as
-  tuned, beaten by a player who reads its guard whatever its seed, beating one who doesn't; a cast or a page written
+  tuned, beaten by a player who reads its guard and counters its guard breaks whatever its seed, beating one who
+  doesn't; a cast or a page written
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
   chanting without the book; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
   through a death); and the input timeline (changes held, late presses and casts kept, too far ahead dropped, a
-  silent player stopping, lateness, the latest of late chant words kept).
+  silent player stopping, lateness, the latest of late chant words kept, a late guard break kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
   client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
   step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving. Joining a battle:
@@ -734,7 +751,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   it), the keyboard (held, latched, text fields, the chat field's Enter, rebinding's raw key), where each key goes
   (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
-  chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; flicks into guards), the
+  chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; flicks into guards; the guard
+  break), the
   player's pose, sword trail and cut, the boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, what Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
@@ -836,7 +854,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   index.ts         Re-exports everything but the fight (import from "@infinite-tower/shared")
   core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
                    math.ts (Vec2/3, clamp, approach, damp, distXZ, wrapAngle, turnToward, seededRandom, nextRandom),
-                   time.ts
+                   time.ts (FIXED_DT, toSteps)
   world/           The tower's places. layout.ts (LevelMap: what the client may see of a level, its floor, tile
                    map and campfires; LevelLayout: a LevelMap as one player is sent it, with the NPCs standing there
                    for them (PlacedNpc, by NpcId from NPC_IDS); moveWalker, the one collision rule, and
@@ -867,14 +885,15 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      components + a collider, one component per attack in the def, a Wielder for whoever holds
                      things), context.ts (FightContext,
                      FightOutcome, FightEvent), combat.ts (addHit,
-                     hits in an arc, guardOf and blocking, recoil, knockback, the hit timers), outcome.ts (won /
+                     hits in an arc, parrying, guardOf and blocking, recoil, stagger, knockback, the hit timers), outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
                      to 2 decimals)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
-      player/          controller.ts (move, jump, the guard, when to attack and in which chain, dodge, a cast's
+      player/          controller.ts (move, jump, the guard, when to attack and in which chain, a guard break, a
+                       feint, countering a guard break, dodge, a cast's
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
                        no attacks or guard; no skillbook, no quick-casts or pages), use.ts (useSystem: a consumable used
@@ -889,12 +908,16 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / recoil / death), lunge.ts, charge.ts, weapon.ts (seeded chains of
                        attacks with the weapon in hand, the Kobold's, each after its guard moves to the attack's
-                       side; a guard that changes side at seeded times; turnGuard), skill.ts (casting: a quick-cast
+                       side; a guard that changes side at seeded times; turnGuard; its counters, each a seeded
+                       chance: parrying its target's heavy, feinting its own, guard breaking an idle target, the
+                       light at once on someone it opened), skill.ts (casting: a quick-cast
                        up close, a chant a word at a time from farther, backing away while it chants if kept away,
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
-                       startSwing at the weapon's fixed timings, endSwing, bladeLive; handsOf)
+                       startSwing at the weapon's fixed timings, endSwing, bladeLive, feintable; handsOf),
+                       guard-break.ts (guardBreakSystem: grabs reaching out, held through the tech window, countered
+                       or breaking the guard; startGrab, grabbable, inGrabReach)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -1225,7 +1248,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          yaw is the aim
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
-        input.ts         A poll -> PlayerInputData (the attack is the last pressed)
+        input.ts         A poll -> PlayerInputData (the attack is the last pressed; a guard break pressed or held)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
                          included
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
@@ -1265,7 +1288,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
                          impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
-                         blade's bounce and sparks (strike, clash); impactPose and joltOf (no Babylon: tested)
+                         blade's bounce and sparks (strike, clash), a parry's longer hold, bounce and shower of sparks
+                         (parried), a guard break's catch, and its break's jolt and flash (grabbed); impactPose and
+                         joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle and chant
                          words, a dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
@@ -1276,7 +1301,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         player.ts        The player's visual: the sprite, its shadow, the sword's trail (in an Imbue's colour); a
                          leaving player's sprite in a blended copy of its frame, to fade
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
-        pose.ts          The player's pose and frame, from the action, the swing and the guard; facingSeen (their back
+        pose.ts          The player's pose and frame, from the action, the swing and the guard (staggered, grabbed or
+                         grabbing included); facingSeen (their back
                          or front, by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
         arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
                          reached each frame with two-joint IK (reachArm, no Babylon: tested) to where its pose puts
@@ -1287,7 +1313,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          wind-up and a swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's
                          sprite, a 3D model's blade and its hit-stop. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
-                         Bolt's impact, the reactions, Earth's shards, a clash's sparks), the chant's and wind-up's
+                         Bolt's impact, the reactions, Earth's shards, a clash's sparks, a parry's, a broken guard's
+                         flash), the chant's and wind-up's
                          circle, and a visual per SkillObject kind (a Bolt's core and trail or an Earth rock, a
                          Beam's tubes and flares, a cloud's dome and pulse, a Delay's orb, an Imbue's glow at the
                          sword hand)
@@ -1470,7 +1497,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | What | Where |
 |---|---|
 | Player HP, speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, damage, heft); every attack's timings, cost, damage, poise and recoil; the chain, the lunge, the guard's arc; an enemy's guard changes | `shared/src/weapons/weapons.ts` (`WEAPONS`, `ATTACKS`, `COMBAT`, `ENEMY_GUARD`) |
+| Weapons: the arsenal (length, damage, heft); every attack's timings, cost, damage, poise and recoil; the chain, the lunge, the guard's arc; an enemy's guard changes; the parry's window and openings, a guard break's reach, timings, cost and opening, a feint's cutoff and cost | `shared/src/weapons/weapons.ts` (`WEAPONS`, `ATTACKS`, `COMBAT`, `ENEMY_GUARD`, `PARRY`, `GUARD_BREAK`, `FEINT`) |
+| How often a swordsman parries, feints, guard breaks and counters one, and how quick it reads them | `counters` in its weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
@@ -1492,8 +1520,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Music: which track plays where, each track's volume, how long a crossfade takes | `MUSIC`, `TRACKS` in `client/src/audio/music.ts`; `MUSIC_FADE_TIME` in `client/src/audio/audio.ts` |
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
-| How far back a Kobold draws its blade (and leans, turns and bends) before an attack, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
-| Hit-stop by weapon; the hit's jolt and a blocked blade's bounce | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
+| How far back a Kobold draws its blade (and leans, turns and bends) before an attack, more before a heavy, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
+| How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
+| Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a parry's hold and bounce, a guard break's catch and jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Where an NPC stands and what it says, by the story; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |

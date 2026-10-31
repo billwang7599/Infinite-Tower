@@ -6,7 +6,7 @@
  *   approach ──attack system──▶ <attack states> ──▶ approach
  *      ▲  poise breaks (not while armored) ──▶ staggered ──┘   hp 0 ──▶ dead
  */
-import type { System, World } from "../../../core/ecs.js";
+import type { Entity, System, World } from "../../../core/ecs.js";
 import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
 import { Body, Enemy, Health, Player, type EnemyData } from "../../components.js";
 import { FighterStats, moveSpeed, type Stats } from "../../stats.js";
@@ -14,17 +14,17 @@ import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
 const STOP_DIST = 2.2;
-const ACCEL = { normal: 25, stunned: 60, recoil: 30, staggered: 30, dead: 15 } as const;
+const ACCEL = { normal: 25, stunned: 60, recoil: 30, staggered: 30, grabbed: 60, dead: 15 } as const;
 /** States poise breaking doesn't interrupt. */
 const UNSTAGGERABLE = new Set(["staggered", "stunned", "recoil"]);
 
 /** The nearest player still standing; with none, the nearest of the fallen. */
-function targetFor(world: World, from: Vec3): { pos: Vec3; alive: boolean } | null {
-  let best: { pos: Vec3; alive: boolean; dist: number } | null = null;
-  for (const [, , body, health] of world.query(Player, Body, Health)) {
+function targetFor(world: World, from: Vec3): { e: Entity; pos: Vec3; alive: boolean } | null {
+  let best: { e: Entity; pos: Vec3; alive: boolean; dist: number } | null = null;
+  for (const [e, , body, health] of world.query(Player, Body, Health)) {
     const alive = health.hp > 0, dist = distXZ(from, body.pos);
     if (!best || (alive && !best.alive) || (alive === best.alive && dist < best.dist)) {
-      best = { pos: body.pos, alive, dist };
+      best = { e, pos: body.pos, alive, dist };
     }
   }
   return best;
@@ -54,9 +54,10 @@ export function enemyBrainSystem(): System {
       enemy.armored = false;
 
       const p = body.pos, sense = enemy.sense;
-      sense.dist = Infinity; sense.toYaw = enemy.yaw; sense.targetAlive = false;
+      sense.dist = Infinity; sense.toYaw = enemy.yaw; sense.targetAlive = false; sense.target = null;
       const target = targetFor(world, p);
       if (target) {
+        sense.target = target.e;
         sense.dist = distXZ(p, target.pos);
         sense.toYaw = Math.atan2(target.pos.x - p.x, target.pos.z - p.z);
         sense.targetAlive = target.alive;
@@ -81,8 +82,9 @@ export function enemyBrainSystem(): System {
           move.accel = ACCEL[enemy.state];
           if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");
           break;
+        case "grabbed":
         case "dead":
-          move.accel = ACCEL.dead;
+          move.accel = ACCEL[enemy.state];
           break;
       }
     }

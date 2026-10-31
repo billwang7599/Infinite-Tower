@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, GUARD_SIDES, Health, IDLE_INPUT, mirrorSide, Player, PLAYER, WeaponAttack,
+  Body, Enemy, FIXED_DT, GUARD_BREAK, GUARD_SIDES, Health, IDLE_INPUT, mirrorSide, Player, PLAYER, WeaponAttack,
+  Wielder,
   type EnemyDef, type GuardSide, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
@@ -12,9 +13,12 @@ before(() => initPhysics());
 
 const KOBOLD = ENEMIES["kobold-swordsman"].def;
 
+const TECH_AT = Math.round((GUARD_BREAK.grabTime + KOBOLD.attacks.weapon!.counters!.reactTime) / FIXED_DT);
+
 /**
  * Keeps about a sword's length away, locked on. Holds the guard that blocks the Kobold's (across from its side, as it
- * sees it) whenever it might attack, and attacks from another side only while it's walking up, recovering or reeling.
+ * sees it) whenever it might attack, attacks from another side only while it's walking up, recovering or reeling,
+ * and counters its guard breaks a human reaction late.
  */
 function watchful(fight: Fight): PlayerInputData {
   const me = fight.world.require(fight.players[0]!, Player), at = fight.world.require(fight.players[0]!, Body).pos;
@@ -32,6 +36,7 @@ function watchful(fight: Fight): PlayerInputData {
     input.guard = GUARD_SIDES.find((side) => side !== blocking)!;
     input.attack = "light";
   }
+  input.guardBreak = fight.world.require(fight.enemies[0]!, Wielder).grab?.step === TECH_AT;
   return input;
 }
 

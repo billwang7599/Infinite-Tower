@@ -82,6 +82,22 @@ describe("a fight's hash", () => {
       }],
       ["the action's clock", (f) => { f.world.require(f.players[0]!, Player).actionTime += 0.05; }],
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
+      ["a buffered guard break", (f) => { f.world.require(f.players[0]!, Player).guardBreakBuffer += 0.05; }],
+      ["a held guard break", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.guardBreakHeld = !p.guardBreakHeld;
+      }],
+      ["a guard break under way", (f) => {
+        const w = f.world.require(f.players[0]!, Wielder);
+        w.grab = w.grab ? null : { step: 3, target: f.enemies[0]!, techAt: null };
+      }],
+      ["whom a guard break holds", (f) => {
+        f.world.require(f.players[0]!, Wielder).grab = { step: 3, target: f.enemies[0]!, techAt: null };
+        const before = f.hash();
+        f.world.require(f.players[0]!, Wielder).grab!.target = null;
+        assert.notEqual(f.hash(), before);
+      }],
+      ["being safe from a guard break", (f) => { f.world.require(f.players[0]!, Wielder).grabImmuneTime += 0.05; }],
       ["a held button", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.attackHeld = p.attackHeld ? null : "heavy";
@@ -127,6 +143,18 @@ describe("a fight's hash", () => {
       ["its guard's move", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardMoveTime += 0.05; }],
       ["how long it holds its guard", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardHoldTime += 0.05; }],
       ["recoiling", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "recoil"; }],
+      ["a parry it read", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.parryRead = !w.parryRead;
+      }],
+      ["a feint it means", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.feint = !w.feint;
+      }],
+      ["a riposte it owes", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.riposte = !w.riposte;
+      }],
     ];
     const swordFight = () => busyFight(240, new Fight({
       arena: ARENA, players: [player({ x: 0, y: 0.05, z: -3 })], enemies: [enemy(SWORDSMAN, { x: 0, y: 0.05, z: 3 })],
