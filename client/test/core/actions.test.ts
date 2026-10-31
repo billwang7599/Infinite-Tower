@@ -57,7 +57,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   };
   const attack = () => read().attack;
   const aim = (was: SwingDir = "tb") => pickedWay(actions.poll(), was);
-  const aims = () => actions.poll().pressed.filter((a) => a.startsWith("aim"));
+  const aims = () => actions.poll().flicks;
   let clockMs = 1000;
   let buttons = 0;
   const BIT = [1, 4, 2];
@@ -414,7 +414,7 @@ describe("Actions: the layers", () => {
       const { actions, press } = setup("overworld", top);
       press("KeyW");
       press("KeyF");
-      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, top);
+      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, top);
     }
   });
 
@@ -650,7 +650,7 @@ describe("Actions: chat", () => {
       press("Digit1");
       click(0);
       move(FLICK.distancePx * 2, 0);
-      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, mode);
+      assert.deepEqual(actions.poll(), { held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0 }, mode);
       assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, mode);
     }
   });
@@ -718,10 +718,9 @@ describe("Actions: the mouse", () => {
 const FAR = FLICK.distancePx;
 
 describe("Actions: the mouse aims and attacks", () => {
-  test("a flick aims eight ways: the side it moves toward, the nearest of them", () => {
+  test("a flick aims seven ways: the side it moves toward, the nearest of them; straight down aims nothing", () => {
     const flicks = [
-      [-1, 0, "lr"], [1, 0, "rl"], [0, -1, "tb"], [0, 1, "bt"], [-1, -1, "tlbr"], [1, -1, "trbl"], [-1, 1, "bltr"],
-      [1, 1, "brtl"],
+      [-1, 0, "lr"], [1, 0, "rl"], [0, -1, "tb"], [-1, -1, "tlbr"], [1, -1, "trbl"], [-1, 1, "bltr"], [1, 1, "brtl"],
     ] as const;
     for (const [x, y, way] of flicks) {
       const { aim, move } = setup();
@@ -729,17 +728,16 @@ describe("Actions: the mouse aims and attacks", () => {
       move(x * FAR / 2, y * FAR / 2);
       assert.equal(aim(way === "tb" ? "lr" : "tb"), way, `${x},${y}`);
     }
+    const { aim, move } = setup();
+    move(0, FAR);
+    assert.equal(aim("lr"), "lr");
   });
 
-  test("U I O / J L / M , . aim from their side of the grid: the swing goes from there across", () => {
-    const grid = [
-      ["KeyU", "tlbr"], ["KeyI", "tb"], ["KeyO", "trbl"], ["KeyJ", "lr"], ["KeyL", "rl"], ["KeyM", "bltr"],
-      ["Comma", "bt"], ["Period", "brtl"],
-    ] as const;
-    for (const [key, way] of grid) {
+  test("no key aims: the old grid keys are free", () => {
+    for (const key of ["KeyU", "KeyI", "KeyO", "KeyJ", "KeyL", "KeyM", "Comma", "Period"]) {
       const { aim, press } = setup();
       press(key);
-      assert.equal(aim(way === "tb" ? "lr" : "tb"), way, key);
+      assert.equal(aim("lr"), "lr", key);
     }
   });
 
@@ -751,7 +749,7 @@ describe("Actions: the mouse aims and attacks", () => {
     assert.equal(attack(), "heavy");
   });
 
-  test("K stabs, left Shift blocks (a tap shorter than a step too), G kicks; the aim goes with them", () => {
+  test("K stabs, left Shift blocks (a tap shorter than a step too)", () => {
     const { read, press, release } = setup();
     press("KeyK");
     assert.equal(read().attack, "stab");
@@ -762,10 +760,6 @@ describe("Actions: the mouse aims and attacks", () => {
     assert.equal(read().block, true, "held");
     release("ShiftLeft");
     assert.equal(read().block, false);
-    press("KeyG");
-    const kicked = read();
-    assert.equal(kicked.kick, true);
-    assert.equal(kicked.way, "lr");
   });
 
   test("the scroll wheel stabs, once per turn of it however many events it sends", () => {
@@ -796,7 +790,7 @@ describe("Actions: the mouse aims and attacks", () => {
   test("one long sweep, however long, is one flick", () => {
     const { aims, move } = setup();
     for (let i = 0; i < 40; i++) move(FAR / 4, i % 3 === 0 ? 2 : 0, 8);
-    assert.deepEqual(aims(), ["aimRight"]);
+    assert.deepEqual(aims(), ["right"]);
   });
 
   test("turning back at once flicks the other way, with no pause needed", () => {
@@ -804,26 +798,26 @@ describe("Actions: the mouse aims and attacks", () => {
     move(FAR, 0);
     move(-FAR / 2, 0);
     move(-FAR / 2, 0);
-    assert.deepEqual(aims(), ["aimRight", "aimLeft"]);
+    assert.deepEqual(aims(), ["right", "left"]);
   });
 
   test("after a rest, a move the same way flicks again", () => {
     const { aims, move } = setup();
     move(FAR, 0);
     move(FAR, 0, FLICK.restMs + 1);
-    assert.deepEqual(aims(), ["aimRight", "aimRight"]);
+    assert.deepEqual(aims(), ["right", "right"]);
   });
 
   test("the sensitivity scales the distance", () => {
     const { aims, move, mouseSettings } = setup();
     mouseSettings.setFlickSensitivity(2);
     move(FAR / 2, 0);
-    assert.deepEqual(aims(), ["aimRight"]);
+    assert.deepEqual(aims(), ["right"]);
     mouseSettings.setFlickSensitivity(0.5);
     move(0, -FAR, FLICK.restMs + 1);
     assert.deepEqual(aims(), []);
     move(0, -FAR);
-    assert.deepEqual(aims(), ["aimTop"]);
+    assert.deepEqual(aims(), ["up"]);
   });
 
   test("a middle-button drag turns the camera and never flicks", () => {
@@ -844,21 +838,20 @@ describe("Actions: the mouse aims and attacks", () => {
     }
   });
 
-  test("a flick and a key in one tick: the later of the two", () => {
-    const { aim, press, move } = setup();
+  test("two flicks in one tick: the later; a downward one after another keeps the first", () => {
+    const { aim, move } = setup();
     move(FAR, 0);
-    press("KeyU");
-    assert.equal(aim(), "tlbr");
-    const other = setup();
-    other.press("KeyU");
-    other.move(FAR, 0);
-    assert.equal(other.aim(), "rl");
+    move(-FAR, 0);
+    assert.equal(aim(), "lr");
+    move(FAR, 0, FLICK.restMs + 1);
+    move(0, FAR);
+    assert.equal(aim(), "rl");
   });
 
   test("a flick is in one poll only", () => {
     const { aims, move } = setup();
     move(FAR, 0);
-    assert.deepEqual(aims(), ["aimRight"]);
+    assert.deepEqual(aims(), ["right"]);
     assert.deepEqual(aims(), []);
   });
 });

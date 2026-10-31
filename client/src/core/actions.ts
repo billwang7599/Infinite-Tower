@@ -2,7 +2,7 @@ import {
   actionDef, actionsOf, GROUPS, keysOf, MENUS, type Action, type Group, type KeyBindings, type KeyMap,
   type MenuAction,
 } from "../settings/bindings.js";
-import { nextPressOrder, type Buttons } from "./buttons.js";
+import type { Buttons } from "./buttons.js";
 import type { Keyboard } from "./keyboard.js";
 import { WHEEL, type Mouse } from "./mouse.js";
 import type { MouseSettings } from "../settings/mouse.js";
@@ -43,13 +43,13 @@ const AXES = {
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
 // By screen angle in equal steps from moving right, clockwise (y grows down).
-const FLICKS: readonly WorldAction[] = [
-  "aimRight", "aimBottomRight", "aimBottom", "aimBottomLeft", "aimLeft", "aimTopLeft", "aimTop", "aimTopRight",
-];
+export const FLICKS = ["right", "downRight", "down", "downLeft", "left", "upLeft", "up", "upRight"] as const;
+export type Flick = (typeof FLICKS)[number];
 
 export interface Polled {
   held: ReadonlySet<WorldAction>;
   pressed: readonly WorldAction[];
+  flicks: readonly Flick[];
   move: { x: number; z: number };
   turn: number;
   look: number;
@@ -85,7 +85,7 @@ export class Actions {
   private readonly devices: readonly Buttons[];
   private mapped: KeyMap | null = null;
   private readonly maps = {} as Record<Group, Map<string, string>>;
-  private flicks: [WorldAction, number][] = [];
+  private flicks: Flick[] = [];
   private sweep: { dx: number; dy: number; atMs: number }[] = [];
   private flickedWay: { x: number; y: number } | null = null;
   private lastMoveMs = -Infinity;
@@ -120,19 +120,17 @@ export class Actions {
 
   // Once per tick: it clears the presses.
   poll(): Polled {
-    const presses: [WorldAction, number][] = [
-      ...this.devices.flatMap((d) => [...d.presses].flatMap(([key, order]) => {
-        const action = this.worldAction(key);
-        return action ? [[action, order] as [WorldAction, number]] : [];
-      })),
-      ...this.flicks,
-    ];
+    const presses = this.devices.flatMap((d) => [...d.presses].flatMap(([key, order]) => {
+      const action = this.worldAction(key);
+      return action ? [[action, order] as [WorldAction, number]] : [];
+    }));
+    const flicks = this.flicks;
     for (const d of this.devices) d.clearPressed();
     this.flicks = [];
     const pressed = presses.sort((a, b) => a[1] - b[1]).map(([action]) => action);
     const held = this.heldActions();
     const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
-    return { held, pressed, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
+    return { held, pressed, flicks, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
   }
 
   // Every frame, not per tick: movement is an amount, so a snapshot would count it again.
@@ -162,7 +160,7 @@ export class Actions {
     if (length < FLICK.distancePx / this.mouseSettings.get().flickSensitivity) return;
     const turn = (2 * Math.PI) / FLICKS.length;
     const flicked = FLICKS[(Math.round(Math.atan2(y, x) / turn) + FLICKS.length) % FLICKS.length];
-    if (flicked) this.flicks.push([flicked, nextPressOrder()]);
+    if (flicked) this.flicks.push(flicked);
     this.flickedWay = { x: x / length, y: y / length };
     this.sweep = [];
   }

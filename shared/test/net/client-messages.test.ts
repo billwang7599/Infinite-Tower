@@ -13,7 +13,7 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
   step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null,
-  block: false, kick: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
+  block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
   bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
@@ -29,7 +29,7 @@ describe("parseClientMsg", () => {
     const messages = [
       { t: "input", seq: 1, moveX: 0.5, moveZ: -1 },
       { t: "battleInput", upTo: 3, inputs: [STEP, { ...STEP, step: 2, attack: "heavy", way: "lr" }] },
-      { t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, kick: true }] },
+      { t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, block: true }] },
       { t: "battleInput", upTo: 7, inputs: [] },
       { t: "battleResync" },
       { t: "leaveBattle" },
@@ -37,7 +37,7 @@ describe("parseClientMsg", () => {
       { t: "settings", settings: {} },
       { t: "settings", settings: { mouse: { autoLock: false } } },
       {
-        t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, attack: "stab", way: "tlbr", block: true, kick: true }],
+        t: "battleInput", upTo: 2, inputs: [{ ...STEP, step: 2, attack: "stab", way: "tlbr", block: true }],
       },
       { t: "character", character: { name: "Kirito", gender: "boy", look: DEFAULT_LOOK } },
       { t: "rest" },
@@ -129,8 +129,8 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "lr" }), null, "a swing is aimed, not an attack");
     assert.equal(battleInput({ ...STEP, way: "stab" }), null, "the stab is an attack, not an aim");
+    assert.equal(battleInput({ ...STEP, way: "bt" }), null, "no straight upward swing");
     assert.equal(battleInput({ ...STEP, block: "yes" }), null);
-    assert.equal(battleInput({ ...STEP, kick: 1 }), null);
   });
 
   test("battleInput: the bag is open or not, and a gear move goes between two spots", () => {

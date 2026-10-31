@@ -110,12 +110,6 @@ describe("the kobold's pose", () => {
     }
   });
 
-  test("kicking, its free hand reaches out ahead and it leans in", () => {
-    const kick = poseOf("kick", 0.1, 0, TB, null), guard = poseOf("approach", 0.1, 0, TB, null);
-    assert.ok(kick.offHand.z > guard.offHand.z + 0.2);
-    assert.ok(kick.lean > 0);
-  });
-
   test("dead it falls over; stunned it sees stars, but not just staggered", () => {
     assert.equal(poseOf("dead", 0, 0, LR).roll, Math.PI / 2);
     assert.equal(poseOf("stunned", 0.1, 0, LR).stars, true);

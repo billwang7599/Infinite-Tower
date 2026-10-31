@@ -51,15 +51,6 @@ describe("InputTimeline", () => {
     assert.deepEqual(timeline.take(7), WALK, "and let go after");
   });
 
-  test("a late kick is kept, as a press is", () => {
-    const timeline = new InputTimeline();
-    timeline.receive(2, [at(1, WALK)], 0);
-    takeRange(timeline, 1, 5);
-    timeline.receive(7, [at(3, { ...WALK, kick: true }), at(4, WALK)], 6);
-    assert.deepEqual(timeline.take(6), { ...WALK, kick: true });
-    assert.deepEqual(timeline.take(7), WALK);
-  });
-
   test("a late change and the next step's own in one message: the late press runs, then the next change", () => {
     const timeline = new InputTimeline();
     timeline.receive(2, [at(1, WALK)], 0);

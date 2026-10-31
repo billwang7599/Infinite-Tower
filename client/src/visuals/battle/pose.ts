@@ -2,17 +2,17 @@ import type { PlayerAction, PlayerData, Vec2, Vec3, Way, WielderData } from "@in
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
 import {
-  drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, wayCut, type Cut,
+  drawnBack, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, wayCut, type Cut,
   type WeaponMotion,
 } from "./weapons.js";
 
 const WAY_POSES: Record<Way, SwordPose> = {
-  lr: "swing-lr", rl: "swing-rl", tb: "swing-tb", bt: "swing-tb", tlbr: "swing-tlbr", trbl: "swing-trbl",
+  lr: "swing-lr", rl: "swing-rl", tb: "swing-tb", tlbr: "swing-tlbr", trbl: "swing-trbl",
   bltr: "swing-lr", brtl: "swing-rl", stab: "swing-tb",
 };
 const HELD_POSES: Record<Way, SwordPose> = {
   lr: "guard-left", tlbr: "guard-left", bltr: "guard-left", rl: "guard-right", trbl: "guard-right",
-  brtl: "guard-right", tb: "guard-top", bt: "guard-top", stab: "guard-top",
+  brtl: "guard-right", tb: "guard-top", stab: "guard-top",
 };
 export const STAGGERED: readonly PlayerAction[] = ["stagger"];
 
@@ -48,7 +48,6 @@ export function spritePose(
   const pose: PlayerPose = !alive ? "down"
     : attacking ? WAY_POSES[swing.way]
     : STAGGERED.includes(player.action) ? "stagger"
-    : player.action === "kick" ? "grab"
     : stance ? HELD_POSES[stance]
     : "stand";
   const frame = pose === "stagger" ? (stagger.left > stagger.of / 2 ? 0 : 1)
@@ -66,7 +65,6 @@ export function playerBlade(
 ): { blade: Vec3; exact: boolean } {
   if (!alive) return { blade: DROPPED_BLADE, exact: false };
   if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false };
-  if (player.action === "kick") return { blade: GRAB_BLADE, exact: false };
   const stance = stanceCut(player), held = stance ? motion.held(stance) : REST_BLADE;
   if (!swing || swing.step >= swing.endAt) return { blade: held.blade, exact: false };
   const cut = wayCut(swing.way, true), stroke = strokeOf(swing);

@@ -73,8 +73,8 @@ const indexIn = (fighters: readonly Entity[], e: Entity | null): number => (e ==
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
   if (!wielder) return null;
-  const { swing, kick, combo, comboTime, momentum } = wielder;
-  return { swing: copySwing(swing), kick: kick && { ...kick }, combo, comboTime, momentum };
+  const { swing, combo, comboTime, momentum } = wielder;
+  return { swing: copySwing(swing), combo, comboTime, momentum };
 }
 
 function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
@@ -141,8 +141,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
     if (wielder && s.wielder) {
-      const { swing, kick, ...rest } = s.wielder;
-      Object.assign(wielder, rest, { swing: copySwing(swing), kick: kick && { ...kick } });
+      const { swing, ...rest } = s.wielder;
+      Object.assign(wielder, rest, { swing: copySwing(swing) });
     }
     const { words, aim, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };

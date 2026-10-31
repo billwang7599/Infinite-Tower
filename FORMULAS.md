@@ -13,7 +13,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [The core](#the-core)
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
-- [Blocks, parries, kicks and feints](#blocks-parries-kicks-and-feints)
+- [Blocks](#blocks)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -34,7 +34,7 @@ an enemy's are in its file in `server/src/core/enemies/`. Every one is ×1 at 10
 |---|---|---|---|
 | strength | 10 | physical damage × √(strength / 10); carry limit 60 × (strength / 10)^¼ | `physicalDamage`, `carryLimit` |
 | agility | 10 | walking and dodging × (agility / 10)^¼, in the arena and on the overworld | `moveSpeed` |
-| stamina | 10 | the stamina bar = 10 × stamina | `staminaMaxOf` |
+| stamina | 10 | the stamina bar = 15 × stamina | `staminaMaxOf` |
 | skillpower | 10 | skill damage × √(skillpower / 10) | `skillDamage` |
 | vitality | 10 | the most HP = 10 × vitality | `maxHpOf` |
 | defense | 10 | physical damage taken × 50 / (40 + defense) | `physicalTakenFactor` |
@@ -66,7 +66,7 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
   the stats with the most first (`coreAfterDeath`).
 
 Example: Early Yan, 90 in: a boar's essence (20) breaks through to Middle Yan with 10 in. Every shown stat is 11, the
-hidden ones 11, 2 points free; the most HP 110, the stamina bar 110, and HP and stamina each 10 more than before.
+hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more than before and stamina 15 more.
 
 ## Weapon attacks
 
@@ -75,17 +75,19 @@ each weapon's numbers in `WEAPONS` (`weapons.ts`); the rules in `fight/player/sw
 goes × √(strength / 10), and every time × the weapon's heft.
 
 - **Wind-up** (press to the blade going live): a light `CHAIN.startupTime` by how it follows the last swing (an
-  opening or after a stab 0.1 s, the reverse 0.05 s, another line 0.1 s, a perpendicular one 0.16 s) ×
-  (1 − 0.1 × momentum, momentum at most 4), ÷ an Air Imbue's swift factor; a heavy the same + 0.35 s; a stab 0.14 s.
+  opening or after a stab 0.35 s, the reverse 0.25 s, another line 0.3 s, a perpendicular one 0.45 s) ×
+  (1 − 0.1 × momentum, momentum at most 4), never under `minStartupTime` 0.25 s, ÷ an Air Imbue's swift factor; a
+  heavy the same + 0.35 s; a stab 0.3 s. A swing down from the top has no reverse.
   Drawn back for the first 60%, driven for the rest. Live 0.1 s (a heavy 0.12 s), then recovering 0.08 s (a heavy
   0.2 s). It chains if it starts during the last attack or within `gapTime` 0.25 s of its end.
 - **Momentum:** each chained swing adds `MOMENTUM.gain` (the reverse 1, another line 0.5, a perpendicular 0.25), at
-  most 4, and is lost on a gap, a dodge, a block, a cast, the chant, the bag, a hit taken or being parried.
+  most 4, and is lost on a gap, a dodge, a block, a cast, the chant, the bag, a hit taken or being blocked perfectly.
 - **Damage:** a swing the weapon's damage × (1 + 0.25 × momentum, ×2 at most), a heavy ×2 more; a stab × 1.25 ×
-  (1 + 0.5 × momentum) and spends it. **Stamina:** a light 16, a heavy 24, a stab 20 (× heft). **Poise:** 12, 24, 18.
-- **Reach** (`wayShape`): (arm reach + blade) × 1 across (160°), × 1.15 on a diagonal (110°), × 1.3 up or down
-  (60°), × 1.75 for a stab (16°), to the target's surface; arcs by angle to its centre (any angle within 0.3 m). Arm
-  reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also 0.8).
+  (1 + 0.5 × momentum) and spends it. **Stamina:** a light 10, a heavy 16, a stab 12 (× heft). **Poise:** 12, 24, 18.
+- **Reach** (`wayShape`): (arm reach + blade) × 1.15 for every swing (2.19 m with the sword), its arc by line: 160°
+  across, 110° on a diagonal, 60° down from the top; × 1.75 for a stab (16°), to the target's surface; arcs by angle
+  to its centre (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also
+  0.8).
 - While an attack's blade is live it carries you forward at `HYBRID.swinging.lungeSpeed` 4 m/s; otherwise you walk at
   25% (`moveFactor`) while attacking.
 
@@ -93,19 +95,19 @@ By weapon, at strength 10, an opening swing (light / heavy; times in seconds):
 
 | Weapon | Heft | Damage | Wind-up | Stamina (light / heavy / stab) |
 |---|---|---|---|---|
-| Sword | 1 | 9 / 18 | 0.1 / 0.45 | 16 / 24 / 20 |
-| Longsword | 1.2 | 11 / 22 | 0.12 / 0.54 | 19.2 / 28.8 / 24 |
-| Greatsword | 1.6 | 16 / 32 | 0.16 / 0.72 | 25.6 / 38.4 / 32 |
+| Sword | 1 | 9 / 18 | 0.35 / 0.7 | 10 / 16 / 12 |
+| Longsword | 1.2 | 11 / 22 | 0.42 / 0.84 | 12 / 19.2 / 14.4 |
+| Greatsword | 1.6 | 16 / 32 | 0.56 / 1.12 | 16 / 25.6 / 19.2 |
 | Kobold blade | 1 | 14 / 28 | (its own, below) | none |
 | Kobold greatsword | 1.6 | 14 / 28 | (its own, below) | none |
 
-An enemy's swing deals the same damage; it deals no poise damage and costs no stamina. **The Kobold** (its weapon
+An enemy's swing deals the same damage and costs no stamina. **The Kobold** (its weapon
 attack, `server/src/core/enemies/kobold-swordsman.ts`): its first swing goes live 1.1 s after it starts, the next ones
 0.45 s (a heavy 0.35 s more), × its blade's heft; 0.5 s of recovery after a chain; it blocks walking up (from 0.3 s
-in), tap-parries 25% of a player's swings and kicks a player who has held a block 1 s, half the time.
+in), and perfect-blocks 30% of the swings a player starts at it while walking up (`perfectBlockChance`).
 
-Example: a sword light, then the reverse, then the reverse again: wind-ups 0.1, 0.045 and 0.04 s; damage 9, 11.25
-and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
+Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35, 0.25 and 0.25 s (the reverse's
+0.25 can't go lower); damage 9, 11.25 and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
 
 ## Body blows
 
@@ -120,32 +122,29 @@ weapon's hit only hurts: no knockback, no hitstun.
 | Boar charge | 30 | 15 | 0.55 |
 | Warlock's staff (lunge) | 5 | 3 | 0.31 |
 
-## Blocks, parries, kicks and feints
+## Blocks
 
-`HYBRID.block`, `HYBRID.kick`, `HYBRID.feint`, `COUNTER_PARRY` in `hybrid.ts`; `fight/weapons/defend.ts` and
-`kick.ts`.
+`HYBRID.block` in `hybrid.ts`; `fight/weapons/defend.ts`.
 
-- **Held block:** from in front (within 70°), a hit costs damage × 1 stamina and a weapon chips 20% of its damage;
-  a body blow pushes you back at 60% of its knockback. A heavy, or too little stamina, breaks it: staggered 0.8 s.
-  You walk at 40% while holding it, and stamina doesn't refill.
-- **Tap parry:** a block pressed at most `tapParryTime` 0.25 s before a weapon lands parries it, free; the attacker is
-  staggered `riposteTime` 0.4 s. No window if the last press was under `retapTime` 0.5 s before. Body blows can't be
-  parried.
-- **Counter-parry:** your swing's blade gone live at most 0.15 s before theirs lands, the swing meeting theirs head-on
-  (share 1) or 45° off (share 0.5), or a stab against a stab: an enemy is staggered 1 s × share and slides back 1.5 m ×
-  share; a player is staggered 0.5 s × share and knocked back at 6 m/s × share.
-- **Kick:** 15 stamina; lands 0.2 s in on the nearest foe within 1.4 m (centre to edge) and 45°; a held block is
-  staggered 0.6 s, anyone else not mid-attack shoved (staggered 0.25 s, pushed at 7 m/s). Over at 0.5 s.
-- **Feint:** the kick key in your wind-up with more than 0.15 s left ends it for 10 stamina.
+- **Held block:** from in front (within 70°), a weapon chips 20% of its damage and costs a player its damage in
+  stamina (a heavy × `heavyStaminaFactor` 2); a body blow costs its damage and pushes you back at 60% of its
+  knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime` 0.8 s.
+  Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
+  costs it the hit's poise instead (below).
+- **Perfect block:** a block pressed at most `perfectTime` 0.2 s before a weapon lands (even let go again) stops it
+  with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina (if it has a bar) and is staggered
+  `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s before. Body blows can't be
+  blocked perfectly.
 
-Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP; a boar's charge into it pushes the
-blocker back at 9 m/s, no HP.
+Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
+boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP.
 
 ## Poise and stagger (enemies)
 
 `enemyBrainSystem` (`fight/behaviors/brain.ts`), with `poise`, `poiseRegen` and `staggerTime` in each enemy's def.
 
-- A hit takes its poise damage: a light 12, a heavy 24, a stab 18, an Earth skill 20 × the hit's share.
+- A hit takes its poise damage: a light 12, a heavy 24, a stab 18, an Earth skill 20 × the hit's share; so does a
+  hit it blocks.
 - Poise comes back at `poiseRegen` a second (not while staggered), up to `poise`.
 - At 0 or less it's staggered for `staggerTime` × 10 / toughness and its poise refills; not while charging, stunned
   or already staggered.
@@ -160,8 +159,8 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 `PLAYER` in `shared/src/battle/player.ts`; `combat.ts`.
 
-- **Hitstun** (no control): a body blow (0.25 + 0.02 × knockback) × 10 / toughness; parried, kicked or with a block
-  broken, the stagger above. Toughness shortens only the body blow's: the counterplay's openings stay as they are.
+- **Hitstun** (no control): a body blow (0.25 + 0.02 × knockback) × 10 / toughness; blocked perfectly or with the
+  guard broken, the stagger above. Toughness shortens only the body blow's: the counterplay's openings stay as they are.
   Weapon hits and skills give none.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
 - **Dodge i-frames:** from `dodge.iframeStart` 0 to `iframeEnd` 0.32 s of the 0.42 s dodge, weapon and body hits miss.
@@ -174,23 +173,23 @@ Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword ligh
 
 `PLAYER` and the player's controller (`fight/player/controller.ts`).
 
-- The bar is 10 × the stamina stat (100). It refills at `staminaRegenPerSec` 45 × stamina recovery / 10 a second
+- The bar is 15 × the stamina stat (150). It refills at `staminaRegenPerSec` 45 × stamina recovery / 10 a second
   (× 1.5 while Charged), from `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging, casting,
-  blocking, kicking or staggered, but while standing, walking, chanting, writing or in the bag. Empty to full:
-  0.6 + 100 / 45 = 2.8 s. It doesn't refill on the overworld.
+  blocking or staggered, but while standing, walking, chanting, writing or in the bag. Empty to full:
+  0.6 + 150 / 45 = 3.9 s. It doesn't refill on the overworld.
 - Any stamina above 0 starts an attack or a dodge; its cost may take the bar down to 0. A skill needs its whole cost
   to start, and pays it on release.
 
 | Action | Cost at strength 10 | Where |
 |---|---|---|
-| Light / heavy / stab | 16 / 24 / 20 × heft: longsword 19.2 / 28.8 / 24, greatsword 25.6 / 38.4 / 32 | `HYBRID`, `strikeCost` |
-| A blocked hit | its damage × 1; a tap parry nothing | `HYBRID.block.staminaPerDamage` |
-| Kick | 15 | `HYBRID.kick.cost` |
-| Feint | 10, on top of the swing's | `HYBRID.feint.cost` |
+| Light / heavy / stab | 10 / 16 / 12 × heft: longsword 12 / 19.2 / 14.4, greatsword 16 / 25.6 / 19.2 | `HYBRID`, `strikeCost` |
+| Holding a block | 5 a second | `HYBRID.block.holdStaminaPerSec` |
+| A blocked hit | its damage (a heavy × 2); a perfect block nothing | `HYBRID.block.heavyStaminaFactor` |
+| Blocked perfectly (the attacker) | 10 | `HYBRID.block.perfectDrain` |
 | Dodge | 22; heavy × 1.3 = 28.6; overloaded can't; Hasted × 0.7 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 
-The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds up a cast).
+The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds up a cast).
 
 ## Movement
 
@@ -287,19 +286,18 @@ Each in `server/src/core/enemies/<id>.ts`.
 | | Wild Boar | Kobold Swordsman | Kobold Greatsword | Goblin Warlock |
 |---|---|---|---|---|
 | HP | 160 | 160 | 160 | 40 |
-| Poise, regen a second, stagger | 36, 8, 1 s | 40, 10, 0.8 s | 40, 10, 0.8 s | 20, 8, 1 s |
+| Poise, regen a second, stagger | 36, 8, 1 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s |
 | Walk | 3.2 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s |
 | Hits | bite 16, charge 30 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
   recovering or the wall's 2.2 s stun.
-- **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 8 ways or a stab, never the same twice running,
+- **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
   heavy 30% of the time; its first goes live 1.1 s after it starts and the rest 0.45 s (a heavy 0.35 s more), × its
   blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover and 1.2 s more before the next chain; first
-  after 1.5 s. Walking up it blocks from 0.3 s in. Each rolled from the fight's seed: it tap-parries 25% of a
-  player's swings (rolled as each starts) and ripostes at once; a player who has held a block 1 s within kick reach is
-  kicked half the time (it tries each second), and a block it kicked open is followed by a swing at once. A Bolt
+  after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it perfect-blocks 30% of
+  a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and

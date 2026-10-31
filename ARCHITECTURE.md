@@ -134,8 +134,8 @@ main.ts
   pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock), and the camera reads its
   movement each frame with `actions.lookDelta()` (it turns only while the middle button, `dragCamera`, is held);
   no mode sees `Mouse`. Mouse movement in the arena is also read as flicks there: a quick move one of 8 ways
-  (`FLICK`, scaled by the flick sensitivity) is pressed as that way's aim (`aimLeft`, `aimTopLeft`, ...), the same
-  actions as the aim keys, in order with the keys and clicks; not while dragging the camera.
+  (`FLICK`, scaled by the flick sensitivity) comes in the poll's `flicks` (`right`, `upLeft`, ...), which the arena's
+  input turns into the swing's way (straight down into none); not while dragging the camera.
   A turn of the scroll wheel is a press of `MouseWheel` (one per scroll: it has to rest 150 ms), bound like a
   mouse button (the stab). In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
@@ -164,7 +164,7 @@ main.ts
   that are tested (`visuals/battle/pose.ts`, `visuals/battle/weapons.ts` for any wielder's blade, `arm.ts` for a
   3D humanoid's arms, each enemy's `pose.ts`). One-shot effects are a second table, `EFFECTS`,
   by fight event type (the camera's shake, a Nova's burst, a weapon hit's hit-stop and jolt, a blocked blade's bounce
-  and sparks, a parry's and a kick's); each fires once per step and event (`FiredEffects`, `modes/battle/fired.ts`), so
+  and sparks, a perfect block's); each fires once per step and event (`FiredEffects`, `modes/battle/fired.ts`), so
   a step replayed after a resync doesn't fire it again. Hit-stop is drawing only (`visuals/battle/impact.ts`): the
   fight runs on, the two fighters' drawings hold still for the weapon's `hitStopMs` and then ease after their bodies.
   The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
@@ -267,7 +267,7 @@ main.ts
   other's seat; each player's name and character are in the setup's `who`) for a `FightSetup` with `duel: true`, no
   enemies, in the level's `duelArenaId`.
   In a duel each player is on their own `side` (every `Fighter` has one: enemies -1, players 0), so every hit, skill,
-  block, parry and kick works player against player; every swing's way is named as its swinger sees it, so one from
+  block and perfect block works player against player; every swing's way is named as its swinger sees it, so one from
   the left comes from the other's right (`mirrorWay` in `weapons/hybrid.ts`). `fight.targets` (what an
   input's `locked` indexes) is the players instead of the enemies. Over when one player stands (`outcome.ts`;
   `playerResult` gives each theirs); `settleDuel` gives back the HP and stamina they came in with and counts nothing.
@@ -394,25 +394,24 @@ main.ts
   simulates nothing itself
   (`fight/physics/arena-physics.ts`): it sweeps, finds contacts and casts rays (`grounded`, the blob shadow).
 - **The sword** (`fight/player/sword.ts`, `fight/weapons/`, numbers in `shared/src/weapons/hybrid.ts`): the player
-  controller calls `readSword` every step, `startKick` right after a dodge and `attackOrBlock` when nothing else
-  starts, each with a `SwordTurn`. A player aims a way (`Player.way`, the input's `way`) and swings light, heavy and
-  stab strikes on the old momentum chains (`Wielder.combo`, `comboTime`, `momentum`); holds a block and taps it to
-  parry (the `block` action, its `tapParryLeft`); counter-parries by the reverse swing (`parryShare`); and kicks
-  (`Wielder.kick`, `kickSystem` in `weapons/kick.ts`, after the hits), which in a wind-up is a feint. A swordsman's
-  brain is its `WeaponAttack`'s (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a
-  read tap parry and kicks.
+  controller calls `readSword` every step and `attackOrBlock` when nothing else starts, each with a `SwordTurn`. A
+  player aims a way (`Player.way`, the input's `way`, from mouse flicks) and swings light, heavy and stab strikes on
+  the old momentum chains (`Wielder.combo`, `comboTime`, `momentum`), and holds a block (the `block` action, draining
+  stamina in the controller), whose press opens a perfect block's window (`perfectBlockLeft`). A swordsman's brain is
+  its `WeaponAttack`'s (`fight/behaviors/weapon.ts`): seeded chains of ways, a held block walking up, a perfect block
+  it reads (`perfectBlockRead`) and the quick swing after it (`riposte`).
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and,
   for a weapon, its way) to the attacker; `combatSystem` (`fight/combat.ts`) resolves hits with plain math, not
-  physics. A weapon's hit is first asked of `defend` (`fight/weapons/defend.ts`): the target's counter-parry (its own
-  swing gone live just before, the reverse way) or tap parry staggers the attacker (`stagger`: a player's "stagger"
-  action in hitstun, an enemy's "staggered" state); a held block in front stops it for a chip of damage (a heavy, or
-  a player running short of stamina, breaks the block); a body blow is only blocked, pushing the defender back.
+  physics. A hit is first asked of `defend` (`fight/weapons/defend.ts`): in front of the target, a weapon in its
+  perfect block's window costs the attacker stamina and staggers it (`stagger`: a player's "stagger" action in
+  hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
+  enemy's poise), the guard breaking when it runs out; a body blow is only blocked, pushing the defender back.
   Anything else lands.
 - **Weapons are a system of their own, like skills.** The arsenal is in `shared/src/weapons/weapons.ts`: `WEAPONS`
   (each weapon by item id: its `kind`, the moveset it swings with, its length, damage and heft). The sword's rules
   and numbers are in `shared/src/weapons/hybrid.ts`: the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and
-  momentum (`CHAIN`, `MOMENTUM`), the strikes, block, kick and feint (`HYBRID`), the counter-parry (`COUNTER_PARRY`),
-  the hit shapes (`wayShape`: by line, the wielder's own arm reach plus the weapon's length), and `wayStepsAfter`,
+  momentum (`CHAIN`, `MOMENTUM`), the strikes and the block (`HYBRID`), the hit shapes (`wayShape`: one reach from
+  the wielder's own arm reach plus the weapon's length, the arc by line), and `wayStepsAfter`,
   `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's strength. Fighters care
   only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach and the swing under way)
   attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide when, what and which
@@ -687,12 +686,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
   each way's reach and
   shape by line (`combat.test.ts`), the sword (`player/sword.test.ts`: aimed ways, the momentum chains, the reverse
-  quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; the kick's feint), the
-  defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy or running short
-  breaking it, not the back; the tap parry, in the window, let go again, the riposte, too early, a retap; the
-  counter-parry, head-on, 45° off for a share, a stab by a stab), the kick (`weapons/kick.test.ts`: shove, stagger a
-  block, nothing mid-swing, reach), the swordsman (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice
-  running, its block, tap parry and kicks, chains by its seed and through a save, its landed hits only hurting), whole
+  quickest, damage building, lost to a gap, a dodge or a block, spent by a stab; the heavy; each strike's stamina),
+  the defences (`weapons/defend.test.ts`: the held block, any way in front, stamina and the chip, a heavy's double
+  cost, running out breaking it, its slow drain, not the back; the perfect block, in the window, the attacker's lost
+  stamina and recoil, getting in first, too early, mashing; no parry by a swing), the swordsman
+  (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
+  block and the swing after, chains by its seed and through a save, its landed hits only hurting), whole
   fights won and lost,
   the time limit and leaving (down only mid-fight, gone from the arena either way, through a save), which pile is in
   view (`inView`), a walker's heading
@@ -732,15 +731,15 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   keeping early inputs for their own steps and dropping ones too far ahead, a silent client's fight going on (and
   still lost at the time limit), lateness,
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
-  late, with the same hit or miss and HP on both sides; blocking (or tap-parrying) the Kobold's attack the same way;
-  the Kobold as tuned, its old wind-ups, beaten by a player who tap-parries and kicks whatever its seed, beating one
-  who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`); a cast or a page written
+  late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the Kobold's attack the same way;
+  the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and punishes whatever its seed, beating
+  one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`); a cast or a page written
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
   chanting without the book; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
   through a death); and the input timeline (changes held, late presses and casts kept, a late change and an on-time
   one in one message, too far ahead dropped, a silent player stopping, lateness, the latest of late chant words
-  kept, a late kick kept).
+  kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
   client. The core (`soul.test.ts`): in `welcome` and a fight's setup, saved; essence absorbed on the overworld (told,
   saved, a breakthrough growing the vitals, not into a whole core), in a fight and kept after a win, and in the arena
@@ -815,9 +814,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   it), the keyboard (held, latched, text fields, the chat field's Enter, rebinding's raw key), where each key goes
   (the layer on top, each with its own keys; held keys read only there; / opening the chat and kept from the page,
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
-  chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; the aim grid and 8-way flicks;
-  the stab on K or the wheel, the block and the kick), the player's pose and blade (ways, aim, block and kick), sword
-  trail and cut, the aim ring, the
+  chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; the flicks' 7 ways, none down, no
+  aim keys; the stab on K or the wheel, the block), the player's pose and blade (ways, aim, block), sword trail and
+  cut, the
   boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
   Interact does
@@ -973,8 +972,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
                        no attacks or block; no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
-                       aimed way, presses buffered, the tap window, a feint; startKick; attackOrBlock: light / heavy /
-                       stab on the old momentum chains, the held block), use.ts (useSystem: a consumable used
+                       aimed way, presses buffered, the perfect block's window; attackOrBlock: light / heavy / stab
+                       on the old momentum chains, the held block), use.ts (useSystem: a consumable used
                        once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
@@ -986,15 +985,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        do to damage dealt and taken, healing, walking speed)
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / death), lunge.ts, charge.ts, weapon.ts (the Kobold's brain: seeded
-                       chains of ways or a stab, never the same twice running, a block held walking up, a read tap
-                       parry and its riposte, a kick for a player who holds a block), skill.ts (casting: a quick-cast
+                       chains of ways or a stab, never the same twice running, a block held walking up, a read
+                       perfect block and the swing after it), skill.ts (casting: a quick-cast
                        up close, a chant a word at a time from farther, backing away while it chants if kept away,
                        seeded extra modifiers, stamina like a player's; the warlock's), sidestep.ts (stepping aside from
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
-                       startWaySwing, endSwing, endChain, bladeLive, lastFeintStep; handsOf), defend.ts (defend: the
-                       counter-parry, the tap parry, the held block; blocking, facingOf), kick.ts (kickSystem: a kick
-                       landing on the nearest in reach; inReach)
+                       startWaySwing, endSwing, endChain, bladeLive; handsOf), defend.ts (defend: the perfect
+                       block, the held block and its stamina or poise; blocking, facingOf)
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
@@ -1016,9 +1014,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft; weaponIn,
                    weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the
-                   stab), STRIKES, mirrorWay, reverseOf, SCREEN_DIR; chainKind, CHAIN, MOMENTUM; HYBRID (light,
-                   heavy, stab, the block and tap parry, the kick, the feint, the lunge); COUNTER_PARRY, parryShare;
-                   wayShape, wayStepsAfter, strikeCost, strikeDamage)
+                   stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind, CHAIN, MOMENTUM; HYBRID (light, heavy, stab,
+                   the block and perfect block, the lunge); wayShape, wayStepsAfter, strikeCost, strikeDamage)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1348,8 +1345,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          yaw is the aim
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
-        input.ts         A poll -> PlayerInputData (the attack is the last pressed; the aimed way; a block or a kick
-                         pressed or held)
+        input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
+                         straight down; a block pressed or held)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
                          included
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
@@ -1390,16 +1387,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
                          impact
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
-                         blade's bounce and sparks (strike, clash), a parry's longer hold, bounce and shower of sparks
-                         (parried), a kick's catch, and a broken block's jolt and flash (shoved); impactPose and
+                         blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
+                         sparks (parried), and a broken guard's jolt and flash (guardBroken); impactPose and
                          joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
                          pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle and chant
                          words, a dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
                          LEAVE_FADE_TIME), arenaStage (the scenery per arena, the camera on the mode's view plus
-                         shake, the lock-on's diamond, the aim ring, the drops' sacks after a win)
-        aimRing.ts       The ring of 8 wedges round the locked foe: your aim inside in gold, its swing
-                         coming outside in red, a centre dot for a stab (ringLights, wedgeOf: tested)
+                         shake, the lock-on's diamond, the drops' sacks after a win)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -1408,8 +1403,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          Kobolds' and every player's); a flat sprite's held blade (holdBlade, placeBlade: at the
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
-        pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered or
-                         kicking included; a way takes the nearest drawn swing, an aim the nearest guard pose);
+        pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered
+                         included; a way takes the nearest drawn swing, an aim the nearest guard pose);
                          playerBlade (their 3D blade, from the same, by the weapon's MOTIONS
                          row and the shared draw-back, drawn back less: SPRITE_DRAWBACK); facingSeen (their back
                          or front, by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
@@ -1421,11 +1416,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
                          MOTIONS, by weapon kind: the trail's line, a 3D blade held aimed and its way through a
                          wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
-                         pullOf, drawnBack) and the blade at rest, reeling and lowered to kick (every wielder's: the
+                         pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
                          Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade and its hit-stop. No
                          Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
-                         Bolt's impact, the reactions, Earth's shards, a clash's sparks, a parry's, a broken block's
+                         Bolt's impact, the reactions, Earth's shards, a clash's sparks, a perfect block's, a broken guard's
                          flash), the chant's and wind-up's
                          circle, and a visual per SkillObject kind (a Bolt's core and trail or an Earth rock, a
                          Beam's tubes and flares, a cloud's dome and pulse, a Delay's orb, an Imbue's glow at the
@@ -1615,9 +1610,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
-| The sword: the swings' starts by chain, momentum, the heavy and the stab; the held block, the tap parry and its riposte, the counter-parry, the kick, the feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `COUNTER_PARRY`) |
-| A swordsman: its wind-ups, recovery, chains, when it blocks, how often it tap-parries and kicks | its weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
-| The aim ring (sizes, height) | top of `client/src/visuals/battle/aimRing.ts` |
+| The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the perfect block, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
+| A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
@@ -1647,7 +1641,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows | top of `client/src/visuals/battle/blade.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
-| Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a parry's hold and bounce, a kick's catch and jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
+| Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |

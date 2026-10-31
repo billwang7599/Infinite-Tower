@@ -58,7 +58,7 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     poseArm(nodes.swordArm, nodes.handAt);
 
     const off = nodes.offArm;
-    if (nodes.twoHanded && enemy.state !== "kick") {
+    if (nodes.twoHanded) {
       Vector3.Up().applyRotationQuaternionToRef(hand.rotationQuaternion, bladeDir);
       hand.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
       off.hand.rotationQuaternion ??= new Quaternion();

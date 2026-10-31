@@ -41,10 +41,7 @@ describe("an attack", () => {
     for (const way of WAYS) assert.equal(strike(way, 0, reach(way, -0.8)), 0, way);
   });
 
-  test("a vertical swing reaches what a horizontal one can't; a horizontal one hits wider", () => {
-    const far = reach("lr", -0.4);
-    assert.equal(strike("lr", 0, far), 0);
-    assert.equal(strike("tb", 0, far), DAMAGE);
+  test("a horizontal swing hits wider than a vertical one", () => {
     const wide = (halfArcRad("lr") + halfArcRad("tb")) / 2;
     assert.equal(strike("lr", wide, reach("lr", 0.3)), DAMAGE);
     assert.equal(strike("tb", wide, reach("lr", 0.3)), 0);

@@ -136,9 +136,6 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 | `river-1.ogg` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2): `sfx100v2_loop_water_02.ogg` | rubberduck | CC0 |
 | `slam-1.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `slam_02.ogg` | rubberduck | CC0 |
 | `slam-2.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `slam_03.ogg` | rubberduck | CC0 |
-| `stab-1.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing.wav` | artisticdude | CC0 |
-| `stab-2.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing2.wav` | artisticdude | CC0 |
-| `stab-3.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing3.wav` | artisticdude | CC0 |
 | `step-grass-1.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_000.ogg` | Kenney (kenney.nl) | CC0 |
 | `step-grass-2.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_001.ogg` | Kenney (kenney.nl) | CC0 |
 | `step-grass-3.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_002.ogg` | Kenney (kenney.nl) | CC0 |

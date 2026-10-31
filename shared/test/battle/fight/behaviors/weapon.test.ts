@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Enemy, Health, HYBRID, Player, Wielder, type EnemyDef, type PlayerInputData, type WeaponAttackDef,
+  Enemy, Health, HYBRID, Player, Stamina, Wielder, type EnemyDef, type PlayerInputData, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, FULL_HP, input, player, swings, SWORDSMAN } from "../fixtures.js";
+import { ARENA, enemy, FULL_HP, FULL_STAMINA, input, player, swings, SWORDSMAN } from "../fixtures.js";
 
 before(() => initPhysics());
 
@@ -45,29 +45,23 @@ describe("a swordsman", () => {
     assert.ok(first !== null && first >= Math.round(BASE.windup * 60));
   });
 
-  test("holds a block walking up: a light is chipped, a heavy breaks it", () => {
-    const light = play(kobold({ firstDelay: 99 }), 40, (s) => ({ attack: s === 20 ? "light" : null }));
+  test("holds a block walking up: a blocked hit costs it poise, a heavy more, and out of poise it staggers", () => {
+    const light = play(kobold({ firstDelay: 99 }), 60, (s) => ({ attack: s === 20 ? "light" : null }));
     assert.ok(light.events.some((e) => e.type === "block" && e.target === light.it && !e.broken));
-    const heavy = play(kobold({ firstDelay: 99 }), 60, (s) => ({ attack: s === 20 ? "heavy" : null }));
+    assert.equal(light.fight.world.require(light.it, Enemy).state, "approach");
+    const def = { ...kobold({ firstDelay: 99 }), poise: HYBRID.heavy.poiseDamage };
+    const heavy = play(def, 90, (s) => ({ attack: s === 20 ? "heavy" : null }));
     assert.ok(heavy.events.some((e) => e.type === "block" && e.target === heavy.it && e.broken));
     assert.equal(heavy.fight.world.require(heavy.it, Enemy).state, "staggered");
   });
 
-  test("tap-parries a player's swing when it reads it", () => {
-    const { events, fight, me, it } = play(kobold({ tapParryChance: 1, firstDelay: 99 }), 40,
+  test("perfect-blocks a player's swing when it reads it: the player loses stamina, recoils, and it answers", () => {
+    const { events, fight, me, it } = play(kobold({ perfectBlockChance: 1, firstDelay: 99 }), 60,
       (s) => ({ attack: s === 20 ? "light" : null }));
-    assert.ok(events.some((e) => e.type === "parry" && e.by === it && e.target === me));
+    assert.ok(events.some((e) => e.type === "block" && e.perfect && e.by === me && e.target === it));
     assert.equal(fight.world.require(me, Player).action, "stagger");
-  });
-
-  test("kicks a player who holds a block too long, and a kick staggers its own block", () => {
-    const near = 1.4;
-    const kicked = play(kobold({ kickAfterTime: 0.5, kickChance: 1, firstDelay: 99 }), 90, () => ({ block: true }),
-      near);
-    assert.ok(kicked.events.some((e) => e.type === "kick" && e.by === kicked.it && e.result === "staggered"));
-    const kicking = play(kobold({ firstDelay: 99 }), 40, (s) => ({ kick: s === 20 }), near);
-    assert.ok(kicking.events.some((e) => e.type === "kick" && e.target === kicking.it && e.result === "staggered"));
-    assert.equal(kicking.fight.world.require(kicking.it, Enemy).state, "staggered");
+    assert.ok(fight.world.require(me, Stamina).value <= FULL_STAMINA - HYBRID.block.perfectDrain);
+    assert.notEqual(fight.world.require(it, Wielder).swing, null);
   });
 
   test("its blows land on a player who doesn't defend, and a held block stops them", () => {

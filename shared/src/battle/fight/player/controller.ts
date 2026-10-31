@@ -4,7 +4,7 @@ import { dodgeCost, walkPace } from "../../../items/burden.js";
 import { emptyCloth, heldIn, moveGear, NO_PILE, type Spot } from "../../../items/gear.js";
 import { startUse } from "../../../items/using.js";
 import {
-  Body, Health, Player, Skilled, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData, type StaminaData,
+  Body, Health, Player, Skilled, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData,
 } from "../../components.js";
 import { SKILL_EFFECTS } from "../../../skills/effects.js";
 import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skills/skill.js";
@@ -13,12 +13,12 @@ import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec } from "../../stats.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
-import { breakOff } from "../combat.js";
+import { breakOff, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { statusMoveFactor } from "../skills/statuses.js";
 import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
-import { attackOrBlock, readSword, startKick, type SwordTurn } from "./sword.js";
+import { attackOrBlock, readSword, type SwordTurn } from "./sword.js";
 
 const carried = (spot: Spot) => spot.in === "bag" || spot.in === "slot";
 const STUNNED: readonly PlayerAction[] = ["stagger"];
@@ -35,11 +35,6 @@ export function startAction(
   player.action = action;
   player.actionTime = 0;
   player.actionDir = { x, z };
-}
-
-export function spend(stamina: StaminaData, cost: number): void {
-  stamina.value = Math.max(0, stamina.value - cost);
-  stamina.regenDelay = PLAYER.staminaRegenDelay;
 }
 
 /** Free movement + jump (with buffering, coyote time and variable height). `speed`: full speed, from agility. */
@@ -159,7 +154,6 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       spend(stamina, dodgeStamina);
       player.dodgeBuffer = 0;
       endChain(wielder);
-    } else if (startKick(turn)) {
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null
       && stamina.value >= skillCost(queuedCast)) {
       startCast(world, e, queuedCast);
@@ -216,8 +210,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       case "block":
         player.actionDir = { x: input.aimX, z: input.aimZ };
         shuffle(input, v, dt, walkSpeed * HYBRID.block.moveFactor);
+        spend(stamina, HYBRID.block.holdStaminaPerSec * dt);
         break;
-      case "kick":
       case "chant":
       case "write":
       case "bag":

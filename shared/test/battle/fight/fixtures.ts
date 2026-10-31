@@ -56,7 +56,7 @@ export const BOAR: EnemyDef = {
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
   triggerDist: 3, windup: 0.6, chainWindup: 0.4, speed: 0, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
-  cooldown: 99, firstDelay: 0, blockReactTime: 0, tapParryChance: 0, kickAfterTime: 99, kickChance: 0, ...over,
+  cooldown: 99, firstDelay: 0, blockReactTime: 0, perfectBlockChance: 0, ...over,
 });
 
 export const SWORDSMAN: EnemyDef = {
@@ -88,7 +88,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null, block: false, kick: false,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null, block: false,
   cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
   use: null,
 };
@@ -147,7 +147,7 @@ export function dumpState(fight: Fight): string {
 /**
  * A busy player that only looks at the step number, so two fights get the same inputs whatever happens in them:
  * turning, running in every direction (into the wall too: the arena is small), every strike in turn from every way,
- * blocking and kicking, locking on and off, dodging and jumping.
+ * blocking, locking on and off, dodging and jumping.
  */
 export function busy(step: number): PlayerInputData {
   const turn = step * 0.05, run = Math.floor(step / 40) * 1.3;
@@ -155,7 +155,7 @@ export function busy(step: number): PlayerInputData {
     aimX: Math.round(Math.sin(turn) * 1000) / 1000, aimZ: Math.round(Math.cos(turn) * 1000) / 1000,
     moveX: Math.round(Math.sin(run) * 1000) / 1000, moveZ: Math.round(Math.cos(run) * 1000) / 1000,
     attack: step % 9 < 2 ? STRIKES[Math.floor(step / 9) % STRIKES.length]! : null,
-    way: SWING_DIRS[Math.floor(step / 13) % SWING_DIRS.length]!, block: step % 71 > 50, kick: step % 59 === 3,
+    way: SWING_DIRS[Math.floor(step / 13) % SWING_DIRS.length]!, block: step % 71 > 50,
     dodge: step % 47 === 0, jump: step % 83 < 10, locked: step % 101 > 30 ? 0 : null,
   });
 }

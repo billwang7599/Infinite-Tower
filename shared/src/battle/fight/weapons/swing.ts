@@ -1,6 +1,5 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import type { Vec2 } from "../../../core/math.js";
-import { toSteps } from "../../../core/time.js";
 import type { Equipment } from "../../../items/gear.js";
 import { HYBRID, strikeDamage, wayShape, wayStepsAfter, type Strike, type Way } from "../../../weapons/hybrid.js";
 import { weaponIn, type Weapon } from "../../../weapons/weapons.js";
@@ -13,7 +12,6 @@ export const handsOf = (equipment: Equipment): WielderData["hands"] =>
 
 export const bladeLive = (swing: SwingData): boolean => swing.step >= swing.liveAt && swing.step < swing.liveUntil;
 
-export const lastFeintStep = (swing: SwingData): number => swing.liveAt - toSteps(HYBRID.feint.cutoffTime) - 1;
 
 export function startWaySwing(
   world: World, e: Entity, weapon: Weapon, strike: Strike, way: Way, windupTime: number, power: number, dir: Vec2,

@@ -14,11 +14,11 @@ import type { CoreState } from "../soul/core.js";
 import type { PageWrite } from "./input.js";
 
 /**
- * "stagger": parried, kicked or with a block broken (in hitstun). "write": writing a page, from the chant or the bag.
+ * "stagger": recoiling from a perfect block, or with a block broken (in hitstun). "write": writing a page, from the chant or the bag.
  * "bag": the bag screen open. "use": using an item from the bag.
  */
 export type PlayerAction =
-  | "none" | "attack" | "dodge" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use" | "block" | "kick";
+  | "none" | "attack" | "dodge" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use" | "block";
 
 export interface PlayerData {
   grounded: boolean;
@@ -29,7 +29,6 @@ export interface PlayerData {
   attackHeld: Strike | null;
   dodgeHeld: boolean;
   blockHeld: boolean;
-  kickHeld: boolean;
   writeHeld: boolean;
   gearHeld: boolean;
   useHeld: boolean;
@@ -40,9 +39,8 @@ export interface PlayerData {
   jumpBuffer: number;
   attackBuffer: number;
   dodgeBuffer: number;
-  kickBuffer: number;
   castBuffer: number;
-  tapParryLeft: number;
+  perfectBlockLeft: number;
   sinceBlockPress: number;
   queued: Strike | null;
   castQueued: Skill | null;
@@ -98,7 +96,6 @@ export interface WielderData {
   hands: Record<Hand, ItemId | null>;
   armReachM: number;
   swing: SwingData | null;
-  kick: { step: number } | null;
   combo: Way | null;
   comboTime: number;
   momentum: number;
@@ -214,7 +211,7 @@ export type EnemyState =
   | "approach" | "stunned" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
-  | "weaponWindup" | "weapon" | "weaponRecover" | "kick"
+  | "weaponWindup" | "weapon" | "weaponRecover"
   | "skillChant" | "skillCast"
   | "sidestep";
 
@@ -246,10 +243,9 @@ export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
 export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   swingsLeft: number;
-  parryRead: boolean;
+  perfectBlockRead: boolean;
   riposte: boolean;
   way: Way;
-  kickWait: number;
 }
 
 export interface SkillAttackData extends AttackState<SkillAttackDef> {

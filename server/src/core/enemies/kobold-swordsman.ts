@@ -13,14 +13,13 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     radius: 0.5,
     walkSpeed: 2.6,
     turnRate: 4,
-    poise: 40,
+    poise: 80,
     poiseRegen: 10,
     staggerTime: 0.8,
     attacks: {
       weapon: {
         triggerDist: 2.6, windup: 1.1, chainWindup: 0.45, speed: 3, recover: 0.5, minChain: 2, maxChain: 3,
-        heavyShare: 0.3, cooldown: 1.2, firstDelay: 1.5, blockReactTime: 0.3, tapParryChance: 0.25, kickAfterTime: 1,
-        kickChance: 0.5,
+        heavyShare: 0.3, cooldown: 1.2, firstDelay: 1.5, blockReactTime: 0.3, perfectBlockChance: 0.3,
       },
     },
     wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },

@@ -1,6 +1,6 @@
 /**
- * Hits, checked after each physics step with plain math, not physics triggers. A weapon hit may be parried or blocked
- * first (weapons/defend.ts); whatever isn't stopped lands.
+ * Hits, checked after each physics step with plain math, not physics triggers. A hit may be blocked first
+ * (weapons/defend.ts); whatever isn't stopped lands.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
@@ -8,7 +8,7 @@ import type { Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
-  type ActiveHitData, type PlayerData, type SkilledData,
+  type ActiveHitData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, stunTime } from "../stats.js";
@@ -25,8 +25,6 @@ const MIN_ANGLE_CHECK_DIST = 0.3;
 /** A hit player loses control for this long, plus a little more the harder they're knocked back. */
 const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
-
-export type Defended = "parried" | "blocked" | null;
 
 export interface HitSpec extends HitShape {
   damage: number;
@@ -85,9 +83,7 @@ export function combatSystem(events: FightEvent[]): System {
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
 
         hit.alreadyHit.add(target);
-        const defended = defend(world, events, attacker, hit, target);
-        if (defended === "parried") break;
-        if (defended === "blocked") {
+        if (defend(world, events, attacker, hit, target)) {
           if (!world.has(attacker, ActiveHit)) break;
           continue;
         }
@@ -96,6 +92,11 @@ export function combatSystem(events: FightEvent[]): System {
       }
     }
   };
+}
+
+export function spend(stamina: StaminaData, cost: number): void {
+  stamina.value = Math.max(0, stamina.value - cost);
+  stamina.regenDelay = PLAYER.staminaRegenDelay;
 }
 
 export function stagger(world: World, e: Entity, time: number): void {

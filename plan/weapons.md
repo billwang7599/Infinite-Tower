@@ -17,10 +17,11 @@ stats)."
   starter kit), and dying never takes them.
 - The client picks a weapon's look by item (`WEAPON_LOOKS`) and its motion by kind (`MOTIONS`), both in
   `client/src/visuals/battle/weapons.ts`.
-- One sword system, the Hybrid (the user tried five and kept it): 8-way aimed swings on the old momentum chains, a
-  held block that a tap turns into a parry, the counter-parry by the reverse swing, a kick, a feint. The rules are in
-  AGENTS.md (the "One sword system" bullet and "The Hybrid sword") and the numbers in FORMULAS.md. It replaced For
-  Honor's guard stances, parries and guard breaks (PRs #178 and #182) and the inertia-based swings before them
+- One sword system, the Hybrid (the user tried five and kept it, then made it simpler): light, heavy and a stab on
+  the old momentum chains, the swing's way from mouse flicks, a held block with a perfect block, stamina the only bar;
+  no kick, feint or parries by the swing. The rules are in AGENTS.md (the "One sword system" bullet and "The Hybrid
+  sword") and the numbers in FORMULAS.md. It replaced For Honor's guard stances, parries and guard breaks (PRs #178
+  and #182) and the inertia-based swings before them
   (`planSwing` in git history); the Posture, One Strike and Master Cuts styles were tried and dropped (their PRs,
   #192-#194, are closed, the branches kept).
 

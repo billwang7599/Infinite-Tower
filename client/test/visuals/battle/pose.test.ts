@@ -5,14 +5,14 @@ import {
   type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
 import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
-import { GRAB_BLADE, MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
+import { MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
 import { swingAt, swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
 function playerDoing(action: PlayerAction, t: number, way: SwingDir | null = null): PlayerData {
   return {
     grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, blockHeld: false,
-    kickHeld: false, kickBuffer: 0, tapParryLeft: 0, sinceBlockPress: 1, way, jumpBuffer: 0, attackBuffer: 0,
+    perfectBlockLeft: 0, sinceBlockPress: 1, way, jumpBuffer: 0, attackBuffer: 0,
     dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, writeHeld: false, gearHeld: false, useHeld: false,
     wordsHeld: false, brokenOff: false, writing: null, using: null, book: [], burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, core: newCore(), action, actionTime: t,
@@ -57,18 +57,16 @@ describe("the player's sprite", () => {
     const pose = (way: (typeof WAYS)[number]) => spritePose(ATTACKING, holding(waySwingAt(way, 2)), true, 1).pose;
     assert.equal(pose("lr"), "swing-lr");
     assert.equal(pose("trbl"), "swing-trbl");
-    assert.equal(pose("bt"), "swing-tb");
     assert.equal(pose("brtl"), "swing-rl");
     assert.equal(pose("stab"), "swing-tb");
   });
 
-  test("aimed, held on the side the swing will come from; blocking, up top; kicking, reaching; unaimed, at rest", () => {
+  test("aimed, held on the side the swing will come from; blocking, up top; unaimed, at rest", () => {
     assert.equal(spritePose(playerDoing("none", 1, "lr"), holding(null), true, 1).pose, "guard-left");
     assert.equal(spritePose(playerDoing("none", 1, "bltr"), holding(null), true, 1).pose, "guard-left");
     assert.equal(spritePose(playerDoing("none", 1, "brtl"), holding(null), true, 1).pose, "guard-right");
-    assert.equal(spritePose(playerDoing("none", 1, "bt"), holding(null), true, 1).pose, "guard-top");
+    assert.equal(spritePose(playerDoing("none", 1, "tb"), holding(null), true, 1).pose, "guard-top");
     assert.equal(spritePose(playerDoing("block", 1, "lr"), holding(null), true, 1).pose, "guard-top");
-    assert.equal(spritePose(playerDoing("kick", 0.1, "lr"), holding(null), true, 1).pose, "grab");
     assert.equal(spritePose(playerDoing("none", 1), holding(null), true, 1).pose, "stand");
   });
 
@@ -76,7 +74,7 @@ describe("the player's sprite", () => {
     const all = KINDS.flatMap((attack) => WAYS.flatMap((way) => swingSteps(attack, way)))
       .map((swing) => spritePose(ATTACKING, holding(swing), true, 1));
     for (const way of [...SWING_DIRS, null]) {
-      for (const action of ["stagger", "block", "kick", "none"] as const) {
+      for (const action of ["stagger", "block", "none"] as const) {
         for (const left of [0, 0.2, 0.4, 0.8]) {
           all.push(spritePose(playerDoing(action, 0.1, way), holding(null), true, 1, { left, of: 0.8 }));
         }
@@ -137,16 +135,15 @@ describe("the player's blade", () => {
   });
 
   test("a swing's blade sweeps its way; a stab points straight ahead", () => {
-    const { liveAt, liveUntil, endAt } = waySwingAt("bt", 0);
-    const rising = blade(playerDoing("attack", 0.1), waySwingAt("bt", endAt - 1)).blade;
+    const { liveAt, liveUntil, endAt } = waySwingAt("bltr", 0);
+    const rising = blade(playerDoing("attack", 0.1), waySwingAt("bltr", endAt - 1)).blade;
     assert.ok(rising.y > 0.5, "a rising cut ends up high");
     const stab = blade(playerDoing("attack", 0.1), waySwingAt("stab", (liveAt + liveUntil) >> 1)).blade;
     assert.ok(stab.z > 0.95, "ahead");
   });
 
-  test("staggered it reels, as an enemy's does; kicking it's lowered; dead it lies flat", () => {
+  test("staggered it reels, as an enemy's does; dead it lies flat", () => {
     assert.deepEqual(blade(playerDoing("stagger", 0.1, "lr"), swingAt("light", "lr", 3)).blade, REELING_BLADE);
-    assert.deepEqual(blade(playerDoing("kick", 0.1, "lr")).blade, GRAB_BLADE);
     assert.ok(Math.abs(blade(playerDoing("none", 0.1), null, false).blade.y) < 0.2);
   });
 });

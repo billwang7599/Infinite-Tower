@@ -59,9 +59,7 @@ export interface WeaponAttackDef {
   cooldown: number;
   firstDelay: number;
   blockReactTime: number;
-  tapParryChance: number;
-  kickAfterTime: number;
-  kickChance: number;
+  perfectBlockChance: number;
 }
 
 /**

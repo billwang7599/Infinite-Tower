@@ -14,7 +14,7 @@ const useItem: ActionRef = { group: "overworld", action: "useItem" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
-const aimTopLeft: ActionRef = { group: "battle", action: "aimTopLeft" };
+const stab: ActionRef = { group: "battle", action: "stab" };
 const dragCamera: ActionRef = { group: "battle", action: "dragCamera" };
 const leave: ActionRef = { group: "battle", action: "leave" };
 
@@ -78,17 +78,13 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.interact, ["KeyE"]);
   });
 
-  test("the sword: U I O / J L / M , . aim, K or the scroll wheel stabs, left Shift blocks, G kicks", () => {
+  test("the sword: K or the scroll wheel stabs, left Shift blocks; no key aims, kicks or feints", () => {
     const battle = new KeyBindings().get().battle;
-    assert.deepEqual(
-      [battle.aimTopLeft, battle.aimTop, battle.aimTopRight, battle.aimLeft, battle.aimRight, battle.aimBottomLeft,
-        battle.aimBottom, battle.aimBottomRight],
-      [["KeyU"], ["KeyI"], ["KeyO"], ["KeyJ"], ["KeyL"], ["KeyM"], ["Comma"], ["Period"]],
-    );
     assert.deepEqual(battle.stab, ["KeyK"]);
     assert.equal(ACTIONS.battle.stab.wheel, true);
     assert.deepEqual(battle.block, ["ShiftLeft"]);
-    assert.deepEqual(battle.kick, ["KeyG"]);
+    const names = Object.keys(ACTIONS.battle);
+    assert.ok(!names.some((name) => name.startsWith("aim") || name === "kick" || name === "feint"), names.join());
   });
 
   test("the arena's camera: Q toggles the lock, right Shift locks the closest, the arrows turn it or retarget", () => {
@@ -296,10 +292,10 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, dodge), ["KeyZ", "KeyX", "KeyF"]);
   });
 
-  test("U is the top-left aim's only key, so binding it to dodge swaps the dodge's key onto it", () => {
+  test("K is the stab's only key, so binding it to dodge swaps the dodge's key onto it", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), { ok: true, takenFrom: [aimTopLeft], gave: "KeyF" });
-    assert.deepEqual(keys(b, aimTopLeft), ["KeyF"]);
+    assert.deepEqual(b.bind(dodge, "KeyK", "KeyF"), { ok: true, takenFrom: [stab], gave: "KeyF" });
+    assert.deepEqual(keys(b, stab), ["KeyF"]);
   });
 });
 
