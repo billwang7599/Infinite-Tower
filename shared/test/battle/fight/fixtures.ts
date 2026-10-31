@@ -1,8 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack, Player,
-  PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject, Stamina, starterEquipment, Statuses, WeaponAttack,
-  Wielder,
+  ActiveHit, ATTACK_KINDS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy, Health,
+  LungeAttack, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject, Stamina, starterEquipment,
+  Statuses, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
@@ -51,22 +51,18 @@ export const BOAR: EnemyDef = {
   },
 };
 
-/** One swing at a time, its wind-up as the Kobold's; never walks, and attacks only once (cooldown 99). */
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
-  knockback: 0, lift: 0, triggerDist: 3, windup: 0.6, chainWindup: 0.45, active: 0.12,
-  speed: 0, recover: 0.8, minChain: 1, maxChain: 1, moves: ["lr"], cooldown: 99, firstDelay: 0,
-  parryReaction: 0.3, parryCooldown: 1.5, ...over,
+  triggerDist: 3, windup: 0.3, chainWindup: 0.3, speed: 0, recover: 0.8, minChain: 1, maxChain: 1, heavyShare: 0,
+  cooldown: 99, firstDelay: 0, ...over,
 });
 
-/** A swordsman like the Kobold, rooted to the spot: one "lr" swing (as the player sees it) as soon as it can. */
 export const SWORDSMAN: EnemyDef = {
   ...ENEMY_BASE, id: "kobold-swordsman", radius: 0.5, turnRate: 3,
   wielder: { hands: { rightHand: "sword" }, armReachM: PLAYER.armReachM },
   attacks: { weapon: swings({}) },
 };
 
-/** A swordsman that only guards (it never attacks): it parries badly timed swings and blocks stabs. */
-export const GUARD: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ firstDelay: 999 }) } };
+export const GUARDIAN: EnemyDef = { ...SWORDSMAN, attacks: { weapon: swings({ firstDelay: 999 }) } };
 
 export const casts = (over: Partial<SkillAttackDef>): SkillAttackDef => ({
   skill: { form: "bolt", elements: ["fire"], modifiers: [] }, extras: [], quickCastM: 5, rangeM: 14, wordTime: 0.4,
@@ -89,7 +85,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, block: false, cast: null,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, cast: null,
   castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
@@ -146,8 +142,8 @@ export function dumpState(fight: Fight): string {
 
 /**
  * A busy player that only looks at the step number, so two fights get the same inputs whatever happens in them:
- * turning, running in every direction (into the wall too: the arena is small), every attack in turn, blocking,
- * dodging and jumping.
+ * turning, running in every direction (into the wall too: the arena is small), every attack in turn from every side,
+ * locking on and off, dodging and jumping.
  */
 export function busy(step: number): PlayerInputData {
   const turn = step * 0.05, run = Math.floor(step / 40) * 1.3;
@@ -155,6 +151,7 @@ export function busy(step: number): PlayerInputData {
     aimX: Math.round(Math.sin(turn) * 1000) / 1000, aimZ: Math.round(Math.cos(turn) * 1000) / 1000,
     moveX: Math.round(Math.sin(run) * 1000) / 1000, moveZ: Math.round(Math.cos(run) * 1000) / 1000,
     attack: step % 9 < 2 ? ATTACK_KINDS[Math.floor(step / 9) % ATTACK_KINDS.length]! : null,
-    dodge: step % 47 === 0, jump: step % 83 < 10, block: step % 101 > 88,
+    dodge: step % 47 === 0, jump: step % 83 < 10,
+    locked: step % 101 > 30 ? 0 : null, guard: GUARD_SIDES[Math.floor(step / 23) % GUARD_SIDES.length]!,
   });
 }

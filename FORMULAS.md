@@ -10,10 +10,9 @@ The other knobs (looks, camera, netcode) are in ARCHITECTURE.md's
 Keep it current: a PR that changes a calculation or its numbers changes it here too.
 
 - [Stats](#stats)
-- [Weapon swings](#weapon-swings)
+- [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
-- [Blocking](#blocking)
-- [Parries](#parries)
+- [Guards](#guards)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -34,7 +33,7 @@ fights, apart from strength's carry limit. HP isn't a stat.
 | Stat | Player | Formula | Where |
 |---|---|---|---|
 | stamina | 100 | the stamina bar's size | `Stamina.max` from the setup |
-| strength | 10 | a body blow's damage = base × strength / 10; a weapon's swing goes by its fourth root (below) | `physicalDamage`, `planSwing` |
+| strength | 10 | a body blow's damage = base × strength / 10; a weapon's goes by its fourth root (below) | `physicalDamage`, `attackDamage` |
 | agility | 10 | arena walking speed = base × agility / 10 | `moveSpeed` |
 | skillpower | 10 | a skill's base damage D = 10 × skillpower / 10 | `skillDamage`, `SKILL_EFFECTS.damage` |
 
@@ -44,83 +43,54 @@ Only an enemy that casts (the warlock) has a stamina bar.
 HP: the player's `PLAYER.maxHp` is 100; an enemy's is its `maxHp`. HP and stamina carry from one fight to the next
 (`Vitals`).
 
-## Weapon swings
+## Weapon attacks
 
-All of it is `planSwing` and `SWING` in `shared/src/weapons/weapons.ts`, with each weapon's numbers in `WEAPONS` (its
-mass is its item's `weight` in `shared/src/items/items.ts`). Every ratio is against the starter sword (m0 = 3,
-I0 = 0.49) at strength 10.
+All of it is `ATTACKS`, `COMBAT`, `attackSteps`, `attackDamage` and `attackCost` in `shared/src/weapons/weapons.ts`,
+with each weapon's numbers in `WEAPONS`. Nothing varies with how an attack is reached: the same attack with the same
+weapon always takes the same time and deals the same damage.
 
-| Term | Formula | What it is |
+| Term | Formula | Notes |
 |---|---|---|
-| I | m × (b² + L² / 12) | moment of inertia: m mass, b `balanceM` (hand to centre of mass, m), L `length` (m) |
-| k | clamp(√((I / I0) / (strength / 10)), 0.5, 3) | time factor: every time of the swing is × k (`minTimeFactor`, `maxTimeFactor`) |
-| s | (strength / 10)^¼ / √(m / m0) | impact speed per unit of flow |
-| u | the blade's speed along the new swing's way | in shares of the from-rest impact speed |
-| flow | max(u, min(1.25, √(u² + 1))) | the drive's end speed (`maxFlow` 1.25): 1 from rest |
-| momentum p | (m / m0) × s × flow = √(m / m0) × (strength / 10)^¼ × flow | |
-| damage | power × p; a stab × 1.25 | power is the weapon's `damage`; `PLAYER.stab.damageFactor` |
-| poise damage | 12 × p; a stab 18 × p | `PLAYER.swing.poiseDamage`, `PLAYER.stab.poiseDamage` |
-| effort | (I / I0) × s² × lacking² × (1 + 0.5 × braked²) | lacking = max(1, unclamped k / k), only past the 3× clamp; braked: blade speed stopped (`brakeEffort` 0.5) |
-| stamina | 16 × effort; a stab 20 × effort | `PLAYER.swing.cost`, `PLAYER.stab.cost` |
+| wind-up | `landTime` × heft (a chain's 2nd and 3rd: `chainLandTime` × heft), ÷ an Air Imbue's swift factor | from the press to the blade going live; drawn back for the first 60% (`drawShare`), driven for the rest |
+| live | `liveTime` × heft | the hitbox is up |
+| recovery | `recoverTime` × heft | walking at 25% (`moveFactor`); the next attack in the chain can start in it |
+| damage | the weapon's `damage` × `damageFactor` × (strength / 10)^¼ | light 1, heavy 2 |
+| poise damage | `poiseDamage` | light 12, heavy 24 |
+| stamina | `cost` × heft | light 12, heavy 20 |
 
-The blade is a point in the screen plane (±1 a swing's ends, 0 the guard) with a velocity. The next swing takes the
-quicker of two ways; a stab has one:
-
-- **Stop:** brake (speed × 0.2) and set it to the swing's start (`setTime` 0.15 × √distance), then drive from rest:
-  flow 1, braked = the speed it had.
-- **Loop** (only with some speed u already on the new way): turn the sideways part (sideways × 0.2), loop round
-  (`loopTime` 0.1 / u), then drive from u: braked = the sideways speed.
-- **Stab:** brake (braked = the speed it had), set back to the guard (0.15 × √distance), draw back (`stabDrawTime`
-  0.2), then drive from rest.
-- Drive = `driveTime` 0.2 / (u + flow). Wind-up = (prep + drive) × k; live `activeTime` 0.1 × k; follow-through
-  flow × 0.2 × k. A swing lets go after its wind-up and live time; a dodge or the next attack waits for that.
-- After letting go the blade moves its way at its flow, slowing evenly to 0 by the end of the follow-through, so an
-  attack started earlier carries more of it, and one left to run its course stops at its far end. A swing ended before
-  it lets go rests the blade at the guard; one cut off mid-follow-through (an enemy staggered or stunned, a player
-  knocked into hitstun) keeps its speed for `gapTime` 0.25 s, then stops where it is. A block, a dodge, a chant, a cast
-  or the bag puts the blade at rest at the guard, as does a hit taken between swings (a weapon hit mid-swing lets the
-  swing go on); a blocked or parried blade stops dead where it met.
-
-The starter sword at strength 10 (every row but the first follows an `lr` swing):
-
-| Next | Wind-up (s) | Flow | Damage | Poise | Stamina |
+| Attack | Wind-up | Chained | Live | Recovery | Recoil when blocked |
 |---|---|---|---|---|---|
-| Any swing from the guard (an opening) | 0.35 | 1 | 9 | 12 | 16 |
-| `lr` again, as the last lets go | 0.19 | 1.25 | 11.25 | 15 | 16 |
-| 45° off it (`tlbr`), as the last lets go | 0.39 | 1.22 | 11.0 | 14.7 | 20 |
-| Reverse (`rl`), as the last lets go | 0.40 | 1 | 9 | 12 | 24 |
-| Across (`tb`), as the last lets go | 0.58 | 1 | 9 | 12 | 24 |
-| `rl` / `lr`, blade stopped at the far side | 0.20 / 0.41 | 1 | 9 | 12 | 16 |
-| Stab from the guard / a stopped far side / as a swing lets go | 0.40 / 0.55 / 0.75 | 1 | 11.25 | 18 | 20 / 20 / 30 |
+| Light | 0.45 | 0.4 | 0.1 | 0.35 | 0.3 |
+| Heavy | 0.85 | 0.7 | 0.12 | 0.55 | 0.5 |
 
-By weapon, an opening at strength 10:
+A chain is an attack started in the last one's recovery, at most `maxChain` 3; after the third, the next waits out its
+recovery and starts a new chain. A dodge waits only for the blade to be done (the end of its live time).
 
-| Weapon | m | b | L | Power | I / I0 | k | Wind-up | Damage | Stamina |
-|---|---|---|---|---|---|---|---|---|---|
-| Sword | 3 | 0.25 | 1.1 | 9 | 1 | 1 | 0.35 | 9 | 16 |
-| Longsword | 4.5 | 0.3 | 1.4 | 11 | 2.33 | 1.53 | 0.53 | 13.5 | 24.8 |
-| Greatsword | 8 | 0.45 | 1.9 | 16 | 8.22 | 2.87 | 1.00 | 26.1 | 49.3 |
-| Kobold blade | 3 | 0.25 | 1.1 | 14 | 1 | 1 | 0.35 | 14 | none |
-| Kobold greatsword | 8 | 0.45 | 1.9 | 14 | 8.22 | 2.87 | 1.00 | 22.9 | none |
+By weapon, at strength 10 (light / heavy; times in seconds):
 
-Strength: the sword's opening at strength 20 has k = 0.71 (0.25 s), damage 9 × 2^¼ = 10.7 and costs 16 × √2 = 22.6.
-From strength 40 its times stop shrinking (k = 0.5), while its damage and cost still grow.
+| Weapon | Heft | Damage | Wind-up | Chained | Stamina |
+|---|---|---|---|---|---|
+| Sword | 1 | 9 / 18 | 0.45 / 0.85 | 0.4 / 0.7 | 12 / 20 |
+| Longsword | 1.2 | 11 / 22 | 0.54 / 1.02 | 0.48 / 0.84 | 14.4 / 24 |
+| Greatsword | 1.6 | 16 / 32 | 0.72 / 1.36 | 0.64 / 1.12 | 19.2 / 32 |
+| Kobold blade | 1 | 14 / 28 | 0.45 / 0.85 | 0.4 / 0.7 | none |
+| Kobold greatsword | 1.6 | 14 / 28 | 0.72 / 1.36 | 0.64 / 1.12 | none |
 
-**Reach** (`attackShape`): (arm reach + L) × the line's factor, to the target's surface; arcs by angle to its centre
+Strength: a sword light at strength 20 deals 9 × 2^¼ = 10.7; strength doesn't change times or costs.
+
+**Reach** (`attackShape`): (arm reach + L) × the side's factor, to the target's surface; arcs by angle to its centre
 (any angle within 0.3 m). Arm reach is `PLAYER.armReachM` 0.8 (an enemy's `wielder.armReachM`, also 0.8).
 
-| Line | Reach factor | Arc | The sword (1.9 m) |
+| Side | Reach factor | Arc | The sword (1.9 m) |
 |---|---|---|---|
-| Horizontal (`lr`, `rl`) | 1 | 160° | 1.9 m |
-| Diagonal | 1.15 | 110° | 2.19 m |
-| Vertical (`tb`, `bt`) | 1.3 | 60° | 2.47 m |
-| Stab | 1.75 (`STAB_REACH_FACTOR`) | a ray 0.15 m either side (`STAB_WIDTH`) | 3.33 m |
+| Left, right | 1 | 160° | 1.9 m |
+| Top | 1.3 | 60° | 2.47 m |
 
-While a swing's blade is live it carries you forward at `lungeSpeed` 4 m/s; otherwise you walk at 25%
-(`swing.moveFactor`) while swinging.
+While an attack's blade is live it carries you forward at `lungeSpeed` 4 m/s; otherwise you walk at 25%
+(`moveFactor`) while attacking.
 
-An enemy's swing is planned the same way with its strength, but its wind-up is max(its telegraph, the plan's), its
-live time its `active` × k, it deals no poise damage and costs no stamina (`fight/behaviors/weapon.ts`).
+An enemy's attack runs the same timings and damage; it deals no poise damage, costs no stamina, and holds its tell
+first (`windup` before a chain's first, `chainWindup` before the next: `fight/behaviors/weapon.ts`).
 
 ## Body blows
 
@@ -135,70 +105,46 @@ hurts: no knockback, no hitstun.
 | Boar charge | 30 | 15 | 0.55 |
 | Warlock's staff (lunge) | 5 | 3 | 0.31 |
 
-## Blocking
+## Guards
 
-`PLAYER.block`, applied in `hitPlayer` (`shared/src/battle/fight/combat.ts`). Held, it stops a hit from within 70° of
-the aim (`minDot` 0.34, cos 70°):
+`blocks`, `COMBAT` in `weapons.ts`; `guardOf` and `combatSystem` in `combat.ts`.
 
-- stamina cost = the hit's momentum × `staminaPerMomentum` 14 (a weapon), or its damage × `staminaPerDamage` 1 (a
-  body blow);
-- a blocked swing still deals `chipFraction` 0.2 of its damage; a stab or a body blow none;
-- you're pushed back at the hit's knockback × `pushbackFactor` 0.6 m/s;
-- short of the cost, the bar empties and the guard breaks: staggered `guardBreakTime` 0.8 s;
-- you walk at 40% (`moveFactor`) while blocking.
+- A guard blocks an attack from the side across from it (the attacker's left by your right; top by top), from within
+  70° either side of where its holder faces (`guardMinDot` 0.34). A body blow comes from the top.
+- A player's guard counts only while idle (no action, no hitstun) with a sword in hand; a Kobold's while it walks up or
+  holds its tell, its old side while its guard moves (`ENEMY_GUARD.moveTime` 0.3 s).
+- Blocking is free: no stamina, no damage. A blocked weapon attack ends, and its wielder recoils for its
+  `recoilTime` (light 0.3 s, heavy 0.5 s; an enemy's next chain waits that plus its cooldown). A blocked body blow
+  pushes you back at its knockback × `pushbackFactor` 0.6 m/s.
 
-Example: a Kobold's opening (momentum 1, 14 damage) costs 14 stamina and 2.8 HP, pushing you at 3 m/s; the Kobold
-Greatsword's (1.63, 22.9) costs 22.9 and 4.6 HP; a boar's charge costs 30 and no HP, pushing you at 9 m/s.
-
-## Parries
-
-`PARRY`, `parryShare` and `guardShare` in `weapons.ts`; `stunFor` and `combatSystem` in `combat.ts`.
-
-- **When:** your swing went live no more than `window` 0.15 s before their hit lands, with them within 60° of your
-  swing's direction (`minDot` 0.5). Hurt invulnerability doesn't stop a parry.
-- **Share by angle:** your swing the reverse of theirs 1; 45° off the reverse `offAngleShare` 0.5; anything else 0. A
-  stab parries only a stab (1).
-- **An enemy parried:** stunned `stunTime` 1 × share × clamp(your momentum / its momentum, 0.5, 2); knocked back
-  to slide `knockbackDist` 1.5 × share m (at √(2 × `slideDecel` 30 × 1.5 × share) m/s); its next attack waits the
-  stun plus its cooldown; while stunned, your hits deal × `bonusDamage` 1.5 and no poise damage.
-- **A player parried** (by a guarding Kobold, or a duelist): staggered `playerStaggerTime` 0.5 × share ×
-  clamp(parrier's momentum / yours, 0.5, 2), knocked back at `playerKnockbackSpeed` 6 × share m/s, no extra damage. A
-  guarding Kobold counts its blade's opening momentum.
-- **A Kobold on guard** (facing you within 60°) parries a swing coming at the side it guards (share 1) or one 45° off
-  (0.5), from 0.3 s after it's back on guard (`parryReaction`), at most once per 1.5 s (`parryCooldown`); it always
-  blocks a stab. Its guarded side holds 1.5-3 s and takes 0.3 s to move (`GUARD`).
-
-Example: your opening sword swing (1) parries a Kobold's opening (1) head-on: 1 s stun, 1.5 m back, then your openings
-hit it for 13.5. Its chained 45° swing (1.22): 0.82 s. Your greatsword (1.63): 1.63 s. A sword opening into a guarding
-Kobold Greatsword (its 1.63 against your 1): you're staggered 0.82 s.
+Example: a boar's charge into a top guard: no HP, no stamina, pushed at 9 m/s. A Kobold's light into the right guard
+from its left: nothing lands, and it recoils 0.3 s.
 
 ## Poise and stagger (enemies)
 
 `enemyBrainSystem` (`fight/behaviors/brain.ts`), with `poise`, `poiseRegen` and `staggerTime` in each enemy's def.
 
-- A hit takes its poise damage: a swing 12 × momentum, a stab 18 × momentum, an Earth skill 20 × the hit's share. A
-  weapon hit on a parried enemy takes none.
+- A hit takes its poise damage: a light 12, a heavy 24, an Earth skill 20 × the hit's share.
 - Poise comes back at `poiseRegen` a second (not while staggered), up to `poise`.
-- At 0 or less it's staggered for `staggerTime` and its poise refills; not while charging, stunned, parried or already
-  staggered.
+- At 0 or less it's staggered for `staggerTime` and its poise refills; not while charging, stunned, recoiling or
+  already staggered.
 - Other stuns: a boar slamming the wall, `charge.stunTime` 2.2 s; 3 Lightning stacks, 1 s (`elements.lightning`).
 - Enemies have no hurt invulnerability, and a hit doesn't stun them.
 
-Example: a boar (36 poise, 8 a second, 1 s stagger) hit by sword openings 0.4 s apart: 36 − 3 × 12 + 8 × 0.8 = 6.4
-after three, so the fourth staggers it. An opening and two looped swings (12 + 15 + 15, about 0.29 s apart) do it on
-the third.
+Example: a boar (36 poise, 8 a second, 1 s stagger) hit by a chain of sword lights 0.5 s apart: 36 − 3 × 12 + 8 × 1
+= 8 after three, so the next staggers it; two heavies and a light (24 + 24) do it on the second.
 
 ## Stun and invulnerability (players)
 
 `PLAYER` in `shared/src/battle/player.ts`; `combat.ts`.
 
-- **Hitstun** (no control): a body blow 0.25 + 0.02 × knockback; a broken guard 0.8 s; parried 0.5 × share × the
-  momentum ratio. Weapon hits and skills give none.
+- **Hitstun** (no control): a body blow 0.25 + 0.02 × knockback; recoiling from a blocked attack 0.3 s (light) or
+  0.5 s (heavy). Weapon hits and skills give none.
 - **Hurt invulnerability:** `hurtInvuln` 0.6 s after a weapon or body hit lands, against weapon and body hits.
 - **Dodge i-frames:** from `dodge.iframeStart` 0 to `iframeEnd` 0.32 s of the 0.42 s dodge, weapon and body hits miss.
-- Neither stops a skill: Bolts, Beams, Novas, clouds and burning hurt through them, and through a block.
+- Neither stops a skill: Bolts, Beams, Novas, clouds and burning hurt through them, and through a guard.
 - **What breaks off a chant**, a cast's wind-up, writing a page or the bag: any hitstun (losing the chant's words), or
-  a dodge (keeping them). An enemy's chant breaks when it's stunned, parried, staggered or killed (`cantCast` in
+  a dodge (keeping them). An enemy's chant breaks when it's stunned, recoiling, staggered or killed (`cantCast` in
   `fight/skills/skilled.ts`). A weapon hit doesn't break a chant.
 
 ## Stamina
@@ -206,18 +152,16 @@ the third.
 `PLAYER` and the player's controller (`fight/player/controller.ts`).
 
 - The bar is the stamina stat (100). It refills at `staminaRegenPerSec` 45 a second (× 1.5 while Charged), from
-  `staminaRegenDelay` 0.6 s after an action ends: not while swinging, blocking, dodging, casting or staggered, but
+  `staminaRegenDelay` 0.6 s after an action ends: not while attacking, dodging, casting or recoiling, but
   while standing, walking, chanting, writing or in the bag. Empty to full: 0.6 + 100 / 45 = 2.8 s. It doesn't refill on
   the overworld.
-- Any stamina above 0 starts a swing, stab or dodge; its cost may take the bar down to 0. A skill needs its whole cost
-  to start, and pays it on release. A block needs none to start.
+- Any stamina above 0 starts an attack or a dodge; its cost may take the bar down to 0. A skill needs its whole cost
+  to start, and pays it on release. A guard costs nothing.
 
 | Action | Cost at strength 10 | Where |
 |---|---|---|
-| Swing | 16 × effort: sword 16-24, longsword 24.8-37.2, greatsword 49.3-74 | `PLAYER.swing.cost`, `planSwing` |
-| Stab | 20 × effort: sword 20, or 30 braking a moving blade | `PLAYER.stab.cost` |
+| Light / heavy attack | 12 / 20 × heft: sword 12 / 20, longsword 14.4 / 24, greatsword 19.2 / 32 | `ATTACKS`, `attackCost` |
 | Dodge | 22; heavy × 1.3 = 28.6; overloaded can't; Hasted × 0.7 | `PLAYER.dodge.cost`, `BURDEN.heavyDodgeCost` |
-| Block | the hit's momentum × 14, or a body blow's damage | `PLAYER.block` |
 | Skill | its words' cost (below); a held Beam its own words × 2 a second | `skillCost`, `beam.heldCostFactor` |
 
 The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds up a cast).
@@ -225,7 +169,7 @@ The Goblin Warlock's bar works the same (100, 45 a second, paused while it winds
 ## Movement
 
 - **Arena walking:** `PLAYER.moveSpeed` 6 × agility / 10 × burden pace (0.5 overloaded) × statuses (Rooted 0.4,
-  Hasted 1.3) = 6 m/s; × 25% swinging, × 40% blocking, × 40% winding up a cast (`castMoveFactor`); accel 60 m/s²
+  Hasted 1.3) = 6 m/s; × 25% attacking, × 40% winding up a cast (`castMoveFactor`); accel 60 m/s²
   (25 in the air).
 - **Dodge:** 12 + (3 − 12) × (t / 0.42)² m/s for 0.42 s (`dodge.speed`, `endSpeed`, `duration`): about 3.8 m, where
   the walk keys point (backwards with none).
@@ -287,7 +231,7 @@ Forms and modifiers:
 - **Nova:** everyone within 3 m (× 1.5 per Widen). With Extend it leaves a cloud for 8 s (× 2 per further Extend),
   pulsing 0.4 every second: 8 pulses, 3.2 hits.
 - **Imbue:** the next 3 sword hits within 8 s (both × 2 per Extend) each strike 0.5 of a hit; Swift makes your
-  swings' wind-ups ÷ 1.5 while it lasts.
+  attacks' wind-ups ÷ 1.5 while it lasts.
 - **Delay:** the hand-off to the next segment waits 1 s per word.
 - **Self:** Fire, Empowered 8 s (deals × 1.2); Water, heals 0.3 D and clears harmful statuses; Earth, Warded 6 s
   (takes × 0.7, no knockback); Air, Hasted 5 s (moves × 1.3, dodges × 0.7); Lightning, Charged 5 s (stamina refills
@@ -318,14 +262,15 @@ Each in `server/src/core/enemies/<id>.ts`.
 | HP | 160 | 160 | 160 | 40 |
 | Poise, regen a second, stagger | 36, 8, 1 s | 40, 10, 0.8 s | 40, 10, 0.8 s | 20, 8, 1 s |
 | Walk | 3.2 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s |
-| Hits | bite 16, charge 30 | 14 × momentum: 14 opening, up to 17.1 chained | 14 × momentum: 22.9 opening, up to 28 chained | staff 5; Bolt Fire 8 + 10 burning |
+| Hits | bite 16, charge 30 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
   recovering or the wall's 2.2 s stun.
-- **Kobolds:** a chain of 2 or 3 (even odds) of random moves, never the same twice running; a 1.1 s telegraph before the
-  first, 0.8 s before the others (or the blade's own wind-up if longer); live 0.12 × k s, stepping in at 3 m/s; then
-  0.9 s to recover and 1.2 s more before the next chain; first after 1.5 s. A Bolt aimed within about 26° of it is
+- **Kobolds:** a chain of 2 or 3 (even odds), each attack heavy 30% of the time; before each, its guard moves to one of
+  the other two sides (0.3 s) and holds there, 0.5 s in all before the first and 0.35 s before the others, then it
+  attacks from there at its weapon's timings, stepping in at 3 m/s while live; then 0.9 s to recover and 1.2 s more
+  before the next chain; first after 1.5 s. On guard it changes side every 1.5-3 s. A Bolt aimed within about 26° of it is
   side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and

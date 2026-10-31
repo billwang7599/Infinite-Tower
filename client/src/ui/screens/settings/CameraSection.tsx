@@ -1,5 +1,5 @@
 import { SENSITIVITY, type CameraSettings } from "../../../settings/camera.js";
-import { SWING_SENSITIVITY, type MouseSettings } from "../../../settings/mouse.js";
+import { FLICK_SENSITIVITY, type MouseSettings } from "../../../settings/mouse.js";
 import { BUTTON } from "../../components/styles.js";
 import { useStore } from "../../useStore.js";
 import { FOCUS_RING, SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
@@ -35,37 +35,37 @@ export function CameraSection({ camera, mouse }: { camera: CameraSettings; mouse
           </button>
         </span>
       </div>
-      <SwingSensitivityRow mouse={mouse} />
+      <FlickSensitivityRow mouse={mouse} />
       <AutoLockRow mouse={mouse} />
     </section>
   );
 }
 
-function SwingSensitivityRow({ mouse }: { mouse: MouseSettings }) {
-  const sensitivity = useStore(mouse, (s) => s.swingSensitivity);
+function FlickSensitivityRow({ mouse }: { mouse: MouseSettings }) {
+  const sensitivity = useStore(mouse, (s) => s.flickSensitivity);
   return (
     <div className={SETTING_ROW}>
-      <label htmlFor="swing-sensitivity" className="flex flex-col">
-        <span className={SETTING_LABEL}>Swing sensitivity</span>
-        <span className="text-xs text-white/45">Higher: a shorter flick of the mouse swings the sword</span>
+      <label htmlFor="flick-sensitivity" className="flex flex-col">
+        <span className={SETTING_LABEL}>Flick sensitivity</span>
+        <span className="text-xs text-white/45">Higher: a shorter flick of the mouse moves your guard</span>
       </label>
       <span className="flex items-center gap-3">
         <input
-          id="swing-sensitivity"
+          id="flick-sensitivity"
           type="range"
-          min={SWING_SENSITIVITY.min}
-          max={SWING_SENSITIVITY.max}
-          step={SWING_SENSITIVITY.step}
+          min={FLICK_SENSITIVITY.min}
+          max={FLICK_SENSITIVITY.max}
+          step={FLICK_SENSITIVITY.step}
           value={sensitivity}
-          onChange={(e) => mouse.setSwingSensitivity(e.currentTarget.valueAsNumber)}
+          onChange={(e) => mouse.setFlickSensitivity(e.currentTarget.valueAsNumber)}
           className={`w-44 cursor-pointer accent-victory ${FOCUS_RING}`}
         />
-        <output htmlFor="swing-sensitivity" className="w-11 text-right text-[13px] font-semibold tabular-nums">
+        <output htmlFor="flick-sensitivity" className="w-11 text-right text-[13px] font-semibold tabular-nums">
           {Math.round(sensitivity * 100)}%
         </output>
         <button
-          type="button" disabled={sensitivity === SWING_SENSITIVITY.default}
-          onClick={() => mouse.setSwingSensitivity(SWING_SENSITIVITY.default)} className={BUTTON.plain}
+          type="button" disabled={sensitivity === FLICK_SENSITIVITY.default}
+          onClick={() => mouse.setFlickSensitivity(FLICK_SENSITIVITY.default)} className={BUTTON.plain}
         >
           Reset
         </button>

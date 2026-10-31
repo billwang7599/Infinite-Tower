@@ -14,8 +14,6 @@ export interface Materials {
   blobShadow: StandardMaterial;
   player: PlayerFrames;
   slashFx: StandardMaterial;
-  /** The block's guard in front of the player. */
-  guardFx: StandardMaterial;
   telegraph: StandardMaterial;
   pile: StandardMaterial;
 }
@@ -34,12 +32,6 @@ export function createMaterials(scene: Scene): Materials {
   slashFx.alpha = 0.9;
   slashFx.backFaceCulling = false;
 
-  const guardFx = new StandardMaterial("guard-fx", scene);
-  guardFx.disableLighting = true;
-  guardFx.emissiveColor = new Color3(0.6, 0.8, 1.2);
-  guardFx.alpha = 0.3;
-  guardFx.backFaceCulling = false;
-
   const telegraph = new StandardMaterial("telegraph", scene);
   telegraph.diffuseTexture = telegraphTexture(scene);
   telegraph.useAlphaFromDiffuseTexture = true;
@@ -48,7 +40,7 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.zOffset = -3;
 
   return {
-    blobShadow, player: playerFrames(scene, "player"), slashFx, guardFx, telegraph,
+    blobShadow, player: playerFrames(scene, "player"), slashFx, telegraph,
     pile: spriteMaterial(scene, "arena-pile", drawPile),
   };
 }

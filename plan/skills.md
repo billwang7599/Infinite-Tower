@@ -142,7 +142,7 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   walk at 40% and can't swing; a dodge or a stun ends it at once with no hand-off; running out of stamina ends the
   hold. A later Beam starts where the segment before it ended and keeps its direction. It hands off where it ends:
   in the enemy it stops in, or at its range or the wall.
-- **Imbue:** the next 3 sword hits that land within 8 s (swings or stabs; blocked or parried ones don't count) each
+- **Imbue:** the next 3 sword hits that land within 8 s (light or heavy; blocked ones don't count) each
   also strike with its elements at 50% of a hit. A new Imbue replaces the old one (without its hand-off). It hands
   off from the enemy the last hit landed on (onward from you through it, skipping it), or from you when it runs out.
 - A share of a hit (a Beam's tick, an Imbue, a cloud, a split Bolt, Amplify) scales its damage, poise damage and
@@ -185,7 +185,7 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   a held Beam, its aim and target, its seed. The player's keys and, later, an enemy's brain drive it through the same
   calls: `startCast` (a quick-cast, or a chant's release), `chant(words)` and `releaseChant`. The player's chant words
   reach the fight as the input `chantWords` (the whole list, on the step it changes), checked by the server against the
-  words they know. A stun (or a parry or stagger for an enemy) breaks it off. A fighter without a `Stamina` pays
+  words they know. A stun (or a recoil or stagger for an enemy) breaks it off. A fighter without a `Stamina` pays
   nothing. An enemy that casts (a `skill` attack) gets a stamina bar like a player's and pays the same; the boar and
   the Kobold have none, and skillpower 0.
 

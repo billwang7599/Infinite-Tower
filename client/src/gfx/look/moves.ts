@@ -35,8 +35,6 @@ interface Key {
   head?: Point;
   /** Each foot moved, left then right. */
   feet?: readonly [Point, Point];
-  /** What's different from the front, before it's mirrored: a blade pointing at us points down the screen. */
-  front?: Partial<Omit<Key, "front">>;
 }
 
 const KEYS: Record<SwordPose, readonly Key[]> = {
@@ -55,43 +53,19 @@ const KEYS: Record<SwordPose, readonly Key[]> = {
     { hand: [9, 0], tip: [3, 9] },
     { hand: [8, 11], tip: [2, 16], crouch: 1 },
   ],
-  "swing-bt": [
-    { hand: [8, 10], tip: [7, 14], crouch: 2, lean: 1 },
-    { hand: [9, -3], tip: [-1, -13] },
-    { hand: [8, -12], tip: [0, -20], head: [0, -1] },
-  ],
   "swing-tlbr": [
     { hand: [-17, -10], tip: [-14, -12], lean: -1 },
     { hand: [2, 0], tip: [15, 4], swordLayer: "hairBack" },
     { hand: [10, 8], tip: [13, 11], lean: 1, crouch: 1 },
-  ],
-  "swing-brtl": [
-    { hand: [6, 9], elbow: [4, 6], tip: [6, 15], crouch: 1, lean: 1 },
-    { hand: [-14, 1], tip: [-13, -8], swordLayer: "hairBack" },
-    { hand: [-17, -10], tip: [-11, -16], lean: -1 },
   ],
   "swing-trbl": [
     { hand: [7, -9], elbow: [8, -1], tip: [12, -15], lean: 1 },
     { hand: [-14, 1], tip: [-14, 4], swordLayer: "hairBack" },
     { hand: [-16, 7], tip: [-12, 13], hide: true, swordLayer: "hairBack", lean: -1, crouch: 1 },
   ],
-  "swing-bltr": [
-    { hand: [-15, 7], tip: [-9, 14], hide: true, swordLayer: "hairBack", crouch: 2, lean: -1 },
-    { hand: [2, -1], tip: [12, -13], swordLayer: "hairBack" },
-    { hand: [8, -10], tip: [8, -18] },
-  ],
-  stab: [
-    { hand: [9, 10], tip: [-1, -16], crouch: 1, lean: -1, off: [-3, 11], front: { tip: [-2, 9] } },
-    { hand: [8, -1], tip: [-1, -9], off: [-4, 12], front: { hand: [-2, 7], tip: [0, 11] } },
-    {
-      hand: [9, -5], tip: [-1, -7], crouch: 2, lean: 1, head: [0, -1], off: [-5, 11], feet: [[-1, 0], [1, -3]],
-      front: { hand: [-3, 8], tip: [0, 12] },
-    },
-  ],
-  block: [
-    { hand: [9, -10], tip: [-15, -16], off: [-7, -11], swordLayer: "headwear", crouch: 1, feet: [[-1, 0], [1, 0]] },
-    { hand: [9, -16], tip: [-23, -1], off: [-9, -16], swordLayer: "headwear", crouch: 2, feet: [[-2, 0], [2, 0]] },
-  ],
+  "guard-left": [{ hand: [-18, 1], tip: [-11, -12], lean: -1 }],
+  "guard-top": [{ hand: [8, -15], tip: [-22, -2], off: [-8, -15], swordLayer: "headwear", crouch: 1 }],
+  "guard-right": [{ hand: [6, 0], elbow: [7, 6], tip: [8, -14], lean: 1 }],
   stagger: [
     { hand: [10, -7], tip: [13, 8], off: [-10, 3], lean: -2, head: [-1, 3], feet: [[0, 0], [1, -2]] },
     { hand: [9, 9], tip: [8, 13], off: [-11, -5], lean: 3, head: [1, 2], feet: [[-2, -3], [1, 0]] },
@@ -116,8 +90,7 @@ function arm(b: BattleBuild, shoulder: Point, hand: Point, elbow?: Point): Mask 
 /** A blade in front of the player, under the body from behind, is over everything from the front. */
 const FRONT_LAYER: Partial<Record<Layer, Layer>> = { hairBack: "headwear" };
 
-function posed(b: BattleBuild, stand: BattleFrame, key: Key, facing: BattleFacing): BattleFrame {
-  const k = facing === "front" ? { ...key, ...key.front } : key;
+function posed(b: BattleBuild, stand: BattleFrame, k: Key, facing: BattleFacing): BattleFrame {
   const lean = k.lean ?? 0, crouch = k.crouch ?? 0;
   const leanAt = (y: number) => lean * Math.min(1, Math.max(0, (HIPS_Y - y) / (HIPS_Y - SHOULDER_Y)));
   const upper = (mask: Mask): Mask => (x, y) => mask(x - leanAt(y - crouch), y - crouch);

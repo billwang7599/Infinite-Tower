@@ -42,7 +42,7 @@ export const ITEMS = {
     weight: 5,
   },
   sword: {
-    name: "Sword", description: "A plain straight blade. You swing it with the mouse and stab with a click.", cols: 1,
+    name: "Sword", description: "A plain straight blade. Quick to swing, and it guards as well as any.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
   },
   "kobold-blade": {
@@ -50,11 +50,11 @@ export const ITEMS = {
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
   },
   longsword: {
-    name: "Longsword", description: "A longer, heavier blade. Slower to get going, and it hits harder.", cols: 1,
+    name: "Longsword", description: "A longer, heavier blade. Slower to swing, and it hits harder.", cols: 1,
     rows: 3, stackSize: 1, weight: 4.5, wearable: { on: "hand" },
   },
   greatsword: {
-    name: "Greatsword", description: "Taller than a kobold. Slow to start and slow to turn, but it lands like a door.",
+    name: "Greatsword", description: "Taller than a kobold. Slow to swing, but it lands like a door.",
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
   },
   "kobold-greatsword": {

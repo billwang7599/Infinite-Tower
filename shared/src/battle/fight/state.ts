@@ -67,9 +67,7 @@ const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }
 const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: { ...s.dir } };
 
 function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder"] {
-  if (!wielder) return null;
-  const { hands: _, armReachM: _arm, swing, blade, ...rest } = wielder;
-  return { ...rest, blade: { ...blade }, swing: copySwing(swing) };
+  return wielder ? { swing: copySwing(wielder.swing) } : null;
 }
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];
@@ -138,9 +136,7 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     Object.assign(world.require(e, Health), s.health);
     world.add(e, Statuses, copyStatuses(s.statuses));
     const wielder = world.get(e, Wielder);
-    if (wielder && s.wielder) {
-      Object.assign(wielder, s.wielder, { blade: { ...s.wielder.blade }, swing: copySwing(s.wielder.swing) });
-    }
+    if (wielder && s.wielder) wielder.swing = copySwing(s.wielder.swing);
     const { words, aim, target, ...skilled } = s.skilled;
     const copied = { words: [...words], aim: { ...aim }, target: fighterAt(target) };
     Object.assign(world.require(e, Skilled), skilled, copied);

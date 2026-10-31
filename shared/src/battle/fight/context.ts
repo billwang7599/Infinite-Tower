@@ -20,10 +20,7 @@ export type FightEvent =
   | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean }
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
-  /** `by` parried `target`'s swing: `target` is stunned (an enemy) or staggered (a player). */
-  | { type: "parry"; by: Entity; target: Entity }
-  /** `target` blocked `by`'s hit; short of stamina, its guard broke (a player staggered). */
-  | { type: "block"; by: Entity; target: Entity; guardBreak: boolean }
+  | { type: "block"; by: Entity; target: Entity }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId };

@@ -283,7 +283,7 @@ describe("Self", () => {
       const fight = new Fight({ arena: ARENA, players: [player(at(0, 0))], enemies: [enemy(STATUE, at(0, 1.4))] });
       if (status) myStatuses(fight).left[status] = 5;
       fight.world.require(fight.players[0]!, Health).hp = 50;
-      fight.step([input({ attack: "lr" })]);
+      fight.step([input({ attack: "light" })]);
       run(fight, 0.6);
       return {
         dealt: STATUE.maxHp - fight.world.require(fight.enemies[0]!, Health).hp,

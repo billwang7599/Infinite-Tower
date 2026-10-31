@@ -16,7 +16,8 @@ const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_IN
 /** Walks about, slashes and dodges: something different every few steps. */
 const script = (step: number): PlayerInputData => input({
   moveX: step % 50 < 25 ? 1 : -0.5, moveZ: step % 30 < 15 ? 0.6 : -1, aimX: step % 40 < 20 ? 0 : 1,
-  aimZ: step % 40 < 20 ? 1 : 0, attack: step % 13 === 0 ? (step % 26 ? "lr" : "stab") : null, dodge: step % 37 === 0,
+  aimZ: step % 40 < 20 ? 1 : 0, attack: step % 13 === 0 ? (step % 26 ? "light" : "heavy") : null,
+  dodge: step % 37 === 0,
 });
 
 describe("a battle room", () => {
@@ -64,7 +65,7 @@ describe("a battle room", () => {
     const { room, client, play } = openRoom();
     play();
     const late = MAX_INPUT_DELAY_STEPS - 3;
-    play(input({ attack: "lr" }), late);
+    play(input({ attack: "light" }), late);
     for (let i = 0; i < late; i++) {
       assert.equal(room.fight.steps, 1, "held back, waiting for step 2");
       play(IDLE_INPUT);
@@ -77,14 +78,14 @@ describe("a battle room", () => {
     const { room, client, play } = openRoom();
     play();
     const late = MAX_INPUT_DELAY_STEPS + 3;
-    play(input({ attack: "lr" }), late);
+    play(input({ attack: "light" }), late);
     for (let i = 0; i < late + 10; i++) play(IDLE_INPUT);
     assert.notDeepEqual(room.fight.save(), client.fight.save());
     // Steps 2.. ran without it until it came, MAX_INPUT_DELAY_STEPS + 3 ticks late; it ran on the next one.
     const ranAt = 2 + late - MAX_INPUT_DELAY_STEPS;
     const expected = new Fight(setupWith());
     while (expected.steps < room.fight.steps) {
-      expected.step([input({ attack: expected.steps + 1 === ranAt ? "lr" : null })]);
+      expected.step([input({ attack: expected.steps + 1 === ranAt ? "light" : null })]);
     }
     assert.deepEqual(room.fight.save(), expected.save());
   });
@@ -93,7 +94,7 @@ describe("a battle room", () => {
     const { room, play } = openRoom();
     play();
     const ahead = room.fight.steps + 1 + MAX_INPUT_LEAD_STEPS + 1;
-    room.input(0, ahead, [{ step: ahead, ...input({ attack: "lr" }) }]);
+    room.input(0, ahead, [{ step: ahead, ...input({ attack: "light" }) }]);
     for (let i = 0; i < 40; i++) play(null);
     const player = room.fight.world.require(room.fight.players[0]!, Player);
     assert.equal(player.action, "none");
@@ -188,7 +189,7 @@ describe("a battle room", () => {
   test("the player's vitals at the end are the fight's", () => {
     const { room, ended, play } = openRoom();
     play();
-    play(input({ attack: "lr" }));
+    play(input({ attack: "light" }));
     for (let i = 0; i < 30; i++) play();
     const { hp } = Object.assign(room.fight.world.require(room.fight.players[0]!, Health), { hp: 37 });
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;

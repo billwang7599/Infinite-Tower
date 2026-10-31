@@ -6,8 +6,8 @@
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
-  type DialogueOffer, type GameServer, type Gear, type Look, type QuestView, type Skill, type Skillbook, type Spot,
-  type Stats, type UseSpot, type Word,
+  type DialogueOffer, type GameServer, type Gear, type GuardSide, type Look, type QuestView, type Skill, type Skillbook,
+  type Spot, type Stats, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -59,14 +59,11 @@ export interface OverworldHudState {
 
 export type Interaction = "rest" | "joinFight" | "openPile" | "talk";
 
-/** A word over the fight for a moment: you parried the enemy, or you're staggered. */
-export type BattleCue = "none" | "parried" | "staggered";
-
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
-  comboMultiplier: number;
-  cue: BattleCue;
+  guard: GuardSide | null;
+  foeGuard: GuardSide | null;
   enemyName: string;
   enemyHpFraction: number;
   enemyAlive: boolean;
@@ -209,7 +206,7 @@ export class UiState {
     },
   });
   readonly battle = new Store<BattleHudState>({
-    hpFraction: 1, staminaFraction: 1, comboMultiplier: 1, cue: "none", enemyName: "", enemyHpFraction: 1,
+    hpFraction: 1, staminaFraction: 1, guard: null, foeGuard: null, enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
     result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null,

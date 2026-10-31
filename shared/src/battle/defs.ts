@@ -5,7 +5,6 @@
 import type { Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 import type { Modifier, Segment, SkillElement } from "../skills/skill.js";
-import type { AttackKind } from "../weapons/weapons.js";
 import type { Stats } from "./stats.js";
 
 /** Damage is at strength 10. */
@@ -46,28 +45,19 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
-/** Chains of swings and stabs with whatever weapon it holds: its hits deal the weapon's damage. */
 export interface WeaponAttackDef {
-  knockback: number;
-  lift: number;
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
-  /** Wind-up before a chain's first swing, and before each one it chains into. */
   windup: number;
   chainWindup: number;
-  /** The blade is live this long, stepping forward at `speed`. */
-  active: number;
   speed: number;
-  /** After a chain's last swing, before it's on guard again: its opening. */
   recover: number;
   minChain: number;
   maxChain: number;
-  moves: AttackKind[];
+  heavyShare: number;
   /** Before another chain (after recovering), and before its first. */
   cooldown: number;
   firstDelay: number;
-  parryReaction: number;
-  parryCooldown: number;
 }
 
 /**

@@ -3,7 +3,7 @@ import type { Vec2 } from "../../../core/math.js";
 import { skillCost, skillOf, type Skill, type Word } from "../../../skills/skill.js";
 import { Enemy, Health, Skilled, Stamina, type EnemyState, type SkilledData } from "../../components.js";
 
-const STUNNED: readonly EnemyState[] = ["stunned", "parried", "staggered", "dead"];
+const STUNNED: readonly EnemyState[] = ["stunned", "recoil", "staggered", "dead"];
 
 export const newSkilled = (aim: Vec2, seed: number): SkilledData => ({
   chanting: false, words: [], casting: null, castTime: 0, beaming: false, held: false, aim: { ...aim }, target: null,

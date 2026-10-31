@@ -119,7 +119,7 @@ describe("Imbue", () => {
   const reachM = 1.6;
   const swings = (fight: Fight, count: number) => {
     for (let i = 0; i < count; i++) {
-      const attack: AttackKind = i % 2 === 0 ? "lr" : "rl";
+      const attack: AttackKind = i % 2 === 0 ? "light" : "heavy";
       run(fight, 0.9, (step) => input({ attack: step === 0 ? attack : null }));
     }
   };

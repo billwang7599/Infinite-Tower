@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, Health, mirrorOf, Player, PLAYER, releaseTime, reverseOf, SKILL_EFFECTS, Stamina, SWING_DIRS,
-  type PlayerInputData,
+  FIXED_DT, GUARD_SIDES, Health, mirrorSide, Player, PLAYER, releaseTime, SKILL_EFFECTS, type PlayerInputData,
 } from "@infinite-tower/shared";
 import {
   DUEL_STARTS, Fight, initPhysics, MAX_FIGHT_TIME, playerResult, type FightEvent,
 } from "@infinite-tower/shared/fight";
-import { ARENA, input, player, segment, skill, STATS } from "./fixtures.js";
+import { ARENA, input, player, segment, skill } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -41,47 +40,29 @@ describe("a duel: two players, each the other's foe", () => {
     assert.equal(fight.outcome.state, "fighting");
   });
 
-  test("a player's swing hurts the other player", () => {
+  test("a player's attack hurts the other player", () => {
     const fight = pvp();
-    play(fight, 60, (s) => (s === 1 ? { attack: "lr" } : {}));
+    play(fight, 60, (s) => (s === 1 ? { attack: "light" } : {}));
     assert.ok(hp(fight, 1) < PLAYER.maxHp);
     assert.equal(hp(fight, 0), PLAYER.maxHp);
   });
 
-  test("a swing met head-on by the other's own reverse, as they see it, is parried: the swinger is staggered", () => {
-    for (const dir of SWING_DIRS) {
+  test("a guard on the side across from the attacker's, as each sees it, blocks: the attacker recoils", () => {
+    for (const side of GUARD_SIDES) {
       const fight = pvp();
-      const events = play(fight, 30, (s) => (s === 1 ? { attack: dir } : {}),
-        (s) => (s === 1 ? { attack: reverseOf(mirrorOf(dir)) } : {}));
-      const parry = events.find((e) => e.type === "parry");
-      assert.ok(parry, dir);
-      assert.equal(parry.by, fight.players[1]);
-      assert.equal(parry.target, fight.players[0]);
+      const events = play(fight, 35, (s) => ({ locked: 1, guard: side, attack: s === 1 ? "light" : null }),
+        () => ({ locked: 0, guard: mirrorSide(side) }));
+      assert.ok(events.some((e) => e.type === "block" && e.target === fight.players[1]), side);
+      assert.equal(hp(fight, 1), PLAYER.maxHp, side);
+      assert.equal(fight.world.require(fight.players[0]!, Player).action, "recoil", side);
     }
-    const fight = pvp();
-    play(fight, 30, (s) => (s === 1 ? { attack: "lr" } : {}), (s) => (s === 1 ? { attack: "lr" } : {}));
-    assert.equal(fight.world.require(fight.players[0]!, Player).action, "stagger");
   });
 
-  test("seen from in front a swing's left and right swap", () => {
-    assert.equal(mirrorOf("lr"), "rl");
-    assert.equal(mirrorOf("tb"), "tb");
-    assert.equal(mirrorOf("tlbr"), "trbl");
-    assert.equal(mirrorOf("stab"), "stab");
-  });
-
-  test("a stab is parried by a stab", () => {
+  test("a guard on the attacker's own side, as the defender sees it, doesn't", () => {
     const fight = pvp();
-    const events = play(fight, 40, (s) => (s === 1 ? { attack: "stab" } : {}),
-      (s) => (s === 1 ? { attack: "stab" } : {}));
-    assert.ok(events.some((e) => e.type === "parry"));
-  });
-
-  test("a held block stops the other's swing for stamina", () => {
-    const fight = pvp();
-    const events = play(fight, 60, (s) => (s === 1 ? { attack: "lr" } : {}), () => ({ block: true }));
-    assert.ok(events.some((e) => e.type === "block" && e.target === fight.players[1]));
-    assert.ok(fight.world.require(fight.players[1]!, Stamina).value < STATS.stamina);
+    play(fight, 60, (s) => ({ locked: 1, guard: "left", attack: s === 1 ? "light" : null }),
+      () => ({ locked: 0, guard: "left" }));
+    assert.ok(hp(fight, 1) < PLAYER.maxHp);
   });
 
   test("a Bolt hits the other player", () => {

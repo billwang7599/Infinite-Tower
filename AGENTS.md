@@ -76,14 +76,11 @@ Decided by the user:
   fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
   weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
   planned ([plan/weapons.md](plan/weapons.md)).
-- Swings are inertia-based (the user's idea; the equations are the agent's, approved as "lean whatever makes it feel
-  more smooth & realistic"): a weapon has mass (its item's weight) and balance, the wielder's strength drives the
-  blade, and the order swings come in is decided by inertia alone. A hit's damage is the weapon's power × its impact
-  momentum (mass × blade speed), so a combo that keeps the blade moving pays off; strength mostly sets swing speed
-  (against the weapon's mass) and adds a little damage; stamina goes by the energy a swing adds to the blade (braking
-  too), a block's cost and stagger by the impact's momentum, and a parry's stun by the blades' momentum. Enemies follow
-  the same rules. The equations and numbers: [plan/weapons.md](plan/weapons.md) "Built", `planSwing` and `SWING` in
-  `shared/src/weapons/weapons.ts`.
+- Sword fights are like For Honor's (the user: "make the sword combat closer to for honour. right now i think its too
+  much unpredectable, especially pvp."), replacing the inertia-based swings, the eight mouse swings, the stab, the
+  held block and the parry. The rules (guard stances, fixed-time light and heavy attacks) are the main chat's design,
+  with the details the agent's: "Guard stances" under "Decided by the agent" below. Parries, guard breaks and feints
+  come next ([plan/weapons.md](plan/weapons.md)).
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -134,7 +131,7 @@ Decided by the user:
 - Fights lock on: a fight starts locked onto the closest enemy, Q toggles the lock, Right Shift locks the closest,
   and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
   off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
-  Unlocked, the arrows or a right-button drag turn the camera, and attacks go where it faces; the mouse alone
+  Unlocked, the arrows or a middle-button drag turn the camera, and attacks go where it faces; the mouse alone
   doesn't turn it. Skills may home (the Follow modifier). The locked camera's numbers (top of
   `client/src/modes/battle/camera.ts`) are the agent's pick, to tune.
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
@@ -229,57 +226,23 @@ Decided by the user:
   Another player, later, may lag on your screen; your own character is always instant.
 - A dodge's i-frames start on the step the dodge does, so a dodge on the step a hit lands beats it, on the client
   and the server alike (`PLAYER.dodge.iframeStart` is 0).
-- Skills ignore dodge i-frames, hurt invulnerability and blocking: a Bolt hits a dodging or guarding player (for now).
+- Skills ignore dodge i-frames, hurt invulnerability and guards: a Bolt hits a dodging or guarding player (for now).
 - A dodge (or the next attack) pressed during an attack isn't lost, however early in it: it waits, without cutting
   the attack short, and starts on the first step the attack lets another action start, as soon as its blade is done
-  (the swing's `letGoAt`: its wind-up and live time, which a heavier blade makes longer). If the player can't dodge
-  then (no stamina, overloaded, in the air), the press runs out like any early press (`PLAYER.inputBuffer`). With an
-  attack buffered too, the dodge goes first.
-- The sword (the swings hand-tested and approved; swinging by mouse not yet played): eight swings, named by their way
-  across the screen, and a stab. A mouse or trackpad is required to play: a swing is plain mouse movement (no button
-  held, locked or not), its way across the screen picking the swing (snapped to the nearest of the eight), and a left
-  click stabs; there are no swing keys. Movement doesn't swing while blocking. How little movement swings is the swing
-  sensitivity in Settings (saved with the other settings). Block is held (Left Shift), Space jumps, F dodges (the right
-  mouse button doesn't). A swing's reach and arc come from the sword's length and its line (horizontal wide and short,
-  vertical narrow and long; the stab a long thin ray). Swings follow from the blade's inertia, and are drawn as the
-  fight runs them: from rest the blade starts slow and speeds up to impact, then follows through, slowing, longer the
-  heavier it is. With the starter sword an opening goes live in 0.35 s; the same swing again as the last lets go loops
-  round on its momentum (0.19 s) and hits up to 25% harder; a reverse brakes first (0.4 s) and costs the most stamina.
-  The blade stays where a swing leaves it ("sword stays where last swung. and from there its inertia"), its momentum
-  spent by the end of its follow-through, and the next wind-up starts from there: after a pause the reverse goes live
-  in 0.2 s, the same swing again in 0.41 s. A stab first brings the blade back to the guard (as far as a swing sets
-  it, so 0.55 s from a swing's far side, 0.4 s from the guard), draws back, thrusts and follows through back to the
-  guard ("stab should move sword to start of stab location, and then end up in the default location"). A block, a
-  dodge or a hit taken between swings brings it back to the guard. Mid-swing, a hit that only hurts lets the swing go
-  on; one that stuns cuts it off, and the blade carries on for `gapTime` then stops where it is (the agent's call,
-  "do what you think is right/realistic"). A block stops a hit from in front
-  for stamina (by the hit's momentum) and pushes you back; short of stamina, the guard breaks and you're staggered.
-  Numbers: `shared/src/weapons/weapons.ts` and `PLAYER` in `player.ts`.
-- A blade that meets a guard (blocked or parried) stops dead there and the next wind-up starts from there; its swing
-  still runs its time out (the agent's pick). Hit-stop, the hit's jolt and the sparks are drawing only, to tune:
-  `hitStopMs` in `WEAPON_LOOKS` and the top of `client/src/visuals/battle/impact.ts`.
-- The Kobold Swordsman (hand-tested and approved) has its own corner of the Grass Field. It swings in chains of two or
-  three, any way or a stab, picked by a seeded generator kept in the fight's state (the server picks the seed); the
-  first swing winds up 1.1 s, the ones after it 0.8 s (the user: "make the chain wind ups slightly longer"; telegraphs:
-  the blade's own wind-up is only a floor, at most 0.8 s here). A swing is parried by the reverse swing, or either of
-  the two 45° from it (3 of 8), live within `PARRY.window` (0.15 s) before it lands (the Kobold is stunned, knocked
-  back and takes more damage), even while you're briefly invulnerable from the swing before it; a parry 45° off stuns
-  and knocks back half as much (`PARRY.offAngleShare`), the extra damage the same. A stab is parried by a stab the
-  same way (in full), and otherwise only blocked or dodged; a blocked swing still chips 20% of its damage. On guard it
-  parries your swings (you're staggered; not right after coming back on guard, nor again for a while) and blocks your
-  stabs. It guards one side (the agent's pick, for the user to review): its blade held toward one of the 8 ways, it
-  parries only swings coming in within 45° of it (3 of 8), one 45° off staggering you and knocking you back half as
-  much as one head-on, and the other 5 land; a swing that lands turns its guard there, and otherwise it changes side
-  every 1.5-3 s (the fight's seed), taking 0.3 s to move, the old side covered until then (`GUARD` in
-  `shared/src/weapons/weapons.ts`). Its landed sword hits only hurt, with no stun or knockback (the boar's still stun).
-  It drops nothing yet. It holds its own Kobold blade (the sword's length and mass, 14 damage), which never drops; a
-  chained swing on its blade's way hits harder, as the player's do. A blocked Kobold blow costs 14 stamina, as before
-  inertia.
+  (the swing's `liveUntil`; after a chain's last attack, the next attack waits for its recovery too). If the player
+  can't dodge then (no stamina, overloaded, in the air), the press runs out like any early press
+  (`PLAYER.inputBuffer`). With an attack buffered too, the dodge goes first.
+- Hit-stop, the hit's jolt and the sparks are drawing only, to tune: `hitStopMs` in `WEAPON_LOOKS` and the top of
+  `client/src/visuals/battle/impact.ts`.
+- The Kobold Swordsman (hand-tested and approved before guard stances) has its own corner of the Grass Field. It
+  fights by the guard rules below, its full stance AI still to come. Its landed sword hits only hurt, with no stun or
+  knockback (the boar's still stun). It drops nothing yet. It holds its own Kobold blade (the sword's length, 14
+  damage), which never drops.
   Attack warnings come only from sound and the sprite's animation (the user: "we will have attack warnings from
   sound and sprite animation"; "we should have attack tells. ie large windups and stuff"): it draws its blade far
   back and turns its body, with a wind-up sound (its blade drawn). There's no attack-warning marker; the lock-on
-  diamond stays, since it shows which enemy you're locked onto.
-  Numbers: `server/src/core/enemies/kobold-swordsman.ts`, `WEAPONS` and `PARRY` in `shared/src/weapons/weapons.ts`.
+  diamond stays, since it shows which enemy you're locked onto, and the guard widget shows sides only, never an attack.
+  Numbers: `server/src/core/enemies/kobold-swordsman.ts`.
 - Heavier swords (the user: "give me heavier and bigger swords to play with. make a second kobald with a greatsword
   too"; not hand-played yet): a Longsword and a Greatsword, which every player has (the starter kit). The Kobold
   Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
@@ -289,7 +252,7 @@ Decided by the user:
   right on it (about 1.5 m, 5 damage). It casts Bolt Fire, adding Follow about 1 in 3 and Split about 1 in 4 (the
   fight's seed picks, as for the Kobold's swings): quick-cast within about 6 m, chanted from farther through the same
   `startCast` / `chant` / `releaseChant` as yours, its words always shown in front of it. Its interrupts are yours (a
-  stun, a parry or a stagger breaks the chant off), one cast at a time until it resolves. Its skillpower is 10 like
+  stun or a stagger breaks the chant off), one cast at a time until it resolves. Its skillpower is 10 like
   yours, and it pays the same stamina from the same size of bar, refilled the same way. The other numbers (the chant's
   pace, the poke's timing, the cooldown) are the agent's picks: `server/src/core/enemies/goblin-warlock.ts`.
 - The Goblin Warlock walks backwards while it chants, facing you, if you're inside its keep-away distance; the chant
@@ -304,10 +267,11 @@ Decided by the user:
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
   generous value), for the user to change.
 - Sound effects (the user: "yea just go with what you think is right"; which files and how loud are the agent's picks,
-  not listened to yet): swings (lower and heavier the heavier the blade), hits, blocks and parries, footsteps, dodges
-  and jumps, the enemies' grunts when hit and on death (boar, Kobold, Warlock), skills (the cast, a loop while a Bolt
-  or Beam flies, the impact), eating, picking up and moving items, UI clicks, resting, and the Kobold's wind-up as
-  part of its tell (the boar's charge and lunge got a growl the same way, the agent's pick). Ambient loops: flowing
+  not listened to yet): swings (lower and heavier the heavier the blade, and a heavy attack's than a light's), hits,
+  blocks, footsteps, dodges and jumps, the enemies' grunts when hit and on death (boar, Kobold, Warlock), skills (the
+  cast, a loop while a Bolt or Beam flies, the impact), eating, picking up and moving items, UI clicks, resting, and
+  the Kobold's wind-up as part of its tell (the boar's charge and lunge got a growl the same way, the agent's pick).
+  Ambient loops: flowing
   water near the river and the mire, louder the nearer the water (from the shared water map), and crackling near each
   campfire; the mire arena bubbles. Sounds come from where they happen: quieter further off, panned left or right, and
   each play a little off in pitch and volume so repeats differ. Master, Effects and Ambient volumes in Settings
@@ -389,15 +353,47 @@ them; treat them as changeable, and still ask before deciding new ones):
   a group back to its defaults.
 - Stats (the user asked for stamina, mana, spellpower, agility, strength on every entity; mana has since gone and
   spellpower is skillpower): stamina = the stamina bar's size, skillpower = skill damage × skillpower / 10, agility =
-  arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's goes by its swing:
-  see the inertia entry above) and the carry limit. HP stays separate. They apply
+  arena movement speed × agility / 10, strength = a body blow's damage × strength / 10 (a weapon's × its fourth root:
+  see "Guard stances" below) and the carry limit. HP stays separate. They apply
   only in fights. Player 100 / 10 / 10 / 10, enemies 100 / 0 / 10 / 10 (the Goblin Warlock's skillpower 10).
   Everyone has the same player stats, so they
   aren't saved.
-- A swing is a mouse move of 40 px within 150 ms (the swing sensitivity, 0.5 to 2, default 1, divides the 40);
-  slower or smaller movement is dropped. Once a move swings, more movement the same way is the same sweep (one
-  swing) until the mouse rests 100 ms; turning away swings again at once, so the reverse for a parry is quick. The
-  numbers are `SWIPE` in `client/src/core/actions.ts`, to tune by feel.
+- Guard stances (the user asked for sword fights like For Honor's; the design is the main chat's, every detail below
+  the agent's, none hand-played; numbers in `ATTACKS`, `COMBAT` and `ENEMY_GUARD` in `shared/src/weapons/weapons.ts`):
+  - Locked on (fights start locked), with a sword in hand, you always hold a guard: left, top or right, as you see it.
+    A mouse flick left, up or right moves it there (down does nothing), or U, I, O (rebindable). It moves at once.
+    A new fight starts on top. Unlocked, there's no guard, and attacks come from the top.
+  - A guard blocks, free, every weapon attack from the side it faces (the attacker's left is your right; top is
+    top), from within 140° in front, while you're idle: not while attacking, recoiling, dodging, casting, chanting or
+    in the bag. Blocked, the attacker's attack ends and they recoil (0.3 s after a light, 0.5 s after a heavy), and
+    nobody is hurt. The boar's bite and charge come from the top: a top guard stops them, unhurt, but they still push
+    you back (60% of their knockback); the boar doesn't recoil.
+  - Left click is a light attack, right click a heavy one (the camera drag, unlocked, moved to the middle button),
+    from your guard's side. With the sword a light goes live 0.45 s after the press and a heavy 0.85 s; the next in a
+    chain 0.4 s and 0.7 s; live for 0.1 s and 0.12 s, then 0.35 s and 0.55 s of recovery. A heavier weapon takes its
+    heft times as long, a fixed number: the longsword 1.2, the greatsword 1.6. The guard can't move while your blade
+    is out; in the recovery it can, so each attack in a chain may come from another side.
+  - A chain is an attack started during the last one's recovery, three at most: after the third, the next attack
+    waits for its recovery and starts a new chain. A dodge still only waits for the blade.
+  - A light deals the weapon's damage, a heavy twice that, × (strength / 10)^¼, the same every time (the sword 9 and
+    18). Weapon damage is per light now: the longsword 11, the greatsword 16, the Kobold blades 14. A light costs 12
+    stamina and a heavy 20, × the weapon's heft; poise damage 12 and 24. A weapon hit only hurts, as before: it
+    doesn't interrupt an attack.
+  - What you see: your blade held on your guard's side (a pose per side), the opponent's guard on their model or
+    sprite, and a small widget under the fight, three chevrons: yours lit inside in gold, the locked foe's outside in
+    red, on the side you see it, so matching blocks. It shows sides only; attacks are told by sound and animation.
+  - The Kobolds hold a guard and block by the same rule. Left alone they change side every 1.5-3 s (the fight's seed;
+    0.3 s to move, the old side covered until then); hit from an unguarded side while walking up, they turn there.
+    Before every attack, its guard moves to one of the other two sides and holds (0.5 s before a chain's first, 0.35 s
+    before the next), then attacks from there at the fixed timings, 30% of them heavy, in chains of two or three.
+    Recovering, recoiling or staggered, it doesn't guard. The full stance AI comes later.
+  - Gone: the eight swings, the stab, momentum and inertia, chain timing by angle, the held block (left Shift is free)
+    and its stamina cost, chip damage and guard break, the parry and the Kobold's parries, the combo counter and the
+    "Parried!" / "Staggered" words. The sounds only they used (stab, parry, guard break) were removed.
+- A flick is a mouse move of 40 px within 150 ms (the flick sensitivity, 0.5 to 2, default 1, divides the 40);
+  slower or smaller movement is dropped. Once a move flicks, more movement the same way is the same flick until the
+  mouse rests 100 ms; turning away flicks again at once. The numbers are `FLICK` in `client/src/core/actions.ts`, to
+  tune by feel. The setting was Swing sensitivity; a saved value of it is dropped.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -413,8 +409,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   shows the pages on the left of the battle HUD.
 - Equipment: the sword is 1 x 3 and weighs 3, the skillbook 2 x 2 and 1.5 (with both in hand a full bag is just over the
   carry limit). Either hand takes either; the sword starts in the right and the book in the left; dragging one hand onto
-  the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand means no swings, stabs or
-  blocks (you block with the blade); no skillbook, no quick-casting or writing pages. Head, body, legs and boots stay
+  the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand means no attacks and no
+  guard (you guard with the blade); no skillbook, no quick-casting or writing pages. Head, body, legs and boots stay
   empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
 - The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
   server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
@@ -442,13 +438,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
-- Heavier swords: the user asked for slower, more exaggerated swings that start slow and carry on by momentum, to be
-  read from the blade alone. From rest at strength 10 a swing goes live in 0.35 s with the sword, 0.53 s with the
-  longsword and 1.0 s with the greatsword (inertia counts the blade's length too: m × (balance² + length² / 12)), and
-  swing times scale up to 3×. The Longsword is 1 x 3, 1.4 m,
-  weight 4.5, balance 0.3 m, power 11; the Greatsword 1 x 4, 1.9 m, weight 8, balance 0.45 m, power 16 (powers set so
-  every sword deals the same damage per second at strength 10); the Kobold Greatsword's blade is the greatsword with
-  the Kobold blade's power 14. Numbers: `WEAPONS` and `SWING` in `shared/src/weapons/weapons.ts`.
+- Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
+  8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
+  the Kobold blade's 14 damage. Numbers: `WEAPONS` in `shared/src/weapons/weapons.ts`.
 - Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
   is opened by looking at it, as in the arena (below). It only gives: nothing goes onto it, nothing is moved about on
   it or eaten straight off it; taken things go into the bag, a hand or the cloth. It shows in the bag screen above
@@ -512,10 +504,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   leaves or starts another fight. One open challenge per player, either side: challenging while yours is open, or
   someone in one, is refused with a notice. Range is checked when challenging, not when accepting. Accepted, both go
   into one fight in the level's duel arena (the Grass Field's stone ruins), 12 m apart facing each other
-  (`DUEL_STARTS`), each locked on the other. Everything works both ways: swings, stabs, blocks, skills, and parries by
-  the same `PARRY` rules, a swing named as its swinger sees it (so a duelist's "lr" meets the other's "lr" head-on); a
-  parried player is staggered as the guarding Kobold staggers you, with no extra damage taken. Weapon hits only hurt,
-  as the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
+  (`DUEL_STARTS`), each locked on the other. Everything works both ways: attacks, guards and skills, each side named
+  as its holder sees it (a duelist's left attack is blocked by the other's right guard). Weapon hits only hurt, as
+  the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
   both, at the time limit), no death, nothing lost or gained, no wins, and both come back where they stood with the
   HP and stamina they went in with; pages written and gear moved in it are kept. Leaving or disconnecting forfeits:
   the other wins, the leaver loses nothing. The arena banner says VICTORY / DEFEATED.

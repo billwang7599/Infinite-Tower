@@ -2,7 +2,7 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
-import type { AttackKind, Blade } from "../weapons/weapons.js";
+import type { AttackKind, GuardSide } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
@@ -12,11 +12,11 @@ import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { PageWrite } from "./input.js";
 
 /**
- * "attack": a swing or the stab (`attack` says which). "stagger": parried, or the guard broken (in hitstun).
- * "write": writing a page, from the chant or the bag. "bag": the bag screen open. "use": using an item from the bag.
+ * "recoil": an attack of theirs was blocked (in hitstun). "write": writing a page, from the chant or the bag. "bag":
+ * the bag screen open. "use": using an item from the bag.
  */
 export type PlayerAction =
-  "none" | "attack" | "dodge" | "block" | "stagger" | "cast" | "chant" | "write" | "beam" | "bag" | "use";
+  "none" | "attack" | "dodge" | "recoil" | "cast" | "chant" | "write" | "beam" | "bag" | "use";
 
 export interface PlayerData {
   grounded: boolean;
@@ -45,8 +45,8 @@ export interface PlayerData {
   action: PlayerAction;
   /** Seconds since the current action started. */
   actionTime: number;
-  /** Direction of the current attack / dodge / block. */
   actionDir: Vec2;
+  guard: GuardSide | null;
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
@@ -74,30 +74,22 @@ export const Skilled = defineComponent<SkilledData>("Skilled");
 
 export interface SwingData {
   attack: AttackKind;
+  side: GuardSide;
+  chain: number;
   dir: Vec2;
   step: number;
   driveAt: number;
   liveAt: number;
   liveUntil: number;
-  letGoAt: number;
   endAt: number;
   damage: number;
-  knockback: number;
-  lift: number;
   poiseDamage: number;
-  momentum: number;
-  startSpeed: number;
-  flow: number;
-  /** The step a guard stopped its blade on: the swing runs its time out with the blade held there. */
-  stoppedAt: number | null;
 }
 
 export interface WielderData {
   hands: Record<Hand, ItemId | null>;
   armReachM: number;
   swing: SwingData | null;
-  blade: Blade;
-  restTime: number;
 }
 export const Wielder = defineComponent<WielderData>("Wielder");
 
@@ -168,25 +160,17 @@ export type TeamId = "player" | "enemy";
 export interface FighterData { team: TeamId; side: number; radius: number }
 export const Fighter = defineComponent<FighterData>("Fighter");
 
-/** An attack's hitbox while its blade (or body) is live: an arc in front, or a ray (a stab). Hits each target once. */
 export interface ActiveHitData {
-  shape: "arc" | "ray";
   dirX: number;
   dirZ: number;
-  /** Reach from the attacker's center to the target's surface (a ray's length). */
   range: number;
-  /** An arc's minimum cos(angle) between dir and the target: 1 = straight ahead only, -1 = all around. */
   minDot: number;
-  /** A ray's reach either side of its line, to the target's surface. */
-  width: number;
-  /** A weapon's swing or stab, or null: a body blow (a boar's), never parried. */
   attack: AttackKind | null;
+  side: GuardSide;
   damage: number;
   knockback: number;
   lift: number;
   poiseDamage: number;
-  /** Against the starter sword's; 0 for a body blow. */
-  momentum: number;
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
@@ -213,7 +197,7 @@ interface EnemyMove {
 
 /** The states every enemy has, then each attack's own. Attacks only start from "approach". */
 export type EnemyState =
-  | "approach" | "stunned" | "parried" | "staggered" | "dead"
+  | "approach" | "stunned" | "recoil" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
   | "weaponWindup" | "weapon" | "weaponRecover"
@@ -226,7 +210,6 @@ export interface EnemyData {
   state: EnemyState;
   /** Seconds in the current state. */
   stateTime: number;
-  /** Seconds the current state lasts ("stunned", "parried", "staggered", a weapon's wind-up). */
   duration: number;
   /** Facing (the yaw convention is in core/math.ts). */
   yaw: number;
@@ -247,15 +230,12 @@ export interface AttackState<D> {
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
 
-/** Chains of swings with the weapon in hand. */
 export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
-  /** Swings still to come in this chain after the current one. */
   swingsLeft: number;
-  /** Seconds until it can parry again. */
-  parryCooldown: number;
-  /** A side as in `GUARD`; while it moves there, `guardFrom` stays covered. */
-  guardSide: number;
-  guardFrom: number;
+  chain: number;
+  next: AttackKind;
+  guard: GuardSide;
+  guardFrom: GuardSide;
   guardMoveTime: number;
   guardHoldTime: number;
 }

@@ -5,7 +5,7 @@ import type { Character } from "../../character/character.js";
 import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
-import { restingBlade } from "../../weapons/weapons.js";
+import { ENEMY_GUARD } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
@@ -50,8 +50,7 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
-const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
-  ({ hands, armReachM, swing: null, blade: restingBlade(), restTime: 0 });
+const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({ hands, armReachM, swing: null });
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
   const e = world.spawn();
@@ -66,7 +65,7 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
     castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
-    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, burden: setup.burden, gear: setup.gear,
+    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, guard: null, burden: setup.burden, gear: setup.gear,
     invulnerable: setup.invulnerable ?? false, leftArena: false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
@@ -85,8 +84,8 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
-      def, cooldown: def.firstDelay, swingsLeft: 0, parryCooldown: 0,
-      guardSide: 0, guardFrom: 0, guardMoveTime: 0, guardHoldTime: 0,
+      def, cooldown: def.firstDelay, swingsLeft: 0, chain: 0, next: "light",
+      guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime,
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

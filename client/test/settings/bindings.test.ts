@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { MAX_KEYS_PER_ACTION, SWING_DIRS } from "@infinite-tower/shared";
+import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import {
   ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, isFixed, keysOf, type ActionRef,
 } from "../../src/settings/bindings.js";
@@ -14,7 +14,7 @@ const useItem: ActionRef = { group: "overworld", action: "useItem" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
-const block: ActionRef = { group: "battle", action: "block" };
+const guardLeft: ActionRef = { group: "battle", action: "guardLeft" };
 const dragCamera: ActionRef = { group: "battle", action: "dragCamera" };
 const leave: ActionRef = { group: "battle", action: "leave" };
 
@@ -66,17 +66,14 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(general.questbook, ["KeyJ"]);
   });
 
-  test("the arena: no swing keys (the mouse swings), a left click stabs, left Shift blocks, F dodges, Space jumps", () => {
+  test("the arena: a left click is a light attack, a right click a heavy one; U, I and O guard; F dodges", () => {
     const battle = new KeyBindings().get().battle;
-    for (const dir of SWING_DIRS) assert.equal(dir in battle, false, dir);
-    assert.deepEqual(battle.stab, []);
-    assert.deepEqual(ACTIONS.battle.stab.mouse, [0]);
-    assert.equal(isFixed({ group: "battle", action: "stab" }), true, "the stab stays on the left button");
-    const used = Object.values(battle).flat();
-    for (const key of ["KeyU", "KeyI", "KeyO", "KeyJ", "KeyK", "KeyL", "KeyM", "Comma", "Period"]) {
-      assert.equal(used.includes(key), false, `${key} is free`);
-    }
-    assert.deepEqual(battle.block, ["ShiftLeft"]);
+    assert.deepEqual([battle.lightAttack, battle.heavyAttack], [[], []]);
+    assert.deepEqual([ACTIONS.battle.lightAttack.mouse, ACTIONS.battle.heavyAttack.mouse], [[0], [2]]);
+    assert.equal(isFixed({ group: "battle", action: "lightAttack" }), true, "attacks stay on the mouse");
+    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1], "the camera drags on the middle button");
+    assert.deepEqual([battle.guardLeft, battle.guardTop, battle.guardRight], [["KeyU"], ["KeyI"], ["KeyO"]]);
+    assert.equal(Object.values(battle).flat().includes("ShiftLeft"), false, "left Shift is free");
     assert.deepEqual(battle.dodge, ["KeyF"]);
     assert.deepEqual(battle.jump, ["Space"]);
     assert.deepEqual(battle.leave, ["Enter"]);
@@ -93,9 +90,9 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.lookDown, ["ArrowDown"]);
   });
 
-  test("the right mouse button only drags the camera: it doesn't dodge", () => {
+  test("the middle mouse button only drags the camera: it doesn't dodge", () => {
     assert.equal("mouse" in ACTIONS.battle.dodge, false);
-    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [2]);
+    assert.deepEqual(ACTIONS.battle.dragCamera.mouse, [1]);
     assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 
@@ -127,8 +124,9 @@ describe("ACTIONS and helpers", () => {
     for (const key of ["KeyW", "Space", "Enter", "ShiftLeft"]) assert.equal(isBindable(key), true);
   });
 
-  test("only the settings (on Esc) and the mouse's stab and camera drag are fixed", () => {
-    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [menu, { group: "battle", action: "stab" }, dragCamera]);
+  test("only the settings (on Esc) and the mouse's attacks and camera drag are fixed", () => {
+    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed),
+      [menu, { group: "battle", action: "lightAttack" }, { group: "battle", action: "heavyAttack" }, dragCamera]);
   });
 });
 
@@ -157,7 +155,7 @@ describe("KeyBindings.bind", () => {
     b.bind(dodge, "KeyX", null);
     const before = b.get();
     assert.equal(keys(b, dodge).length, MAX_KEYS_PER_ACTION);
-    assert.deepEqual(b.bind(dodge, "KeyU", null), { ok: false, full: true });
+    assert.deepEqual(b.bind(dodge, "KeyG", null), { ok: false, full: true });
     assert.equal(b.get(), before);
   });
 
@@ -165,8 +163,8 @@ describe("KeyBindings.bind", () => {
     const b = new KeyBindings();
     b.bind(dodge, "KeyZ", null);
     b.bind(dodge, "KeyX", null);
-    assert.deepEqual(b.bind(dodge, "KeyU", "KeyZ"), unchanged);
-    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyU", "KeyX"]);
+    assert.deepEqual(b.bind(dodge, "KeyG", "KeyZ"), unchanged);
+    assert.deepEqual(keys(b, dodge), ["KeyF", "KeyG", "KeyX"]);
   });
 
   test("a key held by another action with spare keys moves over", () => {
@@ -271,7 +269,7 @@ describe("KeyBindings.bind", () => {
   test("adding another action's key to a full action is refused and leaves the key where it was", () => {
     const b = withSpareKey();
     b.bind(dodge, "KeyX", null);
-    b.bind(dodge, "KeyU", null);
+    b.bind(dodge, "KeyG", null);
     const before = b.get();
     assert.deepEqual(b.bind(dodge, "KeyZ", null), { ok: false, full: true });
     assert.equal(b.get(), before);
@@ -287,10 +285,10 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, dodge), ["KeyZ", "KeyX", "KeyF"]);
   });
 
-  test("left Shift is the block's only key, so binding it to dodge swaps the dodge's key onto the block", () => {
+  test("U is guard left's only key, so binding it to dodge swaps the dodge's key onto guard left", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(dodge, "ShiftLeft", "KeyF"), { ok: true, takenFrom: [block], gave: "KeyF" });
-    assert.deepEqual(keys(b, block), ["KeyF"]);
+    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), { ok: true, takenFrom: [guardLeft], gave: "KeyF" });
+    assert.deepEqual(keys(b, guardLeft), ["KeyF"]);
   });
 });
 

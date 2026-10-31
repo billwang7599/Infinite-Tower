@@ -1,4 +1,6 @@
-import { NO_PILE, type Gear, type Skill, type Spot, type UseSpot } from "@infinite-tower/shared";
+import {
+  GUARD_SIDES, NO_PILE, type Gear, type GuardSide, type Skill, type Spot, type UseSpot,
+} from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { KeyBindings } from "../../settings/bindings.js";
@@ -13,9 +15,7 @@ import { useAction } from "../components/useAction.js";
 import { ChantPopup } from "../skills/ChantPopup.js";
 import { Hotbar } from "../skills/Hotbar.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
-import type {
-  BattleCue, BattleHudState, OverworldHudState, PingState, SettingsScreenState, SkillsState,
-} from "../state.js";
+import type { BattleHudState, OverworldHudState, PingState, SettingsScreenState, SkillsState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
@@ -70,7 +70,7 @@ export function BattleHud(props: BattleHudProps) {
       <div className="absolute top-3 right-4">
         <Ping ping={ping} hud={hudSettings} />
       </div>
-      <Cue hud={hud} />
+      <GuardWidget hud={hud} />
       <BossBar hud={hud} />
       <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
@@ -183,31 +183,31 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
-  const combo = useStore(hud, (s) => s.comboMultiplier);
   return (
     <div className="absolute top-3 left-4">
       <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
-      <div id="combo" className={`mt-1 font-title text-sm text-victory ${combo > 1 ? "opacity-100" : "opacity-0"}`}>
-        Combo ×{combo.toFixed(2)}
-      </div>
     </div>
   );
 }
 
-const CUE_WORDS: Record<Exclude<BattleCue, "none">, string> = { parried: "Parried!", staggered: "Staggered" };
+const GUARD_TURN_DEG: Record<GuardSide, number> = { left: -90, top: 0, right: 90 };
 
-/** A word over the fight while it holds: you parried it, or you're staggered. */
-function Cue({ hud }: HudProps) {
-  const cue = useStore(hud, (s) => s.cue);
+function GuardWidget({ hud }: HudProps) {
+  const mine = useStore(hud, (s) => s.guard);
+  const foe = useStore(hud, (s) => s.foeGuard);
   return (
-    <div
-      id="battle-cue"
-      className={`absolute top-[28%] left-1/2 -translate-x-1/2 font-title text-3xl tracking-[3px] ${
-        cue === "parried" ? "text-victory" : "text-died"
-      } ${cue === "none" ? "opacity-0" : "opacity-100"} transition-opacity duration-150`}
+    <svg
+      id="guard-widget" data-mine={mine ?? ""} data-foe={foe ?? ""} viewBox="0 0 96 64"
+      className={`absolute bottom-18 left-1/2 w-24 -translate-x-1/2 ${mine || foe ? "opacity-100" : "opacity-0"}`}
     >
-      {cue === "none" ? "" : CUE_WORDS[cue]}
-    </div>
+      {GUARD_SIDES.map((side) => (
+        <g key={side} transform={`rotate(${GUARD_TURN_DEG[side]} 48 44)`} fill="none" strokeWidth={4}
+          strokeLinecap="round" strokeLinejoin="round">
+          <path d="M32 18 L48 5 L64 18" className={foe === side ? "stroke-died" : "stroke-white/15"} />
+          <path d="M36 28 L48 18 L60 28" className={mine === side ? "stroke-victory" : "stroke-white/15"} />
+        </g>
+      ))}
+    </svg>
   );
 }
 

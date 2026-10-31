@@ -14,8 +14,8 @@ const newFight = () => new Fight({
 });
 
 const SWING: SwingData = {
-  attack: "lr", dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6, liveUntil: 12, letGoAt: 13, endAt: 17, damage: 9,
-  knockback: 1, lift: 1, poiseDamage: 12, momentum: 1, startSpeed: 0, flow: 1, stoppedAt: null,
+  attack: "light", side: "left", chain: 0, dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6, liveUntil: 12,
+  endAt: 17, damage: 9, poiseDamage: 12,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -66,15 +66,16 @@ describe("a fight's hash", () => {
       ["the player's hitstun", (f) => { f.world.require(f.players[0]!, Health).hitstun += 0.1; }],
       ["the player's action", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.action = p.action === "dodge" ? "block" : "dodge";
+        p.action = p.action === "dodge" ? "recoil" : "dodge";
       }],
       ["the queued attack", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.queued = p.queued === "stab" ? "bt" : "stab";
+        p.queued = p.queued === "heavy" ? "light" : "heavy";
       }],
-      ["where the blade is", (f) => { f.world.require(f.players[0]!, Wielder).blade.x += 0.25; }],
-      ["how the blade moves", (f) => { f.world.require(f.players[0]!, Wielder).blade.vy += 0.25; }],
-      ["the blade's clock to rest", (f) => { f.world.require(f.players[0]!, Wielder).restTime += 0.05; }],
+      ["the player's guard", (f) => {
+        const p = f.world.require(f.players[0]!, Player);
+        p.guard = p.guard === "left" ? "right" : "left";
+      }],
       ["having a swing going", (f) => {
         const w = f.world.require(f.players[0]!, Wielder);
         w.swing = w.swing ? null : { ...SWING };
@@ -83,9 +84,12 @@ describe("a fight's hash", () => {
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
       ["a held button", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.attackHeld = p.attackHeld ? null : "tb";
+        p.attackHeld = p.attackHeld ? null : "heavy";
       }],
-      ["a held block", (f) => { const i = f.world.require(f.players[0]!, PlayerInput); i.block = !i.block; }],
+      ["a held guard", (f) => {
+        const i = f.world.require(f.players[0]!, PlayerInput);
+        i.guard = i.guard === "top" ? "left" : "top";
+      }],
       ["being on the ground", (f) => { const p = f.world.require(f.players[0]!, Player); p.grounded = !p.grounded; }],
       ["the player's input", (f) => { f.world.require(f.players[0]!, PlayerInput).moveX += 0.5; }],
       ["the boar's position", (f) => { f.world.require(f.enemies[0]!, Body).pos.z -= 0.02; }],
@@ -99,20 +103,30 @@ describe("a fight's hash", () => {
       ["the charge's cooldown", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).cooldown += 0.05; }],
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
-        shape: "arc", dirX: 0, dirZ: 1, range: 1, minDot: 0, width: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0,
-        momentum: 0, attack: null, alreadyHit: new Set<number>(),
+        dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, attack: null,
+        side: "top", alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
       ["the random numbers", (f) => { f.world.require(f.enemies[0]!, Enemy).rng += 1; }],
       ["its weapon attack's cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).cooldown += 0.05; }],
-      ["its parry cooldown", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).parryCooldown += 0.05; }],
       ["the swings left in its chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).swingsLeft += 1; }],
-      ["its guard's side", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardSide += 1; }],
-      ["the side it guards while moving", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardFrom += 1; }],
+      ["its place in the chain", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).chain += 1; }],
+      ["the attack it winds up for", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.next = w.next === "light" ? "heavy" : "light";
+      }],
+      ["its guard's side", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.guard = w.guard === "left" ? "right" : "left";
+      }],
+      ["the side it guards while moving", (f) => {
+        const w = f.world.require(f.enemies[0]!, WeaponAttack);
+        w.guardFrom = w.guardFrom === "left" ? "right" : "left";
+      }],
       ["its guard's move", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardMoveTime += 0.05; }],
       ["how long it holds its guard", (f) => { f.world.require(f.enemies[0]!, WeaponAttack).guardHoldTime += 0.05; }],
-      ["being parried", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "parried"; }],
+      ["recoiling", (f) => { f.world.require(f.enemies[0]!, Enemy).state = "recoil"; }],
     ];
     const swordFight = () => busyFight(240, new Fight({
       arena: ARENA, players: [player({ x: 0, y: 0.05, z: -3 })], enemies: [enemy(SWORDSMAN, { x: 0, y: 0.05, z: 3 })],
@@ -125,18 +139,17 @@ describe("a fight's hash", () => {
     }
 
     const swingChanges: [string, (s: SwingData) => void][] = [
-      ["its attack", (s) => { s.attack = "stab"; }],
+      ["its attack", (s) => { s.attack = "heavy"; }],
+      ["its side", (s) => { s.side = "right"; }],
+      ["its place in a chain", (s) => { s.chain = 2; }],
       ["its aim", (s) => { s.dir.x += 0.05; }],
       ["its clock", (s) => { s.step += 1; }],
       ["when its blade goes live", (s) => { s.liveAt += 1; }],
       ["when its blade is done", (s) => { s.liveUntil += 1; }],
-      ["when it lets go", (s) => { s.letGoAt += 1; }],
       ["when it's over", (s) => { s.endAt += 1; }],
       ["its damage", (s) => { s.damage += 1; }],
-      ["its knockback", (s) => { s.knockback += 1; }],
-      ["its lift", (s) => { s.lift += 1; }],
       ["its poise damage", (s) => { s.poiseDamage += 1; }],
-      ["where a guard stopped its blade", (s) => { s.stoppedAt = 7; }],
+      ["when it draws back", (s) => { s.driveAt += 1; }],
     ];
     for (const [who, newFight] of [["the player's", busyFight], ["the swordsman's", swordFight]] as const) {
       for (const [what, change] of swingChanges) {

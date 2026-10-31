@@ -23,12 +23,12 @@ describe("InputTimeline", () => {
 
   test("each change runs from its own step until the next one; steps up to upTo are known", () => {
     const timeline = new InputTimeline();
-    timeline.receive(6, [at(1, WALK), at(3, { attack: "lr" }), at(4)], 0);
+    timeline.receive(6, [at(1, WALK), at(3, { attack: "light" }), at(4)], 0);
     assert.equal(timeline.started, true);
     assert.equal(timeline.known(6), true);
     assert.equal(timeline.known(7), false);
     assert.deepEqual(takeRange(timeline, 1, 6), [
-      WALK, WALK, { ...IDLE_INPUT, attack: "lr" }, IDLE_INPUT, IDLE_INPUT, IDLE_INPUT,
+      WALK, WALK, { ...IDLE_INPUT, attack: "light" }, IDLE_INPUT, IDLE_INPUT, IDLE_INPUT,
     ]);
   });
 
@@ -36,7 +36,7 @@ describe("InputTimeline", () => {
     const timeline = new InputTimeline();
     timeline.receive(3, [at(2, WALK), at(3, { jump: true })], 0);
     timeline.receive(4, [at(3, { dodge: true })], 0);
-    timeline.receive(4, [at(1, { attack: "lr" })], 0);
+    timeline.receive(4, [at(1, { attack: "light" })], 0);
     const jump = { ...IDLE_INPUT, jump: true };
     assert.deepEqual(takeRange(timeline, 1, 4), [IDLE_INPUT, WALK, jump, jump]);
   });
@@ -86,7 +86,7 @@ describe("InputTimeline", () => {
   test("a change for a step too far ahead of the server's clock is dropped, and upTo held back", () => {
     const timeline = new InputTimeline();
     const now = 10, limit = now + MAX_INPUT_LEAD_STEPS;
-    timeline.receive(limit + 5, [at(limit, WALK), at(limit + 1, { attack: "lr" })], now);
+    timeline.receive(limit + 5, [at(limit, WALK), at(limit + 1, { attack: "light" })], now);
     assert.equal(timeline.known(limit), true);
     assert.equal(timeline.known(limit + 1), false);
     assert.deepEqual(takeRange(timeline, limit, limit + 2), [WALK, WALK, WALK]);
@@ -94,7 +94,7 @@ describe("InputTimeline", () => {
 
   test("a step it doesn't know yet repeats the player's input; silent for long, they stop moving", () => {
     const timeline = new InputTimeline();
-    const held: PlayerInputData = { ...WALK, aimX: 1, aimZ: 0, attack: "lr", block: true };
+    const held: PlayerInputData = { ...WALK, aimX: 1, aimZ: 0, attack: "light", guard: "left" };
     timeline.receive(1, [at(1, held)], 0);
     timeline.take(1);
     const guessed = takeRange(timeline, 2, 2 + SILENT_STOP_STEPS - 1);

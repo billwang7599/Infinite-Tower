@@ -19,12 +19,9 @@ export interface SoundDef {
 
 export const SOUNDS = {
   swing: { variants: 5, volume: 0.7, spread: 0.08 },
-  stab: { variants: 3, volume: 0.7, spread: 0.08 },
   "hit-blade": { variants: 3, volume: 0.9, spread: 0.08 },
   "hit-body": { variants: 5, volume: 0.9, spread: 0.08 },
   block: { variants: 5, volume: 0.8, spread: 0.06 },
-  "guard-break": { variants: 3, volume: 1, rate: 0.85, spread: 0.05 },
-  parry: { variants: 5, volume: 1, spread: 0.05 },
   slam: { variants: 2, volume: 1, rate: 0.8, spread: 0.05 },
   "draw-blade": { variants: 3, volume: 0.9, spread: 0.05 },
   dodge: { variants: 4, volume: 0.6, spread: 0.1 },

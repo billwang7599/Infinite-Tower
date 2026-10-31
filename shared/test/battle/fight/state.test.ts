@@ -53,7 +53,7 @@ describe("a fight's whole state", () => {
   test("loaded into a fight that went its own way, it's put back exactly and plays on the same", () => {
     const right = newFight(), wrong = newFight();
     runTo(right, 400);
-    runTo(wrong, 380, (step) => input({ moveX: -1, attack: step % 2 ? "tb" : null }));
+    runTo(wrong, 380, (step) => input({ moveX: -1, attack: step % 2 ? "heavy" : null }));
     wrong.load(wire(right.save()));
     for (let i = 0; i < 300; i++) {
       right.step([busy(right.steps + 1)]);

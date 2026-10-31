@@ -6,17 +6,17 @@ const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE_IN
 
 describe("sameInput", () => {
   test("the same move, aim and buttons are the same input", () => {
-    assert.equal(sameInput(input({ moveX: 0.5, attack: "lr" }), input({ moveX: 0.5, attack: "lr" })), true);
+    assert.equal(sameInput(input({ moveX: 0.5, attack: "light" }), input({ moveX: 0.5, attack: "light" })), true);
   });
 
   test("another attack is another input, so pressing one while another is held is a new press", () => {
-    assert.equal(sameInput(input({ attack: "lr" }), input({ attack: "rl" })), false);
+    assert.equal(sameInput(input({ attack: "light" }), input({ attack: "heavy" })), false);
   });
 
   test("any field that differs makes it a change (sent to the server)", () => {
     const changes: Partial<PlayerInputData>[] = [
-      { moveX: 0.5 }, { moveZ: -1 }, { aimX: 1, aimZ: 0 }, { jump: true }, { attack: "lr" }, { dodge: true },
-      { block: true }, { bag: true }, { use: { in: "bag", x: 1, y: 0 } },
+      { moveX: 0.5 }, { moveZ: -1 }, { aimX: 1, aimZ: 0 }, { jump: true }, { attack: "light" }, { dodge: true },
+      { guard: "left" }, { bag: true }, { use: { in: "bag", x: 1, y: 0 } },
     ];
     for (const o of changes) assert.equal(sameInput(IDLE_INPUT, input(o)), false, JSON.stringify(o));
   });
@@ -24,8 +24,8 @@ describe("sameInput", () => {
 
 describe("quantizeInput", () => {
   test("rounds the move and the aim to 3 decimals, the buttons as they are", () => {
-    const raw = input({ moveX: 0.70710678, moveZ: -0.70710678, aimX: 0.12345, aimZ: 0.99235, attack: "tlbr" });
-    const rounded = input({ moveX: 0.707, moveZ: -0.707, aimX: 0.123, aimZ: 0.992, attack: "tlbr" });
+    const raw = input({ moveX: 0.70710678, moveZ: -0.70710678, aimX: 0.12345, aimZ: 0.99235, attack: "heavy" });
+    const rounded = input({ moveX: 0.707, moveZ: -0.707, aimX: 0.123, aimZ: 0.992, attack: "heavy" });
     assert.deepEqual(quantizeInput(raw), rounded);
   });
 

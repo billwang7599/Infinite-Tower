@@ -1,7 +1,7 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import { footprint, isWeapon, itemDef, type BagItem, type ItemEffect, type ItemId } from "@infinite-tower/shared";
 
-const WIELDED = "In a hand: swing, stab and block.";
+const WIELDED = "In a hand: light and heavy attacks, and a guard.";
 const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
 
 export interface ItemInfo {

@@ -34,7 +34,7 @@ function watch(fight: Fight, seconds = 3) {
 }
 
 describe("an enemy wielding a weapon", () => {
-  test("swings it through the player's weapon system: its blade is up exactly while its swing is live", () => {
+  test("attacks through the player's weapon system: its blade is up exactly while its attack is live", () => {
     const fight = newFight(SWORDSMAN), e = fight.enemies[0]!;
     let hitbox = null;
     const seen = [];
@@ -50,8 +50,8 @@ describe("an enemy wielding a weapon", () => {
       }
     }
     assert.ok(seen.includes(true) && seen.includes(false), "it wound up and swung");
-    assert.equal(hitbox?.range, attackShape("lr", ARM, WEAPONS.sword).range, "its arm and the sword's reach");
-    assert.equal(hitbox?.attack, "lr");
+    assert.equal(hitbox?.range, attackShape(hitbox!.side, ARM, WEAPONS.sword).range, "its arm and the sword's reach");
+    assert.equal(hitbox?.attack, "light");
     assert.ok(fight.world.require(fight.players[0]!, Health).hp < fight.world.require(fight.players[0]!, Health).max);
   });
 
@@ -76,6 +76,6 @@ describe("an enemy wielding a weapon", () => {
 
   test("reaches as far as its own arm plus the blade", () => {
     const { hitbox } = firstHit(holding({ rightHand: "sword" }, ARM + 0.3));
-    assert.equal(hitbox?.range, attackShape("lr", ARM + 0.3, WEAPONS.sword).range);
+    assert.equal(hitbox?.range, attackShape(hitbox!.side, ARM + 0.3, WEAPONS.sword).range);
   });
 });

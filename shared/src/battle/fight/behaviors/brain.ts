@@ -1,6 +1,6 @@
 /**
  * What every enemy does, whatever its attacks: track the target, regain poise, walk up to the target
- * ("approach"), get staggered when poise breaks, sit out "stunned" or "parried", die. Attack systems run right
+ * ("approach"), get staggered when poise breaks, sit out "stunned" or "recoil", die. Attack systems run right
  * after this and may take over from "approach". The motor turns the wanted movement into velocity.
  *
  *   approach ──attack system──▶ <attack states> ──▶ approach
@@ -10,15 +10,13 @@ import type { System, World } from "../../../core/ecs.js";
 import { clamp, distXZ, turnToward, wrapAngle, type Vec3 } from "../../../core/math.js";
 import { Body, Enemy, Health, Player, type EnemyData } from "../../components.js";
 import { FighterStats, moveSpeed, type Stats } from "../../stats.js";
-import { PARRY } from "../../../weapons/weapons.js";
 import { enter } from "./common.js";
 
 /** The enemy stops walking this far from the target's center. */
 const STOP_DIST = 2.2;
-/** Velocity change per second toward what the state wants: standing or walking, stunned, staggered, dead. */
-const ACCEL = { normal: 25, stunned: 60, parried: PARRY.slideDecel, staggered: 30, dead: 15 } as const;
+const ACCEL = { normal: 25, stunned: 60, recoil: 30, staggered: 30, dead: 15 } as const;
 /** States poise breaking doesn't interrupt. */
-const UNSTAGGERABLE = new Set(["staggered", "stunned", "parried"]);
+const UNSTAGGERABLE = new Set(["staggered", "stunned", "recoil"]);
 
 /** The nearest player still standing; with none, the nearest of the fallen. */
 function targetFor(world: World, from: Vec3): { pos: Vec3; alive: boolean } | null {
@@ -78,7 +76,7 @@ export function enemyBrainSystem(): System {
           break;
         }
         case "stunned":
-        case "parried":
+        case "recoil":
         case "staggered":
           move.accel = ACCEL[enemy.state];
           if (enemy.stateTime >= enemy.duration) enter(world, e, enemy, "approach");

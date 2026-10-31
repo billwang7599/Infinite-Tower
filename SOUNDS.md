@@ -87,9 +87,6 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 | `goblin-hurt-1.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `giant1.wav` | artisticdude | CC0 |
 | `goblin-hurt-2.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `giant3.wav` | artisticdude | CC0 |
 | `goblin-hurt-3.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `giant4.wav` | artisticdude | CC0 |
-| `guard-break-1.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `impactPlate_heavy_000.ogg` | Kenney (kenney.nl) | CC0 |
-| `guard-break-2.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `impactPlate_heavy_001.ogg` | Kenney (kenney.nl) | CC0 |
-| `guard-break-3.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `impactPlate_heavy_002.ogg` | Kenney (kenney.nl) | CC0 |
 | `hit-blade-1.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `knifeSlice.ogg` | Kenney (kenney.nl) | CC0 |
 | `hit-blade-2.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `knifeSlice2.ogg` | Kenney (kenney.nl) | CC0 |
 | `hit-blade-3.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `chop.ogg` | Kenney (kenney.nl) | CC0 |
@@ -125,20 +122,12 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 | `page-1.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `bookFlip1.ogg` | Kenney (kenney.nl) | CC0 |
 | `page-2.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `bookFlip2.ogg` | Kenney (kenney.nl) | CC0 |
 | `page-3.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `bookFlip3.ogg` | Kenney (kenney.nl) | CC0 |
-| `parry-1.ogg` | [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes): `sword_clash.1.ogg` | StarNinjas | CC0 |
-| `parry-2.ogg` | [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes): `sword_clash.2.ogg` | StarNinjas | CC0 |
-| `parry-3.ogg` | [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes): `sword_clash.3.ogg` | StarNinjas | CC0 |
-| `parry-4.ogg` | [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes): `sword_clash.5.ogg` | StarNinjas | CC0 |
-| `parry-5.ogg` | [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes): `sword_clash.10.ogg` | StarNinjas | CC0 |
 | `pickup-1.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `handleSmallLeather.ogg` | Kenney (kenney.nl) | CC0 |
 | `pickup-2.ogg` | [Kenney: RPG Audio](https://kenney.nl/assets/rpg-audio): `handleSmallLeather2.ogg` | Kenney (kenney.nl) | CC0 |
 | `rest-1.ogg` | [Magic Spell SFX](https://opengameart.org/content/magic-spell-sfx): `magical_3.ogg` | jaggedstone | CC0 |
 | `river-1.ogg` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2): `sfx100v2_loop_water_02.ogg` | rubberduck | CC0 |
 | `slam-1.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `slam_02.ogg` | rubberduck | CC0 |
 | `slam-2.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `slam_03.ogg` | rubberduck | CC0 |
-| `stab-1.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing.wav` | artisticdude | CC0 |
-| `stab-2.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing2.wav` | artisticdude | CC0 |
-| `stab-3.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `swing3.wav` | artisticdude | CC0 |
 | `step-grass-1.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_000.ogg` | Kenney (kenney.nl) | CC0 |
 | `step-grass-2.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_001.ogg` | Kenney (kenney.nl) | CC0 |
 | `step-grass-3.ogg` | [Kenney: Impact Sounds](https://kenney.nl/assets/impact-sounds): `footstep_grass_002.ogg` | Kenney (kenney.nl) | CC0 |

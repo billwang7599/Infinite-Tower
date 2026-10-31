@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, Health, liveStep, SKILL_EFFECTS, SWING, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, Wielder,
+  attackSteps, Body, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, WEAPONS, Wielder,
   type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -265,14 +265,14 @@ describe("Swift", () => {
     close(flown(swift) / flown(plain), 1 + A.swift);
   });
 
-  test("an Imbue's swings start quicker", () => {
+  test("an Imbue's attacks start quicker", () => {
     const plain = fightWith([at(5, 5)]), swift = fightWith([at(5, 5)]);
     castNow(plain, one("imbue", ["fire"], []));
     castNow(swift, one("imbue", ["fire"], ["swift"]));
-    for (const f of [plain, swift]) f.step([input({ attack: "lr" })]);
+    for (const f of [plain, swift]) f.step([input({ attack: "light" })]);
     const liveAt = (f: Fight) => f.world.require(f.players[0]!, Wielder).swing?.liveAt;
-    assert.equal(liveAt(plain), liveStep(SWING.setTime + SWING.driveTime));
-    assert.equal(liveAt(swift), liveStep((SWING.setTime + SWING.driveTime) / (1 + A.swift)));
+    assert.equal(liveAt(plain), attackSteps(WEAPONS.sword, "light", 0).liveAt);
+    assert.equal(liveAt(swift), attackSteps(WEAPONS.sword, "light", 0, 1 + A.swift).liveAt);
   });
 });
 
