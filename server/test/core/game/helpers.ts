@@ -1,7 +1,11 @@
 /** Builders for the game tests: a started session with fakes around it, and the overworld's boar. */
+import assert from "node:assert/strict";
 import {
-  addItem, distXZ, emptyBag, FIXED_DT, type Bag, type Entity, type ItemCounts, type ItemId, type Vec2,
+  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, IDLE_INPUT, type Bag, type EnemyId, type Entity,
+  type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
+import { stopFor } from "../../../src/core/game/talk.js";
+import { NPCS } from "../../../src/core/npcs/index.js";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -54,6 +58,34 @@ export function findBoar(session: GameSession) {
 export function pileAt(overworld: Overworld, at: Vec2, rangeTiles = 0): Entity | null {
   for (const [pile, , pos] of overworld.world.query(Pile, OverworldPos)) if (distXZ(pos, at) <= rangeTiles) return pile;
   return null;
+}
+
+const BACK_TO: Record<Heading, Heading> = { north: "south", south: "north", east: "west", west: "east" };
+
+export function talkTo(session: GameSession, link: FakeLink, npc: NpcId) {
+  const stop = stopFor(session.story, NPCS[npc])!;
+  assert.equal(session.overworld.level.layout.id, stop.level, `${npc} stands on this level`);
+  const way = HEADING_WAY[stop.heading];
+  session.overworld.place(session.me, { x: stop.at.x + way.x, z: stop.at.z + way.z });
+  session.overworld.playerData(session.me).heading = BACK_TO[stop.heading];
+  session.talk();
+  const said = link.last("dialogue");
+  assert.equal(said.npc, npc);
+  return said;
+}
+
+/** Needs a dev session: the fight starts through the encounter cheat. */
+export function winFight(session: GameSession, enemy: EnemyId): void {
+  session.cheat({ kind: "encounter", enemy });
+  const fight = session.battle!.room.fight;
+  fight.world.require(fight.enemies[0]!, Health).hp = 0;
+  for (let i = 0; i < 5 && !session.battle!.over; i++) {
+    const step = fight.steps + 1;
+    session.battleInput(step, [{ step, ...IDLE_INPUT }]);
+    session.tick();
+  }
+  assert.ok(session.battle!.over, "won");
+  session.leaveBattle();
 }
 
 export function bagWith(items: ItemCounts): Bag {

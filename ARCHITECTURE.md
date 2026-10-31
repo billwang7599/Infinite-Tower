@@ -734,7 +734,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   quests (`waking-hollow.test.ts`): its chain is the main quest, each waiting on the one before; a new character
   wakes there and the native by the fire offers the first; walked through the session (a boar fight, the meat handed
   over, then Hollis on the Grass Field, who offers his own first quest), each revealing a lore entry of its own; and
-  after it, both natives offering a side quest. The story's data
+  after it, both natives offering a side quest. The Grass Field's and the Mistwood's natives (`natives.test.ts`):
+  each past the Hollow, offering a new character a side chain that waits on nothing else, each chain played step by
+  step through the session (gather, hand over, reach, win, talk: each done, its reward and lore told), their lines
+  for each talk step and after, and lore no other quest reveals. The story's data
   (`content/quests.test.ts`, `content/lore.test.ts`): step ids unique, real items, enemies, NPCs and levels, a quest
   waiting only on one listed earlier, every condition naming real quests, steps and flags, every quest offered by
   someone and revealing a lore entry, a talk step's NPC with lines for it and a deliver step's asking for it, every
@@ -965,7 +968,8 @@ shared/test/      Unit tests, mirroring src/ (npm test)
 server/          Node. Authoritative: levels, encounters, overworld actors, enemy stats, fight results, saves.
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
   scripts/         check-layers.ts (the hexagonal import rules; run by `npm run typecheck`)
-  test/            Unit tests, mirroring src/. fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
+  test/            Unit tests, mirroring src/ (core/game/helpers.ts: a started session, an NPC talked to, a fight
+                   won at once). fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
                    MemoryAccountStore: core's ports in memory), level.ts (TEST_LEVEL, TEST_CHARACTER), fight.ts
                    (a BattleRoom against a FakeClient's copy of the fight, over a wire that can hold messages back)
   src/
@@ -1043,8 +1047,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
-      npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts (its stops: where it stands
-                       and what it says there, by the story). index.ts (Npc, Stop, Talk; NPCS, one line each)
+      npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts (its
+                       stops: where it stands and what it says there, by the story). index.ts (Npc, Stop, Talk; NPCS,
+                       one line each)
       content/         player.ts (PLAYER_STATS, STARTER_KIT, fullVitals, newPlayer, withStarterKit), quests.ts
                        (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore entry, by
                        id; LoreId)
@@ -1292,8 +1297,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
                        WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
                        byEnemy)
-      npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, each with look.ts (its name and
-                       look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
+      npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, each with look.ts
+                       (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/

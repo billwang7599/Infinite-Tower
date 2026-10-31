@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, bagCounts, emptyBag, Health, IDLE_INPUT, type Bag, type EnemyId, type ItemCounts,
+  addItem, bagCounts, emptyBag, Health, IDLE_INPUT, type Bag, type ItemCounts,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { LORE } from "../../../src/core/content/lore.js";
@@ -11,7 +11,7 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { dialogueOf, stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { bagWith, pileAt, startSession, tick } from "./helpers.js";
+import { bagWith, pileAt, startSession, tick, winFight } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -56,19 +56,6 @@ function started(opts: { story?: Story; bag?: Bag } = {}) {
   });
   faceHollis(begun.session);
   return begun;
-}
-
-function win(session: GameSession, enemy: EnemyId): void {
-  session.cheat({ kind: "encounter", enemy });
-  const fight = session.battle!.room.fight;
-  fight.world.require(fight.enemies[0]!, Health).hp = 0;
-  for (let i = 0; i < 5 && !session.battle!.over; i++) {
-    const step = fight.steps + 1;
-    session.battleInput(step, [{ step, ...IDLE_INPUT }]);
-    session.tick();
-  }
-  assert.ok(session.battle!.over, "won");
-  session.leaveBattle();
 }
 
 describe("Hollis's quests", () => {
@@ -172,15 +159,15 @@ describe("Hollis's quests", () => {
   test("won fights count the step's enemy, told each time, until there are enough", () => {
     const { session, link } = started({ story: on(SECOND, KILL_STEP) });
     const other = (["kobold-swordsman", "wild-boar"] as const).find((e) => e !== KILL.enemy)!;
-    win(session, other);
+    winFight(session, other);
     assert.equal(session.story.quests[SECOND]!.kills, 0, "another kind of enemy");
     for (let kills = 1; kills < KILL.count; kills++) {
-      win(session, KILL.enemy);
+      winFight(session, KILL.enemy);
       assert.deepEqual(session.story.quests[SECOND], { step: KILL_STEP.id, kills });
       const tally = { kind: "tally", quest: second.title, have: kills, need: KILL.count };
       assert.deepEqual(link.last("questbook").news, [tally]);
     }
-    win(session, KILL.enemy);
+    winFight(session, KILL.enemy);
     assert.deepEqual(session.story.quests[SECOND], { step: after(second.steps, KILL_STEP)?.id ?? null, kills: 0 });
   });
 

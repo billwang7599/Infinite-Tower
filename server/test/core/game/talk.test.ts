@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, NPC_IDS, type Heading,
+  distXZ, emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, NPC_IDS, type Heading,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import type { QuestDef, Quests, QuestStep, Task } from "../../../src/core/content/quests.js";
@@ -16,11 +16,13 @@ import { bagWith, startSession, tick } from "./helpers.js";
 before(() => initPhysics());
 
 const NPC = stopFor(newStory(), NPCS.hollis)!;
-const NOBODY_THERE = Object.keys(LEVELS)
-  .find((id) => NPC_IDS.every((npc) => stopFor(newStory(), NPCS[npc])!.level !== id))!;
 const start = (opts: Parameters<typeof startSession>[0] = {}) =>
   startSession({ ...opts, saved: { level: NPC.level, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
+const NOBODY_THERE = Object.keys(LEVELS).find((id) => id !== NPC.level && NPC_IDS.every((npc) => {
+  const stop = stopFor(newStory(), NPCS[npc])!;
+  return stop.level !== id || distXZ(stop.at, NPC.at) > 2 * REACH_TILES;
+}))!;
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 
 function standBy(session: GameSession, awayTiles: number, heading: Heading = "west", offRad = 0): void {
@@ -39,9 +41,10 @@ const on = (id: string, stepId: string | null): Story =>
 
 describe("talking to an NPC", () => {
   test("it's sent with the level its stop is on for this player, and not with another", () => {
-    const { link } = start();
-    assert.deepEqual(link.last("level").level.npcs, [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
-    assert.deepEqual(start({ saved: { level: NOBODY_THERE } }).link.last("level").level.npcs, []);
+    const hollisOn = (level: string) =>
+      start({ saved: { level } }).link.last("level").level.npcs.filter((n) => n.npc === "hollis");
+    assert.deepEqual(hollisOn(NPC.level), [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
+    assert.deepEqual(hollisOn(NOBODY_THERE), []);
   });
 
   test("on another level, the same spot says nothing", () => {

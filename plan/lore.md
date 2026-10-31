@@ -29,7 +29,9 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
   their own smaller stories inside the big one: kingdoms at war, wars between races, wars of faith. None are needed
   yet. In play so far it's personal: the Waking Hollow's Maren thinks avatars were sent for a reason (the Harvest's
   answer), its hunter Tobin that a thing that can't stay dead has no business hunting (the Turning's), and they share a
-  fire anyway.
+  fire anyway. Corwin, who keeps the Grass Field's east road for Valdris, holds to the Oath (keep your word, go home
+  when called); Ilse, Nyra's weaver in the Mistwood, finds no thread for avatars on the loom and goes looking for the
+  snapped-tether myth's proof (a Kobold's thread, thin and knotted, which proves nothing either way).
 - **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
 - What people say about monsters, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
