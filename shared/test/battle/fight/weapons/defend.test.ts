@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, Health, HYBRID, physicalDamage, Player, Stamina, WEAPONS, Wielder, type PlayerInputData,
+  emptyBag, FIXED_DT, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage, Player, Stamina,
+  starterEquipment, toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS } from "../fixtures.js";
@@ -9,11 +10,14 @@ import { ARENA, FULL_HP, FULL_STAMINA, input, player, STATS } from "../fixtures.
 // Before the describes: they run fights to find when the attacks land.
 await initPhysics();
 
-const pvp = (stamina = FULL_STAMINA) => new Fight({
+const pvp = (stamina = FULL_STAMINA, blade: ItemId = "sword") => new Fight({
   arena: ARENA, duel: true, enemies: [],
   players: [
     player({ x: 0, y: 0.05, z: 0 }),
-    player({ x: 0, y: 0.05, z: 1.6 }, { vitals: { hp: FULL_HP, stamina } }),
+    player({ x: 0, y: 0.05, z: 1.6 }, {
+      vitals: { hp: FULL_HP, stamina },
+      gear: { bag: emptyBag(), equipment: { ...starterEquipment(), rightHand: blade } },
+    }),
   ],
 });
 const FACING_1 = { aimX: 0, aimZ: -1, locked: 0 };
@@ -44,7 +48,9 @@ function landsAt(at: number, strike: "light" | "heavy" | "stab" = "light"): numb
 }
 const PRESS = 40;
 const SWORD = physicalDamage(WEAPONS.sword.damage, STATS);
-const HOLD_STEPS = Math.round(HYBRID.block.perfectTime / FIXED_DT) + 5;
+const raiseSteps = (weapon: Weapon) => toSteps(guardRaiseTime(weapon, STATS.strength));
+const RAISE = raiseSteps(WEAPONS.sword);
+const HOLD_STEPS = RAISE + toSteps(perfectBlockTime(WEAPONS.sword)) + 5;
 const holdFrom = (step: number): Script => (s) => ({ block: s >= step });
 
 describe("the held block", () => {
@@ -105,17 +111,17 @@ describe("the held block", () => {
 
 describe("the perfect block", () => {
   const hitAt = landsAt(PRESS);
-  const perfectSteps = Math.round(HYBRID.block.perfectTime / FIXED_DT);
+  const perfectSteps = toSteps(perfectBlockTime(WEAPONS.sword));
 
   test("block pressed just before a weapon lands: no chip, no stamina; the attacker loses stamina and recoils", () => {
-    for (const press of [hitAt - perfectSteps + 1, hitAt]) {
+    for (const press of [hitAt - RAISE - perfectSteps + 1, hitAt - RAISE]) {
       const fight = pvp();
       const events = play(fight, hitAt - fight.steps, (s) => ({ attack: s === PRESS ? "light" : null }),
         holdFrom(press));
       const block = events.find((e) => e.type === "block");
       assert.ok(block && block.type === "block" && block.perfect && block.target === fight.players[1], `${press}`);
       assert.equal(hp(fight, 1), FULL_HP);
-      const held = HYBRID.block.holdStaminaPerSec * HYBRID.block.perfectTime;
+      const held = HYBRID.block.holdStaminaPerSec * (RAISE + perfectSteps) * FIXED_DT;
       assert.ok(stamina(fight, 1) >= FULL_STAMINA - held - 1e-6, `${stamina(fight, 1)}`);
       close(stamina(fight, 0), FULL_STAMINA - HYBRID.light.cost - HYBRID.block.perfectDrain, "the attacker's");
       assert.equal(action(fight, 0), "stagger");
@@ -126,7 +132,7 @@ describe("the perfect block", () => {
 
   test("the blocker gets in first: its light lands before the attacker can act", () => {
     const fight = pvp();
-    play(fight, hitAt, (s) => ({ attack: s === PRESS ? "light" : null }), holdFrom(hitAt - 2));
+    play(fight, hitAt, (s) => ({ attack: s === PRESS ? "light" : null }), holdFrom(hitAt - RAISE - 2));
     const events = play(fight, 30, () => ({}), (s) => ({ attack: s === hitAt + 1 ? "light" : null }));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[0]));
   });
@@ -134,7 +140,7 @@ describe("the perfect block", () => {
   test("pressed too early, it's only a held block", () => {
     const fight = pvp();
     const events = play(fight, hitAt + 1, (s) => ({ attack: s === PRESS ? "light" : null }),
-      holdFrom(hitAt - perfectSteps - 3));
+      holdFrom(hitAt - RAISE - perfectSteps - 3));
     assert.ok(events.some((e) => e.type === "block" && !e.perfect));
   });
 
@@ -142,7 +148,7 @@ describe("the perfect block", () => {
     const fight = pvp();
     const remash = Math.round(HYBRID.block.remashTime / FIXED_DT);
     const events = play(fight, hitAt + 1, (s) => ({ attack: s === PRESS ? "light" : null }),
-      (s) => ({ block: s === hitAt - remash + 2 || s >= hitAt - 2 }));
+      (s) => ({ block: s === hitAt - remash + 2 || s >= hitAt - RAISE - 2 }));
     assert.ok(events.some((e) => e.type === "block" && !e.perfect));
   });
 
@@ -153,5 +159,46 @@ describe("the perfect block", () => {
     assert.ok(!events.some((e) => e.type === "block"));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[0]));
     assert.ok(events.some((e) => e.type === "hit" && e.target === fight.players[1]));
+  });
+});
+
+describe("blocking by the blade", () => {
+  const hitAt = landsAt(PRESS);
+  const blockFrom = (blade: ItemId, press: number) => {
+    const fight = pvp(FULL_STAMINA, blade);
+    return play(fight, hitAt - fight.steps, (s) => ({ attack: s === PRESS ? "light" : null }), holdFrom(press));
+  };
+  const hit = (events: FightEvent[]) => events.some((e) => e.type === "hit");
+  const perfect = (events: FightEvent[]) => events.some((e) => e.type === "block" && e.perfect);
+
+  test("the sword's guard comes up in the listed time, its perfect window as listed", () => {
+    assert.equal(guardRaiseTime(WEAPONS.sword, STATS.strength), HYBRID.block.raiseTime);
+    close(perfectBlockTime(WEAPONS.sword), HYBRID.block.perfectTime, "window");
+  });
+
+  test("a hit landing while the guard comes up isn't blocked; a heavier blade's comes up slower", () => {
+    assert.ok(raiseSteps(WEAPONS.greatsword) > raiseSteps(WEAPONS.longsword));
+    assert.ok(raiseSteps(WEAPONS.longsword) > RAISE);
+    for (const blade of ["sword", "greatsword"] as const) {
+      const raise = raiseSteps(WEAPONS[blade]);
+      const rising = blockFrom(blade, hitAt - raise + 1);
+      assert.ok(hit(rising) && !rising.some((e) => e.type === "block"), `${blade} rising`);
+      assert.ok(perfect(blockFrom(blade, hitAt - raise)), `${blade} up`);
+    }
+    assert.ok(hit(blockFrom("greatsword", hitAt - RAISE)), "a greatsword pressed in a sword's time");
+  });
+
+  test("a stronger wielder raises a heavy blade quicker", () => {
+    const strong = guardRaiseTime(WEAPONS.greatsword, STATS.strength * 2);
+    assert.ok(strong < guardRaiseTime(WEAPONS.greatsword, STATS.strength) && strong > HYBRID.block.raiseTime);
+  });
+
+  test("the perfect window grows with the blade's length", () => {
+    const window = toSteps(perfectBlockTime(WEAPONS.greatsword));
+    assert.ok(window > toSteps(perfectBlockTime(WEAPONS.sword)));
+    const lead = window - 1;
+    assert.ok(perfect(blockFrom("greatsword", hitAt - raiseSteps(WEAPONS.greatsword) - lead)), "greatsword");
+    const sword = blockFrom("sword", hitAt - RAISE - lead);
+    assert.ok(sword.some((e) => e.type === "block") && !perfect(sword), "a sword pressed as early only holds");
   });
 });

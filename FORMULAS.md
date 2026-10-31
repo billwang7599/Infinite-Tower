@@ -139,10 +139,14 @@ weapon's hit only hurts: no knockback, no hitstun.
   knockback. A hit that takes the last of the stamina (or more) breaks the guard: staggered `brokenTime` 0.8 s.
   Holding it drains `holdStaminaPerSec` 5 a second, you walk at 40%, and stamina doesn't refill. An enemy's block
   costs it the hit's poise instead (below).
-- **Perfect block:** a block pressed at most `perfectTime` 0.2 s before a weapon lands (even let go again) stops it
-  with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina (if it has a bar) and is staggered
-  `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s before. Body blows can't be
-  blocked perfectly.
+- **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.05 s +
+  `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.05, longsword 0.08,
+  greatsword 0.15 s at strength 10, 0.1 s at 20. An enemy's rises after its `blockReactTime`.
+- **Perfect block:** the window opens as the guard comes up and lasts `perfectTime` 0.2 s × blade length /
+  `perfectAtLengthM` 1.1 (`perfectBlockTime`): sword 0.2, longsword 0.25, greatsword 0.35 s. A weapon landing in it
+  (even with block let go again) is stopped with no stamina and no chip; the attacker loses `perfectDrain` 10 stamina
+  (if it has a bar) and is staggered `perfectRecoilTime` 0.4 s. No window if the last press was under `remashTime` 0.5 s
+  before. Body blows can't be blocked perfectly.
 - **Feint:** block pressed in a heavy's wind-up, up to `HYBRID.feint.cutoffTime` 0.15 s before the blade goes live,
   pulls it back into the held block for `feint.cost` 10 stamina. It opens no perfect window (and, as a press, closes
   the next 0.5 s's) and ends the chain. Lights and stabs can't be feinted.

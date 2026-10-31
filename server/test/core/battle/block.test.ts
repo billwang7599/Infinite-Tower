@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  FIXED_DT, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, type EnemyDef, type PlayerInputData,
+  FIXED_DT, guardRaiseTime, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, toSteps, WEAPONS, type EnemyDef,
+  type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
+import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { FULL, openRoom, setupWith } from "../../fixtures/fight.js";
 
@@ -15,6 +17,7 @@ const ONE_ATTACK: EnemyDef = {
   ...KOBOLD, walkSpeed: 0,
   attacks: { weapon: { ...KOBOLD.attacks.weapon!, minChain: 1, maxChain: 1, firstDelay: 0, cooldown: 99 } },
 };
+const RAISE = toSteps(guardRaiseTime(WEAPONS.sword, PLAYER_STATS.strength));
 const SETUP: FightSetup = setupWith(ONE_ATTACK, { x: 0, y: 0.05, z: 2 }, { x: 0, y: 0.05, z: 0 });
 
 const ITS = (() => {
@@ -42,10 +45,10 @@ describe("a block, on the client and on the server", () => {
     assert.ok(ITS.landsAt > 30, `lands at ${ITS.landsAt}`);
   });
 
-  test("on time: both decide the same block, perfect block or hit, and the whole fight is the same", () => {
-    for (const k of [-2, 0, 1, 5, 20]) {
+  test("in time for the guard to come up: both decide the same block, perfect block or hit, and the whole fight is the same", () => {
+    for (const k of [-2, 0, RAISE - 1, RAISE, RAISE + 5, 20]) {
       const { blocked, client, server, room, clientFight } = playBlock(k);
-      const inTime = k >= 0;
+      const inTime = k >= RAISE;
       assert.equal(blocked, inTime, `k = ${k}`);
       assert.equal(server, client, `k = ${k}`);
       assert.deepEqual(room.fight.save(), clientFight.save(), `the whole fight, k = ${k}`);
@@ -56,7 +59,7 @@ describe("a block, on the client and on the server", () => {
   test("arriving 150 ms late, the block still starts on its own step: stopped on both", () => {
     const late = Math.round(0.15 / FIXED_DT);
     assert.ok(late <= MAX_INPUT_DELAY_STEPS);
-    for (const k of [0, 2, 5]) {
+    for (const k of [RAISE, RAISE + 2, RAISE + 5]) {
       const { blocked, client, server, room, clientFight } = playBlock(k, late);
       assert.ok(blocked, `k = ${k}`);
       assert.equal(server, client, `k = ${k}`);
