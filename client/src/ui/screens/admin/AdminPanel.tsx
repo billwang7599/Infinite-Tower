@@ -1,7 +1,10 @@
 /** The server does each cheat (and ignores them in production); the time of day is only drawn, so it is set here. */
 import { useState, type ReactNode } from "react";
-import { ENEMY_IDS, ITEM_IDS, ITEMS, type Cheat, type DayChange } from "@infinite-tower/shared";
+import {
+  COMBAT_STYLE_IDS, COMBAT_STYLES, ENEMY_IDS, ITEM_IDS, ITEMS, type Cheat, type DayChange,
+} from "@infinite-tower/shared";
 import type { Actions } from "../../../core/actions.js";
+import type { CombatSettings } from "../../../settings/combat.js";
 import type { Mode } from "../../../game/transition.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { useAction } from "../../components/useAction.js";
@@ -16,6 +19,7 @@ interface AdminPanelProps {
   input: Actions;
   cheat: (cheat: Cheat) => void;
   setDayClock: (change: DayChange) => void;
+  combat: CombatSettings;
 }
 
 const CHIP =
@@ -23,8 +27,9 @@ const CHIP =
   + "enabled:hover:bg-white/10 disabled:cursor-default disabled:opacity-35";
 const CHIP_ON = "cursor-pointer rounded-sm border border-victory/70 bg-victory/15 px-2 py-0.5 text-victory";
 
-export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPanelProps) {
+export function AdminPanel({ admin, mode, input, cheat, setDayClock, combat }: AdminPanelProps) {
   const open = useStore(admin, (s) => s.open);
+  const style = useStore(combat, (s) => s.style);
   const invulnerable = useStore(admin, (s) => s.invulnerable);
   const [speed, setSpeed] = useState<number>(1);
   const [count, setCount] = useState<number>(1);
@@ -82,6 +87,14 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
           onClick={() => cheat({ kind: "coreStep", add: true })}>
           + step
         </button>
+      </Section>
+      <Section title="Combat style (next fight)">
+        {COMBAT_STYLE_IDS.map((id) => (
+          <button key={id} type="button" id={`admin-style-${id}`} {...NO_FOCUS}
+            className={id === style ? CHIP_ON : CHIP} onClick={() => combat.setStyle(id)}>
+            {COMBAT_STYLES[id].name}
+          </button>
+        ))}
       </Section>
       <Section title="Fight">
         {ENEMY_IDS.map((enemy) => (

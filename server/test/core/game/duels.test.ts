@@ -153,6 +153,19 @@ describe("a duel", () => {
     assert.equal(b.session.overworld.playerData(b.session.me).fighting, true);
   });
 
+  test("is fought in the challenger's combat style, for both", async () => {
+    for (const [mine, theirs] of [["hybrid", "for-honor"], ["for-honor", "hybrid"]] as const) {
+      const { a, b } = await players();
+      a.session.setSettings({ combat: { style: mine } });
+      b.session.setSettings({ combat: { style: theirs } });
+      a.session.challenge();
+      b.session.answerChallenge(true);
+      assert.equal(a.link.last("encounter").setup.style, mine);
+      assert.equal(b.link.last("encounter").setup.style, mine);
+      assert.equal(a.session.battle!.room.fight.style, mine);
+    }
+  });
+
   test("the fight runs one step a tick, though both players' sessions tick", async () => {
     const { online, a, b } = await dueling();
     for (let step = 1; step <= 30; step++) runTo(online, [a.session, b.session], step);

@@ -62,6 +62,7 @@ export function startBattle(
     players: [{ ...fighterOf(session), at: PLAYER_START }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
+    style: session.combatStyle,
   };
   const drops = newDrops(overworld.playerPos(session.me));
   const room: BattleRoom = new BattleRoom(setup, [seatOf(session)], {

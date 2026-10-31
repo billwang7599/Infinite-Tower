@@ -79,6 +79,7 @@ function startDuel(a: GameSession, b: GameSession): void {
     duel: true,
     enemies: [],
     players: duelists.map((s, i) => ({ ...fighterOf(s), at: DUEL_STARTS[i]! })),
+    style: a.combatStyle,
   };
   const room = new BattleRoom(setup, duelists.map((s, i) => {
     const before = { ...s.vitals }, opponent = duelists[1 - i]!.name;

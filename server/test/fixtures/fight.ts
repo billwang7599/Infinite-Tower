@@ -4,8 +4,8 @@
  * back for a number of server ticks.
  */
 import {
-  blankSkillbook, emptyBag, IDLE_INPUT, newCore, sameInput, starterEquipment, type EnemyDef, type PlayerInputData,
-  type StepInput, type Vitals,
+  blankSkillbook, emptyBag, IDLE_INPUT, newCore, sameInput, starterEquipment, type CombatStyle, type EnemyDef,
+  type PlayerInputData, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START, type FightSetup, type PlayerResult,
@@ -29,8 +29,8 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   };
 }
 
-export const fightWith = (def: EnemyDef, seed: number): Fight =>
-  new Fight({ ...setupWith(def), enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }] });
+export const fightWith = (def: EnemyDef, seed: number, style?: CombatStyle): Fight =>
+  new Fight({ ...setupWith(def), enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }], style });
 
 /** One battleInput: the changes since the last one, and the last step the client has run. */
 export interface Sent { upTo: number; inputs: StepInput[] }

@@ -12,7 +12,7 @@ import type { Store } from "../../ui/store.js";
 import { arenaCamera } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
-import { pickedGuard, readPlayerInput } from "./input.js";
+import { pickedGuard, pickedWay, readPlayerInput } from "./input.js";
 import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
@@ -21,6 +21,7 @@ const HOTBAR = ["skill1", "skill2", "skill3", "skill4"] as const;
 /** Where the camera looks as each fight starts. */
 const START_VIEW = { yaw: 0, pitch: 0.32 } as const;
 const START_GUARD = "top";
+const START_WAY = "tb";
 
 export interface Battle {
   ctx: BattleContext;
@@ -49,6 +50,7 @@ export function createBattle(opts: BattleOptions): Battle {
     view: { ...START_VIEW, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
     guard: START_GUARD,
+    way: START_WAY,
     who: [],
     fight: null,
     sync: null,
@@ -88,8 +90,11 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.view.eye, yaw: ctx.view.yaw }, me);
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.guard = pickedGuard(ctx.polled, ctx.guard);
-    readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, ctx.lock === null ? null : ctx.guard,
-      input);
+    ctx.way = pickedWay(ctx.polled, ctx.way);
+    const hybrid = fight.style === "hybrid";
+    readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, {
+      guard: hybrid || ctx.lock === null ? null : ctx.guard, way: hybrid ? ctx.way : null,
+    }, input);
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {
       const page = book[i];
@@ -130,6 +135,7 @@ export function createBattle(opts: BattleOptions): Battle {
       wordsDue = null;
       const fight = new Fight(setup);
       fight.world.add(fight.players[seat]!, LocalPlayer, true);
+      actions.setCombatStyle(fight.style);
       ctx.fight = fight;
       const sync = new FightSync(fight, seat, (msg) => net.send(msg));
       ctx.sync = sync;
@@ -165,6 +171,7 @@ export function createBattle(opts: BattleOptions): Battle {
       const me = fight.world.require(fight.players[seat]!, Body).pos, foes = livingFoes(fight);
       ctx.lock = closestFoe(foes, me);
       ctx.guard = START_GUARD;
+      ctx.way = START_WAY;
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
       Object.assign(ctx.view, START_VIEW, { yaw: (target && lockYaw(me, target)) ?? START_VIEW.yaw });
       ctx.polled = actions.poll();

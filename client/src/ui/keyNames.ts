@@ -12,6 +12,7 @@ export function keyName(code: string): string {
 }
 
 const MOUSE_NAMES = ["Left click", "Middle click", "Right click"];
+export const WHEEL_NAME = "Scroll wheel";
 
 export function mouseName(button: number): string {
   return MOUSE_NAMES[button] ?? `Mouse ${button + 1}`;

@@ -6,7 +6,8 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import type { CoreState } from "../../soul/core.js";
-import { ENEMY_GUARD } from "../../weapons/weapons.js";
+import { HYBRID } from "../../weapons/hybrid.js";
+import { DEFAULT_COMBAT_STYLE, ENEMY_GUARD, type CombatStyle } from "../../weapons/weapons.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
@@ -42,7 +43,10 @@ export interface PlayerSetup {
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
-export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[]; duel?: boolean }
+export interface FightSetup {
+  arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[]; duel?: boolean; style?: CombatStyle;
+}
+export const styleOf = (setup: FightSetup): CombatStyle => setup.style ?? DEFAULT_COMBAT_STYLE;
 
 /** From the feet to the capsule's center, and from there to each cap's middle. */
 const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
@@ -53,8 +57,9 @@ const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.
 const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0 });
 
-const wielder = (hands: WielderData["hands"], armReachM: number): WielderData =>
-  ({ hands, armReachM, swing: null, grab: null, grabImmuneTime: 0 });
+const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({
+  hands, armReachM, swing: null, grab: null, grabImmuneTime: 0, kick: null, combo: null, comboTime: 0, momentum: 0,
+});
 
 export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSetup, side = 0): Entity {
   const e = world.spawn();
@@ -65,12 +70,14 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
     grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, guardBreakHeld: false, attackBuffer: 0, dodgeBuffer: 0, guardBreakBuffer: 0,
-    castBuffer: 0, queued: null,
+    attackHeld: null, dodgeHeld: false, guardBreakHeld: false, blockHeld: false, kickHeld: false, attackBuffer: 0,
+    dodgeBuffer: 0, guardBreakBuffer: 0, kickBuffer: 0, castBuffer: 0, tapParryLeft: 0,
+    sinceBlockPress: HYBRID.block.retapTime, queued: null,
     castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
-    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, guard: null, burden: setup.burden, gear: setup.gear,
+    action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, guard: null, way: null, burden: setup.burden,
+    gear: setup.gear,
     core: setup.core, invulnerable: setup.invulnerable ?? false, leftArena: false,
   });
   world.add(e, Skilled, newSkilled({ x: 0, z: 1 }, setup.seed ?? 1));
@@ -91,7 +98,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
     world.add(e, WeaponAttack, {
       def, cooldown: def.firstDelay, swingsLeft: 0, chain: 0, next: "light",
       guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime, parryRead: false,
-      feint: false, riposte: false,
+      feint: false, riposte: false, way: "tb", kickWait: 0,
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

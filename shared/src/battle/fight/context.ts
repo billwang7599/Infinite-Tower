@@ -21,10 +21,11 @@ export type FightEvent =
   | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean }
   /** A charging enemy slammed into the wall. */
   | { type: "slam"; enemy: Entity }
-  | { type: "block"; by: Entity; target: Entity }
+  | { type: "block"; by: Entity; target: Entity; broken?: boolean }
   | { type: "parry"; by: Entity; target: Entity; attack: AttackKind }
   | { type: "feint"; by: Entity }
   | { type: "guardBreak"; by: Entity; target: Entity; result: "grabbed" | "teched" | "broken" }
+  | { type: "kick"; by: Entity; target: Entity; result: "staggered" | "shoved" | "nothing" }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId; brokeThrough: boolean };

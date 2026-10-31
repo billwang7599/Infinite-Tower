@@ -1,6 +1,6 @@
 import {
-  clamp, mirrorSide, WEAPONS, type AttackKind, type GuardSide, type SwingData, type Vec3, type WeaponId,
-  type WeaponKind,
+  clamp, isSwing, mirrorSide, mirrorWay, SCREEN_DIR, WEAPONS, type AttackKind, type GuardSide, type SwingData,
+  type Vec3, type Way, type WeaponId, type WeaponKind,
 } from "@infinite-tower/shared";
 
 const LIVE_FRAME_TURN = 0.25;
@@ -18,6 +18,16 @@ const CUTS: Record<AttackKind, Record<GuardSide, Cut>> = {
 
 export const cutOf = (attack: AttackKind, side: GuardSide, facing = false): Cut =>
   CUTS[attack][facing ? mirrorSide(side) : side];
+
+const STAB_CUT: Cut = { x: 0, y: 0 };
+
+export function wayCut(way: Way, facing = false): Cut {
+  const seen = facing ? mirrorWay(way) : way;
+  return isSwing(seen) ? SCREEN_DIR[seen] : STAB_CUT;
+}
+
+export const swingCut = (swing: Pick<SwingData, "attack" | "side" | "way">, facing = false): Cut =>
+  swing.way ? wayCut(swing.way, facing) : cutOf(swing.attack, swing.side, facing);
 
 export function strokeOf(swing: SwingData): { set: number; turn: number; follow: number } {
   const { step, driveAt, liveAt, liveUntil, endAt } = swing;
@@ -55,11 +65,11 @@ function trailLine({ x, y }: Cut): { rollRad: number; from: 1 | -1 } {
 }
 
 function trailPose(swing: SwingData | null): TrailPose | null {
-  if (!swing) return null;
+  if (!swing || swing.way === "stab") return null;
   const { turn, follow } = strokeOf(swing);
   if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
   return {
-    ...trailLine(cutOf(swing.attack, swing.side)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
+    ...trailLine(swingCut(swing)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
     visibility: 1 - follow * follow,
   };
 }

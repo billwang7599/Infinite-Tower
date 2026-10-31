@@ -9,7 +9,7 @@ import { AFTER_FIGHT_BANNER_TIME, resultShown, type BattleContext } from "./cont
 
 /** Writes every frame; the store drops unchanged values, so React only re-renders on real changes. */
 export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (fight: Fight) => void {
-  return ({ world, duel, players }) => {
+  return ({ world, duel, players, style }) => {
     const { outcome, afterFightMs } = ctx;
     const afterFight = afterFightMs !== null && resultShown(outcome);
     const patch: Partial<BattleHudState> = {
@@ -46,7 +46,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.enemyName = (duel ? ctx.who[rival]?.name : enemy?.[1].def.name) ?? "";
       patch.enemyHpFraction = fraction(foeHealth.hp, foeHealth.max);
     }
-    const foeGuard = ctx.lock === null ? null : guardSideOf(world, ctx.lock);
+    const foeGuard = ctx.lock === null || style !== "for-honor" ? null : guardSideOf(world, ctx.lock);
     patch.foeGuard = foeGuard && mirrorSide(foeGuard);
 
     hud.set(patch);

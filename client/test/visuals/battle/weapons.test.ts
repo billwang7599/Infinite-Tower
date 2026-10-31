@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  ATTACK_KINDS, GUARD_SIDES, ITEMS, mirrorSide, WEAPONS, type SwingData, type Vec3, type WeaponId,
+  ATTACK_KINDS, GUARD_SIDES, ITEMS, mirrorSide, SCREEN_DIR, SWING_DIRS, WEAPONS, type SwingData, type Vec3,
+  type WeaponId,
 } from "@infinite-tower/shared";
 import {
-  cutOf, MOTIONS, strokeOf, swingFrame, WEAPON_LOOKS, type TrailPose,
+  cutOf, MOTIONS, strokeOf, swingCut, swingFrame, WEAPON_LOOKS, type TrailPose,
 } from "../../../src/visuals/battle/weapons.js";
-import { swingSteps } from "../../fixtures/swings.js";
+import { swingAt, swingSteps, waySwingAt } from "../../fixtures/swings.js";
 
 const { trail: trailPose, windup, stroke: strokeBlade, held } = MOTIONS.sword;
 const near = (a: Vec3, b: Vec3, msg: string) => assert.ok(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 1e-9, msg);
@@ -32,6 +33,24 @@ describe("a cut's way across the screen", () => {
     for (const attack of ATTACK_KINDS) {
       for (const side of GUARD_SIDES) assert.deepEqual(cutOf(attack, side, true), cutOf(attack, mirrorSide(side)));
     }
+  });
+});
+
+describe("a swing's cut, either style", () => {
+  test("For Honor's from its attack and side; the hybrid's along its way, mirrored seen from in front", () => {
+    assert.deepEqual(swingCut(swingAt("heavy", "right", 0)), cutOf("heavy", "right"));
+    assert.deepEqual(swingCut(swingAt("light", "left", 0), true), cutOf("light", "left", true));
+    for (const way of SWING_DIRS) {
+      assert.deepEqual(swingCut(waySwingAt(way, 0)), SCREEN_DIR[way], way);
+      const seen = swingCut(waySwingAt(way, 0), true);
+      assert.ok(Math.abs(seen.x + SCREEN_DIR[way].x) < 1e-9 && seen.y === SCREEN_DIR[way].y, `${way} mirrored`);
+    }
+  });
+
+  test("a stab leaves no trail", () => {
+    const { liveAt } = waySwingAt("stab", 0);
+    assert.equal(trailPose(waySwingAt("stab", liveAt)), null);
+    assert.notEqual(trailPose(waySwingAt("lr", liveAt)), null);
   });
 });
 

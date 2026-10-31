@@ -3,6 +3,9 @@ import type { Vec2 } from "../../../core/math.js";
 import { toSteps } from "../../../core/time.js";
 import type { Equipment } from "../../../items/gear.js";
 import {
+  HYBRID, sideOfWay, strikeDamage, wayShape, wayStepsAfter, type Strike, type Way,
+} from "../../../weapons/hybrid.js";
+import {
   attackDamage, attackShape, attackSteps, ATTACKS, FEINT, weaponIn, type AttackKind, type GuardSide, type Weapon,
 } from "../../../weapons/weapons.js";
 import { ActiveHit, Wielder, type SwingData, type WielderData } from "../../components.js";
@@ -22,10 +25,28 @@ export function startSwing(
 ): void {
   world.remove(e, ActiveHit);
   world.require(e, Wielder).swing = {
-    attack, side, chain, dir, step: 0, ...attackSteps(weapon, attack, chain, swift),
+    attack, side, way: null, chain, dir, step: 0, ...attackSteps(weapon, attack, chain, swift),
     damage: attackDamage(weapon, attack, world.require(e, FighterStats)),
     poiseDamage: ATTACKS[attack].poiseDamage,
   };
+}
+
+export function startWaySwing(
+  world: World, e: Entity, weapon: Weapon, strike: Strike, way: Way, windupTime: number, power: number, dir: Vec2,
+): void {
+  world.remove(e, ActiveHit);
+  world.require(e, Wielder).swing = {
+    attack: strike === "heavy" ? "heavy" : "light", side: sideOfWay(way), way, chain: 0, dir, step: 0,
+    ...wayStepsAfter(weapon, windupTime, strike === "heavy"),
+    damage: strikeDamage(weapon, strike, power, world.require(e, FighterStats)),
+    poiseDamage: HYBRID[strike].poiseDamage,
+  };
+}
+
+export function endChain(wielder: WielderData): void {
+  wielder.combo = null;
+  wielder.comboTime = 0;
+  wielder.momentum = 0;
 }
 
 export function endSwing(world: World, e: Entity): void {
@@ -46,9 +67,11 @@ export function weaponSystem(): System {
       }
       if (!bladeLive(swing)) world.remove(e, ActiveHit);
       else if (!world.has(e, ActiveHit)) {
+        const shape = swing.way ? wayShape(swing.way, wielder.armReachM, weapon)
+          : attackShape(swing.side, wielder.armReachM, weapon);
         addHit(world, e, swing.dir.x, swing.dir.z, {
-          ...attackShape(swing.side, wielder.armReachM, weapon), damage: swing.damage, poiseDamage: swing.poiseDamage,
-          attack: swing.attack, side: swing.side,
+          ...shape, damage: swing.damage, poiseDamage: swing.poiseDamage, attack: swing.attack, side: swing.side,
+          way: swing.way,
         });
       }
       swing.step++;

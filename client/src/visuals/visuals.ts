@@ -61,8 +61,9 @@ export const EFFECTS: Effects = {
     if (ev.weapon) strike(scene, world, ev.by, ev.target);
   },
   block(scene, ev, world) {
-    shake(scene, 0.08);
+    shake(scene, ev.broken ? 0.16 : 0.08);
     clash(scene, world, ev.by, ev.target);
+    if (ev.broken) grabbed(scene, world, ev.by, ev.target, true);
   },
   parry(scene, ev, world) {
     shake(scene, 0.14);
@@ -76,6 +77,11 @@ export const EFFECTS: Effects = {
     }
     shake(scene, ev.result === "broken" ? 0.16 : 0.05);
     grabbed(scene, world, ev.by, ev.target, ev.result === "broken");
+  },
+  kick(scene, ev, world) {
+    if (ev.result === "nothing") return;
+    shake(scene, ev.result === "staggered" ? 0.16 : 0.08);
+    grabbed(scene, world, ev.by, ev.target, ev.result === "staggered");
   },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);

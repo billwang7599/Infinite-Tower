@@ -15,6 +15,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Body blows](#body-blows)
 - [Guards](#guards)
 - [Parries, guard breaks and feints](#parries-guard-breaks-and-feints)
+- [The hybrid style](#the-hybrid-style)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -175,6 +176,41 @@ Example: a Kobold's heavy (0.85 s) is parried by a sword heavy pressed 0.2 s bef
 given back, nobody hurt, and the Kobold is open 0.9 s; your light, pressed at once, lands 0.45 s later. A guard
 break on a guarding Kobold grabs it 0.15 s after the press; 0.4 s later its guard breaks (unless it countered: 30%),
 and it's open 1.05 s, long enough for your heavy (0.85 s).
+
+## The hybrid style
+
+The sections above are For Honor's, the default combat style. A fight in the hybrid style (its starter's setting)
+plays by these instead: `CHAIN`, `MOMENTUM`, `HYBRID`, `COUNTER_PARRY` in `shared/src/weapons/hybrid.ts`; the rules
+in `shared/src/battle/fight/styles/hybrid/`. Damage still goes × √(strength / 10), and every time × the heft.
+
+- **Wind-up** (press to the blade going live): a light `CHAIN.startupTime` by how it follows the last swing (an
+  opening or after a stab 0.1 s, the reverse 0.05 s, another line 0.1 s, a perpendicular one 0.16 s) ×
+  (1 − 0.1 × momentum, momentum at most 4); a heavy the same + 0.35 s; a stab 0.14 s. Live 0.1 s (a heavy 0.12 s),
+  then recovering 0.08 s (a heavy 0.2 s). It chains if it starts during the last attack or within `gapTime` 0.25 s of
+  its end.
+- **Momentum:** each chained swing adds `MOMENTUM.gain` (the reverse 1, another line 0.5, a perpendicular 0.25), at
+  most 4, and is lost on a gap, a dodge, a block, a cast, the chant, the bag, a hit taken or being parried.
+- **Damage:** a swing the weapon's damage × (1 + 0.25 × momentum, ×2 at most), a heavy ×2 more; a stab × 1.25 ×
+  (1 + 0.5 × momentum) and spends it. **Stamina:** a light 16, a heavy 24, a stab 20 (× heft). **Poise:** 12, 24, 18.
+- **Reach:** (arm 0.8 m + blade) × 1 across (160°), × 1.15 on a diagonal (110°), × 1.3 up or down (60°), × 1.75 for a
+  stab (16°).
+- **Held block:** from in front (within 70°), a hit costs damage × 1 stamina and a weapon chips 20% of its damage;
+  a body blow pushes you back at 60% of its knockback. A heavy, or too little stamina, breaks it: staggered 0.8 s.
+- **Tap parry:** a block pressed at most `tapParryTime` 0.25 s before a weapon lands parries it, free; the attacker is
+  staggered `riposteTime` 0.4 s. No window if the last press was under `retapTime` 0.5 s before.
+- **Counter-parry:** your swing's blade gone live at most 0.15 s before theirs lands, the swing meeting theirs head-on
+  (share 1) or 45° off (share 0.5), or a stab against a stab: an enemy is staggered 1 s × share and slides back 1.5 m ×
+  share; a player is staggered 0.5 s × share and knocked back at 6 m/s × share.
+- **Kick:** 15 stamina; lands 0.2 s in on the nearest foe within 1.4 m (centre to edge) and 45°; a held block is
+  staggered 0.6 s, anyone else not mid-attack shoved (staggered 0.25 s, pushed at 7 m/s). Over at 0.5 s. The kick
+  key in your wind-up with more than 0.15 s left feints it for 10.
+- **The Kobold** (`hybrid` in its weapon attack): its first swing goes live 1.1 s after it starts, the next ones
+  0.45 s (a heavy 0.35 s more), × its blade's heft; 0.5 s of recovery after a chain; it blocks walking up (from 0.3 s
+  in), tap-parries 25% of a player's swings and kicks a player who has held a block 1 s, half the time.
+
+Example: a sword light, then the reverse, then the reverse again: wind-ups 0.1, 0.045 and 0.04 s; damage 9, 11.25
+and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it. Blocked held, that first light costs the
+blocker 9 stamina and 1.8 HP.
 
 ## Poise and stagger (enemies)
 

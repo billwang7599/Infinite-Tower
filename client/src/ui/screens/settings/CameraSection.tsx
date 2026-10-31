@@ -47,7 +47,7 @@ function FlickSensitivityRow({ mouse }: { mouse: MouseSettings }) {
     <div className={SETTING_ROW}>
       <label htmlFor="flick-sensitivity" className="flex flex-col">
         <span className={SETTING_LABEL}>Flick sensitivity</span>
-        <span className="text-xs text-white/45">Higher: a shorter flick of the mouse moves your guard</span>
+        <span className="text-xs text-white/45">Higher: a shorter flick of the mouse moves your guard, or aims</span>
       </label>
       <span className="flex items-center gap-3">
         <input

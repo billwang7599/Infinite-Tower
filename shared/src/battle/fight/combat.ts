@@ -1,17 +1,13 @@
 /**
- * Hits, checked after each physics step with plain math, not physics triggers. A heavy just begun from the guard
- * across a weapon's attack parries it, opening the attacker. A guard blocks what comes from the side it faces: a
- * blocked weapon makes its wielder recoil; a blocked body blow pushes the defender back.
+ * Hits, checked after each physics step with plain math, not physics triggers. The fight's style decides first
+ * whether a hit is parried or blocked (fight/styles/); whatever it doesn't stop lands.
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
-import { toSteps } from "../../core/time.js";
+import type { Way } from "../../weapons/hybrid.js";
+import { mirrorSide, type AttackKind, type GuardSide, type HitShape } from "../../weapons/weapons.js";
 import {
-  attackCost, ATTACKS, blocks, COMBAT, mirrorSide, PARRY, parryOpenTime, weaponIn, type AttackKind, type GuardSide,
-  type HitShape,
-} from "../../weapons/weapons.js";
-import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Stamina, Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type PlayerData, type SkilledData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
@@ -21,7 +17,7 @@ import { enter } from "./behaviors/common.js";
 import { turnGuard } from "./behaviors/weapon.js";
 import { interrupt } from "./skills/skilled.js";
 import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
-import { endSwing } from "./weapons/swing.js";
+import { endChain, endSwing } from "./weapons/swing.js";
 
 export const HIT_FLASH_TIME = 0.12;
 /** Closer than this, a target counts as in front whatever the angle (centers nearly on top of each other). */
@@ -29,8 +25,11 @@ const MIN_ANGLE_CHECK_DIST = 0.3;
 /** A hit player loses control for this long, plus a little more the harder they're knocked back. */
 const HITSTUN_TIME = 0.25;
 const HITSTUN_PER_KNOCKBACK = 0.02;
-const GUARDING = new Set(["approach", "weaponWindup"]);
-const PARRY_STEPS = toSteps(PARRY.windowTime);
+
+export type Defended = "parried" | "blocked" | null;
+export type Defend = (
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity,
+) => Defended;
 
 export interface HitSpec extends HitShape {
   damage: number;
@@ -39,13 +38,14 @@ export interface HitSpec extends HitShape {
   poiseDamage?: number;
   attack?: AttackKind | null;
   side?: GuardSide;
+  way?: Way | null;
 }
 
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
   world.add(e, ActiveHit, {
     dirX, dirZ, range: attack.range, minDot: attack.minDot, damage: attack.damage, knockback: attack.knockback ?? 0,
     lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null,
-    side: attack.side ?? "top", alreadyHit: new Set(),
+    side: attack.side ?? "top", way: attack.way ?? null, alreadyHit: new Set(),
   });
 }
 
@@ -56,7 +56,7 @@ function inShape(hit: ActiveHitData, from: Vec3, to: Vec3, radius: number): bool
 }
 
 /** Whether something at `from`, looking along `dir`, faces `to` within `minDot` (a cosine). */
-function faces(from: Vec3, dir: Vec2, to: Vec3, minDot: number): boolean {
+export function faces(from: Vec3, dir: Vec2, to: Vec3, minDot: number): boolean {
   const dx = to.x - from.x, dz = to.z - from.z, dist = Math.hypot(dx, dz);
   return dist <= MIN_ANGLE_CHECK_DIST || (dx * dir.x + dz * dir.z) / dist >= minDot;
 }
@@ -70,21 +70,8 @@ export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0
   Object.assign(vel, { x: (x / len) * speed, y: lift, z: (z / len) * speed });
 }
 
-export function guardOf(world: World, e: Entity): { side: GuardSide; facing: Vec2 } | null {
-  const player = world.get(e, Player), hands = world.get(e, Wielder)?.hands;
-  if (!hands || !weaponIn(hands)) return null;
-  if (player) {
-    const idle = player.action === "none" && world.require(e, Health).hitstun <= 0;
-    return idle && player.guard ? { side: player.guard, facing: world.require(e, Skilled).aim } : null;
-  }
-  const enemy = world.get(e, Enemy), attack = world.get(e, WeaponAttack);
-  if (!enemy || !attack || !GUARDING.has(enemy.state)) return null;
-  const side = attack.guardMoveTime > 0 ? attack.guardFrom : attack.guard;
-  return { side, facing: { x: Math.sin(enemy.yaw), z: Math.cos(enemy.yaw) } };
-}
-
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
-export function combatSystem(events: FightEvent[]): System {
+export function combatSystem(events: FightEvent[], defend: Defend): System {
   return (world, dt) => {
     for (const [, h] of world.query(Health)) {
       h.invuln = Math.max(0, h.invuln - dt);
@@ -102,14 +89,9 @@ export function combatSystem(events: FightEvent[]): System {
         if (!inShape(hit, attackerBody.pos, targetBody.pos, targetFighter.radius)) continue;
 
         hit.alreadyHit.add(target);
-        if (parries(world, target, hit, attackerBody.pos)) {
-          parried(world, events, attacker, hit.attack!, target);
-          break;
-        }
-        const guard = guardOf(world, target);
-        if (guard && blocks(guard.side, hit.side) && faces(targetBody.pos, guard.facing, attackerBody.pos,
-          COMBAT.guardMinDot)) {
-          blocked(world, events, attacker, hit, target);
+        const defended = defend(world, events, attacker, hit, target);
+        if (defended === "parried") break;
+        if (defended === "blocked") {
           if (!world.has(attacker, ActiveHit)) break;
           continue;
         }
@@ -118,30 +100,6 @@ export function combatSystem(events: FightEvent[]): System {
       }
     }
   };
-}
-
-function parries(world: World, target: Entity, hit: ActiveHitData, from: Vec3): boolean {
-  const swing = world.get(target, Wielder)?.swing;
-  if (!swing || swing.attack !== "heavy" || hit.attack === null) return false;
-  // The weapon system ran this step: the swing's clock is one step on.
-  return swing.step - 1 <= PARRY_STEPS && blocks(swing.side, hit.side)
-    && faces(world.require(target, Body).pos, swing.dir, from, COMBAT.guardMinDot);
-}
-
-function parried(world: World, events: FightEvent[], attacker: Entity, attack: AttackKind, parrier: Entity): void {
-  const weapon = weaponIn(world.require(parrier, Wielder).hands)!;
-  endSwing(world, parrier);
-  const player = world.get(parrier, Player), enemy = world.get(parrier, Enemy), stamina = world.get(parrier, Stamina);
-  if (player) {
-    player.action = "none";
-    if (stamina) stamina.value = Math.min(stamina.max, stamina.value + attackCost(weapon, "heavy"));
-  } else if (enemy) {
-    enter(world, parrier, enemy, "approach");
-    const riposte = world.get(parrier, WeaponAttack);
-    if (riposte) riposte.riposte = true;
-  }
-  stagger(world, attacker, parryOpenTime(weapon, attack));
-  events.push({ type: "parry", by: parrier, target: attacker, attack });
 }
 
 export function stagger(world: World, e: Entity, time: number): void {
@@ -158,26 +116,6 @@ export function stagger(world: World, e: Entity, time: number): void {
       attack.cooldown = Math.max(attack.cooldown, time);
       attack.riposte = false;
     }
-  }
-}
-
-function blocked(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
-  events.push({ type: "block", by: attacker, target });
-  if (hit.attack === null) {
-    const body = world.require(target, Body), from = world.require(attacker, Body).pos;
-    knock(body.pos, from, body.vel, hit.knockback * COMBAT.pushbackFactor, 0, { x: hit.dirX, z: hit.dirZ });
-    return;
-  }
-  const recoilTime = ATTACKS[hit.attack].recoilTime;
-  endSwing(world, attacker);
-  const player = world.get(attacker, Player), enemy = world.get(attacker, Enemy);
-  if (player) {
-    player.action = "recoil";
-    world.require(attacker, Health).hitstun = recoilTime;
-  } else if (enemy) {
-    Object.assign(enemy, { state: "recoil", stateTime: 0, duration: recoilTime });
-    const attack = world.get(attacker, WeaponAttack);
-    if (attack) attack.cooldown = Math.max(attack.cooldown, recoilTime + attack.def.cooldown);
   }
 }
 
@@ -198,6 +136,7 @@ function hitPlayer(
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag", "use"].includes(player.action)) {
     breakOff(player, world.require(target, Skilled));
   }
+  endChain(world.require(target, Wielder));
   siphon(world, attacker, dealt);
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
 }

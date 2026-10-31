@@ -14,7 +14,8 @@ const challenge: ActionRef = { group: "overworld", action: "challenge" };
 const acceptChallenge: ActionRef = { group: "overworld", action: "acceptChallenge" };
 const jump: ActionRef = { group: "battle", action: "jump" };
 const dodge: ActionRef = { group: "battle", action: "dodge" };
-const guardTop: ActionRef = { group: "battle", action: "guardTop" };
+const guardTop: ActionRef = { group: "for-honor", action: "guardTop" };
+const aimTop: ActionRef = { group: "hybrid", action: "aimTop" };
 const turnLeft: ActionRef = { group: "battle", action: "turnLeft" };
 const lookUp: ActionRef = { group: "battle", action: "lookUp" };
 
@@ -117,16 +118,16 @@ describe("KeyBindings saving", () => {
 });
 
 describe("KeyBindings saved before a new default key", () => {
-  test("J, the questbook's: a player who saved J on an action in any group keeps it, the questbook unbound", () => {
-    for (const saved of [{ battle: { dodge: ["KeyJ"] } }, { overworld: { interact: ["KeyJ"] } }]) {
+  test("H, the questbook's: a player who saved H on an action in any group keeps it, the questbook unbound", () => {
+    for (const saved of [{ battle: { dodge: ["KeyH"] } }, { overworld: { interact: ["KeyH"] } }]) {
       const b = new KeyBindings();
       b.restore(saved);
       assert.deepEqual(keysOf(b.get(), questbook), [], JSON.stringify(saved));
       assert.deepEqual(b.toSaved(), saved, "nothing else changes");
     }
     const b = new KeyBindings();
-    b.restore({ battle: { dodge: ["KeyG"] } });
-    assert.deepEqual(keysOf(b.get(), questbook), ["KeyJ"], "J free: the questbook has it");
+    b.restore({ battle: { dodge: ["KeyX"] } });
+    assert.deepEqual(keysOf(b.get(), questbook), ["KeyH"], "H free: the questbook has it");
   });
 
   test("a general key saved on a new overworld default keeps it: that action is unbound, nothing else changes", () => {
@@ -152,8 +153,8 @@ describe("KeyBindings saved before a new default key", () => {
 
     const bound = new KeyBindings();
     bound.restore(b.toSaved());
-    assert.deepEqual(bound.bind(acceptChallenge, "KeyH", null), { ok: true, takenFrom: [], gave: null });
-    assert.deepEqual(keysOf(bound.get(), acceptChallenge), ["KeyH"]);
+    assert.deepEqual(bound.bind(acceptChallenge, "KeyX", null), { ok: true, takenFrom: [], gave: null });
+    assert.deepEqual(keysOf(bound.get(), acceptChallenge), ["KeyX"]);
 
     b.bind(interact, "KeyV", "KeyY");
     b.restore(b.toSaved());
@@ -280,6 +281,7 @@ describe("KeyBindings saved before the sword's ten actions", () => {
     b.restore({ battle: { dodge: ["KeyK", "KeyI"], turnLeft: ["KeyH"] }, overworld: { up: ["KeyZ"] } });
     assert.deepEqual(keysOf(b.get(), dodge), ["KeyK", "KeyI"]);
     assert.deepEqual(keysOf(b.get(), guardTop), []);
+    assert.deepEqual(keysOf(b.get(), aimTop), []);
     assert.deepEqual(keysOf(b.get(), turnLeft), ["KeyH"]);
     assert.deepEqual(keysOf(b.get(), forward), ["KeyZ"]);
   });
@@ -320,8 +322,29 @@ describe("KeyBindings saved before the mouse swung the sword", () => {
     const b = new KeyBindings();
     b.restore({ battle: { block: ["ShiftLeft"], jump: ["ShiftLeft"] } });
     assert.deepEqual(keysOf(b.get(), jump), ["ShiftLeft"]);
-    assert.deepEqual(keysOf(b.get(), { group: "battle", action: "guardBreak" }), []);
+    assert.deepEqual(keysOf(b.get(), { group: "for-honor", action: "guardBreak" }), []);
+    assert.deepEqual(keysOf(b.get(), { group: "hybrid", action: "block" }), []);
     assert.deepEqual(b.toSaved(), { battle: { jump: ["ShiftLeft"] } });
+  });
+});
+
+describe("KeyBindings saved before the combat styles", () => {
+  test("For Honor's keys saved as the arena's load as the For Honor style's, and are saved there next time", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { guardLeft: ["KeyZ"], guardBreak: ["KeyX"], jump: ["KeyV"] } });
+    assert.deepEqual(keysOf(b.get(), { group: "for-honor", action: "guardLeft" }), ["KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), { group: "for-honor", action: "guardBreak" }), ["KeyX"]);
+    assert.deepEqual(b.toSaved(), {
+      battle: { jump: ["KeyV"] }, "for-honor": { guardLeft: ["KeyZ"], guardBreak: ["KeyX"] },
+    });
+  });
+
+  test("saved style keys that clash with the arena's send only that style back to its defaults", () => {
+    const b = new KeyBindings();
+    b.restore({ battle: { jump: ["KeyZ"] }, hybrid: { kick: ["KeyZ"] }, "for-honor": { guardTop: ["KeyX"] } });
+    assert.deepEqual(b.get().hybrid, defaults().hybrid);
+    assert.deepEqual(keysOf(b.get(), jump), ["KeyZ"]);
+    assert.deepEqual(keysOf(b.get(), guardTop), ["KeyX"]);
   });
 });
 

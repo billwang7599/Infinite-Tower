@@ -14,8 +14,8 @@ const newFight = () => new Fight({
 });
 
 const SWING: SwingData = {
-  attack: "light", side: "left", chain: 0, dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6, liveUntil: 12,
-  endAt: 17, damage: 9, poiseDamage: 12,
+  attack: "light", side: "left", way: null, chain: 0, dir: { x: 0, z: 1 }, step: 3, driveAt: 2, liveAt: 6,
+  liveUntil: 12, endAt: 17, damage: 9, poiseDamage: 12,
 };
 
 function busyFight(steps = 240, fight = newFight()): Fight {
@@ -98,6 +98,12 @@ describe("a fight's hash", () => {
         assert.notEqual(f.hash(), before);
       }],
       ["being safe from a guard break", (f) => { f.world.require(f.players[0]!, Wielder).grabImmuneTime += 0.05; }],
+      ["a swing's way", (f) => { f.world.require(f.players[0]!, Wielder).swing = { ...SWING, way: "brtl" }; }],
+      ["a kick under way", (f) => { f.world.require(f.players[0]!, Wielder).kick = { step: 2 }; }],
+      ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).combo = "lr"; }],
+      ["the time left to chain", (f) => { f.world.require(f.players[0]!, Wielder).comboTime += 0.05; }],
+      ["the aimed way", (f) => { f.world.require(f.players[0]!, Player).way = "tb"; }],
+      ["a tap parry's window", (f) => { f.world.require(f.players[0]!, Player).tapParryLeft += 0.05; }],
       ["a held button", (f) => {
         const p = f.world.require(f.players[0]!, Player);
         p.attackHeld = p.attackHeld ? null : "heavy";
@@ -120,7 +126,7 @@ describe("a fight's hash", () => {
       ["the charge's direction", (f) => { f.world.require(f.enemies[0]!, ChargeAttack).dir.x += 0.05; }],
       ["a live hitbox", (f) => { f.world.add(f.enemies[0]!, ActiveHit, {
         dirX: 0, dirZ: 1, range: 1, minDot: 0, damage: 5, knockback: 0, lift: 0, poiseDamage: 0, attack: null,
-        side: "top", alreadyHit: new Set<number>(),
+        side: "top", way: null, alreadyHit: new Set<number>(),
       }); }],
     ];
     const swordChanges: [string, (f: Fight) => void][] = [
