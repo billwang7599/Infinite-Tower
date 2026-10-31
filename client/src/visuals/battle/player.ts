@@ -1,12 +1,13 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, OneStrike, Player, PLAYER, Posture, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder,
+  Body, clamp, Cuts, damp, Health, OneStrike, Player, PLAYER, Posture, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder,
   type Entity, type World,
 } from "@infinite-tower/shared";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
 import { dropBlade, holdBlade, placeBlade, type HeldBlade } from "./blade.js";
+import { guardBlade } from "./cuts.js";
 import { strikeBlade } from "./lines.js";
 import { facingSeen, playerBlade, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
@@ -127,7 +128,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     : 1;
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
-  const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
+  const cuts = world.get(e, Cuts);
+  const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime },
+    cuts?.to ?? null);
   const aim = world.require(e, Skilled).aim;
   sprite.facing = facingSeen(ctx.battle.view.eye, p, aim, sprite.facing);
   const look = ctx.looks.get(e);
@@ -155,7 +158,7 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
     const up = 0.5 - hand[1] / VIEWS.battle.height;
     const held = lines && alive && !STAGGERED.includes(player.action)
       ? strikeBlade(lines, swing, WEAPONS[sprite.blade.weapon].heft)
-      : playerBlade(player, wielder, alive, motion, world.has(e, Posture));
+      : playerBlade(player, wielder, alive, motion, world.has(e, Posture), cuts ? guardBlade(cuts) : null);
     placeBlade(sprite.blade, ctx.camera, {
       x: position.x + across * SPRITE_SIZE * pose.scaleX, y: position.y + up * SPRITE_SIZE * pose.scaleY,
     }, faceYaw, held, dt);

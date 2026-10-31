@@ -138,10 +138,12 @@ main.ts
   as the guard keys, in order with the keys and clicks; not while dragging the camera. In a hybrid fight a flick
   aims one of 8 ways instead (`aimLeft`, `aimTopLeft`, ...); in a Posture fight it does nothing; in a One Strike
   fight up and down are `raiseLine` and `lowerLine` (the battle mode turns those presses into the wanted line,
-  `pickedLine`, sent as the input's `line`). The arena's keys are
+  `pickedLine`, sent as the input's `line`); in a Master Cuts fight left, up, right and down are `ochs`, `vomTag`,
+  `pflug` and `alber` (`pickedStance`, sent as the input's `stance`). The arena's keys are
   the group of the fight's combat style (`setCombatStyle`, as each fight starts) then its own, so the styles' keys may
   overlap, and a style's mouse button comes first (Posture's right click is its `guard`, not the heavy attack; One
-  Strike's clicks are its `thrust` and `beat`, read as a light and a heavy).
+  Strike's clicks are its `thrust` and `beat`, read as a light and a heavy; Master Cuts' its `strike` and `masterCut`,
+  and its `ringen` is read as the guard break).
   A turn of the scroll wheel is a press of `MouseWheel` (one per scroll: it has to rest 150 ms), bound like a
   mouse button (the hybrid's stab). In a text field only the
   arrows, Esc, the digits and Backspace count (the skill word search picks and undoes with them; a key nobody uses
@@ -419,13 +421,20 @@ main.ts
   the beat and punches, the loose blade and picking it up (`blade.ts`, its system after the hits, which is given the
   arena to keep a loose blade inside the wall), clashes, disarms, zones by body, the lame (the `lamed` status) and the
   boar's set charge (`defend.ts`, which lands every hit itself), and the Kobold's measure, lines, thrusts, beats,
-  follows, disarm tries and walk to its blade (`swordsman.ts`). A new style is one more
+  follows, disarm tries and walk to its blade (`swordsman.ts`). Master Cuts (`styles/master-cuts/`): a `Cuts`
+  component on every blade holder (`spawned`): the guard wanted (the input's `stance`, the Kobold's `want`) and the one
+  held or being moved to, moved after the hits, never while the blade is out (`guard.ts`, with For Honor's guard break
+  in the same `after`); strikes and master cuts from the guard held (`startCutSwing`; `SwingData` and `ActiveHit`
+  carry the `stance`, a master cut is a heavy), chains of three and the Fehler (a guard change in a wind-up,
+  `player.ts`); the counter, displacing or binding (`defend.ts`); the Kobold's guard hold, answers, pressure, Fehler,
+  counters and wrestling (`swordsman.ts`). A new style is one more
   entry, a binding group named as it (`client/src/settings/bindings.ts`) and, if it needs them, fields on the input.
 - **Attacks are data.** An attack's active frames add an `ActiveHit` (an arc: range + angle, the attack's kind and
   the side it comes from; a body blow comes from the top) to the attacker; `combatSystem` (`fight/combat.ts`) resolves
   hits with plain math, not physics; the fight's style decides first if a hit is parried or blocked (For Honor's below;
   the hybrid's in `styles/hybrid/defend.ts`, Posture's in `styles/posture/defend.ts`, which may also land it itself:
-  "struck", a deathblow; One Strike's in `styles/one-strike/defend.ts`, which lands all of them itself). A dodge's
+  "struck", a deathblow; One Strike's in `styles/one-strike/defend.ts`, which lands all of them itself; Master Cuts'
+  in `styles/master-cuts/defend.ts`, where only a timed counter stops a hit). A dodge's
   i-frames skip every hit but a perilous thrust (for Mikiri), and a perilous sweep skips a player in the air. In For
   Honor, a weapon's hit is parried first when the target's heavy began within
   `PARRY.windowTime` from the side across it, facing the attacker: the heavy is spent (its stamina given back) and the
@@ -767,7 +776,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   picking it up and nobody else; the beat landing, missing (moved, out of reach), the shorter reach, knocking a thrust
   aside; the boar's zones, its lunge clashed, its charge impaled only on a set low blade; the Warlock's poke clashed;
   the Kobold's measure, line changes, thrusts and beats, follows, disarms, steps back and walk to its blade; a One
-  Strike fight's hash and save.
+  Strike fight's hash and save. Master Cuts (`styles/master-cuts/`, a duel's helpers in `duel.ts`): the break cycle,
+  guard moves by time, heft and recovery, the blade out holding a move, a press waiting for the guard; each guard's
+  strike and master cut (timing, damage, shape, cost), chains of three, no stamina; displacing from the breaking
+  guard and binding from the others, the window's edges, facing, the master cut that can't be countered, leaving the
+  guard in time, a dodge; the Fehler's cutoff, least wind-up, cost and once per attack; the Kobold's guard hold,
+  answers, master cut and strikes, Fehler, displacements, binds and wrestling; a Master Cuts fight's hash and save.
   Eating in a fight (`player/use.test.ts`): healed and one used up once its `useTime` is up, held still, not at full HP
   or with the bag shut, stopped (nothing eaten) by closing the bag, a dodge, a hit that only hurts or one that stuns,
   and through a save; and the shared rule (`items/using.test.ts`, any consumable's time and effects coming from its
@@ -794,7 +808,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   block or only swings (`enemies/kobold-swordsman-hybrid.test.ts`); in Posture, beaten by a player who deflects on the
   beat and answers each perilous attack, beating one who only guards (`enemies/kobold-swordsman-posture.test.ts`); in
   One Strike, beaten by a player who follows its line, moves into its thrusts and punishes its beats, beating one who
-  stands at one line (`enemies/kobold-swordsman-one-strike.test.ts`); a
+  stands at one line (`enemies/kobold-swordsman-one-strike.test.ts`); in Master Cuts, beaten by a player who stands
+  in the guard that breaks its guard and counters from it, beating one who stands in one guard and never counters
+  (`enemies/kobold-swordsman-master-cuts.test.ts`); a
   battle and a duel fought in the starter's (the
   challenger's) combat style; a cast or a page written
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
@@ -880,9 +896,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; flicks into guards; the guard
   break; in a hybrid fight the aim grid, 8-way flicks, the stab on K or the wheel, the block and the kick; in a
   Posture fight right click guarding, the perilous keys and no flicks; in a One Strike fight I and K and flicks up and
-  down moving the line, the clicks thrusting and beating), the player's pose and blade (the hybrid's ways, aim, block
-  and kick too; Posture's guard and deflect; One Strike's lines, thrust and knocked blade), Posture's and One
-  Strike's sounds, sword trail and cut, the hybrid's aim
+  down moving the line, the clicks thrusting and beating; in a Master Cuts fight U I O K and flicks four ways taking
+  its guards, the clicks striking and cutting, Shift wrestling), the player's pose and blade (the hybrid's ways, aim,
+  block and kick too; Posture's guard and deflect; One Strike's lines, thrust and knocked blade; Master Cuts' guards
+  and each attack's way), Posture's, One Strike's and Master Cuts' sounds, sword trail and cut, the hybrid's aim
   ring, the boar's and the Kobold's poses, effects fired once per step and event,
   camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
   Interact does
@@ -1051,7 +1068,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        blade kept inside the wall; player.ts: the wanted line, thrusts, punches, the beat, walking
                        onto your blade; defend.ts: clashes, disarms, zones and the lame, punches, a body blow's
                        clash and the boar's impaling; swordsman.ts: the Kobold's measure, matched choices, follows,
-                       disarm tries and steps back, thrusts and the walk to its blade)
+                       disarm tries and steps back, thrusts and the walk to its blade), master-cuts/ (guard.ts: the
+                       Cuts component's spawning, guardOf, guard moves, swingFrom, the Fehler; player.ts: strikes,
+                       master cuts, chains, the guard break; defend.ts: the counter's displacing and binding;
+                       swordsman.ts: the Kobold's guard hold and answers, strings and master cuts, Fehler, counters,
+                       wrestling)
       player/          controller.ts (move, jump, the style's sword controls, dodge, a cast's
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
@@ -1076,7 +1097,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        a Bolt winding up at it), common.ts (enter, roll: the enemy's seeded random numbers)
       weapons/         swing.ts (weaponSystem: every wielder's swing run alike, its hitbox up while live;
                        startSwing at the weapon's fixed timings, startWaySwing (the hybrid's), startPostureSwing
-                       (Posture's), startStrikeSwing (One Strike's thrust and punch), endSwing, endChain,
+                       (Posture's), startStrikeSwing (One Strike's thrust and punch), startCutSwing (Master
+                       Cuts'), endSwing, endChain,
                        bladeLive, feintable; handsOf),
                        guard-break.ts (guardBreakSystem: grabs reaching out, held through the tech window, countered
                        or breaking the guard; startGrab, grabbable, inReach / nearestInReach (the kick's too),
@@ -1110,7 +1132,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    strikeDamage), posture.ts (Posture's: PERILOUS, POSTURE_MOVES, POSTURE, DEFLECT_STEPS;
                    postureSteps, moveOf, moveDamage, deflectPosture, recoveryPerSec, nextWindow), one-strike.ts (One
                    Strike's: LINES, ONE_STRIKE; lineMoveSteps, lineToward, raised, strikeSteps, thrustReach,
-                   strikeShape, insidePoint, zoneShare, punchDamage, thrustCost, beatCost)
+                   strikeShape, insidePoint, zoneShare, punchDamage, thrustCost, beatCost), master-cuts.ts (Master
+                   Cuts': STANCES, BREAKS, breakerOf, MASTER_CUTS, COUNTER_STEPS; guardMoveSteps, cutWindupTime,
+                   cutSteps, cutDamage, cutCost, cutShape)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1334,7 +1358,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
                        "Join the fight" / "Open the pile" / "Talk" / "Look"),
-                       BattleHud.tsx (the guard widget: yours and the locked foe's sides; Posture's bars, filling
+                       BattleHud.tsx (the guard widget: yours and the locked foe's sides; Master Cuts' guard
+                       diamond, yours filled, the locked foe's outlined; Posture's bars, filling
                        from both ends, under your vitals and under the boss bar; and the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
@@ -1447,9 +1472,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          target dies), lockYaw (the way to face it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed, a perilous attack too; a guard
                          break, a block or Posture's guard pressed or held; One Strike's line from the raise and lower
-                         presses, pickedLine)
+                         presses, pickedLine; Master Cuts' guard, pickedStance)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand, an arena pile in view and the
-                         Posture bars (yours, the boss bar's foe's) included
+                         Posture bars (yours, the boss bar's foe's) and Master Cuts' guards (yours, the locked foe's)
+                         included
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
                      page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
@@ -1501,6 +1527,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         lines.ts         One Strike's blade, for the player's 3D sword and the Kobold's: its three lines (LINE_BLADES),
                          a move between them, a thrust drawn in and driven out, a beat, knocked off line (strikeBlade:
                          tested); looseBlades, a disarmed blade flying off and lying on the floor (arenaStage draws it)
+        cuts.ts          Master Cuts' four guards for the player's 3D sword and the Kobold's (STANCE_BLADES,
+                         guardBlade: tested); each attack is drawn as one of the hybrid's ways (wayOfSwing in
+                         weapons.ts)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -1727,6 +1756,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | One Strike: the line moves, the thrust, zones, the lame, clashes, the beat, the disarm, punches, picking a blade up, the boar's lunge and set charge | `shared/src/weapons/one-strike.ts` (`ONE_STRIKE`) |
 | A swordsman in One Strike: its thrust's wind-up, reaction time, measure, how often it thrusts, beats, follows, tries a disarm or steps back; which line a lunge comes on; a beast's zones | `oneStrike` in its weapon attack, `line` on a lunge, `beast` on the def (`server/src/core/enemies/`) |
 | One Strike's blade poses and the loose blade's flight; its sounds | top of `client/src/visuals/battle/lines.ts`; `LINE_VOICES`, `STRIKE_CUES` in `client/src/audio/battle.ts` |
+| Master Cuts: the break cycle, guard moves, each guard's strike and master cut, chains, the counter's window, displacing and binding, the Fehler | `shared/src/weapons/master-cuts.ts` (`BREAKS`, `MASTER_CUTS`) |
+| A swordsman in Master Cuts: its extra wind-up, reaction, how often it answers your guard, cuts, Fehlers, displaces, binds and wrestles, its strings and recovery | `masterCuts` in its weapon attack (`server/src/core/enemies/`) |
+| Master Cuts' guard poses, the way each attack is drawn, the guard diamond; its sounds | `STANCE_BLADES` in `client/src/visuals/battle/cuts.ts`, `STANCE_WAYS` in `client/src/visuals/battle/weapons.ts`, `StanceDiamond` in `client/src/ui/hud/BattleHud.tsx`; `CUT_CUES` in `client/src/audio/battle.ts` |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |

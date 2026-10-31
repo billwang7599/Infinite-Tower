@@ -1,5 +1,5 @@
 import type {
-  Entity, GearMove, GuardSide, Line, PageWrite, PileSnap, Skill, SwingDir, UseSpot, Vec3,
+  Entity, GearMove, GuardSide, Line, PageWrite, PileSnap, Skill, Stance, SwingDir, UseSpot, Vec3,
 } from "@infinite-tower/shared";
 import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fight";
 import type { Actions, Polled } from "../../core/actions.js";
@@ -27,6 +27,7 @@ export interface BattleContext {
   guard: GuardSide;
   way: SwingDir;
   line: Line;
+  stance: Stance;
   who: PlayerSetup["who"][];
   /** Your own copy, from the encounter until the player leaves the arena. */
   fight: Fight | null;

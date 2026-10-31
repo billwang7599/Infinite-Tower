@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { OneStrike, Player, Posture, Wielder, type PlayerInputData } from "@infinite-tower/shared";
+import { Cuts, OneStrike, Player, Posture, Wielder, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BOAR, busy, busyHybrid, busyOneStrike, busyPosture, enemy, IDLE, input, player, run, SWORDSMAN,
+  ARENA, BOAR, busy, busyHybrid, busyMasterCuts, busyOneStrike, busyPosture, enemy, IDLE, input, player, run, SWORDSMAN,
 } from "../fixtures.js";
 
 before(() => initPhysics());
@@ -26,6 +26,7 @@ describe("a fight's combat style", () => {
     assert.equal(new Fight(setup({ style: "for-honor" })).style, "for-honor");
     assert.equal(new Fight(setup({ style: "posture" })).style, "posture");
     assert.equal(new Fight(setup({ style: "one-strike" })).style, "one-strike");
+    assert.equal(new Fight(setup({ style: "master-cuts" })).style, "master-cuts");
   });
 
   test("only a Posture fight gives its fighters a posture bar, joiners too", () => {
@@ -180,8 +181,54 @@ describe("a fight's combat style", () => {
     }
   });
 
+  test("only a Master Cuts fight gives its blade holders a guard of four, joiners too; a boar holds none", () => {
+    for (const style of ["for-honor", "hybrid", "posture", "one-strike", "master-cuts"] as const) {
+      const fight = new Fight(setup({ style, enemies: [...setup().enemies, enemy(BOAR, { x: 4, y: 0.05, z: 4 })] }));
+      const joiner = fight.join(player({ x: 2, y: 0.05, z: 0 }));
+      for (const e of [...fight.players, fight.enemies[0]!, joiner]) {
+        assert.equal(fight.world.has(e, Cuts), style === "master-cuts", `${style} ${e}`);
+      }
+      assert.ok(!fight.world.has(fight.enemies[1]!, Cuts));
+    }
+  });
+
+  test("the other styles ignore Master Cuts' guard", () => {
+    for (const style of ["for-honor", "hybrid", "posture", "one-strike"] as const) {
+      const fight = new Fight(setup({ style }));
+      run(fight, 0.5, () => input({ locked: 0, stance: "alber" }));
+      assert.equal(fight.world.has(fight.players[0]!, Cuts), false, style);
+      fight.step([input({ locked: 0, stance: "alber", attack: "light" })]);
+      assert.equal(swingOf(fight)?.stance ?? null, null, style);
+    }
+  });
+
+  test("a Master Cuts fight is the same on both sides: same inputs, same hash; a save loads mid-fight", () => {
+    const a = new Fight(setup({ style: "master-cuts" })), b = new Fight(setup({ style: "master-cuts" }));
+    for (let step = 1; step <= 600; step++) {
+      a.step([busyMasterCuts(step)]);
+      b.step([busyMasterCuts(step)]);
+      assert.equal(a.hash(), b.hash(), `step ${step}`);
+    }
+    for (const at of [3, 150, 333]) {
+      const original = new Fight(setup({ style: "master-cuts" }));
+      runTo(original, at, busyMasterCuts);
+      const copy = new Fight(setup({ style: "master-cuts" }));
+      copy.load(JSON.parse(JSON.stringify(original.save())));
+      runTo(original, at + 200, busyMasterCuts);
+      runTo(copy, at + 200, busyMasterCuts);
+      assert.equal(copy.hash(), original.hash(), `loaded at ${at}`);
+    }
+  });
+
+  test("a guard is part of the hash", () => {
+    const fight = new Fight(setup({ style: "master-cuts" }));
+    const before = fight.hash();
+    fight.world.require(fight.enemies[0]!, Cuts).to = "ochs";
+    assert.notEqual(fight.hash(), before);
+  });
+
   test("the same inputs in each style make different fights", () => {
-    const styles = ["for-honor", "hybrid", "posture", "one-strike"] as const;
+    const styles = ["for-honor", "hybrid", "posture", "one-strike", "master-cuts"] as const;
     const fights = styles.map((style) => new Fight(setup({ style })));
     for (const fight of fights) runTo(fight, 300, busy);
     assert.equal(new Set(fights.map((f) => f.hash())).size, styles.length);

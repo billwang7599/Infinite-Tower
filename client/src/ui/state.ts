@@ -6,7 +6,7 @@
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
-  type DayChange, type DialogueOffer, type GameServer, type Gear, type GuardSide, type Look, type QuestView,
+  type DayChange, type DialogueOffer, type GameServer, type Gear, type GuardSide, type Look, type Stance, type QuestView,
   type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
@@ -68,6 +68,8 @@ export interface BattleHudState {
   foePosture: number | null;
   guard: GuardSide | null;
   foeGuard: GuardSide | null;
+  stance: Stance | null;
+  foeStance: Stance | null;
   enemyName: string;
   enemyHpFraction: number;
   enemyAlive: boolean;
@@ -212,7 +214,8 @@ export class UiState {
     },
   });
   readonly battle = new Store<BattleHudState>({
-    hpFraction: 1, staminaFraction: 1, posture: null, foePosture: null, guard: null, foeGuard: null, enemyName: "",
+    hpFraction: 1, staminaFraction: 1, posture: null, foePosture: null, guard: null, foeGuard: null, stance: null,
+    foeStance: null, enemyName: "",
     enemyHpFraction: 1,
     enemyAlive: false,
     result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,

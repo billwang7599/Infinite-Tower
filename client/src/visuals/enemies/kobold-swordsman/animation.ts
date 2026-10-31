@@ -1,10 +1,11 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, ENEMY_GUARD, Health, OneStrike, Posture, WeaponAttack, weaponIn, weaponItemIn, WEAPONS,
-  Wielder, wrapAngle, type WeaponAttackData,
+  Body, Cuts, damp, dampFactor, Enemy, ENEMY_GUARD, Health, OneStrike, Posture, WeaponAttack, weaponIn, weaponItemIn,
+  WEAPONS, Wielder, wrapAngle, type WeaponAttackData,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
 import { fighter } from "../../battle/battle.js";
+import { guardBlade } from "../../battle/cuts.js";
 import { strikeBlade } from "../../battle/lines.js";
 import {
   cutOf, lerpBlade, MOTIONS, POSTURE_GUARD_BLADE, REST_BLADE, strokeOf, swingCut, WEAPON_LOOKS, type BladePose,
@@ -47,7 +48,9 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     const t = enemy.stateTime, k = enemy.duration > 0 ? Math.min(1, t / enemy.duration) : 1;
     const cut = swing ? swingCut(swing, true) : cutOf("light", guard?.guard ?? "top", true);
     const heavy = (swing?.attack ?? (enemy.state === "weaponWindup" ? guard?.next : null)) === "heavy";
-    const guarding = held ?? (world.has(e, Posture) ? POSTURE_GUARD : heldGuard(nodes.motion, guard));
+    const cuts = world.get(e, Cuts);
+    const guarding = held ?? (cuts ? guardBlade(cuts)
+      : world.has(e, Posture) ? POSTURE_GUARD : heldGuard(nodes.motion, guard));
     const pose = koboldPose(health.hp > 0 ? enemy.state : "dead", t, k, cut, nodes.motion,
       swing && !lines ? strokeOf(swing) : null, guarding, heavy);
     if (held?.exact) pose.bladeExact = true;

@@ -6,6 +6,10 @@ import type { PlayerInputData } from "../../input.js";
 import type { Defend } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { FOR_HONOR } from "./for-honor.js";
+import { masterCutsDefend } from "./master-cuts/defend.js";
+import { masterCutsAfter, spawnCuts } from "./master-cuts/guard.js";
+import { MASTER_CUTS_PLAYER } from "./master-cuts/player.js";
+import { masterCutsSwordsmanSystem } from "./master-cuts/swordsman.js";
 import { hybridDefend } from "./hybrid/defend.js";
 import { kickSystem } from "./hybrid/kick.js";
 import { HYBRID_PLAYER } from "./hybrid/player.js";
@@ -53,5 +57,9 @@ export const STYLES: Record<CombatStyle, Style> = {
   "one-strike": {
     ...ONE_STRIKE_PLAYER, defend: oneStrikeDefend, swordsman: oneStrikeSwordsmanSystem, after: bladeSystem,
     spawned: spawnBlade,
+  },
+  "master-cuts": {
+    ...MASTER_CUTS_PLAYER, defend: masterCutsDefend, swordsman: masterCutsSwordsmanSystem, after: masterCutsAfter,
+    spawned: spawnCuts,
   },
 };

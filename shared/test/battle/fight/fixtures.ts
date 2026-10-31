@@ -1,9 +1,9 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
+  ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, Cuts, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
   Health, LINES, LungeAttack, maxHpOf, newCore, OneStrike, PERILOUS, Player, PLAYER, PlayerInput, Posture, Sidestep,
   SkillAttack, Skilled, SkillObject,
-  Stamina, staminaMaxOf, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
+  Stamina, staminaMaxOf, STANCES, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
@@ -71,6 +71,11 @@ export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
     thrustWindupTime: 0.4, reactTime: 0.3, reactJitterTime: 0, measureM: 0.2, decideMinTime: 99, decideMaxTime: 99,
     matched: { thrust: 0, beat: 0, wait: 1 }, followChance: 0, disarmChance: 0, stepBackChance: 0,
   },
+  masterCuts: {
+    windupExtraTime: 0.3, reactTime: 0.35, answerChance: 0, cutChance: 0, minString: 1, maxString: 1,
+    fehlerChance: 0, fehlerLeadTime: 0.25, displaceChance: 0, bindChance: 0, counterLeadTime: 0.2, wrestleChance: 0,
+    recoverTime: 0.8,
+  },
   ...over,
 });
 
@@ -104,8 +109,8 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 
 export const IDLE: PlayerInputData = {
   moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, guard: null, guardBreak: false,
-  way: null, block: false, kick: false, perilous: null, line: null, cast: null, castHeld: false, chant: false,
-  chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
+  way: null, block: false, kick: false, perilous: null, line: null, stance: null, cast: null, castHeld: false,
+  chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null, use: null,
 };
 export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...IDLE, ...over });
 
@@ -128,6 +133,13 @@ export function busyOneStrike(step: number): PlayerInputData {
   return input({
     ...busy(step), guard: null, line: LINES[Math.floor(step / 17) % LINES.length]!,
     attack: step % 9 < 2 ? (step % 27 < 9 ? "heavy" : "light") : null,
+  });
+}
+
+export function busyMasterCuts(step: number): PlayerInputData {
+  return input({
+    ...busy(step), guard: null, stance: STANCES[Math.floor(step / 19) % STANCES.length]!,
+    attack: step % 9 < 2 ? (step % 27 < 9 ? "heavy" : "light") : null, guardBreak: step % 73 === 5,
   });
 }
 
@@ -177,6 +189,7 @@ export function dumpState(fight: Fight): string {
       statuses: fight.world.get(e, Statuses),
       posture: fight.world.get(e, Posture),
       oneStrike: fight.world.get(e, OneStrike),
+      cuts: fight.world.get(e, Cuts),
     };
   });
   const shots = [...fight.world.query(SkillObject)].map(([, shot]) => shot);

@@ -103,7 +103,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
       def, cooldown: def.firstDelay, swingsLeft: 0, chain: 0, next: "light",
       guard: "top", guardFrom: "top", guardMoveTime: 0, guardHoldTime: ENEMY_GUARD.minHoldTime, parryRead: false,
       feint: false, riposte: false, way: "tb", kickWait: 0, perilousEnd: null, reaction: null, reactSteps: 0,
-      reactLine: ONE_STRIKE.startLine, seenWant: null,
+      reactLine: ONE_STRIKE.startLine, seenWant: null, seenStance: null,
     });
   },
   skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },

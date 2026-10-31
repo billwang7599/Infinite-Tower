@@ -4,8 +4,8 @@ Three more ways to fight with a sword, picked with the per-player Combat style s
 Hybrid. The user: "come up with some other combat styles that feel fun and realistic. im thinking we have to both
 read the opponent and also reward good weapon play. search online for existing games and their mechanics. we can also
 add in/mix in stuff", and "make any assumptions you want". Everything below is the agent's design, built overnight
-one PR per style in the order given, for the user to play and retune. Posture and One Strike are built (their rules
-are in AGENTS.md's "The Posture style" and "The One Strike style", and FORMULAS.md); Master Cuts isn't yet.
+one PR per style in the order given, for the user to play and retune. All three are built (their rules are in
+AGENTS.md's "The Posture style", "The One Strike style" and "The Master Cuts style", and FORMULAS.md).
 
 ## Survey
 
@@ -55,7 +55,8 @@ Liechtenauer with KCD. Absolver's decks and physics swordplay are under "Not now
   Posture took a simpler road than slots: its group has actions of its own (`guard` on right click, `perilousThrust`,
   `perilousSweep`), and a style's group is read before the arena's, so its mouse button wins. One Strike did the same
   (`raiseLine` on I and a flick up, `lowerLine` on K and a flick down, `thrust` and `beat` on the clicks), so no
-  `guardDown` was added; Master Cuts can do the same, each action named for what it does in that style.
+  `guardDown` was added; Master Cuts did too (`ochs`, `vomTag`, `pflug`, `alber` on U I O K and the four flicks,
+  `strike` and `masterCut` on the clicks, `ringen` on left Shift).
 
   | Slot (action) | Default | Posture | One Strike | Master Cuts |
   |---|---|---|---|---|
@@ -115,66 +116,22 @@ FORMULAS.md. Still open:
   0.1 s with a sword: tight.
 - **The Kobold Greatsword** keeps its longer measure by the same rules; nothing of its own.
 
-## 3. Master Cuts (Liechtenauer and Kingdom Come)
+## 3. Master Cuts (Liechtenauer and Kingdom Come): built
 
-**The idea.** Four real longsword guards, each a visible threat and a weakness: every guard is broken by one master
-cut, thrown from another guard. There's no held block. Any counter-cut timed into an attack binds it (KCD's perfect
-block), but only one thrown from the guard that breaks the attacker's goes through and hits (KCD's master strike).
-Reading is seeing their guard and standing in the one that breaks it before they move; weapon play is the timed
-counter-cut, changing guard mid-windup to beat a reader, and the bind.
+Four longsword guards, each broken by one master cut thrown from another; no held block: a master cut timed into an
+attack displaces it from the guard that breaks the attacker's and binds it from any other, and a master cut at the
+guard it breaks can't be countered; a guard change mid-wind-up is a Fehler. What it does now is in AGENTS.md ("The
+Master Cuts style") and FORMULAS.md. Still open:
 
-**Controls.** U, I, O and K (or flicks left, up, right, down) take Ochs, Vom Tag, Pflug and Alber. Left click strikes
-from your guard; right click throws its master cut, also the counter. Shift is Ringen (the guard break as built).
-
-**Numbers** (`MASTER_CUTS`; times × heft; damage × the weapon's, × strength):
-
-- The guards and what they break: Vom Tag (blade up over the shoulder) throws the Scheitelhau, which breaks Alber;
-  Alber (point down, inviting) the Krumphau, which breaks Ochs; Ochs (hilt by the head, point at the face) the
-  Schielhau, which breaks Pflug; Pflug (hilt at the hip, point at the chest) the Zwerchhau, which breaks Vom Tag. Each
-  guard breaks one and is broken by one; opposite pairs (Vom Tag and Ochs, Alber and Pflug) are even.
-- Changing guard takes 0.25 s (0.15 s in an attack's recovery), with no guard while moving; 3 stamina. You start in
-  Vom Tag.
-- Strikes (left click): the Oberhau from Vom Tag (windup 0.45 s, ×1.2, 160° arc), the Oberstich from Ochs and the
-  Unterstich from Pflug (0.3 s, ×0.9, 30°, reach ×1.25), the Unterhau from Alber (0.4 s, ×1, 140°). Live 0.1 s,
-  recovery 0.35 s, chains of three (a chained windup ×0.85), 10 stamina.
-- Master cuts (right click): windup 0.35 s, live 0.12, recovery 0.4, ×1.3, 16 stamina; the Scheitelhau 40° and reach
-  ×1.3, the Krumphau 100°, the Schielhau 60° and reach ×1.15, the Zwerchhau 140°.
-- The counter: an attack that would land within 0.3 s after your right click (that step counts), with you facing it
-  (140°). Thrown from the guard your guard breaks, it's displaced: the attack ends, its thrower is opened 0.6 s, and
-  your master cut goes on and lands, its stamina given back. Thrown from any other guard, it binds: both attacks end,
-  the attacker recoils 0.45 s and you 0.3 s (your move next), 8 stamina each. At 0 stamina a right click does nothing.
-- A master cut at someone standing in the guard it breaks can't be countered at all: only a dodge, or leaving that
-  guard before it lands (then it meets the new guard by the rules above).
-- Fehler (the feint): a guard change in a windup with more than 0.15 s left turns the attack into the new guard's
-  (the same button), its windup left at least 0.2 s; 6 stamina, once per attack.
-- Ringen: `GUARD_BREAK` and its counter as built, against any guard.
-
-**The Kobold.** Holds a guard 1.5-3 s (`ENEMY_GUARD`), reacts after 0.35 s, and half the time answers your guard by
-moving to the one that breaks it. In reach: if you stand in the guard its guard breaks, it throws the master cut
-(60%); otherwise strings of 2-3 strikes, 20% of them changed mid-windup (Fehler). When you attack from the guard its
-guard breaks, it displaces 45% (pressing 0.2 s before it lands); from another guard it binds 30%. It wrestles an idle
-player 20% and counters wrestling 30% (as now). The boar and Warlock attacks come from no guard: any timed right click
-binds them, none displaces them.
-
-**PvP.** Symmetric. Standing still in a guard invites its master cut; changing guard opens you for 0.25 s; the timed
-counter needs the right guard to win, so players pre-position and Fehler punishes it.
-
-**Drawn and heard.** Four guard poses with very different blade angles (the 3D blade makes them read from any
-side); four strikes; four master cuts (the Scheitelhau long and vertical, the Krumphau crossing onto the hands, the
-Schielhau a short cut from the shoulder, the Zwerchhau flat with the hilt high); the bind (blades crossed, held 0.3
-s); the Fehler (the blade turning mid-windup). Sounds: the bind grinds, a displacement rings bright. HUD: a small guard
-diamond under the fight (Vom Tag top, Ochs left, Pflug right, Alber bottom): yours filled gold, the locked foe's
-outlined red. It shows guards, never attacks.
-
-**Reuses.** Most of For Honor's machinery: the held guard input (four values), the flicks (plus down), `turnGuard`
-and the guard hold for the Kobold, `parries()` for the counter's window, `blocked()` and `stagger()`, the feint
-check (`feintable`), `guard-break.ts` whole, the guard widget turned into the diamond. New: the break cycle, the
-eight attacks' table, displacing and binding, the Fehler.
-
-**Tests first.** Each guard's strike and master cut (timing, damage, shape); displacing from the breaking guard and
-binding from the others, the window's edges, at 0 stamina; an uncounterable master cut on a guard it breaks, and
-dodged; leaving the guard in time; Fehler's cutoff and cost; the Kobold's seeded pressure, displacements and binds;
-a duel both ways.
+- **Art.** No new drawings: For Honor's guard frames stand in for Vom Tag, Ochs and Pflug (Alber stands), and each
+  attack is drawn as the nearest of the hybrid's ways (the stiche as its stab). The 3D blade holds the four guards.
+  Wanted: the four guards, the four strikes and four master cuts, the bind (blades crossed), the Fehler's turn. Then
+  ART.md's "What to draw".
+- **Seeing the foe's guard.** Locked on, your own sprite can hide the foe's blade; the diamond under the fight shows
+  its guard meanwhile.
+- **Feel.** Every number is a first guess and none was hand-played; the Kobold loses to a bot that answers its guard
+  and counters from the breaking one (keeping a third of its HP or more) and beats one that stands in one guard
+  (`server/test/core/enemies/kobold-swordsman-master-cuts.test.ts`).
 
 ## Build order
 
@@ -182,7 +139,7 @@ a duel both ways.
    controls, strong against every enemy we have.
 2. **One Strike** (built): the most novel feel (lethal, footsies, disarms) and the best PvP read; more new parts
    (the line clock, disarms, the loose blade, zones, the lame).
-3. **Master Cuts**: the cheapest on top of For Honor's code, but the closest to it in feel, so last.
+3. **Master Cuts** (built): the cheapest on top of For Honor's code, but the closest to it in feel, so last.
 
 ## Not now
 

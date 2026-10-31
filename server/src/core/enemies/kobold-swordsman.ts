@@ -39,6 +39,11 @@ export const KOBOLD_SWORDSMAN: Enemy = {
           decideMaxTime: 1.4, matched: { thrust: 0.4, beat: 0.3, wait: 0.3 }, followChance: 0.6, disarmChance: 0.35,
           stepBackChance: 0.4,
         },
+        masterCuts: {
+          windupExtraTime: 0.3, reactTime: 0.35, answerChance: 0.5, cutChance: 0.6, minString: 2, maxString: 3,
+          fehlerChance: 0.2, fehlerLeadTime: 0.25, displaceChance: 0.45, bindChance: 0.3, counterLeadTime: 0.2,
+          wrestleChance: 0.2, recoverTime: 0.6,
+        },
       },
     },
     wielder: { hands: { rightHand: "kobold-blade" }, armReachM: 0.8 },

@@ -79,6 +79,11 @@ What's built so far:
   the body nearly, the legs lame); move your blade into a thrust's line as it lands to disarm its thrower; right
   click beats a matched blade aside. Disarmed, you punch and walk to your blade. A boar charging onto a set low
   blade impales itself. The Kobold keeps its measure, changes line, follows yours and tries to disarm you.
+  Or to **Master Cuts** (Liechtenauer, Kingdom Come): four longsword guards (U I O K or flicks: Ochs, Vom Tag,
+  Pflug, Alber), each broken by one master cut. Left click strikes from your guard, right click throws its master
+  cut, also the counter: timed into an attack it displaces it from the guard that breaks the attacker's and binds it
+  from any other; a master cut at the guard it breaks can't be countered. A guard change mid-wind-up is a Fehler.
+  The Kobold answers your guard, throws the cut that breaks it, counters and wrestles.
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its

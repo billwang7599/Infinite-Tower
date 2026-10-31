@@ -18,6 +18,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [The hybrid style](#the-hybrid-style)
 - [The Posture style](#the-posture-style)
 - [The One Strike style](#the-one-strike-style)
+- [The Master Cuts style](#the-master-cuts-style)
 - [Poise and stagger (enemies)](#poise-and-stagger-enemies)
 - [Stun and invulnerability (players)](#stun-and-invulnerability-players)
 - [Stamina](#stamina)
@@ -298,6 +299,43 @@ Empowered and Cursed don't. Poise and stamina regen work as everywhere.
 Example: a sword thrust at the middle line of a Kobold holding high lands for 160 × 0.6 = 96 HP (its defense 10:
 × 1). The same thrust at a player's low line takes 100 × 0.2 = 20 HP and lames them; at the Kobold's high, it
 clashes.
+
+## The Master Cuts style
+
+A fight in the Master Cuts style plays by `BREAKS` and `MASTER_CUTS` in `shared/src/weapons/master-cuts.ts`; the rules
+in `shared/src/battle/fight/styles/master-cuts/`. Every time × the heft; damage is the weapon's × the attack's factor
+× √(strength / 10), through `hurt` (defense counts), as For Honor's; poise damage 12 a strike, 24 a master cut.
+
+| Guard | Strike (left click) | Wind-up | Damage | Arc, reach | Master cut (right click) | Arc, reach | Breaks |
+|---|---|---|---|---|---|---|---|
+| Vom Tag (I) | Oberhau | 0.45 | × 1.2 | 160°, × 1 | Scheitelhau | 40°, × 1.3 | Alber |
+| Ochs (U) | Oberstich | 0.3 | × 0.9 | 30°, × 1.25 | Schielhau | 60°, × 1.15 | Pflug |
+| Pflug (O) | Unterstich | 0.3 | × 0.9 | 30°, × 1.25 | Zwerchhau | 140°, × 1 | Vom Tag |
+| Alber (K) | Unterhau | 0.4 | × 1 | 140°, × 1 | Krumphau | 100°, × 1 | Ochs |
+
+Reach is (arm + blade) × the factor, from the centre to the target's edge.
+
+- **Strikes:** live 0.1 s, then 0.35 s of recovery; 10 stamina × heft. One started in the last one's recovery chains,
+  three at most (then the next waits for the recovery); a chained one winds up × 0.85.
+- **Master cuts:** wind-up 0.35 s, live 0.12 s, recovery 0.4 s, × 1.3 damage, 16 stamina × heft. No chains.
+- **Guards:** a fight starts in Vom Tag. A change takes 0.25 s (0.15 s in an attack's recovery), 3 stamina, with no
+  guard while it moves: no attack or counter until it's there (a press waits). Never while the blade is out.
+- **The counter:** a hit landing at most 0.3 s after your master cut's press (that step too), you facing it (140°).
+  From the guard that breaks the attacker's it displaces: their attack ends, they're open 0.6 s, your master cut goes
+  on and its stamina is given back. From any other it binds: both attacks end, the attacker recoils 0.45 s and you
+  0.3 s; your cut's stamina is given back and each pays 8. A master cut at the guard it breaks can't be countered.
+  The boar's and Warlock's blows come from no guard: a counter binds them. No stamina: a click does nothing.
+- **Fehler:** a guard change in a wind-up with more than 0.15 s left turns the attack into the new guard's (strike or
+  cut), its wind-up left at least 0.2 s × heft, the guard there at once; 6 stamina, once per attack.
+- **Ringen:** For Honor's guard break and its counter, unchanged.
+- **The Kobold** (`masterCuts` in its weapon attack): its strikes and master cuts wind up 0.3 s longer than yours (a
+  counter's doesn't); it holds a guard 1.5-3 s; 0.35 s after your guard settles it moves to the one that breaks it
+  half the time. In reach: you in the guard its guard breaks, the master cut 60%; else strings of 2-3 strikes, each
+  from a guard picked at random, each 20% turned by a Fehler 0.25 s before it lands; 0.6 s of recovery, then its 1.2 s
+  cooldown. Your attack from the guard its guard breaks: it displaces 45%; from another: binds 30%; pressing 0.2 s
+  before it lands. An idle player in reach: it wrestles 20%, and counters wrestling 30%.
+
+Example: a sword's Oberhau deals 9 × 1.2 = 10.8 to a defense-10 target; the Kobold blade's Scheitelhau 14 × 1.3 = 18.2.
 
 ## Poise and stagger (enemies)
 

@@ -38,6 +38,11 @@ const SWORDED: EnemyDef = {
         thrustWindupTime: 9, reactTime: 0.3, reactJitterTime: 0, measureM: 0.2, decideMinTime: 99, decideMaxTime: 99,
         matched: { thrust: 0, beat: 0, wait: 1 }, followChance: 0, disarmChance: 0, stepBackChance: 0,
       },
+      masterCuts: {
+        windupExtraTime: 0, reactTime: 0.35, answerChance: 0, cutChance: 0, minString: 1, maxString: 1,
+        fehlerChance: 0, fehlerLeadTime: 0.25, displaceChance: 0, bindChance: 0, counterLeadTime: 0.2,
+        wrestleChance: 0, recoverTime: 1,
+      },
     },
   },
 };
@@ -201,6 +206,15 @@ describe("the arena's ears", () => {
     const whats = ["clash", "disarm", "beat", "offLine", "impale", "pickup"] as const;
     ctx.events = whats.map((what, i) => ({ step: 1 + i, event: { type: "strike", by: player, target: enemy, what } }));
     assert.deepEqual(sounds(hear(ctx)!), ["parry", "parry", "drop", "block", "block", "hit-body", "pickup"]);
+  });
+
+  test("Master Cuts' moments: a displacement rings bright, a bind grinds low", () => {
+    const { ctx, hear, player, enemy } = arena(undefined, STANDER, "master-cuts");
+    ctx.events = (["displace", "bind"] as const).map((what, i) =>
+      ({ step: 1 + i, event: { type: "cut", by: player, target: enemy, what } }));
+    const heard = hear(ctx)!;
+    assert.deepEqual(sounds(heard), ["parry", "parry", "block"]);
+    assert.ok(heard.cues[0]!.rate! > 1 && heard.cues[1]!.rate! < 1 && heard.cues[2]!.rate! < 1);
   });
 
   test("a feint is heard as the blade is pulled back", () => {

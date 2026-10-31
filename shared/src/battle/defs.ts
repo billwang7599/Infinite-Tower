@@ -100,6 +100,23 @@ export interface OneStrikeSwordsmanDef {
   stepBackChance: number;
 }
 
+export interface MasterCutsSwordsmanDef {
+  /** On top of the player's wind-ups, so its attacks can be read. */
+  windupExtraTime: number;
+  reactTime: number;
+  answerChance: number;
+  cutChance: number;
+  minString: number;
+  maxString: number;
+  fehlerChance: number;
+  fehlerLeadTime: number;
+  displaceChance: number;
+  bindChance: number;
+  counterLeadTime: number;
+  wrestleChance: number;
+  recoverTime: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -117,6 +134,7 @@ export interface WeaponAttackDef {
   hybrid: HybridSwordsmanDef;
   posture: PostureSwordsmanDef;
   oneStrike: OneStrikeSwordsmanDef;
+  masterCuts: MasterCutsSwordsmanDef;
 }
 
 /**

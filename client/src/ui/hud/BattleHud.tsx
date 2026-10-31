@@ -1,5 +1,6 @@
 import {
-  coreStats, GUARD_SIDES, NO_PILE, type Gear, type GuardSide, type Skill, type Spot, type UseSpot,
+  coreStats, GUARD_SIDES, NO_PILE, STANCES, type Gear, type GuardSide, type Skill, type Spot, type Stance,
+  type UseSpot,
 } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
@@ -71,6 +72,7 @@ export function BattleHud(props: BattleHudProps) {
         <Ping ping={ping} hud={hudSettings} />
       </div>
       <GuardWidget hud={hud} />
+      <StanceDiamond hud={hud} />
       <BossBar hud={hud} />
       <Hotbar skills={skills} bindings={bindings} />
       <ResultBanner hud={hud} bindings={bindings} />
@@ -225,6 +227,32 @@ function GuardWidget({ hud }: HudProps) {
           <path d="M36 28 L48 18 L60 28" className={mine === side ? "stroke-victory" : "stroke-white/15"} />
         </g>
       ))}
+    </svg>
+  );
+}
+
+const STANCE_AT: Record<Stance, { x: number; y: number }> = {
+  "vom-tag": { x: 32, y: 10 }, ochs: { x: 14, y: 28 }, pflug: { x: 50, y: 28 }, alber: { x: 32, y: 46 },
+};
+
+function StanceDiamond({ hud }: HudProps) {
+  const mine = useStore(hud, (s) => s.stance);
+  const foe = useStore(hud, (s) => s.foeStance);
+  return (
+    <svg
+      id="stance-diamond" data-mine={mine ?? ""} data-foe={foe ?? ""} viewBox="0 0 64 56"
+      className={`absolute bottom-18 left-1/2 w-16 -translate-x-1/2 ${mine || foe ? "opacity-100" : "opacity-0"}`}
+    >
+      {STANCES.map((stance) => {
+        const { x, y } = STANCE_AT[stance], d = `M${x} ${y - 8} L${x + 8} ${y} L${x} ${y + 8} L${x - 8} ${y} Z`;
+        return (
+          <g key={stance} strokeWidth={2.5} strokeLinejoin="round">
+            <path d={d} className={mine === stance ? "fill-victory stroke-victory" : "fill-black/40 stroke-white/15"} />
+            {foe === stance && <path d={`M${x} ${y - 12} L${x + 12} ${y} L${x} ${y + 12} L${x - 12} ${y} Z`}
+              fill="none" className="stroke-died" />}
+          </g>
+        );
+      })}
     </svg>
   );
 }

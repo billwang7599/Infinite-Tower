@@ -51,6 +51,7 @@ const FLICKS: Record<CombatStyle, readonly (WorldAction | null)[]> = {
   ],
   posture: [],
   "one-strike": [null, "lowerLine", null, "raiseLine"],
+  "master-cuts": ["pflug", "alber", "ochs", "vomTag"],
 };
 
 export interface Polled {

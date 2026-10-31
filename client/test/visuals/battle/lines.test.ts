@@ -12,7 +12,7 @@ const still = (line: Line, over: Partial<OneStrikeData> = {}): OneStrikeData => 
 });
 const thrustAt = (line: Line, step: number): SwingData => ({
   attack: "light", side: "top", way: null, chain: 0, dir: { x: 0, z: 1 }, step, ...strikeSteps(1, "thrust"),
-  damage: 0, poiseDamage: 0, posture: 0, perilous: null, line, punch: false,
+  damage: 0, poiseDamage: 0, posture: 0, perilous: null, line, punch: false, stance: null,
 });
 
 describe("One Strike's blade, drawn", () => {

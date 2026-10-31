@@ -100,6 +100,13 @@ export const EFFECTS: Effects = {
     const armed = world.has(ev.by, Wielder);
     clash(scene, world, armed ? ev.by : ev.target, armed ? ev.target : ev.by);
   },
+  cut(scene, ev, world) {
+    shake(scene, ev.what === "displace" ? 0.14 : 0.1);
+    if (ev.what === "displace") return parried(scene, world, ev.by, ev.target);
+    const armed = world.has(ev.target, Wielder);
+    clash(scene, world, armed ? ev.target : ev.by, armed ? ev.by : ev.target);
+    grabbed(scene, world, ev.by, ev.target, false);
+  },
   skill({ skills: { bursts } }, ev) {
     if (ev.form === "nova") bursts.nova(ev.elements, ev.at, ev.radiusM ?? 1);
     else if (ev.form === "self") bursts.self(ev.elements, ev.at);

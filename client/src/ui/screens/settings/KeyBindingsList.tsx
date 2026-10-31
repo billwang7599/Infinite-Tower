@@ -18,6 +18,7 @@ import { SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 const GROUP_TITLES: Record<Group, string> = {
   general: "General", overworld: "Overworld", battle: "Battle", "for-honor": "Battle: For Honor style",
   hybrid: "Battle: Hybrid style", posture: "Battle: Posture style", "one-strike": "Battle: One Strike style",
+  "master-cuts": "Battle: Master Cuts style",
 };
 
 /** The slot waiting for a key: an action, and which of its keys the next one replaces (null: add one). */

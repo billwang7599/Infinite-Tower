@@ -57,6 +57,12 @@ const STRIKE_CUES: Record<StrikeMoment, Omit<Cue, "at">[]> = {
   pickup: [{ sound: "pickup" }],
 };
 
+type CutMoment = Extract<FightEvent, { type: "cut" }>["what"];
+const CUT_CUES: Record<CutMoment, Omit<Cue, "at">[]> = {
+  displace: [{ sound: "parry", rate: 1.5, gain: 1.2 }],
+  bind: [{ sound: "parry", rate: 0.7, gain: 0.9 }, { sound: "block", rate: 0.6, gain: 1.1 }],
+};
+
 export function swingVoice(massKg: number, attack: AttackKind): { rate: number; gain: number } {
   const heavier = massKg / ITEMS.sword.weight, heavy = attack === "heavy";
   return {
@@ -93,6 +99,7 @@ const EVENT_CUES: EventCues = {
   kick: (ev, world) => [{ sound: KICK_SOUNDS[ev.result], at: posOf(world, ev.target) }],
   posture: (ev, world) => [{ ...POSTURE_CUES[ev.what], at: posOf(world, ev.target) }],
   strike: (ev, world) => STRIKE_CUES[ev.what].map((cue) => ({ ...cue, at: posOf(world, ev.target) })),
+  cut: (ev, world) => CUT_CUES[ev.what].map((cue) => ({ ...cue, at: posOf(world, ev.target) })),
   skill(ev) {
     const el = ELEMENT_SOUNDS[ev.elements[0] ?? "plain"];
     return [{ sound: ev.form === "nova" ? el.impact : el.cast, at: flat(ev.at), rate: el.rate }];

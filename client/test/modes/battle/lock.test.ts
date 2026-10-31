@@ -85,15 +85,15 @@ describe("moving while locked", () => {
 
   test("the player faces the target", () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(polled([]), lockYaw(from, target)!, { guard: null, way: null, line: null }, input);
+    readPlayerInput(polled([]), lockYaw(from, target)!, { guard: null, way: null, line: null, stance: null }, input);
     assert.ok(Math.abs(input.aimX - 1) < 1e-9 && Math.abs(input.aimZ) < 1e-9);
   });
 
   test("forward goes at the target, right and left circle it", () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(polled([], { x: 0, z: 1 }), lockYaw(from, target)!, { guard: null, way: null, line: null }, input);
+    readPlayerInput(polled([], { x: 0, z: 1 }), lockYaw(from, target)!, { guard: null, way: null, line: null, stance: null }, input);
     assert.ok(Math.abs(input.moveX - 1) < 1e-9 && Math.abs(input.moveZ) < 1e-9);
-    readPlayerInput(polled([], { x: 1, z: 0 }), lockYaw(from, target)!, { guard: null, way: null, line: null }, input);
+    readPlayerInput(polled([], { x: 1, z: 0 }), lockYaw(from, target)!, { guard: null, way: null, line: null, stance: null }, input);
     assert.ok(Math.abs(input.moveX) < 1e-9 && Math.abs(input.moveZ + 1) < 1e-9);
   });
 

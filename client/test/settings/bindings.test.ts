@@ -161,7 +161,8 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [
       menu, { group: "battle", action: "lightAttack" }, { group: "battle", action: "heavyAttack" }, dragCamera,
       { group: "posture", action: "guard" }, { group: "one-strike", action: "thrust" },
-      { group: "one-strike", action: "beat" },
+      { group: "one-strike", action: "beat" }, { group: "master-cuts", action: "strike" },
+      { group: "master-cuts", action: "masterCut" },
     ]);
   });
 });
@@ -321,11 +322,15 @@ describe("KeyBindings.bind", () => {
     assert.deepEqual(keys(b, dodge), ["KeyZ", "KeyX", "KeyF"]);
   });
 
-  test("U is guard left's only key, and the hybrid's top-left aim's, so binding it to dodge swaps F onto both", () => {
+  test("U is guard left's only key, the hybrid's top-left aim's and Ochs', so binding it to dodge swaps F onto all", () => {
     const b = new KeyBindings();
-    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), { ok: true, takenFrom: [guardLeft, aimTopLeft], gave: "KeyF" });
+    const ochs = { group: "master-cuts", action: "ochs" } as const;
+    assert.deepEqual(b.bind(dodge, "KeyU", "KeyF"), {
+      ok: true, takenFrom: [guardLeft, aimTopLeft, ochs], gave: "KeyF",
+    });
     assert.deepEqual(keys(b, guardLeft), ["KeyF"]);
     assert.deepEqual(keys(b, aimTopLeft), ["KeyF"]);
+    assert.deepEqual(keys(b, ochs), ["KeyF"]);
   });
 
   test("two combat styles may share a key: they're never in one fight", () => {

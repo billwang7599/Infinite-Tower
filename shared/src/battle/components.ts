@@ -3,6 +3,7 @@ import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
+import type { Stance } from "../weapons/master-cuts.js";
 import type { Line } from "../weapons/one-strike.js";
 import type { Perilous, PerilousEnd } from "../weapons/posture.js";
 import type { AttackKind, GuardSide } from "../weapons/weapons.js";
@@ -112,6 +113,7 @@ export interface SwingData {
   perilous: Perilous | null;
   line: Line | null;
   punch: boolean;
+  stance: Stance | null;
 }
 
 export interface GrabData {
@@ -209,6 +211,15 @@ export interface OneStrikeData {
   loose: Vec2 | null;
 }
 export const OneStrike = defineComponent<OneStrikeData>("OneStrike");
+
+/** `want`: the guard asked for; `to`: the one held, or being moved to while `moveSteps` runs. */
+export interface CutsData {
+  to: Stance;
+  want: Stance;
+  moveSteps: number;
+  fehlered: boolean;
+}
+export const Cuts = defineComponent<CutsData>("Cuts");
 export const Stamina = defineComponent<StaminaData>("Stamina");
 
 /** Code moves a body by setting `vel`; the physics step moves the collider and writes back `pos` and `vel`. */
@@ -242,6 +253,7 @@ export interface ActiveHitData {
   posture: number;
   perilous: Perilous | null;
   line: Line | null;
+  stance: Stance | null;
   alreadyHit: Set<Entity>;
 }
 export const ActiveHit = defineComponent<ActiveHitData>("ActiveHit");
@@ -320,6 +332,7 @@ export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   reactSteps: number;
   reactLine: Line;
   seenWant: Line | null;
+  seenStance: Stance | null;
 }
 
 export type StrikeReaction = "follow" | "disarm" | "back";

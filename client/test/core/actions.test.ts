@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { copyInput, IDLE_INPUT, type GuardSide, type Line, type SwingDir } from "@infinite-tower/shared";
+import { copyInput, IDLE_INPUT, type GuardSide, type Line, type Stance, type SwingDir } from "@infinite-tower/shared";
 import { Actions, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
-import { pickedGuard, pickedLine, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
+import { pickedGuard, pickedLine, pickedStance, pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
@@ -52,7 +52,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   };
   const read = () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: null }, input);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: null, stance: null }, input);
     return input;
   };
   const attack = () => read().attack;
@@ -933,8 +933,51 @@ describe("Actions: a One Strike fight", () => {
   test("the line read into the input is the one picked", () => {
     const { actions } = oneStrike();
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: "low" }, input);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: "low", stance: null }, input);
     assert.equal(input.line, "low");
+  });
+});
+
+describe("Actions: a Master Cuts fight", () => {
+  const cuts = () => {
+    const s = setup();
+    s.actions.setCombatStyle("master-cuts");
+    const stance = (was: Stance = "vom-tag") => pickedStance(s.actions.poll(), was);
+    return { ...s, stance };
+  };
+
+  test("U, I, O and K take Ochs, Vom Tag, Pflug and Alber", () => {
+    for (const [key, want] of [["KeyU", "ochs"], ["KeyI", "vom-tag"], ["KeyO", "pflug"], ["KeyK", "alber"]] as const) {
+      const { stance, press } = cuts();
+      press(key);
+      assert.equal(stance("alber" === want ? "vom-tag" : "alber"), want, key);
+    }
+  });
+
+  test("so do flicks left, up, right and down", () => {
+    const flicks = [[-1, 0, "ochs"], [0, -1, "vom-tag"], [1, 0, "pflug"], [0, 1, "alber"]] as const;
+    for (const [x, y, want] of flicks) {
+      const { stance, move } = cuts();
+      move(x * FAR, y * FAR);
+      assert.equal(stance(want === "alber" ? "ochs" : "alber"), want, `${x},${y}`);
+    }
+  });
+
+  test("left click strikes (a light attack), right click throws the master cut (a heavy one), Shift wrestles", () => {
+    const { read, click, press } = cuts();
+    click(0);
+    assert.equal(read().attack, "light");
+    click(2);
+    assert.equal(read().attack, "heavy");
+    press("ShiftLeft");
+    assert.equal(read().guardBreak, true);
+  });
+
+  test("the guard read into the input is the one picked", () => {
+    const { actions } = cuts();
+    const input = copyInput(IDLE_INPUT);
+    readPlayerInput(actions.poll(), 0, { guard: null, way: null, line: null, stance: "pflug" }, input);
+    assert.equal(input.stance, "pflug");
   });
 });
 
@@ -945,7 +988,7 @@ describe("Actions: a hybrid fight", () => {
     const aim = (was: SwingDir = "tb") => pickedWay(s.actions.poll(), was);
     const readHybrid = () => {
       const input = copyInput(IDLE_INPUT);
-      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr", line: null }, input);
+      readPlayerInput(s.actions.poll(), 0, { guard: null, way: "lr", line: null, stance: null }, input);
       return input;
     };
     return { ...s, aim, readHybrid };

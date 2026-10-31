@@ -5,6 +5,7 @@ import type { Equipment } from "../../../items/gear.js";
 import {
   HYBRID, sideOfWay, strikeDamage, wayShape, wayStepsAfter, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
+import { cutDamage, cutShape, cutSteps, MASTER_CUTS, type CutMove, type Stance } from "../../../weapons/master-cuts.js";
 import {
   punchDamage, strikeShape, strikeSteps, type Line, type StrikeMove,
 } from "../../../weapons/one-strike.js";
@@ -31,7 +32,7 @@ export function startSwing(
   world.require(e, Wielder).swing = {
     attack, side, way: null, chain, dir, step: 0, ...attackSteps(weapon, attack, chain, swift),
     damage: attackDamage(weapon, attack, world.require(e, FighterStats)),
-    poiseDamage: ATTACKS[attack].poiseDamage, posture: 0, perilous: null, line: null, punch: false,
+    poiseDamage: ATTACKS[attack].poiseDamage, posture: 0, perilous: null, line: null, punch: false, stance: null,
   };
 }
 
@@ -43,7 +44,7 @@ export function startWaySwing(
     attack: strike === "heavy" ? "heavy" : "light", side: sideOfWay(way), way, chain: 0, dir, step: 0,
     ...wayStepsAfter(weapon, windupTime, strike === "heavy"),
     damage: strikeDamage(weapon, strike, power, world.require(e, FighterStats)),
-    poiseDamage: HYBRID[strike].poiseDamage, posture: 0, perilous: null, line: null, punch: false,
+    poiseDamage: HYBRID[strike].poiseDamage, posture: 0, perilous: null, line: null, punch: false, stance: null,
   };
 }
 
@@ -59,7 +60,7 @@ export function startPostureSwing(
     attack: move === "swing" ? "light" : "heavy", side: "top", way: POSTURE_WAYS[move], chain, dir, step: 0,
     ...postureSteps(weapon, move, windupTime, delayTime),
     damage: moveDamage(weapon, move, world.require(e, FighterStats)), poiseDamage: 0,
-    posture: POSTURE_MOVES[move].posture * weapon.heft, perilous, line: null, punch: false,
+    posture: POSTURE_MOVES[move].posture * weapon.heft, perilous, line: null, punch: false, stance: null,
   };
 }
 
@@ -72,7 +73,18 @@ export function startStrikeSwing(
   world.require(e, Wielder).swing = {
     attack: "light", side: "top", way: null, chain: 0, dir, step: 0, ...strikeSteps(heft, move, windupTime),
     damage: punch ? punchDamage(world.require(e, FighterStats)) : 0, poiseDamage: 0, posture: 0, perilous: null,
-    line: punch ? null : line, punch,
+    line: punch ? null : line, punch, stance: null,
+  };
+}
+
+export function startCutSwing(
+  world: World, e: Entity, weapon: Weapon, move: CutMove, stance: Stance, chain: number, dir: Vec2, windupTime: number,
+): void {
+  world.remove(e, ActiveHit);
+  world.require(e, Wielder).swing = {
+    attack: move === "cut" ? "heavy" : "light", side: "top", way: null, chain, dir, step: 0,
+    ...cutSteps(weapon.heft, move, windupTime), damage: cutDamage(weapon, move, stance, world.require(e, FighterStats)),
+    poiseDamage: MASTER_CUTS[move].poiseDamage, posture: 0, perilous: null, line: null, punch: false, stance,
   };
 }
 
@@ -100,13 +112,16 @@ export function weaponSystem(): System {
       }
       if (!bladeLive(swing)) world.remove(e, ActiveHit);
       else if (!world.has(e, ActiveHit)) {
-        const shape = swing.punch ? strikeShape("punch", wielder.armReachM, weapon)
+        const shape = swing.stance ? cutShape(swing.attack === "heavy" ? "cut" : "strike", swing.stance,
+          wielder.armReachM, weapon)
+          : swing.punch ? strikeShape("punch", wielder.armReachM, weapon)
           : swing.line ? strikeShape("thrust", wielder.armReachM, weapon)
           : swing.way ? wayShape(swing.way, wielder.armReachM, weapon)
           : attackShape(swing.side, wielder.armReachM, weapon);
         addHit(world, e, swing.dir.x, swing.dir.z, {
           ...shape, damage: swing.damage, poiseDamage: swing.poiseDamage, attack: swing.attack, side: swing.side,
           way: swing.way, posture: swing.posture, perilous: swing.perilous, line: swing.line,
+          stance: swing.stance,
         });
       }
       swing.step++;

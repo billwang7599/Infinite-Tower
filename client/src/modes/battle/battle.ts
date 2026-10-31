@@ -1,5 +1,5 @@
 import {
-  Body, copyInput, IDLE_INPUT, LocalPlayer, ONE_STRIKE, Player, sameSkill, type ServerMsgOf, type Skill,
+  Body, copyInput, IDLE_INPUT, LocalPlayer, MASTER_CUTS, ONE_STRIKE, Player, sameSkill, type ServerMsgOf, type Skill,
   type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
@@ -12,7 +12,7 @@ import type { Store } from "../../ui/store.js";
 import { arenaCamera } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
-import { pickedGuard, pickedLine, pickedWay, readPlayerInput } from "./input.js";
+import { pickedGuard, pickedLine, pickedStance, pickedWay, readPlayerInput } from "./input.js";
 import { closestFoe, livingFoes, lockYaw, steerLock } from "./lock.js";
 import { FightSync } from "./sync.js";
 
@@ -52,6 +52,7 @@ export function createBattle(opts: BattleOptions): Battle {
     guard: START_GUARD,
     way: START_WAY,
     line: ONE_STRIKE.startLine,
+    stance: MASTER_CUTS.startStance,
     who: [],
     fight: null,
     sync: null,
@@ -93,10 +94,11 @@ export function createBattle(opts: BattleOptions): Battle {
     ctx.guard = pickedGuard(ctx.polled, ctx.guard);
     ctx.way = pickedWay(ctx.polled, ctx.way);
     ctx.line = pickedLine(ctx.polled, ctx.line);
+    ctx.stance = pickedStance(ctx.polled, ctx.stance);
     const hybrid = fight.style === "hybrid";
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, {
       guard: fight.style !== "for-honor" || ctx.lock === null ? null : ctx.guard, way: hybrid ? ctx.way : null,
-      line: fight.style === "one-strike" ? ctx.line : null,
+      line: fight.style === "one-strike" ? ctx.line : null, stance: fight.style === "master-cuts" ? ctx.stance : null,
     }, input);
     const last = casting;
     input.castHeld = last !== null && HOTBAR.some((key, i) => {
@@ -176,6 +178,7 @@ export function createBattle(opts: BattleOptions): Battle {
       ctx.guard = START_GUARD;
       ctx.way = START_WAY;
       ctx.line = ONE_STRIKE.startLine;
+      ctx.stance = MASTER_CUTS.startStance;
       const target = foes.find((f) => f.e === ctx.lock)?.pos;
       Object.assign(ctx.view, START_VIEW, { yaw: (target && lockYaw(me, target)) ?? START_VIEW.yaw });
       ctx.polled = actions.poll();

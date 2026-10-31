@@ -28,6 +28,7 @@ export type FightEvent =
   | { type: "kick"; by: Entity; target: Entity; result: "staggered" | "shoved" | "nothing" }
   | { type: "posture"; by: Entity; target: Entity; what: "broken" | "deathblow" | "mikiri" | "jumpKick" | "zanshin" }
   | { type: "strike"; by: Entity; target: Entity; what: "clash" | "disarm" | "beat" | "offLine" | "impale" | "pickup" }
+  | { type: "cut"; by: Entity; target: Entity; what: "displace" | "bind" }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
   | { type: "used"; player: Entity; item: ItemId; brokeThrough: boolean };

@@ -110,7 +110,10 @@ Decided by the user:
   assumptions you want"; [plan/combat-styles.md](plan/combat-styles.md)), every rule of it under "The Posture style"
   in "Decided by the agent". Not hand-played yet. A fourth, **One Strike** (Bushido Blade, Nidhogg, Hellish Quart:
   three lines, lethal thrusts, disarms), is the agent's design from the same ask, every rule of it under "The One
-  Strike style" in "Decided by the agent". Not hand-played yet.
+  Strike style" in "Decided by the agent". Not hand-played yet. A fifth, **Master Cuts** (Liechtenauer's longsword
+  and Kingdom Come: four guards, each broken by one master cut; counters that displace or bind; the Fehler), is the
+  agent's design from the same ask, every rule of it under "The Master Cuts style" in "Decided by the agent". Not
+  hand-played yet.
 - The skill words a player knows are saved with the player in Postgres. For now every player knows every word (the
   starter kit, below).
 - Skills are cast in fights only, paid in stamina from the same bar as dodging (no mana, no cooldowns), and run in
@@ -696,6 +699,46 @@ them; treat them as changeable, and still ask before deciding new ones):
     disarmed blade flies 0.35 s, spinning, to where it lies, its holder's hand empty. Picking it up, a player crouches
     (a squash) and a Kobold bends down. The sprite's overhead swing frames stand in for the thrust. A clash sparks, a
     disarm holds like a parry, an impale jolts like a broken guard.
+- The Master Cuts style (the agent's design, plan/combat-styles.md; tried only in tests and a headless browser, none
+  hand-played; numbers in `MASTER_CUTS` and `BREAKS`, `shared/src/weapons/master-cuts.ts`, the Kobold's in
+  `masterCuts` in its weapon attack):
+  - Keys: a "Battle: Master Cuts style" group: Ochs, Vom Tag, Pflug and Alber on U, I, O and K (or flicks left, up,
+    right, down), strike and master cut on the clicks (fixed), Ringen on left Shift (For Honor's guard break, read as
+    it). The input gained one held field, `stance`: the guard wanted, counted by the client from Vom Tag at each
+    fight's start. A `Cuts` component on every blade holder in a Master Cuts fight (not the boar or the Warlock).
+  - The break cycle as the plan has it (Vom Tag's Scheitelhau breaks Alber, Alber's Krumphau Ochs, Ochs' Schielhau
+    Pflug, Pflug's Zwerchhau Vom Tag). Which guard throws which cut and strike, and their numbers, are the plan's.
+  - Guard moves: a change asked for while the blade is out (wind-up to the end of live) waits for it (but a Fehler);
+    asked again while moving, it starts over toward the new one, for its time and stamina again. While moving there's
+    no guard: an attack or counter pressed then waits for it (its 0.2 s press buffer held while the guard moves, the
+    blade is out or a chain is spent). Players pay the 3 stamina; the Kobold has none.
+  - Attacks: a master cut is a heavy for the tells (drawn back further, the sprite's crouch, the low draw-blade);
+    master cuts don't chain and end a strike chain; a strike chains only off a strike. A press at 0 stamina is
+    dropped, not buffered. Imbue's swiftness speeds the wind-ups. Each costs its stamina × heft.
+  - The counter: its window counted in steps as For Honor's parry (the press up to 18 steps before the landing
+    step). A bind gives the counter's 16 back, then both pay 8 (as recoils, not shortened by toughness, nor the 0.6 s
+    opening). A bound Kobold that countered strikes at once after its recoil (its riposte). A hit that isn't countered
+    lands; the counterer's own cut goes on (a weapon hit only hurts, as For Honor's).
+  - The Fehler: the attack's wind-up runs on as it was, at least 0.2 s × heft left, so a Fehler from Vom Tag into
+    Ochs keeps the Oberhau's slower wind-up; the new guard is there at once; 6 stamina, not × heft.
+  - The Kobold: its strikes and master cuts wind up 0.3 s longer than a player's so they can be read; its counter
+    (a master cut) winds up as a player's. It reacts to your guard 0.35 s after it settles (a new one restarts the
+    count), half the time moving to the guard that breaks it; otherwise it changes guard after 1.5-3 s held. Each
+    chained strike comes from a guard picked at random (it moves there first, in the recovery). A Fehler'd strike
+    turns 0.25 s before it lands, to another guard at random. It reads your attack as it starts, within its reach and
+    facing you, and never tries to counter a master cut that breaks its guard. Ringen: 20% at an idle player in reach,
+    For Honor's 30% counter. 0.6 s of recovery after a string, then its 1.2 s cooldown.
+  - The HUD: a small diamond under the fight (Vom Tag top, Ochs left, Pflug right, Alber bottom), yours filled gold,
+    the locked foe's outlined red, none while a guard moves; only in a Master Cuts fight. It shows guards, never
+    attacks.
+  - Sounds, no new files: a displacement is the parry's clang pitched up and louder; a bind the clang low with the
+    block's knock, low; a Fehler the feint's quick blade-draw.
+  - Drawn, no new drawings: the 3D blade holds each guard (Vom Tag up over the shoulder, hilt raised; Ochs level at
+    the face, hilt by the head; Pflug angled up from the hip; Alber point down), the Kobold's too; each attack is drawn
+    as the nearest of the hybrid's ways (the Oberhau and the Scheitelhau top-down, the stiche as its stab, the Unterhau
+    rising, the Schielhau and the Krumphau diagonal, the Zwerchhau flat). The sprite shows For Honor's top, left and
+    right guard frames for Vom Tag, Ochs and Pflug, standing for Alber. A displacement holds like a parry; a bind
+    clashes and holds both a moment.
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
@@ -971,10 +1014,10 @@ tests say what was agreed. Where tests go and how they're written:
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
   `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same;
-  `window.settings.combat.setStyle("hybrid")`, `("posture")` or `("one-strike")` first for those styles) and, in a
-  fight, `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the
-  pages goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
-  last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
+  `window.settings.combat.setStyle("hybrid")`, `("posture")`, `("one-strike")` or `("master-cuts")` first for those
+  styles) and, in a fight, `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill
+  on none of the pages goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded
+  and looping, the last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
   (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). Headless Chromium has
   no pointer lock, so mouse buttons don't count there: fake it with a context init script (a `pointerLockElement`
   getter, `requestPointerLock` / `exitPointerLock` dispatching `pointerlockchange`). The HUD's card is

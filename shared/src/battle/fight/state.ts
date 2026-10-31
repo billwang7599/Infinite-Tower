@@ -5,9 +5,9 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, OneStrike, Player, Posture, Sidestep, SkillAttack,
+  ActiveHit, Body, ChargeAttack, Cuts, Enemy, Health, LungeAttack, OneStrike, Player, Posture, Sidestep, SkillAttack,
   SkillObject, Skilled, Stamina, Statuses, WeaponAttack, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type OneStrikeData, type PlayerData, type PostureData,
+  type ActiveHitData, type CutsData, type EnemyData, type HealthData, type OneStrikeData, type PlayerData, type PostureData,
   type SkillObjectData, type SkilledData,
   type GrabData, type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
@@ -29,6 +29,7 @@ interface FighterSnapshot {
   skilled: Omit<SkilledData, "target"> & { target: number };
   posture: PostureData | null;
   oneStrike: OneStrikeData | null;
+  cuts: CutsData | null;
 }
 
 interface PlayerSnapshot extends FighterSnapshot {
@@ -96,7 +97,7 @@ export function saveFight(fight: Fight): FightSnapshot {
   const fighter = (e: Entity): FighterSnapshot => {
     const { pos, vel } = world.require(e, Body);
     const { words, aim, target, ...skilled } = world.require(e, Skilled);
-    const posture = world.get(e, Posture), blade = world.get(e, OneStrike);
+    const posture = world.get(e, Posture), blade = world.get(e, OneStrike), cuts = world.get(e, Cuts);
     return {
       pos: { ...pos }, vel: { ...vel }, health: { ...world.require(e, Health) },
       statuses: copyStatuses(world.require(e, Statuses)),
@@ -104,6 +105,7 @@ export function saveFight(fight: Fight): FightSnapshot {
       skilled: { ...skilled, words: [...words], aim: { ...aim }, target: indexIn(fighters, target) },
       posture: posture ? { ...posture } : null,
       oneStrike: blade ? copyBlade(blade) : null,
+      cuts: cuts ? { ...cuts } : null,
     };
   };
   return {
@@ -165,6 +167,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     if (posture && s.posture) Object.assign(posture, s.posture);
     const blade = world.get(e, OneStrike);
     if (blade && s.oneStrike) Object.assign(blade, copyBlade(s.oneStrike));
+    const cuts = world.get(e, Cuts);
+    if (cuts && s.cuts) Object.assign(cuts, s.cuts);
   };
   // Every hitbox out first, then back in the snapshot's order: the order hits are checked in.
   for (const e of fighters) world.remove(e, ActiveHit);

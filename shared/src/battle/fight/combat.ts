@@ -5,6 +5,7 @@
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
 import type { Way } from "../../weapons/hybrid.js";
+import type { Stance } from "../../weapons/master-cuts.js";
 import type { Line } from "../../weapons/one-strike.js";
 import type { Perilous } from "../../weapons/posture.js";
 import { mirrorSide, type AttackKind, type GuardSide, type HitShape } from "../../weapons/weapons.js";
@@ -44,6 +45,7 @@ export interface HitSpec extends HitShape {
   posture?: number;
   perilous?: Perilous | null;
   line?: Line | null;
+  stance?: Stance | null;
 }
 
 export function addHit(world: World, e: Entity, dirX: number, dirZ: number, attack: HitSpec): void {
@@ -51,7 +53,8 @@ export function addHit(world: World, e: Entity, dirX: number, dirZ: number, atta
     dirX, dirZ, range: attack.range, minDot: attack.minDot, damage: attack.damage, knockback: attack.knockback ?? 0,
     lift: attack.lift ?? 0, poiseDamage: attack.poiseDamage ?? 0, attack: attack.attack ?? null,
     side: attack.side ?? "top", way: attack.way ?? null, posture: attack.posture ?? 0,
-    perilous: attack.perilous ?? null, line: attack.line ?? null, alreadyHit: new Set(),
+    perilous: attack.perilous ?? null, line: attack.line ?? null, stance: attack.stance ?? null,
+    alreadyHit: new Set(),
   });
 }
 
