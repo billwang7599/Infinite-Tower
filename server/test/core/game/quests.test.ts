@@ -51,7 +51,9 @@ function faceHollis(session: GameSession): void {
 }
 
 function started(opts: { story?: Story; bag?: Bag } = {}) {
-  const begun = startSession({ dev: true, saved: { story: opts.story ?? newStory(), bag: opts.bag ?? emptyBag() } });
+  const begun = startSession({
+    dev: true, saved: { story: opts.story ?? newStory(), bag: opts.bag ?? emptyBag(), level: STOP.level },
+  });
   faceHollis(begun.session);
   return begun;
 }

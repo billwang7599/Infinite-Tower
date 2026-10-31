@@ -8,10 +8,13 @@ export interface GroundPalette {
   bed: { base: string; dark: string; pebble: string; stone: string; weed: string; foot: string };
   wood: { base: string; dark: string; light: string; rail: string };
   stone: { base: string; dark: string; light: string; moss: string };
+  pad: { base: string; dark: string; light: string; rune: string };
   petals: string[];
 }
 
 const T = 16;
+const PAD_INSET_PX = 3;
+const PAD_RING_PX = 10;
 
 function speckle(pen: Pen, x: number, y: number, rand: () => number, colours: string[], count: number): void {
   for (let i = 0; i < count; i++) {
@@ -35,7 +38,7 @@ function edges(
 }
 
 export function groundPainters(p: GroundPalette) {
-  const { grass: GRASS, tall: TALL, dirt: DIRT, bed: BED, wood: WOOD, stone: STONE } = p;
+  const { grass: GRASS, tall: TALL, dirt: DIRT, bed: BED, wood: WOOD, stone: STONE, pad: PAD } = p;
 
   const grass: GroundPaint = (pen, x, y, rand) => {
     pen.rect(x, y, T, T, GRASS.base);
@@ -110,5 +113,27 @@ export function groundPainters(p: GroundPalette) {
     speckle(pen, x, y, rand, [STONE.moss, STONE.dark], 6);
   };
 
-  return { grass, flowers, tallGrass, dirt, riverbed, planks, flagstones };
+  const pad: GroundPaint = (pen, x, y, rand, same) => {
+    pen.rect(x, y, T, T, PAD.base);
+    speckle(pen, x, y, rand, [PAD.light, PAD.dark], 10);
+    const [w, e, n, s] = [!same(-1, 0), !same(1, 0), !same(0, -1), !same(0, 1)];
+    const top = n ? PAD_INSET_PX : 0, bottom = s ? T - PAD_INSET_PX : T;
+    const left = w ? PAD_INSET_PX : 0, right = e ? T - PAD_INSET_PX : T;
+    if (w) pen.rect(x + left, y + top, 1, bottom - top, PAD.rune);
+    if (e) pen.rect(x + right - 1, y + top, 1, bottom - top, PAD.rune);
+    if (n) pen.rect(x + left, y + top, right - left, 1, PAD.rune);
+    if (s) pen.rect(x + left, y + bottom - 1, right - left, 1, PAD.rune);
+    edges(pen, x, y, same, PAD.dark, () => {});
+    if (w || e || n || s) return;
+    // Looking two tiles each way finds the pad's middle, so the inner tiles of a 4 x 4 pad draw one ring.
+    const cx = !same(-2, 0) ? T : !same(2, 0) ? 0 : T / 2, cy = !same(0, -2) ? T : !same(0, 2) ? 0 : T / 2;
+    for (let py = 0; py < T; py++) {
+      for (let px = 0; px < T; px++) {
+        const ring = Math.abs(Math.hypot(px + 0.5 - cx, py + 0.5 - cy) - PAD_RING_PX) < 0.75;
+        if (ring) pen.rect(x + px, y + py, 1, 1, PAD.rune);
+      }
+    }
+  };
+
+  return { grass, flowers, tallGrass, dirt, riverbed, planks, flagstones, pad };
 }

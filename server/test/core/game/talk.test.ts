@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, type Heading,
+  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, NPC_IDS, type Heading,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import type { QuestDef, Quests, QuestStep, Task } from "../../../src/core/content/quests.js";
@@ -10,12 +10,16 @@ import { newStory, type Story } from "../../../src/core/game/story.js";
 import { dialogueOf, stopFor } from "../../../src/core/game/talk.js";
 import { NPCS, type Npc, type Stop } from "../../../src/core/npcs/index.js";
 import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
-import { LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
+import { LEVELS } from "../../../src/core/world/index.js";
 import { bagWith, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
 const NPC = stopFor(newStory(), NPCS.hollis)!;
+const NOBODY_THERE = Object.keys(LEVELS)
+  .find((id) => NPC_IDS.every((npc) => stopFor(newStory(), NPCS[npc])!.level !== id))!;
+const start = (opts: Parameters<typeof startSession>[0] = {}) =>
+  startSession({ ...opts, saved: { level: NPC.level, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 
@@ -34,27 +38,21 @@ const on = (id: string, stepId: string | null): Story =>
   ({ ...newStory(), quests: { [id]: { step: stepId, kills: 0 } } });
 
 describe("talking to an NPC", () => {
-  test("a new player finds one on the start level", () => {
-    assert.equal(NPC.level, START_LEVEL);
-  });
-
   test("it's sent with the level its stop is on for this player, and not with another", () => {
-    const { link } = startSession();
+    const { link } = start();
     assert.deepEqual(link.last("level").level.npcs, [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
-    const elsewhere = Object.keys(LEVELS).find((id) => id !== NPC.level)!;
-    assert.deepEqual(startSession({ saved: { level: elsewhere } }).link.last("level").level.npcs, []);
+    assert.deepEqual(start({ saved: { level: NOBODY_THERE } }).link.last("level").level.npcs, []);
   });
 
   test("on another level, the same spot says nothing", () => {
-    const elsewhere = Object.keys(LEVELS).find((id) => id !== NPC.level)!;
-    const { session, link } = startSession({ saved: { level: elsewhere } });
+    const { session, link } = start({ saved: { level: NOBODY_THERE } });
     standBy(session, 1);
     session.talk();
     assert.equal(link.all("dialogue").length, 0);
   });
 
   test("in reach (with the lag slack) and faced, the server sends who it is and what it says", () => {
-    const { session, link } = startSession();
+    const { session, link } = start();
     standBy(session, REACH_TILES - 0.1);
     session.talk();
     assert.deepEqual(link.last("dialogue").npc, "hollis");
@@ -62,14 +60,14 @@ describe("talking to an NPC", () => {
   });
 
   test("out of reach, nothing", () => {
-    const { session, link } = startSession();
+    const { session, link } = start();
     standBy(session, REACH_TILES + 0.1);
     session.talk();
     assert.equal(link.all("dialogue").length, 0);
   });
 
   test("only looked at: not behind them, nor further round than the look (plus the lag slack)", () => {
-    const { session, link } = startSession();
+    const { session, link } = start();
     for (const offRad of [Math.PI, LOOK_RAD + 0.02, -(LOOK_RAD + 0.02)]) {
       standBy(session, 1, "west", offRad);
       session.talk();
@@ -81,7 +79,7 @@ describe("talking to an NPC", () => {
   });
 
   test("they face the way they last walked", () => {
-    const { session, link } = startSession();
+    const { session, link } = start();
     standBy(session, 1, "north");
     session.input(session.overworld.playerData(session.me).lastSeq + 1, 0, -1);
     tick(session);
@@ -90,7 +88,7 @@ describe("talking to an NPC", () => {
   });
 
   test("not mid-fight", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = start({ dev: true });
     standBy(session, 1);
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.talk();
@@ -98,7 +96,7 @@ describe("talking to an NPC", () => {
   });
 
   test("with no quest step to it, it changes nothing: no save, and only the lines are sent", () => {
-    const { session, link, saves } = startSession();
+    const { session, link, saves } = start();
     standBy(session, 1);
     const before = { sent: link.sent.length, saves: saves.length, vitals: session.vitals, gear: session.gear };
     session.talk();

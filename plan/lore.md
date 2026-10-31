@@ -27,7 +27,9 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
 - They call players **avatars**: human in their eyes, but driven by someone from elsewhere.
 - **The natives are split:** factions believe different things about avatars. In time there will be many, with
   their own smaller stories inside the big one: kingdoms at war, wars between races, wars of faith. None are needed
-  yet.
+  yet. In play so far it's personal: the Waking Hollow's Maren thinks avatars were sent for a reason (the Harvest's
+  answer), its hunter Tobin that a thing that can't stay dead has no business hunting (the Turning's), and they share a
+  fire anyway.
 - **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
 - What people say about monsters, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
@@ -121,7 +123,8 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   the rift loses. The gods didn't make it and can't close it. Out of the fiction, the door is the game's netcode and
   servers: the way players get in.
 - **Summoning pads.** Where the door opens, avatars arrive on large pedestals that harness its energy. Drafted by
-  OptChat: the start of each level (where you log in and wake after dying) is one.
+  OptChat: the start of each level (where you log in and wake after dying) is one. Built: every level's start is drawn
+  as a pad, and new avatars first wake on the Waking Hollow's, which its natives keep.
 - **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
   the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence
   all at once. That is the game shutting down when its players leave. In play the world never visibly withers.

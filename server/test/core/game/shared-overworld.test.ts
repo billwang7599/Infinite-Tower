@@ -8,7 +8,7 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { VIEW_RADIUS_TILES } from "../../../src/core/game/snapshot.js";
 import { OverworldPlayer } from "../../../src/core/overworld/components.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getLevel } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { ACCOUNT, findBoar } from "./helpers.js";
@@ -17,13 +17,14 @@ before(() => initPhysics());
 
 const OTHER: Account = { id: "player-2", username: "other" };
 const OTHER_CHARACTER: Character = { ...TEST_CHARACTER, name: "Other", gender: "boy" };
-const LEVEL = getLevel(START_LEVEL);
+// The Grass Field: its one boar is the one these tests watch come and go.
+const LEVEL = getLevel("grass-field");
 const BOAR_SPAWN = LEVEL.spawns.find((s) => s.enemy === "wild-boar")!;
 
 async function twoPlayers() {
   const store = new MemoryPlayerStore();
-  store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER });
-  store.saved.set(OTHER.id, { ...newPlayer(), character: OTHER_CHARACTER });
+  store.saved.set(ACCOUNT.id, { ...newPlayer(), character: TEST_CHARACTER, level: LEVEL.layout.id });
+  store.saved.set(OTHER.id, { ...newPlayer(), character: OTHER_CHARACTER, level: LEVEL.layout.id });
   const online = new OnlinePlayers(store, true, 50);
   const join = async (account: Account) => {
     const link = new FakeLink();

@@ -318,10 +318,11 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 ## Encounters and drops
 
-- **Tall grass** (`grass` in `server/src/core/world/floors/1/grass-field.ts`, rolled in
-  `server/src/core/overworld/player.ts`): every `stepDist` 1 tile walked in it, a `chance` 0.12 roll; the enemy by
-  weight (only boars on the Grass Field). On average one every 8.3 tiles (1.7 s at 5 tiles/s); 0.88^10 = 28% of the
-  time, 10 tiles pass without one. None for `safeTime` 2 s after a fight.
+- **Tall grass** (`grass` in each level's file in `server/src/core/world/floors/1/`, rolled in
+  `server/src/core/overworld/player.ts`): every `stepDist` 1 tile walked in it, a `chance` roll (0.12 on the Grass
+  Field and in the Mistwood, 0.06 in the Waking Hollow); the enemy by weight (only boars so far). At 0.12, on average
+  one every 8.3 tiles (1.7 s at 5 tiles/s), and 0.88^10 = 28% of the time 10 tiles pass without one; at 0.06, one
+  every 16.7 tiles (3.3 s). None for `safeTime` 2 s after a fight.
 - **Overworld enemies** come back `respawnTime` after their fight is over: the boar 8 s, the others 12 s.
 - **Drops** (`rollDrops`): each row rolled on its own, once per fallen enemy for the whole fight (the winners share
   it). A boar: meat 0.6, hide 0.35, tusk 0.25, so nothing 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on

@@ -19,10 +19,10 @@ export const HOLLIS: Npc = {
           when: { quest: "hollis-pads", step: "back" },
           lines: [
             "Three fewer. The fire thanks you, and so do I.",
-            "The stone you woke on, at the edge of this field: we call it a summoning pad. Every place your kind comes "
-              + "in has one.",
-            "When your shell comes apart, that's where you wake again. Nobody of this world built them, and the gods "
-              + "won't say who did.",
+            "The stone you woke on: we call it a summoning pad. Every place your kind comes in has one; this field's "
+              + "is a few steps south-west of my fire.",
+            "When your shell comes apart, you wake again on the pad of the place you fell. Nobody of this world built "
+              + "them, and the gods won't say who did.",
             "I've a mind to see where the pads lead. Take this for the road.",
             "Meet me in the Mistwood, avatar. It's through the gap at the east edge, past the kobold ruins. Go rested.",
           ],
@@ -58,6 +58,18 @@ export const HOLLIS: Npc = {
             "They say an avatar carries a small sun inside. A flame at first, Yan, then Sol, Lux, Ling, and Tian at "
               + "the top.",
           ],
+        },
+        {
+          when: { quest: "maren-road", step: "hollis" },
+          lines: [
+            "Maren sent you? Then you've had her welcome, and Tobin's scowl.",
+            "She keeps the pad, I keep this fire. Between us we see most of your kind through their first days.",
+            "Sit by my fire whenever the beasts have had their share of you. It mends what it can.",
+            "The wind off the river cuts through this field at night. A wall of hides round the fire would keep it "
+              + "in.",
+            "Bring me two boar hides and I'll cook you something for your trouble.",
+          ],
+          offer: { start: "hollis-hides" },
         },
         {
           lines: [

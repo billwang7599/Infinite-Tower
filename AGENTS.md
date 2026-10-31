@@ -505,9 +505,30 @@ them; treat them as changeable, and still ask before deciding new ones):
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
-- Levels: floor 1 has the Grass Field and the Mistwood, joined by a road off the edge of each (walk into it to cross).
-  The level you're on is saved: you come back to it, at its start, when you log in, and dying wakes you at the start
-  of the level you died on. Mistwood reuses the floor's enemies (boars, the Kobold, the Warlock) and the mire arena.
+- Levels: floor 1 has the Waking Hollow, the Grass Field and the Mistwood, joined by roads off the edge of each (walk
+  into one to cross). The level you're on is saved: you come back to it, at its start, when you log in, and dying wakes
+  you at the start of the level you died on. Mistwood reuses the floor's enemies (boars, the Kobold, the Warlock) and
+  the mire arena.
+- The starting area (the user: "go make more content… you can also add more quests and create a proper starting
+  area… make any assumptions you want"): the Waking Hollow, a small floor-1 level in the Grass Field's look and music.
+  A summoning pad where new characters wake, ringed by four standing stones; a camp by an old waystation with a
+  campfire; a brook with a footbridge, and across it the hunting ground: two wandering boars (8 s respawn) and tall
+  grass rolling boars at 0.06 a tile, half the other levels' 0.12. Its road east leads to a new exit at the Grass
+  Field's west edge, and back. New characters start there; players already saved keep their level (a migration puts
+  saves from before levels were saved on the Grass Field).
+- Every level's start is a summoning pad (plan/lore.md): a new walkable tile (`@`, carved stone with a pale rune ring)
+  laid under the Hollow's, the Grass Field's and the Mistwood's starts.
+- The Hollow's natives: Maren, who keeps its pad (standing between it and the fire; she thinks your kind was sent for a
+  reason), and Tobin, a hunter by the footbridge, wary of avatars ("a thing that can't stay dead has no business
+  hunting"). Their lines, looks and spots are the agent's.
+- The Hollow's chain, the start of the main quest: "Woken" (Maren: slay a wild boar, then back to her; lore "The
+  seed"), "Meat for the Rack" (Tobin: gather 2 boar meat and hand them over; 1 boar hide, lore "The Hollow's
+  keepers") and "The Road East" (Maren: find Hollis in the Grass Field; 2 boar meat, lore "Natives"). Hollis then
+  offers his first quest in the same talk. His chain doesn't wait on the Hollow's, so nobody who skipped it is locked
+  out. Side quests: Tobin's "How a Kobold Fights" (after his meat: slay a Kobold Swordsman, tell him; 3 boar meat,
+  lore "Kobolds") and Maren's "The Old Tongue" (after the Road East: reach the Mistwood, slay a Goblin Warlock, tell
+  her; 3 boar meat, lore "The old tongue"). Hollis's pad lines now fit the new start: the stone you woke on is a
+  summoning pad, the Grass Field's is south-west of his fire, and you wake on the pad of the place you fell.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

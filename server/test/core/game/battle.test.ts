@@ -85,10 +85,11 @@ function lose(session: GameSession): void {
 }
 
 describe("starting a battle", () => {
-  const ARENA_SPAWN = LEVEL.spawns.find((s) => s.arenaId !== undefined)!;
+  const FIELD = getLevel("grass-field");
+  const ARENA_SPAWN = FIELD.spawns.find((s) => s.arenaId !== undefined)!;
 
   test("an actor whose spawn names an arena is fought there", () => {
-    const { session, link } = startSession();
+    const { session, link } = startSession({ saved: { level: FIELD.layout.id } });
     const found = [...session.overworld.world.query(OverworldActor)].find(([, a]) => a.kind === ARENA_SPAWN.enemy);
     assert.ok(found);
     session.overworld.startEncounter(session.me, found[0], ARENA_SPAWN.enemy);
@@ -102,7 +103,7 @@ describe("starting a battle", () => {
   });
 
   test("a dev fight against an enemy is held in the arena of its spawn", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ dev: true, saved: { level: FIELD.layout.id } });
     session.cheat({ kind: "encounter", enemy: ARENA_SPAWN.enemy });
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });

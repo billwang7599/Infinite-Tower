@@ -29,6 +29,12 @@ describe("QUESTS", () => {
     }
   });
 
+  test("each reveals a lore entry by the time it's done", () => {
+    for (const [id, quest] of Object.entries(QUESTS)) {
+      assert.ok(quest.steps.some((s) => (s.reward?.lore ?? []).length > 0), id);
+    }
+  });
+
   test("a quest waits only on one listed before it, so a chain can't loop", () => {
     for (const [i, [id, quest]] of Object.entries(QUESTS).entries()) {
       assert.ok(isReal(quest.when), id);
