@@ -9,7 +9,7 @@ import { CELL, EQUIPMENT_WIDTH_PX, GRID_FRAME_PX, INVENTORY_GAP_PX } from "./inv
 /** PanelFrame's padding and border, left and right together. */
 const FRAME_PX = 42;
 
-export const CHARACTER_PANEL_WIDTH_PX = 288;
+export const CHARACTER_PANEL_WIDTH_PX = 336;
 /** An open pile shares the cloth's column. */
 export function inventoryPanelWidthPx({ bag, cloth, pile }: Gear): number {
   const groundCols = Math.max(cloth.cols, pile.cols);

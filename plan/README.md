@@ -7,7 +7,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | Plan | Status |
 |---|---|
 | [vision.md](vision.md): the game this is growing into (floors of a tower, souls-like fights) | direction |
-| [core.md](core.md): the core's sphere HUD and stats chart, enemy realms, other ways to fill it | logic and saving built; the HUD and chart next |
+| [core.md](core.md): the core's sphere HUD, enemy realms, other ways to fill it | logic, saving and the stats chart built; the HUD next |
 | [lore.md](lore.md): the story, from the player's soul outward; the game breaks the fourth wall | direction |
 | [npcs.md](npcs.md): NPCs with routines, quests, friendships and a questbook; Hollis moves on with the story | next big step |
 | [server-fights.md](server-fights.md): what's left after moving fights to the server (lag, more players) | later |
