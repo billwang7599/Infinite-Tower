@@ -3,8 +3,8 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  itemDef, MAX_CHAT_CHARS, type ChallengeNews, type EnemyDef, type ItemCounts, type ItemId, type QuestNews,
-  type ServerMsgOf,
+  coreName, itemDef, MAX_CHAT_CHARS, type ChallengeNews, type CoreState, type EnemyDef, type ItemCounts, type ItemId,
+  type QuestNews, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -24,7 +24,8 @@ export type GameEvent =
   | { kind: "healed" }
   | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
   | { kind: "battleResult"; outcome: BattleOutcome }
-  | { kind: "quest"; news: QuestNews };
+  | { kind: "quest"; news: QuestNews }
+  | { kind: "breakthrough"; core: CoreState };
 
 type EventKind = GameEvent["kind"];
 type EventOf<K extends EventKind> = Extract<GameEvent, { kind: K }>;
@@ -52,6 +53,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   chatRefused:  { where: "corner", lines: ({ reason }) => [CHAT_REFUSED[reason]] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
   quest:        { where: "corner", lines: ({ news }) => questLines(news) },
+  breakthrough: { where: "corner", lines: ({ core }) => [`Your core breaks through: ${coreName(core)}.`] },
 };
 
 /** Tells the player about `event` in its place: each line is a notice, or the banner (a new one replaces it). */

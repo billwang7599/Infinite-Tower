@@ -27,7 +27,7 @@ export type FightEvent =
   | { type: "guardBreak"; by: Entity; target: Entity; result: "grabbed" | "teched" | "broken" }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }
   | { type: "pageWritten"; player: Entity; page: number }
-  | { type: "used"; player: Entity; item: ItemId };
+  | { type: "used"; player: Entity; item: ItemId; brokeThrough: boolean };
 
 export interface FightContext {
   world: World;

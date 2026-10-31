@@ -8,6 +8,7 @@ import { ATTACK_KINDS, GUARD_SIDES } from "../weapons/weapons.js";
 import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
 import { ITEM_IDS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
+import { SHOWN_STATS } from "../battle/stats.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
@@ -155,6 +156,8 @@ const AnswerChallengeMsg = z.object({ t: z.literal("answerChallenge"), accept: z
 /** No length cap here: the server checks it and tells the sender. */
 const ChatMsg = z.object({ t: z.literal("chat"), text: z.string().trim().min(1) });
 
+const StatPointMsg = z.object({ t: z.literal("statPoint"), stat: z.enum(SHOWN_STATS), add: z.boolean() });
+
 /** The connection answers it with a `pong` itself; the game never sees it. */
 const PingMsg = z.object({ t: z.literal("ping"), id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) });
 
@@ -168,6 +171,7 @@ const CheatSchema = z.discriminatedUnion("kind", [
     count: z.number().int().min(1).max(MAX_GIVE_COUNT),
   }),
   z.object({ kind: z.literal("heal") }),
+  z.object({ kind: z.literal("coreStep"), add: z.boolean() }),
 ]);
 export type Cheat = z.infer<typeof CheatSchema>;
 
@@ -177,7 +181,7 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
   MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, AcceptQuestMsg, DeliverMsg, SaveSkillMsg, PingMsg, CheatMsg,
-  ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg,
+  ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg, StatPointMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

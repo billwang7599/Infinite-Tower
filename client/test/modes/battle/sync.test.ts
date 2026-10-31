@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, dodgeCost, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, Player, PLAYER, quantizeInput, Stamina,
-  starterEquipment,
+  BASE_STATS, Body, dodgeCost, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, maxHpOf, newCore, Player,
+  quantizeInput, Stamina, staminaMaxOf, starterEquipment,
   type ClientMsg, type EnemyDef, type PlayerInputData, type ServerMsgOf, type StepInput,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
@@ -12,7 +12,8 @@ import { FakeNet } from "../../fixtures/fake-net.js";
 
 before(() => initPhysics());
 
-const STATS = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
+const STATS = { ...BASE_STATS, healthRegen: 0 };
+const FULL_HP = maxHpOf(STATS);
 /** Walks up to whoever is there and stands; never attacks. */
 const WALKER: EnemyDef = {
   id: "wild-boar", name: "Walker", maxHp: 100, stats: STATS, radius: 0.85, walkSpeed: 3, turnRate: 3,
@@ -21,7 +22,8 @@ const WALKER: EnemyDef = {
 const SETUP: FightSetup = {
   arena: { id: "test", radius: 16, look: "forest-clearing" },
   players: [{
-    at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: PLAYER.maxHp, stamina: 100 }, stats: STATS, burden: "light",
+    at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: FULL_HP, stamina: staminaMaxOf(STATS) }, stats: STATS,
+    core: newCore(), burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: [],
   }],
   enemies: [{ def: WALKER, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
@@ -164,7 +166,7 @@ describe("the client's own copy of the fight", () => {
       // Something only the server saw: knocked back and stunned by a hit, 30 HP gone.
       const me = server.fight.players[0]!;
       Object.assign(server.fight.world.require(me, Body).vel, { x: -8, y: 3, z: 2 });
-      Object.assign(server.fight.world.require(me, Health), { hp: PLAYER.maxHp - 30, hitstun: 0.3, invuln: 0.6 });
+      Object.assign(server.fight.world.require(me, Health), { hp: FULL_HP - 30, hitstun: 0.3, invuln: 0.6 });
     };
     const hashes: ServerMsgOf<"battleHash">[] = [];
     const until = HASH_EVERY_STEPS * 3 + 5;
@@ -184,7 +186,7 @@ describe("the client's own copy of the fight", () => {
     assert.equal(server.resyncs, 1, "asked once");
     sync.onSync(server.sync());
     assert.equal(fight.steps, until, "back where it was, replayed");
-    assert.equal(fight.world.require(fight.players[0]!, Health).hp, PLAYER.maxHp - 30);
+    assert.equal(fight.world.require(fight.players[0]!, Health).hp, FULL_HP - 30);
     for (let i = until + 1; i <= HASH_EVERY_STEPS * 5; i++) step(script(i));
     server.receive(net);
     server.run(fight.steps);
@@ -260,7 +262,8 @@ describe("the client's own copy of the fight", () => {
       const me = fight.players[0]!;
       assert.equal(fight.world.require(me, Player).action, "dodge", `synced at ${syncAt}`);
       assert.ok(Math.abs(fight.world.require(me, Player).actionTime - (35 - DODGE_AT + 1) * FIXED_DT) < 1e-9);
-      assert.equal(fight.world.require(me, Stamina).value, STATS.stamina - cost, `one dodge's stamina, at ${syncAt}`);
+      const stamina = fight.world.require(me, Stamina).value;
+      assert.equal(stamina, staminaMaxOf(STATS) - cost, `one dodge's stamina, at ${syncAt}`);
       server.run(35);
       assert.deepEqual(fight.save(), server.fight.save(), `synced at ${syncAt}`);
     }

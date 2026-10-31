@@ -5,8 +5,8 @@
  * Won against enemies, it runs on for the winners still in the arena (to walk to the drops) until the last leaves.
  */
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Carried, type Entity,
-  type PlayerInputData, type Skillbook, type StepInput, type Vitals, type World,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Entity,
+  type PlayerData, type PlayerInputData, type StepInput, type Vitals, type World,
 } from "@infinite-tower/shared";
 import {
   Fight, joinStart, playerResult, type FightSetup, type PlayerResult, type PlayerSetup,
@@ -21,10 +21,11 @@ export const MIN_SYNC_GAP_STEPS = 5;
 /** Still in it at once, joiners included. */
 export const MAX_BATTLE_PLAYERS = 4;
 
+export type Kept = Pick<PlayerData, "book" | "gear" | "core">;
+
 export interface Seat {
   link: PlayerLink;
-  /** Called once, when the fight is over for this player, with the HP, stamina, pages and gear it left them with. */
-  onEnd(result: PlayerResult, vitals: Vitals, book: Skillbook, gear: Carried): void;
+  onEnd(result: PlayerResult, vitals: Vitals, kept: Kept): void;
 }
 
 export interface RoomHooks {
@@ -219,8 +220,8 @@ export class BattleRoom {
   }
 
   private end(s: SeatState, e: Entity, result: PlayerResult, vitals: Vitals): void {
-    const { book, gear } = this.fight.world.require(e, Player);
-    s.seat.onEnd(result, vitals, book, gear);
+    const { book, gear, core } = this.fight.world.require(e, Player);
+    s.seat.onEnd(result, vitals, { book, gear, core });
   }
 
   private resultOf(e: Entity, left: boolean): PlayerResult {

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, GUARD_SIDES, Health, mirrorSide, Player, PLAYER, releaseTime, SKILL_EFFECTS, type PlayerInputData,
+  FIXED_DT, GUARD_SIDES, Health, mirrorSide, Player, releaseTime, SKILL_EFFECTS, type PlayerInputData,
 } from "@infinite-tower/shared";
 import {
   DUEL_STARTS, Fight, initPhysics, MAX_FIGHT_TIME, playerResult, type FightEvent,
 } from "@infinite-tower/shared/fight";
-import { ARENA, input, player, segment, skill } from "./fixtures.js";
+import { ARENA, FULL_HP, input, player, segment, skill } from "./fixtures.js";
 
 before(() => initPhysics());
 
@@ -43,8 +43,8 @@ describe("a duel: two players, each the other's foe", () => {
   test("a player's attack hurts the other player", () => {
     const fight = pvp();
     play(fight, 60, (s) => (s === 1 ? { attack: "light" } : {}));
-    assert.ok(hp(fight, 1) < PLAYER.maxHp);
-    assert.equal(hp(fight, 0), PLAYER.maxHp);
+    assert.ok(hp(fight, 1) < FULL_HP);
+    assert.equal(hp(fight, 0), FULL_HP);
   });
 
   test("a guard on the side across from the attacker's, as each sees it, blocks: the attacker recoils", () => {
@@ -53,7 +53,7 @@ describe("a duel: two players, each the other's foe", () => {
       const events = play(fight, 35, (s) => ({ locked: 1, guard: side, attack: s === 1 ? "light" : null }),
         () => ({ locked: 0, guard: mirrorSide(side) }));
       assert.ok(events.some((e) => e.type === "block" && e.target === fight.players[1]), side);
-      assert.equal(hp(fight, 1), PLAYER.maxHp, side);
+      assert.equal(hp(fight, 1), FULL_HP, side);
       assert.equal(fight.world.require(fight.players[0]!, Player).action, "recoil", side);
     }
   });
@@ -62,7 +62,7 @@ describe("a duel: two players, each the other's foe", () => {
     const fight = pvp();
     play(fight, 60, (s) => ({ locked: 1, guard: "left", attack: s === 1 ? "light" : null }),
       () => ({ locked: 0, guard: "left" }));
-    assert.ok(hp(fight, 1) < PLAYER.maxHp);
+    assert.ok(hp(fight, 1) < FULL_HP);
   });
 
   test("a Bolt hits the other player", () => {
@@ -70,8 +70,8 @@ describe("a duel: two players, each the other's foe", () => {
     const bolt = skill(segment("bolt", ["fire"]));
     const steps = Math.round(releaseTime(bolt) / FIXED_DT) + 60;
     play(fight, steps, (s) => (s === 1 ? { chant: true } : s === 2 ? { cast: bolt } : {}));
-    assert.ok(PLAYER.maxHp - hp(fight, 1) >= SKILL_EFFECTS.elements.fire.damage * SKILL_EFFECTS.damage);
-    assert.equal(hp(fight, 0), PLAYER.maxHp);
+    assert.ok(FULL_HP - hp(fight, 1) >= SKILL_EFFECTS.elements.fire.damage * SKILL_EFFECTS.damage);
+    assert.equal(hp(fight, 0), FULL_HP);
   });
 
   test("a player's lock is on the other player", () => {

@@ -31,6 +31,7 @@ function fakeSession() {
     challenge: record("challenge"),
     answerChallenge: record("answerChallenge"),
     chat: record("chat"),
+    statPoint: record("statPoint"),
   };
   return { calls, session: session as unknown as GameSession };
 }
@@ -117,11 +118,15 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "chat", text: "hello" }), [["chat", "hello"]]);
   });
 
+  test("statPoint passes on the stat and whether it's placed or taken back", () => {
+    assert.deepEqual(handle({ t: "statPoint", stat: "vitality", add: false }), [["statPoint", "vitality", false]]);
+  });
+
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
       "closeBag", "openPile", "talk", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge", "answerChallenge",
-      "joinBattle", "chat",
+      "joinBattle", "chat", "statPoint",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

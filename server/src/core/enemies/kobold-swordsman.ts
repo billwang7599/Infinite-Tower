@@ -1,3 +1,4 @@
+import { BASE_STATS } from "@infinite-tower/shared";
 import { chaseOnSight } from "../overworld/behaviors/chase.js";
 import { encounterOnTouch } from "../overworld/behaviors/touch.js";
 import { wander } from "../overworld/behaviors/wander.js";
@@ -8,7 +9,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     id: "kobold-swordsman",
     name: "Kobold Swordsman",
     maxHp: 160,
-    stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
+    stats: { ...BASE_STATS, skillpower: 0, healthRegen: 0 },
     radius: 0.5,
     walkSpeed: 2.6,
     turnRate: 4,
@@ -29,7 +30,7 @@ export const KOBOLD_SWORDSMAN: Enemy = {
     sidestep: { chance: 0.6, reactTime: 0.25, leadTime: 0.1, speed: 8, stepTime: 0.3 },
   },
   // Its own blade never drops.
-  drops: [],
+  drops: [{ item: "kobold-swordsman-essence", chance: 1, count: 1 }],
   overworld: () => [
     wander({ speed: 1.2 }),
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),

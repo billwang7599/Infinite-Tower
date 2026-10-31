@@ -14,7 +14,9 @@ const forWire = (x: number) => roundTo(x, 2);
  */
 export const VIEW_RADIUS_TILES = 20;
 
-export function stateMsg(overworld: Overworld, player: Entity, introduced: Set<Entity>): ServerMsgOf<"state"> {
+export function stateMsg(
+  overworld: Overworld, player: Entity, introduced: Set<Entity>,
+): Omit<ServerMsgOf<"state">, "hp"> {
   const me = overworld.playerPos(player);
   const actors: ActorSnap[] = [];
   for (const [id, a, p] of overworld.world.query(OverworldActor, OverworldPos)) {

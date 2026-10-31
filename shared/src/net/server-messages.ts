@@ -5,12 +5,12 @@ import type { EnemyId } from "../battle/defs.js";
 import type { StepInput } from "../battle/input.js";
 import type { FightSetup, PlayerSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
-import type { Stats } from "../battle/stats.js";
 import type { Character } from "../character/character.js";
 import type { Gear, UseSpot } from "../items/gear.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
 import type { LevelLayout, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
+import type { CoreState } from "../soul/core.js";
 import type { SavedSettings } from "./client-messages.js";
 import type { MsgOf } from "./handlers.js";
 
@@ -87,6 +87,8 @@ export type QuestNews =
     kind: "advanced"; quest: string; next: string | null; gained: ItemCounts; dropped: ItemCounts; lore: string[];
   };
 
+export type CoreLoss = "fill" | "step" | null;
+
 export type DialogueOffer =
   | { kind: "quest"; quest: string; title: string; step: string }
   | { kind: "deliver"; quest: string; item: ItemId; count: number };
@@ -95,13 +97,13 @@ export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines
    * said, oldest first. */
   | {
-    t: "welcome"; wins: number; vitals: Vitals; stats: Stats; settings: SavedSettings; character: Character | null;
+    t: "welcome"; wins: number; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
     gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; dev: boolean;
   }
   | { t: "character"; character: Character }
   | { t: "level"; level: LevelLayout; me: Vec2 }
-  /** 20 times a second, so only what moves. */
-  | { t: "state"; ack: number; me: Vec2; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }
+  /** 20 times a second, so only what moves (your HP too: it comes back on its own). */
+  | { t: "state"; ack: number; me: Vec2; hp: number; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
   | {
     t: "encounter"; source: number | null; me: Vec2; seat: number; setup: FightSetup;
@@ -127,6 +129,7 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
+  | { t: "core"; core: CoreState; vitals: Vitals; brokeThrough: boolean }
   | { t: "dialogue"; npc: NpcId; trace: boolean; lines: readonly string[]; offer: DialogueOffer | null }
   | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }
   /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
@@ -138,7 +141,7 @@ export type ServerMsg =
    * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel. */
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; lost: ItemCounts; gear: Gear;
-    skillbook: Skillbook; afterFightMs: number | null; duel?: string;
+    skillbook: Skillbook; afterFightMs: number | null; core: CoreState; coreLost: CoreLoss; duel?: string;
   }
   /** After a win, the drops lying in the arena (metres), each time they change. */
   | { t: "arenaDrops"; piles: PileSnap[] }

@@ -3,7 +3,7 @@ import { distXZ, type Vec3 } from "../../../core/math.js";
 import { SKILL_EFFECTS } from "../../../skills/effects.js";
 import type { SkillElement } from "../../../skills/skill.js";
 import { Body, Enemy, Fighter, Health, Statuses } from "../../components.js";
-import { FighterStats, skillDamage } from "../../stats.js";
+import { FighterStats, skillDamage, stunTime } from "../../stats.js";
 import { HIT_FLASH_TIME, knock } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { enter } from "../behaviors/common.js";
@@ -30,7 +30,7 @@ const resisted = (world: World, e: Entity, element: SkillElement): number =>
   1 - (world.get(e, Enemy)?.def.resist?.[element] ?? 0);
 
 function damage(world: World, events: FightEvent[], caster: Entity, target: Entity, amount: number): number {
-  const dealt = hurt(world, target, amount);
+  const dealt = hurt(world, target, amount, "skill");
   world.require(target, Health).flash = HIT_FLASH_TIME;
   const team = world.require(target, Fighter).team;
   events.push({ type: "hit", by: caster, target, team, damage: dealt, weapon: false });
@@ -118,6 +118,8 @@ export function strike(
   if (s.shocks >= E.lightning.maxShocks) {
     s.shocks = 0;
     s.left.shocked = 0;
-    if (enemy && world.require(target, Health).hp > 0) enter(world, target, enemy, "stunned", E.lightning.stunTime);
+    if (enemy && world.require(target, Health).hp > 0) {
+      enter(world, target, enemy, "stunned", stunTime(E.lightning.stunTime, world.require(target, FighterStats)));
+    }
   }
 }

@@ -54,7 +54,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
    screens over it, take keys. The server finds the account, loads the save, tops it up with the starter kit
    (`withStarterKit`: every word, and each kit item not carried) and sends
-   `welcome` (HP / stamina, stats, settings, character, wins, gear, known words, the skillbook's pages, the
+   `welcome` (HP / stamina, the core, settings, character, wins, gear, known words, the skillbook's pages, the
    questbook). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
@@ -66,7 +66,7 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    overworld: they see each other, and an enemy one of them touches leaves it for everyone. The client glides its
    mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
-   setup (arena, enemy, your HP / stamina, stats, burden, the bag and what's worn (so whether a sword and a
+   setup (arena, enemy, your HP / stamina, core and its stats, burden, the bag and what's worn (so whether a sword and a
    skillbook are in hand), and its pages). The client
    flashes into battle mode, builds the same
    fight and runs it itself, whole and at once, sending only its inputs, each tagged with its step (`battleInput`).
@@ -225,7 +225,14 @@ main.ts
   `Fight.leave` marks a player gone from the arena (`Player.leftArena`, part of the state), downing them only while
   it's fought.
   Every hit, skill and burn hurts through `hurt` (`fight/skills/statuses.ts`), which spares an invulnerable player
-  (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight).
+  (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight), takes defense or special defense
+  off by the damage's kind (physical or skill), and pauses HP regen (`Health.regenDelay`, `HP_REGEN_PAUSE_TIME`);
+  `regenSystem` there gives it back by the fighter's stats after the step's hits.
+- **The core in a fight**: each player's `Player.core` (from the setup, part of the state) and `FighterStats` (the
+  setup's `stats`: the core's, from the server). Essence is absorbed as any consumable is used (`useSystem`), and a
+  breakthrough counts at once: `takeCore` (`fight/player/use.ts`) adds the step's gains to the fighter's stats and
+  grows its bars by `grownVitals`, and the `used` event says `brokeThrough`. So the snapshot carries each player's
+  stats and both bars' most. The server takes the fight's core with its result (`Kept`, like the gear and pages).
 - **The server runs it** (`server/src/core/battle/`): a `BattleRoom` per battle, from the moment every player has
   sent their first input. It keeps a clock (steps since the fight started, one a 60 Hz tick) and runs the fight up to
   it as soon as it knows every player's input for the next step (`InputTimeline`), holding a step back for a late
@@ -304,6 +311,16 @@ main.ts
   the interact key or a click go on a line (all through `game.interact`), past the last one it closes, and Esc closes
   it; a change of mode closes it too. An offer shows with the last line, with Accept (or Hand over) and Not now; going
   on past the last line takes it (`UiState.nextLine` returns it, `game.takeOffer` sends it).
+- **The core** (the rules in `shared/src/soul/core.ts`; [FORMULAS.md](FORMULAS.md#the-core) has the numbers): a
+  player's progression, saved with them. The `GameSession` holds its `core` and works its `stats` out from it
+  (`coreStats`); its setter puts the walking pace right (`overworldPace`: the burden and agility). A new core goes in
+  through `takeCore`, which grows or trims the vitals (`grownVitals`) and sends `core`: on essence absorbed outside a
+  fight (the shared use rule, `useItem` and its tick; in the arena after a win the fight follows, by the fight's own
+  `takeCore`), on `statPoint` (placed outside fights, taken back only by a campfire, with the rest's slack) and on the
+  admin's `coreStep`. HP comes back on its own on the session's tick outside a fight (`regen`, the fight's rule) and
+  goes to the client in `state`. A fight's core comes back with its result (`Kept`): a death runs `coreAfterDeath` on
+  it (the fill, or a step) and says what went (`coreLost`); a duel keeps what was absorbed and loses nothing. Every
+  enemy drops its own essence (its drops in its file), an item whose `essence` effect is its worth.
 - **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
   `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
   (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
@@ -543,14 +560,15 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `answerChallenge {accept}` | Accept / Decline on a challenge to you |
 | `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
-| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal` |
+| `statPoint {stat, add}` | the character panel's + / −: place a free point in a shown stat (outside fights), or take one back (by a campfire too); answered with `core` either way |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only) |
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, stats, settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev` |
+| `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev` |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you) and where you are |
-| `state` | 20 a second in the overworld: `ack` (last input replayed), your position, nearby actors, other players (a player's character only the first time) and piles |
+| `state` | 20 a second in the overworld: `ack` (last input replayed), your position and HP (it comes back on its own), nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
 | `battleSync` | the whole fight after `step`: on `battleResync`, and as the fight is decided (before the result) |
@@ -558,11 +576,12 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `battleJoined` | another player came into your fight: their `PlayerSetup` (a `battleSync` with them in it follows) |
 | `joinRefused` | `joinBattle` refused: nobody near is fighting, the fight is full, or it's a duel |
 | `challengeNews` | a duel challenge sent, received, declined, expired, called off, or refused (nobody near, busy) |
-| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost` (what a death dropped), gear, skillbook, `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
+| `battleResult` | as the fight is decided (still in the arena): won?, wins, HP / stamina, `lost` (what a death dropped), gear, skillbook, the core and `coreLost` (a death's: the fill, a step or nothing), `afterFightMs` (how long the arena stays open for its drops; null if it's over for you); after a duel, `duel` (the opponent's name) |
 | `arenaDrops` | after a win, the piles lying in the arena (id, x, z in metres), each time they change |
 | `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
 | `using` | `useItem` started using what's at `at` (its `useTime`, then `itemUsed`), or `at` null: it stopped, nothing used (the bag closed, a fight started) |
-| `rested`, `itemUsed` | what resting or eating did |
+| `rested`, `itemUsed` | what resting or eating (or absorbing) did |
+| `core` | the core changed outside a fight (essence absorbed, a point placed or taken back, the admin's step), or a point was refused: the core, HP / stamina, and whether it broke through |
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
 | `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
@@ -638,10 +657,11 @@ it no longer has (`keptStory`: forgotten, so it's offered again). The `GameSessi
 moment it's decided, or lost by leaving it), rest, item use, quest progress and making a character, on disconnect,
 and within a second of a settings change, a move in the bag or a page written. The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them).
-The level is saved (`level`), and you come back to it at its start; position isn't saved, and stats aren't either
-(everyone has the same). A new character starts on `START_LEVEL`, the Waking Hollow; a save made before levels were
-saved was moved to the Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing
-was moved.
+The level is saved (`level`), and you come back to it at its start; position isn't saved. The core is (`core_steps`,
+`core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
+A new character starts on `START_LEVEL`, the Waking Hollow; a save made before levels were saved was moved to the
+Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing was moved. Saves from before
+the core start at Early Yan, empty (`0016_core`).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -652,7 +672,10 @@ Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server appl
 (`tsx --test`); no test framework, database or browser. Each `test/` folder mirrors its `src/` and has a tsconfig
 of its own (Node's types), checked by `npm run typecheck`. New work is written test-first (see AGENTS.md).
 
-- **shared**: the ECS, math, walking, the view rules, every Zod schema, and the arena fight run headless with
+- **shared**: the ECS, math, walking, the view rules, every Zod schema, the stats' formulas and the core's rules
+  (`soul/core.test.ts`: the ladder and its names, each step's fill, absorbing with breakthroughs and the rest carried,
+  a whole core, each step's gains and points, placing and taking back, what a death takes, a saved core made right),
+  essence absorbed (`items/using.test.ts`), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
   each attack's reach and
@@ -685,8 +708,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   player against player, the lock, and how it ends. Eating in a fight (`player/use.test.ts`): healed and one
   used up once its `useTime` is up, held still, not at full HP or with the bag shut, stopped (nothing eaten) by
   closing the bag, a dodge, a hit that only hurts or one that stuns, and through a save; and the shared rule
-  (`items/using.test.ts`, any consumable's time and effects coming from its item). Each fight test file awaits
-  `initPhysics()` first. Also the battle inputs' rounding and what counts as a change.
+  (`items/using.test.ts`, any consumable's time and effects coming from its item). The core in a fight
+  (`player/absorb.test.ts`: essence absorbed in its time, held still, stopped by a hit with the essence kept, a
+  breakthrough growing the stats and bars at once, a whole core refusing it, through a save) and the stats it gives
+  (`core-stats.test.ts`: defense and special defense, toughness on a blow's stun and an enemy's stagger, stamina
+  recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()` first.
+  Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
   how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
   numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items
@@ -709,8 +736,14 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   one in one message, too far ahead dropped, a silent player stopping, lateness, the latest of late chant words
   kept, a late guard break kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
-  client. Duels: a challenge's reach, one per player, declining, expiring and being called off; the duel's fight (one
-  step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving. Joining a battle:
+  client. The core (`soul.test.ts`): in `welcome` and a fight's setup, saved; essence absorbed on the overworld (told,
+  saved, a breakthrough growing the vitals, not into a whole core), in a fight and kept after a win, and in the arena
+  after a win with the fight following; free points (placed while any are left, taken back only by a campfire, not in
+  a battle); HP regen on the overworld and in `state`; a death losing the fill or a step (leaving mid-fight too); the
+  admin's step up and down. Every enemy dropping its own essence (`enemies/index.test.ts`), and a spar costing the core
+  nothing (`duels.test.ts`). Duels: a challenge's reach, one per player, declining, expiring and being called off;
+  the duel's fight (one step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving.
+  Joining a battle:
   reach and its slack, duels and full rooms refused, each player's own result (one down settled at once, a win for
   everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to everyone online
   (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
@@ -783,7 +816,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
   level's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
   over either mode), the questbook (J in either mode, J and Esc only over it, a saved J keeping it unbound; its step
-  tallies), quest news' words, the fight's
+  tallies), quest news' and a breakthrough's words, what a death's notice says the core lost, the fight's
   sync (only changes sent,
   with their steps and heartbeats; the whole fight run at once; hashes checked, now or once it gets there; one resync
   asked, the server's fight loaded and replayed to where the server gets, or jumped to; a dodge neither replayed twice
@@ -900,8 +933,13 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
-                   agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats,
-                   FighterStats, physicalDamage / skillDamage / moveSpeed / carryLimit)
+                   agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats: the shown
+                   and hidden ones, BASE_STATS, FighterStats; what each does: physicalDamage, skillDamage,
+                   moveSpeed, maxHpOf, staminaMaxOf, the defenses' taken factors, stunTime, staminaRegenPerSec,
+                   hpRegenPerSec, carryLimit; grownVitals)
+  soul/            core.ts (the core: REALMS, STEP_NAMES, CORE; CoreState (steps done, fill, points placed),
+                   newCore, fillToFinish, coreName, coreStats, absorb, placePoint, takeBackPoint, pointsEarned /
+                   pointsLeft, coreAfterDeath, coreAtStep, keptCore)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, join(player) and leave(player) (gone from the arena; down mid-fight), outcome,
@@ -923,14 +961,15 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
                        gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
                        no attacks or guard; no skillbook, no quick-casts or pages), use.ts (useSystem: a consumable used
-                       once its useTime is up, stopped by a hit)
+                       once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
                        skilled.ts (any fighter's skills: startCast, chant, releaseChant, endCast, interrupt,
                        cantCast, windUpSystem), strike.ts (a stage hitting a target: statuses, reactions, damage;
                        foesNear), statuses.ts
-                       (statusSystem; what statuses do to damage dealt and taken, healing, walking speed)
+                       (statusSystem; hurt, by the damage's kind and the target's defenses; regenSystem; what statuses
+                       do to damage dealt and taken, healing, walking speed)
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / recoil / death), lunge.ts, charge.ts, weapon.ts (seeded chains of
                        attacks with the weapon in hand, the Kobold's, each after its guard moves to the attack's
@@ -948,7 +987,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
   items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, and its components:
-                   consumable, wearable; ItemCounts = item id -> count), bag.ts (Bag: a grid of placed stacks;
+                   consumable, wearable; each monster's essence, absorbed in ABSORB_TIME; ItemCounts = item id ->
+                   count), bag.ts (Bag: a grid of placed stacks;
                    fits, addItem, moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by),
                    gear.ts (Gear: the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment
                    slots; Spot, UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth
@@ -1062,9 +1102,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
-      content/         player.ts (PLAYER_STATS, STARTER_KIT, fullVitals, newPlayer, withStarterKit), quests.ts
-                       (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore entry, by
-                       id; LoreId)
+      content/         player.ts (PLAYER_STATS: Early Yan's; STARTER_KIT, fullVitals, newPlayer, withStarterKit),
+                       quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
+                       entry, by id; LoreId)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1164,16 +1204,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
                        of the game: signIn, logOut, play, interact, leaveArena, challenge, answerChallenge, useItem,
                        moveItem, castSkill, saveSkill, sendChat, takeOffer, saveCharacter, returnToTitle, cheat,
-                       setDayClock).
+                       setDayClock, statPoint).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
-                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), styles.ts (BUTTON,
-                       TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
-                       useAction.ts (a component listening for actions), LookPicture.tsx (a look on a
-                       canvas: the portrait, or the chibi facing front)
+                       PlayerBars.tsx (HP + stamina and the core's realm and step, in the same corner on both
+                       HUDs), styles.ts (BUTTON, TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space /
+                       Enter stay with the game), useAction.ts (a component listening for actions), LookPicture.tsx
+                       (a look on a canvas: the portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
@@ -1182,10 +1222,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), character/ (CharacterPanel.tsx: the
-                       portrait and stats), inventory/ (the bag screen: InventoryPanel.tsx lays out the equipment,
-                       an open pile over the cloth, and the bag, wires the mouse and the bag keys, and shows the
-                       selected item, the dragged ghost and the tooltip; BagGrid.tsx draws a grid (the bag, the
-                       cloth or a pile) and its
+                       portrait, the core's realm and step, the shown stats and what each does, free points placed with
+                       + and taken back with − (only by a campfire)), inventory/ (the bag screen: InventoryPanel.tsx
+                       lays out the equipment, an open pile over the cloth, and the bag, wires the mouse and the bag
+                       keys, and shows the selected item, the dragged ghost and the tooltip; BagGrid.tsx draws a grid
+                       (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
@@ -1227,8 +1268,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         questbook/       QuestbookScreen.tsx (the questbook over either mode: the main quest and side quests side
                          by side, each quest's step, hint and tally, or done, and the lore it revealed; J, Esc or ×
                          close it), tally.ts (tallyText: a step's "1 / 3", items counted in the bag)
-        admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats; the time of day and its speed set
-                         through `setDayClock`), admin.ts (its times, speeds and counts)
+        admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats, a core step up or down among
+                         them; the time of day and its speed set through `setDayClock`), admin.ts (its times, speeds and
+                         counts)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
                          (camera and flick sensitivity, Auto mouse lock), AudioSection.tsx (the four volume
                          sliders), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
@@ -1530,11 +1572,13 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 
 | What | Where |
 |---|---|
-| Player HP, speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
+| Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
 | Weapons: the arsenal (length, damage, heft); every attack's timings, cost, damage, poise and recoil; the chain, the lunge, the guard's arc; an enemy's guard changes; the parry's window and openings, a guard break's reach, timings, cost and opening, a feint's cutoff and cost | `shared/src/weapons/weapons.ts` (`WEAPONS`, `ATTACKS`, `COMBAT`, `ENEMY_GUARD`, `PARRY`, `GUARD_BREAK`, `FEINT`) |
 | How often a swordsman parries, feints, guard breaks and counters one, and how quick it reads them | `counters` in its weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
-| Player stats | `server/src/core/content/player.ts` (`PLAYER_STATS`) |
+| The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
+| What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
+| Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
 | Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
@@ -1545,7 +1589,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | A dead enemy crumbling, a leaving player fading | `DISSOLVE_DELAY_TIME`, `DISSOLVE_TIME`, `DISSOLVE_SINK_M`, `ASH_PER_SEC`, `LEAVE_FADE_TIME` in `client/src/visuals/battle/battle.ts`; the ash's look in `PARTICLE_LOOKS` (`skillLooks.ts`) |
 | Cloth size, slots, the starting equipment | `shared/src/items/gear.ts` (`CLOTH`, `SLOTS`, `starterEquipment`) |
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
-| Carry limit | `shared/src/battle/stats.ts` (`CARRY`) |
+| Carry limit | `shared/src/battle/stats.ts` (`CARRY_LIMIT_AT_AVERAGE`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |

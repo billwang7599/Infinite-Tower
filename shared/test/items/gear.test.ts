@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  bagWeight, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear, NO_PILE, SLOTS,
-  starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId, type Stats,
+  bagWeight, BASE_STATS, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS, moveGear,
+  NO_PILE, SLOTS, starterEquipment, type Bag, type BagItem, type Equipment, type Gear, type ItemId,
 } from "@infinite-tower/shared";
 
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
@@ -61,7 +61,7 @@ describe("weight", () => {
   });
 
   test("the burden weighs the bag and the equipment together", () => {
-    const stats: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
+    const stats = BASE_STATS;
     const worn = ITEMS.sword.weight + ITEMS.skillbook.weight;
     const tusks = Math.ceil((carryLimit(stats) - worn) / ITEMS["boar-tusk"].weight);
     const bag = grid(tusks, 2, ...Array.from({ length: tusks }, (_, x) => stack("boar-tusk", x, 0)));

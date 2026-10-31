@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BURDEN, burdenOf, carryLimit, dodgeCost, emptyCloth, gearBurden, ITEMS, NO_PILE, PLAYER, walkPace, type Bag,
-  type Gear, type Stats,
+  BASE_STATS, BURDEN, burdenOf, carryLimit, dodgeCost, emptyCloth, gearBurden, ITEMS, moveSpeed, NO_PILE,
+  overworldPace, PLAYER, walkPace, type Bag, type Gear,
 } from "@infinite-tower/shared";
 
-const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
+const STATS = BASE_STATS;
 const LIMIT = carryLimit(STATS);
 const TUSK = ITEMS["boar-tusk"].weight;
 
@@ -46,7 +46,7 @@ describe("gearBurden", () => {
   });
 
   test("more strength carries more", () => {
-    const stronger = { ...STATS, strength: STATS.strength + 10 };
+    const stronger = { ...STATS, strength: STATS.strength * 4 };
     assert.equal(gearBurden(only(tusks(LIMIT / TUSK + 3)), stronger), "light");
   });
 });
@@ -56,6 +56,13 @@ describe("what a burden does", () => {
     assert.equal(walkPace("light"), 1);
     assert.equal(walkPace("heavy"), 1);
     assert.equal(walkPace("overloaded"), 0.5);
+  });
+
+  test("on the overworld, the burden's pace and agility, as in the arena", () => {
+    const quick = { ...STATS, agility: STATS.agility * 16 };
+    assert.equal(overworldPace(only(tusks(1)), STATS), 1);
+    assert.equal(overworldPace(only(tusks(1)), quick), moveSpeed(1, quick));
+    assert.equal(overworldPace(only(tusks(LIMIT / TUSK + 3)), quick), moveSpeed(walkPace("overloaded"), quick));
   });
 
   test("heavy makes a dodge cost more stamina; overloaded can't dodge", () => {

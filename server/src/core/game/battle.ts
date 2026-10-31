@@ -1,12 +1,12 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  bagCounts, Body, Enemy, PlayerInput, roundTo, SLOTS, type Carried, type EnemyId, type Entity, type ItemCounts,
-  type ItemId, type ServerMsgOf, type Skillbook, type Vec2, type Vitals,
+  bagCounts, Body, coreAfterDeath, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss, type EnemyId, type Entity,
+  type ItemCounts, type ItemId, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type Fight, type FightSetup, type PlayerResult, type PlayerSetup,
 } from "@infinite-tower/shared/fight";
-import { BattleRoom, type Seat } from "../battle/room.js";
+import { BattleRoom, type Kept, type Seat } from "../battle/room.js";
 import { fullVitals, STARTER_KIT } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
@@ -103,7 +103,7 @@ export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
   session.closeBag();
   const { bag, equipment } = session.gear;
   return {
-    vitals: session.vitals, stats: session.stats, burden: session.burden, gear: { bag, equipment },
+    vitals: session.vitals, stats: session.stats, core: session.core, burden: session.burden, gear: { bag, equipment },
     book: session.skillbook, seed: randomSeed(session.overworld.rng), invulnerable: session.invulnerable,
     who: { name: session.name, character: session.character! },
   };
@@ -111,13 +111,10 @@ export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
 
 const seatOf = (session: GameSession): Seat => ({
   link: session.link,
-  onEnd: (result, after, book, gear) => settleBattle(session, result, after, book, gear),
+  onEnd: (result, after, kept) => settleBattle(session, result, after, kept),
 });
 
-/** `after`, `book` and `gear`: the HP, stamina, pages and gear the fight left them. */
-function settleBattle(
-  session: GameSession, result: PlayerResult, after: Vitals, book: Skillbook, gear: Carried,
-): void {
+function settleBattle(session: GameSession, result: PlayerResult, after: Vitals, { book, gear, core }: Kept): void {
   const battle = session.battle;
   if (!battle) return;
   battle.over = true;
@@ -125,10 +122,11 @@ function settleBattle(
   // Gone with nothing won or lost: the save keeps what they came in with.
   if (result === "left" || result === "fighting") return;
   session.gear = { ...session.gear, ...gear };
+  session.core = core;
   const won = result === "won";
   const { overworld } = session;
   const afterFightMs = battle.room.inArena(battle.seat) ? AFTER_FIGHT_MS : null;
-  let lost: ItemCounts = {};
+  let lost: ItemCounts = {}, coreLost: CoreLoss = null;
 
   if (won) {
     if (afterFightMs !== null) battle.drops.closesAtMs ??= Date.now() + afterFightMs;
@@ -151,12 +149,14 @@ function settleBattle(
     session.gear = { ...session.gear, bag: { ...bag, items: bag.items.filter((s) => kept(s.item)) }, equipment };
     dropWhereFell(battle, overworld, lost);
     overworld.place(session.me, overworld.level.spawn);
+    session.core = coreAfterDeath(core);
+    coreLost = session.core.steps < core.steps ? "step" : session.core.fill < core.fill ? "fill" : null;
     session.vitals = fullVitals(session.stats);
   }
   session.save();
   session.link.send({
     t: "battleResult", won, me: overworld.playerPos(session.me), wins: session.wins, vitals: session.vitals,
-    lost, gear: session.gear, skillbook: session.skillbook, afterFightMs,
+    lost, gear: session.gear, skillbook: session.skillbook, afterFightMs, core: session.core, coreLost,
   });
 }
 

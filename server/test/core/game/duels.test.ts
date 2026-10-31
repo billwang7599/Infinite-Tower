@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, type Character, type StepInput,
+  addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, type Character, type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer, withStarterKit } from "../../../src/core/content/player.js";
@@ -187,6 +187,19 @@ describe("a duel", () => {
     assert.deepEqual(ra.gear.bag, BAG);
     assert.deepEqual(rb.me, b.session.overworld.playerPos(b.session.me), "no waking at the start");
     assert.deepEqual(ra.me, a.session.overworld.playerPos(a.session.me));
+  });
+
+  test("a spar costs the core nothing, and essence absorbed in it stays absorbed", async () => {
+    const { online, a, b } = await dueling();
+    const room = a.session.battle!.room, gathered = { ...newCore(), fill: 40 };
+    room.edit(0, (world, e) => { world.require(e, Player).core = gathered; });
+    room.edit(1, (world, e) => {
+      world.require(e, Player).core = gathered;
+      world.require(e, Health).hp = 0;
+    });
+    runTo(online, [a.session, b.session], 1);
+    assert.deepEqual([a.session.core, b.session.core], [gathered, gathered]);
+    assert.equal(b.link.last("battleResult").coreLost, null);
   });
 
   test("leaving mid-duel forfeits it with nothing lost; the other wins", async () => {

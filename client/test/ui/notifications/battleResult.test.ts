@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { coreName, newCore } from "@infinite-tower/shared";
 import { battleResultLines, type BattleOutcome } from "../../../src/ui/notifications/battleResult.js";
 
-const WIN: BattleOutcome = { won: true, lost: {} };
-const LOSS: BattleOutcome = { won: false, lost: {} };
+const WIN: BattleOutcome = { won: true, lost: {}, core: newCore(), coreLost: null };
+const LOSS: BattleOutcome = { won: false, lost: {}, core: newCore(), coreLost: null };
 
 describe("battleResultLines", () => {
   test("a win says nothing: its drops were in the arena", () => {
@@ -18,6 +19,16 @@ describe("battleResultLines", () => {
 
   test("dying with an empty bag still says you died", () => {
     assert.deepEqual(battleResultLines(LOSS), ["You died."]);
+  });
+
+  test("dying says what the core lost: the essence it held, or a whole step and where that leaves it", () => {
+    assert.deepEqual(battleResultLines({ ...LOSS, coreLost: "fill" }), [
+      "You died.", "Your core dims: the essence it held is gone.",
+    ]);
+    const fellTo = { ...newCore(), steps: 2 };
+    assert.deepEqual(battleResultLines({ ...LOSS, core: fellTo, coreLost: "step" }), [
+      "You died.", `Your core dims: it falls back to ${coreName(fellTo)}.`,
+    ]);
   });
 
   test("a duel says who won, and nothing about dying or items", () => {

@@ -4,16 +4,18 @@
  * back for a number of server ticks.
  */
 import {
-  blankSkillbook, emptyBag, IDLE_INPUT, PLAYER, sameInput, starterEquipment, type EnemyDef, type PlayerInputData,
+  blankSkillbook, emptyBag, IDLE_INPUT, newCore, sameInput, starterEquipment, type EnemyDef, type PlayerInputData,
   type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, Fight, PLAYER_START, type FightSetup, type PlayerResult,
 } from "@infinite-tower/shared/fight";
 import { BattleRoom } from "../../src/core/battle/room.js";
-import { PLAYER_STATS } from "../../src/core/content/player.js";
+import { fullVitals, PLAYER_STATS } from "../../src/core/content/player.js";
 import { ENEMIES } from "../../src/core/enemies/index.js";
 import { FakeLink } from "./fakes.js";
+
+export const FULL = fullVitals(PLAYER_STATS);
 
 /** The wild boar, rooted to the spot and harmless. */
 const STATUE: EnemyDef = { ...ENEMIES["wild-boar"].def, walkSpeed: 0, turnRate: 0, attacks: {} };
@@ -21,7 +23,7 @@ const STATUE: EnemyDef = { ...ENEMIES["wild-boar"].def, walkSpeed: 0, turnRate: 
 export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerAt = PLAYER_START): FightSetup {
   return {
     arena: { id: "test", radius: 16, look: "forest-clearing" },
-    players: [{ at: playerAt, vitals: { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina }, stats: PLAYER_STATS,
+    players: [{ at: playerAt, vitals: { ...FULL }, stats: PLAYER_STATS, core: newCore(),
       burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };

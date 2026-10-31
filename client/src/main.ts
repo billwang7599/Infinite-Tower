@@ -149,4 +149,5 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   returnToTitle: () => void backToTitle(),
   cheat: (cheat) => void preparing.then((game) => game.cheat(cheat)),
   setDayClock: (change) => void preparing.then((game) => game.setDayClock(change)),
+  statPoint: (stat, add) => void preparing.then((game) => game.statPoint(stat, add)),
 });

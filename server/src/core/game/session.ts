@@ -3,12 +3,14 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  distXZ, emptyCloth, finishUse, gearBurden, Health, heldIn, inRect, JOIN_RANGE_TILES, moveGear, nearCampfire,
-  NO_PILE, PLAYER, skillOf, startUse, stepUse, validateSkill, walkPace, type Bag, type Burden, type Character,
-  type Cheat, type Entity, type Gear, type SavedSettings, type Skill, type Skillbook, type Spot, type StepInput,
+  coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn, hpRegenPerSec, inRect,
+  JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo, skillOf, startUse,
+  stepUse, takeBackPoint, validateSkill, type Bag, type Burden, type Character, type Cheat, type CoreState,
+  type Entity, type Gear, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot, type StepInput,
   type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
-import { fullVitals, PLAYER_STATS } from "../content/player.js";
+import { takeCore } from "@infinite-tower/shared/fight";
+import { fullVitals } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { levelOrStart } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
@@ -52,8 +54,6 @@ export class GameSession {
   battle: Battle | null = null;
   wins: number;
   vitals: Vitals;
-  /** The same for everyone for now (content/player.ts); not saved. */
-  readonly stats: Stats = { ...PLAYER_STATS };
   settings: SavedSettings;
   character: Character | null;
   skillbook: Skillbook;
@@ -63,6 +63,7 @@ export class GameSession {
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
   private held: Gear;
+  private soul: CoreState;
   private readonly knownWords: Word[];
   private ticks = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -91,14 +92,23 @@ export class GameSession {
     this.skillbook = saved.skillbook;
     this.story = saved.story;
     this.levelId = levelOrStart(saved.level);
+    this.soul = saved.core;
   }
 
   /** Its weight sets how fast they walk the overworld. */
   get gear(): Gear { return this.held; }
   set gear(gear: Gear) {
     this.held = gear;
-    if (this.walking) this.overworld.playerData(this.me).pace = walkPace(this.burden);
+    this.updatePace();
   }
+
+  get core(): CoreState { return this.soul; }
+  set core(core: CoreState) {
+    this.soul = core;
+    this.updatePace();
+  }
+
+  get stats(): Stats { return coreStats(this.soul); }
 
   get bag(): Bag { return this.held.bag; }
   set bag(bag: Bag) { this.gear = { ...this.held, bag }; }
@@ -108,7 +118,7 @@ export class GameSession {
   /** Sends `welcome`, then puts the player in the world, unless they have no character yet. */
   start(): void {
     this.link.send({
-      t: "welcome", wins: this.wins, vitals: this.vitals, stats: this.stats, settings: this.settings,
+      t: "welcome", wins: this.wins, vitals: this.vitals, core: this.core, settings: this.settings,
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
       chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev,
     });
@@ -210,7 +220,7 @@ export class GameSession {
 
   useItem(at: UseSpot): void {
     if ((!this.inOverworld && !this.afterFight) || this.using) return;
-    this.using = startUse(this.gear[at.in], at, { hp: this.vitals.hp, max: PLAYER.maxHp });
+    this.using = startUse(this.gear[at.in], at, { hp: this.vitals.hp, max: maxHpOf(this.stats), core: this.core });
     if (this.using) this.link.send({ t: "using", at });
   }
 
@@ -265,6 +275,23 @@ export class GameSession {
     this.link.send({ t: "gear", gear: this.gear });
   }
 
+  statPoint(stat: ShownStat, add: boolean): void {
+    if (!this.inOverworld) return;
+    const byFire = nearCampfire(this.overworld.level.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES);
+    const core = add ? placePoint(this.core, stat) : byFire ? takeBackPoint(this.core, stat) : null;
+    if (core) {
+      this.takeCore(core);
+      this.saveSoon();
+    } else this.link.send({ t: "core", core: this.core, vitals: this.vitals, brokeThrough: false });
+  }
+
+  takeCore(core: CoreState, brokeThrough = false): void {
+    const before = this.stats;
+    this.core = core;
+    this.vitals = grownVitals(this.vitals, before, this.stats);
+    this.link.send({ t: "core", core, vitals: this.vitals, brokeThrough });
+  }
+
   saveSkill(page: number, skill: Skill): void {
     const known = new Set(this.knownWords);
     const writable = heldIn(this.gear.equipment, "skillbook") !== null && validateSkill(skill, known).length === 0;
@@ -282,7 +309,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      story: this.story, level: this.levelId,
+      story: this.story, level: this.levelId, core: this.core,
     });
   }
 
@@ -329,10 +356,22 @@ export class GameSession {
       this.save();
       return;
     }
+    this.regen();
     this.tickUse();
     progressStory(this);
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
-    if (++this.ticks % STATE_EVERY_TICKS === 0) this.link.send(stateMsg(this.overworld, this.me, this.introduced));
+    if (++this.ticks % STATE_EVERY_TICKS === 0) {
+      this.link.send({ ...stateMsg(this.overworld, this.me, this.introduced), hp: roundTo(this.vitals.hp, 2) });
+    }
+  }
+
+  private regen(): void {
+    const { stats } = this, max = maxHpOf(stats), { hp } = this.vitals;
+    if (hp > 0 && hp < max) this.vitals = { ...this.vitals, hp: Math.min(max, hp + hpRegenPerSec(stats) * FIXED_DT) };
+  }
+
+  private updatePace(): void {
+    if (this.walking) this.overworld.playerData(this.me).pace = overworldPace(this.held, this.stats);
   }
 
   private tickAfterFight(): void {
@@ -343,6 +382,7 @@ export class GameSession {
       this.link.send({ t: "arenaClosed" });
       return;
     }
+    this.regen();
     this.tickUse();
     progressStory(this);
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
@@ -357,7 +397,7 @@ export class GameSession {
     const using = stepUse(this.using);
     this.using = using.stepsLeft > 0 ? using : null;
     if (this.using) return;
-    const target = { hp: this.vitals.hp, max: PLAYER.maxHp };
+    const target = { hp: this.vitals.hp, max: maxHpOf(this.stats), core: this.core };
     const grid = finishUse(using, this.gear[using.at.in], target);
     if (!grid) {
       this.link.send({ t: "using", at: null });
@@ -365,9 +405,13 @@ export class GameSession {
     }
     this.gear = { ...this.gear, [using.at.in]: grid };
     this.vitals = { ...this.vitals, hp: target.hp };
+    if (target.core !== this.core) this.takeCore(target.core, target.core.steps > this.core.steps);
     const battle = this.afterFight;
-    // In the arena after a win the fight's HP follows, so its HUD shows it.
-    battle?.room.edit(battle.seat, (world, me) => { world.require(me, Health).hp = target.hp; });
+    // In the arena after a win the fight follows, so its HUD shows it.
+    battle?.room.edit(battle.seat, (world, me) => {
+      takeCore(world, me, this.core);
+      world.require(me, Health).hp = this.vitals.hp;
+    });
     this.save();
     this.link.send({ t: "itemUsed", item: using.item, vitals: this.vitals, gear: this.gear });
   }

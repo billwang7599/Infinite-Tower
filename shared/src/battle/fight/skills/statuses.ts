@@ -1,6 +1,9 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { SKILL_EFFECTS, REACTIONS, STATUSES, type Reaction, type Status } from "../../../skills/effects.js";
 import { Health, Player, Statuses, type StatusData } from "../../components.js";
+import {
+  FighterStats, HP_REGEN_PAUSE_TIME, hpRegenPerSec, physicalTakenFactor, skillTakenFactor,
+} from "../../stats.js";
 
 export function noStatuses(): StatusData {
   return {
@@ -13,7 +16,7 @@ export function noStatuses(): StatusData {
 export function statusSystem(): System {
   return (world, dt) => {
     for (const [e, s, health] of world.query(Statuses, Health)) {
-      if (s.left.burning > 0 && health.hp > 0) hurt(world, e, s.burnDamagePerSec * dt);
+      if (s.left.burning > 0 && health.hp > 0) hurt(world, e, s.burnDamagePerSec * dt, "skill");
       for (const status of STATUSES) s.left[status] = Math.max(0, s.left[status] - dt);
       for (const reaction of REACTIONS) s.cooldown[reaction] = Math.max(0, s.cooldown[reaction] - dt);
       if (s.left.burning === 0) s.burnDamagePerSec = 0;
@@ -30,10 +33,12 @@ export function damageDealtFactor(world: World, e: Entity): number {
     * (s.left.cursed > 0 ? SKILL_EFFECTS.elements.darkness.cursedDamageFactor : 1);
 }
 
-export function hurt(world: World, e: Entity, damage: number): number {
+export function hurt(world: World, e: Entity, damage: number, kind: "physical" | "skill"): number {
   if (world.get(e, Player)?.invulnerable) return 0;
-  const health = world.require(e, Health), s = world.get(e, Statuses);
+  const health = world.require(e, Health), s = world.get(e, Statuses), stats = world.get(e, FighterStats);
   let rest = damage;
+  if (stats) rest *= kind === "physical" ? physicalTakenFactor(stats) : skillTakenFactor(stats);
+  if (damage > 0) health.regenDelay = HP_REGEN_PAUSE_TIME;
   if (s) {
     if (s.left.warded > 0) rest *= SKILL_EFFECTS.self.earth.damageTakenFactor;
     const absorbed = Math.min(s.shield, rest);
@@ -42,6 +47,15 @@ export function hurt(world: World, e: Entity, damage: number): number {
   }
   health.hp = Math.max(0, health.hp - rest);
   return rest;
+}
+
+export function regenSystem(): System {
+  return (world, dt) => {
+    for (const [e, health, stats] of world.query(Health, FighterStats)) {
+      if (health.regenDelay > 0) health.regenDelay = Math.max(0, health.regenDelay - dt);
+      else if (health.hp < health.max) heal(world, e, hpRegenPerSec(stats) * dt);
+    }
+  };
 }
 
 export function heal(world: World, e: Entity, amount: number): void {

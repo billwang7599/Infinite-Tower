@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, ITEMS, Player, PLAYER, starterEquipment, type Carried, type EnemyDef, type UseSpot,
-  type Vec3,
+  emptyBag, FIXED_DT, Health, ITEMS, Player, starterEquipment, type Carried, type EnemyDef, type UseSpot, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, STATS, STATUE, SWORDSMAN } from "../fixtures.js";
+import {
+  ARENA, BITER, bodyOf, enemy, FULL_HP, FULL_STAMINA, IDLE, input, player, run, STATUE, SWORDSMAN,
+} from "../fixtures.js";
 
 await initPhysics();
 
-const { useTime: USE_TIME, effects: [{ healHp: HEAL_HP }] } = ITEMS["boar-meat"].consumable;
+const { useTime: USE_TIME, effects: [{ healShare: HEAL_SHARE }] } = ITEMS["boar-meat"].consumable;
+const HEAL_HP = HEAL_SHARE * FULL_HP;
 const HURT_HP = 50;
 const MEAT_AT: UseSpot = { in: "bag", x: 0, y: 0 };
 const BAG = input({ bag: true });
@@ -22,7 +24,7 @@ const withMeat = (count = 2): Carried => ({
 
 function hungry(foe: EnemyDef = STATUE, foeAt = at(0, 6), hp = HURT_HP): Fight {
   return new Fight({
-    arena: ARENA, players: [player(at(0, 0), { gear: withMeat(), vitals: { hp, stamina: STATS.stamina } })],
+    arena: ARENA, players: [player(at(0, 0), { gear: withMeat(), vitals: { hp, stamina: FULL_STAMINA } })],
     enemies: [enemy(foe, foeAt)],
   });
 }
@@ -59,7 +61,7 @@ describe("eating in a fight", () => {
       events.push(...fight.events);
     }
     const used = events.filter((e) => e.type === "used");
-    assert.deepEqual(used, [{ type: "used", player: fight.players[0]!, item: "boar-meat" }]);
+    assert.deepEqual(used, [{ type: "used", player: fight.players[0]!, item: "boar-meat", brokeThrough: false }]);
   });
 
   test("the player stands still while eating", () => {
@@ -72,7 +74,7 @@ describe("eating in a fight", () => {
   });
 
   test("not at full HP, and not what doesn't heal", () => {
-    const full = hungry(STATUE, at(0, 6), PLAYER.maxHp);
+    const full = hungry(STATUE, at(0, 6), FULL_HP);
     startEating(full);
     assert.equal(me(full).action, "bag");
     const fight = hungry();

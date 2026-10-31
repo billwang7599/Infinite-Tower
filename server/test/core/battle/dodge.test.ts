@@ -11,7 +11,7 @@ import {
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSetup } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
-import { openRoom, setupWith } from "../../fixtures/fight.js";
+import { FULL, openRoom, setupWith } from "../../fixtures/fight.js";
 
 // Before the module's constants: they run a fight.
 await initPhysics();
@@ -35,7 +35,7 @@ const DODGE: PlayerInputData = { ...IDLE_INPUT, moveX: 1, dodge: true };
 /** The step the bite lands on, nobody dodging. */
 const LANDS_AT = (() => {
   const fight = new Fight(SETUP);
-  while (fight.world.require(fight.players[0]!, Health).hp === PLAYER.maxHp) fight.step([IDLE_INPUT]);
+  while (fight.world.require(fight.players[0]!, Health).hp === FULL.hp) fight.step([IDLE_INPUT]);
   return fight.steps;
 })();
 
@@ -57,7 +57,7 @@ function playDodge(dodgeAt: number, late = 0) {
   return { client: hp(client.fight), server: hp(room.fight), room, clientFight: client.fight };
 }
 
-const MISSED = PLAYER.maxHp, HIT = PLAYER.maxHp - BITE_DAMAGE;
+const MISSED = FULL.hp, HIT = FULL.hp - BITE_DAMAGE;
 
 describe("a dodge, on the client and on the server", () => {
   test("the bite lands on a step of its own", () => {

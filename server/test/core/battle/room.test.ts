@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, MAX_INPUT_LEAD_STEPS, PLAYER,
+  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, MAX_INPUT_LEAD_STEPS,
   type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, LEAVING_LOSES, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
 import { MAX_START_WAIT_TIME, MIN_SYNC_GAP_STEPS } from "../../../src/core/battle/room.js";
-import { PLAYER_STATS } from "../../../src/core/content/player.js";
-import { FakeClient, openRoom, setupWith } from "../../fixtures/fight.js";
+import { FakeClient, FULL, openRoom, setupWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -152,7 +151,7 @@ describe("a battle room", () => {
     assert.equal(last.step, 2);
     assert.equal(last.fight.outcome.state, "won");
     assert.deepEqual(ended.map((e) => e.result), ["won"]);
-    assert.deepEqual(ended[0]!.vitals, { hp: PLAYER.maxHp, stamina: PLAYER_STATS.stamina });
+    assert.deepEqual(ended[0]!.vitals, FULL);
     assert.equal(room.over, false);
     assert.equal(room.afterFight, true);
     assert.equal(room.inArena(0), true);
@@ -204,11 +203,12 @@ describe("a battle room", () => {
     play();
     play(input({ attack: "light" }));
     for (let i = 0; i < 30; i++) play();
-    const { hp } = Object.assign(room.fight.world.require(room.fight.players[0]!, Health), { hp: 37 });
+    const health = Object.assign(room.fight.world.require(room.fight.players[0]!, Health), { hp: 37 });
     room.fight.world.require(room.fight.enemies[0]!, Health).hp = 0;
     play();
-    assert.equal(ended[0]!.vitals.hp, hp);
-    assert.ok(ended[0]!.vitals.stamina < PLAYER_STATS.stamina, "the slash cost stamina");
+    assert.equal(ended[0]!.vitals.hp, health.hp);
+    assert.ok(health.hp - 37 < 0.1, "only a step's regen on top");
+    assert.ok(ended[0]!.vitals.stamina < FULL.stamina, "the slash cost stamina");
   });
 
   test("a player who leaves mid-fight is told at once how it ended for them; with nobody left, it's freed", () => {

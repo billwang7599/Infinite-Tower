@@ -73,6 +73,16 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
           Heal
         </button>
       </Section>
+      <Section title="Core (overworld)">
+        <button type="button" id="admin-step-down" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          onClick={() => cheat({ kind: "coreStep", add: false })}>
+          − step
+        </button>
+        <button type="button" id="admin-step-up" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          onClick={() => cheat({ kind: "coreStep", add: true })}>
+          + step
+        </button>
+      </Section>
       <Section title="Fight">
         {ENEMY_IDS.map((enemy) => (
           <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}

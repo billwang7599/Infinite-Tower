@@ -1,3 +1,4 @@
+import { BASE_STATS } from "@infinite-tower/shared";
 import { chaseOnSight } from "../overworld/behaviors/chase.js";
 import { encounterOnTouch } from "../overworld/behaviors/touch.js";
 import { wander } from "../overworld/behaviors/wander.js";
@@ -8,8 +9,7 @@ export const WILD_BOAR: Enemy = {
     id: "wild-boar",
     name: "Wild Boar",
     maxHp: 160,
-    // A boar spends no stamina and casts nothing; its agility and strength are average.
-    stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
+    stats: { ...BASE_STATS, skillpower: 0, healthRegen: 0 },
     radius: 0.85,
     walkSpeed: 3.2,
     turnRate: 3.0,
@@ -32,6 +32,7 @@ export const WILD_BOAR: Enemy = {
     },
   },
   drops: [
+    { item: "boar-essence", chance: 1, count: 1 },
     { item: "boar-meat", chance: 0.6, count: 1 },
     { item: "boar-hide", chance: 0.35, count: 1 },
     { item: "boar-tusk", chance: 0.25, count: 1 },

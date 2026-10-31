@@ -131,9 +131,10 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | wrap-around top (a chest piece) | 156: 3 body types x 52 |
 | wrap-around legs (trousers) | 147: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 48 battle frames |
 
-Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the sword and the skillbook. Of what's
-worn, only the sword is drawn on the character, in the arena: in the hand that holds it, or not at all. In the left
-hand the body is the right-handed frame flipped (a swing uses its mirror image's), so it needs no drawings of its own.
+Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the swords, the skillbook and each
+monster's essence (one bead, in four colours). Of what's worn, only the sword is drawn on the character, in the
+arena: in the hand that holds it, or not at all. In the left hand the body is the right-handed frame flipped (a swing
+uses its mirror image's), so it needs no drawings of its own.
 
 Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and

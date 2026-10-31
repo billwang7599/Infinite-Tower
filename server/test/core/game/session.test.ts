@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, PLAYER, REST_RANGE_TILES,
+  blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, REST_RANGE_TILES,
   starterEquipment, useSteps, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { startSession, tick } from "./helpers.js";
+import { near, regenOver, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
-const MEAT_HEAL_HP = ITEMS["boar-meat"].consumable.effects[0].healHp;
 const FULL = fullVitals(PLAYER_STATS);
+const MEAT_HEAL_HP = ITEMS["boar-meat"].consumable.effects[0].healShare * FULL.hp;
 const campfire = () => {
   const fire = getLevel(START_LEVEL).layout.campfires[0];
   if (!fire) throw new Error("the start level has no campfire");
@@ -122,16 +122,17 @@ describe("eating (useItem)", () => {
     startSession({ dev, saved: { vitals: { hp, stamina: 20 }, bag: bagOf(["boar-meat", count, 2, 1]) } });
 
   test("takes its useTime: the meat is used up and heals at the end, then it's saved and itemUsed sent", () => {
-    const hp = PLAYER.maxHp - MEAT_HEAL_HP - 5;
+    const hp = FULL.hp - MEAT_HEAL_HP - 5;
     const { session, link, saves } = hungry(hp);
     session.useItem(MEAT_CELL);
     assert.deepEqual(link.last("using"), { t: "using", at: MEAT_CELL });
     tick(session, EAT_TICKS - 1);
-    assert.equal(session.vitals.hp, hp, "not yet");
+    near(session.vitals.hp, hp + regenOver(EAT_TICKS - 1), "not yet, but some comes back on its own");
     assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
     assert.equal(link.all("itemUsed").length, 0);
     tick(session);
-    assert.deepEqual(session.vitals, { hp: hp + MEAT_HEAL_HP, stamina: 20 });
+    near(session.vitals.hp, hp + regenOver(EAT_TICKS) + MEAT_HEAL_HP);
+    assert.equal(session.vitals.stamina, 20);
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
     assert.equal(saves.length, 1);
     assert.deepEqual(link.last("itemUsed"), {
@@ -140,10 +141,10 @@ describe("eating (useItem)", () => {
   });
 
   test("healing is capped at max HP, and the last one leaves the cell empty", () => {
-    const { session } = hungry(PLAYER.maxHp - 1, 1);
+    const { session } = hungry(FULL.hp - 1, 1);
     session.useItem(MEAT_CELL);
     tick(session, EAT_TICKS);
-    assert.equal(session.vitals.hp, PLAYER.maxHp);
+    assert.equal(session.vitals.hp, FULL.hp);
     assert.deepEqual(session.bag, emptyBag());
   });
 
@@ -163,7 +164,7 @@ describe("eating (useItem)", () => {
     session.useItem(MEAT_CELL);
     session.useItem(bagSpot(0, 1));
     tick(session, EAT_TICKS);
-    assert.equal(session.vitals.hp, 10);
+    near(session.vitals.hp, 10 + regenOver(EAT_TICKS));
     assert.deepEqual(session.bag, bagOf(["boar-tusk", 1, 0, 0]));
     assert.equal(link.all("using").length + link.all("itemUsed").length, 0);
   });
@@ -175,7 +176,7 @@ describe("eating (useItem)", () => {
     session.closeBag();
     assert.deepEqual(link.last("using"), { t: "using", at: null });
     tick(session, EAT_TICKS);
-    assert.equal(session.vitals.hp, 10);
+    near(session.vitals.hp, 10 + regenOver(EAT_TICKS / 2 + EAT_TICKS));
     assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
     assert.equal(link.all("itemUsed").length, 0);
   });
@@ -186,7 +187,7 @@ describe("eating (useItem)", () => {
     tick(session, EAT_TICKS / 2);
     session.input(1, 1, 0);
     tick(session, EAT_TICKS);
-    assert.equal(session.vitals.hp, 10);
+    near(session.vitals.hp, 10 + regenOver(EAT_TICKS / 2 + EAT_TICKS));
     assert.deepEqual(session.bag, bagOf(["boar-meat", 2, 2, 1]));
   });
 
@@ -206,7 +207,7 @@ describe("eating (useItem)", () => {
     tick(session, EAT_TICKS / 2);
     session.useItem(MEAT_CELL);
     tick(session, EAT_TICKS);
-    assert.equal(session.vitals.hp, 10 + MEAT_HEAL_HP);
+    near(session.vitals.hp, 10 + MEAT_HEAL_HP + regenOver(EAT_TICKS / 2 + EAT_TICKS));
     assert.deepEqual(session.bag, bagOf(["boar-meat", 1, 2, 1]));
   });
 

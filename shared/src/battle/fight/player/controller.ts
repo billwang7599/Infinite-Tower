@@ -10,7 +10,7 @@ import { SKILL_EFFECTS, shotOf } from "../../../skills/effects.js";
 import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skills/skill.js";
 import { PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
-import { FighterStats, moveSpeed } from "../../stats.js";
+import { FighterStats, moveSpeed, staminaRegenPerSec } from "../../stats.js";
 import {
   attackCost, COMBAT, FEINT, GUARD_BREAK, weaponIn, type AttackKind, type Weapon,
 } from "../../../weapons/weapons.js";
@@ -166,7 +166,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     const free = player.action === "none" || (player.action === "attack" && !locked);
     const chanting = player.action === "chant" || player.action === "write";
     const inBag = player.action === "bag", usingNow = player.action === "use";
-    const using = inBag && usePressed && input.use?.in === "bag" ? startUse(player.gear.bag, input.use, health) : null;
+    const using = inBag && usePressed && input.use?.in === "bag"
+      ? startUse(player.gear.bag, input.use, { hp: health.hp, max: health.max, core: player.core }) : null;
     let queuedCast = player.castQueued;
     if (queuedCast !== null && player.action !== "chant" && !(skillbook && onPage(player.book, queuedCast))) {
       player.castQueued = queuedCast = null;
@@ -231,7 +232,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
       }
       case "dodge": {
         const progress = Math.min(1, t / dodge.duration);
-        const speed = dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress;
+        const speed = moveSpeed(dodge.speed + (dodge.endSpeed - dodge.speed) * progress * progress, stats);
         v.x = dir.x * speed;
         v.z = dir.z * speed;
         if (t >= dodge.duration) player.action = "none";
@@ -273,6 +274,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else {
     const charged = (statuses?.left.charged ?? 0) > 0 ? SKILL_EFFECTS.self.lightning.staminaRegenFactor : 1;
-    stamina.value = Math.min(stamina.max, stamina.value + PLAYER.staminaRegenPerSec * charged * dt);
+    const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * charged;
+    stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
   }
 }

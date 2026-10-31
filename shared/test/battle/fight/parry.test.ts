@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Enemy, FIXED_DT, GUARD_SIDES, Health, mirrorSide, parryOpenTime, PARRY, Player, PLAYER, Stamina,
-  WEAPONS, Wielder, type AttackKind, type EnemyDef, type GuardSide, type PlayerInputData,
+  Enemy, FIXED_DT, GUARD_SIDES, Health, mirrorSide, parryOpenTime, PARRY, Player, Stamina, WEAPONS, Wielder,
+  type AttackKind, type EnemyDef, type GuardSide, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, enemy, input, player, STATS, swings, SWORDSMAN } from "./fixtures.js";
+import { ARENA, BITER, enemy, FULL_HP, FULL_STAMINA, input, player, swings, SWORDSMAN } from "./fixtures.js";
 
 // Before the describes: they run fights to find when the attacks land.
 await initPhysics();
@@ -51,12 +51,12 @@ describe("a parry", () => {
         const p = play(swordsman(kind), its.landsAt + 2, parrying(its.side, pressAt));
         const me = p.fight.players[0]!, kobold = p.fight.enemies[0]!;
         assert.ok(p.events.some((e) => e.type === "parry" && e.by === me && e.target === kobold), `at ${pressAt}`);
-        assert.equal(hp(p), PLAYER.maxHp);
+        assert.equal(hp(p), FULL_HP);
         assert.equal(p.fight.world.require(kobold, Enemy).state, "staggered");
         assert.equal(p.fight.world.require(kobold, Wielder).swing, null, "its attack is over");
         assert.equal(p.fight.world.require(me, Wielder).swing, null, "the parrying heavy is spent on the parry");
         assert.equal(p.fight.world.require(me, Player).action, "none");
-        assert.equal(p.fight.world.require(me, Stamina).value, STATS.stamina, "the heavy's stamina back");
+        assert.equal(p.fight.world.require(me, Stamina).value, FULL_STAMINA, "the heavy's stamina back");
       }
     });
 
@@ -82,7 +82,7 @@ describe("a parry", () => {
     const its = firstAttack(swordsman("light"));
     const p = play(swordsman("light"), its.landsAt + 2, parrying(its.side, its.landsAt - WINDOW_STEPS - 1));
     assert.ok(!p.events.some((e) => e.type === "parry"));
-    assert.ok(hp(p) < PLAYER.maxHp);
+    assert.ok(hp(p) < FULL_HP);
   });
 
   test("from either other guard, it isn't a parry", () => {
@@ -90,7 +90,7 @@ describe("a parry", () => {
     for (const side of GUARD_SIDES.filter((s) => s !== its.side)) {
       const p = play(swordsman("light"), its.landsAt + 2, parrying(side, its.landsAt - 3));
       assert.ok(!p.events.some((e) => e.type === "parry"), side);
-      assert.ok(hp(p) < PLAYER.maxHp, side);
+      assert.ok(hp(p) < FULL_HP, side);
     }
   });
 
@@ -98,13 +98,13 @@ describe("a parry", () => {
     const its = firstAttack(swordsman("light"));
     const p = play(swordsman("light"), its.landsAt + 2, parrying(its.side, its.landsAt - 3, "light"));
     assert.ok(!p.events.some((e) => e.type === "parry"));
-    assert.ok(hp(p) < PLAYER.maxHp);
+    assert.ok(hp(p) < FULL_HP);
   });
 
   test("a body blow can't be parried", () => {
     const p = play(BITER, 60, (step) => ({ locked: 0, guard: "top", attack: step % 10 === 0 ? "heavy" : null }), 2.4);
     assert.ok(!p.events.some((e) => e.type === "parry"));
-    assert.ok(hp(p) < PLAYER.maxHp);
+    assert.ok(hp(p) < FULL_HP);
   });
 });
 
@@ -138,7 +138,7 @@ describe("a parry in a duel", () => {
     const after = duel(landsAt + 60, (s) => ({
       locked: 1, guard: "right", attack: s === landsAt - 2 ? "heavy" : s === landsAt + 1 ? "light" : null,
     }), attacker);
-    assert.ok(after.fight.world.require(after.fight.players[1]!, Health).hp < PLAYER.maxHp);
-    assert.equal(after.fight.world.require(after.fight.players[0]!, Health).hp, PLAYER.maxHp);
+    assert.ok(after.fight.world.require(after.fight.players[1]!, Health).hp < FULL_HP);
+    assert.equal(after.fight.world.require(after.fight.players[0]!, Health).hp, FULL_HP);
   });
 });

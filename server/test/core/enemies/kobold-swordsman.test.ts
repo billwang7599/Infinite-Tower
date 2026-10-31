@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, Enemy, FIXED_DT, GUARD_BREAK, GUARD_SIDES, Health, IDLE_INPUT, mirrorSide, Player, PLAYER, WeaponAttack,
+  Body, Enemy, FIXED_DT, GUARD_BREAK, GUARD_SIDES, Health, IDLE_INPUT, mirrorSide, Player, WeaponAttack,
   Wielder,
   type EnemyDef, type GuardSide, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
-import { fightWith } from "../../fixtures/fight.js";
+import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -48,7 +48,7 @@ describe("the Kobold Swordsman", () => {
       const hp = fight.world.require(fight.players[0]!, Health).hp;
       console.log(`seed ${seed}: ${fight.outcome.state} in ${(fight.steps / 60).toFixed(1)} s, ${hp} HP left`);
       assert.equal(fight.outcome.state, "won", `seed ${seed}: ${hp} HP left after ${fight.steps} steps`);
-      assert.ok(hp > PLAYER.maxHp / 3, `seed ${seed}: ${hp} HP left`);
+      assert.ok(hp > FULL.hp / 3, `seed ${seed}: ${hp} HP left`);
     }
   });
 
@@ -109,7 +109,7 @@ describe("the Kobold Swordsman", () => {
 
   test("its own blade never drops, even on the lowest roll", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
-    assert.deepEqual(rollDrops("kobold-swordsman", () => 0), {});
+    assert.deepEqual(rollDrops("kobold-swordsman", () => 0), { "kobold-swordsman-essence": 1 }, "only its essence");
   });
 });
 

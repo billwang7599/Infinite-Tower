@@ -39,7 +39,7 @@ describe("the Kobold Greatsword", () => {
     }
   });
 
-  test("its own blade never drops", () => {
-    assert.deepEqual(rollDrops("kobold-greatsword", () => 0), {});
+  test("its own blade never drops: only its essence", () => {
+    assert.deepEqual(rollDrops("kobold-greatsword", () => 0), { "kobold-greatsword-essence": 1 });
   });
 });

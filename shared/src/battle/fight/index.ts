@@ -4,6 +4,7 @@ export { Fight } from "./fight.js";
 export type { FightEvent, FightOutcome, FightState } from "./context.js";
 export { LEAVING_LOSES, MAX_FIGHT_TIME, playerResult, type PlayerResult } from "./outcome.js";
 export { initPhysics } from "./physics/init.js";
+export { takeCore } from "./player/use.js";
 export {
   DUEL_STARTS, ENEMY_START, ENEMY_START_YAW, joinStart, PLAYER_START, type EnemySetup, type FightSetup,
   type PlayerSetup,

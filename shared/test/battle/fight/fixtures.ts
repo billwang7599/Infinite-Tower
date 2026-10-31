@@ -1,19 +1,22 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, ATTACK_KINDS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy, Health,
-  LungeAttack, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject, Stamina, starterEquipment,
-  Statuses, WeaponAttack, Wielder,
+  ActiveHit, ATTACK_KINDS, BASE_STATS, blankSkillbook, Body, GUARD_SIDES, releaseTime, ChargeAttack, emptyBag, Enemy,
+  Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject,
+  Stamina, staminaMaxOf, starterEquipment, Statuses, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
   type SkillAttackDef, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
 export const ARENA: ArenaDef = { id: "test", radius: 8, look: "forest-clearing" };
-export const STATS: Stats = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
+/** No HP regen, so HP changes only by what a test does (core-stats.test.ts has the regen). */
+export const STATS: Stats = { ...BASE_STATS, healthRegen: 0 };
+export const FULL_HP = maxHpOf(STATS);
+export const FULL_STAMINA = staminaMaxOf(STATS);
 
 const ENEMY_BASE: EnemyDef = {
   id: "wild-boar", name: "Test", maxHp: 100,
-  stats: { stamina: 100, skillpower: 0, agility: 10, strength: 10 },
+  stats: { ...STATS, skillpower: 0 },
   radius: 0.85, walkSpeed: 0, turnRate: 0, poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
 };
 
@@ -75,7 +78,7 @@ export const CASTER: EnemyDef = {
 };
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
-  ({ at, vitals: { hp: PLAYER.maxHp, stamina: STATS.stamina }, stats: STATS, burden: "light",
+  ({ at, vitals: { hp: FULL_HP, stamina: FULL_STAMINA }, stats: STATS, core: newCore(), burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 

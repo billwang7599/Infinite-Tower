@@ -4,8 +4,8 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, LocalPlayer, moveGear, NO_PILE, useSteps, type Character, type Cheat, type DayChange,
-  type DialogueOffer, type EnemyId, type ServerMsgOf, type Skill, type Spot, type UseSpot,
+  bagCounts, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type DayChange,
+  type DialogueOffer, type EnemyId, type ServerMsgOf, type ShownStat, type Skill, type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -46,6 +46,7 @@ export interface Game {
   saveCharacter(character: Character): void;
   cheat(cheat: Cheat): void;
   setDayClock(change: DayChange): void;
+  statPoint(stat: ShownStat, add: boolean): void;
 }
 
 interface GameParts {
@@ -190,9 +191,12 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       battle.update(dt);
       for (const { step, event } of battle.ctx.events) {
         if (event.type !== "used" || step - lastUsedStep < useSteps(event.item)) continue;
-        if (!battle.ctx.fight?.world.has(event.player, LocalPlayer)) continue;
+        const fight = battle.ctx.fight;
+        if (!fight?.world.has(event.player, LocalPlayer)) continue;
         lastUsedStep = step;
         say(ui.notifications, { kind: "itemUsed", item: event.item });
+        const { core } = fight.world.require(event.player, Player);
+        if (event.brokeThrough) say(ui.notifications, { kind: "breakthrough", core });
       }
     }
     drawing.frame(dt);
@@ -264,6 +268,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     sendChat(text) {
       net?.send({ t: "chat", text });
     },
+    statPoint(stat, add) {
+      net?.send({ t: "statPoint", stat, add });
+    },
     saveCharacter(character) {
       net?.send({ t: "character", character });
     },
@@ -317,6 +324,12 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         overworld.setVitals(msg.vitals);
         overworld.setGear(msg.gear);
         say(ui.notifications, { kind: "itemUsed", item: msg.item });
+      });
+      net.on("core", (msg) => {
+        if (result) result = { ...result, core: msg.core, vitals: msg.vitals };
+        overworld.setCore(msg.core);
+        overworld.setVitals(msg.vitals);
+        if (msg.brokeThrough) say(ui.notifications, { kind: "breakthrough", core: msg.core });
       });
       net.on("healed", (msg) => {
         overworld.setVitals(msg.vitals);

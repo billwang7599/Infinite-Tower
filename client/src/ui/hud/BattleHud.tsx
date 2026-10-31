@@ -1,5 +1,5 @@
 import {
-  GUARD_SIDES, NO_PILE, type Gear, type GuardSide, type Skill, type Spot, type UseSpot,
+  coreStats, GUARD_SIDES, NO_PILE, type Gear, type GuardSide, type Skill, type Spot, type UseSpot,
 } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import type { Actions } from "../../core/actions.js";
@@ -104,7 +104,8 @@ function BattleBag(props: BattleBagProps) {
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const usingInFight = useStore(hud, (s) => s.using);
   const usingServed = useStore(props.overworld, (s) => s.using);
-  const stats = useStore(props.overworld, (s) => s.stats);
+  const core = useStore(props.overworld, (s) => s.core);
+  const stats = useMemo(() => core && coreStats(core), [core]);
   // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
   const gear = useMemo(
     () => (afterFight ? { ...served, cloth: NO_CLOTH } : { ...carried, cloth: NO_CLOTH, pile: NO_PILE }),
@@ -183,9 +184,10 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
+  const core = useStore(hud, (s) => s.core);
   return (
     <div className="absolute top-3 left-4">
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} core={core} />
     </div>
   );
 }

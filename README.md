@@ -84,15 +84,21 @@ What's built so far:
   back to typing. Lines show in a log at the bottom left and, in the overworld, in a bubble over the
   speaker's head. The server keeps the last 1000 lines in memory, sends the last 50 to whoever joins, and takes up to
   500 characters a line and 10 lines in 5 seconds from each player.
-- **Stats:** strength, agility, stamina and skillpower on every fighter (skillpower scales skill damage).
+- **The core:** progression without levels, five realms (Yan, Sol, Lux, Ling, Tian) of three steps (Early, Middle,
+  Peak). Every beaten monster drops its essence (a Kobold's worth more than a boar's); absorbing it from the bag takes
+  2 s, anywhere, mid-fight too (a hit stops it, the essence kept), and a full step breaks through: every stat goes up
+  and you get free points to place (taken back by a campfire). Stats are strength, agility, stamina, skillpower,
+  vitality (HP), defense and special defense, plus hidden toughness, stamina recovery and health regen. Dying loses
+  the step's essence, or with none, a whole step. The HUD shows your realm and step, the character panel your stats.
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
-  or dying refills them.
+  or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
-  limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Boars sometimes drop meat
-  (heals), a hide or a tusk. Dying drops all but your weapons and skillbook. The bag screen (B) shows what
-  you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked with the mouse (you stand
-  still while it's open): hover for an item's tooltip, click to select, drag to move, R or a right click to turn,
-  Enter or a double click to eat. Eating takes a second, on the overworld or mid-fight, and a hit stops it.
+  limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Every monster drops its
+  essence, and boars sometimes meat (heals), a hide or a tusk. Dying drops all but your weapons and skillbook. The
+  bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked
+  with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
+  or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or
+  mid-fight, and a hit stops it.
 - **Drops:** a won fight's loot lies in the arena where the enemy crumbled away, shared by the winners. Walk up to it,
   look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
   The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
@@ -108,9 +114,10 @@ What's built so far:
 - **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
   a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
   guard; without the skillbook you can't quick-cast. Worn things count toward the weight.
-- **HUD:** HP and stamina bars, foes beaten, the level's name, the ping, and buttons for the character panel, the
-  inventory, the questbook and Settings. Small notices (loot, a full bag, dying, resting, eating, quests) stack in
-  the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
+- **HUD:** HP and stamina bars, your realm and step, foes beaten, the level's name, the ping, and buttons for the
+  character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying, resting,
+  eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the big banner
+  in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further
@@ -119,7 +126,7 @@ What's built so far:
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
   effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),
   return to title.
-- **Saving:** your character, vitals, wins, bag, equipment, story and settings are kept with your account in
+- **Saving:** your character, vitals, core, wins, bag, equipment, story and settings are kept with your account in
   Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its

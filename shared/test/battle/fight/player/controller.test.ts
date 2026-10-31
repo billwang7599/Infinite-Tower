@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  attackCost, attackSteps, dodgeCost, emptyBag, Player, PLAYER, Stamina, starterEquipment, WEAPONS,
-  type Hand, type PlayerAction, type PlayerInputData, type Vitals,
+  attackCost, attackSteps, dodgeCost, emptyBag, Player, Stamina, starterEquipment, WEAPONS, type Hand,
+  type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
-import { ARENA, dumpState, enemy, input, player, STATS, STATUE } from "../fixtures.js";
+import { ARENA, dumpState, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE } from "../fixtures.js";
 
 await initPhysics();
 
@@ -60,7 +60,7 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
       assert.deepEqual(actions.slice(SWING_AT - 1, LET_GO_AT - 1), Array(LOCKED_STEPS).fill("attack"),
         `pressed ${k} steps in: the swing isn't cut short`);
       assert.deepEqual(dodgeStarts, [LET_GO_AT], `pressed ${k} steps in`);
-      assert.equal(staminas[LET_GO_AT - 1], STATS.stamina - attackCost(WEAPONS.sword, "light") - dodgeCost("light")!,
+      assert.equal(staminas[LET_GO_AT - 1], FULL_STAMINA - attackCost(WEAPONS.sword, "light") - dodgeCost("light")!,
         `pressed ${k} steps in: one swing and one dodge paid for`);
     }
   });
@@ -90,7 +90,7 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
 
   test("if the player can't dodge when the swing lets go (no stamina), the press isn't kept: it runs out", () => {
     // Enough for the swing (it refills a little first), which leaves none.
-    const tired = newFight({ hp: PLAYER.maxHp, stamina: 1 });
+    const tired = newFight({ hp: FULL_HP, stamina: 1 });
     const { actions, dodgeStarts, staminas } = play(swingThen({ [SWING_AT + 1]: { dodge: true } }), 200, tired);
     assert.equal(actions[SWING_AT - 1], "attack");
     assert.equal(staminas[LET_GO_AT - 1], 0);

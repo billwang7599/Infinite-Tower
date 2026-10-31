@@ -9,6 +9,7 @@ import type { ItemId } from "../items/items.js";
 import type { Using } from "../items/using.js";
 import type { Reaction, Status } from "../skills/effects.js";
 import type { Skill, Skillbook, Word } from "../skills/skill.js";
+import type { CoreState } from "../soul/core.js";
 import type { PageWrite } from "./input.js";
 
 /**
@@ -54,6 +55,8 @@ export interface PlayerData {
   /** How weighed down the player came in (items/burden.ts): dodging costs more, or can't happen; walking slows. */
   burden: Burden;
   gear: Carried;
+  /** Replaced, never changed in place. */
+  core: CoreState;
   invulnerable: boolean;
   leftArena: boolean;
 }
@@ -112,6 +115,7 @@ export interface HealthData {
   invuln: number;
   hitstun: number;
   flash: number;
+  regenDelay: number;
 }
 export const Health = defineComponent<HealthData>("Health");
 

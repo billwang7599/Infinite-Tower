@@ -5,9 +5,9 @@
  * `UiActions` is the other direction.
  */
 import {
-  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type Credentials, type DayChange,
-  type DialogueOffer, type GameServer, type Gear, type GuardSide, type Look, type QuestView, type Skill, type Skillbook,
-  type Spot, type Stats, type UseSpot, type Word,
+  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
+  type DayChange, type DialogueOffer, type GameServer, type Gear, type GuardSide, type Look, type QuestView,
+  type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -49,7 +49,8 @@ export interface OverworldHudState {
   hpFraction: number;
   staminaFraction: number;
   /** null before `welcome`. */
-  stats: Stats | null;
+  core: CoreState | null;
+  byFire: boolean;
   /** null until they've made one. */
   character: Character | null;
   interaction: Interaction | null;
@@ -80,6 +81,7 @@ export interface BattleHudState {
   writingPage: number | null;
   carried: Carried;
   using: UseSpot | null;
+  core: CoreState | null;
 }
 
 export interface SkillsState {
@@ -183,6 +185,7 @@ export interface UiActions {
   returnToTitle(): void;
   cheat(cheat: Cheat): void;
   setDayClock(change: DayChange): void;
+  statPoint(stat: ShownStat, add: boolean): void;
 }
 
 export class UiState {
@@ -198,8 +201,8 @@ export class UiState {
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
   readonly overworld = new Store<OverworldHudState>({
-    levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, stats: null, character: null,
-    interaction: null, using: null,
+    levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, byFire: false,
+    character: null, interaction: null, using: null,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
@@ -209,7 +212,7 @@ export class UiState {
     hpFraction: 1, staminaFraction: 1, guard: null, foeGuard: null, enemyName: "", enemyHpFraction: 1,
     enemyAlive: false,
     result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
-    stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null,
+    stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

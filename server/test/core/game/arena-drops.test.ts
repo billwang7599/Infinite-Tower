@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, INTERACT_LOOK_RAD, INTERACT_RANGE_M, ITEMS, NO_PILE,
-  useSteps, type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Vitals, type Word,
+  bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, INTERACT_LOOK_RAD, INTERACT_RANGE_M, ITEMS,
+  maxHpOf, NO_PILE, useSteps, type Bag, type GridSpot, type ItemId, type Skill, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
+import { PLAYER_STATS } from "../../../src/core/content/player.js";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { AFTER_FIGHT_MS, DROP_GAP_M } from "../../../src/core/game/battle.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
 import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
-import { pileAt, startSession, tick } from "./helpers.js";
+import { pileAt, regenOver, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -91,6 +92,7 @@ describe("a won fight's drops", () => {
   });
 
   test("with nothing dropped, the arena still opens, with nothing in it", (t) => {
+    t.mock.property(ENEMIES["wild-boar"], "drops", []);
     const { link } = won(t, { random: 0.999 });
     assert.equal(link.last("battleResult").afterFightMs, AFTER_FIGHT_MS);
     assert.deepEqual(link.last("arenaDrops").piles, []);
@@ -161,11 +163,9 @@ describe("taking from the arena's drops", () => {
 
   test("taking the last of it: the pile is gone, and the arena's drops say so", (t) => {
     const { session, link, items, spotOf } = opened(t);
-    let x = 0;
-    while (items()) {
+    for (let i = 0; items() && i < 12; i++) {
       const [stack] = items()!.items;
-      session.moveItem(spotOf(stack!.item), bagSpot(x, 0), false);
-      x += 2;
+      session.moveItem(spotOf(stack!.item), bagSpot((i * 2) % 6, 2 * Math.floor(i / 3)), false);
     }
     assert.deepEqual(bagCounts(session.bag), DROPPED);
     step(session, 1);
@@ -187,12 +187,13 @@ describe("taking from the arena's drops", () => {
     session.useItem({ in: "bag", x: 0, y: 0 });
     assert.deepEqual(link.last("using"), { t: "using", at: { in: "bag", x: 0, y: 0 } });
     step(session, useSteps("boar-meat"));
-    const healed = hp + ITEMS["boar-meat"].consumable.effects[0].healHp;
-    assert.equal(session.vitals.hp, healed);
+    const healed = hp + ITEMS["boar-meat"].consumable.effects[0].healShare * maxHpOf(PLAYER_STATS);
+    const regen = session.vitals.hp - healed;
+    assert.ok(regen >= regenOver(useSteps("boar-meat")) && regen < 1, "healed, and a little came back on its own");
     assert.deepEqual(session.bag, emptyBag());
-    assert.equal(link.last("itemUsed").vitals.hp, healed);
+    assert.equal(link.last("itemUsed").vitals.hp, session.vitals.hp);
     const fight = fightOf(session);
-    assert.equal(fight.world.require(fight.players[0]!, Health).hp, healed);
+    assert.equal(fight.world.require(fight.players[0]!, Health).hp, session.vitals.hp);
   });
 
   test("a page can be written there, as outside a fight", (t) => {

@@ -27,6 +27,10 @@ const RAMPS = {
   leather: ["#1d120c", "#331f15", "#4b2e1f", "#63402b", "#7d563a", "#9c7351"],
   oxblood: ["#1c0a0c", "#341215", "#4f1c1f", "#6a2a2b", "#86403c", "#a8625a"],
   parchment: ["#3d3427", "#6b5d46", "#9a8a6b", "#c4b591", "#ddd2b2", "#f3ecd6"],
+  ember: ["#2a0d05", "#5c1f0a", "#9a3a12", "#d4651f", "#f29a45", "#ffd79a"],
+  spark: ["#201a08", "#4a3c12", "#8a7020", "#c9a93a", "#ecd36f", "#fff4c2"],
+  smoulder: ["#1f0606", "#470f0b", "#7a1d12", "#b0371c", "#da6a35", "#f7b27a"],
+  wisp: ["#140a24", "#2e1a52", "#4f3283", "#7a58b5", "#a989dc", "#e2d4fb"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -185,9 +189,19 @@ function skillbook(px: Pixels): void {
   cover.fill(rect(27, 14, 28, 16), ink("brass", BASE));
 }
 
+const essence = (material: Material) => (px: Pixels): void => {
+  const pen = new Pen(px, 0), bead = ellipse(8, 8.5, 5.2, 5.2);
+  pen.fill(bead, ink(material, BASE));
+  pen.shade(darkEdge(bead, 1), SHADOW);
+  pen.fill(ellipse(7.3, 7.7, 3, 3), ink(material, LIGHT));
+  pen.fill(ellipse(6.6, 7, 1.3, 1.3), ink(material, SHINE));
+};
+
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, longsword, greatsword,
-  "kobold-greatsword": greatsword, skillbook,
+  "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
+  "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
+  "goblin-warlock-essence": essence("wisp"),
 };
 
 const drawn = new Map<ItemId, Picture>();

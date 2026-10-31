@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  Body, emptyBag, Enemy, IDLE_INPUT, WeaponAttack, ITEMS, Player, PLAYER, SkillObject, starterEquipment, type EnemyDef,
-  type Entity, type PlayerInputData, type Skill, type Vec3, type World,
+  BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, WeaponAttack, ITEMS, newCore, Player, SkillObject,
+  starterEquipment, type EnemyDef, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
 import { fightEars, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
@@ -11,7 +11,7 @@ import type { StepEvent } from "../../src/modes/battle/sync.js";
 
 before(() => initPhysics());
 
-const STATS = { stamina: 100, skillpower: 10, agility: 10, strength: 10 };
+const STATS = BASE_STATS;
 const STANDER: EnemyDef = {
   id: "kobold-swordsman", name: "Stander", maxHp: 100, stats: STATS, radius: 0.6, walkSpeed: 0, turnRate: 3,
   poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
@@ -29,7 +29,7 @@ const FIRE_BOLT: Skill = { segments: [{ form: "bolt", elements: ["fire"], modifi
 const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER): FightSetup => ({
   arena: { id: "test", radius: 16, look },
   players: [{
-    at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: PLAYER.maxHp, stamina: 100 }, stats: STATS, burden: "light",
+    at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: 100, stamina: 100 }, stats: STATS, core: newCore(), burden: "light",
     gear: { bag: emptyBag(), equipment: starterEquipment() }, book: [FIRE_BOLT],
   }],
   enemies: [{ def, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],

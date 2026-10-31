@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Enemy, Health, PLAYER, releaseTime, SkillObject, Skilled, type Vec3 } from "@infinite-tower/shared";
+import {
+  Enemy, Health, releaseTime, SkillObject, Skilled, type Vec3,
+} from "@infinite-tower/shared";
 import { chant, Fight, initPhysics, releaseChant, startCast } from "@infinite-tower/shared/fight";
-import { ARENA, enemy, player, run, segment, skill, STATUE } from "../fixtures.js";
+import { ARENA, enemy, FULL_HP, player, run, segment, skill, STATUE } from "../fixtures.js";
 
 await initPhysics();
 
@@ -37,7 +39,7 @@ describe("an enemy that uses skills", () => {
     run(fight, releaseTime(skill(segment("bolt", ["fire"]))));
     assert.equal(boltsBy(fight, caster(fight)).length, 1);
     run(fight, 1);
-    assert.ok(playerHp(fight) < PLAYER.maxHp, "the Bolt hit the player");
+    assert.ok(playerHp(fight) < FULL_HP, "the Bolt hit the player");
   });
 
   test("quick-casts with one call", () => {
