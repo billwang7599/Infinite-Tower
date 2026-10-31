@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { DEFAULT_LOOK, LOOK_OPTIONS, type Look } from "@infinite-tower/shared";
 import { BATTLE_FRAMES, PAINT_GAP_MS, PlayerLook } from "../../src/visuals/characters.js";
-import type { BattleFacing } from "../../src/gfx/look/art.js";
+import { VIEWS, type BattleFacing } from "../../src/gfx/look/art.js";
 import type { Pose, SwordPose } from "../../src/gfx/look/battle.js";
 import { CHIBI_FACINGS } from "../../src/gfx/look/look.js";
 
@@ -104,5 +104,17 @@ describe("PlayerLook", () => {
     look.battleSprite("front", "stand", 0);
     look.battleSprite("front", "stand", 0);
     assert.equal(fronts(), 3);
+  });
+
+  test("the sword hand is where the frame puts it: our right from behind, our left in front, swapped left-handed", (t) => {
+    const { look } = setUp(t);
+    assert.equal(look.handAt("back", "stand", 0), null, "no look yet");
+    look.wear(DEFAULT_LOOK);
+    const middle = VIEWS.battle.width / 2, x = (facing: BattleFacing) => look.handAt(facing, "stand", 0)![0];
+    assert.ok(x("back") > middle && x("front") < middle);
+    look.hold("leftHand");
+    assert.ok(x("back") < middle && x("front") > middle);
+    look.hold(null);
+    assert.equal(look.handAt("back", "stand", 0), null, "nothing held");
   });
 });

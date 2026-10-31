@@ -4,6 +4,7 @@ import {
 import type { EnemyDef, Entity, Vec3 } from "@infinite-tower/shared";
 import { colorMaterial } from "../../materials.js";
 import { buildArm, placeBetween, type Arm } from "../../battle/arm.js";
+import { buildBlade } from "../../battle/blade.js";
 import type { ArenaScene } from "../../battle/scene.js";
 import type { WeaponLook } from "../../battle/weapons.js";
 
@@ -181,18 +182,8 @@ export function buildKobold(
   const swordArm = arm(1), offArm = arm(-1);
   const twoHanded = weapon?.twoHanded ?? false;
   if (weapon) {
-    const { hand } = swordArm, gripM = twoHanded ? 0.42 : 0.2;
-    const grip = part(MeshBuilder.CreateBox("k-grip", { width: 0.05, height: gripM, depth: 0.05 }, scene), hand,
-      leather);
-    grip.position.y = 0.1 - gripM / 2;
-    const guardBar = part(MeshBuilder.CreateBox("k-guard", { width: 0.24, height: 0.04, depth: 0.06 }, scene), hand,
-      brass);
-    guardBar.position.y = 0.12;
     const steel = mat("kobold-steel", weapon.blade.color);
-    const blade = part(MeshBuilder.CreateBox("k-blade", {
-      width: weapon.blade.widthM, height: weapon.blade.lengthM, depth: 0.02,
-    }, scene), hand, steel);
-    blade.position.y = 0.14 + weapon.blade.lengthM / 2;
+    parts.push(...buildBlade(scene, swordArm.hand, weapon, { grip: leather, guard: brass, steel }));
   }
 
   const stars = node("k-stars", model, 0, 1.72, 0);

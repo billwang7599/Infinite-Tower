@@ -1,11 +1,13 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponIn, Wielder, type Entity, type World,
+  Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
+  type World,
 } from "@infinite-tower/shared";
-import type { BattleFacing } from "../../gfx/look/art.js";
+import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
-import { facingSeen, spritePose, STAGGERED } from "./pose.js";
+import { dropBlade, holdBlade, placeBlade, type HeldBlade } from "./blade.js";
+import { facingSeen, playerBlade, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
 import { MOTIONS } from "./weapons.js";
@@ -39,6 +41,7 @@ interface PlayerSprite {
   fading: StandardMaterial | null;
   facing: BattleFacing;
   sword: StandardMaterial;
+  blade: HeldBlade | null;
 }
 
 export const playerVisual = fighter<PlayerSprite>("player", { spawn, frame, dispose });
@@ -75,7 +78,7 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
 
   return {
     ctx, node, plane, shadows, trail, slash, walkPhase: 0, stretch: 1, staggerTime: 0, fading: null, facing: "back",
-    sword: materials.slashFx,
+    sword: materials.slashFx, blade: null,
   };
 }
 
@@ -98,13 +101,14 @@ function dispose(sprite: PlayerSprite): void {
   sprite.shadows.dispose();
   sprite.fading?.dispose();
   sprite.trail.dispose();
+  dropBlade(sprite.blade);
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
   const { ctx } = sprite;
   const body = world.require(e, Body), player = world.require(e, Player), health = world.require(e, Health);
-  const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponIn(hands);
-  const motion = weapon && MOTIONS[weapon.kind];
+  const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponItemIn(hands);
+  const motion = weapon && MOTIONS[WEAPONS[weapon].kind];
   const p = sprite.node.position, vel = body.vel;
   const alive = health.hp > 0;
 
@@ -121,7 +125,8 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
-  sprite.facing = facingSeen(ctx.battle.view.eye, p, world.require(e, Skilled).aim, sprite.facing);
+  const aim = world.require(e, Skilled).aim;
+  sprite.facing = facingSeen(ctx.battle.view.eye, p, aim, sprite.facing);
   const look = ctx.looks.get(e);
   const picture = look?.battleSprite(sprite.facing, pose.pose, pose.frame)
     ?? ctx.materials.player.back[pose.pose][pose.frame]!;
@@ -133,6 +138,21 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.plane.position.x = pose.pose === "stagger" ? Math.sin(health.hitstun * 45) * 0.06 : 0;
 
   sprite.plane.isVisible = !(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1);
+
+  const facing = swing?.dir ?? aim, faceYaw = Math.atan2(facing.x, facing.z);
+  if (weapon !== sprite.blade?.weapon) {
+    dropBlade(sprite.blade);
+    sprite.blade = weapon && holdBlade(ctx, e, sprite.node, weapon, faceYaw);
+  }
+  const hand = look?.handAt(sprite.facing, pose.pose, pose.frame) ?? null;
+  sprite.blade?.root.setEnabled(hand !== null && sprite.plane.isVisible);
+  if (sprite.blade && motion && hand) {
+    const { position } = sprite.plane, across = hand[0] / VIEWS.battle.width - 0.5;
+    const up = 0.5 - hand[1] / VIEWS.battle.height;
+    placeBlade(sprite.blade, ctx.camera, {
+      x: position.x + across * SPRITE_SIZE * pose.scaleX, y: position.y + up * SPRITE_SIZE * pose.scaleY,
+    }, faceYaw, playerBlade(player, wielder, alive, motion), dt);
+  }
 
   const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
   const trail = motion?.trail(swing) ?? null;

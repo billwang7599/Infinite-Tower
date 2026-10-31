@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { EnemyState, Vec3 } from "@infinite-tower/shared";
 import { KOBOLD_DRAWBACK, koboldPose } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
-import { MOTIONS, type BladePose, type Cut } from "../../../../src/visuals/battle/weapons.js";
+import { DRAWBACK, MOTIONS, type BladePose, type Cut } from "../../../../src/visuals/battle/weapons.js";
 
 const D = Math.SQRT1_2;
 const LR: Cut = { x: 1, y: 0 }, RL: Cut = { x: -1, y: 0 }, TB: Cut = { x: 0, y: -1 };
@@ -75,7 +75,7 @@ describe("the kobold's pose", () => {
   });
 
   test("the draw-back carries into the drive and is gone by the time the blade goes live", () => {
-    const { goneByTurn } = KOBOLD_DRAWBACK;
+    const { goneByTurn } = DRAWBACK;
     for (const cut of CUTS) {
       const driven = poseOf("weapon", 0.5, 0.95, cut, { set: 1, turn: 0 }).blade;
       assert.ok(driven.z < MOTIONS.sword.stroke(cut, 0).blade.z, `${JSON.stringify(cut)}: still back as it drives`);

@@ -1,7 +1,7 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity, type Look,
-  type SkillObjectKind, type World,
+  Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity, type Hand,
+  type Look, type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
@@ -14,8 +14,7 @@ import { playerFrames } from "./battle/materials.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
-import { WEAPON_LOOKS } from "./battle/weapons.js";
-import { PlayerLook, type Held } from "./characters.js";
+import { PlayerLook } from "./characters.js";
 import { byEnemy } from "./enemies/index.js";
 import { overworldStage } from "./overworld/overworld.js";
 import { WALKERS } from "./overworld/walker.js";
@@ -85,7 +84,7 @@ export const EFFECTS: Effects = {
   },
 };
 
-type Painted = { fight: Fight; held: Held | null } | null;
+type Painted = { fight: Fight; hand: Hand | null } | null;
 
 interface Peer {
   look: PlayerLook<StandardMaterial>;
@@ -144,12 +143,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
 
   const paintHeld = (look: Pick<PlayerLook<unknown>, "hold" | "finish">, was: Painted, fight: Fight, e: Entity) => {
     const { hands } = fight.world.require(e, Wielder);
-    const item = weaponItemIn(hands), hand = item && heldIn(hands, item);
-    const held = (item && hand && { hand, art: WEAPON_LOOKS[item].sprite }) || null;
-    if (fight === was?.fight && held?.hand === was.held?.hand && held?.art === was.held?.art) return was;
-    look.hold(held);
+    const item = weaponItemIn(hands), hand = (item && heldIn(hands, item)) || null;
+    if (fight === was?.fight && hand === was.hand) return was;
+    look.hold(hand);
     look.finish();
-    return { fight, held } as Painted;
+    return { fight, hand } as Painted;
   };
 
   /** The chibi is painted at once, the arena's frames bit by bit, and all of them before a fight shows. */

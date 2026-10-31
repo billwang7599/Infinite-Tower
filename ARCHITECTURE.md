@@ -172,8 +172,10 @@ main.ts
   `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena (`Player.leftArena`) fades over
   `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are alpha-tested, and its shadow with
   it). The player's look is read from `ui.overworld`'s character and painted once
-  (`visuals/characters.ts`), with the weapon in whichever hand its `Wielder` holds it. Every other player in the fight
-  is painted the same way into a set of frames of their own, in their look (`battle.ctx.who`) with their weapon; the
+  (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
+  every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
+  turned by the same blade poses as a Kobold's (`playerBlade`, `visuals/battle/pose.ts`). Every other player in the
+  fight is painted the same way into a set of frames of their own, in their look (`battle.ctx.who`); the
   sets are kept between fights, one per other player. Each player's sprite shows its back or, once your camera is
   ahead of where they face (their `Skilled` aim), its front (`facingSeen`, `visuals/battle/pose.ts`); the back's
   frames are painted ahead, a front frame the first time it's shown.
@@ -817,7 +819,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the chat holding everything but Enter and Esc) and who has them (the chat only while its field has focus), the
   chat log's cap, what the keys and buttons ask for (actions; the attack pressed last; flicks into guards; the guard
   break), the
-  player's pose, sword trail and cut, the boar's and the Kobold's poses, effects fired once per step and event,
+  player's pose and blade, sword trail and cut, the boar's and the Kobold's poses, effects fired once per step and
+  event,
   camera, mouse and HUD settings, settings sync, when the mouse is captured, overworld prediction, what Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
   level's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
@@ -841,9 +844,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   between the bag, the cloth and the slots and from an open pile, turn, use) and tooltip (itemInfo.ts), the item
   pictures' sizes, and the
   look's pictures (each view's size: the portrait, the chibi facing each way, the battle sprite in each pose from
-  behind and the front, the sword in the hand that holds it, the face only from the front; the chibi's legs standing
-  together in two boots, the right one in shadow), the side of a player the camera sees (and keeps side-on), and the
-  player's frames painted (the chibi at once, the back's one per slice, a front frame only when first shown).
+  behind and the front, the sword in the hand that holds it, or left out, the face only from the front; the chibi's
+  legs standing together in two boots, the right one in shadow), the side of a player the camera sees (and keeps
+  side-on), and the player's frames painted (the chibi at once, the back's one per slice, a front frame only when
+  first shown) and where their sword hand is.
   The sound (`client/test/audio/`): every file in the table and none spare, a variant never played twice running and its
   spread, where a sound is heard from (full near, silent far, quieter between, panned to its side of where the ears
   face) and the volumes mixed, the nearest water; in a fight (a real `Fight`), each step event heard once and as what, a
@@ -1196,7 +1200,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        masks), palette.ts (ramps), body.ts (body types), battle.ts (POSES, SWORD_POSES, the front as
                        the back mirrored, leftHanded, frontHead), moves.ts (the sword fight's frames),
                        head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
-                       (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle)
+                       (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle, with or
+                       without the sword; battleBody, a pose's frame for a hand)
     dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
                      the chibi facing each way and the battle sprite in each pose and frame, from behind and the
                      front, in either hand, to check art
@@ -1362,9 +1367,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
                        kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
-                       after, or the rest when a fight starts, again when the fight's weapon or its hand changes (its
-                       `Wielder`); a frame from the front only the first time it's shown (battleSprite);
-                       BATTLE_FRAMES; chibiDraw; the "!" alert and the crossed swords over a player in a battle
+                       after, or the rest when a fight starts, again when the hand the fight's weapon is in changes
+                       (its `Wielder`), the sword left out; a frame from the front only the first time it's shown
+                       (battleSprite); where the sword hand is in a frame (handAt); BATTLE_FRAMES; chibiDraw; the "!"
+                       alert and the crossed swords over a player in a battle
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
                        with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
                        Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
@@ -1391,11 +1397,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          shake, the lock-on's diamond, the drops' sacks after a win)
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
-        player.ts        The player's visual: the sprite, its shadow, the sword's trail (in an Imbue's colour); a
-                         leaving player's sprite in a blended copy of its frame, to fade
+        player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
+                         trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to fade
+        blade.ts         The 3D sword: buildBlade (grip, guard and blade along a hand's +y, from WEAPON_LOOKS: the
+                         Kobolds' and every player's); a flat sprite's held blade (holdBlade, placeBlade: at the
+                         sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
         pose.ts          The player's pose and frame, from the action, the swing and the guard (staggered, grabbed or
-                         grabbing included); facingSeen (their back
+                         grabbing included); playerBlade (their 3D blade, from the same, by the weapon's MOTIONS
+                         row and the shared draw-back, drawn back less: SPRITE_DRAWBACK); facingSeen (their back
                          or front, by where the camera is, held side-on within TURN_MARGIN_RAD). No Babylon: tested
         arm.ts           The humanoid arm rig every 3D enemy's arms use: shoulder, upper arm, elbow, forearm and hand,
                          reached each frame with two-joint IK (reachArm, no Babylon: tested) to where its pose puts
@@ -1403,8 +1413,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         weapons.ts       Any wielder's weapon, from its swing: cutOf (an attack's line across the screen, by kind and
                          side), strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
                          MOTIONS, by weapon kind: the trail's line, a 3D blade held on guard and its way through a
-                         wind-up and a swing (the Kobold's); WEAPON_LOOKS, by weapon: its picture in the player's
-                         sprite, a 3D model's blade and its hit-stop. No Babylon: tested
+                         wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
+                         pullOf, drawnBack) and the blade at rest, reeling and lowered to grab (every wielder's: the
+                         Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade and its hit-stop. No
+                         Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a parry's, a broken guard's
                          flash), the chant's and wind-up's
@@ -1525,8 +1537,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
 - **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand), its row in `WEAPONS`
   (`shared/src/weapons/weapons.ts`: kind, length, damage, heft), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
-  kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code. A new kind is a name in
-  `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its sprite poses).
+  kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
+  the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its
+  sprite poses).
 - **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },
   armReachM }`) gives it a `Wielder`; a `weapon` attack makes it fight like the Kobold, or its own AI calls
   `startSwing` (`fight/weapons/swing.ts`) with the attack's kind, side and place in its chain. The weapon system does
@@ -1621,7 +1634,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Music: which track plays where, each track's volume, how long a crossfade takes | `MUSIC`, `TRACKS` in `client/src/audio/music.ts`; `MUSIC_FADE_TIME` in `client/src/audio/audio.ts` |
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
-| How far back a Kobold draws its blade (and leans, turns and bends) before an attack, more before a heavy, drawn only | `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts` |
+| How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
+| How fast a player's 3D blade turns and follows the sprite's hand, how much it glows | top of `client/src/visuals/battle/blade.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a parry's hold and bounce, a guard break's catch and jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
