@@ -4,7 +4,8 @@ import {
   ATTACK_KINDS, ATTACKS, emptyBag, GUARD_SIDES, newCore, starterEquipment, type GuardSide, type PlayerAction,
   type PlayerData, type SwingData,
 } from "@infinite-tower/shared";
-import { facingSeen, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
+import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
+import { GRAB_BLADE, MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
 import { swingAt, swingSteps } from "../../fixtures/swings.js";
 
@@ -89,6 +90,60 @@ describe("the player's sprite", () => {
     }
     all.push(spritePose(playerDoing("none", 0), holding(null), false, 1));
     for (const { pose, frame } of all) assert.ok(frame >= 0 && frame < BATTLE_FRAMES[pose], `${pose} ${frame}`);
+  });
+});
+
+describe("the player's blade", () => {
+  const blade = (player: PlayerData, swing: SwingData | null = null, alive = true) =>
+    playerBlade(player, holding(swing), alive, MOTIONS.sword);
+  const guarding = (side: GuardSide | null) => blade(playerDoing("none", 1, side));
+
+  test("on guard it's held out on the guard's side, unlocked at rest, eased there (after a feint or a parry too)", () => {
+    assert.ok(guarding("left").blade.x < -0.5);
+    assert.ok(guarding("right").blade.x > 0.5);
+    assert.ok(guarding("top").blade.y > 0.7);
+    assert.deepEqual(guarding(null).blade, REST_BLADE.blade);
+    for (const side of [...GUARD_SIDES, null]) assert.equal(guarding(side).exact, false);
+  });
+
+  test("winding up, it's drawn back toward the side the cut comes from", () => {
+    for (const attack of ATTACK_KINDS) {
+      for (const side of GUARD_SIDES) {
+        const steps = swingSteps(attack, side), what = `${attack} from ${side}`;
+        const mid = blade(playerDoing("attack", 0.1, side), steps[steps[0]!.driveAt >> 1]!);
+        assert.equal(mid.exact, false, what);
+        assert.ok(mid.blade.z < guarding(side).blade.z, `${what}: drawn back`);
+        if (side === "top") assert.ok(mid.blade.y > 0.5, `${what}: overhead`);
+        else assert.equal(Math.sign(mid.blade.x), side === "left" ? -1 : 1, `${what}: on its side`);
+      }
+    }
+  });
+
+  test("a heavy is drawn back further than a light", () => {
+    const wound = (attack: "light" | "heavy") => {
+      const steps = swingSteps(attack, "top");
+      return blade(playerDoing("attack", 0.1, "top"), steps[steps[0]!.driveAt - 1]!).blade;
+    };
+    assert.ok(wound("heavy").z < wound("light").z);
+  });
+
+  test("from the drive on it's exactly where its stroke is: straight ahead mid-cut, then through to the far side", () => {
+    for (const side of ["left", "right"] as const) {
+      const steps = swingSteps("light", side), { driveAt, liveAt, liveUntil, endAt } = steps[0]!;
+      const player = playerDoing("attack", 0.1, side);
+      assert.equal(blade(player, steps[driveAt]!).exact, true, side);
+      assert.ok(blade(player, steps[(liveAt + liveUntil) >> 1]!).blade.z > 0.9, `${side}: ahead mid-cut`);
+      const end = blade(player, steps[endAt - 1]!).blade;
+      assert.ok(side === "left" ? end.x > 0.5 : end.x < -0.5, `${side}: on the far side`);
+    }
+  });
+
+  test("knocked back, parried or held it reels, as an enemy's does; guard breaking it's lowered; dead it lies flat", () => {
+    for (const action of ["recoil", "stagger", "grabbed"] as const) {
+      assert.deepEqual(blade(playerDoing(action, 0.1, "left"), swingAt("light", "left", 3)).blade, REELING_BLADE);
+    }
+    assert.deepEqual(blade(playerDoing("grab", 0.1, "top")).blade, GRAB_BLADE);
+    assert.ok(Math.abs(blade(playerDoing("none", 0.1), null, false).blade.y) < 0.2);
   });
 });
 

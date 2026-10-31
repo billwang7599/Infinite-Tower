@@ -1,9 +1,9 @@
 /** Frames for the 24x24 pixel sprites (sprites.ts): the player's from their look (gfx/look/), and the alert. */
 import type { Hand, Look } from "@infinite-tower/shared";
-import { VIEWS, type Art, type BattleFacing, type Picture } from "../gfx/look/art.js";
+import { VIEWS, type BattleFacing, type Picture } from "../gfx/look/art.js";
 import { SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
-import { CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "../gfx/look/look.js";
-import { SWORD } from "../gfx/look/sword.js";
+import { battleBody, CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "../gfx/look/look.js";
+import type { Point } from "../gfx/look/pixels.js";
 import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
 
 /** How many frames each of the arena's poses has. */
@@ -15,8 +15,6 @@ export interface PlayerSprites<Sprite> {
   battle: Record<BattleFacing, Record<Pose | SwordPose, Sprite[]>>;
 }
 
-export interface Held { hand: Hand; art: Art }
-
 /** About a frame between slices, so the screen keeps moving while the arena's frames are painted. */
 export const PAINT_GAP_MS = 16;
 
@@ -24,7 +22,7 @@ export const PAINT_GAP_MS = 16;
 export class PlayerLook<Sprite> {
   private worn: string | null = null;
   private look: Look | null = null;
-  private held: Held | null = { hand: "rightHand", art: SWORD };
+  private hand: Hand | null = "rightHand";
   private unpainted: (() => void)[] = [];
   private nextSlice: ReturnType<typeof setTimeout> | undefined;
   private paintedFront = new Set<Sprite>();
@@ -44,10 +42,14 @@ export class PlayerLook<Sprite> {
     this.paintBattle(look);
   }
 
-  hold(held: Held | null): void {
-    if (held?.hand === this.held?.hand && held?.art === this.held?.art) return;
-    this.held = held;
+  hold(hand: Hand | null): void {
+    if (hand === this.hand) return;
+    this.hand = hand;
     if (this.look) this.paintBattle(this.look);
+  }
+
+  handAt(facing: BattleFacing, pose: Pose | SwordPose, frame: number): Point | null {
+    return this.look && this.hand ? battleBody(this.look, pose, frame, facing, this.hand).sword[0] : null;
   }
 
   finish(): void {
@@ -59,25 +61,25 @@ export class PlayerLook<Sprite> {
     const sprite = this.sprites.battle[facing][pose][frame]!;
     if (facing !== "back" && this.look && !this.paintedFront.has(sprite)) {
       this.paintedFront.add(sprite);
-      this.paintFrame(this.look, this.held, facing, pose, frame, sprite);
+      this.paintFrame(this.look, this.hand, facing, pose, frame, sprite);
     }
     return sprite;
   }
 
   private paintBattle(look: Look): void {
-    const held = this.held;
+    const hand = this.hand;
     this.paintedFront.clear();
     this.unpainted = (Object.keys(BATTLE_FRAMES) as (Pose | SwordPose)[]).flatMap((pose) =>
       this.sprites.battle.back[pose].map((sprite, frame) => () =>
-        this.paintFrame(look, held, "back", pose, frame, sprite)),
+        this.paintFrame(look, hand, "back", pose, frame, sprite)),
     );
     this.paintLater();
   }
 
   private paintFrame(
-    look: Look, held: Held | null, facing: BattleFacing, pose: Pose | SwordPose, frame: number, sprite: Sprite,
+    look: Look, hand: Hand | null, facing: BattleFacing, pose: Pose | SwordPose, frame: number, sprite: Sprite,
   ): void {
-    const pic = drawBattle(look, pose, frame, facing, undefined, held?.hand ?? null, held?.art);
+    const pic = drawBattle(look, pose, frame, facing, undefined, hand, null);
     this.redraw(sprite, (px) => paint(px, pic, SPRITE_PX / VIEWS.battle.width));
   }
 

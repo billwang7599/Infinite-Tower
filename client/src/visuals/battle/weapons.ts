@@ -2,8 +2,6 @@ import {
   clamp, mirrorSide, WEAPONS, type AttackKind, type GuardSide, type SwingData, type Vec3, type WeaponId,
   type WeaponKind,
 } from "@infinite-tower/shared";
-import type { Art } from "../../gfx/look/art.js";
-import { SWORD, swordArt } from "../../gfx/look/sword.js";
 
 const LIVE_FRAME_TURN = 0.25;
 const FOLLOW_FRAME_TURN = 0.75;
@@ -74,7 +72,9 @@ const norm = ({ x, y, z }: Vec3): Vec3 => {
 /** Unit vector in the wielder's frame, +z ahead. */
 export interface BladePose { blade: Vec3; handZ: number }
 
-const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
+export const REST_BLADE: BladePose = { blade: norm({ x: 0.25, y: 0.7, z: 0.65 }), handZ: 0.28 };
+export const REELING_BLADE = norm({ x: 0.6, y: -0.5, z: -0.2 });
+export const GRAB_BLADE = norm({ x: 0.7, y: -0.4, z: 0.3 });
 const GUARD_OUT = 0.8;
 /** How far forward (m) a wound-up blade leans, on either side of its swing. */
 const WINDUP_LEAN = 0.35;
@@ -103,6 +103,27 @@ function strokeBlade(cut: Cut, turn: number): BladePose {
   return { blade, handZ: REST_BLADE.handZ };
 }
 
+/**
+ * Drawn wider than the motion so it reads: a swing's blade turns `swingRad` further back past its start, eased off
+ * by `goneByTurn`, the turn a stroke goes live on; a heavy's `heavyFactor` times as far.
+ */
+export const DRAWBACK = { swingRad: 1.1, goneByTurn: 1 / 3, heavyFactor: 1.6 };
+
+const smooth = (s: number): number => s * s * (3 - 2 * s);
+
+export function pullOf(stroke: { set: number; turn: number }, heavy: boolean): number {
+  const pull = stroke.set < 1 ? smooth(stroke.set) : 1 - smooth(clamp(stroke.turn / DRAWBACK.goneByTurn, 0, 1));
+  return pull * (heavy ? DRAWBACK.heavyFactor : 1);
+}
+
+/** Further round its swing's arc, away from where it sweeps to. */
+export function drawnBack(blade: Vec3, pull: number): Vec3 {
+  const flat = Math.hypot(blade.x, blade.y);
+  if (pull <= 0 || flat < 1e-6) return blade;
+  const a = Math.atan2(blade.z, flat) - DRAWBACK.swingRad * pull, out = Math.cos(a) / flat;
+  return { x: blade.x * out, y: blade.y * out, z: Math.sin(a) };
+}
+
 export interface WeaponMotion {
   trail(swing: SwingData | null): TrailPose | null;
   held(cut: Cut): BladePose;
@@ -114,34 +135,27 @@ export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
   sword: { trail: trailPose, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
 };
 
-/** `blade`: a 3D model's, from the guard up; `twoHanded`: a 3D model holds it with its off hand too. */
+/** `blade`: from the guard up; `twoHanded`: a 3D model holds it with its off hand too. */
 export interface WeaponLook {
-  sprite: Art;
   blade: { lengthM: number; widthM: number; color: string };
   twoHanded: boolean;
   hitStopMs: number;
 }
 
-// Lengths are the sword's own share: the models' and the sprite's sword is drawn 1 long.
+// Lengths are the sword's own share: the sword is drawn 1 long.
 const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
-const LONGSWORD = swordArt({ lengthScale: lengthOf("longsword"), bladeHalfPx: 1.6 });
-const GREATSWORD = swordArt({ lengthScale: lengthOf("greatsword"), bladeHalfPx: 2.3 });
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
-  sword: { sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
-  "kobold-blade": {
-    sprite: SWORD, blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60,
-  },
+  sword: { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
+  "kobold-blade": { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
   longsword: {
-    sprite: LONGSWORD, blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" }, twoHanded: false,
-    hitStopMs: 90,
+    blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 90,
   },
   greatsword: {
-    sprite: GREATSWORD, blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" }, twoHanded: true,
-    hitStopMs: 130,
+    blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" }, twoHanded: true, hitStopMs: 130,
   },
   "kobold-greatsword": {
-    sprite: GREATSWORD, blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" },
-    twoHanded: true, hitStopMs: 130,
+    blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" }, twoHanded: true,
+    hitStopMs: 130,
   },
 };

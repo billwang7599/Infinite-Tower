@@ -1,7 +1,11 @@
-import type { AttackKind, GuardSide, PlayerAction, PlayerData, Vec2, WielderData } from "@infinite-tower/shared";
+import type {
+  AttackKind, GuardSide, PlayerAction, PlayerData, Vec2, Vec3, WielderData,
+} from "@infinite-tower/shared";
 import type { BattleFacing } from "../../gfx/look/art.js";
 import type { SwordPose } from "../../gfx/look/battle.js";
-import { swingFrame } from "./weapons.js";
+import {
+  cutOf, drawnBack, GRAB_BLADE, pullOf, REELING_BLADE, REST_BLADE, strokeOf, swingFrame, type WeaponMotion,
+} from "./weapons.js";
 
 const ATTACK_POSES: Record<AttackKind, Record<GuardSide, SwordPose>> = {
   light: { left: "swing-lr", top: "swing-tb", right: "swing-rl" },
@@ -41,6 +45,24 @@ export function spritePose(
     : attacking && alive ? swingFrame(swing)
     : 0;
   return { pose, frame, scaleX: 1 / stretch, scaleY: stretch };
+}
+
+/** A share of DRAWBACK: the camera looks along it, and all the way back the blade would point at it. */
+const SPRITE_DRAWBACK = 0.5;
+const DROPPED_BLADE: Vec3 = { x: 0.9, y: 0, z: Math.sqrt(1 - 0.9 ** 2) };
+
+export function playerBlade(
+  player: PlayerData, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
+): { blade: Vec3; exact: boolean } {
+  if (!alive) return { blade: DROPPED_BLADE, exact: false };
+  if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false };
+  if (player.action === "grab") return { blade: GRAB_BLADE, exact: false };
+  const held = player.guard ? motion.held(cutOf("light", player.guard, true)) : REST_BLADE;
+  if (!swing || swing.step >= swing.endAt) return { blade: held.blade, exact: false };
+  const cut = cutOf(swing.attack, swing.side, true), stroke = strokeOf(swing);
+  const { blade } = stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn);
+  const pull = pullOf(stroke, swing.attack === "heavy") * SPRITE_DRAWBACK;
+  return { blade: drawnBack(blade, pull), exact: stroke.set >= 1 };
 }
 
 /** How far past side-on the camera goes before the sprite turns round, so side-on it doesn't flicker. */

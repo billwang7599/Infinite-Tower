@@ -126,15 +126,16 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | Piece of gear | Drawings |
 | --- | --- |
 | on the head (a helmet) | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose); the same on every body |
-| held (the sword, battle only) | 48: a pose or frame each, from each side, since each holds it at its own angle |
+| held (a weapon) | none: the arena puts a 3D blade (`WEAPON_LOOKS`) at the frame's sword hand |
 | rigid on the body (a pair of shoulder guards) | 6: a view each, for both shoulders, placed at each body type's landmark |
 | wrap-around top (a chest piece) | 156: 3 body types x 52 |
 | wrap-around legs (trousers) | 147: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 48 battle frames |
 
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, the swords, the skillbook and each
-monster's essence (one bead, in four colours). Of what's worn, only the sword is drawn on the character, in the
-arena: in the hand that holds it, or not at all. In the left hand the body is the right-handed frame flipped (a swing
-uses its mirror image's), so it needs no drawings of its own.
+monster's essence (one bead, in four colours). Of what's worn, only the sword shows on the character, in the arena: a
+3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the arena's frames are painted without it (the art
+lab still draws `SWORD`). In the left hand the body is the right-handed frame flipped (a swing uses its mirror
+image's), so it needs no drawings of its own.
 
 Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and

@@ -99,6 +99,8 @@ describe("the sword fight's poses", () => {
         assert.ok(left[far[facing]] > left[near[facing]], `${name} left hand: ${JSON.stringify(left)}`);
         const none = steelSides(drawBattle(DEFAULT_LOOK, pose, 0, facing, STARTER_CLOTHES, null));
         assert.deepEqual(none, { left: 0, right: 0 }, name);
+        const bare = steelSides(drawBattle(DEFAULT_LOOK, pose, 0, facing, STARTER_CLOTHES, "rightHand", null));
+        assert.deepEqual(bare, { left: 0, right: 0 }, `${name}, its blade drawn in 3D`);
       }
     }
   });

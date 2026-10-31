@@ -4,7 +4,9 @@
  * indexes its art or colors here, so an option shared/ lists without art doesn't compile.
  */
 import type { Hand, Look } from "@infinite-tower/shared";
-import { render, type Art, type BattleFacing, type ChibiFacing, type Colors, type Picture } from "./art.js";
+import {
+  render, type Art, type BattleFacing, type BattleFrame, type ChibiFacing, type Colors, type Picture,
+} from "./art.js";
 import { leftHanded, type Pose, type SwordPose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
@@ -33,14 +35,21 @@ export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]
   return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
 }
 
-export function drawBattle(
-  look: Look, pose: Pose | SwordPose, frame = 0, facing: BattleFacing = "back", wear: readonly Art[] = STARTER_CLOTHES,
-  swordHand: Hand | null = "rightHand", weapon: Art = SWORD,
-): Picture {
+export function battleBody(
+  look: Look, pose: Pose | SwordPose, frame: number, facing: BattleFacing, swordHand: Hand | null,
+): BattleFrame {
   const frames = BODY_TYPES[look.body].battle[facing];
   const body = swordHand === "leftHand" ? leftHanded(frames, pose, frame) : frames[pose][frame];
   if (!body) throw new RangeError(`${pose} has no frame ${frame}`);
-  const pieces = lookArts(look, swordHand ? [...wear, weapon] : wear).map((art) => art.battle?.[facing]);
+  return body;
+}
+
+export function drawBattle(
+  look: Look, pose: Pose | SwordPose, frame = 0, facing: BattleFacing = "back", wear: readonly Art[] = STARTER_CLOTHES,
+  swordHand: Hand | null = "rightHand", weapon: Art | null = SWORD,
+): Picture {
+  const body = battleBody(look, pose, frame, facing, swordHand);
+  const pieces = lookArts(look, swordHand && weapon ? [...wear, weapon] : wear).map((art) => art.battle?.[facing]);
   return render("battle", body, pieces, colorsOf(look), FIXED);
 }
 
