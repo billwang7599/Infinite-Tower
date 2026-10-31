@@ -59,10 +59,18 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
   const guard = (was: GuardSide = "top") => pickedGuard(actions.poll(), was);
   const guards = () => actions.poll().pressed.filter((a) => a.startsWith("guard"));
   let clockMs = 1000;
+  let buttons = 0;
+  const BIT = [1, 4, 2];
+  const button = (b: number, down: boolean) => {
+    const first = down && buttons === 0;
+    buttons = down ? buttons | BIT[b]! : buttons & ~BIT[b]!;
+    if (first) return send(canvas, "pointerdown", { button: b, buttons });
+    return send(buttons === 0 ? win : doc, buttons === 0 ? "pointerup" : "pointermove", { button: b, buttons });
+  };
   return {
     bindings, actions, mouseSettings, listen, read, attack, guard, guards, canvas, doc,
     move: (movementX: number, movementY: number, afterMs = 10) =>
-      send(doc, "mousemove", { movementX, movementY }, clockMs += afterMs),
+      send(doc, "pointermove", { button: -1, buttons, movementX, movementY }, clockMs += afterMs),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
     /** A key typed in the chat's text field, whose Enter sends. */
     type: (code: string) => {
@@ -73,8 +81,8 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
       return event;
     },
     release: (code: string) => send(win, "keyup", { code }),
-    click: (button: number) => send(canvas, "mousedown", { button }),
-    unclick: (button: number) => send(win, "mouseup", { button }),
+    click: (b: number) => button(b, true),
+    unclick: (b: number) => button(b, false),
   };
 }
 
@@ -117,6 +125,26 @@ describe("Actions: key to action", () => {
     const overworld = setup("overworld");
     overworld.click(2);
     assert.deepEqual(overworld.actions.poll().pressed, ["turnItem"]);
+  });
+
+  test("a button pressed or let go while another is held counts too", () => {
+    const { actions, click, unclick } = setup();
+    click(1);
+    click(0);
+    unclick(1);
+    const polled = actions.poll();
+    assert.deepEqual(polled.pressed, ["dragCamera", "lightAttack"]);
+    assert.deepEqual([...polled.held], ["lightAttack"]);
+    unclick(0);
+    assert.equal(actions.poll().held.size, 0);
+  });
+
+  test("with the mouse not captured, its buttons do nothing (a click captures it)", () => {
+    const { actions, click, unclick } = setupWith({ autoLock: false, locked: false }, "battle");
+    click(0);
+    unclick(0);
+    click(2);
+    assert.deepEqual(actions.poll().pressed, []);
   });
 
   test("a key rebound counts at once", () => {

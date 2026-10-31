@@ -1163,7 +1163,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
                      it sends; captureKey for rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
-                     auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…), buttons.ts (held +
+                     auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…, read from pointer events
+                     since Babylon's scene cancels pointerdown, which stops mousedown), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
                      action, general's plus the place's; the layer stack, `on` for listeners, `poll` for the top
                      layer's held and pressed actions and its axes, the guard flicks read from the mouse's movement

@@ -22,6 +22,8 @@ export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: Lock
 
 type MoveListener = (dx: number, dy: number, atMs: number) => void;
 
+const BUTTON_BITS = [1, 4, 2, 8, 16];
+
 export class Mouse extends Buttons {
   private moved: MoveListener = () => {};
   private dx = 0;
@@ -43,11 +45,12 @@ export class Mouse extends Buttons {
       // A request answered after the arena stopped wanting the mouse.
       else if (!this.lockable) doc.exitPointerLock();
     });
-    canvas.addEventListener("mousedown", (e) => {
-      if (this.locked) this.press(`Mouse${e.button}`);
-    });
-    win.addEventListener("mouseup", (e) => this.release(`Mouse${e.button}`));
-    doc.addEventListener("mousemove", (e) => {
+    // Babylon's scene cancels every pointerdown, and then the browser sends no mousedown, mouseup or held mousemove.
+    canvas.addEventListener("pointerdown", (e) => this.button(e));
+    win.addEventListener("pointerup", (e) => this.button(e));
+    doc.addEventListener("pointermove", (e) => {
+      // A button pressed or let go while another is down.
+      if (e.button >= 0) this.button(e);
       if (!this.locked) return;
       this.dx += e.movementX;
       this.dy += e.movementY;
@@ -55,6 +58,12 @@ export class Mouse extends Buttons {
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("auxclick", (e) => e.preventDefault());
+  }
+
+  private button(e: MouseEvent): void {
+    const name = `Mouse${e.button}`;
+    if ((e.buttons & (BUTTON_BITS[e.button] ?? 0)) === 0) this.release(name);
+    else if (this.locked) this.press(name);
   }
 
   onMove(listener: MoveListener): void {
