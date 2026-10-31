@@ -126,7 +126,8 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   servers: the way players get in.
 - **Summoning pads.** Where the door opens, avatars arrive on large pedestals that harness its energy. Drafted by
   OptChat: the start of each level (where you log in and wake after dying) is one. Built: every level's start is drawn
-  as a pad, and new avatars first wake on the Waking Hollow's, which its natives keep.
+  as a pad, and new avatars first wake on the Waking Hollow's, which its natives keep. In play, Ilse finds no thread on
+  Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at the Maker, no more.
 - **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
   the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence
   all at once. That is the game shutting down when its players leave. In play the world never visibly withers.

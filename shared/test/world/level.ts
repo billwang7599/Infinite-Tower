@@ -16,6 +16,7 @@ export const TEST_LAYOUT: LevelLayout = {
   ],
   campfires: [{ x: -5, z: 0 }],
   npcs: [],
+  traces: [],
 };
 
 /** The rock column in TEST_LAYOUT: x ∈ [-3, -2], z ∈ [1, 4]. */

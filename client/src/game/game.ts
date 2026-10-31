@@ -301,8 +301,10 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       });
       net.on("joinRefused", ({ reason }) => say(ui.notifications, { kind: "joinRefused", reason }));
       net.on("character", (msg) => applyCharacter(msg.character));
-      net.on("dialogue", ({ npc, lines, offer }) => {
-        ui.openDialogue(NPC_LOOKS[npc].name, NPC_LOOKS[npc].look, lines, offer);
+      net.on("dialogue", ({ npc, trace, lines, offer }) => {
+        const { name, look } = NPC_LOOKS[npc];
+        if (trace) ui.openDialogue(`${name}'s bedroll`, null, lines);
+        else ui.openDialogue(name, look, lines, offer);
       });
       net.on("rested", (msg) => {
         overworld.setVitals(msg.vitals);

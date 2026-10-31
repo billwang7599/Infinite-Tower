@@ -13,6 +13,18 @@ describe("NPCS", () => {
     }
   });
 
+  test("what it leaves where it moved on from has something to say; its first stop, never left, leaves none", () => {
+    for (const id of NPC_IDS) {
+      const { stops } = NPCS[id];
+      assert.equal(stops[0]?.trace, undefined, id);
+      for (const { trace } of stops) {
+        if (!trace) continue;
+        assert.ok(trace.lines.length > 0, id);
+        for (const line of trace.lines) assert.ok(line.trim().length > 0, id);
+      }
+    }
+  });
+
   test("at each stop it always has something to say: every talk has lines, and the last has no condition", () => {
     for (const id of NPC_IDS) {
       for (const { talk } of NPCS[id].stops) {

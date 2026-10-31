@@ -123,6 +123,26 @@ export const QUESTS: Quests = {
       },
     ],
   },
+  "hollis-loom": {
+    title: "The Pad and the Loom",
+    half: "main",
+    when: { done: "hollis-pads" },
+    steps: [
+      {
+        id: "ilse",
+        task: { kind: "talk", to: "ilse" },
+        text: "Ask Ilse what her loom makes of the pad.",
+        hint: "Hollis said she sits on the Mistwood lake's east shore, where the bridge comes in.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "hollis" },
+        text: "Go back to Hollis.",
+        hint: "He's by the Mistwood's pad, where you come in from the Grass Field.",
+        reward: { items: { "boar-meat": 3 }, lore: ["threadless-pads"] },
+      },
+    ],
+  },
   "tobin-kobold": {
     title: "How a Kobold Fights",
     half: "side",

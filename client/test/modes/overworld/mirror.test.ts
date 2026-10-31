@@ -73,7 +73,7 @@ describe("ActorMirror: piles", () => {
 
 describe("ActorMirror: NPCs", () => {
   const HOLLIS: PlacedNpc = { npc: "hollis", at: { x: -6, z: 3 }, heading: "west" };
-  const levelWith = (...npcs: PlacedNpc[]) => ({ npcs } as unknown as LevelLayout);
+  const levelWith = (...npcs: PlacedNpc[]) => ({ npcs, traces: [] } as unknown as LevelLayout);
   const npcs = (world: World) => [...world.query(Npc, OverworldActor, OverworldPos)]
     .map(([, npc, actor, pos]) => ({ id: npc.id, kind: actor.kind, heading: actor.heading, pos }));
 
@@ -95,5 +95,20 @@ describe("ActorMirror: NPCs", () => {
     mirror.enter(levelWith(HOLLIS));
     mirror.clear();
     assert.equal(npcs(world).length, 0);
+  });
+});
+
+describe("ActorMirror: what NPCs left behind", () => {
+  const traces = (world: World) => [...world.query(OverworldActor, OverworldPos)]
+    .filter(([, actor]) => actor.kind === "trace").map(([, , pos]) => pos);
+
+  test("each lies where the level puts it, and goes with the level", () => {
+    const world = new World(), mirror = new ActorMirror(world);
+    mirror.enter({ npcs: [], traces: [{ x: -6, z: -3.5 }] } as unknown as LevelLayout);
+    mirror.apply([], [], []);
+    assert.deepEqual(traces(world), [{ x: -6, z: -3.5 }]);
+    assert.equal([...world.query(Npc)].length, 0, "not drawn as the NPC");
+    mirror.enter({ npcs: [], traces: [] } as unknown as LevelLayout);
+    assert.deepEqual(traces(world), []);
   });
 });

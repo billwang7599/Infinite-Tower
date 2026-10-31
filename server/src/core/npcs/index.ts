@@ -12,15 +12,25 @@ export interface Talk {
   offer?: { start: string } | { deliver: string };
 }
 
+export interface Trace {
+  at: Vec2;
+  lines: readonly string[];
+}
+
 export interface Stop {
   when?: When;
   level: string;
   at: Vec2;
   heading: Heading;
   talk: readonly Talk[];
+  /** Lies here for a player who sees the NPC at a stop listed before this one: one it has moved on to. */
+  trace?: Trace;
 }
 
-/** Each player sees an NPC at its first stop whose condition holds, saying the first talk there that holds. */
+/**
+ * Each player sees an NPC at its first stop whose condition holds, saying the first talk there that holds: so its
+ * stops are listed latest first.
+ */
 export interface Npc {
   stops: readonly Stop[];
 }

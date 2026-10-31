@@ -1,24 +1,46 @@
-import { bagCounts, NPC_IDS, type Bag, type DialogueOffer, type NpcId, type PlacedNpc } from "@infinite-tower/shared";
+import { bagCounts, type Bag, type DialogueOffer, type LevelLayout, type NpcId } from "@infinite-tower/shared";
 import { QUESTS, type Quests } from "../content/quests.js";
-import { NPCS, type Npc, type Stop, type Talk } from "../npcs/index.js";
+import { NPCS, type Npc, type Stop, type Talk, type Trace } from "../npcs/index.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn, type Story } from "./story.js";
+
+export interface Placed {
+  npcs: { npc: NpcId; stop: Stop }[];
+  traces: { npc: NpcId; trace: Trace }[];
+}
 
 export const stopFor = (story: Story, npc: Npc, quests: Quests = QUESTS): Stop | null =>
   npc.stops.find((stop) => holds(stop.when, story, quests)) ?? null;
 
-export function npcsOn(level: string, story: Story): PlacedNpc[] {
-  return NPC_IDS.flatMap((npc) => {
-    const stop = stopFor(story, NPCS[npc]);
-    return stop?.level === level ? [{ npc, at: stop.at, heading: stop.heading }] : [];
-  });
+export function placedOn(
+  level: string, story: Story, npcs: Partial<Record<NpcId, Npc>> = NPCS, quests: Quests = QUESTS,
+): Placed {
+  const placed: Placed = { npcs: [], traces: [] };
+  for (const [npc, def] of Object.entries(npcs) as [NpcId, Npc][]) {
+    const stop = stopFor(story, def, quests);
+    if (!stop) continue;
+    if (stop.level === level) placed.npcs.push({ npc, stop });
+    for (const left of def.stops.slice(def.stops.indexOf(stop) + 1)) {
+      if (left.level === level && left.trace) placed.traces.push({ npc, trace: left.trace });
+    }
+  }
+  return placed;
+}
+
+/** Kept until they next enter a level, so an NPC who moves on mid-visit is still there to say goodbye. */
+export function placeFor(session: GameSession, level: string): Pick<LevelLayout, "npcs" | "traces"> {
+  session.placed = placedOn(level, session.story);
+  return {
+    npcs: session.placed.npcs.map(({ npc, stop }) => ({ npc, at: stop.at, heading: stop.heading })),
+    traces: session.placed.traces.map(({ trace }) => trace.at),
+  };
 }
 
 export function dialogueOf(
-  npc: Npc, story: Story, bag: Bag, quests: Quests = QUESTS,
+  talk: readonly Talk[], story: Story, bag: Bag, quests: Quests = QUESTS,
 ): { lines: readonly string[]; offer: DialogueOffer | null } | null {
-  const talk = stopFor(story, npc, quests)?.talk.find((t) => holds(t.when, story, quests));
-  return talk ? { lines: talk.lines, offer: offerOf(talk.offer, story, bag, quests) } : null;
+  const said = talk.find((t) => holds(t.when, story, quests));
+  return said ? { lines: said.lines, offer: offerOf(said.offer, story, bag, quests) } : null;
 }
 
 function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): DialogueOffer | null {
@@ -33,23 +55,35 @@ function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): 
   return { kind: "deliver", quest: offer.deliver, item: task.item, count: task.count };
 }
 
-function npcInView(session: GameSession): NpcId | null {
-  return session.overworld.npcInView(session.me, npcsOn(session.overworld.level.layout.id, session.story));
+type Faced = { npc: NpcId; stop: Stop } | { npc: NpcId; trace: Trace };
+
+function facing(session: GameSession): Faced | null {
+  if (!session.inOverworld) return null;
+  const { npcs, traces } = session.placed;
+  const things: (Faced & { x: number; z: number })[] = [
+    ...npcs.map((placed) => ({ ...placed, ...placed.stop.at })),
+    ...traces.map((placed) => ({ ...placed, ...placed.trace.at })),
+  ];
+  return session.overworld.inView(session.me, things);
 }
 
 function offerInView(session: GameSession): DialogueOffer | null {
-  const npc = session.inOverworld ? npcInView(session) : null;
-  return npc === null ? null : dialogueOf(NPCS[npc], session.story, session.bag)?.offer ?? null;
+  const faced = facing(session);
+  return faced && "stop" in faced ? dialogueOf(faced.stop.talk, session.story, session.bag)?.offer ?? null : null;
 }
 
 export function talkTo(session: GameSession): void {
-  const npc = session.inOverworld ? npcInView(session) : null;
-  const said = npc === null ? null : dialogueOf(NPCS[npc], session.story, session.bag);
-  if (npc === null || said === null) return;
-  session.link.send({ t: "dialogue", npc, ...said });
+  const faced = facing(session);
+  if (faced && "trace" in faced) {
+    session.link.send({ t: "dialogue", npc: faced.npc, trace: true, lines: faced.trace.lines, offer: null });
+    return;
+  }
+  const said = faced && dialogueOf(faced.stop.talk, session.story, session.bag);
+  if (!faced || !said) return;
+  session.link.send({ t: "dialogue", npc: faced.npc, trace: false, ...said });
   const talked = Object.keys(session.story.quests).filter((id) => {
     const task = stepOn(session.story, id)?.task;
-    return task?.kind === "talk" && task.to === npc;
+    return task?.kind === "talk" && task.to === faced.npc;
   });
   progressStory(session, talked.map((id) => ({ advance: id })));
 }

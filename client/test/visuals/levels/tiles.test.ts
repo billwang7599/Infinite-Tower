@@ -6,7 +6,7 @@ import { tileProps } from "../../../src/visuals/levels/tiles.js";
 import { isTall } from "../../../src/visuals/overworld/scenery.js";
 
 const LEVEL: LevelLayout = {
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [], npcs: [],
+  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [], npcs: [], traces: [],
   tiles: ['TT""', "o~*.", "#_:="],
 };
 

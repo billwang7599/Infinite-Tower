@@ -72,6 +72,12 @@ export const LORE = {
       + "peak. A native's light doesn't grow that way. Some say a soul that breaks past Tian takes a seat beside a "
       + "god; nobody living has seen one.",
   },
+  "threadless-pads": {
+    title: "The threadless pads",
+    text: "Ilse looked at the Mistwood's summoning pad the way she looks at an avatar, for a thread on Nyra's loom, "
+      + "and found none: none runs to it and none runs out. Whoever laid the pads isn't on the loom, any more than "
+      + "whatever sends your kind. Hollis wagers they're the same hands.",
+  },
   "snapped-tether": {
     title: "The snapped tether",
     text: "A story the hunters tell: some beasts were avatars once, and their tether snapped. Cut loose from the one "

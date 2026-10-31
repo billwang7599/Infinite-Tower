@@ -4,8 +4,6 @@ import {
   addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, IDLE_INPUT, type Bag, type EnemyId, type Entity,
   type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
-import { stopFor } from "../../../src/core/game/talk.js";
-import { NPCS } from "../../../src/core/npcs/index.js";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -63,11 +61,11 @@ export function pileAt(overworld: Overworld, at: Vec2, rangeTiles = 0): Entity |
 const BACK_TO: Record<Heading, Heading> = { north: "south", south: "north", east: "west", west: "east" };
 
 export function talkTo(session: GameSession, link: FakeLink, npc: NpcId) {
-  const stop = stopFor(session.story, NPCS[npc])!;
-  assert.equal(session.overworld.level.layout.id, stop.level, `${npc} stands on this level`);
-  const way = HEADING_WAY[stop.heading];
-  session.overworld.place(session.me, { x: stop.at.x + way.x, z: stop.at.z + way.z });
-  session.overworld.playerData(session.me).heading = BACK_TO[stop.heading];
+  const shown = link.last("level").level.npcs.find((placed) => placed.npc === npc);
+  assert.ok(shown, `${npc} stands on this level`);
+  const way = HEADING_WAY[shown.heading];
+  session.overworld.place(session.me, { x: shown.at.x + way.x, z: shown.at.z + way.z });
+  session.overworld.playerData(session.me).heading = BACK_TO[shown.heading];
   session.talk();
   const said = link.last("dialogue");
   assert.equal(said.npc, npc);

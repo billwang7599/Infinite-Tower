@@ -3,14 +3,64 @@ import type { Npc } from "./index.js";
 export const HOLLIS: Npc = {
   stops: [
     {
+      when: { flag: "hollis-to-mistwood" },
+      level: "mistwood",
+      at: { x: -14.5, z: 1.5 },
+      heading: "west",
+      talk: [
+        {
+          when: { done: "hollis-loom" },
+          lines: [
+            "No thread to the pad and none to you. I'll take that for an answer, for want of a better one.",
+            "I'll stay a while and watch who comes through. Go on, avatar. The wood's bigger than it looks, and so "
+              + "is the world past it.",
+          ],
+        },
+        {
+          when: { quest: "hollis-loom", step: "back" },
+          lines: [
+            "Nothing? Not a thread to it, and none out of it?",
+            "Then whoever laid the pads isn't on Nyra's loom either. Same as whatever sends you.",
+            "The same hands, I'd wager. Ilse will chew on that for a year, and so will I.",
+            "Here. You walked further for it than I did.",
+          ],
+        },
+        {
+          when: { quest: "hollis-loom", step: "ilse" },
+          lines: [
+            "Ilse sits on the lake's east shore, where the bridge comes in. Ask her what her loom makes of the pad.",
+          ],
+        },
+        {
+          lines: [
+            "You found the gap, then. Good. The fire's banked; someone will keep it.",
+            "Look at it. The same stone as the field's pad, the same wear, and nobody here remembers it being laid "
+              + "either.",
+            "I've walked round it all morning. No mason's mark, no seam. It might have grown here, for all I can tell.",
+            "There's a weaver by the lake, Ilse. She reads the threads on Nyra's loom. Ask her what she sees in the "
+              + "pad, and come and tell me.",
+          ],
+          offer: { start: "hollis-loom" },
+        },
+      ],
+    },
+    {
       level: "grass-field",
       at: { x: -6, z: -3.5 },
       heading: "west",
+      trace: {
+        at: { x: -6, z: -3.5 },
+        lines: [
+          "A bedroll, rolled tight and tied, where Hollis used to stand. Left for whoever needs the fire.",
+          "A note is tucked under the cord, in a big careful hand: \"Gone on to the Mistwood, through the gap at the "
+            + "field's east edge. I'll be by its pad. Keep the fire. H.\"",
+        ],
+      },
       talk: [
         {
           when: { flag: "hollis-to-mistwood" },
           lines: [
-            "Meet me in the Mistwood, through the gap at the east edge. I'll be along once the fire's banked.",
+            "Meet me in the Mistwood, through the gap at the east edge. I'll be by its pad once the fire's banked.",
             "Kobolds hold the old ruins east of the river. They swing in twos and threes. Watch the blade, not the "
               + "lizard.",
           ],
