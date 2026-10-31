@@ -1,5 +1,5 @@
 import {
-  clamp, isSwing, mirrorWay, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
+  clamp, FIXED_DT, isSwing, mirrorWay, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
   type WeaponKind,
 } from "@infinite-tower/shared";
 
@@ -90,8 +90,11 @@ function heldBlade(cut: Cut): BladePose {
   return { blade: lerpBlade(REST_BLADE.blade, { ...start, z: STROKE_LEAN }, GUARD_OUT), handZ: REST_BLADE.handZ };
 }
 
+const STAB_HAND_Z = -0.3;
+
 function windupBlade(cut: Cut, k: number, from: BladePose): BladePose {
-  return { blade: lerpBlade(from.blade, { ...cutStart(cut), z: WINDUP_LEAN }, k), handZ: from.handZ };
+  const stab = cut.x === 0 && cut.y === 0, handZ = stab ? from.handZ + (STAB_HAND_Z - from.handZ) * k : from.handZ;
+  return { blade: lerpBlade(from.blade, { ...cutStart(cut), z: WINDUP_LEAN }, k), handZ };
 }
 
 /** `turn` as in strokeOf; past 1 it runs on. */
@@ -120,6 +123,15 @@ export function drawnBack(blade: Vec3, pull: number): Vec3 {
   if (pull <= 0 || flat < 1e-6) return blade;
   const a = Math.atan2(blade.z, flat) - DRAWBACK.swingRad * pull, out = Math.cos(a) / flat;
   return { x: blade.x * out, y: blade.y * out, z: Math.sin(a) };
+}
+
+const GLINT_LEAD_STEPS = Math.round(0.15 / FIXED_DT);
+const GLINT_FADE_STEPS = Math.round(0.05 / FIXED_DT);
+
+export function glintOf(swing: SwingData | null): number {
+  if (!swing) return 0;
+  const { step, liveAt } = swing;
+  return Math.max(0, step <= liveAt ? 1 - (liveAt - step) / GLINT_LEAD_STEPS : 1 - (step - liveAt) / GLINT_FADE_STEPS);
 }
 
 export interface WeaponMotion {

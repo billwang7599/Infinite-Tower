@@ -1,4 +1,4 @@
-import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
+import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode } from "@babylonjs/core";
 import {
   Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
   type World,
@@ -6,15 +6,14 @@ import {
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
-import { dropBlade, holdBlade, placeBlade, type HeldBlade } from "./blade.js";
+import { dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
 import { facingSeen, playerBlade, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { lookOf } from "./skillLooks.js";
+import { buildSlash, placeSlash, type Slash } from "./slash.js";
 import { MOTIONS } from "./weapons.js";
 
 const SPRITE_SIZE = 1.8;
-/** The sword trail's length (m), end to end. */
-const TRAIL_WIDTH = 2.2;
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
 const SHADOW_LENGTH_M = 1.1;
@@ -28,9 +27,7 @@ interface PlayerSprite {
   node: TransformNode;
   plane: Mesh;
   shadows: Blobs;
-  /** Turned to the aim and the swing's line; the crescent under it sweeps along that line. */
-  trail: TransformNode;
-  slash: Mesh;
+  slash: Slash;
   /** Accumulated walk-cycle phase, for bobbing. */
   walkPhase: number;
   /** Smoothed squash/stretch factor. */
@@ -57,27 +54,9 @@ function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): 
 
   const shadows = ctx.sky.blobs(materials.blobShadow, SHADOW_LENGTH_M, 0.7);
 
-  // Sword trail: a cut across the view in front of the player, a shallow arc from x = 0 to TRAIL_WIDTH (pointed at
-  // both ends), turned to the swing's line and grown from its start. Drawn over the sprite.
-  const inner: Vector3[] = [], outer: Vector3[] = [];
-  for (let i = 0; i <= 24; i++) {
-    const u = i / 24, x = u * TRAIL_WIDTH, bulge = Math.sin(u * Math.PI);
-    const y = bulge * 0.22, thick = 0.04 + 0.2 * bulge;
-    inner.push(new Vector3(x, y - thick / 2, 0));
-    outer.push(new Vector3(x, y + thick / 2, 0));
-  }
-  const trail = new TransformNode(`trail-${e}`, scene);
-  const slash = MeshBuilder.CreateRibbon(
-    `slash-${e}`, { pathArray: [inner, outer], sideOrientation: Mesh.DOUBLESIDE }, scene,
-  );
-  slash.parent = trail;
-  slash.material = materials.slashFx;
-  slash.isPickable = false;
-  slash.renderingGroupId = 1;
-  trail.setEnabled(false);
-
   return {
-    ctx, node, plane, shadows, trail, slash, walkPhase: 0, stretch: 1, staggerTime: 0, fading: null, facing: "back",
+    ctx, node, plane, shadows, slash: buildSlash(scene, `${e}`, materials.slashFx), walkPhase: 0, stretch: 1,
+    staggerTime: 0, fading: null, facing: "back",
     sword: materials.slashFx, blade: null,
   };
 }
@@ -100,7 +79,7 @@ function fadingCopy(sprite: PlayerSprite, picture: StandardMaterial): StandardMa
 function dispose(sprite: PlayerSprite): void {
   sprite.shadows.dispose();
   sprite.fading?.dispose();
-  sprite.trail.dispose();
+  sprite.slash.root.dispose();
   dropBlade(sprite.blade);
 }
 
@@ -153,18 +132,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
       x: position.x + across * SPRITE_SIZE * pose.scaleX, y: position.y + up * SPRITE_SIZE * pose.scaleY,
     }, faceYaw, playerBlade(player, wielder, alive, motion), dt);
   }
+  if (sprite.blade) showCue(sprite.blade.cue, alive ? swing : null);
 
-  const aimYaw = Math.atan2(player.actionDir.x, player.actionDir.z);
-  const trail = motion?.trail(swing) ?? null;
-  sprite.trail.setEnabled(trail !== null);
-  if (trail) {
-    // A metre ahead at the sprite's chest, across the view; the cut grows from its start end.
-    sprite.trail.position.set(p.x + player.actionDir.x, p.y + 0.35, p.z + player.actionDir.z);
-    sprite.trail.rotation.set(0, aimYaw, trail.rollRad);
-    sprite.slash.position.x = trail.from * TRAIL_WIDTH / 2;
-    sprite.slash.scaling.x = -trail.from * trail.reach;
-    sprite.slash.visibility = trail.visibility;
-  }
+  placeSlash(sprite.slash, motion?.trail(swing) ?? null, { x: p.x, y: p.y + 0.35, z: p.z }, player.actionDir);
 
   const below = ctx.battle.fight?.physics.floorBelow(p.x, p.y, p.z, SHADOW_REACH) ?? null;
   if (below !== null) {
@@ -184,6 +154,6 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   const sword = ctx.skills.slashFor(imbued);
   if (sword !== sprite.sword) {
     sprite.sword = sword;
-    sprite.slash.material = sword;
+    sprite.slash.mesh.material = sword;
   }
 }

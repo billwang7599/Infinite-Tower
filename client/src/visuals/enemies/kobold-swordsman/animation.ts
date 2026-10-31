@@ -3,7 +3,9 @@ import {
   Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
+import { cueBlade, dropCue, showCue, type BladeCue } from "../../battle/blade.js";
 import { fighter } from "../../battle/battle.js";
+import { buildSlash, placeSlash, type Slash } from "../../battle/slash.js";
 import { MOTIONS, strokeOf, WEAPON_LOOKS, wayCut, type WeaponMotion } from "../../battle/weapons.js";
 import {
   buildKobold, disposeKobold, OFF_GRIP_M, SWORDSMAN_BUILD, type KoboldBuild, type KoboldModel,
@@ -13,19 +15,30 @@ import { koboldPose } from "./pose.js";
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const HEAD_COUNTER = 0.6;
 const TAIL_TRAIL = 0.8;
+const CHEST_ABOVE_M = 0.3;
 const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3();
 
-type KoboldNodes = KoboldModel & { blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion };
+type KoboldNodes = KoboldModel & {
+  blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion; cue: BladeCue | null; slash: Slash;
+};
 
 export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy", {
   spawn(ctx, world, e, node) {
     const enemy = world.require(e, Enemy), wielder = world.require(e, Wielder), held = weaponItemIn(wielder.hands);
-    const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, held && WEAPON_LOOKS[held], wielder.armReachM,
-      build);
+    const look = held && WEAPON_LOOKS[held];
+    const model = buildKobold(ctx, e, node, enemy.def, enemy.yaw, look, wielder.armReachM, build);
     // Empty-handed, its hand still moves like a sword's.
-    return { ...model, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"] };
+    return {
+      ...model, blade: new Quaternion(), handAt: null, motion: MOTIONS[held ? WEAPONS[held].kind : "sword"],
+      cue: look ? cueBlade(ctx.scene, model.swordArm.hand, look) : null,
+      slash: buildSlash(ctx.scene, `${e}`, ctx.materials.slashFx),
+    };
   },
-  dispose: disposeKobold,
+  dispose(nodes) {
+    dropCue(nodes.cue);
+    nodes.slash.root.dispose();
+    disposeKobold(nodes);
+  },
   frame(nodes, world, e, dt) {
     const enemy = world.require(e, Enemy), health = world.require(e, Health), body = world.require(e, Body);
     const speed = Math.hypot(body.vel.x, body.vel.z);
@@ -56,6 +69,10 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     nodes.handAt ??= handTarget.clone();
     Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, dt), nodes.handAt);
     poseArm(nodes.swordArm, nodes.handAt);
+    const live = health.hp > 0 ? swing : null;
+    if (nodes.cue) showCue(nodes.cue, live);
+    placeSlash(nodes.slash, nodes.motion.trail(live), { x: body.pos.x, y: body.pos.y + CHEST_ABOVE_M, z: body.pos.z },
+      live?.dir ?? { x: 0, z: 1 });
 
     const off = nodes.offArm;
     if (nodes.twoHanded) {

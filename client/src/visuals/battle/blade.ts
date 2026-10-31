@@ -1,11 +1,12 @@
 import {
-  Axis, Color3, MeshBuilder, Quaternion, TransformNode, Vector3, type Camera, type Mesh, type Scene,
-  type StandardMaterial,
+  Axis, Color3, MeshBuilder, Quaternion, StandardMaterial, TransformNode, Vector3, type Camera, type Mesh, type Scene,
 } from "@babylonjs/core";
-import { dampFactor, wrapAngle, type Entity, type Vec3, type WeaponId } from "@infinite-tower/shared";
+import { dampFactor, wrapAngle, type Entity, type SwingData, type Vec3, type WeaponId } from "@infinite-tower/shared";
 import { colorMaterial } from "../materials.js";
 import type { ArenaScene } from "./scene.js";
-import { WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
+import { glintOf, WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
+
+const BLADE_FROM_M = 0.14;
 
 export interface BladeMaterials { grip: StandardMaterial; guard: StandardMaterial; steel: StandardMaterial }
 
@@ -22,9 +23,46 @@ export function buildBlade(scene: Scene, hand: TransformNode, look: WeaponLook, 
   const gripM = look.twoHanded ? 0.42 : 0.2, { lengthM, widthM } = look.blade;
   return [
     box("grip", { width: 0.05, height: gripM, depth: 0.05 }, 0.1 - gripM / 2, materials.grip),
-    box("guard", { width: 0.24, height: 0.04, depth: 0.06 }, 0.12, materials.guard),
-    box("blade", { width: widthM, height: lengthM, depth: 0.02 }, 0.14 + lengthM / 2, materials.steel),
+    box("guard", { width: 0.24, height: 0.04, depth: 0.06 }, BLADE_FROM_M - 0.02, materials.guard),
+    box("blade", { width: widthM, height: lengthM, depth: 0.02 }, BLADE_FROM_M + lengthM / 2, materials.steel),
   ];
+}
+
+const GLINT_SIZE_M = 0.5;
+
+export interface BladeCue { glint: TransformNode; material: StandardMaterial }
+
+export function cueBlade(scene: Scene, hand: TransformNode, look: WeaponLook): BladeCue {
+  const material = new StandardMaterial("blade-glint", scene);
+  material.disableLighting = true;
+  material.diffuseColor = Color3.Black();
+  material.emissiveColor = new Color3(2, 1.8, 1.2);
+  material.backFaceCulling = false;
+  const glint = new TransformNode("blade-glint", scene);
+  glint.parent = hand;
+  glint.position.y = BLADE_FROM_M + look.blade.lengthM;
+  glint.billboardMode = TransformNode.BILLBOARDMODE_ALL;
+  for (const [turn, size] of [[0, 1], [Math.PI / 2, 1], [Math.PI / 4, 0.45], [-Math.PI / 4, 0.45]] as const) {
+    const ray = MeshBuilder.CreatePlane("blade-glint-ray", { width: GLINT_SIZE_M * size, height: 0.03 }, scene);
+    ray.parent = glint;
+    ray.rotation.z = turn;
+    ray.material = material;
+    ray.isPickable = false;
+    ray.renderingGroupId = 1;
+  }
+  glint.setEnabled(false);
+  return { glint, material };
+}
+
+export function dropCue(cue: BladeCue | null): void {
+  cue?.glint.dispose();
+  cue?.material.dispose();
+}
+
+export function showCue(cue: BladeCue, swing: SwingData | null): void {
+  const glint = glintOf(swing);
+  cue.glint.setEnabled(glint > 0);
+  cue.glint.scaling.setAll(glint);
 }
 
 const STEEL_GLOW = 0.4;
@@ -42,6 +80,7 @@ export interface HeldBlade {
   /** The hand on the sprite's plane (m), from the node: across as the camera sees it, and up. */
   at: { x: number; y: number } | null;
   yaw: number;
+  cue: BladeCue;
 }
 
 export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapon: WeaponId, yaw: number): HeldBlade {
@@ -58,10 +97,13 @@ export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapo
   // Against the arena's dark floor its shaded side would vanish.
   materials.steel.emissiveColor = steel.scale(STEEL_GLOW);
   for (const mesh of buildBlade(scene, hand, look, materials)) ctx.sky.castShadows(mesh);
-  return { weapon, root, hand, materials: Object.values(materials), at: null, yaw };
+  return {
+    weapon, root, hand, materials: Object.values(materials), at: null, yaw, cue: cueBlade(scene, hand, look),
+  };
 }
 
 export function dropBlade(blade: HeldBlade | null): void {
+  dropCue(blade?.cue ?? null);
   blade?.root.dispose();
   for (const m of blade?.materials ?? []) m.dispose();
 }

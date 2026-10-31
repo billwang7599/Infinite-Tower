@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, ITEMS, newCore, Player, SkillObject, Wielder,
-  starterEquipment, type EnemyDef, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
+  starterEquipment, type EnemyDef, type SwingDir, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
 import { fightEars, STRIDE_M, swingVoice, type FightToHear } from "../../src/audio/battle.js";
@@ -77,13 +77,37 @@ describe("the arena's ears", () => {
     const { run, world, player } = arena();
     const swings = [];
     for (let i = 0; i < 60; i++) {
-      const swing = run(1, { attack: "light" }).cues.find((c) => c.sound === "swing");
+      const swing = run(1, { attack: "stab" }).cues.find((c) => c.sound === "swing");
       const at = world.require(player, Body).pos;
       if (swing) swings.push(swing);
       if (swing) assert.deepEqual(swing.at, { x: at.x, z: at.z });
     }
     assert.equal(swings.length, 1);
     assert.equal(sounds(run(60)).includes("swing"), false);
+  });
+
+  test("a swing whooshes from the side its blade sets off from, as its wielder faces", () => {
+    const heardFrom = (way: SwingDir) => {
+      const { run, world, player } = arena();
+      for (let i = 0; i < 60; i++) {
+        const swing = run(1, { attack: "light", way }).cues.find((c) => c.sound === "swing");
+        if (swing) return swing.at!.x - world.require(player, Body).pos.x;
+      }
+      throw new Error(`${way} never whooshed`);
+    };
+    assert.ok(heardFrom("lr") < -0.5, "from its left (it faces +z: -x)");
+    assert.ok(heardFrom("rl") > 0.5, "from its right");
+    assert.ok(heardFrom("trbl") > 0.5 && heardFrom("bltr") < -0.5, "the diagonals too");
+    assert.ok(Math.abs(heardFrom("tb")) < 1e-9, "from overhead: neither");
+  });
+
+  test("an enemy facing you swings from its left: heard on your right", () => {
+    const { run, world, enemy } = arena(undefined, SWORDED);
+    const swing = swingAt("light", "lr", 0, Math.PI);
+    world.require(enemy, Wielder).swing = { ...swing, step: swing.driveAt };
+    const heard = run(0).cues.find((c) => c.sound === "swing");
+    const at = world.require(enemy, Body).pos;
+    assert.ok(heard && heard.at!.x > at.x + 0.5, JSON.stringify(heard?.at));
   });
 
   test("a heavier blade whooshes lower and louder, and a heavy attack lower and louder than a light", () => {

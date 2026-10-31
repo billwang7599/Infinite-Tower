@@ -1,7 +1,7 @@
 import {
-  Body, Enemy, FIXED_DT, Health, ITEMS, Player, Skilled, SkillObject, weaponItemIn, Wielder,
-  type AttackKind, type EnemyState, type Entity, type SkillObjectData, type SkillObjectKind, type Vec2, type Vec3,
-  type World,
+  Body, Enemy, FIXED_DT, Health, isSwing, ITEMS, Player, SCREEN_DIR, Skilled, SkillObject, weaponItemIn, Wielder,
+  type AttackKind, type EnemyState, type Entity, type SkillObjectData, type SkillObjectKind, type SwingData,
+  type Vec2, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { BattleContext } from "../modes/battle/context.js";
@@ -40,6 +40,14 @@ export function swingVoice(massKg: number, attack: AttackKind): { rate: number; 
 }
 
 const flat = (p: Vec3): Vec2 => ({ x: p.x, z: p.z });
+// About where a swing's blade sets off from: out to its wielder's side.
+const SWING_SIDE_M = 1.2;
+
+function swingFrom(at: Vec2, { way, dir }: SwingData): Vec2 {
+  if (!isSwing(way)) return at;
+  const side = -SCREEN_DIR[way].x * SWING_SIDE_M;
+  return { x: at.x + dir.z * side, z: at.z - dir.x * side };
+}
 const posOf = (world: World, e: Entity): Vec2 | null => {
   const body = world.get(e, Body);
   return body ? flat(body.pos) : null;
@@ -93,7 +101,9 @@ function hearFighters(fight: Fight, fighters: Map<Entity, Fighter>, begun: Map<s
     };
 
     if (swing && swing.step >= swing.driveAt) {
-      once("swing", steps - swing.step + swing.driveAt, "swing", swingVoice(massKg, swing.attack));
+      once("swing", steps - swing.step + swing.driveAt, "swing", {
+        ...swingVoice(massKg, swing.attack), at: swingFrom(at, swing),
+      });
     }
     if (player && swing?.attack === "heavy" && swing.step < swing.liveAt) {
       once("heavy", steps - swing.step, "draw-blade", swingVoice(massKg, "heavy"));
