@@ -1,11 +1,12 @@
-import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect } from "@infinite-tower/shared";
+import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect, type Vec3 } from "@infinite-tower/shared";
 
 export type PropKind =
-  | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms";
+  | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
+  | "foodStall" | "potionStall" | "forge";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
-export interface Ledge { rect: Rect; topY: number }
+export interface Ledge { rect: Rect; topY: number; look?: "castle" | "house" }
 
 export interface Scenery {
   /** The level's own ground first (top 0), then the ledges round it. */
@@ -18,7 +19,9 @@ export const SCENERY_REACH_TILES = 16;
 /** Props stand at least this far from a gap's sides. */
 const GAP_CLEARANCE_TILES = 0.8;
 
-const TALL = new Set<PropKind>(["tree", "pine", "deadTree", "bush", "rock", "ruin"]);
+const TALL = new Set<PropKind>([
+  "tree", "pine", "deadTree", "bush", "rock", "ruin", "foodStall", "potionStall", "forge",
+]);
 
 export function isTall(kind: PropKind): boolean {
   return TALL.has(kind);
@@ -30,12 +33,32 @@ export function groundY(ledges: readonly Ledge[], x: number, z: number): number 
   return y === -Infinity ? 0 : y;
 }
 
+export function blocksView({ rect, topY }: Ledge, from: Vec3, to: Vec3): boolean {
+  if (topY <= 0) return false;
+  let t0 = 0, t1 = 1;
+  const slabs: [number, number, number, number][] = [
+    [from.x, to.x, rect.x, rect.x + rect.w], [from.y, to.y, -Infinity, topY], [from.z, to.z, rect.z, rect.z + rect.h],
+  ];
+  for (const [a, b, lo, hi] of slabs) {
+    const d = b - a;
+    if (d === 0) {
+      if (a < lo || a > hi) return false;
+      continue;
+    }
+    const s0 = (lo - a) / d, s1 = (hi - a) / d;
+    t0 = Math.max(t0, Math.min(s0, s1));
+    t1 = Math.min(t1, Math.max(s0, s1));
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
 export function openExits(scenery: Scenery, level: LevelLayout): Scenery {
   const gaps = exitGaps(level);
   const [map, ...round] = scenery.ledges;
   const cut = (ledge: Ledge) => gaps
     .reduce((rects, gap) => rects.flatMap((r) => minus(r, gap)), [ledge.rect])
-    .map((rect) => ({ rect, topY: ledge.topY }));
+    .map((rect) => ({ ...ledge, rect }));
   const clear = gaps.map((g) => ({
     x: g.x - GAP_CLEARANCE_TILES, z: g.z - GAP_CLEARANCE_TILES,
     w: g.w + GAP_CLEARANCE_TILES * 2, h: g.h + GAP_CLEARANCE_TILES * 2,

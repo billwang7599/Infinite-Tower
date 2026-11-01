@@ -125,8 +125,11 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   the rift loses. The gods didn't make it and can't close it. Out of the fiction, the door is the game's netcode and
   servers: the way players get in.
 - **Summoning pads.** Where the door opens, avatars arrive on large pedestals that harness its energy. Drafted by
-  OptChat: the start of each level (where you log in and wake after dying) is one. Built: every level's start is drawn
-  as a pad, and new avatars first wake on the Waking Hollow's, which its natives keep. In play, Ilse finds no thread on
+  OptChat: the start of each level (where you log in) is one. Built: every level's start is drawn as a pad. The first
+  and largest is the platform in Highmere's hall, where the Maker's door first opened: the kingdom grew round it, its
+  castle round the hall, to guard and use the stream of avatars, and its rulers hold that what comes through is
+  theirs by right. Every avatar first wakes there, and wakes there again after dying; the court herald greets them.
+  In play, Ilse finds no thread on
   Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at the Maker, no more.
 - **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
   the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence

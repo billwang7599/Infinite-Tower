@@ -69,8 +69,8 @@ export function App({ ui, settings, input, actions }: AppProps) {
           <CoreCard mode={mode} overworld={ui.overworld} battle={ui.battle} said={ui.notifications.said} />
           <Chat chat={ui.chat} input={input} bindings={settings.bindings} send={actions.sendChat} />
           <Dialogue
-            dialogue={ui.dialogue} input={input} next={actions.interact} take={actions.takeOffer}
-            close={ui.closeDialogue}
+            dialogue={ui.dialogue} input={input} bindings={settings.bindings} next={actions.interact}
+            take={actions.takeOffer} close={ui.closeDialogue}
           />
         </>
       )}

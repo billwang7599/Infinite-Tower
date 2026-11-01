@@ -3,17 +3,18 @@ import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA } from "./flo
 import { GRASS_FIELD } from "./floors/1/grass-field.js";
 import { MISTWOOD } from "./floors/1/mistwood.js";
 import { WAKING_HOLLOW } from "./floors/1/waking-hollow.js";
+import { KINGDOM } from "./kingdom.js";
 import type { LevelDef } from "./level.js";
 
 export const LEVELS: Readonly<Record<string, LevelDef>> = Object.fromEntries(
-  [WAKING_HOLLOW, GRASS_FIELD, MISTWOOD].map((l) => [l.layout.id, l]),
+  [KINGDOM, WAKING_HOLLOW, GRASS_FIELD, MISTWOOD].map((l) => [l.layout.id, l]),
 );
 
 export const ARENAS: Record<string, ArenaDef> = Object.fromEntries(
   [GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA].map((a) => [a.id, a]),
 );
 
-export const START_LEVEL = WAKING_HOLLOW.layout.id;
+export const START_LEVEL = KINGDOM.layout.id;
 
 export const levelOrStart = (id: string | null): string => id !== null && Object.hasOwn(LEVELS, id) ? id : START_LEVEL;
 

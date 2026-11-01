@@ -9,10 +9,11 @@ const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
 const CAMERA_PITCH_RAD = (50 * Math.PI) / 180;
 const CAMERA_TURN_TIME = 0.25;
+const CHIBI_MID_TILES = 0.6;
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
   let level: { layout: LevelLayout; drawing: LevelDrawing } | null = null;
-  const target = new Vector3(), back = new Vector3();
+  const target = new Vector3(), back = new Vector3(), seen = { x: 0, y: CHIBI_MID_TILES, z: 0 };
   const turn = { fromRad: 0, toRad: 0, time: CAMERA_TURN_TIME };
   let facedYaw = NaN;
   return (dt, fresh) => {
@@ -44,6 +45,8 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     camera.position.copyFrom(target).addInPlace(back);
     camera.setTarget(target);
     view.sky.frame(Date.now(), camera.position);
-    level.drawing.frame(dt);
+    seen.x = target.x;
+    seen.z = target.z;
+    level.drawing.frame(dt, camera.position, seen);
   };
 }

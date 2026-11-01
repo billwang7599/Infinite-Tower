@@ -68,8 +68,8 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
       }
     });
 
-    test("has tall grass, and the start isn't in it", () => {
-      assert.ok(centers.some((t) => inTallGrass(layout, t.x, t.z)));
+    test("has tall grass if its grass starts fights, and the start isn't in it", () => {
+      assert.equal(centers.some((t) => inTallGrass(layout, t.x, t.z)), level.grass !== undefined);
       assert.equal(inTallGrass(layout, level.spawn.x, level.spawn.z), false);
     });
 
@@ -92,8 +92,8 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
       for (const [name, at] of places) assert.ok(reachable(at), name);
     });
 
-    test("has a campfire", () => {
-      assert.ok(layout.campfires.length > 0);
+    test("has a campfire only out in the wild, where there are enemies", () => {
+      assert.equal(layout.campfires.length > 0, level.spawns.length > 0 || level.grass !== undefined);
     });
   });
 
@@ -129,19 +129,20 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
   });
 }
 
-test("for a new player a native stands by the start level's campfire, in talking reach of someone resting", () => {
-  const { layout } = getLevel(START_LEVEL);
-  const byFire = NPC_IDS.map((npc) => stopFor(newStory(), NPCS[npc])).filter((stop) => stop?.level === START_LEVEL
+const HOLLOW = getLevel("waking-hollow");
+
+test("for a new player a native stands by the Waking Hollow's campfire, in talking reach of someone resting", () => {
+  const { layout } = HOLLOW;
+  const byFire = NPC_IDS.map((npc) => stopFor(newStory(), NPCS[npc])).filter((stop) => stop?.level === layout.id
     && layout.campfires.some((fire) => distXZ(stop.at, fire) <= REST_RANGE_TILES + INTERACT_RANGE_M));
   assert.equal(byFire.length, 1);
 });
 
-test("the start level is gentle: only boars, and its tall grass starts fewer fights than any other level's", () => {
-  const start = getLevel(START_LEVEL);
-  const enemies = [...start.spawns.map((s) => s.enemy), ...start.grass.enemies.map((e) => e.enemy)];
+test("the Waking Hollow is gentle: only boars, and its tall grass starts fewer fights than any other level's", () => {
+  const enemies = [...HOLLOW.spawns.map((s) => s.enemy), ...HOLLOW.grass!.enemies.map((e) => e.enemy)];
   assert.deepEqual([...new Set(enemies)], ["wild-boar"]);
-  for (const level of Object.values(LEVELS).filter((l) => l !== start)) {
-    assert.ok(start.grass.chance < level.grass.chance, level.layout.id);
+  for (const level of Object.values(LEVELS).filter((l) => l !== HOLLOW && l.grass)) {
+    assert.ok(HOLLOW.grass!.chance < level.grass!.chance, level.layout.id);
   }
 });
 

@@ -358,7 +358,7 @@ Each in `server/src/core/enemies/<id>.ts`.
   overworld, in fights and in the arena after a win; in a fight, not for 5 s after any damage (`HP_REGEN_PAUSE_TIME`).
   Players only: enemies' health regen is 0.
 - **Campfire:** within `REST_RANGE_TILES` 1.6 (+ `LAG_SLACK_TILES` 0.6 on the server): HP and stamina to full.
-- **After a fight:** won, what it left you, at least 1 HP; lost, full HP and stamina (by the core after the death) at
-  the level's start; a duel gives back what you came in with.
+- **After a fight:** won, what it left you, at least 1 HP; lost, full HP and stamina (by the core after the death) on
+  the kingdom's platform; a duel gives back what you came in with.
 - **In a fight:** meat (above), and skills: Self Water 0.3 D, Darkness 20% of its hit, Siphoning 10% of the
   damage you deal.

@@ -1,5 +1,6 @@
 import type { DialogueOffer } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
+import type { KeyBindings } from "../../settings/bindings.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
@@ -8,20 +9,23 @@ import { describeItems } from "../notifications/battleResult.js";
 import type { DialogueState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
+import { withKeys } from "./keys.js";
 
 interface DialogueProps {
   dialogue: Store<DialogueState>;
   input: Actions;
+  bindings: KeyBindings;
   next: () => void;
   take: (offer: DialogueOffer) => void;
   close: () => void;
 }
 
-export function Dialogue({ dialogue, input, next, take, close }: DialogueProps) {
+export function Dialogue({ dialogue, input, bindings, next, take, close }: DialogueProps) {
   const open = useStore(dialogue, (s) => s.open);
   const name = useStore(dialogue, (s) => s.name);
   const look = useStore(dialogue, (s) => s.look);
-  const text = useStore(dialogue, (s) => s.lines[s.line] ?? "");
+  const keys = useStore(bindings, (s) => s);
+  const text = withKeys(useStore(dialogue, (s) => s.lines[s.line] ?? ""), keys);
   const offer = useStore(dialogue, (s) => (s.line === s.lines.length - 1 ? s.offer : null));
   useAction(input, ["nextLine", "closeDialogue"], (action, repeat) => {
     if (repeat) return;

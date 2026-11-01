@@ -672,7 +672,8 @@ and within a second of a settings change, a move in the bag or a page written. T
 pile are never saved, and nor are the overworld's piles (a restart loses them).
 The level is saved (`level`), and you come back to it at its start; position isn't saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
-A new character starts on `START_LEVEL`, the Waking Hollow; a save made before levels were saved was moved to the
+A new character starts on `START_LEVEL`, the kingdom (Highmere), and a death saves it as your level (the session's
+`wakeOnPad`; you cross to it as you leave the arena); a save made before levels were saved was moved to the
 Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing was moved. Saves from before
 the core start at Early Yan, empty (`0016_core`).
 
@@ -787,8 +788,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   tick, the handover (the items gone, the reward in, the next quest offered; refused with too few, for another quest or
   out of reach), a reward that doesn't fit left at your feet, won fights counting kills (told each time), the talk step
   (his lines for it, flags and lore), the story kept on death, and the questbook in `welcome`. The Waking Hollow's
-  quests (`waking-hollow.test.ts`): its chain is the main quest, each waiting on the one before; a new character
-  wakes there and the native by the fire offers the first; walked through the session (a boar fight, the meat handed
+  quests (`waking-hollow.test.ts`): its chain is the main quest, each waiting on the one before; the native by the
+  fire offers the first; walked through the session (a boar fight, the meat handed
   over, then Hollis on the Grass Field, who offers his own first quest), each revealing a lore entry of its own; and
   after it, both natives offering a side quest. The Grass Field's and the Mistwood's natives (`natives.test.ts`):
   each past the Hollow, offering a new character a side chain that waits on nothing else, each chain played step by
@@ -1114,14 +1115,16 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
                        layout (a LevelMap: no NPCs), spawn point, spawns (each may name its own arenaId), encounter
                        table, arenaId, duelArenaId, exits (ExitDef: edge tiles that take you to another level, and
-                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the Waking
-                       Hollow, where new characters wake), levelOrStart, getLevel, getArena)
+                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the kingdom,
+                       where new characters and the dead wake), levelOrStart, getLevel, getArena); kingdom.ts (Highmere,
+                       on no floor: the summoning hall, the courtyard, the market and the gate to the Grass Field)
         floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts (tile map,
                          campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
-      npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts (its
+      npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
+                       grocer.ts, apothecary.ts, smith.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
       content/         player.ts (PLAYER_STATS: Early Yan's; STARTER_KIT, fullVitals, newPlayer, withStarterKit),
@@ -1273,7 +1276,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        bindings)
       dialogue/        Dialogue.tsx (an NPC talking, bottom centre over the Interact button: its portrait, name and
                        the line, and with the last line an offer: Accept or Hand over, and Not now; Enter or a click
-                       goes on, Esc closes)
+                       goes on, Esc closes), keys.ts (withKeys: a line's `{group.action}` written out as the
+                       player's own key)
       skills/          chant.ts (ChantState with the kind being picked from; the carousel's rules: what the next
                        square takes, `choices` with why a known word doesn't fit, KINDS and kindOpen, `numbered` and
                        pickNumber (a kind, then its word, or a search's match), addWord, `back`, skillText),
@@ -1390,7 +1394,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
                        WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
                        byEnemy)
-      npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, each with look.ts
+      npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
+                       apothecary/, smith/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -1455,13 +1460,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
-        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall
+        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall, blocksView
         terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
                          grass tops and fringes, the map's ground (paintGround), instanced props (the tiles' and the
                          scenery's, each tinted by the light where it stands; a tall one's shadows come from upright
                          cards only shadow maps see, one kept turned to the sun or moon and one turned to each campfire
-                         in reach, each cast by its own light), the campfires; face turns the props to the camera
-        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers), drawn standing up;
+                         in reach, each cast by its own light), the campfires; face turns the props to the camera;
+                         a ledge standing between the camera and the player turns see-through (blocksView, SEE_THROUGH)
+        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the market's stalls
+                         and forge), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
@@ -1473,6 +1480,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
         mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds), scenery.ts (its
                          surroundings; no Babylon: tested)
+        kingdom/         tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES, the town's tiles
+                         for the other looks to borrow), scenery.ts (castle walls and the keep behind the hall, house
+                         blocks with plaster sides and tiled roofs, the town's rooftops round the map)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
@@ -1505,8 +1515,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   `net.on("<type>", ...)` where it's used (the mode that owns it, or `client/src/game/game.ts`).
-- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts`, exporting its `LevelDef`
-  (its `floor`, and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
+- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts` (or in `world/` for one
+  on no floor, as the kingdom), exporting its `LevelDef` (its `floor` if any, an encounter table if its grass fights,
+  and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
   (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the start, the
   campfires, the NPCs and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable, and the
   start on summoning pad tiles (`@`). A way to another level is an `ExitDef` on each side (an open stretch of the map's

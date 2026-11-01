@@ -13,7 +13,7 @@ import {
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../content/player.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { levelOrStart } from "../world/index.js";
+import { getLevel, levelOrStart, START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -163,6 +163,15 @@ export class GameSession {
     this.closeBag();
     this.battle = null;
     this.overworld.endFight(this.me, this.overworld.level.safeTime);
+    if (this.levelId !== this.overworld.level.layout.id) this.enterLevel(this.levelId);
+  }
+
+  /** Dead: back to the start level's platform, at once if they fell there, else as they leave the arena. */
+  wakeOnPad(): Vec2 {
+    this.levelId = START_LEVEL;
+    const { spawn } = getLevel(START_LEVEL);
+    if (this.overworld.level.layout.id === START_LEVEL) this.overworld.place(this.me, spawn);
+    return spawn;
   }
 
   /** Closed, lost, or taken over by another tab. Mid-fight, outcome.ts's LEAVING_LOSES says what that costs. */

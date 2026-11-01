@@ -51,7 +51,7 @@ export function overworldPlayerSystem(ctx: OverworldContext): System {
         const x0 = pos.x, z0 = pos.z;
         stepWalker(layout, pos, input, FIXED_DT, { pace: walk.pace, vel: walk });
         walk.heading = faceToward(walk.heading, input.moveX, input.moveZ);
-        if (!inTallGrass(layout, pos.x, pos.z)) continue;
+        if (!grass || !inTallGrass(layout, pos.x, pos.z)) continue;
         walk.grassDist += Math.hypot(pos.x - x0, pos.z - z0);
         while (walk.grassDist >= grass.stepDist) {
           walk.grassDist -= grass.stepDist;

@@ -8,8 +8,8 @@ import {
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../../../src/core/content/player.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { startSession, tick } from "./helpers.js";
+import { getLevel } from "../../../src/core/world/index.js";
+import { HOLLOW, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -20,7 +20,7 @@ const essence = (count = 2): Bag =>
   ({ ...emptyBag(), items: [{ item: "boar-essence", count, x: CELL.x, y: CELL.y, turned: false }] });
 const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreState => ({ steps, fill, points });
 const HURT = { hp: 50, stamina: 40 };
-const campfire = () => getLevel(START_LEVEL).layout.campfires[0]!;
+const campfire = () => getLevel(HOLLOW).layout.campfires[0]!;
 const holding = (core: CoreState, dev = false) =>
   startSession({ dev, saved: { core, bag: essence(), vitals: { ...HURT } } });
 

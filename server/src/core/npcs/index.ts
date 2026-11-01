@@ -1,9 +1,13 @@
 import type { Heading, NpcId, Vec2 } from "@infinite-tower/shared";
 import type { When } from "../game/story.js";
+import { APOTHECARY } from "./apothecary.js";
 import { CORWIN } from "./corwin.js";
+import { GROCER } from "./grocer.js";
+import { HERALD } from "./herald.js";
 import { HOLLIS } from "./hollis.js";
 import { ILSE } from "./ilse.js";
 import { MAREN } from "./maren.js";
+import { SMITH } from "./smith.js";
 import { TOBIN } from "./tobin.js";
 
 export interface Talk {
@@ -41,4 +45,8 @@ export const NPCS: Record<NpcId, Npc> = {
   tobin: TOBIN,
   corwin: CORWIN,
   ilse: ILSE,
+  herald: HERALD,
+  grocer: GROCER,
+  apothecary: APOTHECARY,
+  smith: SMITH,
 };
