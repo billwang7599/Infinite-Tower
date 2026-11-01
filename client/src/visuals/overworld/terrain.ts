@@ -10,7 +10,7 @@ import { spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
-import { blocksView, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
+import { hidesWalker, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -23,7 +23,7 @@ const SEE_THROUGH = { visibility: 0.15, rate: 12 };
 
 export interface LevelDrawing {
   root: TransformNode;
-  frame(dt: number, eye: Vec3, player: Vec3): void;
+  frame(dt: number, eye: Vec3, feet: Vec3): void;
   face(yawRad: number): void;
 }
 
@@ -70,10 +70,10 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   const upright = [...props.upright, ...campfires.meshes];
   return {
     root,
-    frame(dt, eye, player) {
+    frame(dt, eye, feet) {
       const k = dampFactor(SEE_THROUGH.rate, dt);
       for (const { ledge, parts } of standing) {
-        const want = blocksView(ledge, eye, player) ? SEE_THROUGH.visibility : 1;
+        const want = hidesWalker(ledge, eye, feet) ? SEE_THROUGH.visibility : 1;
         for (const m of parts) m.visibility += (want - m.visibility) * k;
       }
       campfires.flicker(dt);

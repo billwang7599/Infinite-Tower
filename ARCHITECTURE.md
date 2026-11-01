@@ -1460,13 +1460,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
-        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall, blocksView
+        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall, hidesWalker
         terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
                          grass tops and fringes, the map's ground (paintGround), instanced props (the tiles' and the
                          scenery's, each tinted by the light where it stands; a tall one's shadows come from upright
                          cards only shadow maps see, one kept turned to the sun or moon and one turned to each campfire
                          in reach, each cast by its own light), the campfires; face turns the props to the camera;
-                         a ledge standing between the camera and the player turns see-through (blocksView, SEE_THROUGH)
+                         a ledge hiding any of the player from the camera turns see-through (hidesWalker, SEE_THROUGH)
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the market's stalls
                          and forge), drawn standing up;
                          Pen
