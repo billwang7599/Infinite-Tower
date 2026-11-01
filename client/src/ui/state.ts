@@ -6,8 +6,9 @@
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
-  type DayChange, type DialogueOffer, type GameServer, type Gear, type Look, type QuestView,
-  type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type WeaponId, type Word,
+  type CoinId, type DayChange, type DialogueOffer, type GameServer, type Gear, type ItemId, type Look,
+  type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type WeaponId,
+  type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -175,6 +176,9 @@ export interface UiActions {
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
+  buy(item: ItemId): void;
+  sell(at: UseSpot, count: number): void;
+  exchange(from: CoinId, to: CoinId): void;
   tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
@@ -228,6 +232,7 @@ export class UiState {
     open: false, name: "", look: null, lines: [], line: 0, offer: null,
   });
   readonly questbook = new Store<QuestbookState>({ open: false, quests: [] });
+  readonly shop = new Store<{ view: ShopView | null }>({ view: null });
 
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });

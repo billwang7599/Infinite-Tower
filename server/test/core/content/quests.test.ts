@@ -64,7 +64,8 @@ describe("what NPCs say about the story", () => {
     for (const npc of NPC_IDS) for (const stop of NPCS[npc].stops) assert.ok(isReal(stop.when), npc);
     for (const { npc, talk } of TALKS) {
       assert.ok(isReal(talk.when), `${npc}: ${JSON.stringify(talk.when)}`);
-      const offered = talk.offer && ("start" in talk.offer ? talk.offer.start : talk.offer.deliver);
+      const offered = talk.offer && ("start" in talk.offer ? talk.offer.start
+        : "deliver" in talk.offer ? talk.offer.deliver : null);
       if (offered) assert.ok(Object.hasOwn(QUESTS, offered), `${npc}: ${offered}`);
     }
   });

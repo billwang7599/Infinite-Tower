@@ -8,7 +8,7 @@ import type { FightContext } from "../context.js";
 // Runs after the step's hits: one that lands on the user stops it, nothing used.
 export function useSystem(ctx: FightContext): System {
   return (world) => {
-    for (const [e, player, health] of world.query(Player, Health)) {
+    for (const [e, player, health, stamina] of world.query(Player, Health, Stamina)) {
       if (player.action !== "use" || !player.using) continue;
       const hit = ctx.events.some((event) => event.type === "hit" && event.target === e);
       const using = hit ? null : stepUse(player.using);
@@ -17,11 +17,14 @@ export function useSystem(ctx: FightContext): System {
         continue;
       }
       Object.assign(player, { action: "bag", actionTime: 0, using: null });
-      const target = { hp: health.hp, max: health.max, core: player.core };
+      const target = {
+        hp: health.hp, max: health.max, stamina: stamina.value, staminaMax: stamina.max, core: player.core,
+      };
       const bag = using && finishUse(using, player.gear.bag, target);
       if (!using || !bag) continue;
       player.gear = { ...player.gear, bag };
       health.hp = target.hp;
+      stamina.value = target.stamina;
       const brokeThrough = target.core.steps > player.core.steps;
       takeCore(world, e, target.core);
       ctx.events.push({ type: "used", player: e, item: using.item, brokeThrough });

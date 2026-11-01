@@ -7,7 +7,7 @@ import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { bagWith, HOLLOW, startSession, talkTo, tick, winFight } from "./helpers.js";
+import { bagWith, HOLLOW, offeredQuest, startSession, talkTo, tick, winFight } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -26,17 +26,17 @@ describe("the Waking Hollow's first quests", () => {
   test("the native by its fire offers the first", () => {
     const { session, link } = startSession();
     assert.equal(session.overworld.level.layout.id, HOLLOW);
-    assert.deepEqual(talkTo(session, link, "maren").offer?.quest, CHAIN[0]);
+    assert.deepEqual(offeredQuest(talkTo(session, link, "maren").offer), CHAIN[0]);
   });
 
   test("talk, a first boar fight, meat for the rack, then on to Hollis, who offers his own first quest", () => {
     const { session, link, saves } = startSession({ dev: true });
-    session.acceptQuest(talkTo(session, link, "maren").offer!.quest);
+    session.acceptQuest(offeredQuest(talkTo(session, link, "maren").offer)!);
     winFight(session, "wild-boar");
     talkTo(session, link, "maren");
     assert.equal(session.story.quests["maren-waking"]?.step, null);
 
-    session.acceptQuest(talkTo(session, link, "tobin").offer!.quest);
+    session.acceptQuest(offeredQuest(talkTo(session, link, "tobin").offer)!);
     const [gather, bring] = QUESTS["tobin-smoke"]!.steps;
     assert.ok(gather?.task.kind === "gather" && bring?.task.kind === "deliver");
     session.bag = bagWith({ [gather.task.item]: gather.task.count });
@@ -45,12 +45,12 @@ describe("the Waking Hollow's first quests", () => {
     session.deliver("tobin-smoke");
     assert.deepEqual(bagCounts(session.bag), bring.reward?.items ?? {});
 
-    session.acceptQuest(talkTo(session, link, "maren").offer!.quest);
+    session.acceptQuest(offeredQuest(talkTo(session, link, "maren").offer)!);
     assert.equal(session.story.quests["maren-road"]?.step, QUESTS["maren-road"]!.steps[0]!.id);
 
     const there = startSession({ saved: { ...saves.at(-1)!, level: stopFor(session.story, NPCS.hollis)!.level } });
     const hollis = talkTo(there.session, there.link, "hollis");
-    assert.deepEqual(hollis.offer?.quest, "hollis-hides");
+    assert.deepEqual(offeredQuest(hollis.offer), "hollis-hides");
     for (const id of CHAIN) assert.equal(there.session.story.quests[id]?.step, null, id);
     const book = there.link.last("questbook").quests;
     for (const id of CHAIN) assert.ok(book.find((q) => q.id === id)!.lore.length > 0, id);

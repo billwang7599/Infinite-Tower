@@ -226,6 +226,17 @@ const potions = stall(["#e8dcc0", "#5b3f8a"], (pen, rand) => {
   }
 });
 
+const coins = stall(["#e8dcc0", "#a8862e"], (pen, rand) => {
+  pen.rect(7, 8, 2, 7, WOOD.dark);
+  pen.rect(3, 8, 10, 1, "#7a7e8a");
+  pen.rect(2, 9, 3, 1, "#d6a75c");
+  pen.rect(11, 9, 3, 1, "#d6a75c");
+  for (let i = 0; i < 4; i++) {
+    pen.rect(1 + rand() * 4, 13 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][i % 3]!);
+    pen.rect(10 + rand() * 4, 13 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][(i + 1) % 3]!);
+  }
+});
+
 const forge: Draw = (pen) => {
   pen.rect(0, 4, 16, 20, STONE.dark);
   for (let y = 4; y < 24; y += 4) for (let x = (y / 4) % 2 ? 0 : 3; x < 16; x += 6) pen.rect(x, y, 5, 3, STONE.mid);
@@ -254,6 +265,7 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   foodStall: { widthPx: 16, heightPx: 24, draw: food },
   potionStall: { widthPx: 16, heightPx: 24, draw: potions },
   forge: { widthPx: 16, heightPx: 24, draw: forge },
+  changerStall: { widthPx: 16, heightPx: 24, draw: coins },
 };
 
 export function pixelCanvas(

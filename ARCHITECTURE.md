@@ -293,8 +293,8 @@ main.ts
 - **NPCs** are kept like enemies, by id (`NpcId`, `shared/src/world/layout.ts`): where one stands and what it says is
   its file on the server (`core/npcs/<id>.ts`, in `NPCS`), its name and look a folder on the client
   (`visuals/npcs/<id>/`, in `NPC_LOOKS`). An NPC is a list of `stops` (a level, a spot, the way it faces, a condition on
-  the story), each with its `talk` there: lines, each with a condition, and maybe an offer (`{ start: quest }` or `{
-  deliver: quest }`), and maybe a `trace` (a spot and lines: what it leaves there once it moves on). For each player
+  the story), each with its `talk` there: lines, each with a condition, and maybe an offer (`{ start: quest }`, `{
+  deliver: quest }` or `{ shop }`), and maybe a `trace` (a spot and lines it leaves once it moves on). For each player
   (`core/game/talk.ts`) it stands at its first stop whose condition holds (`stopFor`, so stops are listed latest first
   and the last has none) and says the first talk there that holds (so the last talk has none); the trace of every stop
   listed after that one lies on its level. Levels don't place NPCs: as a player enters a level the session works out
@@ -458,6 +458,16 @@ main.ts
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag and the
   equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the battle with the
   fight's gear (and its HP).
+- **Shops** (`core/game/shop.ts`; their stock, what they buy and every price in `core/content/shops.ts`, server only):
+  a keeper's talk offers `{ shop }`, and taking it (Trade, or going on past the last line) sends `openShop`; the session
+  opens the shop of the NPC in view (`shopInView` in `talk.ts`), keeps its id in `GameSession.shop` and sends its
+  `ShopView` (prices already worked out: the level's `PRICE_FACTOR`, the first purchase there cheaper until the player's
+  `shopsBought` has it). The client shows it in the bag screen in place of the equipment (`ShopColumn.tsx`). `buy`,
+  `sell` and `exchange` run on the gear: coins (`shared/src/items/coins.ts`, three items, 100 of one make one of the
+  next) are paid off the cloth and then the bag, smallest first, the last coin's change in the fewest coins; what's
+  got goes into the bag and what doesn't fit onto the cloth, or nothing happens. Coins are never packed up by
+  themselves: changing them is `exchange`, one tier at a time. Each answer is a `trade` (the news, the gear, the
+  shop). The shop closes with the bag (`closeBag`, walking, a fight starting, a new level).
 - **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`,
   `useTime`, `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't
   ECS entities: a bag holds counts of item ids per cell.
@@ -558,7 +568,11 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `rest` | Interact by a campfire (the server checks you're there) |
 | `useItem {at}` | use the consumable in a bag or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
-| `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile closes |
+| `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile and an open shop close |
+| `openShop` | Trade on a keeper's offer: open the shop of the NPC in view beside the bag |
+| `buy {item}` | buy one of what the open shop sells, paid in coins from the cloth and the bag |
+| `sell {at, count}` | sell `count` of the stack at a bag or cloth cell to the open shop, if it buys that |
+| `exchange {from, to}` | change one coin for 100 of the next smaller, or 100 for one of the next bigger, at the open shop |
 | `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the one in view beside the bag |
 | `talk` | Interact (or the HUD's "Talk") facing an NPC: the server checks it's in reach and in view |
 | `acceptQuest {quest}` | Accept (or going on past the last line) on a quest offer: only the quest the NPC in view offers |
@@ -602,6 +616,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
+| `shop` | the shop opened (its name, stock and prices, what it buys and for how much), or null: it closed |
+| `trade` | the answer to `buy`, `sell` or `exchange`: what happened (or why not), the gear, and the shop's prices now |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
@@ -668,7 +684,8 @@ quests taken and their steps by id, kills counted, flags), keyed by account; wor
 dropped on load, and so is a page that's no longer a skill of known words, and a quest gone from `QUESTS` or on a step
 it no longer has (`keptStory`: forgotten, so it's offered again). The `GameSession` saves after every fight (the
 moment it's decided, or lost by leaving it), rest, item use, quest progress and making a character, on disconnect,
-and within a second of a settings change, a move in the bag or a page written. The cloth and an open
+and within a second of a settings change, a move in the bag, a trade or a page written. The shops where the first,
+cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them).
 The level is saved (`level`), and you come back to it at its start; position isn't saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
@@ -775,6 +792,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   and the talk said there, offers only while they stand; each real one always standing somewhere (its last stop
   unconditional, every stop on a level) with something to say there (its last talk unconditional), its traces with
   lines and none at its first stop, all clear of solid tiles, and one by the start level's fire for a new player.
+  Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
+  the capital's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
+  change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
+  and only what a shop deals in bought (never the starter kit), coins changed a tier at a time at any shop, and the
+  shop closing with the bag or on walking. Coins (`shared/test/items/coins.test.ts`): their worth, prices written out,
+  the fewest coins, changing rates, the money in some grids.
   Hollis moving on (`npcs/hollis.test.ts`): at the fire until his chain is done, then in the Mistwood with his trace at
   the fire; done mid-visit, still at the fire saying goodbye until the player comes back; his trace read with
   Interact (`trace: true`, no offer, no step to him done); his Mistwood quest, through Ilse and back. The story engine
@@ -1011,12 +1034,15 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, and its components:
                    consumable, wearable; each monster's essence, absorbed in ABSORB_TIME; ItemCounts = item id ->
                    count), bag.ts (Bag: a grid of placed stacks;
-                   fits, addItem, moveItem, takeOne, bagWeight, bagProblems: the rules both sides fit items by),
+                   fits, addItem, moveItem, takeOne, takeItems, bagWeight, bagProblems: the rules both sides fit
+                   items by),
                    gear.ts (Gear: the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment
                    slots; Spot, UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth
                    or pile, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what each does
                    to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
-                   consumable used from the bag, the same on the overworld and in a fight)
+                   consumable used from the bag, the same on the overworld and in a fight), coins.ts (COINS,
+                   COIN_VALUE in copper, coinsFor: an amount in the fewest coins, formatPrice ("1g 20s 5c"),
+                   exchangeRate, moneyIn)
   skills/          skill.ts (a skill as data: segments of a Form, elements and modifiers; FORMS, ELEMENTS, OPPOSITE,
                    MODIFIER_FITS, WORDS (all of them); validateWord / validateSkill: why a word is refused, for the builder
                    and the server's check; skillCost, releaseTime; SKILL: their numbers; SKILLBOOK_PAGES, Skillbook,
@@ -1085,7 +1111,9 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        story.ts (the story engine, for quests and NPCs: Story, newStory; When and holds; Effect,
                        Seen and unfold; stepOn; questbookOf; keptStory; progressStory, the session's side),
                        talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf; the session's side:
-                       placeFor, talkTo, takeQuest, handOver),
+                       placeFor, talkTo, takeQuest, handOver, shopInView),
+                       shop.ts (shopView: a shop's stock and prices for a player; openShop, buy, sell, exchange:
+                       paying, change and what doesn't fit going to the cloth),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -1124,12 +1152,13 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
                        actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
-                       grocer.ts, apothecary.ts, smith.ts (its
+                       grocer.ts, apothecary.ts, smith.ts, changer.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
       content/         player.ts (PLAYER_STATS: Early Yan's; STARTER_KIT, fullVitals, newPlayer, withStarterKit),
                        quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
-                       entry, by id; LoreId)
+                       entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
+                       PRICE_FACTOR by level, SELL_SHARE, FIRST_PURCHASE_DISCOUNT)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1262,8 +1291,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        between − (only by a campfire) and + for free points, hovering them previewing the change and
                        what the stat does; chart.ts: chartPoints, the polygon's corners for any number of stats, and
                        chartMax, its rim: the most a stat could be at the step), inventory/ (the bag screen:
-                       InventoryPanel.tsx lays out the equipment, an open pile over the cloth, and the bag, wires the
-                       mouse and the bag keys, and shows the selected item, the dragged ghost and the tooltip;
+                       InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
+                       coins and changing them), an open pile over the cloth, and the bag, wires the
+                       mouse and the bag keys, and shows the selected item (with Sell when a shop buys it), the
+                       dragged ghost and the tooltip;
                        BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
@@ -1395,7 +1426,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
                        byEnemy)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
-                       apothecary/, smith/, each with look.ts
+                       apothecary/, smith/, changer/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -1658,6 +1689,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY_LIMIT_AT_AVERAGE`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
+| Shops: what each sells and buys, what things are worth, the capital's prices, what a shop pays, the first purchase's discount | `server/src/core/content/shops.ts` (`SHOPS`, `ITEM_VALUES`, `PRICE_FACTOR`, `SELL_SHARE`, `FIRST_PURCHASE_DISCOUNT`); the coins' worth in `shared/src/items/coins.ts` (`COIN_VALUE`) |
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |

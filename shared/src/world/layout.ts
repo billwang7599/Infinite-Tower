@@ -28,7 +28,7 @@ export interface LevelLayout extends LevelMap {
 }
 
 export const NPC_IDS = [
-  "hollis", "maren", "tobin", "corwin", "ilse", "herald", "grocer", "apothecary", "smith",
+  "hollis", "maren", "tobin", "corwin", "ilse", "herald", "grocer", "apothecary", "smith", "changer",
 ] as const;
 export type NpcId = (typeof NPC_IDS)[number];
 

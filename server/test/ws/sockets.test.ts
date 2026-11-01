@@ -23,7 +23,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = withStarterKit({
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: START_LEVEL,
+  equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: START_LEVEL, shopsBought: [],
   core: newCore(),
 });
 

@@ -23,9 +23,9 @@ What's built so far:
   kept for good. The character panel shows the portrait and your stats.
 - **Overworld:** new characters wake in Highmere, the kingdom, on the great summoning platform of its castle's
   hall, where the court herald greets them and explains; dying anywhere wakes you there again. Through the courtyard
-  and the castle gate are the market streets (a food stall, a potion stall and a forge, each with its keeper; no shop
-  yet) and the town gate out to the Grass Field. The test areas lie beyond: the Waking Hollow (a small camp by an old
-  waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
+  and the castle gate are the market streets (a food stall, a potion stall, a forge and a money changer, each with
+  its keeper) and the town gate out to the Grass Field. The test areas lie beyond: the Waking Hollow (a small camp by an
+  old waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
   through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire).
   Every level's start is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
   and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
@@ -106,6 +106,11 @@ What's built so far:
   with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
   or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or
   mid-fight, and a hit stops it.
+- **Money and shops:** gold, silver and copper coins (100 of one make one of the next) are items in the bag, lost on
+  death like the rest; nobody starts with any. Talk to a keeper in Highmere and Trade: their stock shows beside the
+  bag, with what they'll buy from it, priced in "1g 20s 5c". Prices are steeper in the capital and the first
+  purchase at each shop is cheaper. Coins never change by themselves: any shop, or the money changer, swaps one for
+  100 of the next and back. Change that doesn't fit in the bag lands on the cloth (now 8 x 6).
 - **Drops:** a won fight's loot lies in the arena where the enemy crumbled away, shared by the winners. Walk up to it,
   look at it and press E to open it next to the bag; what you drag into the bag is yours, first come, first served.
   The arena closes after 5 minutes (Enter leaves earlier, asking first if loot is left), and what's left becomes a
@@ -134,8 +139,8 @@ What's built so far:
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
   effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),
   return to title.
-- **Saving:** your character, vitals, core, wins, bag, equipment, story and settings are kept with your account in
-  Postgres.
+- **Saving:** your character, vitals, core, wins, bag, equipment, story, settings and first purchases are kept with your
+  account in Postgres.
 - **Server:** runs the overworld and the fights, and decides both: hits, damage, stamina, deaths and who won. In a
   fight the browser runs its own copy of the whole fight, so you and the boar answer at once, and sends only its
   inputs, each for a numbered step; the server runs them on those steps (up to 200 ms late), checks the browser's

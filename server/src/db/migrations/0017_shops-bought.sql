@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "shops_bought" text[] DEFAULT '{}' NOT NULL;

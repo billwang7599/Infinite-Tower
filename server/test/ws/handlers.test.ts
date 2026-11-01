@@ -32,6 +32,10 @@ function fakeSession() {
     answerChallenge: record("answerChallenge"),
     chat: record("chat"),
     statPoint: record("statPoint"),
+    openShop: record("openShop"),
+    buy: record("buy"),
+    sell: record("sell"),
+    exchange: record("exchange"),
   };
   return { calls, session: session as unknown as GameSession };
 }
@@ -122,11 +126,20 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "statPoint", stat: "vitality", add: false }), [["statPoint", "vitality", false]]);
   });
 
+  test("openShop, buy, sell and exchange reach the session with what's traded", () => {
+    assert.deepEqual(handle({ t: "openShop" }), [["openShop"]]);
+    assert.deepEqual(handle({ t: "buy", item: "bread" }), [["buy", "bread"]]);
+    assert.deepEqual(handle({ t: "sell", at: { in: "bag", x: 1, y: 2 }, count: 3 }), [["sell", { in: "bag", x: 1, y: 2 }, 3]]);
+    assert.deepEqual(handle({ t: "exchange", from: "silver-coin", to: "copper-coin" }), [
+      ["exchange", "silver-coin", "copper-coin"],
+    ]);
+  });
+
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
       "closeBag", "openPile", "talk", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge", "answerChallenge",
-      "joinBattle", "chat", "statPoint",
+      "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

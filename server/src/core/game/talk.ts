@@ -1,5 +1,6 @@
 import { bagCounts, type Bag, type DialogueOffer, type LevelLayout, type NpcId } from "@infinite-tower/shared";
 import { QUESTS, type Quests } from "../content/quests.js";
+import { SHOPS, type ShopId } from "../content/shops.js";
 import { NPCS, type Npc, type Stop, type Talk, type Trace } from "../npcs/index.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn, type Story } from "./story.js";
@@ -45,6 +46,7 @@ export function dialogueOf(
 
 function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): DialogueOffer | null {
   if (!offer) return null;
+  if ("shop" in offer) return { kind: "shop", name: SHOPS[offer.shop].name };
   if ("start" in offer) {
     const quest = quests[offer.start], first = quest?.steps[0];
     if (!quest || !first || !holds({ canStart: offer.start }, story, quests)) return null;
@@ -65,6 +67,12 @@ function facing(session: GameSession): Faced | null {
     ...traces.map((placed) => ({ ...placed, ...placed.trace.at })),
   ];
   return session.overworld.inView(session.me, things);
+}
+
+export function shopInView(session: GameSession): ShopId | null {
+  const faced = facing(session);
+  const offer = faced && "stop" in faced ? faced.stop.talk.find((t) => holds(t.when, session.story))?.offer : undefined;
+  return offer && "shop" in offer ? offer.shop : null;
 }
 
 function offerInView(session: GameSession): DialogueOffer | null {

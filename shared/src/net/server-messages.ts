@@ -7,6 +7,7 @@ import type { FightSetup, PlayerSetup } from "../battle/fight/setup.js";
 import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Character } from "../character/character.js";
 import type { Gear, UseSpot } from "../items/gear.js";
+import type { CoinId } from "../items/coins.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
 import type { LevelLayout, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
@@ -91,7 +92,23 @@ export type CoreLoss = "fill" | "step" | null;
 
 export type DialogueOffer =
   | { kind: "quest"; quest: string; title: string; step: string }
-  | { kind: "deliver"; quest: string; item: ItemId; count: number };
+  | { kind: "deliver"; quest: string; item: ItemId; count: number }
+  | { kind: "shop"; name: string };
+
+/** Prices in copper. `price` is what the next one costs you (the first purchase there is cheaper than `fullPrice`). */
+export interface ShopView {
+  name: string;
+  stock: { item: ItemId; price: number; fullPrice: number }[];
+  /** What it pays for one of each thing it buys. */
+  buys: Partial<Record<ItemId, number>>;
+}
+
+/** `onCloth`: some of what you got didn't fit in the bag. */
+export type TradeNews =
+  | { kind: "bought"; item: ItemId; price: number; onCloth: boolean }
+  | { kind: "sold"; item: ItemId; count: number; price: number; onCloth: boolean }
+  | { kind: "exchanged"; from: CoinId; to: CoinId; onCloth: boolean }
+  | { kind: "refused"; reason: "tooPoor" | "noRoom" | "notSold" | "notBought" | "noCoins" };
 
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines
@@ -132,6 +149,9 @@ export type ServerMsg =
   | { t: "core"; core: CoreState; vitals: Vitals; brokeThrough: boolean }
   | { t: "dialogue"; npc: NpcId; trace: boolean; lines: readonly string[]; offer: DialogueOffer | null }
   | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }
+  /** A shop opened beside the bag (`openShop`), or null: it closed. */
+  | { t: "shop"; shop: ShopView | null }
+  | { t: "trade"; news: TradeNews; gear: Gear; shop: ShopView }
   /** Dev cheats' answers. `given`: `count` of `item` packed into the bag, `left` that didn't fit. */
   | { t: "healed"; vitals: Vitals }
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }

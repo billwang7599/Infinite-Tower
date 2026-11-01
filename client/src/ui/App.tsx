@@ -52,6 +52,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
               skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
               challenge={ui.challenge} challengeNearest={actions.challenge} answerChallenge={actions.answerChallenge}
               toggleQuestbook={ui.toggleQuestbook} statPoint={actions.statPoint}
+              shop={ui.shop} buy={actions.buy} sell={actions.sell} exchange={actions.exchange}
             />
           )}
           {mode === "battle" && (

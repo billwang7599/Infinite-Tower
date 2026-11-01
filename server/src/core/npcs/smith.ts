@@ -10,8 +10,9 @@ export const SMITH: Npc = {
         {
           lines: [
             "Another one off the pad. The door sends you lot in soft as dough, and somebody has to arm you.",
-            "The forge is cold today. Come back when it's lit.",
+            "I'll take hides and tusks for the bellows and the grips, and blades you've no more use for.",
           ],
+          offer: { shop: "smith" },
         },
       ],
     },

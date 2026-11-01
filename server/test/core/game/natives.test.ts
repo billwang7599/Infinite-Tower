@@ -11,7 +11,7 @@ import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { START_LEVEL } from "../../../src/core/world/index.js";
 import type { FakeLink } from "../../fixtures/fakes.js";
-import { bagWith, startSession, talkTo, tick, winFight } from "./helpers.js";
+import { bagWith, offeredQuest, startSession, talkTo, tick, winFight } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -69,7 +69,7 @@ describe("the Grass Field's and the Mistwood's natives", () => {
       const level = stopFor(newStory(), NPCS[npc])!.level;
       assert.notEqual(level, START_LEVEL, npc);
       const { session, link } = startSession({ saved: { level } });
-      assert.equal(talkTo(session, link, npc).offer?.quest, first, npc);
+      assert.equal(offeredQuest(talkTo(session, link, npc).offer), first, npc);
     }
   });
 

@@ -323,9 +323,9 @@ describe("the cloth and the equipment", () => {
   });
 
   test("dragged from the bag onto the cloth: a move there, kept inside the cloth", () => {
-    const m = pointerMove(fromBag(5, 1, BAG), BAG, overSpot(onCloth(3, 3)), 0);
+    const m = pointerMove(fromBag(5, 1, BAG), BAG, overSpot(onCloth(3, CLOTH.rows - 1)), 0);
     assert.deepEqual(landing(m, BAG), onCloth(3, CLOTH.rows - 2));
-    const { mouse, move } = pointerUp(m, BAG, overSpot(onCloth(3, 3)), 0, STRENGTH);
+    const { mouse, move } = pointerUp(m, BAG, overSpot(onCloth(3, CLOTH.rows - 1)), 0, STRENGTH);
     assert.deepEqual(move, { from: at(5, 0), to: onCloth(3, CLOTH.rows - 2), turned: false });
     assert.deepEqual(mouse.selected, onCloth(3, CLOTH.rows - 2));
   });

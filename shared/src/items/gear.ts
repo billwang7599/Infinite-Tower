@@ -10,7 +10,7 @@ const SLOT_TAKES: Record<Slot, WornOn> = {
 
 export type Equipment = Record<Slot, ItemId | null>;
 
-export const CLOTH = { cols: 4, rows: 4 } as const;
+export const CLOTH = { cols: 8, rows: 6 } as const;
 
 export interface Gear {
   bag: Bag;

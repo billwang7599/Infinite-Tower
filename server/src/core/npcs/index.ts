@@ -1,6 +1,8 @@
 import type { Heading, NpcId, Vec2 } from "@infinite-tower/shared";
+import type { ShopId } from "../content/shops.js";
 import type { When } from "../game/story.js";
 import { APOTHECARY } from "./apothecary.js";
+import { CHANGER } from "./changer.js";
 import { CORWIN } from "./corwin.js";
 import { GROCER } from "./grocer.js";
 import { HERALD } from "./herald.js";
@@ -13,7 +15,7 @@ import { TOBIN } from "./tobin.js";
 export interface Talk {
   when?: When;
   lines: readonly string[];
-  offer?: { start: string } | { deliver: string };
+  offer?: { start: string } | { deliver: string } | { shop: ShopId };
 }
 
 export interface Trace {
@@ -49,4 +51,5 @@ export const NPCS: Record<NpcId, Npc> = {
   grocer: GROCER,
   apothecary: APOTHECARY,
   smith: SMITH,
+  changer: CHANGER,
 };

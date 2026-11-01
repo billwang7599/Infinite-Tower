@@ -25,6 +25,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Enemies](#enemies)
 - [Encounters and drops](#encounters-and-drops)
 - [Healing and refills](#healing-and-refills)
+- [Money and prices](#money-and-prices)
 
 ## Stats
 
@@ -353,7 +354,9 @@ Each in `server/src/core/enemies/<id>.ts`.
 ## Healing and refills
 
 - **Boar meat:** + 35% of the most HP (its `consumable`'s `healShare`; 35 at the start), once its `useTime` (1 s) is
-  up, on the overworld or in a fight; refused at full HP.
+  up, on the overworld or in a fight; refused at full HP. Bread + 20% (20), a health potion + 50% (50), the same way.
+- **Stamina tonic:** stamina to full (`staminaShare` 1; 150 at the start), after 1 s; refused at full stamina, not at
+  full HP.
 - **HP regen:** vitality × health regen / 200 HP a second (0.5 at the start: empty to full in 200 s), on the
   overworld, in fights and in the arena after a win; in a fight, not for 5 s after any damage (`HP_REGEN_PAUSE_TIME`).
   Players only: enemies' health regen is 0.
@@ -362,3 +365,17 @@ Each in `server/src/core/enemies/<id>.ts`.
   the kingdom's platform; a duel gives back what you came in with.
 - **In a fight:** meat (above), and skills: Self Water 0.3 D, Darkness 20% of its hit, Siphoning 10% of the
   damage you deal.
+
+## Money and prices
+
+- **Coins** (`COIN_VALUE`, `shared/src/items/coins.ts`): copper 1, silver 100, gold 10000, in copper. Written out
+  largest first, leaving out what's 0: 12 345 copper is "1g 23s 45c".
+- **Buying** (`server/src/core/content/shops.ts`): the item's worth (`ITEM_VALUES`, copper) × the level's
+  `PRICE_FACTOR` (Highmere 1.5, elsewhere 1), rounded; a player's first purchase at each shop × (1 −
+  `FIRST_PURCHASE_DISCOUNT` 0.25), rounded. Bread, worth 4: 6c in Highmere, 5c the first time (4.5 rounds up). A sword,
+  worth 300: 4s 50c, 3s 38c the first time.
+- **Paying:** coins smallest first, as many of each as fit in what's left whole; if that's short, one more of the
+  smallest coin that covers the rest, and the change in the fewest coins. 1g 30c for a 5c loaf: 5 copper, nothing
+  back. 33c and 100s for a 3s 38c sword: 33 copper and 3 silver, then 1 more silver, 95c back.
+- **Selling:** the worth × `SELL_SHARE` 0.4, rounded down, each: boar meat 2c, a hide 10c, a tusk 16c.
+- **Changing coins:** 1 for 100 of the next smaller, or 100 for 1 of the next bigger, no fee.

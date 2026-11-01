@@ -6,7 +6,8 @@ import { z } from "zod";
 import { MAX_INPUTS_PER_MESSAGE, type StepInput } from "../battle/input.js";
 import { STRIKES, SWING_DIRS } from "../weapons/hybrid.js";
 import { SLOTS, type Spot, type UseSpot } from "../items/gear.js";
-import { ITEM_IDS, type ItemId } from "../items/items.js";
+import { COINS } from "../items/coins.js";
+import { ITEM_IDS, ITEMS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
 import { SHOWN_STATS } from "../battle/stats.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
@@ -145,6 +146,12 @@ const QuestId = z.string().min(1).max(MAX_QUEST_ID_CHARS);
 const AcceptQuestMsg = z.object({ t: z.literal("acceptQuest"), quest: QuestId });
 const DeliverMsg = z.object({ t: z.literal("deliver"), quest: QuestId });
 
+const MAX_STACK = Math.max(...ITEM_IDS.map((id) => ITEMS[id].stackSize));
+const OpenShopMsg = z.object({ t: z.literal("openShop") });
+const BuyMsg = z.object({ t: z.literal("buy"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]) });
+const SellMsg = z.object({ t: z.literal("sell"), at: UseSpotSchema, count: z.number().int().min(1).max(MAX_STACK) });
+const ExchangeMsg = z.object({ t: z.literal("exchange"), from: z.enum(COINS), to: z.enum(COINS) });
+
 const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
 });
@@ -181,7 +188,7 @@ const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
   MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, AcceptQuestMsg, DeliverMsg, SaveSkillMsg, PingMsg, CheatMsg,
-  ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg, StatPointMsg,
+  ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg, StatPointMsg, OpenShopMsg, BuyMsg, SellMsg, ExchangeMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

@@ -115,6 +115,18 @@ export function takeOne(bag: Bag, cell: Cell): Bag | null {
   return { ...bag, items };
 }
 
+export function takeItems(bag: Bag, item: ItemId, count: number): Bag | null {
+  if ((bagCounts(bag)[item] ?? 0) < count) return null;
+  let left = count;
+  const items = bag.items.map((s) => {
+    if (s.item !== item || left === 0) return s;
+    const taken = Math.min(s.count, left);
+    left -= taken;
+    return { ...s, count: s.count - taken };
+  });
+  return { ...bag, items: items.filter((s) => s.count > 0) };
+}
+
 export const bagWeight = (bag: Bag): number => bag.items.reduce((sum, s) => sum + ITEMS[s.item].weight * s.count, 0);
 
 export function bagCounts(bag: Bag): ItemCounts {

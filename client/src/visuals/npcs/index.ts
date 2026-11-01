@@ -1,5 +1,6 @@
 import type { Look, NpcId } from "@infinite-tower/shared";
 import { apothecaryLook } from "./apothecary/look.js";
+import { changerLook } from "./changer/look.js";
 import { corwinLook } from "./corwin/look.js";
 import { grocerLook } from "./grocer/look.js";
 import { heraldLook } from "./herald/look.js";
@@ -24,4 +25,5 @@ export const NPC_LOOKS: Record<NpcId, NpcLook> = {
   grocer: grocerLook,
   apothecary: apothecaryLook,
   smith: smithLook,
+  changer: changerLook,
 };
