@@ -10,7 +10,7 @@ import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, Skilled,
-  Stamina, Statuses, WeaponAttack, Wielder, type HealthData, type WielderData,
+  SlamAttack, Stamina, Statuses, WeaponAttack, Wielder, type HealthData, type WielderData,
 } from "../components.js";
 import type { EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
@@ -97,6 +97,7 @@ const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
     circleAgain(pounce, world.require(e, Enemy), def.firstDelay);
     world.add(e, PounceAttack, pounce);
   },
+  slam: (world, e, def) => { world.add(e, SlamAttack, { def, cooldown: def.firstDelay }); },
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
       def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, feint: false, way: "tb",

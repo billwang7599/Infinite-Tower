@@ -1,10 +1,10 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
   ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack,
-  maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject,
+  maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject, SlamAttack,
   Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
-  type Skill, type Stats, type SkillAttackDef, type Equipment, type Vec3, type WeaponAttackDef,
+  type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -63,6 +63,19 @@ export const pounce = (over: Partial<PounceDef>): PounceDef => ({
 /** Like the grey wolf: circles at a distance, leaps in to bite, hops back out. */
 export const WOLF: EnemyDef = {
   ...ENEMY_BASE, id: "grey-wolf", radius: 0.5, walkSpeed: 4.5, turnRate: 6, attacks: { pounce: pounce({}) },
+};
+
+export const slam = (over: Partial<SlamDef>): SlamDef => ({
+  triggerDist: 3, range: 2.6, minDot: 0.5, windup: 1, lockAt: 0.3, active: 0.15, recover: 1.2, damage: 30,
+  knockback: 10, lift: 3, cooldown: 0.5, firstDelay: 0.5,
+  sweep: {
+    range: 2.6, minDot: -1, belowDot: 0.3, windup: 0.6, active: 0.2, recover: 0.8, damage: 15, knockback: 8, lift: 2,
+  },
+  ...over,
+});
+
+export const LURKER: EnemyDef = {
+  ...ENEMY_BASE, id: "bog-lurker", radius: 0.9, walkSpeed: 1.5, turnRate: 1.2, attacks: { slam: slam({}) },
 };
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
@@ -145,6 +158,7 @@ export function dumpState(fight: Fight): string {
       enemy: enemyData && { ...enemyData, def: enemyData.def.id, sense: undefined, move: undefined },
       lunge: fight.world.get(e, LungeAttack)?.cooldown,
       pounce: fight.world.get(e, PounceAttack) && { ...fight.world.get(e, PounceAttack), def: undefined },
+      slam: fight.world.get(e, SlamAttack)?.cooldown,
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
       weapon: fight.world.get(e, WeaponAttack) && { ...fight.world.get(e, WeaponAttack), def: undefined },
       wielder: fight.world.get(e, Wielder),

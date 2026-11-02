@@ -32,7 +32,8 @@ What's built so far:
   a campfire by the way in), held by Kobolds and Goblin Warlocks. Every level's start is a summoning pad. The Grass
   Field is a dusky tile map of paths, tree lines, rocks, a stream and pond, ruins and a patch of tall grass; trees,
   rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a Kobold Swordsman (a Kobold
-  Greatsword beside it), a Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight.
+  Greatsword beside it), a Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight;
+  two bog lurkers lie low in the Mistwood's reeds.
   Touching one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's
   drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The
@@ -66,9 +67,9 @@ What's built so far:
   who had Tamsin's son by her fire sends word to her of which way he went. The questbook (H, or the HUD's book; in
   fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave it, and the
   lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
-- **Fights:** a 2D sprite against a 3D boar, grey wolf, Kobold Swordsman or Goblin Warlock in a small round arena,
-  each with its own look (a forest clearing, stone ruins, a mire, a quarry), lit by a 24-minute day: the sun and moon
-  rise and set, the shadows follow them, and glowing mushrooms light the mire.
+- **Fights:** a 2D sprite against a 3D boar, grey wolf, bog lurker, Kobold Swordsman or Goblin Warlock in a small
+  round arena, each with its own look (a forest clearing, stone ruins, a mire, a quarry), lit by a 24-minute day: the
+  sun and moon rise and set, the shadows follow them, and glowing mushrooms light the mire.
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the wheel or K stabs,
   and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
@@ -82,7 +83,10 @@ What's built so far:
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
   blows can only be blocked. The grey wolf is quick and frail: it circles out of reach, then crouches with a growl
   and leaps in to bite (sidestep it as it locks on, dodge or block it), standing open a moment (longer if it missed)
-  before it hops back out; swinging at it while it circles only tires you. The Kobold Swordsman swings the same ways
+  before it hops back out; swinging at it while it circles only tires you. The bog lurker is slow and tanky: it
+  creeps up low in the bog, rises with a groan and slams down in front of it, and sweeps its tail all round at
+  anyone beside or behind it; dodge them, for a blocked slam costs a lot of stamina and pushes you out of reach of
+  the long opening after it. The Kobold Swordsman swings the same ways
   in long-told chains, blocks as it walks up, and now and then perfect-blocks you. The Kobold Greatsword fights the same
   with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and

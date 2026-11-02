@@ -27,7 +27,9 @@ const FORGET_STEPS = 180;
 // Moved further than this in a frame: put there by a resync, not walked.
 const JUMPED_M = 1.5;
 const CLOUD_GAIN = 0.5;
-const WINDUPS: readonly EnemyState[] = ["weaponWindup", "lungeWindup", "chargeWindup", "pounceWindup"];
+const WINDUPS: readonly EnemyState[] = [
+  "weaponWindup", "lungeWindup", "chargeWindup", "pounceWindup", "slamWindup", "sweepWindup",
+];
 
 const HEAVY_VOICE = { rate: 0.85, gain: 1.25 } as const;
 const FEINT_VOICE = { rate: 1.4, gain: 0.7 } as const;

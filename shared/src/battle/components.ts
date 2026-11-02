@@ -2,7 +2,7 @@
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
 import type {
-  ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, WeaponAttackDef,
+  ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, SlamDef, WeaponAttackDef,
 } from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
 import type { AttackKind } from "../weapons/weapons.js";
@@ -216,6 +216,7 @@ export type EnemyState =
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
   | "pounceWindup" | "pounce" | "pounceRecover" | "pounceHop"
+  | "slamWindup" | "slam" | "slamRecover" | "sweepWindup" | "sweep" | "sweepRecover"
   | "weaponWindup" | "weapon" | "weaponRecover"
   | "skillChant" | "skillCast"
   | "sidestep";
@@ -265,6 +266,7 @@ export interface SkillAttackData extends AttackState<SkillAttackDef> {
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
 export const PounceAttack = defineComponent<PounceAttackData>("PounceAttack");
+export const SlamAttack = defineComponent<AttackState<SlamDef>>("SlamAttack");
 export const WeaponAttack = defineComponent<WeaponAttackData>("WeaponAttack");
 export const SkillAttack = defineComponent<SkillAttackData>("SkillAttack");
 export interface SidestepData { def: SidestepDef; dir: Vec2 }

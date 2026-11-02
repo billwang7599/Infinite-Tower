@@ -62,6 +62,21 @@ export interface PounceDef extends AttackDef {
   hopTime: number;
 }
 
+export interface SlamDef extends AttackDef {
+  /** Starts a slam within this center distance, facing the target. */
+  triggerDist: number;
+  /** Stops turning toward the target this long before the slam lands: the dodge cue. */
+  lockAt: number;
+  active: number;
+  sweep: SweepDef;
+}
+
+/** Starts when the target is within `range` and further off its facing than `belowDot` (a cosine). */
+export interface SweepDef extends Omit<AttackDef, "cooldown" | "firstDelay"> {
+  belowDot: number;
+  active: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -108,12 +123,14 @@ export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
   pounce?: PounceDef;
+  slam?: SlamDef;
   weapon?: WeaponAttackDef;
   skill?: SkillAttackDef;
 }
 
 export const ENEMY_IDS = [
   "wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock", "training-dummy", "bram", "grey-wolf",
+  "bog-lurker",
 ] as const;
 export type EnemyId = (typeof ENEMY_IDS)[number];
 

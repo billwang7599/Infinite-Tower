@@ -19,6 +19,7 @@ import { lungeAttackSystem } from "./behaviors/lunge.js";
 import { pounceAttackSystem } from "./behaviors/pounce.js";
 import { sidestepSystem } from "./behaviors/sidestep.js";
 import { skillAttackSystem } from "./behaviors/skill.js";
+import { slamAttackSystem } from "./behaviors/slam.js";
 import { weaponAttackSystem } from "./behaviors/weapon.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
@@ -101,7 +102,7 @@ export class Fight {
     this.systems = [
       playerControllerSystem(this.targets, this.events),
       enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), pounceAttackSystem(),
-      weaponAttackSystem(this.events),
+      slamAttackSystem(ctx), weaponAttackSystem(this.events),
       skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),

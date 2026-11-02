@@ -3,7 +3,7 @@ import type { ItemId } from "@infinite-tower/shared";
 /** In copper. */
 export const ITEM_VALUES: Partial<Record<ItemId, number>> = {
   "old-stick": 5, "boar-meat": 6, "boar-hide": 25, "boar-tusk": 40, "wolf-pelt": 30, "wolf-fang": 15,
-  bread: 4, "health-potion": 60, "stamina-tonic": 40,
+  "lurker-scale": 20, bread: 4, "health-potion": 60, "stamina-tonic": 40,
   sword: 300, longsword: 900, greatsword: 1500,
 };
 
@@ -26,7 +26,10 @@ export const SHOPS: Record<ShopId, Shop> = {
   apothecary: { name: "Potion stall", sells: ["health-potion", "stamina-tonic"], buys: [] },
   smith: {
     name: "Forge", sells: ["sword", "longsword", "greatsword"],
-    buys: ["boar-hide", "boar-tusk", "wolf-pelt", "wolf-fang", "old-stick", "sword", "longsword", "greatsword"],
+    buys: [
+      "boar-hide", "boar-tusk", "wolf-pelt", "wolf-fang", "lurker-scale", "old-stick", "sword", "longsword",
+      "greatsword",
+    ],
   },
   changer: { name: "Money changer", sells: [], buys: [] },
 };

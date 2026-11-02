@@ -63,7 +63,7 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
   points. After all 15: 103 each before points, the hidden 25, and 186 points.
 - **Free points** go into the shown stats, one at a time, outside fights; taken back one at a time only by a campfire.
 - **Essence** (an item's `essence` effect in `ITEMS`): boar 20, grey wolf 25, Kobold Swordsman 40, Kobold Greatsword
-  50, Goblin Warlock 30. Absorbing takes 2 s (`useTime`). The first step is 5 boars.
+  50, Goblin Warlock 30, bog lurker 45. Absorbing takes 2 s (`useTime`). The first step is 5 boars.
 - **Death:** the step's fill is lost; with none, the step (and its gains); points over what's left are taken back off
   the stats with the most first (`coreAfterDeath`).
 
@@ -122,16 +122,18 @@ Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35,
 
 ## Body blows
 
-An enemy's lunge or charge (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a player who isn't
-blocking, it knocks them back at its `knockback` m/s (plus `lift` up; not while Warded) and takes control away
-(hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness (`combat.ts`). A
-weapon's hit only hurts: no knockback, no hitstun.
+An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a
+player who isn't blocking, it knocks them back at its `knockback` m/s (plus `lift` up; not while Warded) and takes
+control away (hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness
+(`combat.ts`). A weapon's hit only hurts: no knockback, no hitstun.
 
 | Blow | Damage | Knockback (m/s) | Hitstun (s) |
 |---|---|---|---|
 | Boar bite (lunge) | 16 | 8 | 0.41 |
 | Boar charge | 30 | 15 | 0.55 |
 | Wolf bite (pounce) | 14 | 6 | 0.37 |
+| Lurker slam | 38 | 12 | 0.49 |
+| Lurker tail sweep | 20 | 10 | 0.45 |
 | Warlock's staff (lunge) | 5 | 3 | 0.31 |
 
 ## Blocks
@@ -323,12 +325,12 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 
 Each in `server/src/core/enemies/<id>.ts`.
 
-| | Wild Boar | Grey Wolf | Kobold Swordsman | Kobold Greatsword | Goblin Warlock | Bram (spars only) |
-|---|---|---|---|---|---|---|
-| HP | 160 | 70 | 160 | 160 | 40 | 60 |
-| Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
-| Walk | 3.2 m/s | 4.6 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
-| Hits | bite 16, charge 30 | bite 14 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
+| | Wild Boar | Grey Wolf | Bog Lurker | Kobold Swordsman | Kobold Greatsword | Goblin Warlock | Bram (spars only) |
+|---|---|---|---|---|---|---|---|
+| HP | 160 | 70 | 200 | 160 | 160 | 40 | 60 |
+| Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
+| Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
+| Hits | bite 16, charge 30 | bite 14 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -338,6 +340,11 @@ Each in `server/src/core/enemies/<id>.ts`.
   plus the same at the start, it crouches (0.6 s, tracking you, then locked 0.2 s before), leaps at 13 m/s for 0.35 s
   from within 6.5 m, biting within 1 m; then stands 0.45 s if the bite met you (taken or blocked) or 1.1 s if it met
   nobody, and hops back at 8 m/s for 0.3 s (2.4 m). No stagger from the crouch to the landing.
+- **Bog Lurker** (`slam`, `fight/behaviors/slam.ts`): walks up at 1.5 m/s, turning 1.4 rad/s. Within 3 m and facing
+  you, it rises (1.3 s, turning toward you at 1.2 rad/s until 0.35 s before) and slams: 2.6 m ahead, 60° either side,
+  live 0.15 s; then it stands open 1.5 s. Within 2.8 m and more than about 73° off its facing (cos < 0.3), it coils
+  (0.75 s) and sweeps its tail all round (live 0.2 s), then stands 1 s. 0.8 s after either before the next; the
+  first after 1.5 s. No stagger from the rise or coil to the blow. A blocked slam costs 38 stamina (a dodge 22).
 - **Kobolds:** a chain of 2 or 3 (even odds), each swing any of the 7 ways or a stab, never the same twice running,
   heavy 30% of the time; its first goes live 1.1 s after it starts and the rest 0.45 s (a heavy 0.35 s more), × its
   blade's heft, stepping in at 3 m/s while live; then 0.5 s to recover and 1.2 s more before the next chain; first
@@ -358,11 +365,12 @@ Each in `server/src/core/enemies/<id>.ts`.
   Field and in the Mistwood, 0.06 in the Waking Hollow); the enemy by weight (only boars so far). At 0.12, on average
   one every 8.3 tiles (1.7 s at 5 tiles/s), and 0.88^10 = 28% of the time 10 tiles pass without one; at 0.06, one
   every 16.7 tiles (3.3 s). None for `safeTime` 2 s after a fight.
-- **Overworld enemies** come back `respawnTime` after their fight is over: the boar 8 s, the wolf 10 s, the others 12 s.
+- **Overworld enemies** come back `respawnTime` after their fight is over: the boar 8 s, the wolf 10 s, the bog lurker
+  15 s, the others 12 s.
 - **Drops** (`rollDrops`): each row rolled on its own, once per fallen enemy for the whole fight (the winners share
   it). Every enemy drops its own essence, always (chance 1). A boar, besides: meat 0.6, hide 0.35, tusk 0.25, so
-  none of those 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on average. A wolf: pelt 0.35, fang 0.6. The
-  Kobolds and the warlock drop only their essence.
+  none of those 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on average. A wolf: pelt 0.35, fang 0.6. A
+  bog lurker: 2 scales 0.7. The Kobolds and the warlock drop only their essence.
 
 ## Healing and refills
 
@@ -391,5 +399,5 @@ Each in `server/src/core/enemies/<id>.ts`.
   smallest coin that covers the rest, and the change in the fewest coins. 1g 30c for a 5c loaf: 5 copper, nothing
   back. 33c and 100s for a 3s 38c sword: 33 copper and 3 silver, then 1 more silver, 95c back.
 - **Selling:** the worth × `SELL_SHARE` 0.4, rounded down, each: the old stick 2c, boar meat 2c, a hide 10c, a tusk
-  16c, a wolf pelt 12c, a fang 6c.
+  16c, a wolf pelt 12c, a fang 6c, a lurker scale 8c.
 - **Changing coins:** 1 for 100 of the next smaller, or 100 for 1 of the next bigger, no fee.
