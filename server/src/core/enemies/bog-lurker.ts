@@ -30,7 +30,9 @@ export const BOG_LURKER: Enemy = {
   drops: [
     { item: "bog-lurker-essence", chance: 1, count: 1 },
     { item: "lurker-scale", chance: 0.7, count: 2 },
+    { item: "bog-pearl", chance: 0.05, count: 1 },
   ],
+  treasure: { uncommon: 0.06, rare: 0.02, epic: 0.006, legendary: 0.0015, unique: 0.0003 },
   overworld: () => [
     wander({ speed: 0.7, maxDist: 3 }),
     chaseOnSight({ range: 3.5, noticeTime: 0.8, speed: 2.2 }),

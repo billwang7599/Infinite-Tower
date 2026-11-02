@@ -15,6 +15,7 @@ import type { SpawnDef } from "../world/level.js";
 import { getArena } from "../world/index.js";
 import type { GameSession } from "./session.js";
 import { progressStory } from "./story.js";
+import type { Uniques } from "./uniques.js";
 
 export interface Battle {
   /** The actor that started it, or null for tall grass. */
@@ -67,7 +68,7 @@ export function startBattle(
   const room: BattleRoom = new BattleRoom(setup, [seatOf(session)], {
     onOver: () => {
       if (source !== null) overworld.fightDecided(source);
-      if (room.fight.outcome.state === "won") dropInArena(room.fight, drops, overworld);
+      if (room.fight.outcome.state === "won") dropInArena(room.fight, drops, overworld, session.uniques);
     },
     onClosed: () => landDrops(overworld, drops),
   });
@@ -163,10 +164,10 @@ function dropSpot(fell: Vec2, enemyRadiusM: number): Vec2 {
   return { x: roundTo(fell.x + way.x * awayM, 2), z: roundTo(fell.z + way.z * awayM, 2) };
 }
 
-function dropInArena({ world, enemies }: Fight, drops: ArenaDrops, overworld: Overworld): void {
+function dropInArena({ world, enemies }: Fight, drops: ArenaDrops, overworld: Overworld, uniques: Uniques): void {
   for (const e of enemies) {
     const { def } = world.require(e, Enemy);
-    const pile = overworld.holdPile(rollDrops(def.id, overworld.rng));
+    const pile = overworld.holdPile(rollDrops(def.id, overworld.rng, (item) => uniques.isFree(item)));
     if (pile !== null) drops.piles = [...drops.piles, { pile, at: dropSpot(world.require(e, Body).pos, def.radius) }];
   }
 }

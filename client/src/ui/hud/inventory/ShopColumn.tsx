@@ -6,6 +6,7 @@ import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { ItemPicture } from "./BagGrid.js";
 import { EQUIPMENT_WIDTH_PX } from "./grid.js";
+import { RARITY_TEXT } from "./itemInfo.js";
 
 // A greatsword, 4 cells tall, at 1 screen pixel per art pixel.
 const PICTURE_PX = 64;
@@ -38,7 +39,7 @@ export function ShopColumn({ shop, gear, buy, exchange }: ShopColumnProps) {
                 <ItemPicture item={item} turned={false} maxPx={PICTURE_PX} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-white">{itemDef(item).name}</div>
+                <div className={`truncate ${RARITY_TEXT[itemDef(item).rarity]}`}>{itemDef(item).name}</div>
                 <div className="text-xs tabular-nums">
                   <span className="text-victory">{formatPrice(price)}</span>
                   {price < fullPrice && (

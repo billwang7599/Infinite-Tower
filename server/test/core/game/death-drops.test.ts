@@ -202,7 +202,7 @@ describe("dying while others fight on", () => {
     kill(1);
     winFight();
     host.leaveBattle();
-    const boar = rollDrops("wild-boar", () => 0);
+    const boar = rollDrops("wild-boar", () => 0, () => false);
     assert.deepEqual(countsAt(host.overworld, home), { ...boar, "boar-meat": (boar["boar-meat"] ?? 0) + 3 });
     assert.equal(pilesOn(host.overworld).length, 1);
   });

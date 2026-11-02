@@ -43,6 +43,8 @@ const RAMPS = {
   frost: ["#0f1a24", "#20364a", "#3a5a78", "#5f86a8", "#93b7d2", "#d8ecf8"],
   bog: ["#0b1009", "#182214", "#29391f", "#3c522d", "#587042", "#8a9f66"],
   murk: ["#10140a", "#262f16", "#434f24", "#677836", "#94a555", "#cfdc92"],
+  stone: ["#18181b", "#2c2d31", "#46474c", "#64656b", "#8a8b91", "#b8b9bd"],
+  pearl: ["#1d2820", "#3a4d40", "#617768", "#93a897", "#c6d6c8", "#f2f9f2"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -292,6 +294,28 @@ const coin = (metal: Material) => (px: Pixels): void => {
   pen.shade(ellipse(6, 6.4, 1, 1), SHINE);
 };
 
+function pearl(px: Pixels): void {
+  const pen = new Pen(px, 0), bead = ellipse(8, 8.5, 4.4, 4.4);
+  pen.fill(bead, ink("pearl", LIGHT));
+  pen.shade(darkEdge(bead, 1), SHADOW);
+  pen.shade(both(bead, ellipse(9.5, 10, 2.4, 2.4)), BASE);
+  pen.fill(ellipse(6.6, 7, 1.4, 1.4), ink("pearl", SHINE));
+}
+
+const sigil = (glow: Material) => (px: Pixels): void => {
+  const stone = new Pen(px, 0), disc = ellipse(8, 8.5, 6.5, 6.5);
+  stone.fill(disc, ink("stone", BASE));
+  stone.shade(litEdge(disc, 1), LIGHT);
+  stone.shade(darkEdge(disc, 1), SHADOW);
+  const rune = new Pen(px, 1);
+  const ring = (x: number, y: number) => {
+    const d = Math.hypot(x + 0.5 - 8, y + 0.5 - 8.5);
+    return d >= 3.2 && d <= 4.3;
+  };
+  rune.fill(union(ring, rect(7, 3, 8, 13)), ink(glow, LIGHT));
+  rune.fill(ellipse(8, 8.5, 1.2, 1.2), ink(glow, SHINE));
+};
+
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
@@ -300,7 +324,9 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "bog-lurker-essence": essence("murk"), "lurker-scale": scale, "wolf-pelt": pelt,
   "wolf-fang": fang, bread, "health-potion": bottle("blood"),
   "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),
-  "gold-coin": coin("gold"),
+  "gold-coin": coin("gold"), "bog-pearl": pearl, "sigil-of-grit": sigil("moss"), "sigil-of-embers": sigil("frost"),
+  "sigil-of-the-last-breath": sigil("wisp"), "sigil-of-the-red-blade": sigil("gold"),
+  "sigil-of-the-first-door": sigil("blood"),
 };
 
 const drawn = new Map<ItemId, Picture>();

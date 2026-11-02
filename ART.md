@@ -132,7 +132,8 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
 
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, a wolf pelt and fang, a lurker scale, the
-old stick, the swords, the skillbook and each monster's essence (one bead, in six colours). Of what's worn, only the
+old stick, the swords, the skillbook, each monster's essence (one bead, in six colours), a bog pearl and the sigils
+(one stone disc with a rune ring, glowing in its tier's colour). Of what's worn, only the
 sword shows on the character, in the
 arena: a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the arena's frames are painted without it
 (the art lab still draws `SWORD`). In the left hand the body is the right-handed frame flipped (a swing uses its

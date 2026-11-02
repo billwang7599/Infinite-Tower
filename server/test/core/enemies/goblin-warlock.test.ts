@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, type PlayerInputData } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
-import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -54,7 +54,7 @@ describe("the Goblin Warlock", () => {
     for (const damage of pokes) assert.equal(damage, WARLOCK.attacks.lunge!.damage);
   });
 
-  test("drops only its essence, even on the lowest roll", () => {
-    assert.deepEqual(rollDrops("goblin-warlock", () => 0), { "goblin-warlock-essence": 1 });
+  test("drops only its essence, besides treasure", () => {
+    assert.deepEqual(ENEMIES["goblin-warlock"].drops.map((d) => d.item), ["goblin-warlock-essence"]);
   });
 });

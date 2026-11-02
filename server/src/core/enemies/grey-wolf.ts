@@ -29,6 +29,7 @@ export const GREY_WOLF: Enemy = {
     { item: "wolf-pelt", chance: 0.35, count: 1 },
     { item: "wolf-fang", chance: 0.6, count: 1 },
   ],
+  treasure: { uncommon: 0.04, rare: 0.01, epic: 0.0025, legendary: 0.0006, unique: 0.0001 },
   overworld: () => [
     wander({ speed: 1.8 }),
     chaseOnSight({ range: 5, noticeTime: 0.4, speed: 4.2 }),

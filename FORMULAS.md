@@ -382,7 +382,15 @@ Each in `server/src/core/enemies/<id>.ts`.
 - **Drops** (`rollDrops`): each row rolled on its own, once per fallen enemy for the whole fight (the winners share
   it). Every enemy drops its own essence, always (chance 1). A boar, besides: meat 0.6, hide 0.35, tusk 0.25, so
   none of those 0.4 × 0.65 × 0.75 = 19.5% of the time, and 2.25 weight on average. A wolf: pelt 0.35, fang 0.6. A
-  bog lurker: 2 scales 0.7. The Kobolds and the warlock drop only their essence.
+  bog lurker: 2 scales 0.7, a bog pearl 0.05. The Kobolds and the warlock drop only their essence.
+- **Treasure** (`treasure` in each enemy's file, `TREASURE` in `server/src/core/enemies/index.ts`): besides, one roll
+  a kill for at most one treasure: below the uncommon chance an uncommon one, below that plus the rare chance a rare
+  one, and so on to unique, picked at random from the tier's treasures (one sigil each so far). Chances a kill
+  (uncommon / rare / epic / legendary / unique): boar 0.03 / 0.008 / 0.002 / 0.0005 / 0.0001; wolf 0.04 / 0.01 /
+  0.0025 / 0.0006 / 0.0001; Kobold Swordsman and Goblin Warlock 0.05 / 0.015 / 0.004 / 0.001 / 0.0002; Kobold
+  Greatsword 0.06 / 0.02 / 0.005 / 0.0015 / 0.0003; bog lurker 0.06 / 0.02 / 0.006 / 0.0015 / 0.0003. So a boar
+  drops some treasure 4.06% of the time, a legendary one about 1 kill in 2000. A unique roll drops it only while it's
+  free (nobody's held it within 7 days, and it lies in no pile and on no player online), else nothing.
 
 ## Healing and refills
 
@@ -411,5 +419,5 @@ Each in `server/src/core/enemies/<id>.ts`.
   smallest coin that covers the rest, and the change in the fewest coins. 1g 30c for a 5c loaf: 5 copper, nothing
   back. 33c and 100s for a 3s 38c sword: 33 copper and 3 silver, then 1 more silver, 95c back.
 - **Selling:** the worth × `SELL_SHARE` 0.4, rounded down, each: the old stick 2c, boar meat 2c, a hide 10c, a tusk
-  16c, a wolf pelt 12c, a fang 6c, a lurker scale 8c.
+  16c, a wolf pelt 12c, a fang 6c, a lurker scale 8c, a bog pearl (worth 250) 1s.
 - **Changing coins:** 1 for 100 of the next smaller, or 100 for 1 of the next bigger, no fee.

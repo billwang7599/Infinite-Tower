@@ -105,7 +105,7 @@ main.ts
 
 | Port (`core/ports.ts`) | What core uses it for | Implemented by |
 |---|---|---|
-| `PlayerStore` | load / save a `PlayerSave` | `db/player-store.ts` (`PgPlayerStore`) |
+| `PlayerStore` | load / save a `PlayerSave`; who holds each unique thing | `db/player-store.ts` (`PgPlayerStore`) |
 | `AccountStore` | accounts and login sessions | `db/account-store.ts` (`PgAccountStore`) |
 | `PlayerLink` | send messages to one player, close their connection | `ws/connection.ts` (`Connection`) |
 
@@ -482,7 +482,25 @@ main.ts
   shop). The shop closes with the bag (`closeBag`, walking, a fight starting, a new level).
 - **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`,
   `useTime`, `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't
-  ECS entities: a bag holds counts of item ids per cell.
+  ECS entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set
+  by hand, the same for every one of that kind; a sigil also names the `inscription` it would carve (carving isn't
+  built). The bag screen draws a stack's name in its rarity's colour (tooltip, the selected item, the shop) and its
+  cells with a tinted edge above common: the `rarity-*` colours in `styles.css`, by `RARITY_TEXT` / `RARITY_EDGE` in
+  `itemInfo.ts`.
+- **Drops and treasure** (`core/enemies/index.ts`, server only): `rollDrops` rolls an enemy's own `drops` (each row on
+  its own), then one roll for its `treasure`: each tier's chance per kill, their bands laid end to end on the roll
+  (`TREASURE_TIERS`, commonest first), so a kill drops one treasure at most, picked at random from that tier's
+  `TREASURE` (the sigils so far). A unique drops only while it's free, and a unique roll with none free drops nothing.
+- **Unique things** (`core/game/uniques.ts`; `UNIQUE_ITEMS`, the items of rarity unique): one of each in the world.
+  `Uniques` keeps who holds each (`PlayerStore.uniqueHolds` / `holdUnique`; the `unique_items` table, one row per
+  held thing, its holder's latest save as when they were last seen). A player's save that carries one makes them its
+  holder, and their save without it lets it go (`saved`, from `OnlinePlayers`' save). It's free (`isFree`) when
+  nobody's held it within `UNIQUE_HOLD_MS` (7 days) and it's nowhere in play: in no pile on any level (arena piles
+  too) and in no online player's bag, cloth or hands (`OnlinePlayers.inPlay`). So it's free again as soon as the pile
+  it lay in vanishes, or the cloth it was left on is cleared, with nothing to tell; and nothing stops it changing
+  hands, since whoever saves with it last holds it. A player loading with one they don't hold (any more: someone
+  else's, or theirs gone 7 days) has it taken out of their bag and slots (`kept`). Nothing unique drops until the
+  holds are loaded (`ready`).
 - **Using an item is one rule in both places** (`shared/src/items/using.ts`): `startUse` (a consumable whose effects
   would do something, so no healing at full HP), `stepUse` (its item's `useTime`, counted in `FIXED_DT` steps:
   `useSteps`) and `finishUse` (one used up, its effects applied). `applyEffects` is the one place an effect does
@@ -703,7 +721,8 @@ it no longer has (`keptStory`: forgotten, so it's offered again). The `GameSessi
 moment it's decided, or lost by leaving it), rest, item use, quest progress and making a character, on disconnect,
 and within a second of a settings change, a move in the bag, a trade or a page written. The shops where the first,
 cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
-pile are never saved, and nor are the overworld's piles (a restart loses them).
+pile are never saved, and nor are the overworld's piles (a restart loses them, so a unique thing in one is free
+again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`).
 The pad you're bound to is saved (`pad`, a level id), and you log in on it (`wakeLevel`: a pad that's gone, or a level
 without one, is `START_LEVEL`'s); neither the level you were on nor your position is saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
@@ -800,7 +819,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   saved, a breakthrough growing the vitals, not into a whole core), in a fight and kept after a win, and in the arena
   after a win with the fight following; free points (placed while any are left, taken back only by a campfire, not in
   a battle); HP regen on the overworld and in `state`; a death losing the fill or a step (leaving mid-fight too); the
-  admin's step up and down. Every enemy dropping its own essence (`enemies/index.test.ts`), and a spar costing the core
+  admin's step up and down. Every enemy dropping its own essence, treasure by its tier's band and a unique only while
+  free (`enemies/index.test.ts`); a unique thing's holder, letting go, changing hands, the 7 days, and taking it out
+  of a save that doesn't hold it (`game/uniques.test.ts`); and a spar costing the core
   nothing (`duels.test.ts`). Duels: a challenge's reach, one per player, declining, expiring and being called off;
   the duel's fight (one step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving.
   Joining a battle:
@@ -1085,8 +1106,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   character/       character.ts (Character = name + gender + look; LOOK_OPTIONS: every look part's option ids,
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
-  items/           items.ts (ITEMS: name, description, size in cells, stack size, weight, and its components:
-                   consumable, wearable; each monster's essence, absorbed in ABSORB_TIME; ItemCounts = item id ->
+  items/           items.ts (ITEMS: name, rarity, description, size in cells, stack size, weight, and its
+                   components: consumable, wearable, inscription (a sigil's); each monster's essence, absorbed in
+                   ABSORB_TIME; RARITIES, UNIQUE_ITEMS; ItemCounts = item id ->
                    count), bag.ts (Bag: a grid of placed stacks;
                    fits, addItem, moveItem, takeOne, takeItems, bagWeight, bagProblems: the rules both sides fit
                    items by),
@@ -1134,8 +1156,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                      environment (loads the repo's .env if there is one; parseDevPing, parsePingMs, parseServerName,
                      parseMaxPlayers, parseBehindCloudflare)
     core/            The game. No sockets, HTTP, SQL or env.
-      ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave), AccountStore,
-                       PlayerLink
+      ports.ts         What core needs from outside, as interfaces: PlayerStore (+ PlayerSave, UniqueHold),
+                       AccountStore, PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over, a new player refused past maxPlayers; count; isOn (a left or replaced
                        session's late messages are dropped); one Overworld per level, made when its first player
@@ -1170,6 +1192,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        placeFor, talkTo, takeQuest, handOver, shopInView),
                        shop.ts (shopView: a shop's stock and prices for a player; openShop, buy, sell, exchange:
                        paying, change and what doesn't fit going to the cloth),
+                       uniques.ts (Uniques: who holds each unique thing, whether it's free, taking it out of a
+                       save that doesn't hold it; UNIQUE_HOLD_MS),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
@@ -1214,8 +1238,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        kobold-swordsman.ts, kobold-greatsword.ts (the swordsman with a greatsword), goblin-warlock.ts,
                        training-dummy.ts
                        and bram.ts (the training yard's, fought only as spars: no drops, no overworld actor) (its
-                       EnemyDef, its drops, its overworld actor's behavior parts). index.ts (ENEMIES, one line each;
-                       rollDrops)
+                       EnemyDef, its drops and treasure chances, its overworld actor's behavior parts). index.ts
+                       (ENEMIES, one line each; TREASURE_TIERS, TREASURE; rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
                        chronicler.ts, priest.ts, foreman.ts, scavenger.ts, herbalist.ts, burner.ts, king.ts,
@@ -1369,7 +1393,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        dragged ghost and the tooltip;
                        BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
-                       states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
+                       states as plain data, itemInfo.ts the tooltip's lines and the rarity colours' classes,
+                       grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
                        box: it measures itself and shrinks to fit the view), layout.ts (fitPanel: where a side panel
                        goes and how far it shrinks to stay on screen and clear of the status block and the core card;
@@ -1782,7 +1807,10 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `WIDTH_PX` in `client/src/ui/hud/character/CharacterPanel.tsx` |
 | How the core's sphere looks: each realm's colours and light, the light's size and brightness by step, its breath, when sparks start, a breakthrough's timing, how long the card shows it | `REALM_LOOKS`, `LIGHT`, `SPARKS_FROM` in `client/src/gfx/core/light.ts`; `BREAKTHROUGH`, `BREATH_TIME` in `client/src/gfx/core/sphere.ts`; `BREAKTHROUGH_SHOWN_MS` in `client/src/ui/hud/CoreCard.tsx` |
 | Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
-| Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
+| Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, treasure chances, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |
+| Which items each treasure tier drops | `TREASURE` in `server/src/core/enemies/index.ts` |
+| Each item's rarity; the rarity colours | `shared/src/items/items.ts`; `--color-rarity-*` in `client/src/ui/styles.css` |
+| How long a unique thing's holder may be away before it's free again | `UNIQUE_HOLD_MS` in `server/src/core/game/uniques.ts` |
 | Items: size, stack size, weight; what using one does and how long it takes (overworld and fight alike), the slot they're worn in | `shared/src/items/items.ts` (`consumable`, `wearable`) |
 | Bag size | `shared/src/items/bag.ts` (`STARTER_BAG`) |
 | Piles: how long one lies, how wide it's laid out; its size on screen | `server/src/core/overworld/piles.ts` (`PILE_LIFETIME_MS`, `PILE_COLS`); `PILE_SIZE_TILES` in `client/src/visuals/overworld/walker.ts` |

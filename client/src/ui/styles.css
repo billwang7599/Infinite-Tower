@@ -22,6 +22,12 @@
   --color-ink: #23252e;
   --color-gilt: #a8822a;
   --color-ink-error: #b4302a;
+  --color-rarity-common: #e6e1d6;
+  --color-rarity-uncommon: #6fcf6a;
+  --color-rarity-rare: #5aa0ff;
+  --color-rarity-epic: #b47cff;
+  --color-rarity-legendary: #f0a83c;
+  --color-rarity-unique: #ff5148;
 
   --text-shadow-hud: 0 2px 4px #000a;
   --text-shadow-title: 0 0 28px #e8c45a66, 0 4px 14px #000d;

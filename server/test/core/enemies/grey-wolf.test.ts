@@ -90,8 +90,8 @@ describe("the grey wolf", () => {
   });
 
   test("drops its essence always, and a pelt and a fang on a low roll", () => {
-    assert.deepEqual(rollDrops("grey-wolf", () => 0.999), { "grey-wolf-essence": 1 });
-    const loot = rollDrops("grey-wolf", () => 0);
+    assert.deepEqual(rollDrops("grey-wolf", () => 0.999, () => false), { "grey-wolf-essence": 1 });
+    const loot = rollDrops("grey-wolf", () => 0, () => false);
     assert.ok((loot["wolf-pelt"] ?? 0) >= 1 && (loot["wolf-fang"] ?? 0) >= 1);
   });
 

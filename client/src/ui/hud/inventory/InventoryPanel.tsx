@@ -26,7 +26,7 @@ import {
 import { EquipmentSlots } from "./EquipmentSlots.js";
 import { ShopColumn } from "./ShopColumn.js";
 import { CELL, INVENTORY_GAP_PX } from "./grid.js";
-import { effectsText, formatWeight, itemInfo } from "./itemInfo.js";
+import { effectsText, formatWeight, itemInfo, RARITY_TEXT } from "./itemInfo.js";
 
 interface PanelProps {
   gear: Gear;
@@ -339,7 +339,7 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
         <ItemPicture item={stack.item} turned={false} maxPx={DETAILS_PICTURE_PX - 8} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-title text-base tracking-[0.04em] text-victory">
+        <div className={`font-title text-base tracking-[0.04em] ${RARITY_TEXT[def.rarity]}`}>
           {def.name} {stack.count > 1 && <span className="text-white tabular-nums">×{stack.count}</span>}
         </div>
         <p className="mt-0.5 text-xs text-white/60">

@@ -37,6 +37,7 @@ export const WILD_BOAR: Enemy = {
     { item: "boar-hide", chance: 0.35, count: 1 },
     { item: "boar-tusk", chance: 0.25, count: 1 },
   ],
+  treasure: { uncommon: 0.03, rare: 0.008, epic: 0.002, legendary: 0.0005, unique: 0.0001 },
   overworld: () => [
     wander({ speed: 1.6 }),
     chaseOnSight({ range: 4.5, noticeTime: 0.5, speed: 3.4 }),

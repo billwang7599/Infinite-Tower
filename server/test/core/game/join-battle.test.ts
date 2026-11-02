@@ -144,7 +144,8 @@ describe("a battle fought together", () => {
     const { drops } = host.battle!;
     assert.equal(guest.battle!.drops, drops);
     assert.equal(drops.piles.length, 1);
-    assert.deepEqual(bagCounts(host.overworld.pileItems(drops.piles[0]!.pile)!), rollDrops("wild-boar", () => 0));
+    const boar = rollDrops("wild-boar", () => 0, () => false);
+    assert.deepEqual(bagCounts(host.overworld.pileItems(drops.piles[0]!.pile)!), boar);
   });
 
   test("won: the leftovers land on the overworld only when the last winner leaves the arena", async (t) => {

@@ -17,5 +17,6 @@ export const TRAINING_DUMMY: Enemy = {
     dummy: true,
   },
   drops: [],
+  treasure: {},
   overworld: () => [],
 };
