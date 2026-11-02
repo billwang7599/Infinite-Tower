@@ -1,4 +1,4 @@
-import { el } from "../dom.js";
+import { el, token } from "../dom.js";
 import type { Bitmap } from "./bitmap.js";
 import { composite } from "./layers.js";
 import type { Editor } from "./state.js";
@@ -19,7 +19,7 @@ export function toCanvas(b: Bitmap): HTMLCanvasElement {
 }
 
 export class CanvasView {
-  readonly canvas = el("canvas", "background:#15161e;border:1px solid #2c2e40;cursor:crosshair;touch-action:none");
+  readonly canvas = el("canvas", "absolute inset-0 size-full touch-none pixelated");
   zoom = 8;
   grid = true;
   onion = true;
@@ -53,6 +53,14 @@ export class CanvasView {
     this.ed.changed();
   }
 
+  resize(width: number, height: number): void {
+    this.panX += (width - this.canvas.width) / 2;
+    this.panY += (height - this.canvas.height) / 2;
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.ed.changed(false);
+  }
+
   zoomBy(steps: number, atX = this.canvas.width / 2, atY = this.canvas.height / 2): void {
     const i = Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(this.zoom) + steps));
     const zoom = ZOOMS[i]!;
@@ -69,23 +77,29 @@ export class CanvasView {
     this.canvas.style.cursor = this.panning() ? "grab" : "crosshair";
     g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     g.imageSmoothingEnabled = false;
+    g.shadowColor = "rgba(0,0,0,0.55)";
+    g.shadowBlur = 24;
+    g.fillStyle = token("color-checker-a");
+    g.fillRect(x0, y0, width * z, height * z);
+    g.shadowColor = "transparent";
+    const checker = [token("color-checker-a"), token("color-checker-b")];
     const cell = Math.max(z, 8);
     for (let y = 0; y < height * z; y += cell) {
       for (let x = 0; x < width * z; x += cell) {
-        g.fillStyle = ((x + y) / cell) % 2 === 0 ? "#2a2b36" : "#33343f";
+        g.fillStyle = checker[((x + y) / cell) % 2]!;
         g.fillRect(x0 + x, y0 + y, Math.min(cell, width * z - x), Math.min(cell, height * z - y));
       }
     }
     if (this.onion && this.ed.mode === "animation") this.drawOnion(g, x0, y0, z);
     g.drawImage(toCanvas(composite(this.ed.doc)), x0, y0, width * z, height * z);
     if (this.grid && z >= GRID_FROM_ZOOM) this.drawGrid(g, x0, y0, z);
-    g.strokeStyle = "#4a4e66";
+    g.strokeStyle = token("color-ink-600");
     g.lineWidth = 1;
     g.strokeRect(x0 - 0.5, y0 - 0.5, width * z + 1, height * z + 1);
     const sel = this.ed.selection;
     if (sel) {
       g.setLineDash([4, 3]);
-      g.strokeStyle = "#f0d070";
+      g.strokeStyle = token("color-selection");
       g.strokeRect(x0 + sel.x * z + 0.5, y0 + sel.y * z + 0.5, sel.w * z - 1, sel.h * z - 1);
       g.setLineDash([]);
     }
