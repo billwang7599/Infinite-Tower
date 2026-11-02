@@ -4,8 +4,8 @@ export const PRIEST: Npc = {
   stops: [
     {
       level: "kingdom",
-      at: { x: -10.5, z: 5.5 },
-      heading: "east",
+      at: { x: -9.5, z: -6.5 },
+      heading: "south",
       talk: [
         {
           when: { flag: "hollis-to-mistwood" },

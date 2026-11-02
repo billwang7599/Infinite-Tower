@@ -13,6 +13,8 @@ import { heraldLook } from "./herald/look.js";
 import { herbalistLook } from "./herbalist/look.js";
 import { hollisLook } from "./hollis/look.js";
 import { ilseLook } from "./ilse/look.js";
+import { innkeeperLook } from "./innkeeper/look.js";
+import { kingLook } from "./king/look.js";
 import { marenLook } from "./maren/look.js";
 import { priestLook } from "./priest/look.js";
 import { scavengerLook } from "./scavenger/look.js";
@@ -46,4 +48,6 @@ export const NPC_LOOKS: Record<NpcId, NpcLook> = {
   scavenger: scavengerLook,
   herbalist: herbalistLook,
   burner: burnerLook,
+  king: kingLook,
+  innkeeper: innkeeperLook,
 };

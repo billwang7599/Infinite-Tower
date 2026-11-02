@@ -7,7 +7,7 @@ import {
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { getArena, getLevel, LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
+import { getArena, getLevel, LEVELS, loginLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import type { ExitDef, LevelDef } from "../../../src/core/world/level.js";
 
 const centersOf = (layout: LevelMap) => {
@@ -61,10 +61,12 @@ for (const level of Object.values(LEVELS) as LevelDef[]) {
       }
     });
 
-    test("its start is a summoning pad: you wake standing on it", () => {
+    test("where it wakes you is a summoning pad: you wake standing on it", () => {
+      const wake = getLevel(loginLevel(layout.id));
+      assert.equal(loginLevel(wake.layout.id), wake.layout.id);
       for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
-        const at = { x: level.spawn.x + sx * WALKER_RADIUS, z: level.spawn.z + sz * WALKER_RADIUS };
-        assert.equal(tileAt(layout, at.x, at.z), "pad");
+        const at = { x: wake.spawn.x + sx * WALKER_RADIUS, z: wake.spawn.z + sz * WALKER_RADIUS };
+        assert.equal(tileAt(wake.layout, at.x, at.z), "pad");
       }
     });
 

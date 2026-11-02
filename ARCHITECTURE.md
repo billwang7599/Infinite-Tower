@@ -695,12 +695,13 @@ moment it's decided, or lost by leaving it), rest, item use, quest progress and 
 and within a second of a settings change, a move in the bag, a trade or a page written. The shops where the first,
 cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them).
-The level is saved (`level`), and you come back to it at its start; position isn't saved. The core is (`core_steps`,
+The level is saved (`level`), and you come back to it at its start (`loginLevel`: a level with no pad names where you
+wake instead, its `wakeIn`; the Market Ward the Castle Ward); position isn't saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
-A new character starts on `START_LEVEL`, the kingdom (Highmere), and a death saves it as your level (the session's
-`wakeOnPad`; you cross to it as you leave the arena); a save made before levels were saved was moved to the
-Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing was moved. Saves from before
-the core start at Early Yan, empty (`0016_core`).
+A new character starts on `START_LEVEL`, Highmere's Castle Ward (id `kingdom`), and a death saves it as your level (the
+session's `wakeOnPad`; you cross to it as you leave the arena); a save made before levels were saved was moved to the
+Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing was moved. Saves from before the
+core start at Early Yan, empty (`0016_core`).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -812,7 +813,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   unconditional, every stop on a level) with something to say there (its last talk unconditional), its traces with
   lines and none at its first stop, all clear of solid tiles, and one by the start level's fire for a new player.
   Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
-  the capital's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
+  Highmere's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
   change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
   and only what a shop deals in bought, coins changed a tier at a time at any shop, and the
   shop closing with the bag or on walking. Coins (`shared/test/items/coins.test.ts`): their worth, prices written out,
@@ -837,9 +838,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   each past the Hollow, offering a new character a side chain that waits on nothing else, each chain played step by
   step through the session (gather, hand over, reach, win, talk: each done, its reward and lore told), their lines
   for each talk step and after, and lore no other quest reveals. Highmere's townsfolk (`townsfolk.test.ts`): each in
-  town on open ground, apart from the rest, with a word for a new avatar; their side quests paying in coin and lore of
-  their own, played through the session the same way (across levels where a step leads), the captain's waiting on
-  Bram's yard, and the priest's lines following the story. The Old Quarry's folk (`quarry-folk.test.ts`): each in the
+  a ward on open ground, apart from the rest, with a word for a new avatar; their side quests paying in coin and lore of
+  their own, played through the session the same way (across levels where a step leads), the captain's and Odo's
+  waiting on Bram's yard, nobody but the herald in sight of the platform, and the priest's lines following the story.
+  The Old Quarry's folk (`quarry-folk.test.ts`): each in the
   quarry on open ground, apart from the pad, the fire and the enemies; the foreman's pool step round the Kobold
   Greatsword; the scavenger's second quest waiting on her first; both chains played through the session, paying in coin
   with lore of their own. The Mistwood's folk (`mistwood-folk.test.ts`): each in the wood on open ground, apart from
@@ -865,7 +867,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   fell, not openable mid-fight, then taken from after the win, the arena's piles landing as one, everyone down landing
   it all, and a duel dropping nothing. The training yard (`training.test.ts`): the herald sending a new avatar to
   Bram, the old stick given once (at once when the quest is taken from him), the dummy and spar fights started only
-  from his talk, unjoinable, costing nothing won or lost, and moving the quest only when won.
+  from his talk, unjoinable, costing nothing won or lost, and moving the quest only when won. Highmere
+  (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King Osric (naming the Empire, offering
+  nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with no pad (a player saved there wakes
+  on the platform), at Highmere's prices, with the keepers
+  and the Gilded Door's keeper (who only talks), between the castle and the Grass Field.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -1177,11 +1183,16 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
-                       layout (a LevelMap: no NPCs), spawn point, spawns (each may name its own arenaId), encounter
+                       layout (a LevelMap: no NPCs), spawn point, wakeIn (a level with no pad: where you log in
+                       instead), spawns (each may name its own arenaId), encounter
                        table, arenaId, duelArenaId, exits (ExitDef: edge tiles that take you to another level, and
-                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the kingdom,
-                       where new characters and the dead wake), levelOrStart, getLevel, getArena); kingdom.ts (Highmere,
-                       on no floor: the summoning hall, the courtyard, the market and the gate to the Grass Field)
+                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the Castle
+                       Ward, where new characters and the dead wake), loginLevel, getLevel, getArena)
+        highmere/        Highmere's wards, on no floor, a file each: castle-ward.ts (id `kingdom`: the Hall of
+                         Arrival and its platform, the throne room, the barracks and training yard, the courtyard, the
+                         kitchen, the garden and the castle gate), market-ward.ts (the market square and its stalls,
+                         the Gilded Door, the houses, the South Gate to the Grass Field, and the walled-up gaps
+                         where Temple Hill's and the Lower Town's gates will open)
         floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
                          (tile map, campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, grey-wolf.ts, bog-lurker.ts,
@@ -1192,7 +1203,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
-                       chronicler.ts, priest.ts, foreman.ts, scavenger.ts, herbalist.ts, burner.ts (its
+                       chronicler.ts, priest.ts, foreman.ts, scavenger.ts, herbalist.ts, burner.ts, king.ts,
+                       innkeeper.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
       content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
@@ -1475,7 +1487,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        one line each; byEnemy)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
                        apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
-                       scavenger/, herbalist/, burner/, each with look.ts
+                       scavenger/, herbalist/, burner/, king/, innkeeper/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -1567,10 +1579,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
         mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds), scenery.ts (its
                          surroundings; no Babylon: tested)
-        kingdom/         tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES, the town's tiles
-                         for the other looks to borrow), scenery.ts (castle walls and the keep behind the hall, house
-                         blocks with plaster sides and tiled roofs, the stalls (a counter ledge with an awning, the forge
-                         a hearth ledge) with their goods on top, the town's rooftops round the map)
+        kingdom/         Highmere's wards. tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES,
+                         the town's tiles for the other looks to borrow), scenery.ts (castle walls and the keep behind
+                         the hall, house blocks with plaster sides and tiled roofs, the stalls (a counter ledge with an
+                         awning, the forge a hearth ledge) with their goods on top, round the map the castle or the
+                         town's rooftops by ward (WARDS), and the training yard's dummies)
         quarry/          tiles.ts (QUARRY_TILES: pale dust with bedrock slabs, rails, dry scrub, rubble, a plank hut;
                          QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow), scenery.ts
                          (the cut stone as terraces stepping up toward the edge and on past the map; no Babylon: tested)
@@ -1608,12 +1621,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   `net.on("<type>", ...)` where it's used (the mode that owns it, or `client/src/game/game.ts`).
-- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts` (or in `world/` for one
-  on no floor, as the kingdom), exporting its `LevelDef` (its `floor` if any, an encounter table if its grass fights,
-  and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
+- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts` (or in `world/highmere/`
+  for one of Highmere's wards, on no floor), exporting its `LevelDef` (its `floor` if any, an encounter table if its
+  grass fights, and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
   (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the start, the
   campfires, the NPCs and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable, and the
-  start on summoning pad tiles (`@`). A way to another level is an `ExitDef` on each side (an open stretch of the map's
+  start (or `wakeIn`'s) on pads (`@`). A way to another level is an `ExitDef` on each side (an open stretch of the map's
   edge, and where you land on the other); the scenery cuts a gap in front of it. For a new look, a theme in
   `LevelLayout["theme"]` (`shared/src/world/layout.ts`), a folder named by it in `client/src/visuals/levels/` (its tile
   looks and 3D scenery) and its line in `LEVEL_LOOKS`.

@@ -4,8 +4,8 @@ export const LORE = {
   "soft-as-dough": {
     title: "Soft as dough",
     text: "Avatars come through Highmere's door with empty hands and bodies that have never held a blade. Bram has "
-      + "kept the castle's yard since before the kingdom thought to pay him for it, putting a stick in each pair of "
-      + "hands and knocking the worst habits out of them. He says the kingdom wants its avatars armed and grateful, "
+      + "kept the castle's yard since before the crown thought to pay him for it, putting a stick in each pair of "
+      + "hands and knocking the worst habits out of them. He says the crown wants its avatars armed and grateful, "
       + "and that he only cares about the first part.",
   },
   "the-seed": {
@@ -93,10 +93,10 @@ export const LORE = {
   },
   "highmere-claim": {
     title: "Highmere's claim",
-    text: "Highmere holds that whatever comes through its door is its own: the platform is the oldest pad, the kingdom "
+    text: "Highmere holds that whatever comes through its door is its own: the platform is the oldest pad, the city "
       + "grew round it, and so the crown counts every avatar who wakes there as one of its people, owed a blade and "
-      + "owing a debt. Captain Edda keeps the town gate and doesn't argue the law. She only says that a soul the "
-      + "kingdom can't keep dead is a soldier it can't keep, either.",
+      + "owing a debt. Captain Edda keeps the South Gate and doesn't argue the law. She only says that a soul the "
+      + "crown can't keep dead is a soldier it can't keep, either.",
   },
   "haldis-fires": {
     title: "Haldis's fires",
@@ -115,9 +115,9 @@ export const LORE = {
   "arrivals-roll": {
     title: "The roll of arrivals",
     text: "Highmere writes down every avatar who wakes on its platform: a name, a day, a line on the look of them. "
-      + "Odo keeps the roll in the Hall of Arrival, and the crown counts it the way it counts its soldiers. Its first "
-      + "leaves are older than the castle, and hold no names at all, only tallies: someone counted arrivals on that "
-      + "stone before there was a Highmere to claim them.",
+      + "Odo keeps the roll in an archive off the Hall of Arrival, and the crown counts it the way it counts its "
+      + "soldiers. Its first leaves are older than the castle, and hold no names at all, only tallies: someone "
+      + "counted arrivals on that stone before there was a Highmere to claim them.",
   },
   "quarry-pool": {
     title: "The pool in the pit",

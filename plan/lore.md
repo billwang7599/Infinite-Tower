@@ -36,6 +36,20 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
   (a hint at the Maker, no more). In the Mistwood, Sorrel, Calyx's herbalist, holds to the Harvest too, and counts
   the wood growing a little thinner every year (the starving, glimpsed, not explained), and the mist off its mire is
   loose soul rising.
+- **The Empire of Aurevaine** (the user picked a second city and "something extravagant"; the names are OptChat's):
+  Highmere is the second city of the Most Radiant and Thrice-Crowned Empire of Aurevaine ("Aurevaine", "the Empire"),
+  its oldest and most sacred: the Door City, where the Maker's door first opened. The Emperor, His Imperial Radiance
+  Valerian Aurelius IX, holds court far away in Seraphel, the Gilded Throne, a newer and richer capital. Osric of House
+  Vantmere, Vassal-King of Highmere ("His Majesty"), holds the city for him. Seraphel wants a firmer hand on the door
+  and more of what comes through it sent its way; Osric writes back politely. In play it's a hint only (the king's
+  welcome, riders from Seraphel talked about at the Gilded Door), no plot yet. Highmere is built as wards, each its own
+  map: the Castle Ward and the Market Ward now, Temple Hill and the Lower Town later.
+- **Names** (the user's rule) pass down the medieval way. City-born commoners (Seraphel, Highmere) have inherited
+  surnames, mostly old trades or places, that no longer fit them: Fennick Cooper changes money, and Hesper Wainwright
+  keeps the Gilded Door. Country folk (the quarry, the Mistwood, farms) have bynames that describe them and aren't
+  inherited yet: "Harl of the Pit", "Sorrel by-the-Fen". Nobles take a house name or "of <seat>": Osric of House
+  Vantmere, King of Highmere. The imperial dynasty is the Aurelian line. People use a short name where they really
+  would. So far only the NPCs added with Highmere's wards have full names.
 - **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
 - What people say about monsters, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
@@ -129,12 +143,13 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   the rift loses. The gods didn't make it and can't close it. Out of the fiction, the door is the game's netcode and
   servers: the way players get in.
 - **Summoning pads.** Where the door opens, avatars arrive on large pedestals that harness its energy. Drafted by
-  OptChat: the start of each level (where you log in) is one. Built: every level's start is drawn as a pad. The first
-  and largest is the platform in Highmere's hall, where the Maker's door first opened: the kingdom grew round it, its
-  castle round the hall, to guard and use the stream of avatars, and its rulers hold that what comes through is
-  theirs by right. Every avatar first wakes there, and wakes there again after dying; the court herald greets them.
-  In play, Ilse finds no thread on
-  Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at the Maker, no more.
+  OptChat: the start of each level (where you log in) is one. Built: every level you can wake in starts on a pad, but
+  Highmere has only its platform (a player saved in the Market Ward wakes there). The first
+  and largest is the platform in Highmere's hall, where the Maker's door first opened: the city grew round it, its
+  castle round the hall, to guard and use the stream of avatars, and its rulers hold that what comes through is theirs
+  by right. Every avatar first wakes there, and wakes there again after dying; the court herald greets them. In play,
+  Ilse finds no thread on Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at
+  the Maker, no more.
 - **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
   the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence
   all at once. That is the game shutting down when its players leave. In play the world never visibly withers.
@@ -156,6 +171,7 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
 - Whether the soul cycle shows in play later (a monster that kills you carries your lost fill; places where many
   avatars die grow stronger monsters; bosses born from pools). Mechanics, so asked before anything is built.
 - Which factions there are, and which philosophy each follows (later, as the world grows).
+- What Seraphel's firmer hand on the door means in play, and what Temple Hill and the Lower Town hold.
 - Backing a god in play: when the player chooses, what switching or going back to neutral costs, and what backing
   one gives. These are mechanics, so they're asked before anything is built.
 - When and why a god walks the world (a late boss, an event?).

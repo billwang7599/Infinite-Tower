@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind, type Vec2 } from "@infinite-tower/shared";
 import {
   groundY, SCENERY_REACH_TILES as REACH, tileBlocks, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
@@ -8,9 +8,11 @@ const WALL_Y = 3;
 const BULK_TILES = 3;
 const BULK_Y = 6;
 const HOUSE_Y = { low: 2, high: 3 };
-/** South of this the walls are the town's; north of it, round the castle, the land is the castle's. */
-const CASTLE_SOUTH_Z = -1;
-const DUMMIES = [{ x: -13.5, z: 12.5 }, { x: -12.5, z: 13.5 }];
+/** By level: the share of each side, from the north, that is castle rather than rooftops; the yard's dummies. */
+const WARDS: Record<string, { castleShare: number; dummies: readonly Vec2[] }> = {
+  kingdom: { castleShare: 1, dummies: [{ x: -17.5, z: 10.5 }, { x: -16.5, z: 11.5 }] },
+  "market-ward": { castleShare: 0, dummies: [] },
+};
 const COUNTER_Y = 0.55;
 const AWNING_Y = 1.95;
 const HEARTH_Y = 0.8;
@@ -27,6 +29,7 @@ export function kingdomScenery(level: LevelLayout): Scenery {
   const rand = seededRandom(17);
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level);
   const W = L + REACH, far = D + REACH;
+  const ward = WARDS[level.id] ?? WARDS["market-ward"]!, castleSouthZ = D - 2 * D * ward.castleShare;
   const ledges: Ledge[] = [{ rect: { x: -L, z: -D, w: L * 2, h: D * 2 }, topY: 0 }];
 
   for (const rect of blocks(level, "castleWall")) {
@@ -45,16 +48,16 @@ export function kingdomScenery(level: LevelLayout): Scenery {
   }
 
   ledges.push(
-    { rect: { x: -W, z: CASTLE_SOUTH_Z, w: W - L, h: D - CASTLE_SOUTH_Z }, topY: BULK_Y, look: "castle" },
-    { rect: { x: L, z: CASTLE_SOUTH_Z, w: W - L, h: D - CASTLE_SOUTH_Z }, topY: BULK_Y, look: "castle" },
+    { rect: { x: -W, z: castleSouthZ, w: W - L, h: D - castleSouthZ }, topY: BULK_Y, look: "castle" },
+    { rect: { x: L, z: castleSouthZ, w: W - L, h: D - castleSouthZ }, topY: BULK_Y, look: "castle" },
     { rect: { x: -W, z: D, w: W * 2, h: REACH }, topY: BULK_Y, look: "castle" },
     ...castle(D),
     { rect: { x: -W, z: -far, w: W * 2, h: REACH }, topY: 0 },
   );
   for (const side of [-1, 1]) {
     const x0 = side < 0 ? -W : L;
-    ledges.push({ rect: { x: x0, z: -D, w: REACH, h: D + CASTLE_SOUTH_Z }, topY: 0 });
-    for (let z = -D + 1; z < CASTLE_SOUTH_Z - 3; z += 5) {
+    ledges.push({ rect: { x: x0, z: -D, w: REACH, h: D + castleSouthZ }, topY: 0 });
+    for (let z = -D + 1; z < castleSouthZ - 3; z += 5) {
       for (let x = x0 + 1; x < x0 + REACH - 3; x += 5) {
         const w = 3 + Math.floor(rand() * 2), h = 3 + Math.floor(rand() * 2);
         ledges.push({ rect: { x, z, w, h }, topY: rand() < 0.5 ? HOUSE_Y.low : HOUSE_Y.high, look: "house" });
@@ -69,7 +72,7 @@ export function kingdomScenery(level: LevelLayout): Scenery {
     const x = (rand() * 2 - 1) * W, z = -D - 3 - rand() * (REACH - 3);
     add(rand() < 0.5 ? "bush" : "tree", x, z);
   }
-  for (const { x, z } of DUMMIES) add("dummy", x, z);
+  for (const { x, z } of ward.dummies) add("dummy", x, z);
   for (const { kind, goods } of STALLS) {
     for (const rect of blocks(level, kind)) {
       for (let x = rect.x + 0.5; x < rect.x + rect.w; x++) for (let z = rect.z + 0.5; z < rect.z + rect.h; z++) add(goods, x, z);

@@ -3,9 +3,9 @@ import type { Npc } from "./index.js";
 export const TAMSIN: Npc = {
   stops: [
     {
-      level: "kingdom",
-      at: { x: -14.5, z: -17.5 },
-      heading: "east",
+      level: "market-ward",
+      at: { x: -18.5, z: -15.5 },
+      heading: "south",
       talk: [
         {
           when: { done: "burner-rook" },

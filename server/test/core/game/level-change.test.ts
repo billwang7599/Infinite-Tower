@@ -69,10 +69,10 @@ describe("walking into an exit", () => {
 
 describe("the saved level", () => {
   test("is where you come back, at its start", () => {
-    const { session, link } = startSession({ saved: { level: OUT.to } });
-    assert.equal(link.last("level").level.id, OUT.to);
-    assert.deepEqual(link.last("level").me, getLevel(OUT.to).spawn);
-    assert.equal(session.overworld.level.layout.id, OUT.to);
+    const { session, link } = startSession({ saved: { level: "mistwood" } });
+    assert.equal(link.last("level").level.id, "mistwood");
+    assert.deepEqual(link.last("level").me, getLevel("mistwood").spawn);
+    assert.equal(session.overworld.level.layout.id, "mistwood");
   });
 
   test("none yet, or one that's gone, is the start level", () => {

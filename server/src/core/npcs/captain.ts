@@ -3,8 +3,8 @@ import type { Npc } from "./index.js";
 export const CAPTAIN: Npc = {
   stops: [
     {
-      level: "kingdom",
-      at: { x: -3.5, z: -20.5 },
+      level: "market-ward",
+      at: { x: -2.5, z: -21.5 },
       heading: "east",
       talk: [
         {

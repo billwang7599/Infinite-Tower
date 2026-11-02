@@ -7,7 +7,7 @@ import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { getLevel } from "../../../src/core/world/index.js";
-import { doStep, goTo, linesFor, offeredQuest, startSession, talkTo } from "./helpers.js";
+import { doStep, goTo, levelOf, linesFor, offeredQuest, startIn, startSession, talkTo } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -108,7 +108,7 @@ describe("the Mistwood's folk", () => {
     const story: Story = {
       ...sonFound(), quests: { ...sonFound().quests, "burner-rook": { step: null, kills: 0 } },
     };
-    const { session, link } = startSession({ saved: { level: "kingdom", story } });
+    const { session, link } = startIn(levelOf(story, "tamsin"), { saved: { story } });
     assert.deepEqual(talkTo(session, link, "tamsin").lines, linesFor(story, "tamsin", { done: "burner-rook" }));
   });
 });

@@ -28,8 +28,10 @@ export interface ExitDef {
 
 export interface LevelDef {
   layout: LevelMap;
-  /** Where you appear when you enter, and wake up after losing a fight. */
+  /** Where you appear when you enter other than through an exit. */
   spawn: Vec2;
+  /** It has no summoning pad: a player saved here logs in at that level's start. */
+  wakeIn?: string;
   arenaId: string;
   duelArenaId: string;
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
