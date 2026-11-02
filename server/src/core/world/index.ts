@@ -1,5 +1,5 @@
 import type { ArenaDef } from "@infinite-tower/shared";
-import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA } from "./floors/1/arenas.js";
+import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, QUARRY_ARENA, WARLOCK_MIRE_ARENA } from "./floors/1/arenas.js";
 import { GRASS_FIELD } from "./floors/1/grass-field.js";
 import { MISTWOOD } from "./floors/1/mistwood.js";
 import { OLD_QUARRY } from "./floors/1/old-quarry.js";
@@ -12,7 +12,7 @@ export const LEVELS: Readonly<Record<string, LevelDef>> = Object.fromEntries(
 );
 
 export const ARENAS: Record<string, ArenaDef> = Object.fromEntries(
-  [GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA].map((a) => [a.id, a]),
+  [GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, WARLOCK_MIRE_ARENA, QUARRY_ARENA].map((a) => [a.id, a]),
 );
 
 export const START_LEVEL = KINGDOM.layout.id;

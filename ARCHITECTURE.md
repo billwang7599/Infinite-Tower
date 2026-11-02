@@ -1588,6 +1588,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         forest-clearing/ the boar's and tall grass's: moss, a dirt floor, standing stones, pines, ferns, logs
         stone-ruins/     the Kobolds': flagstones, broken columns and walls, two arches, far ruins, cypresses
         mire/            the Goblin Warlock's: peat, stumps, glowing mushrooms, pools, reeds, dead trees
+        quarry/          the Old Quarry's: pale cut slabs, stacked blocks, terraced faces, a crane, a cart on rails,
+                         rubble, dry scrub, two lanterns, drifting dust
 ```
 
 ## Adding things

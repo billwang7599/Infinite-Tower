@@ -8,6 +8,7 @@ export const TRACKS = {
   title: { volume: 0.5 },
   "grass-field": { volume: 0.45 },
   mistwood: { volume: 0.45 },
+  quarry: { volume: 0.45 },
   battle: { volume: 0.55 },
   "battle-mire": { volume: 0.55 },
 } satisfies Record<string, { volume: number }>;
@@ -18,8 +19,8 @@ interface Where { title: TrackName; overworld: Record<LevelTheme, TrackName>; ba
 
 export const MUSIC: Where = {
   title: "title",
-  overworld: { "grass-field": "grass-field", mistwood: "mistwood", kingdom: "title", quarry: "mistwood" },
-  battle: { "forest-clearing": "battle", "stone-ruins": "battle", mire: "battle-mire" },
+  overworld: { "grass-field": "grass-field", mistwood: "mistwood", kingdom: "title", quarry: "quarry" },
+  battle: { "forest-clearing": "battle", "stone-ruins": "battle", mire: "battle-mire", quarry: "battle" },
 };
 
 export interface Scene { mode: Mode | null; level: LevelTheme | null; arena: ArenaLook | null; decided: boolean }

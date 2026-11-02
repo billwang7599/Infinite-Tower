@@ -39,7 +39,7 @@ What's built so far:
   stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
   the camera a quarter turn (walking follows it), up and down tilt it. Everyone on a level shares it: you see other
   players (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone
-  until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your own, everything working
+  until it respawns. T challenges a player next to you to a duel: a spar in an arena of your own, everything working
   player against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins
   their battle, up to 4 to a fight, each with their own result and drops. Natives live along the way: the herald, Bram,
   the three keepers and five townsfolk in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the
@@ -65,8 +65,8 @@ What's built so far:
   HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
   it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, grey wolf, Kobold Swordsman or Goblin Warlock in a small round arena,
-  each with its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and
-  set, the shadows follow them, and glowing mushrooms light the mire.
+  each with its own look (a forest clearing, stone ruins, a mire, a quarry), lit by a 24-minute day: the sun and moon
+  rise and set, the shadows follow them, and glowing mushrooms light the mire.
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the wheel or K stabs,
   and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in

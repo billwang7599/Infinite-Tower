@@ -165,7 +165,7 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 ## Music
 
 Each track is a seamless loop: its ends crossfaded over 20 ms so the loop point doesn't click, evened out to the same
-loudness (-18 LUFS), and saved as stereo Ogg Vorbis at about 75 kbps. 4.4 MB in all; a track is only fetched when it's
+loudness (-18 LUFS), and saved as stereo Ogg Vorbis at about 75 kbps. 4.9 MB in all; a track is only fetched when it's
 about to play. `client/src/audio/music.ts` says where each plays (`MUSIC`) and how loud (`TRACKS`).
 
 A new track: a CC0 loop only, named `<track>.ogg`, its row in `TRACKS`, and its row here.
@@ -175,5 +175,6 @@ A new track: a CC0 loop only, named `<track>.ogg`, its row in `TRACKS`, and its 
 | `title.ogg` | the title, making a character | [JRPG Music Pack #4 (Calm)](https://opengameart.org/content/jrpg-pack-4-calm): `Calm6 - Innocence.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `grass-field.ogg` | the Grass Field | [Forest Whisper Theme](https://opengameart.org/content/forest-whisper-theme): `Forest Whisper.ogg` | Cleyton Kauffman | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `mistwood.ogg` | the Mistwood | [Dark Forest Theme](https://opengameart.org/content/dark-forest-theme): `GameMusic_ForestTheme_24_0.mp3` | cynicmusic | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| `battle.ogg` | fights in the forest clearing and the stone ruins | [JRPG Music Pack #5 (Action)](https://opengameart.org/content/jrpg-pack-5-action): `Action2 - Army Approaching.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `battle.ogg` | fights in the forest clearing, the stone ruins and the quarry | [JRPG Music Pack #5 (Action)](https://opengameart.org/content/jrpg-pack-5-action): `Action2 - Army Approaching.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `battle-mire.ogg` | fights in the mire | [JRPG Music Pack #5 (Action)](https://opengameart.org/content/jrpg-pack-5-action): `Action1 - Encounter With The Witches.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `quarry.ogg` | the Old Quarry | [JRPG Music Pack #1 (Exploration)](https://opengameart.org/content/jrpg-pack-1-exploration): `Exploration3 - Tha'el Mines.ogg` | Juhani Junkala (SubspaceAudio) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |

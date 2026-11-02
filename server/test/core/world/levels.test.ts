@@ -7,7 +7,7 @@ import {
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { getLevel, LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
+import { getArena, getLevel, LEVELS, START_LEVEL } from "../../../src/core/world/index.js";
 import type { ExitDef, LevelDef } from "../../../src/core/world/level.js";
 
 const centersOf = (layout: LevelMap) => {
@@ -190,5 +190,15 @@ describe("the Old Quarry", () => {
     const water = centersOf(QUARRY.layout).filter((t) => tileAt(QUARRY.layout, t.x, t.z) === "water");
     assert.ok(water.length > 0);
     for (const t of water) assert.ok(Math.abs(t.x) < halfWidth - 4 && Math.abs(t.z) < halfDepth - 4);
+  });
+
+  test("fights in a quarry arena of its own, duels and every spawn too, which no other level fights in", () => {
+    const arenas = [QUARRY.arenaId, QUARRY.duelArenaId, ...QUARRY.spawns.map((s) => s.arenaId ?? QUARRY.arenaId)];
+    for (const id of arenas) assert.equal(getArena(id).look, "quarry");
+    for (const level of Object.values(LEVELS).filter((l) => l !== QUARRY)) {
+      const looks = [level.arenaId, level.duelArenaId, ...level.spawns.map((s) => s.arenaId ?? level.arenaId)]
+        .map((id) => getArena(id).look);
+      assert.ok(!looks.includes("quarry"), level.layout.id);
+    }
   });
 });

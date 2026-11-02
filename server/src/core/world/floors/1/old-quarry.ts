@@ -1,5 +1,5 @@
 import type { LevelDef } from "../../level.js";
-import { KOBOLD_RUINS_ARENA } from "./arenas.js";
+import { QUARRY_ARENA } from "./arenas.js";
 
 export const OLD_QUARRY: LevelDef = {
   layout: {
@@ -49,8 +49,8 @@ export const OLD_QUARRY: LevelDef = {
     campfires: [{ x: -3.5, z: -12.5 }],
   },
   spawn: { x: 3, z: -13 },
-  arenaId: KOBOLD_RUINS_ARENA.id,
-  duelArenaId: KOBOLD_RUINS_ARENA.id,
+  arenaId: QUARRY_ARENA.id,
+  duelArenaId: QUARRY_ARENA.id,
   spawns: [
     { enemy: "kobold-swordsman", at: { x: 17.5, z: -0.5 }, respawnTime: 15 },
     { enemy: "kobold-swordsman", at: { x: -5.5, z: -3.5 }, respawnTime: 15 },

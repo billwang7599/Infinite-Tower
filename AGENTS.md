@@ -342,8 +342,8 @@ Decided by the user:
 - Arenas have looks of their own, looks only: the same round wall and radius, nothing inside it, nothing that changes
   how a fight plays. Dusky and muted with warm light (toward the title's dark fantasy, not black). The server picks
   the arena: a spawn may name its own, else the level's (tall grass uses the level's). On the Grass Field the boar
-  fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire (the looks and which
-  enemy gets which are the agent's picks).
+  fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire; every fight in the Old
+  Quarry, duels too, is in a quarry (the looks and which enemy gets which are the agent's picks).
 - A player who disconnects mid-fight has lost it: what they carry drops as on a death. A fight
   still undecided after a time limit ends as a loss, a guard on the server's resources. Both are named constants in
   `shared/src/battle/fight/outcome.ts` (`LEAVING_LOSES`; `MAX_FIGHT_TIME`, 10 minutes, the agent's pick of a
@@ -362,15 +362,15 @@ Decided by the user:
   each play a little off in pitch and volume so repeats differ. Master, Effects and Ambient volumes in Settings
   (80%, 100%, 100% to start), saved with the other settings. Sound starts only after a click (the browser's rule).
   Every file is CC0, listed in [SOUNDS.md](SOUNDS.md).
-- Music (the user: "we can find some royalty free looping music? match the vibe of the scenery/battle", then "yea
-  just go with what you think is right"; the tracks, how loud and the rest below are the agent's picks, not listened
-  to yet): CC0 seamless loops, one per scene, crossfading over 1.5 s when the scene changes. The title plays
-  Junkala's "Innocence" (also while making a character), the Grass Field Kauffman's "Forest Whisper", the Mistwood
-  cynicmusic's "Dark Forest Theme", fights in the forest clearing and the stone ruins (the duels too) Junkala's "Army
-  Approaching", and fights in the mire Junkala's "Encounter With The Witches". A fight's music fades out as it's
-  decided, so the victory or defeat sound rings out, and the arena stays quiet until you leave. A fourth volume,
-  Music (100% to start), saved with the others. The volumes come with the save, so before Play the title's music is
-  at the default volume.
+- Music (the user: "we can find some royalty free looping music? match the vibe of the scenery/battle", then "yea just
+  go with what you think is right"; the tracks, how loud and the rest below are the agent's picks, not listened to yet):
+  CC0 seamless loops, one per scene, crossfading over 1.5 s when the scene changes. The title plays Junkala's
+  "Innocence" (also while making a character), the Grass Field Kauffman's "Forest Whisper", the Mistwood cynicmusic's
+  "Dark Forest Theme", the Old Quarry Junkala's "Tha'el Mines", fights in the forest clearing, the stone ruins and the
+  quarry (the duels too) Junkala's "Army Approaching", and fights in the mire Junkala's "Encounter With The Witches". A
+  fight's music fades out as it's decided, so the victory or defeat sound rings out, and the arena stays quiet until you
+  leave. A fourth volume, Music (100% to start), saved with the others. The volumes come with the save, so before Play
+  the title's music is at the default volume.
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
   ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
   opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the
@@ -688,15 +688,16 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
   everything here is the agent's, tried only in a headless browser): a 48 x 36 floor-1 level north of the Grass Field,
   through a 3-tile gap in its north tree line (`old-quarry` in `server/src/core/world/floors/1/old-quarry.ts`). Pale
-  cut-stone terraces (a new solid tile, `Q`) stepping up toward the map's edge (1.2 m a step, 4 on the map, then 4
-  more rings beyond it), a dry pit ringed by low cut stone with three ways in and a still pool at its bottom (silent,
-  as still water is), two cranes on the pit's north rim and three ore carts on the rails (both new solid tiles, `Y`
-  and `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry scrub (its tall
-  grass), a 2 x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold Greatsword and two
-  Goblin Warlocks stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile (the Grass Field's
-  rate) for a Kobold Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there is in the stone
-  ruins arena, duels too. Its music is the Mistwood's for now. No readable signs: the game has no way to read one
-  without an NPC (a trace is an NPC's), so there are none.
+  cut-stone terraces (a new solid tile, `Q`) stepping up toward the map's edge (1.2 m a step, 4 on the map, then 4 more
+  rings beyond it), a dry pit ringed by low cut stone with three ways in and a still pool at its bottom (silent, as
+  still water is), two cranes on the pit's north rim and three ore carts on the rails (both new solid tiles, `Y` and
+  `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry scrub (its tall grass), a 2
+  x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold Greatsword and two Goblin Warlocks
+  stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile (the Grass Field's rate) for a Kobold
+  Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there is in its own quarry arena, duels too
+  (looks only: pale cut slabs, stacked blocks, terraced faces, a crane, a cart, lanterns and drifting dust;
+  `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable signs: the game has no way
+  to read one without an NPC (a trace is an NPC's), so there are none.
 - The kingdom (the user's decisions above; the names, layout and lines are the agent's): Highmere, a 40 x 44 map with
   no floor (the HUD shows only its name). North to south: the Hall of Arrival (marble, pillars, the platform, a red
   carpet), the castle courtyard (lawns, two pools, flower beds), the castle gate, the market streets between houses

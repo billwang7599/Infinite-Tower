@@ -116,6 +116,7 @@ export const STEP_SOUNDS: Record<ArenaLook, SoundName> = {
   "forest-clearing": "step-grass",
   "stone-ruins": "step-stone",
   mire: "step-wet",
+  quarry: "step-stone",
 };
 
 export const ARENA_AMBIENCE: Partial<Record<ArenaLook, SoundName>> = { mire: "mire" };
