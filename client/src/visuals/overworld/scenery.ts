@@ -2,11 +2,13 @@ import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect, type Vec3 } 
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
-  | "foodStall" | "potionStall" | "forge" | "changerStall" | "dummy";
+  | "produce" | "potions" | "scales" | "embers" | "dummy";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
-export interface Ledge { rect: Rect; topY: number; look?: "castle" | "house" }
+export interface Awning { colors: readonly [string, string]; topY: number }
+
+export interface Ledge { rect: Rect; topY: number; look?: "castle" | "house" | "counter" | "hearth"; awning?: Awning }
 
 export interface Scenery {
   /** The level's own ground first (top 0), then the ledges round it. */
@@ -20,7 +22,7 @@ export const SCENERY_REACH_TILES = 16;
 const GAP_CLEARANCE_TILES = 0.8;
 
 const TALL = new Set<PropKind>([
-  "tree", "pine", "deadTree", "bush", "rock", "ruin", "foodStall", "potionStall", "forge", "changerStall",
+  "tree", "pine", "deadTree", "bush", "rock", "ruin",
 ]);
 
 export function isTall(kind: PropKind): boolean {
@@ -39,14 +41,15 @@ const WALKER_VIEW = { halfWidthTiles: 0.4, heightTiles: 1.3 };
 export function hidesWalker(ledge: Ledge, eye: Vec3, feet: Vec3): boolean {
   const away = Math.hypot(feet.x - eye.x, feet.z - eye.z) || 1;
   const rightX = (feet.z - eye.z) / away, rightZ = (eye.x - feet.x) / away;
-  return [0, WALKER_VIEW.heightTiles].some((up) => [-1, 0, 1].some((side) => blocksView(ledge, eye, {
+  const topY = ledge.awning?.topY ?? ledge.topY;
+  return [0, WALKER_VIEW.heightTiles].some((up) => [-1, 0, 1].some((side) => blocksView(ledge.rect, topY, eye, {
     x: feet.x + rightX * side * WALKER_VIEW.halfWidthTiles,
     y: feet.y + up,
     z: feet.z + rightZ * side * WALKER_VIEW.halfWidthTiles,
   })));
 }
 
-function blocksView({ rect, topY }: Ledge, from: Vec3, to: Vec3): boolean {
+function blocksView(rect: Rect, topY: number, from: Vec3, to: Vec3): boolean {
   if (topY <= 0) return false;
   let t0 = 0, t1 = 1;
   const slabs: [number, number, number, number][] = [

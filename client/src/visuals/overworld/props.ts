@@ -193,61 +193,46 @@ const ruin: Draw = (pen, rand) => {
 
 const WOOD = { dark: "#3e2a1c", mid: "#6a4a30", light: "#8c6842" };
 
-function stall(awning: readonly [string, string], goods: Draw): Draw {
-  return (pen, rand) => {
-    pen.rect(1, 6, 2, 18, WOOD.dark);
-    pen.rect(13, 6, 2, 18, WOOD.dark);
-    pen.rect(0, 15, 16, 9, WOOD.mid);
-    pen.rect(0, 15, 16, 1, WOOD.light);
-    pen.rect(0, 19, 16, 1, WOOD.dark);
-    for (let x = 0; x < 16; x += 4) pen.rect(x, 0, 2, 6, awning[0]);
-    for (let x = 2; x < 16; x += 4) pen.rect(x, 0, 2, 6, awning[1]);
-    for (let x = 0; x < 16; x += 2) pen.rect(x, 6, 1, 1, awning[x % 4 ? 1 : 0]);
-    pen.rect(0, 0, 16, 1, "#00000040");
-    goods(pen, rand);
-    pen.outline(OUTLINE);
-  };
-}
-
-const food = stall(["#e8dcc0", "#4f7a3a"], (pen, rand) => {
-  for (let x = 1; x < 15; x += 4) {
-    pen.rect(x, 12, 4, 3, "#b7843e");
-    pen.rect(x, 12, 4, 1, "#d6a75c");
+const produce: Draw = (pen, rand) => {
+  for (let x = 1; x < 15; x += 7) {
+    pen.rect(x, 5, 6, 4, "#b7843e");
+    pen.rect(x, 5, 6, 1, "#d6a75c");
+    pen.rect(x, 7, 6, 1, "#8a5d2c");
   }
-  for (let i = 0; i < 3; i++) pen.disc(3 + rand() * 10, 10.5, 1.4, rand() < 0.5 ? "#c0392b" : "#d9a02b");
-});
-
-const potions = stall(["#e8dcc0", "#5b3f8a"], (pen, rand) => {
-  for (let x = 2; x < 15; x += 3) {
-    const glass = ["#7fd3c4", "#c46fb8", "#e0c25a", "#7f9ad8"][Math.floor(rand() * 4)]!;
-    pen.rect(x, 10, 2, 5, glass);
-    pen.rect(x, 9, 2, 1, "#d9d2bd");
-    pen.rect(x, 11, 1, 1, "#ffffff80");
-  }
-});
-
-const coins = stall(["#e8dcc0", "#a8862e"], (pen, rand) => {
-  pen.rect(7, 8, 2, 7, WOOD.dark);
-  pen.rect(3, 8, 10, 1, "#7a7e8a");
-  pen.rect(2, 9, 3, 1, "#d6a75c");
-  pen.rect(11, 9, 3, 1, "#d6a75c");
-  for (let i = 0; i < 4; i++) {
-    pen.rect(1 + rand() * 4, 13 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][i % 3]!);
-    pen.rect(10 + rand() * 4, 13 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][(i + 1) % 3]!);
-  }
-});
-
-const forge: Draw = (pen) => {
-  pen.rect(0, 4, 16, 20, STONE.dark);
-  for (let y = 4; y < 24; y += 4) for (let x = (y / 4) % 2 ? 0 : 3; x < 16; x += 6) pen.rect(x, y, 5, 3, STONE.mid);
-  pen.rect(3, 9, 10, 6, "#2a1a14");
-  pen.rect(4, 12, 8, 3, "#e0482a");
-  pen.rect(5, 11, 6, 2, "#f7b23b");
-  pen.rect(6, 12, 2, 1, "#ffe08a");
-  pen.rect(2, 18, 12, 2, "#4a4c55");
-  pen.rect(5, 20, 6, 4, "#3a3c44");
-  pen.rect(2, 18, 12, 1, "#7a7e8a");
+  for (let i = 0; i < 5; i++) pen.disc(2.5 + rand() * 11, 4, 1.5, ["#c0392b", "#d9a02b", "#c8a060"][i % 3]!);
   pen.outline(OUTLINE);
+};
+
+const potions: Draw = (pen, rand) => {
+  for (let x = 1; x < 15; x += 3) {
+    const glass = ["#7fd3c4", "#c46fb8", "#e0c25a", "#7f9ad8"][Math.floor(rand() * 4)]!, h = 4 + Math.floor(rand() * 3);
+    pen.rect(x, 10 - h, 2, h, glass);
+    pen.rect(x, 9 - h, 2, 1, "#d9d2bd");
+    pen.rect(x, 11 - h, 1, 1, "#ffffff80");
+  }
+  pen.outline(OUTLINE);
+};
+
+const scales: Draw = (pen, rand) => {
+  pen.rect(7, 2, 2, 8, WOOD.dark);
+  pen.rect(3, 2, 10, 1, "#7a7e8a");
+  pen.rect(2, 4, 3, 1, "#d6a75c");
+  pen.rect(11, 4, 3, 1, "#d6a75c");
+  pen.rect(3, 3, 1, 1, "#7a7e8a");
+  pen.rect(12, 3, 1, 1, "#7a7e8a");
+  for (let i = 0; i < 4; i++) {
+    pen.rect(1 + rand() * 4, 8 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][i % 3]!);
+    pen.rect(10 + rand() * 4, 8 + rand() * 1.5, 2, 1, ["#c99e2a", "#a5acb5", "#b4602e"][(i + 1) % 3]!);
+  }
+  pen.outline(OUTLINE);
+};
+
+const embers: Draw = (pen) => {
+  for (const [x, h] of [[2, 4], [6, 6], [10, 5]] as const) {
+    pen.rect(x, 8 - h, 4, h, "#e0482a");
+    pen.rect(x + 1, 9 - h, 2, h - 2, "#f7b23b");
+    pen.rect(x + 1, 8 - Math.ceil(h / 2), 2, 1, "#ffe08a");
+  }
 };
 
 const dummy: Draw = (pen) => {
@@ -273,10 +258,10 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   reeds: { widthPx: 16, heightPx: 18, draw: reeds },
   mushrooms: { widthPx: 16, heightPx: 10, draw: mushrooms },
   ruin: { widthPx: 16, heightPx: 24, draw: ruin },
-  foodStall: { widthPx: 16, heightPx: 24, draw: food },
-  potionStall: { widthPx: 16, heightPx: 24, draw: potions },
-  forge: { widthPx: 16, heightPx: 24, draw: forge },
-  changerStall: { widthPx: 16, heightPx: 24, draw: coins },
+  produce: { widthPx: 16, heightPx: 10, draw: produce },
+  potions: { widthPx: 16, heightPx: 10, draw: potions },
+  scales: { widthPx: 16, heightPx: 10, draw: scales },
+  embers: { widthPx: 16, heightPx: 8, draw: embers },
   dummy: { widthPx: 16, heightPx: 24, draw: dummy },
 };
 

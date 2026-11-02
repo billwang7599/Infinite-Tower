@@ -10,6 +10,7 @@ import { spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
+import { stallLooks } from "./stalls.js";
 import { hidesWalker, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
@@ -50,12 +51,19 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   fringe.emissiveColor = Color3.Black();
   const water = levelWater(scene, level, look.water);
 
-  const looks = { grass: [grass, brick, fringe], castle: [brick, brick, null], house: [roof, plaster, null] } as const;
+  const stalls = stallLooks(scene, lit, brick);
+  const looks = {
+    grass: [grass, brick, fringe], castle: [brick, brick, null], house: [roof, plaster, null],
+    counter: stalls.counter, hearth: stalls.hearth,
+  } as const;
   const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
   scenery.ledges.forEach((ledge, i) => {
     const carved = i === 0 ? water.ground : null;
     const [top, side, edge] = looks[ledge.look ?? "grass"];
     const parts = buildLedge(scene, ledge, i, carved ? field : top, side, edge, carved);
+    const awning = ledge.awning ? stalls.awning({ ...ledge, awning: ledge.awning }, i) : [];
+    parts.push(...awning);
+    for (const m of awning) sky.castShadows(m);
     for (const m of [...parts, ...carved ? [water.surface] : []]) {
       m.parent = root;
       m.receiveShadows = true;

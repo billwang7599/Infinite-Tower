@@ -69,4 +69,9 @@ describe("hidesWalker", () => {
     assert.equal(hidesWalker({ ...wall, rect: { ...wall.rect, x: 5 } }, eye, feet), false);
     assert.equal(hidesWalker({ ...wall, topY: 1 }, eye, feet), false);
   });
+
+  test("a stall's awning hides them, even over a counter low enough to see over", () => {
+    const counter = { ...wall, topY: 1 };
+    assert.equal(hidesWalker({ ...counter, awning: { colors: ["#fff", "#000"], topY: 5 } }, eye, feet), true);
+  });
 });
