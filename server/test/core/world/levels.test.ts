@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  distXZ, inRect, inTallGrass, INTERACT_RANGE_M, isSolid, mapHalfSize, REST_RANGE_TILES, tileAt, WALKER_RADIUS,
-  NPC_IDS, type LevelMap, type Vec2,
+  distXZ, inRect, inTallGrass, INTERACT_RANGE_M, isSolid, mapHalfSize, nearCampfire, REST_RANGE_TILES, tileAt,
+  WALKER_RADIUS, NPC_IDS, type LevelMap, type Vec2,
 } from "@infinite-tower/shared";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
@@ -154,4 +154,41 @@ test("every level can be reached from the start level through exits", () => {
     }
   }
   assert.deepEqual([...reached].sort(), [...ids].sort());
+});
+
+describe("the Old Quarry", () => {
+  const QUARRY = getLevel("old-quarry"), FIELD = getLevel("grass-field");
+  const fromField = FIELD.exits.find((e) => e.to === "old-quarry");
+
+  test("is reached through a gap in the Grass Field's north edge, and leads back out through its own", () => {
+    assert.ok(fromField);
+    assert.equal(fromField.area.z + fromField.area.h, mapHalfSize(FIELD.layout).halfDepth);
+    const back = QUARRY.exits.find((e) => e.to === "grass-field");
+    assert.ok(back);
+    assert.equal(back.area.z, -mapHalfSize(QUARRY.layout).halfDepth);
+  });
+
+  test("is held by Kobolds and Goblin Warlocks only, in its spawns and its scrub alike", () => {
+    const enemies = new Set([...QUARRY.spawns.map((s) => s.enemy), ...QUARRY.grass!.enemies.map((e) => e.enemy)]);
+    assert.deepEqual([...enemies].sort(), ["goblin-warlock", "kobold-greatsword", "kobold-swordsman"]);
+  });
+
+  test("is harder than the Grass Field: more enemies standing about, and its scrub starts fights as often", () => {
+    assert.ok(QUARRY.spawns.length > FIELD.spawns.length);
+    assert.ok(QUARRY.grass!.chance >= FIELD.grass!.chance);
+  });
+
+  test("has one campfire, by the way in, where you can rest", () => {
+    assert.equal(QUARRY.layout.campfires.length, 1);
+    const [fire] = QUARRY.layout.campfires;
+    assert.ok(distXZ(fire!, fromField!.at) <= 8);
+    assert.ok(nearCampfire(QUARRY.layout, { x: fire!.x + REST_RANGE_TILES - 0.1, z: fire!.z }));
+  });
+
+  test("has a still pool at the bottom of its pit, its water touching no edge", () => {
+    const { halfWidth, halfDepth } = mapHalfSize(QUARRY.layout);
+    const water = centersOf(QUARRY.layout).filter((t) => tileAt(QUARRY.layout, t.x, t.z) === "water");
+    assert.ok(water.length > 0);
+    for (const t of water) assert.ok(Math.abs(t.x) < halfWidth - 4 && Math.abs(t.z) < halfDepth - 4);
+  });
 });

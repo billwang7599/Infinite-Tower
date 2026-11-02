@@ -9,8 +9,8 @@ export const GRASS_FIELD: LevelDef = {
     theme: "grass-field",
     playerSpeed: 5,
     tiles: [
-      "TTTTT.:.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
-      "TTTTT.:.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+      "TTTTT.:.TTTTTTTTTTTTTTTTTT.:.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+      "TTTTT.:.TTTTTTTTTTTTTTTTTT.:.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
       "TTTT..:.......TTT.................~~..*......o....TTTT.....TTTTT",
       "TTT...:.o.o...TT...*..o...........~~......~~~.....TTT......TT.TT",
       "TT....:.....................*.....~~....o~~~~~....TT.......T..TT",
@@ -71,6 +71,7 @@ export const GRASS_FIELD: LevelDef = {
     { area: { x: 31, z: -3, w: 1, h: 3 }, to: "mistwood", at: { x: -22.5, z: -0.5 } },
     { area: { x: -32, z: -3, w: 1, h: 3 }, to: "waking-hollow", at: { x: 15.5, z: 4.5 } },
     { area: { x: -27, z: 21, w: 3, h: 1 }, to: "kingdom", at: { x: 0, z: -19.5 } },
+    { area: { x: -6, z: 21, w: 3, h: 1 }, to: "old-quarry", at: { x: -0.5, z: -15.5 } },
   ],
   safeTime: 2,
 };

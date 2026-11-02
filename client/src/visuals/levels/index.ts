@@ -10,6 +10,8 @@ import { KINGDOM_TILES } from "./kingdom/tiles.js";
 import { grassFieldScenery } from "./grass-field/scenery.js";
 import { mistwoodScenery } from "./mistwood/scenery.js";
 import { MISTWOOD_TILES } from "./mistwood/tiles.js";
+import { quarryScenery } from "./quarry/scenery.js";
+import { QUARRY_TILES } from "./quarry/tiles.js";
 import type { TileLooks } from "./tiles.js";
 
 interface LevelLook {
@@ -82,6 +84,27 @@ export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
       foamTiles: 0.08,
     },
     scenery: kingdomScenery,
+  },
+  quarry: {
+    env: {
+      sky: new Color3(0.4, 0.37, 0.33),
+      fogDensity: 0.024,
+      ambient: new Color3(0.33, 0.31, 0.29),
+      skyLight: { color: new Color3(0.68, 0.65, 0.66), ground: new Color3(0.46, 0.41, 0.34), intensity: 0.5 },
+      sun: { color: new Color3(1, 0.8, 0.6), intensity: 1.35 },
+    },
+    tiles: QUARRY_TILES,
+    water: {
+      body: new Color3(0.08, 0.24, 0.24),
+      murkPerTile: 1.4,
+      reflectivity: 0.2,
+      glint: new Color3(1.5, 1.45, 1.35),
+      rippleSlope: 0.25,
+      waveHeightTiles: 0.006,
+      foam: new Color3(0.78, 0.75, 0.68),
+      foamTiles: 0.06,
+    },
+    scenery: quarryScenery,
   },
 };
 

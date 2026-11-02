@@ -13,7 +13,7 @@ export interface LevelMap {
   /** The tower floor it's on, shown before its name. */
   floor?: number;
   /** Which client look draws it. */
-  theme: "grass-field" | "mistwood" | "kingdom";
+  theme: "grass-field" | "mistwood" | "kingdom" | "quarry";
   /** Rows of tile characters (`TILES`), north (+z) first, one character a tile; the map is centred on 0, 0. */
   tiles: string[];
   playerSpeed: number;

@@ -2,13 +2,16 @@ import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect, type Vec3 } 
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
-  | "produce" | "potions" | "scales" | "embers" | "dummy";
+  | "produce" | "potions" | "scales" | "embers" | "dummy" | "rubble" | "crane" | "cart" | "scrub" | "chips"
+  | "shack";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 
 export interface Awning { colors: readonly [string, string]; topY: number }
 
-export interface Ledge { rect: Rect; topY: number; look?: "castle" | "house" | "counter" | "hearth"; awning?: Awning }
+export interface Ledge {
+  rect: Rect; topY: number; look?: "castle" | "house" | "counter" | "hearth" | "quarry"; awning?: Awning;
+}
 
 export interface Scenery {
   /** The level's own ground first (top 0), then the ledges round it. */
@@ -22,7 +25,7 @@ export const SCENERY_REACH_TILES = 16;
 const GAP_CLEARANCE_TILES = 0.8;
 
 const TALL = new Set<PropKind>([
-  "tree", "pine", "deadTree", "bush", "rock", "ruin",
+  "tree", "pine", "deadTree", "bush", "rock", "ruin", "rubble", "crane", "cart", "shack",
 ]);
 
 export function isTall(kind: PropKind): boolean {
@@ -117,4 +120,23 @@ function minus(r: Rect, hole: Rect): Rect[] {
     { x: x0, z: r.z, w: x1 - x0, h: z0 - r.z },
     { x: x0, z: z1, w: x1 - x0, h: r.z + r.h - z1 },
   ].filter((p) => p.w > 0 && p.h > 0);
+}
+
+export function tileBlocks(level: LevelLayout, is: (x: number, z: number) => boolean): Rect[] {
+  const { halfWidth: L, halfDepth: D } = mapHalfSize(level), cols = L * 2, rows = D * 2;
+  const at = (c: number, r: number) => is(c - L + 0.5, D - r - 0.5);
+  const taken = new Set<string>(), rects: Rect[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!at(c, r) || taken.has(`${c},${r}`)) continue;
+      let w = 1, h = 1;
+      while (c + w < cols && at(c + w, r) && !taken.has(`${c + w},${r}`)) w++;
+      const rowMatches = (rr: number) => Array.from({ length: w }, (_, i) => c + i)
+        .every((cc) => at(cc, rr) && !taken.has(`${cc},${rr}`));
+      while (r + h < rows && rowMatches(r + h)) h++;
+      for (let rr = r; rr < r + h; rr++) for (let cc = c; cc < c + w; cc++) taken.add(`${cc},${rr}`);
+      rects.push({ x: c - L, z: D - r - h, w, h });
+    }
+  }
+  return rects;
 }

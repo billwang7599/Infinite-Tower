@@ -1,5 +1,6 @@
 import { groundPainters } from "../ground.js";
 import { TOWN_TILES } from "../kingdom/tiles.js";
+import { QUARRY_WORKINGS } from "../quarry/tiles.js";
 import type { TileLooks } from "../tiles.js";
 
 const PAINT = groundPainters({
@@ -26,4 +27,5 @@ export const GRASS_FIELD_TILES: TileLooks = {
   ruinWall: { ground: PAINT.flagstones, props: { kinds: ["ruin"], count: 1, scale: 1 } },
   pad: { ground: PAINT.pad },
   ...TOWN_TILES,
+  ...QUARRY_WORKINGS,
 };

@@ -66,8 +66,8 @@ Decided by the user:
   (the bag, eating, piles, Interact, resting...) works the same in both, through the same code. A difference needs a
   reason the other place can't support it.
 - The game is more open world now (the user: "more open world now"): no floors and no realm locks, up or down; the
-  tower idea is on hold ([plan/vision.md](plan/vision.md)). The Waking Hollow, the Grass Field and the Mistwood are
-  test areas, kept reachable.
+  tower idea is on hold ([plan/vision.md](plan/vision.md)). The Waking Hollow, the Grass Field, the Mistwood and the
+  Old Quarry are test areas, kept reachable.
 - New players start "in the main kingdom": every avatar first appears on one extravagant summoning platform, indoors
   for now, the first and largest pad, where the Maker's door first opened; the kingdom grew round it, with a
   humongous castle, to guard and use the stream of avatars, and its rulers see arrivals as theirs by right. "A guide
@@ -671,6 +671,18 @@ them; treat them as changeable, and still ask before deciding new ones):
   log in. Dying wakes you on the kingdom's platform: falling there, at once; elsewhere, the save says the kingdom at
   once (a disconnect mid-fight too) and you cross to it as you leave the arena. Mistwood reuses the floor's enemies
   (boars, the Kobold, the Warlock) and the mire arena.
+- The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
+  everything here is the agent's, tried only in a headless browser): a 48 x 36 floor-1 level north of the Grass Field,
+  through a 3-tile gap in its north tree line (`old-quarry` in `server/src/core/world/floors/1/old-quarry.ts`). Pale
+  cut-stone terraces (a new solid tile, `Q`) stepping up toward the map's edge (1.2 m a step, 4 on the map, then 4
+  more rings beyond it), a dry pit ringed by low cut stone with three ways in and a still pool at its bottom (silent,
+  as still water is), two cranes on the pit's north rim and three ore carts on the rails (both new solid tiles, `Y`
+  and `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry scrub (its tall
+  grass), a 2 x 2 pad and one campfire by the way in. No boars: two Kobold Swordsmen, a Kobold Greatsword and two
+  Goblin Warlocks stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile (the Grass Field's
+  rate) for a Kobold Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there is in the stone
+  ruins arena, duels too. Its music is the Mistwood's for now. No readable signs: the game has no way to read one
+  without an NPC (a trace is an NPC's), so there are none.
 - The kingdom (the user's decisions above; the names, layout and lines are the agent's): Highmere, a 40 x 44 map with
   no floor (the HUD shows only its name). North to south: the Hall of Arrival (marble, pillars, the platform, a red
   carpet), the castle courtyard (lawns, two pools, flower beds), the castle gate, the market streets between houses

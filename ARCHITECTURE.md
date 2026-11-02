@@ -1163,8 +1163,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the kingdom,
                        where new characters and the dead wake), levelOrStart, getLevel, getArena); kingdom.ts (Highmere,
                        on no floor: the summoning hall, the courtyard, the market and the gate to the Grass Field)
-        floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts (tile map,
-                         campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
+        floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
+                         (tile map, campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
                        (the swordsman with a greatsword), goblin-warlock.ts, training-dummy.ts and bram.ts (the
                        training yard's, fought only as spars: no drops, no overworld actor) (its EnemyDef, its drops,
@@ -1520,17 +1520,20 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
                          turns, the sky's frame)
-        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall, hidesWalker
+        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall,
+                         hidesWalker, tileBlocks (runs of tiles merged into rectangles, one block each)
         terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
-                         grass tops and fringes, the map's ground (paintGround), instanced props (the tiles' and the
-                         scenery's, each tinted by the light where it stands; a tall one's shadows come from upright
-                         cards only shadow maps see, one kept turned to the sun or moon and one turned to each campfire
-                         in reach, each cast by its own light), the campfires; face turns the props to the camera;
-                         a ledge hiding any of the player from the camera turns see-through (hidesWalker, SEE_THROUGH)
+                         grass tops and fringes (the quarry's cut-stone tops and faces), the map's ground (paintGround),
+                         instanced props (the tiles' and the scenery's, each tinted by the light where it stands; a
+                         tall one's shadows come from upright cards only shadow maps see, one kept turned to the sun or
+                         moon and one turned to each campfire in reach, each cast by its own light), the campfires;
+                         face turns the props to the camera; a ledge hiding any of the player from the camera turns
+                         see-through (hidesWalker, SEE_THROUGH)
         stalls.ts        stallLooks: a market stall's counter and its awning on posts, and the forge's hearth of
                          coals, built in 3D over each run of stall tiles so they look whole from every side
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the stalls' goods
-                         and the forge's flames, the yard's dummies), drawn standing up;
+                         and the forge's flames, the yard's dummies, the quarry's rubble, chips, scrub, carts, cranes
+                         and plank hut walls), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
@@ -1546,6 +1549,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          for the other looks to borrow), scenery.ts (castle walls and the keep behind the hall, house
                          blocks with plaster sides and tiled roofs, the stalls (a counter ledge with an awning, the forge
                          a hearth ledge) with their goods on top, the town's rooftops round the map)
+        quarry/          tiles.ts (QUARRY_TILES: pale dust with bedrock slabs, rails, dry scrub, rubble, a plank hut;
+                         QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow), scenery.ts
+                         (the cut stone as terraces stepping up toward the edge and on past the map; no Babylon: tested)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's

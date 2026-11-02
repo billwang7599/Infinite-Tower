@@ -18,7 +18,7 @@ interface Where { title: TrackName; overworld: Record<LevelTheme, TrackName>; ba
 
 export const MUSIC: Where = {
   title: "title",
-  overworld: { "grass-field": "grass-field", mistwood: "mistwood", kingdom: "title" },
+  overworld: { "grass-field": "grass-field", mistwood: "mistwood", kingdom: "title", quarry: "mistwood" },
   battle: { "forest-clearing": "battle", "stone-ruins": "battle", mire: "battle-mire" },
 };
 

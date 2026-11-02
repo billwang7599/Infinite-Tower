@@ -43,6 +43,8 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   const grass = lit("overworld-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
   const plaster = lit("overworld-plaster", tiled(pixelCanvas(scene, "plaster", 32, 32, drawPlaster, false)));
   const roof = lit("overworld-roof", tiled(pixelCanvas(scene, "roof", 32, 32, drawRoof, false)));
+  const cutTop = lit("overworld-cut-top", tiled(pixelCanvas(scene, "cut-top", 32, 32, drawCutTop, false)));
+  const cutFace = lit("overworld-cut-face", tiled(pixelCanvas(scene, "cut-face", 32, 32, drawCutFace, false)));
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const field = lit("overworld-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
     halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles), false));
@@ -54,7 +56,7 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   const stalls = stallLooks(scene, lit, brick);
   const looks = {
     grass: [grass, brick, fringe], castle: [brick, brick, null], house: [roof, plaster, null],
-    counter: stalls.counter, hearth: stalls.hearth,
+    counter: stalls.counter, hearth: stalls.hearth, quarry: [cutTop, cutFace, null],
   } as const;
   const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
   scenery.ledges.forEach((ledge, i) => {
@@ -291,6 +293,37 @@ function drawRoof(pen: Pen): void {
     for (let x = -shift; x < 32; x += 4) {
       pen.rect(x, y, 3, 3, ["#8a4433", "#7d3c2e", "#94503b"][Math.floor(rand() * 3)]!);
       pen.rect(x, y + 3, 4, 1, "#4f241c");
+    }
+  }
+}
+
+const CUT = {
+  joint: "#8a806c", face: ["#b9af98", "#b0a68f", "#c2b8a1"], hi: "#d2c9b3", lo: "#9c927d", drill: "#7a705e",
+};
+const CUT_SLABS = [
+  [0, 0, 15, 11], [16, 0, 16, 11], [0, 12, 20, 9], [21, 12, 11, 9], [0, 22, 11, 10], [12, 22, 20, 10],
+] as const;
+
+function drawCutTop(pen: Pen): void {
+  const rand = seededRandom(11);
+  pen.rect(0, 0, 32, 32, CUT.joint);
+  for (const [x, y, w, h] of CUT_SLABS) {
+    pen.rect(x, y, w, h, CUT.face[Math.floor(rand() * 3)]!);
+    pen.rect(x, y, w, 1, CUT.hi);
+  }
+  for (let i = 0; i < 40; i++) pen.rect(rand() * 32, rand() * 32, 1, 1, rand() < 0.5 ? CUT.lo : CUT.hi);
+}
+
+function drawCutFace(pen: Pen): void {
+  const rand = seededRandom(13);
+  pen.rect(0, 0, 32, 32, CUT.joint);
+  for (let row = 0; row < 4; row++) {
+    const y = row * 8, shift = row % 2 ? 8 : 0;
+    for (let x = -shift; x < 32; x += 16) {
+      pen.rect(x + 1, y + 1, 15, 7, CUT.face[Math.floor(rand() * 3)]!);
+      pen.rect(x + 1, y + 1, 15, 1, CUT.hi);
+      pen.rect(x + 1, y + 7, 15, 1, CUT.lo);
+      for (let k = 3; k < 15; k += 4) if (rand() < 0.5) pen.rect(x + k, y + 2, 1, 4, CUT.drill);
     }
   }
 }
