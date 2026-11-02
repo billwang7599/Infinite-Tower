@@ -56,6 +56,9 @@ export const STATUS_DEFS = {
   redBlade: { harmful: false, mods: { weaponLifesteal: 0.25 } },
   firstDoor: { harmful: false },
   openedDoor: { harmful: false, mods: { damageTakenFactor: 0 } },
+  kaelithsEdge: { harmful: false, mods: { damageDealtFactor: 1.1 } },
+  brannocsAnvil: { harmful: false, mods: { damageTakenFactor: 0.9, knockbackFactor: 0.5 } },
+  haldisHearth: { harmful: false, mods: { staminaRegenFactor: 1.2 } },
 } as const satisfies Record<string, StatusDef>;
 
 export type Status = keyof typeof STATUS_DEFS;

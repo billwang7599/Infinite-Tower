@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  bagCounts, Body, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss, type EnemyId,
-  type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
+  bagCounts, blessingsOf, Body, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss,
+  type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type Fight, type FightSetup, type PlayerResult, type PlayerSetup,
@@ -106,7 +106,7 @@ export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
   return {
     vitals: session.vitals, stats: session.stats, core: session.core, burden: session.burden, gear: { bag, equipment },
     book: session.skillbook, seed: randomSeed(session.overworld.rng), invulnerable: session.invulnerable,
-    who: { name: session.name, character: session.character! },
+    who: { name: session.name, character: session.character! }, blessings: blessingsOf(session.faith),
   };
 }
 

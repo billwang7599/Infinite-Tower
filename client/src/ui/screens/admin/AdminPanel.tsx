@@ -1,9 +1,10 @@
 /** The server does each cheat (and ignores them in production); the time of day is only drawn, so it is set here. */
 import { useState, type ReactNode } from "react";
-import { ENEMY_IDS, ITEM_IDS, ITEMS, type Cheat, type DayChange } from "@infinite-tower/shared";
+import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, type Cheat, type DayChange } from "@infinite-tower/shared";
 import type { Actions } from "../../../core/actions.js";
 import type { Mode } from "../../../game/transition.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
+import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
 import type { AdminState } from "../../state.js";
 import type { Store } from "../../store.js";
@@ -92,6 +93,14 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
           onClick={() => cheat({ kind: "completeQuest" })}>
           Complete current quest
         </button>
+      </Section>
+      <Section title="Faith (overworld)">
+        {GODS.map((god) => (
+          <button key={god} type="button" data-faith={god} {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+            onClick={() => cheat({ kind: "faith", god })}>
+            {GOD_NAMES[god]}
+          </button>
+        ))}
       </Section>
       <Section title="Fight">
         {ENEMY_IDS.map((enemy) => (

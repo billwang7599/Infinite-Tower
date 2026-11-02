@@ -25,7 +25,7 @@ const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
   equipment: armed(), skillbook: blankSkillbook(), story: newStory(), pad: START_LEVEL, shopsBought: [],
-  core: newCore(),
+  core: newCore(), faith: {},
 };
 
 /** Lets a pending store load (and what follows it) finish. */

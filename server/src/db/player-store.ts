@@ -1,6 +1,6 @@
 import {
-  blankSkillbook, fitsSlot, ITEMS, keptCore, SLOTS, validateSkill, WORDS, type Equipment, type ItemId, type Slot,
-  type Skill, type Skillbook, type Word,
+  blankSkillbook, fitsSlot, ITEMS, keptCore, keptFaith, SLOTS, validateSkill, WORDS, type Equipment, type ItemId,
+  type Slot, type Skill, type Skillbook, type Word,
 } from "@infinite-tower/shared";
 import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
@@ -70,7 +70,7 @@ const toRow = (data: PlayerSave): PlayerRow => ({
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
   skillbook: data.skillbook, story: data.story, pad: data.pad, coreSteps: data.core.steps,
   coreFill: data.core.fill, statPoints: data.core.points, inscriptions: data.core.inscriptions,
-  shopsBought: data.shopsBought,
+  shopsBought: data.shopsBought, faith: data.faith,
 });
 
 function fromRow(row: typeof players.$inferSelect): PlayerSave {
@@ -83,6 +83,7 @@ function fromRow(row: typeof players.$inferSelect): PlayerSave {
       steps: row.coreSteps, fill: row.coreFill, points: row.statPoints, inscriptions: row.inscriptions,
     }),
     shopsBought: row.shopsBought.filter((shop): shop is ShopId => Object.hasOwn(SHOPS, shop)),
+    faith: keptFaith(row.faith),
   };
 }
 

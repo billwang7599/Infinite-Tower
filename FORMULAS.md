@@ -12,6 +12,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Stats](#stats)
 - [The core](#the-core)
 - [Inscriptions](#inscriptions)
+- [Blessings](#blessings)
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
 - [Blocks](#blocks)
@@ -94,6 +95,16 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
   kind: common 50c + 1, uncommon 2s + 3, rare 10s + 6, epic 40s + 12, legendary 1g 50s + 25, unique 3g + 40.
   Essences are paid cheapest first (boar before Kobold), off the cloth then the bag.
 - **Removing** (`REMOVE_PRICES`) = carving × 3 in coins (`REMOVE_PRICE_FACTOR`) and × 2 in essence: Grit 6s + 6.
+
+## Blessings
+
+`BLESSINGS` and `BLESSING_FAITH` in `shared/src/soul/blessings.ts`; what each does in `STATUS_DEFS`.
+
+- **Blessed** while faith with a god ≥ 100, for each god that has a blessing; no cap.
+- **Faith:** + a quest step's `reward.faith` (Kaelith 20 from each of three quests, Haldis 30, Brannoc 30), or + 25
+  from the admin panel (`FAITH_CHEAT`, `server/src/core/game/cheats.ts`). Never lost yet.
+- **Kaelith's Edge:** damage dealt × 1.1 (a sword's 9 does 9.9). **Brannoc's Anvil:** damage taken × 0.9, knockback
+  × 0.5. **Haldis's Hearth:** stamina refill × 1.2.
 
 ## Weapon attacks
 

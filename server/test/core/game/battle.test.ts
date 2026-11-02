@@ -123,7 +123,7 @@ describe("starting a battle", () => {
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, core: session.core, burden: "light",
       gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook(), seed: playerSeed,
-      invulnerable: false, who: { name: session.name, character: session.character! },
+      invulnerable: false, who: { name: session.name, character: session.character! }, blessings: [],
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });

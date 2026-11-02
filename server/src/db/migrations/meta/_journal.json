@@ -155,6 +155,13 @@
       "when": 1793645776483,
       "tag": "0021_inscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793646930570,
+      "tag": "0022_faith",
+      "breakpoints": true
     }
   ]
 }

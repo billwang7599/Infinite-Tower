@@ -1,6 +1,6 @@
 /** What core needs from the outside world, as interfaces it owns; main.ts picks the implementations. */
 import type {
-  Bag, Character, CoreState, Equipment, ItemId, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
+  Bag, Character, CoreState, Equipment, Faith, ItemId, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
 } from "@infinite-tower/shared";
 import type { ShopId } from "./content/shops.js";
 import type { Story } from "./game/story.js";
@@ -30,6 +30,7 @@ export interface PlayerSave {
   pad: string;
   core: CoreState;
   shopsBought: ShopId[];
+  faith: Faith;
 }
 
 /** `seenAtMs`: the holder's latest save. */

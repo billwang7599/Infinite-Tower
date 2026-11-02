@@ -11,6 +11,7 @@ import { ITEM_IDS, ITEMS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
 import { SHOWN_STATS } from "../battle/stats.js";
 import { INSCRIPTION_IDS, type InscriptionId } from "../soul/inscriptions.js";
+import { GODS } from "../soul/blessings.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
@@ -188,6 +189,7 @@ const CheatSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("coreStep"), add: z.boolean() }),
   z.object({ kind: z.literal("completeQuest") }),
   z.object({ kind: z.literal("resetSave") }),
+  z.object({ kind: z.literal("faith"), god: z.enum(GODS) }),
 ]);
 export type Cheat = z.infer<typeof CheatSchema>;
 

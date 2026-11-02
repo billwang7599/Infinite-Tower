@@ -315,6 +315,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       ui.skills.set({ known: joined.welcome.knownWords, book: joined.welcome.skillbook });
       ui.chat.set({ open: false, focused: false, lines: joined.welcome.chat });
       ui.questbook.set({ open: false, quests: joined.welcome.questbook });
+      ui.overworld.set({ faith: joined.welcome.faith });
       net.on("questbook", ({ quests, news }) => {
         ui.questbook.set({ quests });
         for (const told of news) say(ui.notifications, { kind: "quest", news: told });
@@ -370,6 +371,10 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         overworld.setCore(msg.core);
         overworld.setVitals(msg.vitals);
         if (msg.brokeThrough) say(ui.notifications, { kind: "breakthrough", core: msg.core });
+      });
+      net.on("faith", ({ faith, gained, blessed }) => {
+        ui.overworld.set({ faith });
+        say(ui.notifications, { kind: "faith", gained, blessed });
       });
       net.on("healed", (msg) => {
         overworld.setVitals(msg.vitals);

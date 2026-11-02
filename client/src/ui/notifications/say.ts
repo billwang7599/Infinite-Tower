@@ -3,10 +3,11 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, WEAPONS, type ChallengeNews, type CoinId,
-  type CoreState, type EnemyDef, type ItemCounts, type ItemId, type QuestNews, type ServerMsgOf, type TradeNews,
-  type WeaponId,
+  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, WEAPONS, type BlessingGod,
+  type ChallengeNews, type CoinId, type CoreState, type EnemyDef, type Faith, type God, type ItemCounts, type ItemId,
+  type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
 } from "@infinite-tower/shared";
+import { BLESSING_TEXT, GOD_NAMES } from "../hud/blessings.js";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
 
@@ -30,6 +31,7 @@ export type GameEvent =
   | { kind: "battleResult"; outcome: BattleOutcome }
   | { kind: "quest"; news: QuestNews }
   | { kind: "breakthrough"; core: CoreState }
+  | { kind: "faith"; gained: Faith; blessed: BlessingGod[] }
   | { kind: "trade"; news: TradeNews };
 
 type EventKind = GameEvent["kind"];
@@ -62,6 +64,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
   quest:        { where: "corner", lines: ({ news }) => questLines(news) },
   breakthrough: { where: "corner", lines: ({ core }) => [`Your core breaks through: ${coreName(core)}.`] },
+  faith: { where: "corner", lines: faithLines },
   trade:        { where: "corner", lines: ({ news }) => tradeLines(news) },
 };
 
@@ -154,6 +157,11 @@ function tradeLines(news: TradeNews): string[] {
   const { give, get } = exchangeRate(news.from, news.to) ?? { give: 0, get: 0 };
   const metal = (coin: CoinId) => itemDef(coin).name.split(" ")[0]!.toLowerCase();
   return [`You change ${give} ${metal(news.from)} for ${get} ${metal(news.to)}.`, ...onCloth];
+}
+
+function faithLines({ gained, blessed }: EventOf<"faith">): string[] {
+  const grew = (Object.keys(gained) as God[]).map((god) => `Your faith with ${GOD_NAMES[god]} grows.`);
+  return [...grew, ...blessed.map((god) => `${GOD_NAMES[god]} blesses you: ${BLESSING_TEXT[god]}`)];
 }
 
 function questLines(news: QuestNews): string[] {

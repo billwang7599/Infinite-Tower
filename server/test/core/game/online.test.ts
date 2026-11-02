@@ -37,7 +37,8 @@ describe("joining", () => {
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
-        skillbook: welcome.skillbook, story: newStory(), pad: START_LEVEL, core: welcome.core, shopsBought: [] },
+        skillbook: welcome.skillbook, story: newStory(), pad: START_LEVEL, core: welcome.core, shopsBought: [],
+        faith: welcome.faith },
       newPlayer(),
     );
     assert.deepEqual(welcome.questbook, []);

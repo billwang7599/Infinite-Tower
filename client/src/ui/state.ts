@@ -6,9 +6,9 @@
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
-  type CoinId, type DayChange, type DialogueOffer, type GameServer, type Gear, type InscriptionId, type ItemId,
-  type Look, type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type Status,
-  type UseSpot, type WeaponId, type Word,
+  type CoinId, type DayChange, type DialogueOffer, type Faith, type GameServer, type Gear, type InscriptionId,
+  type ItemId, type Look, type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot,
+  type Status, type UseSpot, type WeaponId, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -51,6 +51,7 @@ export interface OverworldHudState {
   staminaFraction: number;
   /** null before `welcome`. */
   core: CoreState | null;
+  faith: Faith;
   byFire: boolean;
   /** null until they've made one. */
   character: Character | null;
@@ -223,8 +224,8 @@ export class UiState {
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
   readonly overworld = new Store<OverworldHudState>({
-    levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, byFire: false,
-    character: null, interaction: null, using: null, cameraTurns: 0,
+    levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, faith: {},
+    byFire: false, character: null, interaction: null, using: null, cameraTurns: 0,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

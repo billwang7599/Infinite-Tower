@@ -49,4 +49,12 @@ export const STATUS_LOOKS: Record<Status, { name: string; color: string; path: s
   openedDoor: {
     name: "Door Opened", color: "#fff1d0", path: "M6 22V9a6 6 0 0 1 12 0v13zM9 20h3V6.2A3 3 0 0 0 9 9z",
   },
+  kaelithsEdge: { name: "Kaelith's Edge", color: "#e8d27a", path: "M11 2h2l1 12h-4zM7 15h10v2h-4v5h-2v-5H7z" },
+  brannocsAnvil: {
+    name: "Brannoc's Anvil", color: "#b8a58a", path: "M3 7h14c0 3 2 4 4 4v2h-6v3l3 4H6l3-4v-3c-3 0-6-2-6-6z",
+  },
+  haldisHearth: {
+    name: "Haldis's Hearth", color: "#ffb05a",
+    path: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 2 1 2 1-2 0-4 1-6zM4 18l16-2v2L4 20zM4 16l16 2v2L4 18z",
+  },
 };

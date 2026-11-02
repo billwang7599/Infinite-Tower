@@ -145,6 +145,8 @@ What's built so far:
   essence: a permanent passive (Grit, Embers, the Last Breath, the Red Blade, the one-of-a-kind First Door), kept
   through every death and shown as a ring round the core's sphere. The core holds more as it grows; unmaking one costs
   more and it's gone.
+- **Blessings:** faith with a god, earned from some quests, and a blessing once it reaches 100 (Kaelith, Brannoc and
+  Haldis have one so far), shown in the character panel and on in every fight.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it
