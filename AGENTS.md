@@ -616,6 +616,16 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".
+- Timed buffs (the user: "maybe some buff skills or something (with timer)", numbers "you can make up"; tried by tests
+  only, not hand-played): one status system for buffs and debuffs (`STATUS_DEFS` in `shared/src/battle/statuses.ts`,
+  run in `shared/src/battle/fight/statuses.ts`), each status a set of stat mods (damage dealt and taken, moving,
+  dodge and attack costs, stamina refill, knockback, stuns, lifesteal) folded by `modsOf`. Put on again, a status
+  keeps the longer of its time left and the new time and gains a stack up to its cap, all stacks on one timer. A
+  status may be permanent (no time), the way inscriptions and blessings will plug in. Four fused Self buffs, both
+  elements in one Self stage, on top of each element's own: Fire + Air Frenzy (10 s, stacks to 3, each ×1.1 damage
+  dealt and ×0.85 attack stamina), Water + Light Renewal (8 s, heals 0.2 D a second), Earth + Lightning Bulwark (6 s,
+  stuns ×0.5, no knockback), Darkness + Fire Bloodrage (8 s, ×1.35 dealt, ×1.25 taken). A used-up Light shield comes
+  off; Warded and Bulwark stop an Air skill's push too, and Charged speeds a casting enemy's refill as a player's.
 - Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the

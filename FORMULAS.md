@@ -261,7 +261,7 @@ The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds
 - **Cost:** (Σ over segments of form 3 + 2 per element + 1 per modifier) × `chainGrowth` 2^(segments − 1). Bolt Fire
   5; Bolt Fire Split Split 7; Bolt Fire, then Nova Lightning: (5 + 5) × 2 = 20.
 - **Release time:** 0.3 + 0.1 × words (every form, element and modifier). Bolt Fire 0.5 s.
-- **D** = `SKILL_EFFECTS.damage` 10 × √(skillpower / 10) × the caster's damage dealt (Empowered 1.2, Cursed 0.85).
+- **D** = `SKILL_EFFECTS.damage` 10 × √(skillpower / 10) × the caster's damage dealt (Statuses, below).
 - **A hit** = Σ over its elements share × D × factor × (1 − resist) (no enemy resists yet); with no element,
   0.6 D. factor = Amplify 1.5 per word × Split 0.9 per word × the form's share (a Beam tick 0.5, a cloud pulse 0.4,
   an Imbue hit 0.5). Statuses go on in full whatever the factor.
@@ -301,6 +301,16 @@ Forms and modifiers:
   (takes × 0.7, no knockback); Air, Hasted 5 s (moves × 1.3, dodges × 0.7); Lightning, Charged 5 s (stamina refills
   × 1.5); Light, a shield of 1 D for 6 s; Darkness, Siphoning 8 s (heals 10% of the damage you deal). Extend × 2 the
   time, Amplify × 1.5 the heal and shield.
+- **Fused Self** (both elements in one Self stage, on top of each one's own): Fire + Air, Frenzy 10 s (stacks to 3:
+  each stack deals × 1.1 and attacks cost × 0.85); Water + Light, Renewal 8 s (heals 0.2 D a second); Earth +
+  Lightning, Bulwark 6 s (stuns × 0.5, no knockback); Darkness + Fire, Bloodrage 8 s (deals × 1.35, takes × 1.25).
+  Extend × 2 the time, Amplify × 1.5 Renewal's heal.
+
+**Statuses** (`STATUS_DEFS` in `shared/src/battle/statuses.ts`) change stats by factors that multiply, once per
+stack and across statuses (lifesteal adds). Put on again, a status keeps the longer of its time left and the new
+time, takes the new amount and gains a stack up to its cap, all stacks on one timer. A permanent one (no time) counts
+the same and never runs out; Self Water's cleanse takes off only harmful timed ones. Example: Frenzy ×2 and Empowered
+deal × 1.1 × 1.1 × 1.2 = × 1.452.
 
 Example: the Goblin Warlock's Bolt Fire hits you for 8, then burns 10 over 4 s; split, two Bolts of 7.2 (the burn
 doesn't stack).
@@ -311,11 +321,13 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 
 ## Damage taken
 
-`hurt` and `damageDealtFactor` in `fight/skills/statuses.ts`.
+`hurt` and `modsOf` in `shared/src/battle/fight/statuses.ts`.
 
-- Dealt = damage × the attacker's Empowered 1.2 × Cursed 0.85 (weapon, body and skill hits alike).
+- Dealt = damage × the attacker's statuses' damage dealt (Empowered 1.2, Cursed 0.85, Frenzy 1.1 a stack, Bloodrage
+  1.35; weapon, body and skill hits alike).
 - Taken = dealt × 50 / (40 + defense) for a weapon or body hit, × 50 / (40 + special defense) for a skill's (a burn
-  too), × Warded 0.7, less what the Light shield absorbs, off HP (never below 0). Any damage stops HP regen for 5 s.
+  too), × the target's statuses' damage taken (Warded 0.7, Bloodrage 1.25), less what the Light shield absorbs (a
+  shield used up comes off), off HP (never below 0). Any damage stops HP regen for 5 s.
 - In a spar (Bram's training fights) HP never goes below a share of the most, `TRAINING_YIELD_SHARE` 0.1
   (`server/src/core/game/training.ts`), and a fighter at it has yielded: 100 HP stops at 10. The training dummy takes
   nothing and falls once a light, a heavy and a stab have each landed.

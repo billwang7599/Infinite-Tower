@@ -7,7 +7,7 @@ import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData
 import { FighterStats } from "../../stats.js";
 import { faces, knock, spend, stagger } from "../combat.js";
 import type { FightEvent } from "../context.js";
-import { damageDealtFactor, hurt } from "../skills/statuses.js";
+import { hurt, modsOf } from "../statuses.js";
 import { endChain, endSwing } from "./swing.js";
 
 export function facingOf(world: World, e: Entity): Vec2 {
@@ -67,7 +67,7 @@ function blockedPerfectly(world: World, events: FightEvent[], attacker: Entity, 
 }
 
 function blocked(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
-  const block = HYBRID.block, damage = hit.damage * damageDealtFactor(world, attacker);
+  const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
   let broken: boolean;
   if (world.has(target, Player)) {
     const stamina = world.require(target, Stamina);

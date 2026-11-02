@@ -67,7 +67,7 @@ export interface FightSnapshot {
   skills: ObjectSnapshot[];
 }
 
-const copyStatuses = (s: StatusData): StatusData => ({ ...s, left: { ...s.left }, cooldown: { ...s.cooldown } });
+const copyStatuses = (s: StatusData): StatusData => ({ on: s.on.map((o) => ({ ...o })), cooldown: { ...s.cooldown } });
 const copySwing = (s: SwingData | null): SwingData | null => s && { ...s, dir: { ...s.dir } };
 
 const fightersOf = (fight: Fight): Entity[] => [...fight.players, ...fight.enemies];

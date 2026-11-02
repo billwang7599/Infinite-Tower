@@ -1,7 +1,7 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { clamp, nextRandom, wrapAngle, type Vec2, type Vec3 } from "../../../core/math.js";
-import { HARMFUL_STATUSES, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf } from "../../../skills/effects.js";
+import { SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf } from "../../../skills/effects.js";
 import {
   releaseTime, SAVE_IN_FIGHT_TIME, SKILL, skillCost, type Segment, type Skill,
 } from "../../../skills/skill.js";
@@ -13,7 +13,8 @@ import { PLAYER } from "../../player.js";
 import { FighterStats, skillDamage } from "../../stats.js";
 import type { FightContext } from "../context.js";
 import { cantCast, interrupt } from "./skilled.js";
-import { heal } from "./statuses.js";
+import { heal } from "../statuses.js";
+import { applyStatus, cleanse } from "../../statuses.js";
 import { foesNear, strike } from "./strike.js";
 
 // Timers are float seconds counted down by FIXED_DT: this keeps 1 / (1/60) steps from becoming 61.
@@ -388,12 +389,15 @@ function releaseOnSelf(world: World, caster: Entity, segment: Segment): void {
   const d = skillDamage(SKILL_EFFECTS.damage, world.require(caster, FighterStats)) * shot.damageFactor;
   for (const element of segment.elements) {
     const self = SKILL_EFFECTS.self[element];
-    if (self.status) s.left[self.status] = self.time * shot.longerFactor;
-    if (element === "light") s.shield = SKILL_EFFECTS.self.light.shield * d;
+    const shield = element === "light" ? SKILL_EFFECTS.self.light.shield * d : 0;
+    if (self.status) applyStatus(s.on, self.status, self.time * shot.longerFactor, shield);
     if (element === "water") {
-      for (const status of HARMFUL_STATUSES) s.left[status] = 0;
-      s.burnDamagePerSec = s.shocks = 0;
+      cleanse(s.on);
       heal(world, caster, SKILL_EFFECTS.self.water.heal * d);
     }
+  }
+  for (const fusion of SKILL_EFFECTS.fusions) {
+    if (!fusion.elements.every((element) => segment.elements.includes(element))) continue;
+    applyStatus(s.on, fusion.status, fusion.time * shot.longerFactor, fusion.healPerSec * d);
   }
 }

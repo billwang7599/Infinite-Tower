@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, wayStepsAfter,
+  AVERAGE_STAT, Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, timeLeft, wayStepsAfter,
   WEAPONS, Wielder, type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -282,7 +282,7 @@ describe("Extend", () => {
     const plain = fightWith([at(5, 5)]), long = fightWith([at(5, 5)]);
     castNow(plain, one("self", ["fire"], []));
     castNow(long, one("self", ["fire"], ["extend"]));
-    const left = (f: Fight) => f.world.require(f.players[0]!, Statuses).left.empowered;
+    const left = (f: Fight) => timeLeft(f.world.require(f.players[0]!, Statuses).on, "empowered");
     close(left(long), left(plain) + SKILL_EFFECTS.self.fire.time * A.extend);
   });
 

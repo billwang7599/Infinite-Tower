@@ -7,7 +7,7 @@ import type { Vec2, Vec3 } from "../../core/math.js";
 import { STRIKES, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
@@ -15,7 +15,7 @@ import { FighterStats, stunTime } from "../stats.js";
 import type { FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
-import { damageDealtFactor, hurt, siphon } from "./skills/statuses.js";
+import { hurt, lifesteal, modsOf } from "./statuses.js";
 import { defend } from "./weapons/defend.js";
 import { parries } from "./weapons/parry.js";
 import { endChain, endSwing } from "./weapons/swing.js";
@@ -125,20 +125,22 @@ function hitPlayer(
 ): void {
   const from = world.require(attacker, Body).pos, body = world.require(target, Body);
   const health = world.require(target, Health);
-  const dealt = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
+  const dealt = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   health.invuln = PLAYER.hurtInvuln;
   if (hit.attack === null) {
     const stun = HITSTUN_TIME + hit.knockback * HITSTUN_PER_KNOCKBACK;
-    health.hitstun = stunTime(stun, world.require(target, FighterStats));
-    const warded = (world.get(target, Statuses)?.left.warded ?? 0) > 0;
-    if (!warded) knock(body.pos, from, body.vel, hit.knockback, hit.lift, { x: hit.dirX, z: hit.dirZ });
+    const mods = modsOf(world, target);
+    health.hitstun = stunTime(stun, world.require(target, FighterStats)) * mods.stunTimeFactor;
+    if (mods.knockbackFactor > 0) {
+      knock(body.pos, from, body.vel, hit.knockback * mods.knockbackFactor, hit.lift, { x: hit.dirX, z: hit.dirZ });
+    }
   }
   if (health.hitstun > 0 && ["cast", "chant", "write", "beam", "bag", "use"].includes(player.action)) {
     breakOff(player, world.require(target, Skilled));
   }
   endChain(world.require(target, Wielder));
-  siphon(world, attacker, dealt);
+  lifesteal(world, attacker, dealt);
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
 }
 
@@ -158,9 +160,9 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
 function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
   if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, hit.way === "stab" ? "stab" : hit.attack);
-  const damage = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
+  const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
-  siphon(world, attacker, damage);
+  lifesteal(world, attacker, damage);
   events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
 }

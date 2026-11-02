@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, Enemy, Health, HP_REGEN_PAUSE_TIME, hpRegenPerSec, maxHpOf, moveSpeed, physicalTakenFactor, PLAYER,
+  applyStatus, Body, Enemy, Health, HP_REGEN_PAUSE_TIME, hpRegenPerSec, maxHpOf, moveSpeed, physicalTakenFactor, PLAYER,
   skillTakenFactor, Stamina, staminaRegenPerSec, Statuses, stunTime, type EnemyDef, type Stats, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -130,8 +130,7 @@ describe("HP regen", () => {
   test("a burn's damage pauses it too", () => {
     const fight = fightWith(regen);
     const statuses = fight.world.require(fight.players[0]!, Statuses);
-    statuses.left.burning = 1;
-    statuses.burnDamagePerSec = 1;
+    applyStatus(statuses.on, "burning", 1, 1);
     run(fight, 1 + HP_REGEN_PAUSE_TIME - 0.1);
     assert.ok(health(fight).hp < HURT_HP);
   });
