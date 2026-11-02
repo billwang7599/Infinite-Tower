@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 import { drawItem } from "../../../gfx/items/items.js";
 import { hoveredStack, landing, selectedStack, type BagMouse } from "./bagMouse.js";
 import { CELL, GRID_FRAME_PX, SCALE } from "./grid.js";
-import { itemInfo } from "./itemInfo.js";
+import { itemInfo, RARITY_EDGE, RARITY_NAME, RARITY_TEXT } from "./itemInfo.js";
 
 interface GridProps {
   name: GridName;
@@ -53,7 +53,9 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
         {grid.items.map((stack) => (
           <Placed
             key={`${stack.x},${stack.y}`} stack={stack} left={stack.x * CELL} top={stack.y * CELL}
-            turned={stack.turned} className={`${ITEM_FRAME} ${stack === dragged ? "opacity-25" : ""}`}
+            turned={stack.turned} className={
+              `${ITEM_FRAME} ${RARITY_EDGE[ITEMS[stack.item].rarity]} ${stack === dragged ? "opacity-25" : ""}`
+            }
           />
         ))}
         {selected && (
@@ -74,7 +76,7 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
 }
 
 const ITEM_FRAME =
-  "rounded-[2px] border border-white/10 bg-linear-to-b from-white/[0.09] to-white/[0.02] "
+  "rounded-[2px] border bg-linear-to-b from-white/[0.09] to-white/[0.02] "
   + "shadow-[inset_0_0_0_1px_#0008]";
 
 const cellBox = (at: Cell, size: { cols: number; rows: number }) =>
@@ -158,7 +160,12 @@ export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cel
       }
       style={{ top: at.y + 20, ...side }}
     >
-      <div className="mb-1 border-b border-white/10 pb-1 font-title text-sm text-victory">{info.name}</div>
+      <div className="mb-1 border-b border-white/10 pb-1">
+        <div className={`font-title text-sm ${RARITY_TEXT[info.rarity]}`}>{info.name}</div>
+        <div id="bag-tooltip-rarity" className={`text-[11px] opacity-80 ${RARITY_TEXT[info.rarity]}`}>
+          {RARITY_NAME[info.rarity]}
+        </div>
+      </div>
       <div className="text-white/65 tabular-nums">Size {info.size}</div>
       <div className="text-white/65 tabular-nums">Weight {info.weight}</div>
       {info.effect && <div className="text-stamina">{info.effect}</div>}

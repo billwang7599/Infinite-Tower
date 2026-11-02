@@ -32,6 +32,7 @@ export const GOBLIN_WARLOCK: Enemy = {
     },
   },
   drops: [{ item: "goblin-warlock-essence", chance: 1, count: 1 }],
+  treasure: { uncommon: 0.05, rare: 0.015, epic: 0.004, legendary: 0.001, unique: 0.0002 },
   overworld: () => [
     wander({ speed: 1.2 }),
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),

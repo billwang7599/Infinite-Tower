@@ -287,6 +287,12 @@ Decided by the user:
   players saved with it keep what they carry until they lose it.
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, and the three coins.
+- Rarity and unique things (the user: "give items rarity"; "unique items must have user activity within 7 days";
+  "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
+  only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
+  for 7 days goes back to the world, and so does one whose death pile vanishes. Unique things can be traded (no trade
+  system yet: nothing stops one changing hands). A carved unique inscription will be kept through every death
+  ([plan/rarity.md](plan/rarity.md)).
 - Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
   overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
   battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
@@ -676,6 +682,25 @@ them; treat them as changeable, and still ask before deciding new ones):
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 60 × (strength / 10)^¼ (60 at the start). Over it, a dodge costs 30% more stamina. A new
   bag is empty. The server checks every move with the shared bag rules (mid-fight, the fight does).
+- Rarity and drops (the user's rules above; the agent's picks, tried by tests and a headless look at the bag, not
+  hand-played): six tiers, common, uncommon, rare, epic, legendary and unique, white, green, blue, purple, orange-gold
+  and red (`--color-rarity-*` in `client/src/ui/styles.css`), set per kind of item (food, coins, hides, pelts, fangs,
+  tusks, the old stick, the sword, the skillbook and boar essence common; potions, tonics, the longsword, greatsword,
+  Kobold blades, lurker scales and the other essences uncommon). A name shows in its colour (the tooltip, with its
+  tier under it, the selected item, the shop) and a stack above common gets a tinted edge in the bag; piles don't glow
+  and no notice tells of a rare drop yet. Beyond its own drops, each kill rolls once for treasure: a chance per tier
+  per enemy (FORMULAS.md, "Treasure"; boar 3% / 0.8% / 0.2% / 0.05% / 0.01% from uncommon to unique, tougher
+  monsters up to twice that), at most one a kill, picked from the tier's `TREASURE` in
+  `server/src/core/enemies/index.ts`. New items: five sigils, 1 x 1, weight 0.1, not stacking, each naming the
+  inscription it would carve (carving isn't built): Grit (uncommon, a stat boost), Embers (rare, always on fire), the
+  Last Breath (epic, swinging and dodging past your stamina for HP), the Red Blade (legendary, sword damage heals) and
+  the First Door (unique, its power undecided); none can be sold. A bog pearl (rare, 1 x 1, stacks of 10, weight 0.1,
+  worth 250c, the forge buys it), dropped by the bog lurker 5% of the time. A unique drops only while it's free:
+  nobody has saved holding it within the 7 days, and it lies in no pile and on no player online; a unique roll with
+  none free drops nothing. The holder is whoever last saved carrying it (saved in `unique_items`, as of their latest
+  save); a player who loads carrying one they don't hold has it taken out of their bag and slots. A unique left on
+  the cloth, or in a pile that vanishes or is lost to a restart, is free again at once. The admin panel's give can
+  still make a second one (dev only); the copy is taken away from whoever doesn't hold it on their next login.
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.

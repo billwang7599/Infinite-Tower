@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { FIXED_DT, HYBRID, IDLE_INPUT, wayStepsAfter, WEAPONS, Wielder } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
-import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fightWith } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -38,7 +38,7 @@ describe("the Kobold Greatsword", () => {
     assert.ok(seen > 2);
   });
 
-  test("its own blade never drops: only its essence", () => {
-    assert.deepEqual(rollDrops("kobold-greatsword", () => 0), { "kobold-greatsword-essence": 1 });
+  test("its own blade never drops: only its essence, besides treasure", () => {
+    assert.deepEqual(ENEMIES["kobold-greatsword"].drops.map((d) => d.item), ["kobold-greatsword-essence"]);
   });
 });

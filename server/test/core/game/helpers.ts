@@ -13,13 +13,14 @@ import { QUESTS, type QuestStep } from "../../../src/core/content/quests.js";
 import { Chat } from "../../../src/core/game/chat.js";
 import { Duels } from "../../../src/core/game/duels.js";
 import { GameSession } from "../../../src/core/game/session.js";
+import { Uniques } from "../../../src/core/game/uniques.js";
 import type { Story, When } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
 import { getLevel } from "../../../src/core/world/index.js";
-import { FakeLink } from "../../fixtures/fakes.js";
+import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { armed } from "../../fixtures/fight.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 
@@ -42,7 +43,10 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const online = () => [session];
   const session = new GameSession(
     ACCOUNT, link, opts.dev ?? false, saved, persist, overworldOf,
-    { online, duels: new Duels(online), chat: new Chat(online) },
+    {
+      online, duels: new Duels(online), chat: new Chat(online),
+      uniques: new Uniques(new MemoryPlayerStore(), () => []),
+    },
   );
   session.start();
   return { session, link, saves, overworldOf };

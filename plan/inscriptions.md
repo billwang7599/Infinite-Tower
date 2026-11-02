@@ -29,7 +29,8 @@ things are in [rarity.md](rarity.md).
 
 - **An inscription comes as an item, a sigil** ("Sigil of Embers"): dropped, crafted, given as a quest reward or
   traded like anything else. Until it's carved it sits in the bag, so dying loses it like the rest of the bag.
-  Carving uses the sigil up. That makes "earn it back" literal: you need another sigil.
+  Carving uses the sigil up. That makes "earn it back" literal: you need another sigil. Built: five sigils, one of
+  each tier above common, drop as treasure (`inscription` in `ITEMS`); nothing carves them yet.
 - **Slots grow with the core:** one per step, and the first step of each new realm gives two. Yan Early starts
   with one, so a core at Peak Tian holds 19 (15 steps, plus 4 breakthroughs into Sol, Lux, Ling and Tian).
 - **The Collegium charges by rarity,** in coins and monster essence, both for carving and (much more) for removing.

@@ -2,22 +2,30 @@
  * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
  * the old session is saved first, so the new one loads what it had.
  */
-import { CLOSE_CODES } from "@infinite-tower/shared";
+import { CLOSE_CODES, SLOTS, type ItemId } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
+import { Pile } from "../overworld/components.js";
 import { Overworld } from "../overworld/overworld.js";
 import { getLevel } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
 import { Chat } from "./chat.js";
 import { Duels } from "./duels.js";
 import { GameSession, type Others } from "./session.js";
+import { Uniques } from "./uniques.js";
 
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
   private readonly overworlds = new Map<string, Overworld>();
   private readonly online = () => this.byAccount.values();
-  private readonly others: Others = { online: this.online, duels: new Duels(this.online), chat: new Chat(this.online) };
+  readonly uniques: Uniques;
+  private readonly others: Others;
 
-  constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {}
+  constructor(private readonly store: PlayerStore, private readonly dev: boolean, readonly maxPlayers: number) {
+    this.uniques = new Uniques(store, () => this.inPlay());
+    this.others = {
+      online: this.online, duels: new Duels(this.online), chat: new Chat(this.online), uniques: this.uniques,
+    };
+  }
 
   get count(): number {
     return this.byAccount.size;
@@ -55,10 +63,13 @@ export class OnlinePlayers {
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
     const id = account.id;
     // Loads and saves for one player land in order, so this load comes after the replaced session's save.
-    const saved = (await this.store.load(id)) ?? newPlayer();
+    const loaded = (await this.store.load(id)) ?? newPlayer();
+    await this.uniques.ready;
     if (!link.open || this.refusedAsFull(link, id)) return null;
     this.replace(id); // another tab may have joined while this one was loading
+    const saved = this.uniques.kept(id, loaded);
     const session = new GameSession(account, link, this.dev, saved, (data) => {
+      this.uniques.saved(id, data);
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
     }, (levelId) => this.overworldOf(levelId), this.others);
@@ -79,6 +90,17 @@ export class OnlinePlayers {
     if (this.byAccount.has(id) || this.byAccount.size < this.maxPlayers) return false;
     link.close(CLOSE_CODES.full, "server full");
     return true;
+  }
+
+  private *inPlay(): Iterable<ItemId> {
+    for (const overworld of this.overworlds.values()) {
+      for (const [, pile] of overworld.world.query(Pile)) for (const stack of pile.items.items) yield stack.item;
+    }
+    for (const session of this.byAccount.values()) {
+      const { bag, cloth, equipment } = session.gear;
+      for (const stack of [...bag.items, ...cloth.items]) yield stack.item;
+      for (const slot of SLOTS) if (equipment[slot]) yield equipment[slot];
+    }
   }
 
   private replace(id: PlayerId): void {

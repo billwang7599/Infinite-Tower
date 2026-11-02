@@ -25,6 +25,7 @@ import { stateMsg } from "./snapshot.js";
 import { progressStory, questbookOf, type Story } from "./story.js";
 import { handOver, placeFor, takeQuest, talkTo, trainingInView, type Placed } from "./talk.js";
 import { startTraining } from "./training.js";
+import type { Uniques } from "./uniques.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
@@ -39,6 +40,7 @@ export interface Others {
   online(): Iterable<GameSession>;
   duels: Duels;
   chat: Chat;
+  uniques: Uniques;
 }
 
 export function nearestOtherSession(
@@ -120,6 +122,8 @@ export class GameSession {
   }
 
   get stats(): Stats { return coreStats(this.soul); }
+
+  get uniques(): Uniques { return this.others.uniques; }
 
   get bag(): Bag { return this.held.bag; }
   set bag(bag: Bag) { this.gear = { ...this.held, bag }; }

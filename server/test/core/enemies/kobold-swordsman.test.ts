@@ -4,7 +4,7 @@ import {
   Body, Enemy, FIXED_DT, Health, IDLE_INPUT, Wielder, type EnemyDef, type PlayerInputData, type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
-import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
+import { ENEMIES } from "../../../src/core/enemies/index.js";
 import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -62,9 +62,9 @@ describe("the Kobold Swordsman", () => {
     assert.equal(fight.outcome.state, "lost");
   });
 
-  test("its own blade never drops, even on the lowest roll", () => {
+  test("its own blade never drops: only its essence, besides treasure", () => {
     assert.equal(KOBOLD.wielder?.hands.rightHand, "kobold-blade");
-    assert.deepEqual(rollDrops("kobold-swordsman", () => 0), { "kobold-swordsman-essence": 1 }, "only its essence");
+    assert.deepEqual(ENEMIES["kobold-swordsman"].drops.map((d) => d.item), ["kobold-swordsman-essence"]);
   });
 });
 

@@ -1,6 +1,6 @@
 /** What core needs from the outside world, as interfaces it owns; main.ts picks the implementations. */
 import type {
-  Bag, Character, CoreState, Equipment, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
+  Bag, Character, CoreState, Equipment, ItemId, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
 } from "@infinite-tower/shared";
 import type { ShopId } from "./content/shops.js";
 import type { Story } from "./game/story.js";
@@ -32,11 +32,21 @@ export interface PlayerSave {
   shopsBought: ShopId[];
 }
 
+/** `seenAtMs`: the holder's latest save. */
+export interface UniqueHold {
+  item: ItemId;
+  holder: PlayerId;
+  seenAtMs: number;
+}
+
 export interface PlayerStore {
   /** null for a player it has never saved. */
   load(id: PlayerId): Promise<PlayerSave | null>;
   /** Loads and saves for one player must land in the order they were called. */
   save(id: PlayerId, data: PlayerSave): Promise<void>;
+  uniqueHolds(): Promise<UniqueHold[]>;
+  /** null: nobody holds it. */
+  holdUnique(item: ItemId, holder: PlayerId | null): Promise<void>;
 }
 
 export interface StoredAccount extends Account {

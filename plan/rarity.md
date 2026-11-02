@@ -1,6 +1,8 @@
 # Rarity, and unique things
 
-Status: **an idea, nothing built.** Covers items and inscriptions (sigils, plan/inscriptions.md) alike.
+Status: **partly built.** The tiers, the colours in the bag, treasure drops, sigil items and the one-of-a-kind rule are
+in the game (ARCHITECTURE.md, "Drops and treasure" and "Unique things"; the numbers in FORMULAS.md, "Treasure"). What's
+below is what's still to build or decide. Covers items and inscriptions (sigils, plan/inscriptions.md) alike.
 
 ## Decided by the user
 
@@ -10,45 +12,24 @@ Status: **an idea, nothing built.** Covers items and inscriptions (sigils, plan/
 - A unique thing whose holder hasn't logged in for 7 days goes back to the world.
 - A carved unique inscription is kept through death, PvP deaths included: they're meant to be very strong
   augments, and losing one to a single death would make players quit.
+- Unique things can be traded. There's no trade system yet; nothing stops one changing hands (whoever saves with it
+  last holds it), and a trade system must keep it that way.
 
 ## Drafted by OptChat (for the user to change)
 
-### The tiers
+### Still to build
 
-| Rarity | Colour | Where it comes from |
-|---|---|---|
-| Common | white | shops, crafting, most drops |
-| Uncommon | green | tougher monsters, crafting from uncommon parts, small quests |
-| Rare | blue | rare drops (a few %), quest rewards, crafting from rare parts |
-| Epic | purple | bosses, long quest chains, hidden places |
-| Legendary | gold | super rare drops (well under 1%), legendary words, the hardest quests |
-| Unique | red | one in the world (below) |
-
-- **Rarity belongs to the kind of item**, set by hand in the item table: every Wolf fang is Common, every Kobold
-  greatsword Uncommon. No random rolls or affixes, so a tooltip always tells the truth.
-- **Rarity says how hard a thing is to get, not how strong it is.** Rarer things tend to be stronger, but a Rare
-  item can be a side-grade.
-- **How it shows:** the name in its colour (tooltip, loot, notices), a thin tinted edge on its bag cells, and a
-  glow on piles holding Rare or better. An Epic or better drop gets its own notice.
-- **Today's items:** Common for food, coins, hides, pelts, fangs, tusks, the old stick, the sword, the skillbook
-  and boar essence; Uncommon for potions and tonics, the longsword, greatsword, Kobold blades, Lurker scales and
-  the other essences.
-
-### Unique things
-
-- **The server keeps one record per unique thing:** who holds it, which pile it lies in, or nobody (back in the
-  world). While someone holds it, its source doesn't drop it.
-- **A unique item is lost like any item.** Dying drops it in your pile, where anyone can pick it up. That's the
-  risk of carrying it, so it should never go in a stash or bank when those come.
-- **It goes back to the world** when its pile vanishes (the usual 10 minutes), or when its holder hasn't logged in
-  for 7 days (user's decision). Its source can then drop it again, for whoever gets there first.
+- **How it shows:** a glow on piles holding Rare or better, and an Epic or better drop getting its own notice.
 - **Telling the world:** when a unique thing drops, changes hands or goes back, everyone gets a notice.
+- **Never in a stash or bank** when those come: dying with a unique thing is the risk of carrying it.
 - **A unique inscription, once carved, is kept through death** like every inscription (user's decision), so it only
   goes back to the world when it's removed or its holder goes 7 days without logging in. An uncarved unique sigil
-  is still an item, and is lost on death like one.
+  is an item, and is lost on death like one (built: it drops in the death pile).
+- Rare things from quests, crafting, bosses and hidden places (the tiers' other sources), and more treasure than one
+  sigil a tier.
 
 ## Open
 
-- The colours and names (the realms' names would clash with the core, so they're kept plain).
-- Drop chances per tier.
-- Whether a holder can trade or give away a unique thing (likely yes, it's an item until carved).
+- The colours and names (the realms' names would clash with the core, so they're kept plain): picked by the agent,
+  for the user to change.
+- The drop chances (FORMULAS.md), the agent's, untuned.

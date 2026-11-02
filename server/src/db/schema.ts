@@ -51,3 +51,8 @@ export const players = pgTable("players", {
   shopsBought: text("shops_bought").array().notNull().default([]),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const uniqueItems = pgTable("unique_items", {
+  item: text().primaryKey(),
+  holderId: uuid("holder_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+});

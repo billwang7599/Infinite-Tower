@@ -23,5 +23,6 @@ export const BRAM: Enemy = {
     wielder: { hands: { rightHand: "old-stick" }, armReachM: PLAYER.armReachM },
   },
   drops: [],
+  treasure: {},
   overworld: () => [],
 };

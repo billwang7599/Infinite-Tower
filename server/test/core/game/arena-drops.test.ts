@@ -17,7 +17,7 @@ before(() => initPhysics());
 
 const REACH_M = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
-const DROPPED = rollDrops("wild-boar", () => 0);
+const DROPPED = rollDrops("wild-boar", () => 0, () => false);
 const MEAT: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 1, x: 0, y: 0, turned: false }] };
 const bagSpot = (x: number, y: number): GridSpot => ({ in: "bag", x, y });
 

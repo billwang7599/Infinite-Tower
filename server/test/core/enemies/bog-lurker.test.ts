@@ -85,13 +85,16 @@ describe("the bog lurker", () => {
     assert.equal(play(masher).fight.outcome.state, "lost");
   });
 
-  test("drops its essence always, and scales on a low roll", () => {
-    assert.deepEqual(rollDrops("bog-lurker", () => 0.999), { "bog-lurker-essence": 1 });
-    assert.ok((rollDrops("bog-lurker", () => 0)["lurker-scale"] ?? 0) >= 1);
+  test("drops its essence always, and scales and a pearl on a low roll", () => {
+    assert.deepEqual(rollDrops("bog-lurker", () => 0.999, () => false), { "bog-lurker-essence": 1 });
+    const low = rollDrops("bog-lurker", () => 0, () => false);
+    assert.ok((low["lurker-scale"] ?? 0) >= 1);
+    assert.equal(low["bog-pearl"], 1);
   });
 
-  test("the forge buys its scales", () => {
+  test("the forge buys its scales and pearls", () => {
     assert.ok(SHOPS.smith.buys.includes("lurker-scale"));
+    assert.ok(SHOPS.smith.buys.includes("bog-pearl"));
   });
 
   test("lurks in the Mistwood", () => {

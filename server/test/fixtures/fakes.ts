@@ -1,9 +1,9 @@
 /**
  * In-memory stand-ins for core's ports (core/ports.ts), so core can be tested without a database or a socket.
  */
-import type { ServerMsg, ServerMsgOf } from "@infinite-tower/shared";
+import type { ItemId, ServerMsg, ServerMsgOf } from "@infinite-tower/shared";
 import type {
-  Account, AccountStore, PlayerId, PlayerLink, PlayerSave, PlayerStore, StoredAccount,
+  Account, AccountStore, PlayerId, PlayerLink, PlayerSave, PlayerStore, StoredAccount, UniqueHold,
 } from "../../src/core/ports.js";
 
 /** A player's line to their client that records what was sent, and how it was closed. */
@@ -40,6 +40,8 @@ export class MemoryPlayerStore implements PlayerStore {
   readonly saved = new Map<PlayerId, PlayerSave>();
   /** Every save, in order. */
   readonly saves: { id: PlayerId; data: PlayerSave }[] = [];
+  readonly holds = new Map<ItemId, PlayerId>();
+  private readonly savedAtMs = new Map<PlayerId, number>();
   failLoad: Error | null = null;
   private held: (() => void) | null = null;
 
@@ -53,6 +55,16 @@ export class MemoryPlayerStore implements PlayerStore {
   async save(id: PlayerId, data: PlayerSave): Promise<void> {
     this.saves.push({ id, data: structuredClone(data) });
     this.saved.set(id, structuredClone(data));
+    this.savedAtMs.set(id, Date.now());
+  }
+
+  async uniqueHolds(): Promise<UniqueHold[]> {
+    return [...this.holds].map(([item, holder]) => ({ item, holder, seenAtMs: this.savedAtMs.get(holder) ?? 0 }));
+  }
+
+  async holdUnique(item: ItemId, holder: PlayerId | null): Promise<void> {
+    if (holder === null) this.holds.delete(item);
+    else this.holds.set(item, holder);
   }
 
   /** The next load waits until the returned function is called. */

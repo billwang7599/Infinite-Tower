@@ -6,9 +6,9 @@ import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
 import { SHOPS, type ShopId } from "../core/content/shops.js";
 import { keptStory } from "../core/game/story.js";
-import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
+import type { PlayerId, PlayerSave, PlayerStore, UniqueHold } from "../core/ports.js";
 import type { Db } from "./db.js";
-import { players } from "./schema.js";
+import { players, uniqueItems } from "./schema.js";
 
 /** Players in Postgres: the `players` table (schema.ts). */
 export class PgPlayerStore implements PlayerStore {
@@ -29,6 +29,23 @@ export class PgPlayerStore implements PlayerStore {
       const row = toRow(data);
       await this.db.insert(players).values({ id, ...row })
         .onConflictDoUpdate({ target: players.id, set: { ...row, updatedAt: sql`now()` } });
+    });
+  }
+
+  async uniqueHolds(): Promise<UniqueHold[]> {
+    const rows = await this.db
+      .select({ item: uniqueItems.item, holder: uniqueItems.holderId, seenAt: players.updatedAt }).from(uniqueItems).innerJoin(players, eq(players.id, uniqueItems.holderId));
+    return rows.filter((row) => Object.hasOwn(ITEMS, row.item))
+      .map((row) => ({ item: row.item as ItemId, holder: row.holder, seenAtMs: row.seenAt.getTime() }));
+  }
+
+  holdUnique(item: ItemId, holder: PlayerId | null): Promise<void> {
+    return this.inOrder(`unique:${item}`, async () => {
+      if (holder === null) await this.db.delete(uniqueItems).where(eq(uniqueItems.item, item));
+      else {
+        await this.db.insert(uniqueItems).values({ item, holderId: holder })
+          .onConflictDoUpdate({ target: uniqueItems.item, set: { holderId: holder } });
+      }
     });
   }
 

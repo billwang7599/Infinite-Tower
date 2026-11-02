@@ -49,6 +49,15 @@ describe("itemInfo (the tooltip)", () => {
     assert.ok(!itemInfo(stack("sword")).effect?.includes("strength"));
   });
 
+  test("gives its rarity", () => {
+    assert.equal(itemInfo(stack("wolf-fang")).rarity, "common");
+    assert.equal(itemInfo(stack("bog-pearl")).rarity, "rare");
+  });
+
+  test("a sigil says it's to be carved into the core", () => {
+    assert.match(itemInfo(stack("sigil-of-embers")).effect ?? "", /carve it into your core/);
+  });
+
   test("weights show one decimal place at most", () => {
     assert.equal(formatWeight(12), "12");
     assert.equal(formatWeight(12.5), "12.5");
