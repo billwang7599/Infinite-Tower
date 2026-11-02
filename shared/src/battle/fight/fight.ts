@@ -8,7 +8,7 @@ import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import type { ArenaDef } from "../../world/arena.js";
-import { Body, Enemy, Health, Player, SkillObject, Statuses } from "../components.js";
+import { Body, Enemy, Health, Player, SkillObject } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
@@ -28,7 +28,7 @@ import { playerControllerSystem } from "./player/controller.js";
 import { useSystem } from "./player/use.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
-import { regenSystem, statusMoveFactor, statusSystem } from "./skills/statuses.js";
+import { modsOf, regenSystem, statusSystem } from "./statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { weaponSystem } from "./weapons/swing.js";
@@ -57,7 +57,7 @@ function playerGroundSystem(physics: ArenaPhysics): System {
 function enemyMotorSystem(): System {
   return (world, dt) => {
     for (const [e, enemy, body] of world.query(Enemy, Body)) {
-      const v = body.vel, m = enemy.move, speed = m.speed * statusMoveFactor(world.get(e, Statuses));
+      const v = body.vel, m = enemy.move, speed = m.speed * modsOf(world, e).moveFactor;
       if (m.halt) v.x = v.z = 0;
       v.x = approach(v.x, m.dirX * speed, m.accel * dt);
       v.z = approach(v.z, m.dirZ * speed, m.accel * dt);

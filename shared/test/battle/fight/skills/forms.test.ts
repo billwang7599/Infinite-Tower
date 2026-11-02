@@ -33,7 +33,7 @@ describe("a Form with no element", () => {
     run(fight, 1);
     close(lostHp(fight, 0), SKILL_EFFECTS.plain.damage * D);
     const s = fight.world.require(fight.enemies[0]!, Statuses);
-    assert.ok(Object.values(s.left).every((left) => left === 0));
+    assert.deepEqual(s.on, []);
   });
 });
 

@@ -12,6 +12,7 @@ import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
 import { spend } from "../combat.js";
+import { modsOf } from "../statuses.js";
 import { endChain, endSwing, startWaySwing } from "../weapons/swing.js";
 import { startAction } from "./controller.js";
 
@@ -95,7 +96,8 @@ export function attackOrBlock(t: SwordTurn): boolean {
   const { world, e, player, input, wielder, stamina, weapon } = t;
   if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && stamina.value > 0) {
     strike(t, player.queued);
-    spend(stamina, strikeCost(weapon, player.queued, world.require(e, FighterStats).strength));
+    const cost = strikeCost(weapon, player.queued, world.require(e, FighterStats).strength);
+    spend(stamina, cost * modsOf(world, e).attackCostFactor);
     player.attackBuffer = 0;
     return true;
   }

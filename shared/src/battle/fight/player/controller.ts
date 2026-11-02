@@ -4,7 +4,7 @@ import { dodgeCost, walkPace } from "../../../items/burden.js";
 import { emptyCloth, heldIn, moveGear, NO_PILE, type Spot } from "../../../items/gear.js";
 import { startUse } from "../../../items/using.js";
 import {
-  Body, Health, Player, Skilled, Stamina, Statuses, Wielder, type PlayerAction, type PlayerData,
+  Body, Health, Player, Skilled, Stamina, Wielder, type PlayerAction, type PlayerData,
 } from "../../components.js";
 import { SKILL_EFFECTS } from "../../../skills/effects.js";
 import { sameSkill, skillCost, type Skill, type Skillbook } from "../../../skills/skill.js";
@@ -16,7 +16,7 @@ import { weaponIn } from "../../../weapons/weapons.js";
 import { breakOff, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { endCast, startCast } from "../skills/skilled.js";
-import { statusMoveFactor } from "../skills/statuses.js";
+import { modsOf } from "../statuses.js";
 import { bladeLive, endChain, endSwing, handsOf } from "../weapons/swing.js";
 import { attackOrBlock, readSword, type SwordTurn } from "./sword.js";
 
@@ -81,9 +81,9 @@ export function playerControllerSystem(targets: readonly Entity[], events: Fight
 function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[]): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), body = world.require(e, Body);
   const health = world.require(e, Health), stamina = world.require(e, Stamina), stats = world.require(e, FighterStats);
-  const statuses = world.get(e, Statuses), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
+  const mods = modsOf(world, e), wielder = world.require(e, Wielder), skilled = world.require(e, Skilled);
   const v = body.vel;
-  const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden) * statusMoveFactor(statuses);
+  const walkSpeed = moveSpeed(PLAYER.moveSpeed, stats) * walkPace(player.burden) * mods.moveFactor;
   const alive = health.hp > 0;
 
   const swing = wielder.swing, locked = swing !== null && swing.step < swing.liveUntil;
@@ -129,7 +129,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     if (STUNNED.includes(player.action)) player.action = "none";
     const dodge = PLAYER.dodge, burdenCost = dodgeCost(player.burden);
     const dodgeStamina = burdenCost === null ? null
-      : burdenCost * ((statuses?.left.hasted ?? 0) > 0 ? SKILL_EFFECTS.self.air.dodgeCostFactor : 1);
+      : burdenCost * mods.dodgeCostFactor;
     const free = player.action === "none" || player.action === "block" || (player.action === "attack" && !locked);
     turn.free = free;
     const chanting = player.action === "chant" || player.action === "write";
@@ -243,8 +243,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   if (!STILL.includes(player.action)) stamina.regenDelay = PLAYER.staminaRegenDelay;
   else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
   else {
-    const charged = (statuses?.left.charged ?? 0) > 0 ? SKILL_EFFECTS.self.lightning.staminaRegenFactor : 1;
-    const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * charged;
+    const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * mods.staminaRegenFactor;
     stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
   }
 }

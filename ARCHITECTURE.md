@@ -232,7 +232,7 @@ main.ts
   (`Enemy.struck`).
   `Fight.leave` marks a player gone from the arena (`Player.leftArena`, part of the state), downing them only while
   it's fought.
-  Every hit, skill and burn hurts through `hurt` (`fight/skills/statuses.ts`), which spares an invulnerable player
+  Every hit, skill and burn hurts through `hurt` (`fight/statuses.ts`), which spares an invulnerable player
   (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight), takes defense or special defense
   off by the damage's kind (physical or skill), and pauses HP regen (`Health.regenDelay`, `HP_REGEN_PAUSE_TIME`);
   `regenSystem` there gives it back by the fighter's stats after the step's hits.
@@ -449,8 +449,14 @@ main.ts
   the nearest; split ones aim side by side beside it (`fanM`) until close. Split Bolts start in an upright circle round
   the caster and fly in to meet a point ahead (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs
   `strike` (`fight/skills/strike.ts`): every element's status on the target's `Statuses`, then the reactions, then
-  the damage. `statusSystem` runs statuses down and burns. Statuses also change sword hits (Empowered, Cursed,
-  Warded, the Light shield, Siphoning: `fight/skills/statuses.ts`). Every number is in `SKILL_EFFECTS`
+  the damage. Statuses are one timed-buff system (`battle/statuses.ts`, `fight/statuses.ts`): a fighter's `Statuses`
+  holds a list of what's on it (each with its time left, or null for a permanent one, its stacks and an amount: a
+  shield's HP, a burn's or a heal's per second), part of the fight's state and hash. `STATUS_DEFS` says what each does
+  to stats (`StatMods`: damage dealt and taken, moving, dodge and attack costs, stamina refill, knockback, stuns,
+  lifesteal), and `modsOf` folds them for whoever asks (weapon, body and skill hits alike), so a later permanent
+  source (an inscription, a blessing) is a status with no time. `statusSystem` runs them down, burns and heals. Self
+  puts its element's status on, and a pair of elements its fusion's (`SKILL_EFFECTS.fusions`). Every number is in
+  `SKILL_EFFECTS`
   (`shared/src/skills/effects.ts`). The chant is a held input (`chant`) and the "chant" action, which holds the
   player still, with or without the skillbook; a skill on none of the player's pages (`book`, from the setup), or any
   skill with no book in hand, starts only from it. Writing a page (`write`, from the chant, book in hand) is the
@@ -1015,7 +1021,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   overworld/       view.ts (VIEW: a screen's widest shape, 16:9)
   battle/          components.ts (Player, Wielder and its swing, Health, Stamina, Statuses, Body, Fighter, ActiveHit,
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
-                   player.ts (PLAYER tuning, Vitals, GRAVITY), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
+                   player.ts (PLAYER tuning, Vitals, GRAVITY), statuses.ts (STATUS_DEFS: every status, harmful or
+                   not, its stat mods, stack cap and amount; StatMods, NO_MODS; applyStatus, endStatus, cleanse,
+                   timeLeft, stacksOf, modsFrom), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats: the shown
@@ -1038,7 +1046,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
-                     to 2 decimals)
+                     to 2 decimals, statuses.ts (statusSystem: statuses run down, burns
+                     and heals over time; modsOf; hurt, by the damage's kind, the target's defenses and shields;
+                     heal, lifesteal, regenSystem)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
@@ -1055,9 +1065,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        SAVE_IN_FIGHT_TIME is up; imbueOf),
                        skilled.ts (any fighter's skills: startCast, chant, releaseChant, endCast, interrupt,
                        cantCast, windUpSystem), strike.ts (a stage hitting a target: statuses, reactions, damage;
-                       foesNear), statuses.ts
-                       (statusSystem; hurt, by the damage's kind and the target's defenses; regenSystem; what statuses
-                       do to damage dealt and taken, healing, walking speed)
+                       foesNear)
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
                        poise / stagger / stun / death), lunge.ts, charge.ts, pounce.ts (the wolf's: circling at a
                        distance, a crouch that locks its line, a leap and bite, longer open after a miss, a hop back;
@@ -1094,7 +1102,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    and the server's check; skillCost, releaseTime; SKILL: their numbers; SKILLBOOK_PAGES, Skillbook,
                    blankSkillbook, SAVE_IN_FIGHT_TIME, sameSkill; wordKind, NEXT_WORDS, skillOf / wordsOf: words in
                    the order they're chanted <-> a skill), effects.ts (SKILL_EFFECTS: what skills
-                   do in a fight, every number; STATUSES, REACTIONS; shotOf: a segment's modifiers
+                   do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft and
                    minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the

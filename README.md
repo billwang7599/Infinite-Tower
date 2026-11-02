@@ -143,6 +143,8 @@ What's built so far:
   needs no book, and anyone chanting shows their words in front of them. The skillbook has four pages, written from the
   bag screen (Open on the book in hand) or in a fight (2 s, standing still), and quick-cast with 1-4 (hold the key to
   keep a Beam going). A new character knows no words yet. Dying keeps the pages and the words.
+- **Buffs and debuffs:** one timed status system for every fighter: Self buffs you by element (four pairs of elements
+  fuse into Frenzy, Renewal, Bulwark and Bloodrage), elements' hits debuff, and statuses stack, refresh and run out.
 - **Equipment:** hands, head, body, legs and boots; you start empty-handed (Bram's stick is the first weapon), and dying
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the

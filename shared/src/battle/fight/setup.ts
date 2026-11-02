@@ -19,7 +19,7 @@ import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
 import { circleAgain } from "./behaviors/pounce.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { newSkilled } from "./skills/skilled.js";
-import { noStatuses } from "./skills/statuses.js";
+import { noStatuses } from "./statuses.js";
 import { handsOf } from "./weapons/swing.js";
 
 /** A one-on-one's starting spots (feet, a little above the floor; the arena's center is 0), the enemy facing you. */

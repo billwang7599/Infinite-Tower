@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  Body, dodgeCost, ELEMENTS, Enemy, Health, SKILL_EFFECTS, PLAYER, Stamina, Statuses, WEAPONS, type EnemyDef,
-  type SkillElement, type Vec3,
+  applyStatus, Body, dodgeCost, ELEMENTS, Enemy, Health, maxStacksOf, SKILL_EFFECTS, PLAYER, stacksOf, Stamina,
+  STATUS_DEFS, Statuses, statusOn, timeLeft, WEAPONS, type EnemyDef, type SkillElement, type StatusData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import {
@@ -27,6 +27,7 @@ const nova = (fight: Fight, ...elements: SkillElement[]) => castNow(fight, skill
 const self = (fight: Fight, ...elements: SkillElement[]) => castNow(fight, skill(segment("self", elements)));
 const statusesOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Statuses);
 const myStatuses = (fight: Fight) => fight.world.require(fight.players[0]!, Statuses);
+const burnOf = (s: StatusData) => statusOn(s.on, "burning")?.amount ?? 0;
 const hpOf = (fight: Fight, i: number) => fight.world.require(fight.enemies[i]!, Health).hp;
 const hitFor = (fight: Fight, i: number) => fight.events
   .filter((e) => e.type === "hit" && e.target === fight.enemies[i])
@@ -34,6 +35,14 @@ const hitFor = (fight: Fight, i: number) => fight.events
 const close = (actual: number, expected: number, within = 1e-9) =>
   assert.ok(Math.abs(actual - expected) < within, `${actual} vs ${expected}`);
 
+function bitten(prepare: (fight: Fight) => void): { lost: number; moved: number } {
+  const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
+  prepare(fight);
+  const from = fight.world.require(fight.players[0]!, Body).pos.z;
+  run(fight, 0.8);
+  const me = fight.world.require(fight.players[0]!, Body).pos.z;
+  return { lost: FULL_HP - fight.world.require(fight.players[0]!, Health).hp, moved: Math.abs(me - from) };
+}
 describe("each element", () => {
   for (const element of ELEMENTS) {
     test(`${element} does its share of D`, () => {
@@ -58,14 +67,14 @@ describe("each element", () => {
   test("Fire burns for its time, refreshed by another hit, not stacked", () => {
     const fight = fightWith([NEAR]);
     nova(fight, "fire");
-    assert.equal(statusesOf(fight, 0).left.burning, E.fire.burnTime);
-    close(statusesOf(fight, 0).burnDamagePerSec, E.fire.burnDamagePerSec * D);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "burning"), E.fire.burnTime);
+    close(burnOf(statusesOf(fight, 0)), E.fire.burnDamagePerSec * D);
     const before = hpOf(fight, 0);
     run(fight, 1);
     close(before - hpOf(fight, 0), E.fire.burnDamagePerSec * D);
     nova(fight, "fire");
-    assert.equal(statusesOf(fight, 0).left.burning, E.fire.burnTime);
-    close(statusesOf(fight, 0).burnDamagePerSec, E.fire.burnDamagePerSec * D);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "burning"), E.fire.burnTime);
+    close(burnOf(statusesOf(fight, 0)), E.fire.burnDamagePerSec * D);
     run(fight, E.fire.burnTime + 0.1);
     const after = hpOf(fight, 0);
     run(fight, 1);
@@ -75,20 +84,20 @@ describe("each element", () => {
   test("Water leaves the target Wet; Light Marked; Darkness Cursed", () => {
     const fresh = fightWith([NEAR]);
     nova(fresh, "water");
-    assert.equal(statusesOf(fresh, 0).left.wet, E.water.wetTime);
+    assert.equal(timeLeft(statusesOf(fresh, 0).on, "wet"), E.water.wetTime);
     const marked = fightWith([NEAR]);
     nova(marked, "light");
-    assert.equal(statusesOf(marked, 0).left.marked, E.light.markTime);
+    assert.equal(timeLeft(statusesOf(marked, 0).on, "marked"), E.light.markTime);
     const cursed = fightWith([NEAR]);
     nova(cursed, "darkness");
-    assert.equal(statusesOf(cursed, 0).left.cursed, E.darkness.curseTime);
+    assert.equal(timeLeft(statusesOf(cursed, 0).on, "cursed"), E.darkness.curseTime);
   });
 
   test("Earth breaks poise and roots", () => {
     const fight = fightWith([NEAR]);
     nova(fight, "earth");
     assert.equal(fight.world.require(fight.enemies[0]!, Enemy).poise, STATUE.poise - E.earth.poiseDamage);
-    assert.equal(statusesOf(fight, 0).left.rooted, E.earth.rootTime);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "rooted"), E.earth.rootTime);
   });
 
   test("a Rooted enemy walks slower", () => {
@@ -96,12 +105,12 @@ describe("each element", () => {
     const walked = (root: boolean) => {
       const fight = new Fight({ arena: ARENA, players: [player(at(0, -6))], enemies: [enemy(WALKER, at(0, 4))] });
       run(fight, 0.5);
-      if (root) statusesOf(fight, 0).left.rooted = 5;
+      if (root) applyStatus(statusesOf(fight, 0).on, "rooted", 5);
       const from = fight.world.require(fight.enemies[0]!, Body).pos.z;
       run(fight, 1);
       return from - fight.world.require(fight.enemies[0]!, Body).pos.z;
     };
-    close(walked(true), walked(false) * (1 - E.earth.rootSlow), 0.15);
+    close(walked(true), walked(false) * STATUS_DEFS.rooted.mods.moveFactor, 0.15);
   });
 
   test("Air knocks the target away from where it hit", () => {
@@ -123,12 +132,12 @@ describe("each element", () => {
 
   test("three Shocks stun the target, and the stacks clear", () => {
     const fight = fightWith([NEAR]);
-    for (let i = 1; i < E.lightning.maxShocks; i++) {
+    for (let i = 1; i < maxStacksOf("shocked"); i++) {
       nova(fight, "lightning");
-      assert.equal(statusesOf(fight, 0).shocks, i);
+      assert.equal(stacksOf(statusesOf(fight, 0).on, "shocked"), i);
     }
     nova(fight, "lightning");
-    assert.equal(statusesOf(fight, 0).shocks, 0);
+    assert.equal(stacksOf(statusesOf(fight, 0).on, "shocked"), 0);
     const enemy = fight.world.require(fight.enemies[0]!, Enemy);
     assert.equal(enemy.state, "stunned");
     assert.equal(enemy.duration, E.lightning.stunTime);
@@ -145,11 +154,11 @@ describe("each element", () => {
   test("a Cursed enemy's hits do less", () => {
     const bite = (curse: boolean) => {
       const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
-      if (curse) statusesOf(fight, 0).left.cursed = 10;
+      if (curse) applyStatus(statusesOf(fight, 0).on, "cursed", 10);
       run(fight, 1);
       return FULL_HP - fight.world.require(fight.players[0]!, Health).hp;
     };
-    close(bite(true), bite(false) * E.darkness.cursedDamageFactor);
+    close(bite(true), bite(false) * STATUS_DEFS.cursed.mods.damageDealtFactor);
   });
 });
 
@@ -159,13 +168,13 @@ describe("reactions", () => {
     nova(fight, "water", "lightning");
     const lightning = E.lightning.damage * D * R.conduct.lightningFactor;
     close(hitFor(fight, 0), E.water.damage * D + lightning);
-    assert.equal(statusesOf(fight, 0).left.wet, 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "wet"), 0);
   });
 
   test("Conduct: from a Wet target, Lightning arcs to up to two enemies within range", () => {
     const fight = fightWith([at(0, 3), at(4, 3), at(-4, 3), at(5, -4)]);
     castNow(fight, skill(segment("bolt", ["water"])));
-    for (let i = 0; i < 30 && statusesOf(fight, 0).left.wet === 0; i++) fight.step([IDLE]);
+    for (let i = 0; i < 30 && timeLeft(statusesOf(fight, 0).on, "wet") === 0; i++) fight.step([IDLE]);
     castNow(fight, skill(segment("bolt", ["lightning"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const lightning = E.lightning.damage * D * R.conduct.lightningFactor;
@@ -181,99 +190,88 @@ describe("reactions", () => {
     nova(fight, "water", "lightning");
     nova(fight, "water", "lightning");
     close(hitFor(fight, 0), E.water.damage * D + E.lightning.damage * D);
-    assert.ok(statusesOf(fight, 0).left.wet > 0);
+    assert.ok(timeLeft(statusesOf(fight, 0).on, "wet") > 0);
   });
 
   test("Doused: Fire on Wet burns nothing, and the Wet is gone", () => {
     const fight = fightWith([NEAR]);
     nova(fight, "water");
     nova(fight, "fire");
-    assert.equal(statusesOf(fight, 0).left.burning, 0);
-    assert.equal(statusesOf(fight, 0).left.wet, 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "burning"), 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "wet"), 0);
   });
 
   test("Doused: Water on Burning puts it out, leaving it dry", () => {
     const fight = fightWith([NEAR]);
     nova(fight, "fire");
     nova(fight, "water");
-    assert.equal(statusesOf(fight, 0).left.burning, 0);
-    assert.equal(statusesOf(fight, 0).left.wet, 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "burning"), 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "wet"), 0);
   });
 
   test("Fanned: Air on Burning doubles the burn and spreads it to one enemy nearby", () => {
     const fight = fightWith([NEAR, at(2.5, 2), at(-2 - R.fanned.spreadRange, 2)]);
     castNow(fight, skill(segment("bolt", ["fire"])));
-    for (let i = 0; i < 30 && statusesOf(fight, 0).left.burning === 0; i++) fight.step([IDLE]);
+    for (let i = 0; i < 30 && timeLeft(statusesOf(fight, 0).on, "burning") === 0; i++) fight.step([IDLE]);
     castNow(fight, skill(segment("bolt", ["air"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const burn = E.fire.burnDamagePerSec * D * R.fanned.burnFactor;
-    close(statusesOf(fight, 0).burnDamagePerSec, burn);
-    close(statusesOf(fight, 1).burnDamagePerSec, burn);
-    assert.ok(statusesOf(fight, 1).left.burning > 0);
-    assert.equal(statusesOf(fight, 2).left.burning, 0);
+    close(burnOf(statusesOf(fight, 0)), burn);
+    close(burnOf(statusesOf(fight, 1)), burn);
+    assert.ok(timeLeft(statusesOf(fight, 1).on, "burning") > 0);
+    assert.equal(timeLeft(statusesOf(fight, 2).on, "burning"), 0);
   });
 
   test("Eclipse: Darkness on Marked bursts around the target, uses up the Mark and doesn't Curse", () => {
     const fight = fightWith([at(0, 3), at(2, 3), at(0, -4)]);
     castNow(fight, skill(segment("bolt", ["light"])));
-    for (let i = 0; i < 30 && statusesOf(fight, 0).left.marked === 0; i++) fight.step([IDLE]);
+    for (let i = 0; i < 30 && timeLeft(statusesOf(fight, 0).on, "marked") === 0; i++) fight.step([IDLE]);
     castNow(fight, skill(segment("bolt", ["darkness"])));
     for (let i = 0; i < 30 && hitFor(fight, 0) === 0; i++) fight.step([IDLE]);
     const burst = R.eclipse.damage * D;
     close(hitFor(fight, 0), E.darkness.damage * D + burst);
     close(hitFor(fight, 1), burst);
     assert.equal(hpOf(fight, 2), STATUE.maxHp);
-    assert.equal(statusesOf(fight, 0).left.marked, 0);
-    assert.equal(statusesOf(fight, 0).left.cursed, 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "marked"), 0);
+    assert.equal(timeLeft(statusesOf(fight, 0).on, "cursed"), 0);
   });
 
   test("two at once resolve in order: Conduct uses the Wet up before Fire could be Doused", () => {
     const fight = fightWith([NEAR]);
     nova(fight, "water");
     nova(fight, "lightning", "fire");
-    assert.ok(statusesOf(fight, 0).left.burning > 0);
+    assert.ok(timeLeft(statusesOf(fight, 0).on, "burning") > 0);
     assert.equal(statusesOf(fight, 0).cooldown.doused, 0);
     assert.ok(statusesOf(fight, 0).cooldown.conduct > 0);
   });
 });
 
 describe("Self", () => {
-  function bitten(prepare: (fight: Fight) => void): { lost: number; moved: number } {
-    const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
-    prepare(fight);
-    const from = fight.world.require(fight.players[0]!, Body).pos.z;
-    run(fight, 0.8);
-    const me = fight.world.require(fight.players[0]!, Body).pos.z;
-    return { lost: FULL_HP - fight.world.require(fight.players[0]!, Health).hp, moved: Math.abs(me - from) };
-  }
-
   test("Water clears your harmful statuses and heals you", () => {
     const fight = fightWith([at(0, 6)]);
     const health = fight.world.require(fight.players[0]!, Health);
     health.hp = 50;
-    Object.assign(myStatuses(fight).left, { wet: 5, cursed: 5, burning: 3 });
-    myStatuses(fight).burnDamagePerSec = 0;
+    for (const status of ["wet", "cursed", "burning"] as const) applyStatus(myStatuses(fight).on, status, 5);
     self(fight, "water");
-    assert.equal(myStatuses(fight).left.wet + myStatuses(fight).left.cursed + myStatuses(fight).left.burning, 0);
+    assert.deepEqual(myStatuses(fight).on, []);
     close(health.hp, 50 + SELF.water.heal * D);
   });
 
   test("Light shields you: hits take the shield first", () => {
     const plain = bitten(() => {});
     const shielded = bitten((fight) => {
-      myStatuses(fight).left.shielded = SELF.light.time;
-      myStatuses(fight).shield = SELF.light.shield * D;
+      applyStatus(myStatuses(fight).on, "shielded", SELF.light.time, SELF.light.shield * D);
     });
     close(shielded.lost, Math.max(0, plain.lost - SELF.light.shield * D));
     const fight = fightWith([at(0, 6)]);
     self(fight, "light");
-    assert.equal(myStatuses(fight).shield, SELF.light.shield * D);
+    assert.equal(statusOn(myStatuses(fight).on, "shielded")!.amount, SELF.light.shield * D);
   });
 
   test("Earth: you take less and aren't knocked back", () => {
     const plain = bitten(() => {});
-    const warded = bitten((fight) => { myStatuses(fight).left.warded = SELF.earth.time; });
-    close(warded.lost, plain.lost * SELF.earth.damageTakenFactor);
+    const warded = bitten((fight) => { applyStatus(myStatuses(fight).on, "warded", SELF.earth.time); });
+    close(warded.lost, plain.lost * STATUS_DEFS.warded.mods.damageTakenFactor);
     // Only the biter's body still shoves a little.
     assert.ok(warded.moved < plain.moved / 4);
   });
@@ -281,7 +279,7 @@ describe("Self", () => {
   test("Fire: your hits do more; Darkness: they heal you", () => {
     const swing = (status: "empowered" | "siphoning" | null) => {
       const fight = new Fight({ arena: ARENA, players: [player(at(0, 0))], enemies: [enemy(STATUE, at(0, 1.4))] });
-      if (status) myStatuses(fight).left[status] = 5;
+      if (status) applyStatus(myStatuses(fight).on, status, 5);
       fight.world.require(fight.players[0]!, Health).hp = 50;
       fight.step([input({ attack: "light" })]);
       run(fight, 0.6);
@@ -292,25 +290,84 @@ describe("Self", () => {
     };
     const plain = swing(null);
     assert.ok(plain.dealt >= WEAPONS.sword.damage);
-    close(swing("empowered").dealt, plain.dealt * SELF.fire.damageDealtFactor);
-    close(swing("siphoning").healed, plain.dealt * SELF.darkness.healShare);
+    close(swing("empowered").dealt, plain.dealt * STATUS_DEFS.empowered.mods.damageDealtFactor);
+    close(swing("siphoning").healed, plain.dealt * STATUS_DEFS.siphoning.mods.lifesteal);
   });
 
   test("Air: you move faster and dodge cheaper; Lightning: stamina comes back faster", () => {
     const fight = fightWith([at(0, 6)]);
     self(fight, "air", "lightning");
     const me = fight.players[0]!, stamina = fight.world.require(me, Stamina);
-    assert.ok(myStatuses(fight).left.hasted > 0 && myStatuses(fight).left.charged > 0);
+    assert.ok(timeLeft(myStatuses(fight).on, "hasted") > 0);
+    assert.ok(timeLeft(myStatuses(fight).on, "charged") > 0);
     stamina.value = 50;
     fight.step([input({ moveX: 1, dodge: true })]);
-    close(stamina.value, 50 - dodgeCost("light")! * SELF.air.dodgeCostFactor);
+    close(stamina.value, 50 - dodgeCost("light")! * STATUS_DEFS.hasted.mods.dodgeCostFactor);
     run(fight, PLAYER.dodge.duration + PLAYER.staminaRegenDelay + 0.1);
     const regenFrom = stamina.value;
     run(fight, 0.25);
-    close(stamina.value - regenFrom, PLAYER.staminaRegenPerSec * SELF.lightning.staminaRegenFactor * 0.25);
+    close(stamina.value - regenFrom, PLAYER.staminaRegenPerSec * STATUS_DEFS.charged.mods.staminaRegenFactor * 0.25);
     run(fight, 0.3, () => input({ moveX: -1 }));
     const from = fight.world.require(me, Body).pos.x;
     run(fight, 0.25, () => input({ moveX: -1 }));
-    close((from - fight.world.require(me, Body).pos.x) / 0.25, PLAYER.moveSpeed * SELF.air.moveFactor, 0.05);
+    close((from - fight.world.require(me, Body).pos.x) / 0.25, PLAYER.moveSpeed * STATUS_DEFS.hasted.mods.moveFactor, 0.05);
+  });
+});
+
+describe("fused Self buffs", () => {
+  for (const fusion of SKILL_EFFECTS.fusions) {
+    test(`${fusion.elements.join(" and ")} together put on ${fusion.status} too, for its time`, () => {
+      const fight = fightWith([at(0, 6)]);
+      self(fight, ...fusion.elements);
+      close(timeLeft(myStatuses(fight).on, fusion.status), fusion.time, 0.05);
+      for (const element of fusion.elements) {
+        const own = SELF[element].status;
+        if (own) assert.ok(timeLeft(myStatuses(fight).on, own) > 0);
+      }
+    });
+  }
+
+  test("one element of a pair alone puts on no fusion", () => {
+    const fight = fightWith([at(0, 6)]);
+    self(fight, "fire");
+    assert.deepEqual(myStatuses(fight).on.map((o) => o.status), ["empowered"]);
+  });
+
+  test("Frenzy stacks with each cast, up to its cap", () => {
+    const fight = fightWith([at(0, 6)]);
+    for (let i = 1; i <= maxStacksOf("frenzy") + 1; i++) {
+      self(fight, "fire", "air");
+      assert.equal(stacksOf(myStatuses(fight).on, "frenzy"), Math.min(i, maxStacksOf("frenzy")));
+    }
+  });
+
+  test("Renewal heals a share of D a second", () => {
+    const fight = fightWith([at(0, 6)]);
+    const health = fight.world.require(fight.players[0]!, Health);
+    health.hp = 20;
+    self(fight, "water", "light");
+    const from = health.hp;
+    run(fight, 1);
+    const renewal = SKILL_EFFECTS.fusions.find((f) => f.status === "renewal")!;
+    close(health.hp - from, renewal.healPerSec * D, 0.1);
+  });
+
+  test("Bulwark: a blow stuns you for less and doesn't knock you back", () => {
+    const stunned = (status: "bulwark" | null) => {
+      const fight = new Fight({ arena: ARENA, players: [player(at(0, -1))], enemies: [enemy(BITER, at(0, 1.5))] });
+      if (status) applyStatus(myStatuses(fight).on, status, 10);
+      const health = fight.world.require(fight.players[0]!, Health);
+      for (let i = 0; i < 300 && health.hp === FULL_HP; i++) fight.step([IDLE]);
+      return health.hitstun;
+    };
+    const plain = stunned(null);
+    assert.ok(plain > 0);
+    close(stunned("bulwark"), plain * STATUS_DEFS.bulwark.mods.stunTimeFactor);
+  });
+
+  test("Bloodrage: you deal more and take more", () => {
+    const plain = bitten(() => {});
+    const raging = bitten((fight) => { applyStatus(myStatuses(fight).on, "bloodrage", 10); });
+    close(raging.lost, plain.lost * STATUS_DEFS.bloodrage.mods.damageTakenFactor);
   });
 });

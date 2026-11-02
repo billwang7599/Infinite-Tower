@@ -10,7 +10,8 @@ import type { Burden } from "../items/burden.js";
 import type { Carried, Hand } from "../items/gear.js";
 import type { ItemId } from "../items/items.js";
 import type { Using } from "../items/using.js";
-import type { Reaction, Status } from "../skills/effects.js";
+import type { Reaction } from "../skills/effects.js";
+import type { StatusOn } from "./statuses.js";
 import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
 import type { PageWrite } from "./input.js";
@@ -118,10 +119,7 @@ export interface HealthData {
 export const Health = defineComponent<HealthData>("Health");
 
 export interface StatusData {
-  left: Record<Status, number>;
-  burnDamagePerSec: number;
-  shocks: number;
-  shield: number;
+  on: StatusOn[];
   cooldown: Record<Reaction, number>;
 }
 export const Statuses = defineComponent<StatusData>("Statuses");

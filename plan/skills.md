@@ -133,6 +133,16 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   0.3D. Earth: 30% less damage taken and no knockback for 6 s (Warded). Air: +30% move speed and 30% cheaper dodges
   for 5 s (Hasted). Lightning: +50% stamina regeneration for 5 s (Charged). Light: a shield of 1.0D for 6 s. Darkness:
   your hits heal you 10% of their damage for 8 s (Siphoning). These count for sword hits too.
+- **Fused Self buffs** (the user asked for "some buff skills or something (with timer)", numbers the agent's): a Self
+  stage holding both elements of a pair puts on that pair's status too, on top of each element's own. Fire + Air:
+  Frenzy, 10 s, stacking to 3 (each cast a stack), each stack +10% damage dealt and 15% cheaper attacks. Water +
+  Light: Renewal, heals 0.2D a second for 8 s. Earth + Lightning: Bulwark, stuns from hits half as long and no
+  knockback for 6 s. Darkness + Fire: Bloodrage, +35% damage dealt and +25% taken for 8 s. No new words: any player
+  who knows the two elements and Self can cast them.
+- **One status system** (statuses, buffs and debuffs alike): put on again, a status keeps the longer of its time left
+  and the new time, takes the new amount (a shield's, a burn's) and gains a stack up to its cap, all its stacks on one
+  timer. A status can be permanent (no time), so inscriptions and blessings can be statuses later, through the same
+  stat mods.
 - **Imbue** imbues your own sword, for now; arena props come later.
 - **No element:** a plain hit of 0.6D with no status (Imbue adds it to sword hits); Self with none does nothing.
 - **Beam:** a line 10 m long and 0.35 m wide that strikes the first enemy on it as it starts and every 0.5 s, each

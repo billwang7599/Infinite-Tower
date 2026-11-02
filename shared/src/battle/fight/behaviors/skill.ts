@@ -4,6 +4,7 @@ import { skillCost, wordsOf, type Skill } from "../../../skills/skill.js";
 import { Enemy, SkillAttack, SkillObject, Skilled, Stamina } from "../../components.js";
 import { FighterStats, staminaRegenPerSec } from "../../stats.js";
 import { PLAYER } from "../../player.js";
+import { modsOf } from "../statuses.js";
 import { chant, interrupt, releaseChant, startCast } from "../skills/skilled.js";
 import { approachSpeed } from "./brain.js";
 import { enter, roll } from "./common.js";
@@ -64,7 +65,7 @@ export function skillAttackSystem(): System {
       if (enemy.state === "skillCast") stamina.regenDelay = PLAYER.staminaRegenDelay;
       else if (stamina.regenDelay > 0) stamina.regenDelay -= dt;
       else {
-        const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats);
+        const regenPerSec = staminaRegenPerSec(PLAYER.staminaRegenPerSec, stats) * modsOf(world, e).staminaRegenFactor;
         stamina.value = Math.min(stamina.max, stamina.value + regenPerSec * dt);
       }
     }

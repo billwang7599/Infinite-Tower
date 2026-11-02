@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  releaseTime, dodgeCost, FIXED_DT, Health, Player, SKILL_EFFECTS, SkillObject, Stamina, skillCost, Statuses,
+  releaseTime, dodgeCost, timeLeft, FIXED_DT, Health, Player, SKILL_EFFECTS, SkillObject, Stamina, skillCost, Statuses,
   type EnemyDef, type Segment, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -139,7 +139,7 @@ describe("casting", () => {
     castNow(fight, skill(segment("nova", ["fire", "lightning"])));
     run(fight, 1);
     assert.equal(fight.world.require(me(fight), Health).hp, 100);
-    assert.equal(fight.world.require(me(fight), Statuses).left.burning, 0);
+    assert.equal(timeLeft(fight.world.require(me(fight), Statuses).on, "burning"), 0);
     assert.ok(lostHp(fight, 0) > 0);
   });
 });
@@ -157,8 +157,8 @@ describe("Forms", () => {
     const fight = fightWith([at(0, 4)]);
     castNow(fight, skill(segment("self", ["fire", "air"])));
     const statuses = fight.world.require(me(fight), Statuses);
-    assert.ok(statuses.left.empowered > 0);
-    assert.ok(statuses.left.hasted > 0);
+    assert.ok(timeLeft(statuses.on, "empowered") > 0);
+    assert.ok(timeLeft(statuses.on, "hasted") > 0);
     assert.equal(lostHp(fight, 0), 0);
   });
 });

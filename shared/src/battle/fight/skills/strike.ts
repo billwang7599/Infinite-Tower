@@ -7,12 +7,13 @@ import { FighterStats, skillDamage, stunTime } from "../../stats.js";
 import { HIT_FLASH_TIME, knock } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { enter } from "../behaviors/common.js";
-import { damageDealtFactor, heal, hurt, siphon } from "./statuses.js";
+import { heal, hurt, lifesteal, modsOf } from "../statuses.js";
+import { applyStatus, endStatus, maxStacksOf, stacksOf, statusOn, timeLeft } from "../../statuses.js";
 
 const E = SKILL_EFFECTS.elements, R = SKILL_EFFECTS.reactions;
 
 export const skillPower = (world: World, caster: Entity): number =>
-  skillDamage(SKILL_EFFECTS.damage, world.require(caster, FighterStats)) * damageDealtFactor(world, caster);
+  skillDamage(SKILL_EFFECTS.damage, world.require(caster, FighterStats)) * modsOf(world, caster).damageDealtFactor;
 
 // Nearest first; `range` reaches to their surface.
 export function foesNear(world: World, caster: Entity, at: Vec3, range: number, except?: Entity): Entity[] {
@@ -34,7 +35,7 @@ function damage(world: World, events: FightEvent[], caster: Entity, target: Enti
   world.require(target, Health).flash = HIT_FLASH_TIME;
   const team = world.require(target, Fighter).team;
   events.push({ type: "hit", by: caster, target, team, damage: dealt, weapon: false });
-  siphon(world, caster, dealt);
+  lifesteal(world, caster, dealt);
   return dealt;
 }
 
@@ -50,53 +51,48 @@ export function strike(
     return;
   }
   const has = (element: SkillElement) => elements.includes(element);
-  const cursedBefore = s.left.cursed;
+  const cursedBefore = statusOn(s.on, "cursed") && { ...statusOn(s.on, "cursed")! };
   // Statuses go on first, then reactions are checked against the result, in this order.
 
-  if (has("fire")) {
-    s.left.burning = E.fire.burnTime;
-    s.burnDamagePerSec = E.fire.burnDamagePerSec * d;
-  }
-  if (has("water")) s.left.wet = E.water.wetTime;
+  if (has("fire")) applyStatus(s.on, "burning", E.fire.burnTime, E.fire.burnDamagePerSec * d);
+  if (has("water")) applyStatus(s.on, "wet", E.water.wetTime);
   if (has("earth")) {
-    s.left.rooted = E.earth.rootTime;
+    applyStatus(s.on, "rooted", E.earth.rootTime);
     if (enemy) enemy.poise -= E.earth.poiseDamage * factor;
   }
-  if (has("air")) knock(body.pos, from, body.vel, E.air.knockbackSpeed * factor);
-  if (has("lightning")) {
-    s.shocks = Math.min(E.lightning.maxShocks, s.shocks + 1);
-    s.left.shocked = E.lightning.shockTime;
-  }
-  if (has("light")) s.left.marked = E.light.markTime;
-  if (has("darkness")) s.left.cursed = E.darkness.curseTime;
+  const knockback = E.air.knockbackSpeed * factor * modsOf(world, target).knockbackFactor;
+  if (has("air") && knockback > 0) knock(body.pos, from, body.vel, knockback);
+  if (has("lightning")) applyStatus(s.on, "shocked", E.lightning.shockTime);
+  if (has("light")) applyStatus(s.on, "marked", E.light.markTime);
+  if (has("darkness")) applyStatus(s.on, "cursed", E.darkness.curseTime);
 
   let lightningFactor = 1;
   let arcs: { count: number; range: number; share: number } = { count: 1, range: E.lightning.arcRange, share: E.lightning.arcShare };
-  if (has("lightning") && s.left.wet > 0 && s.cooldown.conduct <= 0) {
+  if (has("lightning") && timeLeft(s.on, "wet") > 0 && s.cooldown.conduct <= 0) {
     s.cooldown.conduct = R.conduct.cooldown;
-    s.left.wet = 0;
+    endStatus(s.on, "wet");
     lightningFactor = R.conduct.lightningFactor;
     arcs = { count: R.conduct.arcs, range: R.conduct.arcRange, share: R.conduct.arcShare };
   }
-  if (((has("fire") && s.left.wet > 0) || (has("water") && s.left.burning > 0)) && s.cooldown.doused <= 0) {
+  const doused = (has("fire") && timeLeft(s.on, "wet") > 0) || (has("water") && timeLeft(s.on, "burning") > 0);
+  if (doused && s.cooldown.doused <= 0) {
     s.cooldown.doused = R.doused.cooldown;
-    s.left.burning = s.left.wet = s.burnDamagePerSec = 0;
+    endStatus(s.on, "burning");
+    endStatus(s.on, "wet");
   }
-  if (has("air") && s.left.burning > 0 && s.cooldown.fanned <= 0) {
+  const burning = statusOn(s.on, "burning");
+  if (has("air") && burning && s.cooldown.fanned <= 0) {
     s.cooldown.fanned = R.fanned.cooldown;
-    s.burnDamagePerSec *= R.fanned.burnFactor;
+    burning.amount *= R.fanned.burnFactor;
     const [next] = foesNear(world, caster, body.pos, R.fanned.spreadRange, target);
-    if (next !== undefined) {
-      const other = world.require(next, Statuses);
-      other.left.burning = s.left.burning;
-      other.burnDamagePerSec = s.burnDamagePerSec;
-    }
+    if (next !== undefined) applyStatus(world.require(next, Statuses).on, "burning", burning.left, burning.amount);
   }
   let eclipse = false;
-  if (has("darkness") && s.left.marked > 0 && s.cooldown.eclipse <= 0) {
+  if (has("darkness") && timeLeft(s.on, "marked") > 0 && s.cooldown.eclipse <= 0) {
     s.cooldown.eclipse = R.eclipse.cooldown;
-    s.left.marked = 0;
-    s.left.cursed = cursedBefore;
+    endStatus(s.on, "marked");
+    endStatus(s.on, "cursed");
+    if (cursedBefore) s.on.push(cursedBefore);
     eclipse = true;
   }
 
@@ -115,11 +111,11 @@ export function strike(
       damage(world, events, caster, near, R.eclipse.damage * d * factor * resisted(world, near, "darkness"));
     }
   }
-  if (s.shocks >= E.lightning.maxShocks) {
-    s.shocks = 0;
-    s.left.shocked = 0;
+  if (stacksOf(s.on, "shocked") >= maxStacksOf("shocked")) {
+    endStatus(s.on, "shocked");
     if (enemy && world.require(target, Health).hp > 0) {
-      enter(world, target, enemy, "stunned", stunTime(E.lightning.stunTime, world.require(target, FighterStats)));
+      const stun = stunTime(E.lightning.stunTime, world.require(target, FighterStats));
+      enter(world, target, enemy, "stunned", stun * modsOf(world, target).stunTimeFactor);
     }
   }
 }
