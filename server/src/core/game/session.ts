@@ -3,7 +3,7 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
+  CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
   hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
   placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
   type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Gear, type ItemId, type SavedSettings,
@@ -11,7 +11,7 @@ import {
   type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
-import { fullVitals } from "../content/player.js";
+import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { getLevel, levelOrStart, START_LEVEL } from "../world/index.js";
@@ -77,6 +77,7 @@ export class GameSession {
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
   private levelId: string;
+  private wasReset = false;
 
   constructor(
     readonly account: Account,
@@ -344,11 +345,18 @@ export class GameSession {
   save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = null;
+    if (this.wasReset) return;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
       story: this.story, level: this.levelId, core: this.core, shopsBought: this.shopsBought,
     });
+  }
+
+  resetSave(): void {
+    this.persist({ ...newPlayer(), character: this.character, settings: this.settings });
+    this.wasReset = true;
+    this.link.close(CLOSE_CODES.saveReset, "save reset");
   }
 
   setSettings(settings: SavedSettings): void {

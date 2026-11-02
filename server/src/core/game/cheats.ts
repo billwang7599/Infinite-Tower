@@ -1,6 +1,8 @@
 import { addItem, coreAtStep, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
 import { fullVitals } from "../content/player.js";
+import { QUESTS } from "../content/quests.js";
 import type { GameSession } from "./session.js";
+import { holds, progressStory, stepOn } from "./story.js";
 
 export function runCheat(session: GameSession, cheat: Cheat): void {
   const battle = session.liveBattle;
@@ -28,6 +30,19 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       if (!session.inOverworld) return;
       session.takeCore(coreAtStep(session.core, session.core.steps + (cheat.add ? 1 : -1)));
       session.save();
+      return;
+    case "completeQuest": {
+      if (!session.inOverworld) return;
+      const ids = (["main", "side"] as const).flatMap((half) =>
+        Object.keys(QUESTS).filter((id) => QUESTS[id]!.half === half));
+      const quest = ids.find((id) => stepOn(session.story, id))
+        ?? ids.find((id) => holds({ canStart: id }, session.story));
+      if (quest) progressStory(session, [{ start: quest }, { finish: quest }]);
+      else session.link.send({ t: "noQuest" });
+      return;
+    }
+    case "resetSave":
+      if (session.inOverworld) session.resetSave();
       return;
     case "heal":
       if (battle) {

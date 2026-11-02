@@ -828,6 +828,15 @@ them; treat them as changeable, and still ask before deciding new ones):
   its file decides). Going on past the last line (Enter, E or a click) takes the offer, as Accept does; Esc or Not now
   leaves it. Quests can't be abandoned. The questbook opens over the world like Settings: you stand still while it's
   open (the world, a fight too, goes on), and J, Esc or its × close it; a change of mode closes it.
+- The admin panel's Complete current quest (the user: "a complete current quest button so i can speedrun"; overworld
+  only): it finishes every step left of the first main quest in progress, else the first side quest in progress, as
+  if done (rewards and flags given; a handover takes the items if you have them, else nothing). With none in
+  progress it takes the first quest that can start (main first) and finishes it, so each click is one quest and
+  clicks walk the main story; with none left, a notice says so.
+- The admin panel's Reset my save (the user: replay the start as a test user without wiping the database; overworld
+  only): the save becomes `newPlayer()`'s, keeping only the character and the settings (so the skillbook's pages, the
+  words and the core go too), and the server closes the socket (`CLOSE_CODES.saveReset`); the client goes back
+  through the title and joins again on its own, so it starts as a login does. No confirm step.
 
 ## Commands
 
@@ -845,7 +854,7 @@ docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postg
 ```
 
 In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a core
-step up or down, a fight with any enemy, items into the bag.
+step up or down, completing the current quest, resetting your save, a fight with any enemy, items into the bag.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
@@ -900,9 +909,10 @@ tests say what was agreed. Where tests go and how they're written:
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
-  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`). The HUD's card is
-  `#core-card` (a click turns it; `data-face` is `portrait` or `core`), its sphere the canvas `#core-sphere`. A new
-  account has no character: make one first. Skip this when the user says it isn't needed.
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`,
+  `#admin-complete-quest`, `#admin-reset-save`). The HUD's card is `#core-card` (a click turns it; `data-face` is
+  `portrait` or `core`), its sphere the canvas `#core-sphere`. A new account has no character: make one first. Skip
+  this when the user says it isn't needed.
 - The docs above match what you changed.
 - Never log in as test1 on the dev server (:8787): it's the user's account, and a second login kicks them out
   (close 4000). Use test3 or test2.

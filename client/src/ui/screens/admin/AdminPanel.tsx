@@ -72,6 +72,10 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
         <button type="button" id="admin-heal" {...NO_FOCUS} className={CHIP} onClick={() => cheat({ kind: "heal" })}>
           Heal
         </button>
+        <button type="button" id="admin-reset-save" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          onClick={() => cheat({ kind: "resetSave" })}>
+          Reset my save
+        </button>
       </Section>
       <Section title="Core (overworld)">
         <button type="button" id="admin-step-down" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
@@ -81,6 +85,12 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
         <button type="button" id="admin-step-up" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
           onClick={() => cheat({ kind: "coreStep", add: true })}>
           + step
+        </button>
+      </Section>
+      <Section title="Quests (overworld)">
+        <button type="button" id="admin-complete-quest" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          onClick={() => cheat({ kind: "completeQuest" })}>
+          Complete current quest
         </button>
       </Section>
       <Section title="Fight">

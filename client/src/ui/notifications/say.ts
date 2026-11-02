@@ -23,6 +23,7 @@ export type GameEvent =
   | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "given"; item: ItemId; count: number; left: number }
   | { kind: "healed" }
+  | { kind: "noQuest" }
   | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
   | { kind: "battleResult"; outcome: BattleOutcome }
   | { kind: "quest"; news: QuestNews }
@@ -53,6 +54,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
   given:        { where: "corner", lines: givenLines },
   healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
+  noQuest:      { where: "corner", lines: () => ["There's no quest left to complete."] },
   chatRefused:  { where: "corner", lines: ({ reason }) => [CHAT_REFUSED[reason]] },
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
   quest:        { where: "corner", lines: ({ news }) => questLines(news) },

@@ -370,6 +370,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         say(ui.notifications, { kind: "given", item: msg.item, count: msg.count, left: msg.left });
       });
       net.on("invulnerable", (msg) => ui.admin.set({ invulnerable: msg.on }));
+      net.on("noQuest", () => say(ui.notifications, { kind: "noQuest" }));
       net.on("skillbook", (msg) => ui.skills.set({ book: msg.skillbook }));
       net.on("battleResult", (msg) => {
         result = msg;

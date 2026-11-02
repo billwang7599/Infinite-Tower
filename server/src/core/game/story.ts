@@ -25,7 +25,7 @@ export function holds(when: When | undefined, story: Story, quests: Quests = QUE
   return quest !== undefined && !story.quests[when.canStart] && holds(quest.when, story, quests);
 }
 
-export type Effect = { start: string } | { advance: string };
+export type Effect = { start: string } | { advance: string } | { finish: string };
 
 export interface Seen {
   level: string;
@@ -54,7 +54,8 @@ export function unfold(
   const out: Unfolding = { ...from, dropped: {}, news: [] };
   for (const effect of effects) {
     if ("start" in effect) start(out, effect.start, quests);
-    else advance(out, effect.advance, quests);
+    else if ("advance" in effect) advance(out, effect.advance, quests);
+    else while (advance(out, effect.finish, quests, true));
   }
   for (const id of Object.keys(out.story.quests)) meetSteps(out, id, seen, quests);
   return out;
@@ -67,14 +68,14 @@ function start(out: Unfolding, id: string, quests: Quests): void {
   out.news.push({ kind: "taken", quest: quest.title, step: first.text });
 }
 
-function advance(out: Unfolding, id: string, quests: Quests): boolean {
+function advance(out: Unfolding, id: string, quests: Quests, forced = false): boolean {
   const quest = quests[id], step = stepOn(out.story, id, quests);
   if (!quest || !step) return false;
   const { task } = step;
   if (task.kind === "deliver") {
     const bag = takeItems(out.bag, task.item, task.count);
-    if (!bag) return false;
-    out.bag = bag;
+    if (!bag && !forced) return false;
+    out.bag = bag ?? out.bag;
   }
   const next = quest.steps[quest.steps.indexOf(step) + 1] ?? null;
   out.story = withStep(out.story, id, next?.id ?? null);

@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
+import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, bagCounts, emptyBag, FIXED_DT, Health, IDLE_INPUT, Player, Stamina, type ItemCounts,
+  addItem, bagCounts, CLOSE_CODES, coreAtStep, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, Stamina,
+  type ItemCounts, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
-import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { QUESTS } from "../../../src/core/content/quests.js";
 import type { GameSession } from "../../../src/core/game/session.js";
-import { startSession } from "./helpers.js";
+import { OnlinePlayers } from "../../../src/core/game/online.js";
+import { holds, newStory, type Story } from "../../../src/core/game/story.js";
+import type { PlayerSave } from "../../../src/core/ports.js";
+import { START_LEVEL } from "../../../src/core/world/index.js";
+import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
+import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { ACCOUNT, bagWith, startSession } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -40,6 +49,9 @@ describe("on a production server", () => {
     session.cheat({ kind: "invulnerable", on: true });
     session.cheat({ kind: "give", item: "boar-meat", count: 3 });
     session.cheat({ kind: "heal" });
+    session.cheat({ kind: "completeQuest" });
+    session.cheat({ kind: "resetSave" });
+    assert.equal(link.open, true);
     assert.equal(session.battle, null);
     assert.deepEqual(session.vitals, HURT);
     assert.deepEqual(session.bag, emptyBag());
@@ -154,5 +166,119 @@ describe("heal", () => {
     assert.equal(fight.world.require(me, Health).hp, FULL.hp);
     assert.equal(fight.world.require(me, Stamina).value, fight.world.require(me, Stamina).max);
     assert.equal(link.last("battleSync").fight.players[0]?.health.hp, FULL.hp);
+  });
+});
+
+describe("completeQuest", () => {
+  const MAIN = Object.keys(QUESTS).filter((id) => QUESTS[id]!.half === "main");
+  const SIDE = Object.keys(QUESTS).filter((id) => QUESTS[id]!.half === "side");
+  const DELIVERING = MAIN.find((id) => QUESTS[id]!.steps.some((s) => s.task.kind === "deliver"))!;
+  const IDLE_SIDE = SIDE.find((id) => ["kill", "talk"].includes(QUESTS[id]!.steps[0]!.task.kind))!;
+  const storyOf = (steps: Record<string, string | null>): Story => ({
+    ...newStory(), quests: Object.fromEntries(Object.entries(steps).map(([id, step]) => [id, { step, kills: 0 }])),
+  });
+  const firstStep = (id: string) => QUESTS[id]!.steps[0]!;
+  const onFirstStep = (...ids: string[]) => storyOf(Object.fromEntries(ids.map((id) => [id, firstStep(id).id])));
+  const complete = (session: GameSession) => session.cheat({ kind: "completeQuest" });
+
+  test("finishes the main quest in progress before any side quest: every step, as if done", () => {
+    const quest = QUESTS[DELIVERING]!;
+    const deliver = quest.steps.find((s) => s.task.kind === "deliver")!.task as { item: ItemId; count: number };
+    const { session, link, saves } = startSession({
+      dev: true, saved: { story: onFirstStep(IDLE_SIDE, DELIVERING), bag: bagWith({ [deliver.item]: deliver.count }) },
+    });
+    const expected: ItemCounts = { ...bagCounts(session.bag) };
+    expected[deliver.item] = (expected[deliver.item] ?? 0) - deliver.count;
+    for (const step of quest.steps) {
+      for (const [item, count] of Object.entries(step.reward?.items ?? {}) as [ItemId, number][]) {
+        expected[item] = (expected[item] ?? 0) + count;
+      }
+    }
+    complete(session);
+    assert.equal(session.story.quests[DELIVERING]?.step, null);
+    assert.equal(session.story.quests[IDLE_SIDE]?.step, firstStep(IDLE_SIDE).id);
+    const have = bagCounts(session.bag) as ItemCounts;
+    for (const [item, count] of Object.entries(expected) as [ItemId, number][]) {
+      assert.equal(have[item] ?? 0, count, item);
+    }
+    for (const flag of quest.steps.flatMap((s) => s.reward?.flags ?? [])) assert.ok(session.story.flags.includes(flag));
+    assert.deepEqual(saves.at(-1)?.story, session.story);
+    const news = link.last("questbook").news;
+    assert.deepEqual(news.at(-1), { ...news.at(-1), kind: "advanced", quest: quest.title, next: null });
+  });
+
+  test("with none in progress, takes the first main quest that can start: clicks walk the main story", () => {
+    const { session, link } = startSession({ dev: true, saved: { story: newStory() } });
+    const first = MAIN.find((id) => holds({ canStart: id }, newStory()))!;
+    complete(session);
+    const taken = { kind: "taken", quest: QUESTS[first]!.title, step: firstStep(first).text };
+    assert.deepEqual(link.last("questbook").news[0], taken);
+    for (let i = 1; i < MAIN.length; i++) complete(session);
+    for (const id of MAIN) assert.equal(session.story.quests[id]?.step, null, id);
+    for (const id of SIDE) assert.equal(session.story.quests[id], undefined, id);
+  });
+
+  test("with every quest done, says so and changes nothing", () => {
+    const done = storyOf(Object.fromEntries(Object.keys(QUESTS).map((id) => [id, null])));
+    const { session, link, saves } = startSession({ dev: true, saved: { story: done } });
+    const questbooks = link.all("questbook").length;
+    complete(session);
+    assert.equal(link.all("noQuest").length, 1);
+    assert.equal(link.all("questbook").length, questbooks);
+    assert.equal(saves.length, 0);
+  });
+
+  test("does nothing in a battle", () => {
+    const story = onFirstStep(DELIVERING);
+    const { session } = startSession({ dev: true, saved: { story } });
+    fightBoar(session);
+    complete(session);
+    assert.deepEqual(session.story, story);
+  });
+});
+
+describe("resetSave", () => {
+  const SETTINGS = { camera: { sensitivity: 2 } };
+  const played = (): PlayerSave => ({
+    ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS, vitals: { ...HURT }, wins: 5,
+    bag: bagWith({ "boar-meat": 3 }), shopsBought: ["grocer"], level: "grass-field", knownWords: ["bolt"],
+    story: { quests: { [Object.keys(QUESTS)[0]!]: { step: null, kills: 0 } }, flags: ["x"] },
+    core: coreAtStep(newCore(), 3),
+  });
+  const fresh = (): PlayerSave => ({ ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS });
+
+  test("saves a brand-new player keeping the character and settings, and sends the client back through login", () => {
+    const { session, link, saves } = startSession({ dev: true, saved: played() });
+    session.cheat({ kind: "resetSave" });
+    assert.deepEqual(saves.at(-1), fresh());
+    assert.equal(link.closed?.code, CLOSE_CODES.saveReset);
+    const count = saves.length;
+    session.saveSoon();
+    session.disconnect();
+    assert.ok(saves.slice(count).every((s) => isDeepStrictEqual(s, fresh())), "nothing after it undoes the reset");
+  });
+
+  test("joining again starts as a new player does, at the start", async () => {
+    const store = new MemoryPlayerStore();
+    store.saved.set(ACCOUNT.id, played());
+    const online = new OnlinePlayers(store, true, 50);
+    const session = await online.join(new FakeLink(), ACCOUNT);
+    session!.cheat({ kind: "resetSave" });
+    online.leave(session!);
+    const link = new FakeLink();
+    await online.join(link, ACCOUNT);
+    const welcome = link.last("welcome");
+    assert.deepEqual([welcome.wins, welcome.questbook, welcome.character], [0, [], TEST_CHARACTER]);
+    assert.deepEqual(welcome.core, newCore());
+    assert.equal(link.last("level").level.id, START_LEVEL);
+  });
+
+  test("does nothing in a battle", () => {
+    const { session, link, saves } = startSession({ dev: true, saved: played() });
+    fightBoar(session);
+    const count = saves.length;
+    session.cheat({ kind: "resetSave" });
+    assert.equal(link.open, true);
+    assert.equal(saves.length, count);
   });
 });
