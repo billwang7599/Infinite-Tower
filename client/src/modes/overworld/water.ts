@@ -1,4 +1,4 @@
-import { clamp, mapHalfSize, tileAt, TILES, type LevelLayout, type TileKind } from "@infinite-tower/shared";
+import { clamp, mapHalfSize, tileAt, TILES, type LevelMap, type TileKind } from "@infinite-tower/shared";
 
 /** Below the ground beside it: the surface, and the bed below the surface at the bank and at its deepest. */
 export const WATER_DEPTH_TILES = { surface: 0.12, bank: 0.3, deep: 1.1 };
@@ -29,7 +29,7 @@ const AROUND = [...SIDES, [-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
 
 // Worked out in the tile grid (col, row; row 0 the north edge), then turned to the world (x east, z north). Bridges
 // are cells too, so a river cut by one is one river.
-export function waterMap(level: LevelLayout): WaterMap {
+export function waterMap(level: LevelMap): WaterMap {
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const cols = halfWidth * 2, rows = halfDepth * 2;
   const kinds: (TileKind | null)[] = [];

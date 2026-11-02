@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind, type Vec2 } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, tileAt, type LevelMap, type TileKind, type Vec2 } from "@infinite-tower/shared";
 import {
   groundY, SCENERY_REACH_TILES as REACH, tileBlocks, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
@@ -23,9 +23,9 @@ const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, stri
   { kind: "forge", goods: "embers" },
 ];
 
-const blocks = (level: LevelLayout, kind: TileKind) => tileBlocks(level, (x, z) => tileAt(level, x, z) === kind);
+const blocks = (level: LevelMap, kind: TileKind) => tileBlocks(level, (x, z) => tileAt(level, x, z) === kind);
 
-export function kingdomScenery(level: LevelLayout): Scenery {
+export function kingdomScenery(level: LevelMap): Scenery {
   const rand = seededRandom(17);
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level);
   const W = L + REACH, far = D + REACH;

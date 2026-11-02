@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, type LevelMap } from "@infinite-tower/shared";
 import {
   groundY, SCENERY_REACH_TILES as REACH, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
@@ -6,7 +6,7 @@ import {
 const NORTH_STEP_TILES = 4;
 const LEDGE_Y = { low: -2.5, high: 2.5, higher: 5 };
 
-export function grassFieldScenery(level: LevelLayout): Scenery {
+export function grassFieldScenery(level: LevelMap): Scenery {
   const rand = seededRandom(23);
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level);
   const ledges = gridLedges(L, D, rand);

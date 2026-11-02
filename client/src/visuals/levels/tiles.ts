@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, tileAt, type LevelMap, type TileKind } from "@infinite-tower/shared";
 import { PX_PER_TILE, type Pen } from "../overworld/props.js";
 import type { Prop, PropKind } from "../overworld/scenery.js";
 
@@ -16,7 +16,7 @@ export interface TileLook {
 export type TileLooks = Record<TileKind, TileLook>;
 
 /** `col` and `row` count from the map's north-west corner. */
-function eachTile(level: LevelLayout, visit: (t: Tile) => void): void {
+function eachTile(level: LevelMap, visit: (t: Tile) => void): void {
   const { halfWidth, halfDepth } = mapHalfSize(level);
   for (let row = 0; row < halfDepth * 2; row++) {
     for (let col = 0; col < halfWidth * 2; col++) {
@@ -30,21 +30,25 @@ interface Tile { col: number; row: number; x: number; z: number; kind: TileKind 
 
 const tileRandom = (t: Tile, salt: number) => seededRandom(salt + t.col * 7919 + t.row * 104729);
 
-/** Onto a canvas of the map × PX_PER_TILE pixels, north at the top. */
-export function paintGround(pen: Pen, level: LevelLayout, looks: TileLooks): void {
-  const kinds = new Map<string, TileKind>();
-  eachTile(level, (t) => kinds.set(`${t.col},${t.row}`, t.kind));
+/** Onto a canvas of the map × PX_PER_TILE pixels, north at the top, a row of tiles a step. */
+export function* paintGround(pen: Pen, level: LevelMap, looks: TileLooks): Generator<void, void> {
+  const kinds = new Map<string, TileKind>(), tiles: Tile[] = [];
   eachTile(level, (t) => {
+    kinds.set(`${t.col},${t.row}`, t.kind);
+    tiles.push(t);
+  });
+  for (const [i, t] of tiles.entries()) {
+    if (i > 0 && t.row !== tiles[i - 1]!.row) yield;
     const ground = looks[t.kind].ground;
     const same = (dx: number, dy: number) => {
       const next = kinds.get(`${t.col + dx},${t.row + dy}`);
       return next === undefined || looks[next].ground === ground;
     };
     ground(pen, t.col * PX_PER_TILE, t.row * PX_PER_TILE, tileRandom(t, 1), same);
-  });
+  }
 }
 
-export function tileProps(level: LevelLayout, looks: TileLooks): Prop[] {
+export function tileProps(level: LevelMap, looks: TileLooks): Prop[] {
   const props: Prop[] = [];
   eachTile(level, (t) => {
     const spec = looks[t.kind].props;

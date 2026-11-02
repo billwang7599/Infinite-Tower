@@ -1,7 +1,7 @@
 /** Overworld entities: the local player (LocalPlayer) is predicted, everything else is where the server says. */
 import {
-  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type NpcId,
-  type Vec2, type World,
+  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type LevelMap,
+  type NpcId, type Vec2, type World,
 } from "@infinite-tower/shared";
 
 /** In tiles. */
@@ -32,6 +32,7 @@ export interface OverworldState {
   player: Entity;
   /** null until the server's first `level`. */
   level: LevelLayout | null;
+  next: LevelMap[];
   /** Quarter turns right from north. */
   cameraTurns: number;
   cameraPitchRad: number;

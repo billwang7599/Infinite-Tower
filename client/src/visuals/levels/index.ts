@@ -1,5 +1,5 @@
 import { Color3 } from "@babylonjs/core";
-import type { LevelLayout } from "@infinite-tower/shared";
+import type { LevelMap } from "@infinite-tower/shared";
 import type { Scenery } from "../overworld/scenery.js";
 import type { MapLight, SkyLook } from "../sky/sky.js";
 import type { SpriteDraw } from "../sprites.js";
@@ -18,10 +18,10 @@ interface LevelLook {
   env: SkyLook;
   tiles: TileLooks;
   water: WaterLook;
-  scenery(level: LevelLayout): Scenery;
+  scenery(level: LevelMap): Scenery;
 }
 
-export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
+export const LEVEL_LOOKS: Record<LevelMap["theme"], LevelLook> = {
   "grass-field": {
     env: {
       sky: new Color3(0.27, 0.25, 0.29),
@@ -110,7 +110,7 @@ export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
 
 const CAMPFIRE_LIGHT = { heightTiles: 1.2, color: new Color3(1, 0.55, 0.22), intensity: 3, rangeM: 10, flicker: 0.12 };
 
-export function campfireLights(level: LevelLayout): MapLight[] {
+export function campfireLights(level: LevelMap): MapLight[] {
   const { heightTiles, color, intensity, rangeM, flicker } = CAMPFIRE_LIGHT;
   return level.campfires.map((c) => ({ at: { x: c.x, y: heightTiles, z: c.z }, color, intensity, rangeM, flicker }));
 }

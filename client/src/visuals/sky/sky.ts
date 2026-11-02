@@ -39,12 +39,13 @@ export function nearestLights(spots: Vec3[], camera: Vec3, count: number, curren
   return spots.map((_, i) => i).sort((a, b) => biased[a]! - biased[b]!).slice(0, count).sort((a, b) => a - b);
 }
 
-interface Lamp { def: MapLight; light: PointLight; shadows: ShadowGenerator }
+interface Lamp { light: PointLight; shadows: ShadowGenerator }
 
 export interface Sky {
   look(look: SkyLook, lights: MapLight[]): void;
   /** `only`: cast by the sun or moon alone, or by that map light alone (a card turned to it). */
   castShadows(mesh: AbstractMesh, only?: "direct" | MapLight): void;
+  clearShadows(): void;
   frame(nowMs: number, camera: Vec3): void;
   tintAt(at: Vec3, out: Color3): Color3;
   blobs(material: Material, lengthM: number, widthM: number): Blobs;
@@ -82,9 +83,11 @@ export function createSky(scene: Scene): Sky {
   };
   const sunDisc = disc("sun-disc", SUN_DISC), moonDisc = disc("moon-disc", MOON_DISC);
 
-  const casters = new Set<AbstractMesh>();
+  const casters = new Set<AbstractMesh>(), watched = new WeakSet<AbstractMesh>();
   let place: SkyLook | null = null;
-  let lamps: Lamp[] = [];
+  // Kept and reused between looks: making or dropping a light makes every material in the scene check its shaders.
+  const pool: Lamp[] = [];
+  let lamps: (Lamp & { def: MapLight })[] = [];
   let shadowed: number[] = [];
   let direct = directLightAt(0);
   const lighting: Lighting = { skyBrightness: 0, direct: { toLight: direct.toLight, brightness: 0 }, lamps: [] };
@@ -94,24 +97,29 @@ export function createSky(scene: Scene): Sky {
   return {
     look(look, lights) {
       place = look;
-      for (const lamp of lamps) {
-        lamp.shadows.dispose();
-        lamp.light.dispose();
-      }
       shadowed = [];
       lamps = lights.slice(0, MAX_MAP_LIGHTS).map((def, i) => {
-        const light = new PointLight(`map-light-${i}`, new Vector3(def.at.x, def.at.y, def.at.z), scene);
+        let lamp = pool[i];
+        if (!lamp) {
+          const light = new PointLight(`map-light-${i}`, Vector3.Zero(), scene);
+          light.specular = Color3.Black();
+          const shadows = new ShadowGenerator(POINT_SHADOW_MAP_PX, light);
+          shadows.usePoissonSampling = true;
+          shadows.darkness = 0.3;
+          pool.push(lamp = { light, shadows });
+        }
+        const { light, shadows } = lamp;
+        light.position.set(def.at.x, def.at.y, def.at.z);
         light.diffuse = def.color.clone();
-        light.specular = Color3.Black();
         light.range = def.rangeM;
         light.shadowMaxZ = def.rangeM;
         light.shadowEnabled = false;
-        const shadows = new ShadowGenerator(POINT_SHADOW_MAP_PX, light);
-        shadows.usePoissonSampling = true;
-        shadows.darkness = 0.3;
+        light.setEnabled(true);
+        shadows.getShadowMap()!.renderList!.length = 0;
         for (const mesh of casters) shadows.addShadowCaster(mesh);
-        return { def, light, shadows };
+        return { def, ...lamp };
       });
+      for (const { light } of pool.slice(lamps.length)) light.setEnabled(false);
     },
 
     castShadows(mesh, only) {
@@ -119,10 +127,18 @@ export function createSky(scene: Scene): Sky {
       else if (only) lamps.find((l) => l.def === only)?.shadows.addShadowCaster(mesh);
       else if (!casters.has(mesh)) {
         casters.add(mesh);
-        mesh.onDisposeObservable.addOnce(() => casters.delete(mesh));
+        if (!watched.has(mesh)) {
+          watched.add(mesh);
+          mesh.onDisposeObservable.addOnce(() => casters.delete(mesh));
+        }
         bodyShadows.addShadowCaster(mesh);
         for (const lamp of lamps) lamp.shadows.addShadowCaster(mesh);
       }
+    },
+
+    clearShadows() {
+      casters.clear();
+      for (const { shadows } of [{ shadows: bodyShadows }, ...lamps]) shadows.getShadowMap()!.renderList!.length = 0;
     },
 
     frame(nowMs, camera) {

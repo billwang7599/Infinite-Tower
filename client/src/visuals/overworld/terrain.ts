@@ -1,16 +1,16 @@
 import {
   Color3, Color4, MeshBuilder, StandardMaterial, Texture, TransformNode, Vector4, VertexBuffer, type DynamicTexture,
-  type InstancedMesh, type Mesh, type Scene,
+  type AbstractMesh, type InstancedMesh, type Mesh, type Scene,
 } from "@babylonjs/core";
-import { dampFactor, mapHalfSize, seededRandom, wrapAngle, type LevelLayout, type Vec3 } from "@infinite-tower/shared";
+import { dampFactor, mapHalfSize, seededRandom, wrapAngle, type LevelMap, type Vec3 } from "@infinite-tower/shared";
 import { campfireLights, drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { paintGround, tileProps } from "../levels/tiles.js";
 import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
 import { spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
-import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
+import { Pen, pixelCanvas, propTexture, PROP_ART, PX_PER_TILE } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
-import { stallLooks } from "./stalls.js";
+import { stallLooks, type StallLooks } from "./stalls.js";
 import { hidesWalker, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
@@ -23,63 +23,136 @@ const CARD_TURN_STEP_RAD = 0.02;
 const SEE_THROUGH = { visibility: 0.15, rate: 12 };
 
 export interface LevelDrawing {
-  root: TransformNode;
+  enter(): void;
+  leave(): void;
   frame(dt: number, eye: Vec3, feet: Vec3): void;
   face(yawRad: number): void;
 }
 
-export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawing {
-  const { scene, sky } = view, root = new TransformNode(`level-${level.id}`, scene);
-  const look = LEVEL_LOOKS[level.theme], scenery = openExits(look.scenery(level), level);
-  const lights = campfireLights(level);
-  sky.look(look.env, lights);
-  const lit = (name: string, tex: DynamicTexture) => {
-    const m = new StandardMaterial(name, scene);
-    m.diffuseTexture = tex;
-    m.specularColor = Color3.Black();
-    return m;
+type Caster = [AbstractMesh, ("direct" | MapLight)?];
+
+interface LevelArt {
+  looks: Record<
+    NonNullable<Ledge["look"]> | "grass", readonly [StandardMaterial, StandardMaterial, StandardMaterial | null]
+  >;
+  stalls: StallLooks;
+  props: Map<PropKind, StandardMaterial>;
+  fire: StandardMaterial[];
+}
+
+export interface LevelDrawings {
+  of(level: LevelMap): LevelDrawing;
+  warm(levels: readonly LevelMap[], budgetMs: number): void;
+}
+
+export function levelDrawings(view: OverworldScene): LevelDrawings {
+  const built = new Map<string, LevelDrawing>(), building = new Map<string, Generator<void, LevelDrawing>>();
+  let art: LevelArt | undefined;
+  const step = (level: LevelMap) => {
+    let job = building.get(level.id);
+    if (!job) building.set(level.id, job = buildLevel(view, level, art ??= levelArt(view.scene)));
+    const next = job.next();
+    if (!next.done) return;
+    building.delete(level.id);
+    built.set(level.id, next.value);
   };
-  const brick = lit("overworld-brick", tiled(pixelCanvas(scene, "brick", 32, 32, drawBricks, false)));
-  const grass = lit("overworld-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
-  const plaster = lit("overworld-plaster", tiled(pixelCanvas(scene, "plaster", 32, 32, drawPlaster, false)));
-  const roof = lit("overworld-roof", tiled(pixelCanvas(scene, "roof", 32, 32, drawRoof, false)));
-  const cutTop = lit("overworld-cut-top", tiled(pixelCanvas(scene, "cut-top", 32, 32, drawCutTop, false)));
-  const cutFace = lit("overworld-cut-face", tiled(pixelCanvas(scene, "cut-face", 32, 32, drawCutFace, false)));
-  const { halfWidth, halfDepth } = mapHalfSize(level);
-  const field = lit("overworld-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
-    halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles), false));
+  return {
+    of(level) {
+      while (!built.has(level.id)) step(level);
+      return built.get(level.id)!;
+    },
+    warm(levels, budgetMs) {
+      const untilMs = performance.now() + budgetMs;
+      for (const level of levels) {
+        while (!built.has(level.id)) {
+          if (performance.now() >= untilMs) return;
+          step(level);
+        }
+      }
+    },
+  };
+}
+
+function lit(scene: Scene, name: string, tex: DynamicTexture): StandardMaterial {
+  const m = new StandardMaterial(name, scene);
+  m.diffuseTexture = tex;
+  m.specularColor = Color3.Black();
+  return m;
+}
+
+function levelArt(scene: Scene): LevelArt {
+  const tile = (name: string, draw: (pen: Pen) => void) =>
+    lit(scene, `overworld-${name}`, tiled(pixelCanvas(scene, name, 32, 32, draw, false)));
+  const brick = tile("brick", drawBricks), grass = tile("grass", (p) => drawGrass(p, 32, 32, 5));
   const fringe = cutoutMaterial(scene, "overworld-fringe", tiled(pixelCanvas(scene, "fringe", 16, 8, drawFringe)));
   fringe.disableLighting = false;
   fringe.emissiveColor = Color3.Black();
-  const water = levelWater(scene, level, look.water);
+  const stalls = stallLooks(scene, (name, tex) => lit(scene, name, tex), brick);
+  return {
+    looks: {
+      grass: [grass, brick, fringe], castle: [brick, brick, null],
+      house: [tile("roof", drawRoof), tile("plaster", drawPlaster), null],
+      counter: stalls.counter, hearth: stalls.hearth,
+      quarry: [tile("cut-top", drawCutTop), tile("cut-face", drawCutFace), null],
+    },
+    stalls,
+    props: new Map(),
+    fire: ([0, 1] as const).map((f) => spriteMaterial(scene, `campfire-${f}`, drawCampfire(f))),
+  };
+}
 
-  const stalls = stallLooks(scene, lit, brick);
-  const looks = {
-    grass: [grass, brick, fringe], castle: [brick, brick, null], house: [roof, plaster, null],
-    counter: stalls.counter, hearth: stalls.hearth, quarry: [cutTop, cutFace, null],
-  } as const;
+// Every mesh goes under the hidden root before a yield, or it would show on the level being walked.
+function* buildLevel(view: OverworldScene, level: LevelMap, art: LevelArt): Generator<void, LevelDrawing> {
+  const { scene, sky } = view, root = new TransformNode(`level-${level.id}`, scene);
+  root.setEnabled(false);
+  const look = LEVEL_LOOKS[level.theme], scenery = openExits(look.scenery(level), level);
+  const lights = campfireLights(level);
+  const casters: Caster[] = [];
+  const { halfWidth, halfDepth } = mapHalfSize(level);
+  yield;
+  const ground = pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE, halfDepth * 2 * PX_PER_TILE,
+    () => {}, false);
+  yield* paintGround(new Pen(ground.getContext() as CanvasRenderingContext2D), level, look.tiles);
+  ground.update();
+  const field = lit(scene, `overworld-field-${level.id}`, ground);
+  const water = yield* levelWater(scene, level, look.water, root);
+
   const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
-  scenery.ledges.forEach((ledge, i) => {
+  for (const [i, ledge] of scenery.ledges.entries()) {
     const carved = i === 0 ? water.ground : null;
-    const [top, side, edge] = looks[ledge.look ?? "grass"];
+    const [top, side, edge] = art.looks[ledge.look ?? "grass"];
     const parts = buildLedge(scene, ledge, i, carved ? field : top, side, edge, carved);
-    const awning = ledge.awning ? stalls.awning({ ...ledge, awning: ledge.awning }, i) : [];
+    const awning = ledge.awning ? art.stalls.awning({ ...ledge, awning: ledge.awning }, i) : [];
     parts.push(...awning);
-    for (const m of awning) sky.castShadows(m);
+    for (const m of awning) casters.push([m]);
     for (const m of [...parts, ...carved ? [water.surface] : []]) {
       m.parent = root;
       m.receiveShadows = true;
       m.freezeWorldMatrix();
     }
-    sky.castShadows(parts[0]!);
-    if (carved) sky.castShadows(carved);
+    casters.push([parts[0]!]);
+    if (carved) casters.push([carved]);
     if (ledge.topY > 0) standing.push({ ledge, parts });
-  });
-  const props = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], lights, root);
-  const campfires = buildCampfires(view, level, root);
+    yield;
+  }
+  const props = yield* placeProps(
+    scene, art.props, [...scenery.props, ...tileProps(level, look.tiles)], lights, root, casters,
+  );
+  const campfires = buildCampfires(scene, art.fire, level, root);
   const upright = [...props.upright, ...campfires.meshes];
+  const meshes = root.getChildMeshes();
+  detach(scene, meshes);
+  root.setEnabled(true);
   return {
-    root,
+    enter() {
+      for (const m of meshes) scene.addMesh(m);
+      sky.look(look.env, lights);
+      for (const [m, only] of casters) sky.castShadows(m, only);
+    },
+    leave() {
+      detach(scene, meshes);
+      sky.clearShadows();
+    },
     frame(dt, eye, feet) {
       const k = dampFactor(SEE_THROUGH.rate, dt);
       for (const { ledge, parts } of standing) {
@@ -96,6 +169,14 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
       }
     },
   };
+}
+
+// Out of the scene, a hidden level costs the frame nothing. One pass: scene.removeMesh splices once per mesh.
+function detach(scene: Scene, meshes: AbstractMesh[]): void {
+  const gone = new Set(meshes);
+  let kept = 0;
+  for (const m of scene.meshes) if (!gone.has(m)) scene.meshes[kept++] = m;
+  scene.meshes.length = kept;
 }
 
 function tiled(tex: DynamicTexture): DynamicTexture {
@@ -153,13 +234,14 @@ function scaleUVs(mesh: Mesh, u: number, v: number): void {
 
 interface PlacedProps { upright: InstancedMesh[]; light(sky: Sky): void }
 
-function placeProps(
-  { scene, sky }: OverworldScene, props: Prop[], lights: MapLight[], root: TransformNode,
-): PlacedProps {
-  const materials = new Map<PropKind, StandardMaterial>();
+function* placeProps(
+  scene: Scene, materials: Map<PropKind, StandardMaterial>, props: Prop[], lights: MapLight[], root: TransformNode,
+  casters: Caster[],
+): Generator<void, PlacedProps> {
   const templates = new Map<string, { quad: Mesh; card: Mesh | null }>();
   const tinted: { inst: InstancedMesh; at: Vec3 }[] = [], cards: InstancedMesh[] = [];
-  const upright = props.map((p, i) => {
+  const upright: InstancedMesh[] = [];
+  for (const [i, p] of props.entries()) {
     const mirrored = i % 2 === 1, key = `${p.kind}${mirrored ? "-mirrored" : ""}`;
     const art = PROP_ART[p.kind], width = art.widthPx / PX_PER_TILE, height = art.heightPx / PX_PER_TILE;
     let tpl = templates.get(key);
@@ -203,18 +285,19 @@ function placeProps(
         return card;
       };
       const card = shadowCard(`prop-card-${p.kind}-${i}`);
-      sky.castShadows(card, "direct");
+      casters.push([card, "direct"]);
       cards.push(card);
       lights.forEach((light, k) => {
         if (Math.hypot(light.at.x - p.x, light.at.z - p.z) >= light.rangeM) return;
         const lampCard = shadowCard(`prop-card-${p.kind}-${i}-light-${k}`);
         lampCard.rotation.y = cardYawRad({ x: light.at.x - p.x, y: 0, z: light.at.z - p.z });
         lampCard.freezeWorldMatrix();
-        sky.castShadows(lampCard, light);
+        casters.push([lampCard, light]);
       });
     }
-    return inst;
-  });
+    upright.push(inst);
+    yield;
+  }
   const tint = new Color3();
   let cardYaw = NaN;
   return {
@@ -337,10 +420,9 @@ function drawFringe(pen: Pen): void {
 }
 
 function buildCampfires(
-  { scene }: OverworldScene, level: LevelLayout, root: TransformNode,
+  scene: Scene, frames: StandardMaterial[], level: LevelMap, root: TransformNode,
 ): { meshes: Mesh[]; flicker: (dt: number) => void } {
   if (level.campfires.length === 0) return { meshes: [], flicker: () => {} };
-  const frames = ([0, 1] as const).map((f) => spriteMaterial(scene, `campfire-${f}`, drawCampfire(f)));
   const fires = level.campfires.map((c, i) => {
     const m = standingQuad(scene, `campfire-${i}`, CAMPFIRE_TILES, CAMPFIRE_TILES, 0.1);
     m.position.set(c.x, 0, c.z);

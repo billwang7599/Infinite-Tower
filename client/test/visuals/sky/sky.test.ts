@@ -45,7 +45,7 @@ describe("map lights", () => {
       .slice(0, SHADOW_MAP_LIGHTS).map((s) => s.x).sort((a, b) => a - b);
     assert.deepEqual(shadowed, nearest);
     sky.look(ARENA_LOOKS.mire.env, []);
-    assert.equal(scene.lights.filter((l) => l instanceof PointLight).length, 0);
+    assert.equal(scene.lights.filter((l) => l instanceof PointLight && l.isEnabled()).length, 0);
     scene.dispose();
   });
 
@@ -64,6 +64,42 @@ describe("map lights", () => {
     assert.deepEqual(casting("sky-body").sort(), ["rock", "sun-card"]);
     assert.deepEqual(casting("map-light-0"), ["rock"]);
     assert.deepEqual(casting("map-light-1").sort(), ["fire-card", "rock"]);
+    scene.dispose();
+  });
+
+  test("a new look reuses the lights already made, so the scene's materials needn't check their shaders again", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    const fire = (x: number): MapLight => ({ at: { x, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
+      rangeM: 8, flicker: 0 });
+    const points = () => scene.lights.filter((l): l is PointLight => l instanceof PointLight);
+    sky.look(ARENA_LOOKS.mire.env, [fire(0), fire(10)]);
+    const made = points();
+    sky.look(ARENA_LOOKS.mire.env, [fire(5)]);
+    assert.deepEqual(points().filter((l) => l.isEnabled()).map((l) => l.position.x), [5]);
+    sky.look(ARENA_LOOKS.mire.env, [fire(1), fire(2)]);
+    assert.deepEqual(points(), made);
+    assert.deepEqual(points().map((l) => [l.position.x, l.isEnabled()]), [[1, true], [2, true]]);
+    scene.dispose();
+  });
+
+  test("cleared casters stop casting, for the sun, every lamp and the lamps of the next look", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    const fire: MapLight = { at: { x: 0, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3, rangeM: 8,
+      flicker: 0 };
+    sky.look(ARENA_LOOKS.mire.env, [fire]);
+    const [rock, card, tree] = ["rock", "card", "tree"].map((n) => MeshBuilder.CreateBox(n, {}, scene));
+    sky.castShadows(rock!);
+    sky.castShadows(card!, fire);
+    sky.clearShadows();
+    sky.castShadows(tree!);
+    const casting = (light: string) => (scene.getLightByName(light)!.getShadowGenerator() as ShadowGenerator)
+      .getShadowMap()!.renderList!.map((m) => m.name);
+    assert.deepEqual(casting("sky-body"), ["tree"]);
+    assert.deepEqual(casting("map-light-0"), ["tree"]);
+    sky.look(ARENA_LOOKS.mire.env, [fire]);
+    assert.deepEqual(casting("map-light-0"), ["tree"]);
     scene.dispose();
   });
 

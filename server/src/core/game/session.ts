@@ -502,6 +502,7 @@ export class GameSession {
     this.introduced.clear();
     this.gear = this.held;
     const level = { ...overworld.level.layout, ...placeFor(this, id) };
-    this.link.send({ t: "level", level, me: overworld.playerPos(me) });
+    const next = [...new Set(overworld.level.exits.map((e) => e.to))].map((to) => getLevel(to).layout);
+    this.link.send({ t: "level", level, me: overworld.playerPos(me), next });
   }
 }
