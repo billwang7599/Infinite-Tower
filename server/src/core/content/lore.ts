@@ -141,6 +141,26 @@ export const LORE = {
       + "sinks a finger's width every time, and is full again by morning. Whether they drink from it or feed it, "
       + "nobody has stayed close enough to tell.",
   },
+  "thinning-wood": {
+    title: "The thinning wood",
+    text: "Sorrel has gathered in the Mistwood for forty years for Calyx, the god of growth and harvest, and keeps a "
+      + "tally of all she takes. Every year it's a little less: the roots come up smaller, the mushrooms thinner, "
+      + "never enough to see, always enough to count. Everyone says the world leaks soul. Calyx's own say it's "
+      + "starving, and has been for longer than anyone has kept count.",
+  },
+  "mire-mist": {
+    title: "Mist off the mire",
+    text: "The Mistwood's mist isn't mist. It rises off the still water where loose soul has pooled under the mire, "
+      + "thickest over the little island north of the bridge, and where it hangs thick enough it clumps into beasts. "
+      + "The goblins breathe it before they chant. Sorrel says there's less of it every year, like everything else.",
+  },
+  "past-the-trees": {
+    title: "Past the trees",
+    text: "Rook, Tamsin's son, stayed three nights by Bryn's charcoal clamp in the Mistwood, went after the grey wolf "
+      + "west of the mire and came back torn. Then he went south, through a gap in the trees past the goblin's "
+      + "broken walls, where no road runs. Ilse says his thread runs on somewhere the loom won't show; now his "
+      + "mother knows which way that is. Nobody has come back from past the trees to say what's there.",
+  },
 } satisfies Record<string, LoreEntry>;
 
 export type LoreId = keyof typeof LORE;

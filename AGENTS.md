@@ -814,6 +814,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   and hand over 2 wolf pelts; 1 silver, lore "The overseer's ledger": the hall's platform was there before the first
   block was cut) then "The Chanters at the Rim" (slay 2 Goblin Warlocks, back to her; 1 silver 50 copper, lore "The
   chanters at the rim"). All side quests; only Nim's second waits, on her first.
+- The Mistwood's folk (the user: "continue to add content for the game… based off of your best judgement"; names,
+  looks, spots, lines, rewards and lore are the agent's, not hand-played): Sorrel, Calyx's herbalist, by the reeds on
+  the lake's south-west shore (-11.5, -8.5), "Fangs for the Mortar" (gather and hand over 3 wolf fangs; 80 copper, lore
+  "The thinning wood": every year the wood grows a little less, a hint at the starving) then "What Rises off the Mire"
+  (stand on the lake's island north of the bridge, slay a Goblin Warlock, back to her; 1 silver, lore "Mist off the
+  mire": the mist is loose soul rising off the still water, and the goblins breathe it before they chant); and Bryn, a
+  charcoal burner in the south below the lake (-1.5, -12.5), who had Tamsin's son Rook by her fire: "Rook's Last Hunt"
+  (once Tamsin's "A Son in the Mistwood" is done: slay a grey wolf, back to Bryn for 1 silver, then tell Tamsin, lore
+  "Past the trees": Rook went south through a gap in the trees past the goblin's ruins, where no road runs). Tamsin
+  has lines for its last step and after it. All side quests; Sorrel's second waits on her first.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

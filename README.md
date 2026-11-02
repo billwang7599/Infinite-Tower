@@ -61,9 +61,11 @@ What's built so far:
   coin: the gate's captain for three boars, the castle's cook for boar meat, a mother for word of her son from Ilse's
   loom, and the keeper of the roll of arrivals for a look at the Hollow and the Mistwood. In the Old Quarry, its old
   foreman sends you down the pit to the Kobold Greatsword by its pool, and a scavenger wants wolf pelts for her roof,
-  then the Goblin Warlocks chanting at the rim gone: what they tell is why the quarry was left. The questbook (H, or the
-  HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
-  it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
+  then the Goblin Warlocks chanting at the rim gone: what they tell is why the quarry was left. In the Mistwood, an
+  herbalist wants wolf fangs, then sends you onto the lake's island to learn what the mist is, and a charcoal burner
+  who had Tamsin's son by her fire sends word to her of which way he went. The questbook (H, or the HUD's book; in
+  fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave it, and the
+  lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, grey wolf, Kobold Swordsman or Goblin Warlock in a small round arena,
   each with its own look (a forest clearing, stone ruins, a mire, a quarry), lit by a 24-minute day: the sun and moon
   rise and set, the shadows follow them, and glowing mushrooms light the mire.

@@ -8,6 +8,22 @@ export const TAMSIN: Npc = {
       heading: "east",
       talk: [
         {
+          when: { done: "burner-rook" },
+          lines: [
+            "South, past the trees. I look that way every evening now.",
+            "If you go further than he did, avatar, and come back, tell me what's there.",
+          ],
+        },
+        {
+          when: { quest: "burner-rook", step: "tamsin" },
+          lines: [
+            "You've been to the Mistwood again. I can see it on your boots. Tell me.",
+            "Bryn's fire. A torn arm. And then south, through the trees, where no road runs.",
+            "That's him. Every word. He used to climb the town wall to see what was past the fields.",
+            "Ilse said his thread runs where the loom won't look. Now I know which way that is. Thank you.",
+          ],
+        },
+        {
           when: { done: "tamsin-son" },
           lines: [
             "I set his place at the table again. Foolish, maybe. But his thread runs, and so the place is his.",

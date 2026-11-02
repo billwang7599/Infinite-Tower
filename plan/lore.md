@@ -33,7 +33,9 @@ tower from [vision.md](vision.md) is optional here: the user said we don't have 
   snapped-tether myth's proof (a Kobold's thread, thin and knotted, which proves nothing either way). In Highmere,
   Ottilie, Aurel's priest, holds to the Harvest; Captain Edda keeps the crown's claim on avatars without believing
   the crown can keep them; Odo keeps the roll of arrivals, whose first leaves, older than the castle, hold only tallies
-  (a hint at the Maker, no more).
+  (a hint at the Maker, no more). In the Mistwood, Sorrel, Calyx's herbalist, holds to the Harvest too, and counts
+  the wood growing a little thinner every year (the starving, glimpsed, not explained), and the mist off its mire is
+  loose soul rising.
 - **Monsters are native** to this world, not avatars. Their souls come from the soul cycle below.
 - What people say about monsters, in three layers:
   - What everyone believes: the world leaks soul, and the leaked soul clumps into beasts (wild shells).
