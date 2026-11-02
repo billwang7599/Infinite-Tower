@@ -4,6 +4,8 @@ import { QUESTS } from "../content/quests.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn } from "./story.js";
 
+export const FAITH_CHEAT = 25;
+
 export function runCheat(session: GameSession, cheat: Cheat): void {
   const battle = session.liveBattle;
   switch (cheat.kind) {
@@ -41,6 +43,11 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       else session.link.send({ t: "noQuest" });
       return;
     }
+    case "faith":
+      if (!session.inOverworld) return;
+      session.gainFaith({ [cheat.god]: FAITH_CHEAT });
+      session.save();
+      return;
     case "resetSave":
       if (session.inOverworld) session.resetSave();
       return;

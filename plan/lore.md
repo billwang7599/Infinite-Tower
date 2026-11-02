@@ -141,7 +141,8 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   to the most devout. A great smith who never prays may be blessed before a priest of the forge, which the orders
   argue over endlessly. Players can be blessed too (user's decision), by earning high faith (reputation) with
   that god, maybe through the god's own quests later. Blessings have no cap, and they aren't inscriptions
-  (plan/inscriptions.md). Only a plan for now: what a blessing gives is still open.
+  (plan/inscriptions.md). Built as a first pass: faith per god from some quest rewards and three gods' blessings
+  (AGENTS.md, "Blessings"); how faith is really earned and lost, and the other gods' blessings, are still open.
 
 The orders, drafted by OptChat (names and crafts for the user to change):
 
@@ -222,7 +223,7 @@ Odo the chronicler fits Nyra's, Fennick the changer Vesk's and Bram Kaelith's, i
   draft: one order at a time; joining is a small rite at the order's hall; leaving is free but drops your faith
   with that god a step, so hopping has a cost; members get the order's quests first and a discount on its
   services (the Collegium's carving). Nothing decided.
-- How faith with a god is earned and lost, and what a blessing gives (blessings are only a plan for now).
+- How faith with a god is really earned and lost (god quests?), and the blessings of the nine gods with none yet.
   Inscriptions' open questions are in plan/inscriptions.md.
 - Factions beyond the orders (kingdoms, guilds), later as the world grows.
 - What Seraphel's firmer hand on the door means in play, and what Temple Hill and the Lower Town hold.

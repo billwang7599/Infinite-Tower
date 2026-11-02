@@ -1,14 +1,15 @@
 import { useState } from "react";
 import {
-  carryLimit, coreName, coreStats, inscriptionSlots, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor,
-  placePoint, pointsLeft, SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type CoreState,
-  type ShownStat, type Stats,
+  BLESSING_FAITH, blessingsOf, carryLimit, coreName, coreStats, GODS, inscriptionSlots, maxHpOf, moveSpeed,
+  physicalDamage, physicalTakenFactor, placePoint, pointsLeft, SHOWN_STATS, skillDamage, skillTakenFactor,
+  staminaMaxOf, takeBackPoint, type CoreState, type Faith, type ShownStat, type Stats,
 } from "@infinite-tower/shared";
 import { LookPicture } from "../../components/LookPicture.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { BLESSING_TEXT, GOD_NAMES } from "../blessings.js";
 import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
 import { RARITY_TEXT } from "../inventory/itemInfo.js";
 import { PanelFrame } from "../PanelFrame.js";
@@ -154,6 +155,7 @@ export function CharacterPanel({ hud, statPoint, close, shownWidth }: PanelProps
   const core = useStore(hud, (s) => s.core);
   const byFire = useStore(hud, (s) => s.byFire);
   const character = useStore(hud, (s) => s.character);
+  const faith = useStore(hud, (s) => s.faith);
   return (
     <PanelFrame
       id="character-panel" title={character?.name ?? "Character"} titleId="character-name"
@@ -177,6 +179,7 @@ export function CharacterPanel({ hud, statPoint, close, shownWidth }: PanelProps
           </div>
           <StatChart core={core} byFire={byFire} statPoint={statPoint} />
           <Rings core={core} />
+          <FaithList faith={faith} />
         </>
       )}
     </PanelFrame>
@@ -200,6 +203,30 @@ function Rings({ core }: { core: CoreState }) {
             <span className="text-white/55"> {INSCRIPTION_TEXT[id]}</span>
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+function FaithList({ faith }: { faith: Faith }) {
+  const gods = GODS.filter((god) => (faith[god] ?? 0) > 0), blessed = blessingsOf(faith);
+  if (gods.length === 0) return null;
+  return (
+    <section id="character-faith" className="mt-2 border-t border-white/10 pt-2 text-xs">
+      <span className="tracking-[0.12em] text-white/70 uppercase">Faith</span>
+      <ul className="mt-1 flex flex-col gap-1">
+        {gods.map((god) => {
+          const blessing = blessed.find((b) => b === god);
+          return (
+            <li key={god} data-god={god}>
+              <span className="flex justify-between">
+                <span className={blessing ? "text-victory" : "text-white/85"}>{GOD_NAMES[god]}</span>
+                <span className="text-white/55 tabular-nums">{faith[god]} / {BLESSING_FAITH}</span>
+              </span>
+              {blessing && <span className="text-white/55">{BLESSING_TEXT[blessing]}</span>}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

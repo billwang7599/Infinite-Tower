@@ -1,6 +1,6 @@
 import {
-  addItem, bagCounts, inRect, takeItems, type Bag, type EnemyId, type ItemCounts, type ItemId, type QuestNews,
-  type QuestView, type Tally, type Vec2,
+  addFaith, addItem, bagCounts, inRect, takeItems, type Bag, type EnemyId, type Faith, type God, type ItemCounts,
+  type ItemId, type QuestNews, type QuestView, type Tally, type Vec2,
 } from "@infinite-tower/shared";
 import { LORE } from "../content/lore.js";
 import { QUESTS, type Quests, type QuestStep, type Task } from "../content/quests.js";
@@ -38,6 +38,7 @@ interface Unfolding {
   bag: Bag;
   dropped: ItemCounts;
   news: QuestNews[];
+  faith: Faith;
 }
 
 export const stepOn = (story: Story, id: string, quests: Quests = QUESTS): QuestStep | undefined => {
@@ -51,7 +52,7 @@ const withStep = (story: Story, id: string, step: string | null, kills = 0): Sto
 export function unfold(
   from: { story: Story; bag: Bag }, effects: readonly Effect[], seen: Seen, quests: Quests = QUESTS,
 ): Unfolding {
-  const out: Unfolding = { ...from, dropped: {}, news: [] };
+  const out: Unfolding = { ...from, dropped: {}, news: [], faith: {} };
   for (const effect of effects) {
     if ("start" in effect) start(out, effect.start, quests);
     else if ("advance" in effect) advance(out, effect.advance, quests);
@@ -79,7 +80,8 @@ function advance(out: Unfolding, id: string, quests: Quests, forced = false): bo
   }
   const next = quest.steps[quest.steps.indexOf(step) + 1] ?? null;
   out.story = withStep(out.story, id, next?.id ?? null);
-  const { items = {}, flags = [], lore = [] } = step.reward ?? {};
+  const { items = {}, flags = [], lore = [], faith = {} } = step.reward ?? {};
+  for (const [god, amount] of Object.entries(faith) as [God, number][]) out.faith = addFaith(out.faith, god, amount);
   const gained: ItemCounts = {}, dropped: ItemCounts = {};
   for (const [item, count] of Object.entries(items) as [ItemId, number][]) {
     const packed = addItem(out.bag, item, count);
@@ -156,7 +158,7 @@ export function progressStory(
   session: GameSession, effects: readonly Effect[] = [], killed: readonly EnemyId[] = [],
 ): void {
   const { overworld, me } = session, at = overworld.playerPos(me), bagWas = session.bag;
-  const { story, bag, dropped, news } = unfold(
+  const { story, bag, dropped, news, faith } = unfold(
     { story: session.story, bag: bagWas }, effects, { level: overworld.level.layout.id, at, killed },
   );
   if (news.length === 0) return;
@@ -166,6 +168,7 @@ export function progressStory(
     session.bag = bag;
     session.link.send({ t: "gear", gear: session.gear });
   }
+  if (Object.keys(faith).length > 0) session.gainFaith(faith);
   session.save();
   session.link.send({ t: "questbook", quests: questbookOf(story), news });
 }

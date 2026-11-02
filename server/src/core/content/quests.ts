@@ -1,4 +1,4 @@
-import type { EnemyId, ItemCounts, ItemId, NpcId, QuestHalf, Rect } from "@infinite-tower/shared";
+import type { EnemyId, Faith, ItemCounts, ItemId, NpcId, QuestHalf, Rect } from "@infinite-tower/shared";
 import type { When } from "../game/story.js";
 import type { LoreId } from "./lore.js";
 
@@ -15,7 +15,7 @@ export interface QuestStep {
   task: Task;
   text: string;
   hint: string;
-  reward?: { items?: ItemCounts; flags?: readonly string[]; lore?: readonly LoreId[] };
+  reward?: { items?: ItemCounts; flags?: readonly string[]; lore?: readonly LoreId[]; faith?: Faith };
 }
 
 export interface QuestDef {
@@ -51,7 +51,7 @@ export const QUESTS: Quests = {
         task: { kind: "kill", enemy: "bram", count: 1 },
         text: "Best Bram in a spar.",
         hint: "Bram said he'll yield before he's hurt badly, and so should you. Talk to him in the yard to begin.",
-        reward: { lore: ["soft-as-dough"] },
+        reward: { lore: ["soft-as-dough"], faith: { kaelith: 20 } },
       },
     ],
   },
@@ -185,7 +185,7 @@ export const QUESTS: Quests = {
         task: { kind: "talk", to: "tobin" },
         text: "Tell Tobin how it fought.",
         hint: "He keeps watch by the footbridge in the Hollow.",
-        reward: { items: { "boar-meat": 3 }, lore: ["kobolds"] },
+        reward: { items: { "boar-meat": 3 }, lore: ["kobolds"], faith: { kaelith: 20 } },
       },
     ],
   },
@@ -316,7 +316,7 @@ export const QUESTS: Quests = {
         task: { kind: "talk", to: "captain" },
         text: "Report to Captain Edda.",
         hint: "She keeps Highmere's South Gate, at the south end of the Market Ward.",
-        reward: { items: { "silver-coin": 1 }, lore: ["highmere-claim"] },
+        reward: { items: { "silver-coin": 1 }, lore: ["highmere-claim"], faith: { kaelith: 20 } },
       },
     ],
   },
@@ -335,7 +335,7 @@ export const QUESTS: Quests = {
         task: { kind: "deliver", item: "boar-meat", count: 3, to: "cook" },
         text: "Bring the 3 boar meat to Wenna.",
         hint: "She stands by the castle's kitchen door, in the east of the courtyard.",
-        reward: { items: { "copper-coin": 60 }, lore: ["haldis-fires"] },
+        reward: { items: { "copper-coin": 60 }, lore: ["haldis-fires"], faith: { haldis: 30 } },
       },
     ],
   },
@@ -406,7 +406,7 @@ export const QUESTS: Quests = {
         task: { kind: "talk", to: "foreman" },
         text: "Go back up to Harl.",
         hint: "He sits by the Old Quarry's campfire, near the way in from the Grass Field.",
-        reward: { items: { "silver-coin": 2 }, lore: ["quarry-pool"] },
+        reward: { items: { "silver-coin": 2 }, lore: ["quarry-pool"], faith: { brannoc: 30 } },
       },
     ],
   },

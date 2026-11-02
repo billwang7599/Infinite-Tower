@@ -299,6 +299,9 @@ Decided by the user:
   (essence and coins) and it's gone, to be earned again. They come from super rare drops, crafting (the common ones,
   not built) and quest rewards. Unique ones exist once in the world. Blessings are separate
   ([plan/lore.md](plan/lore.md)).
+- Blessings (the user: separate from inscriptions, "for now make the logic behind ... blessings"): a god blesses a
+  player whose faith (reputation) with them is high, maybe through the god's own quests later. No cap on how many.
+  Joining the gods' orders isn't decided: not built.
 - Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
   overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
   battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
@@ -728,6 +731,18 @@ them; treat them as changeable, and still ask before deciding new ones):
     rarity, a glint running round; packed closer the more there are (`RINGS` in `client/src/gfx/core/sphere.ts`).
     The character panel lists them under the chart with what each does; the fight's HUD shows each as a status tile
     with no timer.
+- Blessings, built (the user's rules above; every pick here is the agent's, tried by tests only, not hand-played;
+  numbers in FORMULAS.md, "Blessings"):
+  - Faith is a number per god, saved with the player (`faith`), only ever growing for now; a god with a blessing
+    blesses you while your faith with them is 100 or more (`BLESSING_FAITH`), so a blessing isn't stored apart.
+  - Faith comes from quest rewards (a step's `reward.faith`): Bram's yard and Tobin's Kobold quest give Kaelith 20
+    each, Captain Edda's Thin the Herd Kaelith 20, Wenna's For the Castle Pot Haldis 30, Harl's Down the Pit Brannoc
+    30. The F1 panel adds 25 with any god (`FAITH_CHEAT`). So no god blesses through play alone yet.
+  - Three gods bless, each a permanent status in the shared fight: Kaelith's Edge (damage dealt × 1.1), Brannoc's
+    Anvil (damage taken × 0.9, knockback × 0.5), Haldis's Hearth (stamina refill × 1.2). The other nine have none
+    yet.
+  - A corner notice says your faith grows (no number) and names a blessing as it comes; the character panel lists
+    each god you have faith with (n / 100) and what their blessing does. A fight's HUD shows a blessing as a tile.
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
@@ -1054,7 +1069,8 @@ docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postg
 ```
 
 In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a core
-step up or down, completing the current quest, resetting your save, a fight with any enemy, items into the bag.
+step up or down, completing the current quest, resetting your save, a fight with any enemy, items into the bag, faith
+with a god.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a

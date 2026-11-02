@@ -22,7 +22,7 @@ describe("player content", () => {
       vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
       equipment: emptyEquipment(), skillbook: [null, null, null, null], story: { quests: {}, flags: [] },
       pad: START_LEVEL,
-      core: newCore(), shopsBought: [],
+      core: newCore(), shopsBought: [], faith: {},
     });
   });
 

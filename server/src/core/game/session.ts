@@ -3,12 +3,12 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
-  hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
+  addFaith, blessingsOf, CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals,
+  Health, heldIn, hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
   placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
-  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Gear, type InscriptionId,
-  type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats,
-  type UseSpot, type Using, type Vec2, type Vitals, type Word,
+  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear, type God,
+  type InscriptionId, type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot,
+  type StepInput, type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
@@ -69,6 +69,7 @@ export class GameSession {
   placed: Placed = { npcs: [], traces: [] };
   shop: ShopId | null = null;
   shopsBought: ShopId[];
+  faith: Faith;
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
   private held: Gear;
@@ -104,6 +105,7 @@ export class GameSession {
     this.skillbook = saved.skillbook;
     this.story = saved.story;
     this.shopsBought = saved.shopsBought;
+    this.faith = saved.faith;
     this.offLevelPad = wakeLevel(saved.pad);
     this.levelId = this.offLevelPad;
     this.soul = saved.core;
@@ -136,7 +138,7 @@ export class GameSession {
     this.link.send({
       t: "welcome", wins: this.wins, vitals: this.vitals, core: this.core, settings: this.settings,
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
-      chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev,
+      chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev, faith: this.faith,
     });
     if (this.character) this.enterLevel(this.levelId);
   }
@@ -368,6 +370,16 @@ export class GameSession {
     this.link.send({ t: "core", core, vitals: this.vitals, brokeThrough });
   }
 
+  gainFaith(gained: Faith): void {
+    const before = blessingsOf(this.faith);
+    for (const [god, amount] of Object.entries(gained) as [God, number][]) {
+      this.faith = addFaith(this.faith, god, amount);
+    }
+    const blessed = blessingsOf(this.faith).filter((god) => !before.includes(god));
+    this.saveSoon();
+    this.link.send({ t: "faith", faith: this.faith, gained, blessed });
+  }
+
   saveSkill(page: number, skill: Skill): void {
     const known = new Set(this.knownWords);
     const writable = heldIn(this.gear.equipment, "skillbook") !== null && validateSkill(skill, known).length === 0;
@@ -386,7 +398,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought,
+      story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought, faith: this.faith,
     });
   }
 

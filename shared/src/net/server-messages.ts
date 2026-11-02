@@ -10,6 +10,7 @@ import type { Gear, UseSpot } from "../items/gear.js";
 import type { CoinId } from "../items/coins.js";
 import type { ItemCounts, ItemId, Rarity } from "../items/items.js";
 import type { InscriptionId } from "../soul/inscriptions.js";
+import type { BlessingGod, Faith } from "../soul/blessings.js";
 import type { LevelLayout, LevelMap, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
@@ -128,6 +129,7 @@ export type ServerMsg =
   | {
     t: "welcome"; wins: number; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
     gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; dev: boolean;
+    faith: Faith;
   }
   | { t: "character"; character: Character }
   /** `next`: the maps its exits lead to, so they can be drawn before you cross. */
@@ -161,6 +163,8 @@ export type ServerMsg =
   | { t: "rested"; vitals: Vitals }
   | { t: "padBound"; already: boolean }
   | { t: "core"; core: CoreState; vitals: Vitals; brokeThrough: boolean }
+  /** `blessed`: the gods whose blessing this change brought. */
+  | { t: "faith"; faith: Faith; gained: Faith; blessed: BlessingGod[] }
   | { t: "dialogue"; npc: NpcId; trace: boolean; lines: readonly string[]; offer: DialogueOffer | null }
   | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }
   /** A shop opened beside the bag (`openShop`), or null: it closed. */

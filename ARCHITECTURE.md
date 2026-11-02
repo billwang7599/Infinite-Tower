@@ -349,6 +349,12 @@ main.ts
   sigil's spot) or `uncarve` (an id) pay coins as a shop does and essences, any kind, cheapest first, off the cloth
   then the bag. The answer is a `trade` and, through `takeCore`, a `core`. The sphere draws a ring round the glass for
   each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel lists them.
+- **Blessings** (`shared/src/soul/blessings.ts`; [FORMULAS.md](FORMULAS.md#blessings)): the session's `faith`, a
+  number per god (`GODS`), saved with the player. A quest step's `reward.faith` adds to it as the story unfolds
+  (`unfold`, then `GameSession.gainFaith`), and so does the admin's `faith` cheat; each change sends `faith` (all of it,
+  what was gained and the blessings it brought). `blessingsOf` is every god with a blessing (`BLESSINGS`) whose faith
+  is at `BLESSING_FAITH`: nothing about a blessing is stored. A fight's setup carries the player's `blessings`
+  (`fighterOf`), and `spawnPlayer` puts each on as a permanent status, beside the inscriptions'.
 - **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
   `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
   (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
@@ -636,11 +642,11 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `statPoint {stat, add}` | the character panel's + / −: place a free point in a shown stat (outside fights), or take one back (by a campfire too); answered with `core` either way |
-| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only), `completeQuest`, `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only), `completeQuest`, `faith` with a god (overworld only), `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
 
 | Server -> client | When |
 |---|---|
-| `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev` |
+| `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev`, faith with each god |
 | `character` | your character, as saved |
 | `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you), where you are, and `next`, the maps its exits lead to (drawn before you cross) |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position and HP (it comes back on its own), nearby actors, other players (a player's character only the first time) and piles |
@@ -657,6 +663,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `using` | `useItem` started using what's at `at` (its `useTime`, then `itemUsed`), or `at` null: it stopped, nothing used (the bag closed, a fight started) |
 | `rested`, `itemUsed` | what resting or eating (or absorbing) did |
 | `padBound` | after a `bindPad` that found a pad: bound to it now, or `already` |
+| `faith` | faith with a god changed (a quest's reward, the admin's cheat): all of it, what was gained, and the gods whose blessing it brought |
 | `core` | the core changed outside a fight (essence absorbed, a point placed or taken back, the admin's step), or a point was refused: the core, HP / stamina, and whether it broke through |
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
@@ -738,7 +745,8 @@ and within a second of a settings change, a move in the bag, a trade or a page w
 cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them, so a unique thing in one is free
 again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`). The core's inscriptions
-are a column of their own (`inscriptions`, `0021_inscriptions`; unknown ids and doubles dropped on load).
+are a column of their own (`inscriptions`, `0021_inscriptions`; unknown ids and doubles dropped on load), and so is
+the faith with each god (`faith`, `0022_faith`; `keptFaith` drops unknown gods on load).
 The pad you're bound to is saved (`pad`, a level id), and you log in on it (`wakeLevel`: a pad that's gone, or a level
 without one, is `START_LEVEL`'s); neither the level you were on nor your position is saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
@@ -862,7 +870,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   Carving (`carving.test.ts`): the Collegium's carver and prices, a sigil carved for coins and essence (cheapest
   first), every refusal changing nothing, removing for more with nothing back, a carved unique held like a carried
   one. Inscriptions in a fight (`shared/test/battle/fight/inscriptions.test.ts`): permanent statuses from the start,
-  Embers, Red Blade, Last Breath (never your last HP) and the First Door once a fight.
+  Embers, Red Blade, Last Breath (never your last HP) and the First Door once a fight. Blessings
+  (`shared/test/soul/blessings.test.ts`, `shared/test/battle/fight/blessings.test.ts`, `blessings.test.ts`): the
+  threshold, no cap, saved faith made right, a quest's faith sent and saved, a blessing told once, the admin's faith on
+  dev only, a blessing on in a fight.
   Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
   Highmere's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
   change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
@@ -1075,7 +1086,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
   soul/            core.ts (the core: REALMS, STEP_NAMES, CORE; CoreState (steps done, fill, points placed,
                    inscriptions), newCore, fillToFinish, coreName, coreStats, absorb, placePoint, takeBackPoint,
                    pointsEarned / pointsLeft, coreAfterDeath, coreAtStep, keptCore), inscriptions.ts (INSCRIPTIONS:
-                   each one's status and stats; EMBERS, FIRST_DOOR; sigilOf, inscriptionSlots, carve, uncarve)
+                   each one's status and stats; EMBERS, FIRST_DOOR; sigilOf, inscriptionSlots, carve, uncarve),
+                   blessings.ts (GODS, Faith, BLESSINGS: each blessing's status; BLESSING_FAITH, blessingsOf,
+                   addFaith, keptFaith)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, join(player) and leave(player) (gone from the arena; down mid-fight), outcome,
@@ -1398,7 +1411,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        "Join the fight" / "Open the pile" / "Talk" / "Look"), StatusRow.tsx (status tiles: an
                        icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;
                        statusLooks.ts: each status's name, colour and SVG icon), inscriptions.ts (INSCRIPTION_TEXT:
-                       what each does, for the bag, the shop and the character panel),
+                       what each does, for the bag, the shop and the character panel), blessings.ts (GOD_NAMES,
+                       BLESSING_TEXT),
                        BattleHud.tsx (your bars and statuses top left, the foe's name, statuses and bar at the
                        bottom; the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
@@ -1409,9 +1423,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the realm and step), character/ (CharacterPanel.tsx: the
                        portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
                        between − (only by a campfire) and + for free points, hovering them previewing the change and
-                       what the stat does, then its rings; chart.ts: chartPoints, the polygon's corners for any
-                       number of stats, and chartMax, its rim: the most a stat could be at the step), inventory/ (the
-                       bag screen:
+                       what the stat does, then its rings and your faith; chart.ts: chartPoints, the polygon's
+                       corners for any number of stats, and chartMax, its rim: the most a stat could be at the
+                       step), inventory/ (the bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
                        coins and changing them; at the Collegium your rings and Unmake), an open pile over the
                        cloth, and the bag, in a row (in a window taller than it's wide, the pile and the cloth below

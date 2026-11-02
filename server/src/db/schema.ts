@@ -1,7 +1,7 @@
 /** The tables. After changing one, run `npm run db:generate -- --name <what-changed>` and commit the migration. */
 import {
   blankSkillbook, emptyEquipment, type Bag, type Character, type Equipment, type SavedSettings, type Skillbook,
-  type StatPoints,
+  type Faith, type StatPoints,
 } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
 import { newStory, type Story } from "../core/game/story.js";
@@ -50,6 +50,7 @@ export const players = pgTable("players", {
   statPoints: jsonb("stat_points").$type<StatPoints>().notNull().default({}),
   inscriptions: text().array().notNull().default([]),
   shopsBought: text("shops_bought").array().notNull().default([]),
+  faith: jsonb().$type<Faith>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

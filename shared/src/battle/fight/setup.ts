@@ -6,6 +6,7 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import type { CoreState } from "../../soul/core.js";
+import { BLESSINGS, type BlessingGod } from "../../soul/blessings.js";
 import { INSCRIPTIONS } from "../../soul/inscriptions.js";
 import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
@@ -41,7 +42,7 @@ export function joinStart(arena: ArenaDef, seat: number): Vec3 {
 
 export interface PlayerSetup {
   at: Vec3; vitals: Vitals; stats: Stats; core: CoreState; burden: Burden; gear: Carried; book: Skillbook;
-  seed?: number; invulnerable?: boolean; who?: { name: string; character: Character };
+  seed?: number; invulnerable?: boolean; who?: { name: string; character: Character }; blessings?: BlessingGod[];
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
@@ -88,8 +89,11 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
   world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius });
-  const carved = setup.core.inscriptions.map((id) => INSCRIPTIONS[id].status);
-  world.add(e, Statuses, { ...noStatuses(), on: carved.map((status) => permanent(status)) });
+  const passives = [
+    ...setup.core.inscriptions.map((id) => INSCRIPTIONS[id].status),
+    ...(setup.blessings ?? []).map((god) => BLESSINGS[god].status),
+  ];
+  world.add(e, Statuses, { ...noStatuses(), on: passives.map((status) => permanent(status)) });
   return e;
 }
 
