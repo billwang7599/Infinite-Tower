@@ -114,8 +114,9 @@ What's built so far:
   vitality (HP), defense and special defense, plus hidden toughness, stamina recovery and health regen. Dying loses
   the step's essence, or with none, a whole step. Click your portrait (bottom left) to turn it over to your core: a
   glass sphere whose light grows brighter every step and changes colour every realm, fiery Yan to ethereal Tian, with
-  no bar or number; sparks show as a breakthrough nears, and a breakthrough flashes. The character panel shows your
-  stats as a polygon chart, where free points are placed (hovering + or − previews the change).
+  no bar or number; sparks show as a breakthrough nears, and a breakthrough flashes. The character panel's tabs show
+  your stats as a polygon chart, where free points are placed (hovering + or − previews the change), your core big
+  with its rings, and your faith with each god.
 - **Vitals carry over:** HP and stamina stay between fights and visits. Resting at the campfire, eating boar meat
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the

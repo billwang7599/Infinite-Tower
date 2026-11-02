@@ -10,8 +10,8 @@ import type { BattleHudState, OverworldHudState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX } from "./layout.js";
+import { usePaintedSphere } from "./paintSphere.js";
 
-const PAINT_GAP_MS = 1000 / 30;
 const FACE =
   "col-start-1 row-start-1 overflow-hidden rounded-sm bg-black ring-1 ring-victory/50 backface-hidden "
   + "group-hover:ring-victory";
@@ -57,22 +57,7 @@ export function CoreCard({ mode, overworld, battle, said }: CoreCardProps) {
     return () => clearTimeout(timer);
   }, [breakthroughAt]);
 
-  useEffect(() => {
-    const ctx = canvas.current?.getContext("2d");
-    if (!showCore || !ctx) return;
-    const image = ctx.createImageData(SPHERE_PX, SPHERE_PX);
-    let frame = 0, paintedMs = -Infinity;
-    const paint = (nowMs: number) => {
-      frame = requestAnimationFrame(paint);
-      if (nowMs - paintedMs < PAINT_GAP_MS) return;
-      paintedMs = nowMs;
-      sphere.frame(nowMs / 1000);
-      sphere.paint(image.data, nowMs / 1000);
-      ctx.putImageData(image, 0, 0);
-    };
-    frame = requestAnimationFrame(paint);
-    return () => cancelAnimationFrame(frame);
-  }, [showCore, sphere]);
+  usePaintedSphere(canvas, sphere, showCore);
 
   const glyph = core ? REALM_LOOKS[coreLight(core.steps).realm].glyph : "";
   return (
