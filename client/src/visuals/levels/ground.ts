@@ -1,3 +1,4 @@
+import { PX_PER_TILE } from "../../gfx/tile.js";
 import type { Pen } from "../overworld/props.js";
 import type { GroundPaint } from "./tiles.js";
 
@@ -12,7 +13,7 @@ export interface GroundPalette {
   petals: string[];
 }
 
-const T = 16;
+const T = PX_PER_TILE;
 const PAD_INSET_PX = 3;
 const PAD_RING_PX = 10;
 

@@ -37,3 +37,11 @@ test("recording copies the state, so later edits don't change it", () => {
   state.push(2);
   assert.deepEqual(h.undo(state), [1]);
 });
+
+test("with a size budget, the oldest steps go first once it's spent", () => {
+  const h = new History<string>((s) => s, 100, (s) => s.length, 5);
+  for (const s of ["aa", "bb", "cc"]) h.record(s);
+  assert.equal(h.undo("dd"), "cc");
+  assert.equal(h.undo("cc"), "bb");
+  assert.equal(h.undo("bb"), null);
+});

@@ -1,5 +1,6 @@
 import { mapHalfSize, seededRandom, tileAt, type LevelMap, type TileKind } from "@infinite-tower/shared";
-import { PX_PER_TILE, type Pen } from "../overworld/props.js";
+import { PX_PER_TILE } from "../../gfx/tile.js";
+import type { Pen } from "../overworld/props.js";
 import type { Prop, PropKind } from "../overworld/scenery.js";
 
 /** `same(dx, dy)`: the neighbour that way (+dy is south) looks the same. */

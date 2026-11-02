@@ -1366,6 +1366,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        SPHERE_PX² RGBA pixels)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
+      tile.ts          PX_PER_TILE: texels per overworld tile (16), for the ground, props and water, and the art
+                       lab's tile size
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, dialogue, the HUD's card), a 32x32 chibi facing front, back or side (the
                        world) and a 64x64 battle sprite from behind and the front in each pose (the arena), in
@@ -1727,11 +1729,16 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
                      draw.ts (lines, rectangles, flood fill), resample.ts (nearest and smoothed resizing, fitting
                      an image to the canvas, snapping to a palette), selection.ts (lift and stamp), layers.ts
                      (Doc: layers bottom to top, by part plus free ones; compositing with opacity), history.ts
-                     (undo / redo), json.ts (a drawing as JSON). The page: state.ts (Editor: the drawing, the tool,
-                     the color, the selection, undo), tools.ts (what each tool does with the pointer), view.ts
-                     (the zoomable, pannable canvas with its grid), toolbar.ts, colors.ts (the game's ramps and a
-                     free picker; palette.ts lists them), layerList.ts, filePanel.ts (new, import an image,
-                     export PNGs, save and open JSON), editor.ts (lays it out, wires drag-and-drop)
+                     (undo / redo, within a step count and a size), json.ts (a project as JSON), sheet.ts (packing
+                     pictures into a sheet, tiling one 3x3). A project is pages of one size sharing one stack of
+                     layers (layers.ts): one page for a sprite, a page per tile for a tileset. modes.ts (MODE_LOOKS:
+                     each mode's name, canvas sizes and starting layers; tiles are PX_PER_TILE square). The page:
+                     state.ts (Editor: a project per mode, the tool, the color, the selection, undo), tools.ts (what
+                     each tool does with the pointer), view.ts (the zoomable, pannable canvas with its grid),
+                     toolbar.ts, colors.ts (the game's ramps and a free picker; palette.ts lists them),
+                     layerList.ts, pageStrip.ts (the tileset's tiles: pick, add, copy, reorder, name, delete),
+                     filePanel.ts (new, import, export, save, open) over fileIo.ts (decoding, downloads), editor.ts
+                     (the modes, the layout, the previews, drag-and-drop)
 ```
 
 ## Adding things

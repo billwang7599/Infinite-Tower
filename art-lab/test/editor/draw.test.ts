@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { blank, getPixel, setPixel, type Rgba } from "../../src/editor/bitmap.js";
-import { floodFill, linePoints, rectPoints } from "../../src/editor/draw.js";
+import { floodFill, linePoints, rectPoints, wrapShift } from "../../src/editor/draw.js";
 
 const RED: Rgba = [255, 0, 0, 255];
 const BLUE: Rgba = [0, 0, 255, 255];
@@ -40,4 +40,12 @@ test("filling with the color already there changes nothing", () => {
   const b = blank(2, 2);
   floodFill(b, 0, 0, [0, 0, 0, 0]);
   assert.ok(b.rgba.every((v) => v === 0));
+});
+
+test("shifting wraps what leaves one side round to the other", () => {
+  const b = blank(4, 2);
+  setPixel(b, 3, 1, RED);
+  wrapShift(b, 2, 1);
+  assert.deepEqual(getPixel(b, 1, 0), RED);
+  assert.deepEqual(getPixel(b, 3, 1), [0, 0, 0, 0]);
 });

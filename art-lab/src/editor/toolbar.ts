@@ -1,5 +1,6 @@
 import { BUTTON, button, checkbox, el } from "../dom.js";
 import { blank } from "./bitmap.js";
+import { wrapShift } from "./draw.js";
 import { addLayer } from "./layers.js";
 import { lift, stamp } from "./selection.js";
 import { TOOL_NAMES, type Editor } from "./state.js";
@@ -33,6 +34,11 @@ export function toolbar(ed: Editor, view: CanvasView): HTMLElement {
     checkbox("Grid", view.grid, (on) => { view.grid = on; ed.changed(false); }),
     checkbox("Filled rectangle (or hold Shift)", ed.filledRect, (on) => { ed.filledRect = on; }),
   );
+  if (ed.mode === "tiles") {
+    options.append(button("Shift by half", () => ed.edit(() => {
+      for (const l of ed.doc.layers) wrapShift(l.pixels, Math.floor(ed.doc.width / 2), Math.floor(ed.doc.height / 2));
+    }), "Wrap the tile round by half its size, to bring its edges into the middle and paint the seams"));
+  }
   const selected = el("div", ROW);
   selected.append(...selectionButtons(ed));
   box.append(tools, options, selected);
@@ -46,20 +52,20 @@ function selectionButtons(ed: Editor): HTMLButtonElement[] {
     button("Clear selected", () => ed.edit(() => { lift(ed.layer.pixels, sel); })),
     button("Selected to new layer", () => ed.edit(() => {
       const piece = lift(ed.layer.pixels, sel);
-      ed.active = addLayer(ed.doc, `${ed.layer.name} piece`, ed.active);
+      ed.active = addLayer(ed.project, `${ed.layer.name} piece`, ed.active);
       stamp(ed.layer.pixels, piece, sel.x, sel.y);
     })),
     button("Crop to selection", () => ed.edit(() => {
-      ed.doc = {
-        width: sel.w, height: sel.h,
-        layers: ed.doc.layers.map((l) => {
+      ed.project.pages = ed.project.pages.map((d) => ({
+        ...d, width: sel.w, height: sel.h,
+        layers: d.layers.map((l) => {
           const pixels = blank(sel.w, sel.h);
           stamp(pixels, lift(l.pixels, sel), 0, 0);
           return { ...l, pixels };
         }),
-      };
+      }));
       ed.selection = null;
-    })),
+    }), "Every page of the drawing"),
   ];
   for (const b of buttons) {
     b.disabled = !ed.selection;
