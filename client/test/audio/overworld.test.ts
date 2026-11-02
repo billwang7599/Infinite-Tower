@@ -27,7 +27,9 @@ function overworld(level: LevelLayout | null = LEVEL) {
   };
   const player = walker("player", 0, 0);
   world.add(player, LocalPlayer, true);
-  const state: OverworldState = { world, player, level, cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad };
+  const state: OverworldState = {
+    world, player, level, next: [], cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
+  };
   return { state, world, walker, player, hear: overworldEars() };
 }
 

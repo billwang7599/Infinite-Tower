@@ -204,9 +204,18 @@ class WaterPlugin extends MaterialPluginBase {
   }
 }
 
+function rippleTexture(scene: Scene): Texture {
+  const tex = RawTexture.CreateRGBATexture(ripplePixels ??= paintRipples(), RIPPLE.px, RIPPLE.px, scene, true, false,
+    Texture.TRILINEAR_SAMPLINGMODE);
+  tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
+  return tex;
+}
+
+let ripplePixels: Uint8Array | undefined;
+
 // A sum of sines with whole wave numbers, so it tiles: rg its slope (scaled to fit), b its height. Each sine is split
 // into a row's and a column's part (sin(a + b)), so there's no trig per texel.
-function rippleTexture(scene: Scene): Texture {
+function paintRipples(): Uint8Array {
   const { px, waves, wavesAcross: { min, max } } = RIPPLE, rand = seededRandom(17), tau = Math.PI * 2;
   const height = new Float32Array(px * px), slopeX = new Float32Array(px * px), slopeZ = new Float32Array(px * px);
   const sinA = new Float32Array(px), cosA = new Float32Array(px);
@@ -241,7 +250,5 @@ function rippleTexture(scene: Scene): Texture {
     data[k * 4 + 2] = Math.round(((height[k]! - low) / (high - low)) * 255);
     data[k * 4 + 3] = 255;
   }
-  const tex = RawTexture.CreateRGBATexture(data, px, px, scene, true, false, Texture.TRILINEAR_SAMPLINGMODE);
-  tex.wrapU = tex.wrapV = Texture.WRAP_ADDRESSMODE;
-  return tex;
+  return data;
 }

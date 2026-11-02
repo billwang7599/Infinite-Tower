@@ -24,6 +24,8 @@ export interface OverworldScene {
     pile: StandardMaterial;
     bedroll: StandardMaterial;
     blob: StandardMaterial;
+    looks: Map<string, Record<ChibiFacing, StandardMaterial>>;
+    names: Map<string, StandardMaterial>;
   };
   state: OverworldState;
   /** The camera's yaw as drawn, easing between its quarter turns: 0 looks north, π/2 east. */
@@ -58,6 +60,8 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
       pile: sprite("overworld-pile", drawPile),
       bedroll: sprite("overworld-bedroll", drawBedroll),
       blob: blobMaterial(scene),
+      looks: new Map(),
+      names: new Map(),
     },
   };
 }

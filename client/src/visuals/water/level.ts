@@ -1,5 +1,5 @@
-import { Mesh, VertexBuffer, VertexData, type Scene } from "@babylonjs/core";
-import { mapHalfSize, tileAt, type LevelLayout } from "@infinite-tower/shared";
+import { Mesh, VertexBuffer, VertexData, type Scene, type TransformNode } from "@babylonjs/core";
+import { mapHalfSize, tileAt, type LevelMap } from "@infinite-tower/shared";
 import { PX_PER_TILE } from "../overworld/props.js";
 import { WATER_DEPTH_TILES, waterMap } from "../../modes/overworld/water.js";
 import { setWater, waterMaterial, type WaterLook } from "./water.js";
@@ -11,8 +11,11 @@ const WALL_INSET_TILES = 1.5 / PX_PER_TILE;
 
 interface Point { x: number; y: number; z: number }
 
-export function levelWater(scene: Scene, level: LevelLayout, look: WaterLook): { ground: Mesh; surface: Mesh } {
+export function* levelWater(
+  scene: Scene, level: LevelMap, look: WaterLook, parent: TransformNode,
+): Generator<void, { ground: Mesh; surface: Mesh }> {
   const map = waterMap(level), { halfWidth: L, halfDepth: D } = mapHalfSize(level);
+  yield;
   const ground = new Builder(), surface = new Builder();
   const fieldUV = (x: number, z: number): [number, number] => [(x + L) / (2 * L), (z + D) / (2 * D)];
   const up = { x: 0, y: 1, z: 0 };
@@ -28,6 +31,7 @@ export function levelWater(scene: Scene, level: LevelLayout, look: WaterLook): {
       x = end;
     }
   }
+  yield;
 
   const step = 1 / STEPS_PER_TILE;
   const bed = new Map<string, number>(), top = new Map<string, number>();
@@ -48,6 +52,7 @@ export function levelWater(scene: Scene, level: LevelLayout, look: WaterLook): {
           surface.vertex({ x, y: -WATER_DEPTH_TILES.surface, z }, [0, 0], 1))), up);
       }
     }
+    yield;
   }
 
   const foot = -WATER_DEPTH_TILES.bank - 0.02;
@@ -61,9 +66,11 @@ export function levelWater(scene: Scene, level: LevelLayout, look: WaterLook): {
       ground.vertex({ x: from.x, y: foot, z: from.z }, uvAt(from), WALL_SHADE.foot),
     ], { x: -toLand.x, y: 0, z: -toLand.z });
   }
+  yield;
 
   const groundMesh = ground.build(scene, `level-ground-${level.id}`);
   const surfaceMesh = surface.build(scene, `water-${level.id}`);
+  groundMesh.parent = surfaceMesh.parent = parent;
   setWater(surfaceMesh, (x, z) => {
     const p = map.at(x, z);
     return { ...p, column: p.depth - WATER_DEPTH_TILES.surface };

@@ -1,24 +1,27 @@
 import { Vector3 } from "@babylonjs/core";
-import { dampFactor, wrapAngle, type LevelLayout } from "@infinite-tower/shared";
+import { dampFactor, wrapAngle, type LevelMap } from "@infinite-tower/shared";
 import { OverworldPos } from "../../modes/overworld/components.js";
 import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
 import type { OverworldScene } from "./scene.js";
-import { buildLevel, type LevelDrawing } from "./terrain.js";
+import { levelDrawings, type LevelDrawing } from "./terrain.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
+const WARM_BUDGET_MS = 3;
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
-  let level: { layout: LevelLayout; drawing: LevelDrawing } | null = null;
+  const drawings = levelDrawings(view);
+  let level: { layout: LevelMap; drawing: LevelDrawing } | null = null;
   const target = new Vector3(), back = new Vector3(), feet = { x: 0, y: 0, z: 0 };
   const turn = { fromRad: 0, toRad: 0, time: CAMERA_TURN_TIME };
   let facedYaw = NaN;
   return (dt, fresh) => {
     const { state, camera } = view;
     if (state.level !== level?.layout) {
-      level?.drawing.root.dispose(false, true);
-      level = state.level && { layout: state.level, drawing: buildLevel(view, state.level) };
+      level?.drawing.leave();
+      level = state.level && { layout: state.level, drawing: drawings.of(state.level) };
+      level?.drawing.enter();
       facedYaw = NaN;
       fresh = true;
     }
@@ -46,5 +49,6 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     feet.x = target.x;
     feet.z = target.z;
     level.drawing.frame(dt, camera.position, feet);
+    if (!fresh) drawings.warm(state.next, WARM_BUDGET_MS);
   };
 }

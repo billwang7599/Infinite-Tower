@@ -9,7 +9,7 @@ import type { Character } from "../character/character.js";
 import type { Gear, UseSpot } from "../items/gear.js";
 import type { CoinId } from "../items/coins.js";
 import type { ItemCounts, ItemId } from "../items/items.js";
-import type { LevelLayout, NpcId } from "../world/layout.js";
+import type { LevelLayout, LevelMap, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
 import type { SavedSettings } from "./client-messages.js";
@@ -119,7 +119,8 @@ export type ServerMsg =
     gear: Gear; knownWords: Word[]; skillbook: Skillbook; chat: ChatLine[]; questbook: QuestView[]; dev: boolean;
   }
   | { t: "character"; character: Character }
-  | { t: "level"; level: LevelLayout; me: Vec2 }
+  /** `next`: the maps its exits lead to, so they can be drawn before you cross. */
+  | { t: "level"; level: LevelLayout; me: Vec2; next: LevelMap[] }
   /** 20 times a second, so only what moves (your HP too: it comes back on its own). */
   | { t: "state"; ack: number; me: Vec2; hp: number; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */

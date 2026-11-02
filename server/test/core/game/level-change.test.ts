@@ -28,6 +28,15 @@ function walkInto(session: GameSession, link: FakeLink, exit: ExitDef): void {
   }
 }
 
+describe("entering a level", () => {
+  test("sends the maps its exits lead to, each once, so the client can draw them before you cross", () => {
+    const { link } = startSession({ saved: { level: START_LEVEL } });
+    const next = link.last("level").next;
+    assert.deepEqual(next.map((m) => m.id), [...new Set(START.exits.map((e) => e.to))]);
+    assert.deepEqual(next[0], getLevel(OUT.to).layout);
+  });
+});
+
 describe("walking into an exit", () => {
   test("takes you to the level it leads to, at its entrance, and off the level you left", () => {
     const { session, link, overworldOf } = startSession({ saved: { level: START_LEVEL } });

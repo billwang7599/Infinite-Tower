@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, tileAt, type LevelLayout } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, tileAt, type LevelMap } from "@infinite-tower/shared";
 import {
   groundY, SCENERY_REACH_TILES as REACH, tileBlocks, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
@@ -10,7 +10,7 @@ const RING_TILES = 4;
 const OUTER_PROPS = 220;
 const TERRACE_PROP_CHANCE = 0.18;
 
-export function quarryScenery(level: LevelLayout): Scenery {
+export function quarryScenery(level: LevelMap): Scenery {
   const rand = seededRandom(53);
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level);
   const terrace = (x: number, z: number) => {

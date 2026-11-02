@@ -601,7 +601,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 |---|---|
 | `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev` |
 | `character` | your character, as saved |
-| `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you) and where you are |
+| `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you), where you are, and `next`, the maps its exits lead to (drawn before you cross) |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position and HP (it comes back on its own), nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
@@ -1553,13 +1553,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          trace's bedroll, the arena's too); standingQuad
         walker.ts        WALKERS (chibi, other players', NPCs', enemy, pile and trace billboards: glide, hop,
                          facing, the sky's tint and blob shadows, "!", another player's or an NPC's own chibi and
-                         name, a player's crossed swords, a Speech's bubble over the head)
+                         name, a player's crossed swords, a Speech's bubble over the head); a look's pictures and a
+                         name's are kept by the scene for the next walker that has them
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
-                         turns, the sky's frame)
+                         turns, the sky's frame; the levels next door built a little each frame, WARM_BUDGET_MS)
         scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall,
                          hidesWalker, tileBlocks (runs of tiles merged into rectangles, one block each)
-        terrain.ts       Builds it: hands the sky the level's look and campfire lights; cliff blocks (shadow casters),
+        terrain.ts       levelDrawings: each level built once, as a generator a piece at a time (whole if you arrive
+                         first), its meshes kept out of the scene while you're elsewhere, the textures every level
+                         shares made once. Entering hands the sky the level's look, campfire lights and shadow casters;
+                         cliff blocks (shadow casters),
                          grass tops and fringes (the quarry's cut-stone tops and faces), the map's ground (paintGround),
                          instanced props (the tiles' and the scenery's, each tinted by the light where it stands; a
                          tall one's shadows come from upright cards only shadow maps see, one kept turned to the sun or
@@ -1593,12 +1597,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
-                       colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows), a
-                       sprite's tint, the yaw that turns a shadow card to a light. daylight.ts (the day clock,
-                       setDayClock (dev: `?time=`, `window.setTime`); by the sun's height: the direct light, the
-                       sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob shadows, Blobs: a
-                       round one from the sky light, and one away from each light that reaches it, as dark as that
-                       light's share there; blobShadowsAt, tested)
+                       colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows;
+                       kept and reused by the next look, since a new light makes every material check its shaders),
+                       clearShadows (a level left), a sprite's tint, the yaw that turns a shadow card to a light.
+                       daylight.ts (the day clock, setDayClock (dev: `?time=`, `window.setTime`); by the sun's height:
+                       the direct light, the sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob
+                       shadows, Blobs: a round one from the sky light, and one away from each light that reaches it, as
+                       dark as that light's share there; blobShadowsAt, tested)
       water/           The one water look, overworld and arena alike: water.ts (waterMaterial, a shader with
                        ripples carried by the current (in place where there's none), waves rising and falling in
                        place, a ring now and then at a random spot on still water (none where there's a current),

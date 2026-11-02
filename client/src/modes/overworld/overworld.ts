@@ -69,7 +69,8 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
-    world, player, level: null, cameraTurns: camera.get().overworldTurns, cameraPitchRad: CAMERA_PITCH.startRad,
+    world, player, level: null, next: [], cameraTurns: camera.get().overworldTurns,
+    cameraPitchRad: CAMERA_PITCH.startRad,
   };
   const actors = new ActorMirror(world);
 
@@ -126,6 +127,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       joinedNet.on("level", (msg) => {
         actors.enter(msg.level);
         state.level = msg.level;
+        state.next = msg.next;
         prediction?.reset(msg.me);
         world.require(player, OverworldActor).heading = START_HEADING;
         hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor ?? null });
@@ -155,6 +157,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       inBattle = false;
       actors.clear();
       state.level = null;
+      state.next = [];
     },
     update(dt, frozen) {
       if (frozen || inBattle || !state.level || !prediction) accumulator = 0;

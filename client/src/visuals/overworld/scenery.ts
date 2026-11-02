@@ -1,4 +1,4 @@
-import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect, type Vec3 } from "@infinite-tower/shared";
+import { inRect, isSolid, mapHalfSize, type LevelMap, type Rect, type Vec3 } from "@infinite-tower/shared";
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
@@ -72,7 +72,7 @@ function blocksView(rect: Rect, topY: number, from: Vec3, to: Vec3): boolean {
   return true;
 }
 
-export function openExits(scenery: Scenery, level: LevelLayout): Scenery {
+export function openExits(scenery: Scenery, level: LevelMap): Scenery {
   const gaps = exitGaps(level);
   const [map, ...round] = scenery.ledges;
   const cut = (ledge: Ledge) => gaps
@@ -88,7 +88,7 @@ export function openExits(scenery: Scenery, level: LevelLayout): Scenery {
   };
 }
 
-function exitGaps(level: LevelLayout): Rect[] {
+function exitGaps(level: LevelMap): Rect[] {
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level), cols = L * 2, rows = D * 2;
   const reach = SCENERY_REACH_TILES, gaps: Rect[] = [];
   const open = (c: number, r: number) => !isSolid(level, c - L + 0.5, D - r - 0.5);
@@ -122,7 +122,7 @@ function minus(r: Rect, hole: Rect): Rect[] {
   ].filter((p) => p.w > 0 && p.h > 0);
 }
 
-export function tileBlocks(level: LevelLayout, is: (x: number, z: number) => boolean): Rect[] {
+export function tileBlocks(level: LevelMap, is: (x: number, z: number) => boolean): Rect[] {
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level), cols = L * 2, rows = D * 2;
   const at = (c: number, r: number) => is(c - L + 0.5, D - r - 0.5);
   const taken = new Set<string>(), rects: Rect[] = [];

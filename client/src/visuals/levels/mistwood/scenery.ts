@@ -1,4 +1,4 @@
-import { mapHalfSize, seededRandom, type LevelLayout } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, type LevelMap } from "@infinite-tower/shared";
 import {
   groundY, SCENERY_REACH_TILES as REACH, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
@@ -6,7 +6,7 @@ import {
 const BANK_Y = { side: 1.5, north: 3, south: -1.5 };
 const TREES = 620;
 
-export function mistwoodScenery(level: LevelLayout): Scenery {
+export function mistwoodScenery(level: LevelMap): Scenery {
   const rand = seededRandom(41);
   const { halfWidth: L, halfDepth: D } = mapHalfSize(level);
   const W = L + REACH, far = D + REACH;

@@ -1,4 +1,4 @@
-import { Color3, DynamicTexture, StandardMaterial, VertexBuffer, type Mesh } from "@babylonjs/core";
+import { Color3, DynamicTexture, StandardMaterial, VertexBuffer, type Mesh, type Scene } from "@babylonjs/core";
 import { dampFactor, distXZ, type Entity, type Look, type Vec2, type World } from "@infinite-tower/shared";
 import { CHIBI_FACINGS, type ChibiFacing } from "../../gfx/look/look.js";
 import {
@@ -43,7 +43,6 @@ const CHIBI_FACING = {
 interface Named {
   name: Mesh;
   fighting: Mesh;
-  owned: StandardMaterial[];
 }
 
 interface Walker {
@@ -86,7 +85,7 @@ function walker(spec: {
       const npc = world.get(e, Npc);
       const shown = world.get(e, Peer)?.character ?? (npc ? NPC_LOOKS[npc.id] : null);
       const named = shown ? namedExtras(view, shown.name) : null;
-      const facings = shown ? lookFacings(view, shown.look, named!) : spec.facings?.(view) ?? null;
+      const facings = shown ? lookFacings(view, shown.look) : spec.facings?.(view) ?? null;
       mesh.material = facings?.front ?? spec.material(view);
       return {
         view, mesh, blobs, tint, alert, named, bubble: null, mirror: 1, facings, sizeTiles: size,
@@ -102,7 +101,6 @@ function walker(spec: {
       if (!w.named) return;
       w.named.name.dispose();
       w.named.fighting.dispose();
-      for (const m of w.named.owned) m.dispose(false, true);
     },
   };
 }
@@ -121,16 +119,31 @@ export const WALKERS: Record<OverworldActorData["kind"], Visual<Walker, Overworl
   })),
 };
 
-function lookFacings(view: OverworldScene, look: Look, named: Named): Record<ChibiFacing, StandardMaterial> {
-  const facings = Object.fromEntries(CHIBI_FACINGS.map((facing) =>
-    [facing, spriteMaterial(view.scene, `overworld-look-${facing}`, chibiDraw(look, facing))])) as
-    Record<ChibiFacing, StandardMaterial>;
-  named.owned.push(...Object.values(facings));
+function lookFacings({ scene, materials }: OverworldScene, look: Look): Record<ChibiFacing, StandardMaterial> {
+  const key = JSON.stringify(look);
+  let facings = materials.looks.get(key);
+  if (!facings) {
+    facings = Object.fromEntries(CHIBI_FACINGS.map((facing) =>
+      [facing, spriteMaterial(scene, `overworld-look-${facing}`, chibiDraw(look, facing))])) as
+      Record<ChibiFacing, StandardMaterial>;
+    materials.looks.set(key, facings);
+  }
   return facings;
 }
 
 function namedExtras(view: OverworldScene, name: string): Named {
-  const { scene } = view;
+  const { scene, materials } = view;
+  let material = materials.names.get(name);
+  if (!material) materials.names.set(name, material = nameMaterial(scene, name));
+  const nameMesh = standingQuad(scene, "overworld-name", NAME_WIDTH_TILES, NAME_HEIGHT_TILES);
+  nameMesh.material = material;
+  const fighting = standingQuad(scene, "overworld-fighting", MARKER_TILES, MARKER_TILES);
+  fighting.material = view.materials.fighting;
+  fighting.setEnabled(false);
+  return { name: nameMesh, fighting };
+}
+
+function nameMaterial(scene: Scene, name: string): StandardMaterial {
   const texture = new DynamicTexture("overworld-name", NAME_TEXTURE_PX, scene, true);
   const ctx = texture.getContext() as CanvasRenderingContext2D;
   ctx.font = `600 40px system-ui, sans-serif`;
@@ -150,12 +163,7 @@ function namedExtras(view: OverworldScene, name: string): Named {
   material.disableLighting = true;
   material.emissiveColor = Color3.White();
   material.backFaceCulling = false;
-  const nameMesh = standingQuad(scene, "overworld-name", NAME_WIDTH_TILES, NAME_HEIGHT_TILES);
-  nameMesh.material = material;
-  const fighting = standingQuad(scene, "overworld-fighting", MARKER_TILES, MARKER_TILES);
-  fighting.material = view.materials.fighting;
-  fighting.setEnabled(false);
-  return { name: nameMesh, fighting, owned: [material] };
+  return material;
 }
 
 function glideWalker(
