@@ -4,6 +4,7 @@ import type { ArenaScene } from "../battle/scene.js";
 import type { MapLight, SkyLook } from "../sky/sky.js";
 import { FOREST_CLEARING } from "./forest-clearing/forest-clearing.js";
 import { MIRE } from "./mire/mire.js";
+import { QUARRY } from "./quarry/quarry.js";
 import { STONE_RUINS } from "./stone-ruins/stone-ruins.js";
 
 /** Only dressing: the floor and the wall you bump into are the fight's physics, the same in every arena. */
@@ -17,6 +18,7 @@ export const ARENA_LOOKS: Record<ArenaLook, ArenaLookDef> = {
   "forest-clearing": FOREST_CLEARING,
   "stone-ruins": STONE_RUINS,
   mire: MIRE,
+  quarry: QUARRY,
 };
 
 /** Disposing the returned root takes the whole look away. */

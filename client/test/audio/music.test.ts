@@ -19,6 +19,12 @@ describe("the music table", () => {
     const named = [MUSIC.title, ...Object.values(MUSIC.overworld), ...ARENA_LOOK_IDS.map((look) => MUSIC.battle[look])];
     for (const track of named) assert.ok(track in TRACKS, track);
   });
+
+  test("the Old Quarry plays a track of its own, which no other level or arena plays", () => {
+    const others = [MUSIC.title, ...THEMES.filter((t) => t !== "quarry").map((t) => MUSIC.overworld[t]),
+      ...ARENA_LOOK_IDS.map((look) => MUSIC.battle[look])];
+    assert.ok(!others.includes(MUSIC.overworld.quarry));
+  });
 });
 
 describe("musicFor", () => {
