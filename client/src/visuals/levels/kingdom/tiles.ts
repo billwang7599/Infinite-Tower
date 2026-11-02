@@ -64,10 +64,10 @@ export const KINGDOM_TILES: TileLooks = {
   cobbles: { ground: cobbles },
   castleWall: { ground: PAINT.flagstones },
   house: { ground: cobbles },
-  foodStall: { ground: cobbles, props: { kinds: ["foodStall"], count: 1, scale: 1 } },
-  potionStall: { ground: cobbles, props: { kinds: ["potionStall"], count: 1, scale: 1 } },
-  forge: { ground: cobbles, props: { kinds: ["forge"], count: 1, scale: 1 } },
-  changerStall: { ground: cobbles, props: { kinds: ["changerStall"], count: 1, scale: 1 } },
+  foodStall: { ground: cobbles },
+  potionStall: { ground: cobbles },
+  forge: { ground: cobbles },
+  changerStall: { ground: cobbles },
 };
 
 export const TOWN_TILES = {

@@ -1521,8 +1521,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          cards only shadow maps see, one kept turned to the sun or moon and one turned to each campfire
                          in reach, each cast by its own light), the campfires; face turns the props to the camera;
                          a ledge hiding any of the player from the camera turns see-through (hidesWalker, SEE_THROUGH)
-        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the market's stalls
-                         and forge, the yard's dummies), drawn standing up;
+        stalls.ts        stallLooks: a market stall's counter and its awning on posts, and the forge's hearth of
+                         coals, built in 3D over each run of stall tiles so they look whole from every side
+        props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the stalls' goods
+                         and the forge's flames, the yard's dummies), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
@@ -1536,7 +1538,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          surroundings; no Babylon: tested)
         kingdom/         tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES, the town's tiles
                          for the other looks to borrow), scenery.ts (castle walls and the keep behind the hall, house
-                         blocks with plaster sides and tiled roofs, the town's rooftops round the map)
+                         blocks with plaster sides and tiled roofs, the stalls (a counter ledge with an awning, the forge
+                         a hearth ledge) with their goods on top, the town's rooftops round the map)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's

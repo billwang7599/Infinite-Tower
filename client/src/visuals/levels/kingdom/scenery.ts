@@ -11,6 +11,15 @@ const HOUSE_Y = { low: 2, high: 3 };
 /** South of this the walls are the town's; north of it, round the castle, the land is the castle's. */
 const CASTLE_SOUTH_Z = -1;
 const DUMMIES = [{ x: -13.5, z: 12.5 }, { x: -12.5, z: 13.5 }];
+const COUNTER_Y = 0.55;
+const AWNING_Y = 1.95;
+const HEARTH_Y = 0.8;
+const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, string] }[] = [
+  { kind: "foodStall", goods: "produce", awning: ["#e8dcc0", "#4f7a3a"] },
+  { kind: "potionStall", goods: "potions", awning: ["#e8dcc0", "#5b3f8a"] },
+  { kind: "changerStall", goods: "scales", awning: ["#e8dcc0", "#a8862e"] },
+  { kind: "forge", goods: "embers" },
+];
 
 export function kingdomScenery(level: LevelLayout): Scenery {
   const rand = seededRandom(17);
@@ -24,6 +33,13 @@ export function kingdomScenery(level: LevelLayout): Scenery {
   }
   for (const rect of blocks(level, "house")) {
     ledges.push({ rect, topY: rand() < 0.5 ? HOUSE_Y.low : HOUSE_Y.high, look: "house" });
+  }
+  for (const { kind, awning } of STALLS) {
+    for (const rect of blocks(level, kind)) {
+      ledges.push(awning
+        ? { rect, topY: COUNTER_Y, look: "counter", awning: { colors: awning, topY: AWNING_Y } }
+        : { rect, topY: HEARTH_Y, look: "hearth" });
+    }
   }
 
   ledges.push(
@@ -52,6 +68,11 @@ export function kingdomScenery(level: LevelLayout): Scenery {
     add(rand() < 0.5 ? "bush" : "tree", x, z);
   }
   for (const { x, z } of DUMMIES) add("dummy", x, z);
+  for (const { kind, goods } of STALLS) {
+    for (const rect of blocks(level, kind)) {
+      for (let x = rect.x + 0.5; x < rect.x + rect.w; x++) for (let z = rect.z + 0.5; z < rect.z + rect.h; z++) add(goods, x, z);
+    }
+  }
   return { ledges, props };
 }
 
