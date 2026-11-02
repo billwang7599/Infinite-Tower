@@ -7,8 +7,8 @@
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
   type CoinId, type DayChange, type DialogueOffer, type GameServer, type Gear, type ItemId, type Look,
-  type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type UseSpot, type WeaponId,
-  type Word,
+  type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type Status, type UseSpot,
+  type WeaponId, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -63,11 +63,24 @@ export interface OverworldHudState {
 
 export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look" | "bindPad";
 
+export interface StatusIcon {
+  status: Status;
+  harmful: boolean;
+  stacks: number;
+  /** null: permanent. */
+  secondsLeft: number | null;
+  shareLeft: number;
+}
+
 export interface BattleHudState {
   hpFraction: number;
   staminaFraction: number;
+  hp: number;
+  hpMax: number;
+  statuses: readonly StatusIcon[];
   enemyName: string;
   enemyHpFraction: number;
+  enemyStatuses: readonly StatusIcon[];
   enemyAlive: boolean;
   result: FightState;
   duel: boolean;
@@ -216,9 +229,9 @@ export class UiState {
     },
   });
   readonly battle = new Store<BattleHudState>({
-    hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1,
-    enemyAlive: false, result: "fighting", duel: false, spar: false, showResult: false, afterFight: false,
-    arenaSecondsLeft: 0, dropInView: false,
+    hpFraction: 1, staminaFraction: 1, hp: 0, hpMax: 0, statuses: [], enemyName: "", enemyHpFraction: 1,
+    enemyStatuses: [], enemyAlive: false, result: "fighting", duel: false, spar: false, showResult: false,
+    afterFight: false, arenaSecondsLeft: 0, dropInView: false,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },

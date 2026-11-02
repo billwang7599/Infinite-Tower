@@ -626,6 +626,12 @@ them; treat them as changeable, and still ask before deciding new ones):
   dealt and ×0.85 attack stamina), Water + Light Renewal (8 s, heals 0.2 D a second), Earth + Lightning Bulwark (6 s,
   stuns ×0.5, no knockback), Darkness + Fire Bloodrage (8 s, ×1.35 dealt, ×1.25 taken). A used-up Light shield comes
   off; Warded and Bulwark stop an Air skill's push too, and Charged speeds a casting enemy's refill as a player's.
+- The battle HUD (the user: "make sure the battle hud looks nice"; the look is the agent's, checked in a headless
+  browser at 1366x768 and 1920x1080, not hand-played): your HP bar, with its numbers, and stamina bar top left, gilt
+  framed, and your statuses under them; the foe's name, its statuses and its bar at the bottom. A status is a tile
+  with its icon (`client/src/ui/hud/statusLooks.ts`), gold-rimmed for a buff and red for a debuff, darkened
+  clockwise as its time runs out, with whole seconds left under it and its stacks in the corner (from 2). Buffs come
+  before debuffs. The overworld's bars got the same frame. There's no mana bar: stamina is the only one.
 - Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the

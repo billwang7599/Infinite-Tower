@@ -233,4 +233,4 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
 - With many Bolts every one hands off, so Splits then another Bolt with Splits multiply; `MAX_LIVE_SHOTS` (256) is
   the agent's pick, for the user to change.
 - How words are learned.
-- Statuses on players (from enemies' authored attacks), and their HUD.
+- Statuses on players from enemies' authored attacks (the battle HUD shows every status on you and your foe).

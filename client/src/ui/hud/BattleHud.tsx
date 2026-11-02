@@ -22,6 +22,7 @@ import { HudLayer } from "./HudLayer.js";
 import { InteractButton } from "./InteractButton.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { Ping } from "./Ping.js";
+import { StatusRow } from "./StatusRow.js";
 
 type HudProps = { hud: Store<BattleHudState> };
 
@@ -184,9 +185,13 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
 function Vitals({ hud }: HudProps) {
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
+  const hp = useStore(hud, (s) => s.hp);
+  const hpMax = useStore(hud, (s) => s.hpMax);
+  const statuses = useStore(hud, (s) => s.statuses);
   return (
     <div className="absolute top-3 left-4">
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
+      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} hp={hp} hpMax={hpMax} />
+      <StatusRow id="my-statuses" icons={statuses} className="mt-1 w-75" />
     </div>
   );
 }
@@ -195,14 +200,21 @@ function BossBar({ hud }: HudProps) {
   const name = useStore(hud, (s) => s.enemyName);
   const hpFraction = useStore(hud, (s) => s.enemyHpFraction);
   const alive = useStore(hud, (s) => s.enemyAlive);
+  const statuses = useStore(hud, (s) => s.enemyStatuses);
   return (
     <div
       className={`absolute bottom-12 left-1/2 w-[min(640px,70%,100%-20rem)] -translate-x-1/2 transition-opacity duration-600 ${
         alive ? "opacity-100" : "opacity-0"
       }`}
     >
-      <div id="boss-name" className="mb-1 font-title text-[17px] font-medium tracking-wide">{name}</div>
-      <Bar fraction={hpFraction} fill="from-boss to-boss-dark" chip />
+      <div className="mb-1 flex items-end justify-between gap-3">
+        <div id="boss-name" className="font-title text-[17px] font-medium tracking-wide">
+          <span className="mr-2 text-[11px] text-victory/80">◆</span>
+          {name}
+        </div>
+        <StatusRow id="enemy-statuses" icons={statuses} className="justify-end" />
+      </div>
+      <Bar fraction={hpFraction} fill="from-boss to-boss-dark" chip className="h-3" />
     </div>
   );
 }

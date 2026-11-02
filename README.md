@@ -145,6 +145,7 @@ What's built so far:
   keep a Beam going). A new character knows no words yet. Dying keeps the pages and the words.
 - **Buffs and debuffs:** one timed status system for every fighter: Self buffs you by element (four pairs of elements
   fuse into Frenzy, Renewal, Bulwark and Bloodrage), elements' hits debuff, and statuses stack, refresh and run out.
+  The battle HUD shows yours under your bars and the foe's by its name, each with a timer and its stacks.
 - **Equipment:** hands, head, body, legs and boots; you start empty-handed (Bram's stick is the first weapon), and dying
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the

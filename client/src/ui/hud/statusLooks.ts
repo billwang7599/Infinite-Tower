@@ -1,0 +1,33 @@
+import type { Status } from "@infinite-tower/shared";
+
+// `path`: an SVG path on a 24 x 24 box, filled even-odd.
+export const STATUS_LOOKS: Record<Status, { name: string; color: string; path: string }> = {
+  burning: {
+    name: "Burning", color: "#ff7a3c",
+    path: "M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 3 1 4 2 4 1-3 0-6 1-9z",
+  },
+  wet: { name: "Wet", color: "#5aa8ff", path: "M12 2C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-13z" },
+  rooted: { name: "Rooted", color: "#b08a52", path: "M11 2h2v8l5 5-1.4 1.4-3.6-3.6V22h-2v-9.2l-3.6 3.6L6 15l5-5z" },
+  shocked: { name: "Shocked", color: "#f2e15a", path: "M13 2 4 14h6l-1 8 9-12h-6z" },
+  marked: {
+    name: "Marked", color: "#fff1b8",
+    path: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 2.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM10.5 10.5h3v3h-3z",
+  },
+  cursed: { name: "Cursed", color: "#a77be0", path: "M15 3a9 9 0 1 0 6 15A8 8 0 0 1 15 3z" },
+  shielded: { name: "Shielded", color: "#ffe9a0", path: "M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" },
+  empowered: { name: "Empowered", color: "#ff9a5a", path: "M12 1l2 3v11h3v2h-4v5h-2v-5H7v-2h3V4z" },
+  warded: { name: "Warded", color: "#c9a874", path: "M12 2l8.7 5v10L12 22l-8.7-5V7zm0 4-5 3v6l5 3 5-3V9z" },
+  hasted: { name: "Hasted", color: "#a8f0d8", path: "M3 5h2.5l7 7-7 7H3l7-7zm8 0h2.5l7 7-7 7H11l7-7z" },
+  charged: {
+    name: "Charged", color: "#f5e66a",
+    path: "M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22zm1 4-6 9h4l-1 5 6-9h-4z",
+  },
+  siphoning: { name: "Siphoning", color: "#d0506a", path: "M12 21 3.5 12.5A5 5 0 0 1 12 6a5 5 0 0 1 8.5 6.5z" },
+  frenzy: { name: "Frenzy", color: "#ff6a3c", path: "M4 3h3l4 18H9zM10 3h3l3 18h-2zM16 3h3l2 18h-2z" },
+  renewal: { name: "Renewal", color: "#7fe0a0", path: "M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" },
+  bulwark: {
+    name: "Bulwark", color: "#d6c08e",
+    path: "M5 3h14v10c0 4-3 7-7 9-4-2-7-5-7-9zM8 6v7c0 2 1.5 4 4 5.5 2.5-1.5 4-3.5 4-5.5V6z",
+  },
+  bloodrage: { name: "Bloodrage", color: "#e0303c", path: "M4 3h16l-3 8-2-3-3 10-3-10-2 3z" },
+};
