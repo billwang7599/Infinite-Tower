@@ -17,3 +17,13 @@ export function packSheet(pictures: readonly Bitmap[], maxColumns: number): { sh
 
 export const tiled = (b: Bitmap, across: number, down: number): Bitmap =>
   packSheet(Array.from({ length: across * down }, () => b), across).sheet;
+
+export const frameAt = (elapsedSec: number, fps: number, count: number) => Math.floor(elapsedSec * fps + 1e-9) % count;
+
+export const sheetJson = (
+  image: string, width: number, height: number, names: readonly string[], cells: readonly Cell[], what: string,
+  extra: Record<string, unknown> = {},
+) => ({
+  image, width, height, ...extra,
+  [`${what}s`]: cells.map((cell, i) => ({ name: names[i] || `${what} ${i + 1}`, ...cell })),
+});

@@ -5,8 +5,10 @@ export const PARTS = ["body", "outfit", "head", "face", "hair"] as const;
 export interface Layer { name: string; visible: boolean; opacity: number; pixels: Bitmap }
 /** Layers bottom to top. */
 export interface Doc { name: string; width: number; height: number; layers: Layer[] }
-/** Pages of one size sharing one stack of layers; only their pixels differ. */
-export interface Project { pages: Doc[]; page: number }
+/** Pages of one size sharing one stack of layers; only their pixels differ. `fps` is for animations. */
+export interface Project { pages: Doc[]; page: number; fps: number }
+
+export const START_FPS = 8;
 
 const newLayer = (name: string, width: number, height: number): Layer =>
   ({ name, visible: true, opacity: 1, pixels: blank(width, height) });
@@ -15,11 +17,11 @@ export const newDoc = (width: number, height: number, layers: readonly string[] 
   ({ name, width, height, layers: layers.map((layer) => newLayer(layer, width, height)) });
 
 export const newProject = (width: number, height: number, layers: readonly string[]): Project =>
-  ({ pages: [newDoc(width, height, layers)], page: 0 });
+  ({ pages: [newDoc(width, height, layers)], page: 0, fps: START_FPS });
 
 const copyDoc = (doc: Doc): Doc => ({ ...doc, layers: doc.layers.map((l) => ({ ...l, pixels: copyBitmap(l.pixels) })) });
 
-export const copyProject = (p: Project): Project => ({ pages: p.pages.map(copyDoc), page: p.page });
+export const copyProject = (p: Project): Project => ({ ...p, pages: p.pages.map(copyDoc) });
 
 export const projectBytes = (p: Project) => p.pages.reduce((sum, d) => sum + d.layers.length * d.width * d.height * 4, 0);
 

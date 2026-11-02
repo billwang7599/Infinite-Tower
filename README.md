@@ -259,7 +259,8 @@ docker compose -f compose.prod.yaml start app
 shared/            code the server and the browser both run: ECS, math, the arena fight (Rapier), the Zod messages
 server/            the authoritative game server: core/ is the game, api/ ws/ db/ plug into it
 client/            the browser game: its modes, their drawing (Babylon.js), React UI, character art in code (ART.md)
-art-lab/           a dev tool: the character art in every option, and a pixel editor (npm run art)
+art-lab/           a dev tool: the character art in every option, and a pixel editor for sprites, tiles and
+                   animations (npm run art)
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas

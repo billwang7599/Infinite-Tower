@@ -11,8 +11,10 @@ test("a tileset saved as JSON loads back the same", () => {
   setPixel(project.pages[1]!.layers[1]!.pixels, 2, 1, [1, 2, 3, 4]);
   setLayer(project, 1, { opacity: 0.25 });
   setLayer(project, 3, { visible: false });
+  project.fps = 12;
   const back = projectFromJson(projectToJson("tiles", project));
   assert.equal(back.mode, "tiles");
+  assert.equal(back.project.fps, 12);
   assert.equal(back.project.pages.length, 2);
   assert.equal(back.project.pages[1]!.name, "grass");
   const layers = (p: typeof project) => p.pages[1]!.layers.map((l) => [l.name, l.visible, l.opacity]);

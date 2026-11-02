@@ -2,7 +2,7 @@ import { VIEWS } from "@infinite-tower/client/src/gfx/look/art.js";
 import { PX_PER_TILE } from "@infinite-tower/client/src/gfx/tile.js";
 import { PARTS } from "./layers.js";
 
-export const MODES = ["sprite", "tiles"] as const;
+export const MODES = ["sprite", "tiles", "animation"] as const;
 export type Mode = (typeof MODES)[number];
 
 type Size = { width: number; height: number };
@@ -14,4 +14,5 @@ export const MODE_LOOKS: Record<Mode, { label: string; page: string; sizes: Reco
     sizes: { tile: { width: PX_PER_TILE, height: PX_PER_TILE } },
     layers: ["ground", "detail"],
   },
+  animation: { label: "Animation", page: "frame", sizes: { ...VIEWS }, layers: PARTS },
 };

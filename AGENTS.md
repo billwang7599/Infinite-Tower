@@ -7,7 +7,7 @@ workspaces, and a fourth for the art lab:
 - `shared/`: code both sides run (simulation, message types)
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
 - `client/`: Vite, Babylon.js, React UI
-- `art-lab/`: a dev tool for drawing the game's art (sprites), never shipped
+- `art-lab/`: a dev tool for drawing the game's art (sprites, tiles, animations), never shipped
 
 The user's rules for every project (subagents, comments and code style, test-first, PRs and stacks) are in
 `~/.pi/agent/AGENTS.md`. This file has only what's specific to this repo.

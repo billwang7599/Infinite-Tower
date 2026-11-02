@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { blank, getPixel, setPixel } from "../../src/editor/bitmap.js";
-import { packSheet, tiled } from "../../src/editor/sheet.js";
+import { frameAt, packSheet, sheetJson, tiled } from "../../src/editor/sheet.js";
 
 test("a sheet lays the pictures out left to right, then down", () => {
   const pictures = [0, 1, 2].map((i) => {
@@ -27,4 +27,18 @@ test("tiling repeats a picture across and down", () => {
   assert.deepEqual([out.width, out.height], [6, 2]);
   assert.deepEqual(getPixel(out, 5, 1), [7, 7, 7, 255]);
   assert.deepEqual(getPixel(out, 4, 1), [0, 0, 0, 0]);
+});
+
+test("an animation plays its frames at its fps, round and round", () => {
+  assert.equal(frameAt(0, 10, 4), 0);
+  assert.equal(frameAt(0.25, 10, 4), 2);
+  assert.equal(frameAt(0.45, 10, 4), 0);
+});
+
+test("a sheet's JSON names each picture and where it is", () => {
+  const cells = [{ x: 0, y: 0 }, { x: 4, y: 0 }];
+  assert.deepEqual(sheetJson("walk.png", 4, 2, ["", "step"], cells, "frame", { fps: 8 }), {
+    image: "walk.png", width: 4, height: 2, fps: 8,
+    frames: [{ name: "frame 1", x: 0, y: 0 }, { name: "step", x: 4, y: 0 }],
+  });
 });
