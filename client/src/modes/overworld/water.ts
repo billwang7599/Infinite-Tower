@@ -16,6 +16,8 @@ export interface Bank { from: At; to: At; toLand: At }
 
 export interface WaterMap {
   tiles: At[];
+  running: At[];
+  still: At[];
   banks: Bank[];
   at(x: number, z: number): WaterPoint;
 }
@@ -62,6 +64,7 @@ export function waterMap(level: LevelLayout): WaterMap {
   const neighbours = near(SIDES), around = near(AROUND);
   const width = widths(cells, cols, rows, shoreAt);
   const flowU = new Float64Array(cells.length), flowV = new Float64Array(cells.length);
+  const runs = new Uint8Array(cells.length);
   for (const body of bodies(neighbours)) {
     const touching = body.filter((i) => {
       const { c, r, water } = cells[i]!;
@@ -69,6 +72,7 @@ export function waterMap(level: LevelLayout): WaterMap {
     });
     const ends = runsOff(cells, around, groups(touching, around));
     if (!ends) continue;
+    for (const i of body) runs[i] = 1;
     const [source, mouth] = ends;
     const h = potential(body, neighbours, stepsFrom(around, source), stepsFrom(around, mouth), source, mouth);
     const flux = source.reduce((sum, s) => sum + neighbours[s]!.reduce((q, n) => q + h[n]!, 0), 0);
@@ -91,6 +95,7 @@ export function waterMap(level: LevelLayout): WaterMap {
   }
 
   const waterCells = cells.filter((cell) => cell.water), banks: Bank[] = [];
+  const toWorld = ({ c, r }: Cell): At => ({ x: c - halfWidth, z: halfDepth - r - 1 });
   for (const { c, r } of waterCells) {
     const x = c - halfWidth, z = halfDepth - r - 1;
     if (!wet(c, r - 1)) banks.push({ from: { x, z: z + 1 }, to: { x: x + 1, z: z + 1 }, toLand: { x: 0, z: 1 } });
@@ -100,7 +105,9 @@ export function waterMap(level: LevelLayout): WaterMap {
   }
 
   return {
-    tiles: waterCells.map(({ c, r }) => ({ x: c - halfWidth, z: halfDepth - r - 1 })),
+    tiles: waterCells.map(toWorld),
+    running: cells.filter((cell, i) => cell.water && runs[i]).map(toWorld),
+    still: cells.filter((cell, i) => cell.water && !runs[i]).map(toWorld),
     banks,
     at(x, z) {
       const u = x + halfWidth, v = halfDepth - z, shore = shoreAt(u, v);

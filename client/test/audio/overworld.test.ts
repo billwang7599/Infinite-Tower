@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { LocalPlayer, START_HEADING, World, type LevelLayout } from "@infinite-tower/shared";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
-import { WATER_SOUNDS } from "../../src/audio/sounds.js";
+import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";
 import {
   OverworldActor, OverworldPos, type OverworldActorData, type OverworldState,
 } from "../../src/modes/overworld/components.js";
 
-// 8 x 4 tiles, centred on 0, 0: x from -4 to 4, z from -2 to 2 (north first). Water in the east column, rows 1-2.
+// 8 x 4 tiles, centred on 0, 0: x from -4 to 4, z from -2 to 2 (north first). A stream down x 2 to 3, off the map at
+// both ends, and a pond (x -3 to -1, z -1 to 0) against nothing.
 const LEVEL: LevelLayout = {
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [{ x: -2, z: 1 }], npcs: [],
   traces: [],
-  tiles: ["........", ".......~", ".......~", "........"],
+  tiles: ["......~.", "......~.", ".~~...~.", "......~."],
 };
 const DRY: LevelLayout = { ...LEVEL, theme: "mistwood", tiles: ["........", "........"], campfires: [] };
 
@@ -43,10 +44,18 @@ describe("the overworld's ears", () => {
     assert.deepEqual(loops.filter((l) => l.sound === "campfire").map((l) => l.at), LEVEL.campfires);
   });
 
-  test("the water is heard from its nearest point, as the level's water sounds", () => {
+  test("running water is heard from its nearest point, even with still water nearer", () => {
     const { state, hear } = overworld();
-    const water = [...hear(state)!.loops.values()].filter((l) => l.sound === WATER_SOUNDS[LEVEL.theme]);
-    assert.deepEqual(water.map((l) => l.at), [{ x: 3, z: 0 }]);
+    const water = [...hear(state)!.loops.values()].filter((l) => l.sound === RUNNING_WATER_SOUND);
+    assert.deepEqual(water.map((l) => l.at), [{ x: 2, z: 0 }]);
+  });
+
+  test("still water makes no sound unless the level's theme gives it one", () => {
+    const { state, hear } = overworld();
+    assert.deepEqual([...hear(state)!.loops.values()].map((l) => l.sound).sort(), ["campfire", RUNNING_WATER_SOUND]);
+    const mire = overworld({ ...LEVEL, theme: "mistwood" });
+    const still = [...mire.hear(mire.state)!.loops.values()].filter((l) => l.sound === STILL_WATER_SOUNDS.mistwood);
+    assert.deepEqual(still.map((l) => l.at), [{ x: -1, z: 0 }]);
   });
 
   test("a level with no water or fire is quiet", () => {
