@@ -9,7 +9,7 @@ import type { CameraSettings } from "../../settings/camera.js";
 import type { Interaction, OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
-import { mapMove } from "./facing.js";
+import { CAMERA_PITCH, mapMove, tiltCamera } from "./facing.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
 
@@ -68,7 +68,9 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   world.add(player, OverworldPos, { x: 0, z: 0 });
   world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
   world.add(player, LocalPlayer, true);
-  const state: OverworldState = { world, player, level: null, cameraTurns: camera.get().overworldTurns };
+  const state: OverworldState = {
+    world, player, level: null, cameraTurns: camera.get().overworldTurns, cameraPitchRad: CAMERA_PITCH.startRad,
+  };
   const actors = new ActorMirror(world);
 
   /** One per session (its input numbering starts over with the server's). */
@@ -163,6 +165,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
           if (press === "turnCameraLeft") camera.turnOverworld(-1);
           else if (press === "turnCameraRight") camera.turnOverworld(1);
         }
+        state.cameraPitchRad = tiltCamera(state.cameraPitchRad, polled.look, FIXED_DT);
         const move = mapMove(polled.move, camera.get().overworldTurns);
         prediction.step({ moveX: move.x, moveZ: move.z });
         accumulator -= FIXED_DT;

@@ -388,9 +388,13 @@ Decided by the user:
   default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
 - The overworld camera turns: Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it a quarter turn
-  with a short ease (`CAMERA_TURN_TIME`, 0.25 s), and there are no Up / Down camera keys. Walking is relative to the
-  camera (W away from it, A / D to its left and right), and sprites and the chibi's pictures follow it. The way it
-  looks is saved with the settings (north for a new player).
+  with a short ease (`CAMERA_TURN_TIME`, 0.25 s). Walking is relative to the camera (W away from it, A / D to its left
+  and right), and sprites and the chibi's pictures follow it. The way it looks is saved with the settings (north for a
+  new player).
+- The overworld camera tilts (the user: it "stays where it is", not saved): held, Up / Down (`lookUp` / `lookDown`,
+  rebindable) tilt it toward the horizon or toward straight down, stopping short of both, and it stays where it's
+  left until the page reloads. The numbers are the agent's picks: 50° to start, 25° to 65°, 1 rad a second
+  (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`); past about 65° the upright sprites look squashed.
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
 - Chat is the whole server's: everyone online hears every line, on any level and in fights. A line shows in the

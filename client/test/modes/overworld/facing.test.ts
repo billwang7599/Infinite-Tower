@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { faceToward, type Heading } from "@infinite-tower/shared";
-import { facingOnScreen, headingFromSide, mapMove, mirrorFor } from "../../../src/modes/overworld/facing.js";
+import {
+  CAMERA_PITCH, facingOnScreen, headingFromSide, mapMove, mirrorFor, tiltCamera,
+} from "../../../src/modes/overworld/facing.js";
 
 describe("headingFromSide: the server's side (1 east, -1 west) for actors seen only from the side", () => {
   test("maps both ways", () => {
@@ -61,5 +63,24 @@ describe("facingOnScreen: which picture a heading shows, with the camera turned"
   test("turned around, a walker heading east is mirrored as it faces left", () => {
     assert.equal(mirrorFor(facingOnScreen("east", 2)), -1);
     assert.equal(mirrorFor(facingOnScreen("east", 0)), 1);
+  });
+});
+
+describe("tiltCamera: Up / Down tilt the overworld camera, held, and it stays where it's left", () => {
+  const { startRad, minRad, maxRad, radPerSec } = CAMERA_PITCH;
+
+  test("down (look 1) steepens toward straight down, up (-1) flattens toward the horizon, at its speed", () => {
+    assert.equal(tiltCamera(startRad, 1, 0.1), startRad + radPerSec * 0.1);
+    assert.equal(tiltCamera(startRad, -1, 0.1), startRad - radPerSec * 0.1);
+  });
+
+  test("let go, it stays", () => {
+    assert.equal(tiltCamera(startRad + 0.2, 0, 1), startRad + 0.2);
+  });
+
+  test("it stops short of straight down and short of the horizon", () => {
+    assert.equal(tiltCamera(startRad, 1, 100), maxRad);
+    assert.equal(tiltCamera(startRad, -1, 100), minRad);
+    assert.ok(maxRad < Math.PI / 2 && minRad > 0 && minRad < startRad && startRad < maxRad);
   });
 });

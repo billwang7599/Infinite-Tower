@@ -34,9 +34,9 @@ What's built so far:
   fight. Wider screens than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round
   the field and a tilt-shift blur, lit by the same 24-minute day as the fights (the sun and moon cast the shadows, the
   campfire flickers and lights what's near it). The stream runs off the map; ponds and the marsh lie still, with a ring
-  now and then at a random spot. The arrow keys turn the camera a quarter turn; walking follows it. Everyone on a level
-  shares it: you see other players (their chibi and name, crossed swords while they fight), and an enemy someone touches
-  is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your
+  now and then at a random spot. Left and right turn the camera a quarter turn (walking follows it), up and down tilt
+  it. Everyone on a level shares it: you see other players (their chibi and name, crossed swords while they fight),
+  and an enemy someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your
   own, everything working player against player, that costs and wins nothing. Next to a player's crossed swords, E (or
   "Join the fight") joins their battle, up to 4 to a fight, each with their own result and drops. Natives live along the
   way: the herald, Bram and the three keepers in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in

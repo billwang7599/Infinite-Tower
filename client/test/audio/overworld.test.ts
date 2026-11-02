@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 import { LocalPlayer, START_HEADING, World, type LevelLayout } from "@infinite-tower/shared";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";
+import { CAMERA_PITCH } from "../../src/modes/overworld/facing.js";
 import {
   OverworldActor, OverworldPos, type OverworldActorData, type OverworldState,
 } from "../../src/modes/overworld/components.js";
@@ -26,7 +27,7 @@ function overworld(level: LevelLayout | null = LEVEL) {
   };
   const player = walker("player", 0, 0);
   world.add(player, LocalPlayer, true);
-  const state: OverworldState = { world, player, level, cameraTurns: 0 };
+  const state: OverworldState = { world, player, level, cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad };
   return { state, world, walker, player, hear: overworldEars() };
 }
 

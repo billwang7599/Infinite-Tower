@@ -211,6 +211,15 @@ describe("Actions: poll", () => {
     assert.deepEqual(axes(), { z: 0, turn: 0, look: 0 });
   });
 
+  test("in the overworld, Up / Down tilt the camera on the same axis", () => {
+    const { actions, press, release } = setup("overworld");
+    press("ArrowUp");
+    assert.equal(actions.poll().look, -1);
+    release("ArrowUp");
+    press("ArrowDown");
+    assert.equal(actions.poll().look, 1);
+  });
+
   test("presses come in the order they were made, keys and clicks together", () => {
     const { actions, press, click } = setup();
     press("KeyF");

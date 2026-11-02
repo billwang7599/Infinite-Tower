@@ -7,7 +7,6 @@ import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
-const CAMERA_PITCH_RAD = (50 * Math.PI) / 180;
 const CAMERA_TURN_TIME = 0.25;
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
@@ -33,9 +32,9 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     const share = turn.time / CAMERA_TURN_TIME;
     view.yawRad = turn.fromRad + (turn.toRad - turn.fromRad) * share * share * (3 - 2 * share);
     if (view.yawRad !== facedYaw) level.drawing.face(facedYaw = view.yawRad);
-    const flat = Math.cos(CAMERA_PITCH_RAD) * CAMERA_DISTANCE;
+    const flat = Math.cos(state.cameraPitchRad) * CAMERA_DISTANCE;
     back.set(
-      -Math.sin(view.yawRad) * flat, Math.sin(CAMERA_PITCH_RAD) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat,
+      -Math.sin(view.yawRad) * flat, Math.sin(state.cameraPitchRad) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat,
     );
     const player = state.world.require(state.player, OverworldPos);
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
