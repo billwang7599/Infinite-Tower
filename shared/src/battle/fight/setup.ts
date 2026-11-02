@@ -9,13 +9,14 @@ import type { CoreState } from "../../soul/core.js";
 import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
-  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, Sidestep, SkillAttack, Skilled, Stamina, Statuses,
-  WeaponAttack, Wielder, type HealthData, type WielderData,
+  Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, Skilled,
+  Stamina, Statuses, WeaponAttack, Wielder, type HealthData, type WielderData,
 } from "../components.js";
 import type { EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
+import { circleAgain } from "./behaviors/pounce.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { newSkilled } from "./skills/skilled.js";
 import { noStatuses } from "./skills/statuses.js";
@@ -91,6 +92,11 @@ type AddAttack<K extends keyof EnemyAttacks> = (world: World, e: Entity, def: No
 const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
   lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
   charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
+  pounce: (world, e, def) => {
+    const pounce = { def, cooldown: 0, side: 1, dir: { x: 0, z: 1 } };
+    circleAgain(pounce, world.require(e, Enemy), def.firstDelay);
+    world.add(e, PounceAttack, pounce);
+  },
   weapon: (world, e, def) => {
     world.add(e, WeaponAttack, {
       def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, feint: false, way: "tb",

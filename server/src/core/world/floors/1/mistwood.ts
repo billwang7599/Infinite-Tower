@@ -60,6 +60,7 @@ export const MISTWOOD: LevelDef = {
     { enemy: "wild-boar", at: { x: -4, z: -14.5 }, respawnTime: 8 },
     { enemy: "kobold-swordsman", at: { x: 17, z: 14.5 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
     { enemy: "goblin-warlock", at: { x: 16, z: -11.5 }, respawnTime: 12 },
+    { enemy: "grey-wolf", at: { x: -14, z: -7 }, respawnTime: 10 },
   ],
   grass: { stepDist: 1, chance: 0.12, enemies: [{ enemy: "wild-boar", weight: 1 }] },
   exits: [{ area: { x: -26, z: -2, w: 1, h: 3 }, to: "grass-field", at: { x: 28.5, z: -1.5 } }],

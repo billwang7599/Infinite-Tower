@@ -5,6 +5,8 @@ import type { Visual } from "../visuals.js";
 import { bramSprite } from "./bram/sprite.js";
 import { goblinVisual } from "./goblin-warlock/animation.js";
 import { goblinSprite } from "./goblin-warlock/sprite.js";
+import { wolfVisual } from "./grey-wolf/animation.js";
+import { wolfSprite } from "./grey-wolf/sprite.js";
 import { koboldGreatswordVisual } from "./kobold-greatsword/animation.js";
 import { koboldGreatswordSprite } from "./kobold-greatsword/sprite.js";
 import { koboldSwordsmanVisual } from "./kobold-swordsman/animation.js";
@@ -31,6 +33,7 @@ export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
   "kobold-swordsman": { battle: koboldSwordsmanVisual, sprite: koboldSprite },
   "kobold-greatsword": { battle: koboldGreatswordVisual, sprite: koboldGreatswordSprite },
   "goblin-warlock": { battle: goblinVisual, sprite: goblinSprite },
+  "grey-wolf": { battle: wolfVisual, sprite: wolfSprite },
   "training-dummy": { battle: trainingDummyVisual, sprite: trainingDummySprite },
   bram: { battle: personEnemyVisual, sprite: bramSprite, npc: "bram" },
 };

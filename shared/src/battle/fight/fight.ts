@@ -16,6 +16,7 @@ import type { FightContext, FightEvent, FightOutcome } from "./context.js";
 import { enemyBrainSystem } from "./behaviors/brain.js";
 import { chargeAttackSystem } from "./behaviors/charge.js";
 import { lungeAttackSystem } from "./behaviors/lunge.js";
+import { pounceAttackSystem } from "./behaviors/pounce.js";
 import { sidestepSystem } from "./behaviors/sidestep.js";
 import { skillAttackSystem } from "./behaviors/skill.js";
 import { weaponAttackSystem } from "./behaviors/weapon.js";
@@ -99,7 +100,8 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(this.targets, this.events),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), weaponAttackSystem(this.events),
+      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), pounceAttackSystem(),
+      weaponAttackSystem(this.events),
       skillAttackSystem(),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),

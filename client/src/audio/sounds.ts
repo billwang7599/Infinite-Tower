@@ -42,6 +42,9 @@ export const SOUNDS = {
   "kobold-death": { variants: 1, volume: 0.9 },
   "goblin-hurt": { variants: 3, volume: 0.8, rate: 1.6, spread: 0.08 },
   "goblin-death": { variants: 1, volume: 0.9, rate: 1.4 },
+  "wolf-growl": { variants: 2, volume: 0.7, rate: 1.35, spread: 0.06 },
+  "wolf-hurt": { variants: 2, volume: 0.8, rate: 1.3, spread: 0.08 },
+  "wolf-death": { variants: 1, volume: 0.9, rate: 1.2 },
   "cast-fire": { variants: 4, volume: 0.8, spread: 0.06 },
   "cast-magic": { variants: 5, volume: 0.8, spread: 0.06 },
   "windup-magic": { variants: 1, volume: 0.5, spread: 0.06 },
@@ -91,6 +94,7 @@ export const ENEMY_SOUNDS: Record<EnemyId, EnemySounds> = {
   "kobold-swordsman": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "kobold-greatsword": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "goblin-warlock": { hurt: "goblin-hurt", death: "goblin-death", windup: null },
+  "grey-wolf": { hurt: "wolf-hurt", death: "wolf-death", windup: "wolf-growl" },
   "training-dummy": { hurt: "hit-body", death: "fall", windup: null },
   bram: { hurt: "hit-body", death: "fall", windup: "draw-blade" },
 };

@@ -5,8 +5,8 @@
 import type { Entity } from "../../core/ecs.js";
 import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, Sidestep, SkillAttack, SkillObject, Skilled,
-  Stamina, Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, SkillObject,
+  Skilled, Stamina, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
   type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
 } from "../components.js";
@@ -38,6 +38,7 @@ interface EnemySnapshot extends FighterSnapshot {
   enemy: Omit<EnemyData, "def" | "sense" | "move">;
   lunge: { cooldown: number } | null;
   charge: { cooldown: number; dir: Vec2 } | null;
+  pounce: { cooldown: number; side: number; dir: Vec2 } | null;
   weapon: Omit<WeaponAttackData, "def"> | null;
   sidestep: { dir: Vec2 } | null;
   skill: { cooldown: number; toSay: Word[] } | null;
@@ -107,10 +108,12 @@ export function saveFight(fight: Fight): FightSnapshot {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
       const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), weapon = world.get(e, WeaponAttack);
       const sidestep = world.get(e, Sidestep), skill = world.get(e, SkillAttack), stamina = world.get(e, Stamina);
+      const pounce = world.get(e, PounceAttack);
       return {
         ...fighter(e), enemy,
         lunge: lunge ? { cooldown: lunge.cooldown } : null,
         charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
+        pounce: pounce ? { cooldown: pounce.cooldown, side: pounce.side, dir: { ...pounce.dir } } : null,
         weapon: weapon ? withoutDef(weapon) : null,
         sidestep: sidestep ? { dir: { ...sidestep.dir } } : null,
         skill: skill ? { cooldown: skill.cooldown, toSay: [...skill.toSay] } : null,
@@ -166,6 +169,8 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack);
     if (lunge && s.lunge) lunge.cooldown = s.lunge.cooldown;
     if (charge && s.charge) Object.assign(charge, { cooldown: s.charge.cooldown, dir: { ...s.charge.dir } });
+    const pounce = world.get(e, PounceAttack);
+    if (pounce && s.pounce) Object.assign(pounce, { ...s.pounce, dir: { ...s.pounce.dir } });
     const weapon = world.get(e, WeaponAttack);
     if (weapon && s.weapon) Object.assign(weapon, s.weapon);
     const sidestep = world.get(e, Sidestep);

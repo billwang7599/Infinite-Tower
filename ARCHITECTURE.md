@@ -725,7 +725,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   stamina and recoil, getting in first, too early, mashing; no parry by a swing; the guard rising by heft and the
   window by blade length), the swordsman
   (`behaviors/weapon.test.ts` and `kobold.test.ts`: ways never twice running, its block costing poise, its perfect
-  block and the swing after, chains by its seed and through a save, its landed hits only hurting), whole
+  block and the swing after, chains by its seed and through a save, its landed hits only hurting), the wolf
+  (`behaviors/pounce.test.ts`: circling before its first leap, backing off when walked up to, the bite, the locked
+  line, stepping aside, dodging and blocking it, longer open after a miss, the hop, no stagger while it commits, its
+  seed and a save), whole
   fights won and lost,
   the time limit and leaving (down only mid-fight, gone from the arena either way, through a save), which pile is in
   view (`inView`), a walker's heading
@@ -767,7 +770,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
   late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the Kobold's attack the same way;
   the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and punishes whatever its seed, beating
-  one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`); a cast or a page written
+  one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`); the wolf beaten by a player who
+  sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most who only run at it swinging,
+  its drops, the forge buying them and its spawns (`enemies/grey-wolf.test.ts`); a cast or a page written
   with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
   chanting without the book; the skillbook (pages written, refused for
   an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
@@ -1032,7 +1037,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        (statusSystem; hurt, by the damage's kind and the target's defenses; regenSystem; what statuses
                        do to damage dealt and taken, healing, walking speed)
       behaviors/       What enemies do; each enemy is a mix of them. brain.ts (target, approach (or keeping away) /
-                       poise / stagger / stun / death), lunge.ts, charge.ts, weapon.ts (the Kobold's brain: seeded
+                       poise / stagger / stun / death), lunge.ts, charge.ts, pounce.ts (the wolf's: circling at a
+                       distance, a crouch that locks its line, a leap and bite, longer open after a miss, a hop back;
+                       seeded circling times), weapon.ts (the Kobold's brain: seeded
                        chains of ways or a stab, never the same twice running, a block held walking up, a read
                        perfect block and the swing after it, seeded feints of its heavies), skill.ts (casting: a
                        quick-cast
@@ -1165,10 +1172,11 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        on no floor: the summoning hall, the courtyard, the market and the gate to the Grass Field)
         floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
                          (tile map, campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
-      enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
-                       (the swordsman with a greatsword), goblin-warlock.ts, training-dummy.ts and bram.ts (the
-                       training yard's, fought only as spars: no drops, no overworld actor) (its EnemyDef, its drops,
-                       its overworld actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
+      enemies/         One file per enemy, by its EnemyId: wild-boar.ts, grey-wolf.ts, kobold-swordsman.ts,
+                       kobold-greatsword.ts (the swordsman with a greatsword), goblin-warlock.ts, training-dummy.ts
+                       and bram.ts (the training yard's, fought only as spars: no drops, no overworld actor) (its
+                       EnemyDef, its drops, its overworld actor's behavior parts). index.ts (ENEMIES, one line each;
+                       rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
                        chronicler.ts, priest.ts (its
@@ -1442,9 +1450,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        (its `Wielder`), the sword left out; a frame from the front only the first time it's shown
                        (battleSprite); where the sword hand is in a frame (handAt); BATTLE_FRAMES; chibiDraw; the "!"
                        alert and the crossed swords over a player in a battle
-      enemies/         One folder per enemy, by its EnemyId: wild-boar/, kobold-swordsman/, goblin-warlock/, each
-                       with model.ts (built from primitives), pose.ts (where its parts head, from its state; no
-                       Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
+      enemies/         One folder per enemy, by its EnemyId: wild-boar/, grey-wolf/, kobold-swordsman/,
+                       goblin-warlock/, each with model.ts (built from primitives), pose.ts (where its parts head, from
+                       its state; no Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk)
+                       and sprite.ts
                        (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and animation.ts:
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
                        WEAPON_LOOKS); training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark

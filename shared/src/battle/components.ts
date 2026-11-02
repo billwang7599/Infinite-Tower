@@ -1,7 +1,9 @@
 /** A Fight's state, as plain data. The physics world holds the colliders, by handle. */
 import { defineComponent, type Entity } from "../core/ecs.js";
 import type { Vec2, Vec3 } from "../core/math.js";
-import type { ChargeDef, EnemyDef, LungeDef, SidestepDef, SkillAttackDef, WeaponAttackDef } from "./defs.js";
+import type {
+  ChargeDef, EnemyDef, LungeDef, PounceDef, SidestepDef, SkillAttackDef, WeaponAttackDef,
+} from "./defs.js";
 import type { SwingDir, Strike, Way } from "../weapons/hybrid.js";
 import type { AttackKind } from "../weapons/weapons.js";
 import type { Burden } from "../items/burden.js";
@@ -213,6 +215,7 @@ export type EnemyState =
   | "approach" | "stunned" | "staggered" | "dead"
   | "lungeWindup" | "lunge" | "lungeRecover"
   | "chargeWindup" | "charge" | "chargeRecover"
+  | "pounceWindup" | "pounce" | "pounceRecover" | "pounceHop"
   | "weaponWindup" | "weapon" | "weaponRecover"
   | "skillChant" | "skillCast"
   | "sidestep";
@@ -244,6 +247,8 @@ export interface AttackState<D> {
   cooldown: number;
 }
 export interface ChargeAttackData extends AttackState<ChargeDef> { dir: Vec2 }
+/** `side`: which way round it circles, 1 or -1. `dir`: the leap's or the hop's line. */
+export interface PounceAttackData extends AttackState<PounceDef> { side: number; dir: Vec2 }
 
 export interface WeaponAttackData extends AttackState<WeaponAttackDef> {
   swingsLeft: number;
@@ -259,6 +264,7 @@ export interface SkillAttackData extends AttackState<SkillAttackDef> {
 
 export const LungeAttack = defineComponent<AttackState<LungeDef>>("LungeAttack");
 export const ChargeAttack = defineComponent<ChargeAttackData>("ChargeAttack");
+export const PounceAttack = defineComponent<PounceAttackData>("PounceAttack");
 export const WeaponAttack = defineComponent<WeaponAttackData>("WeaponAttack");
 export const SkillAttack = defineComponent<SkillAttackData>("SkillAttack");
 export interface SidestepData { def: SidestepDef; dir: Vec2 }
