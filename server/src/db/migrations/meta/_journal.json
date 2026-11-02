@@ -134,6 +134,13 @@
       "when": 1793579833942,
       "tag": "0018_empty-hands",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793640423377,
+      "tag": "0019_pad-binding",
+      "breakpoints": true
     }
   ]
 }

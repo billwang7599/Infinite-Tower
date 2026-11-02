@@ -39,6 +39,8 @@ export interface OverworldPlayerData {
   heading: Heading;
   /** In a battle: still here for the others to see, but out of the overworld's play. */
   fighting: boolean;
+  /** The level whose summoning pad they're bound to. */
+  pad: string;
 }
 export const OverworldPlayer = defineComponent<OverworldPlayerData>("OverworldPlayer");
 
@@ -48,3 +50,5 @@ export interface PileData {
   vanishAtMs: number;
 }
 export const Pile = defineComponent<PileData>("Pile");
+
+export const SummoningPad = defineComponent<{ level: string }>("SummoningPad");

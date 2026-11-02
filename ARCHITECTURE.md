@@ -284,7 +284,8 @@ main.ts
   sack. A pile is opened the same way here as in the arena: by looking at it. The rule is the shared `inView`
   (`shared/src/world/interact.ts`: within `INTERACT_RANGE_M` and `INTERACT_LOOK_RAD` either side of the way you face,
   the one nearest that line), which the server runs with its slack as `inViewWithSlack` (`INTERACT_LAG_SLACK_M`,
-  `INTERACT_LOOK_SLACK_RAD`, `core/overworld/interact.ts`), for both places, and for talking to an NPC. On the
+  `INTERACT_LOOK_SLACK_RAD`, `core/overworld/interact.ts`), for both places, for talking to an NPC and for binding to
+  a summoning pad. On the
   overworld the way you face is the walker's heading: the client turns its chibi with `faceToward` on each predicted
   step, and the server turns its copy (`OverworldPlayer.heading`) with the same `faceToward` on each input it replays,
   both from `START_HEADING` on entering a level. Interact sends `openPile` when the pile in view is
@@ -573,6 +574,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `input {seq, moveX, moveZ}` | each tick while walking (nothing while standing still); replayed, rate-limited |
 | `character` | made your character (ignored if you have one) |
 | `rest` | Interact by a campfire (the server checks you're there) |
+| `bindPad` | Interact facing a summoning pad: bind to it (the server checks it's in reach and in view) |
 | `useItem {at}` | use the consumable in a bag or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
 | `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, bag and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile and an open shop close |
@@ -615,6 +617,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `arenaClosed` | the arena's `AFTER_FIGHT_MS` ran out: you're back on the overworld |
 | `using` | `useItem` started using what's at `at` (its `useTime`, then `itemUsed`), or `at` null: it stopped, nothing used (the bag closed, a fight started) |
 | `rested`, `itemUsed` | what resting or eating (or absorbing) did |
+| `padBound` | after a `bindPad` that found a pad: bound to it now, or `already` |
 | `core` | the core changed outside a fight (essence absorbed, a point placed or taken back, the admin's step), or a point was refused: the core, HP / stamina, and whether it broke through |
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
@@ -695,13 +698,13 @@ moment it's decided, or lost by leaving it), rest, item use, quest progress and 
 and within a second of a settings change, a move in the bag, a trade or a page written. The shops where the first,
 cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them).
-The level is saved (`level`), and you come back to it at its start (`loginLevel`: a level with no pad names where you
-wake instead, its `wakeIn`; the Market Ward the Castle Ward); position isn't saved. The core is (`core_steps`,
+The pad you're bound to is saved (`pad`, a level id), and you log in on it (`wakeLevel`: a pad that's gone, or a level
+without one, is `START_LEVEL`'s); neither the level you were on nor your position is saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
-A new character starts on `START_LEVEL`, Highmere's Castle Ward (id `kingdom`), and a death saves it as your level (the
-session's `wakeOnPad`; you cross to it as you leave the arena); a save made before levels were saved was moved to the
-Grass Field by a migration (`0015_players-keep-their-level`), so nobody already playing was moved. Saves from before the
-core start at Early Yan, empty (`0016_core`).
+A new character is bound to `START_LEVEL`, Highmere's Castle Ward (id `kingdom`), and so was every save from before
+pads were bound (`0019_pad-binding` dropped the saved `level`); a death wakes you on your pad (the session's
+`wakeOnPad`; you cross to it as you leave the arena). Saves from before the core start at Early Yan, empty
+(`0016_core`).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
 `npm run db:generate` writes them (see "A schema change" below).
@@ -869,9 +872,11 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   Bram, the old stick given once (at once when the quest is taken from him), the dummy and spar fights started only
   from his talk, unjoinable, costing nothing won or lost, and moving the quest only when won. Highmere
   (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King Osric (naming the Empire, offering
-  nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with no pad (a player saved there wakes
-  on the platform), at Highmere's prices, with the keepers
-  and the Gilded Door's keeper (who only talks), between the castle and the Grass Field.
+  nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with no pad, at Highmere's prices, with
+  the keepers
+  and the Gilded Door's keeper (who only talks), between the castle and the Grass Field. Summoning pads
+  (`pads.test.ts`): one on each level whose start is a pad, bound to by Interact in reach and facing it (said once,
+  then "already"), not in a fight; logging in and dying both wake you on yours, and a pad that's gone on Highmere's.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -994,7 +999,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    time.ts (FIXED_DT, toSteps)
   world/           The tower's places. layout.ts (LevelMap: what the client may see of a level, its floor, tile
                    map and campfires; LevelLayout: a LevelMap as one player is sent it, with the NPCs standing there
-                   for them (PlacedNpc, by NpcId from NPC_IDS) and the traces left there; moveWalker, the one
+                   for them (PlacedNpc, by NpcId from NPC_IDS), the traces left there and its summoning pads;
+                   moveWalker, the one
                    collision rule, and
                    stepWalker on it for
                    prediction + replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES; Heading, START_HEADING,
@@ -1169,13 +1175,14 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        go; SILENT_STOP_STEPS)
       overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
-                       systems and spawner; dropPile, holdPile / landPile (an arena's), pileInView and inView
-                       (the one a player faces; inView among the NPCs and traces placed for that player),
-                       pileItems, setPileItems), components.ts
-                       (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading, character and
-                       whether they're fighting; Pile), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
+                       systems and spawner; a SummoningPad entity at the start if it's a pad; dropPile, holdPile /
+                       landPile (an arena's), pileInView, padInView and inView (the one a player faces; inView
+                       among the NPCs and traces placed for that player), pads, pileItems, setPileItems),
+                       components.ts (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading,
+                       character, the pad they're bound to and whether they're fighting; Pile; SummoningPad, its
+                       level), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
                        interact.ts (inViewWithSlack, the shared inView with INTERACT_LAG_SLACK_M and
-                       INTERACT_LOOK_SLACK_RAD: the overworld's piles and NPCs, and an arena's piles),
+                       INTERACT_LOOK_SLACK_RAD: the overworld's piles, NPCs and pads, and an arena's piles),
                        parts.ts (spawnActor from behavior
                        parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay
                        turning the heading with faceToward, grass encounters per player, nearestHuntablePlayer),
@@ -1183,11 +1190,11 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
-                       layout (a LevelMap: no NPCs), spawn point, wakeIn (a level with no pad: where you log in
-                       instead), spawns (each may name its own arenaId), encounter
+                       layout (a LevelMap: no NPCs), spawn point (its pad's middle, if it has one), spawns (each
+                       may name its own arenaId), encounter
                        table, arenaId, duelArenaId, exits (ExitDef: edge tiles that take you to another level, and
-                       where you land); rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the Castle
-                       Ward, where new characters and the dead wake), loginLevel, getLevel, getArena)
+                       where you land); hasPad, rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the
+                       Castle Ward, the pad new characters are bound to), wakeLevel, getLevel, getArena)
         highmere/        Highmere's wards, on no floor, a file each: castle-ward.ts (id `kingdom`: the Hall of
                          Arrival and its platform, the throne room, the barracks and training yard, the courtyard, the
                          kitchen, the garden and the castle gate), market-ward.ts (the market square and its stalls,
@@ -1411,8 +1418,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
-                         interactionAt: the Interact key rests, joins a fight, or opens the pile, talks to the NPC
-                         or looks at the trace you face (inView along your heading), the nearest in reach; the
+                         interactionAt: the Interact key rests, joins a fight, or opens the pile, talks to the NPC,
+                         looks at the trace or binds to the pad you face (inView along your heading), the nearest
+                         in reach; the
                          heading back to START_HEADING on a `level`;
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
@@ -1634,8 +1642,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
   grass fights, and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
   (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the start, the
   campfires, the NPCs and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable, and the
-  start (or `wakeIn`'s) on pads (`@`). A way to another level is an `ExitDef` on each side (an open stretch of the map's
-  edge, and where you land on the other); the scenery cuts a gap in front of it. For a new look, a theme in
+  start (or, with no pad, the start level's) on pads (`@`). A way to another level is an `ExitDef` on each side (an
+  open stretch of the map's edge, and where you land on the other); the scenery cuts a gap in front of it. For a new
+  look, a theme in
   `LevelLayout["theme"]` (`shared/src/world/layout.ts`), a folder named by it in `client/src/visuals/levels/` (its tile
   looks and 3D scenery) and its line in `LEVEL_LOOKS`.
 - **A tile kind.** Its line in `TILES` (`shared/src/world/tiles.ts`: a character no other kind uses, solid or not,

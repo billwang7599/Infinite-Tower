@@ -45,7 +45,7 @@ describe("the Mistwood's folk", () => {
   });
 
   test("each has a word for a new avatar, and the herbalist offers her first quest", () => {
-    const { session, link } = startSession({ saved: { level: "mistwood" } });
+    const { session, link } = startSession({ saved: { pad: "mistwood" } });
     for (const [npc] of MISTWOOD_FOLK) assert.ok(talkTo(session, link, npc).lines.length > 0, npc);
     assert.equal(offeredQuest(talkTo(session, link, "herbalist").offer), "herbalist-fangs");
   });
@@ -75,9 +75,9 @@ describe("the Mistwood's folk", () => {
 
   test("the burner has news of Tamsin's son only for someone who has asked after him", () => {
     assert.deepEqual(QUESTS["burner-rook"]!.when, { done: "tamsin-son" });
-    const fresh = startSession({ saved: { level: "mistwood" } });
+    const fresh = startSession({ saved: { pad: "mistwood" } });
     assert.equal(talkTo(fresh.session, fresh.link, "burner").offer, null);
-    const asked = startSession({ saved: { level: "mistwood", story: sonFound() } });
+    const asked = startSession({ saved: { pad: "mistwood", story: sonFound() } });
     assert.equal(offeredQuest(talkTo(asked.session, asked.link, "burner").offer), "burner-rook");
     const last = QUESTS["burner-rook"]!.steps.at(-1)!;
     assert.deepEqual(last.task, { kind: "talk", to: "tamsin" });
@@ -85,7 +85,7 @@ describe("the Mistwood's folk", () => {
 
   for (const [npc, chain] of MISTWOOD_FOLK) {
     test(`${npc}'s quests, played through the server: every step done, rewarded and told; then what's next`, () => {
-      const p = startSession({ dev: true, saved: { level: "mistwood", story: sonFound() } });
+      const p = startSession({ dev: true, saved: { pad: "mistwood", story: sonFound() } });
       for (const id of chain) {
         goTo(p, "mistwood");
         assert.equal(offeredQuest(talkTo(p.session, p.link, npc).offer), id, `${npc} offers ${id}`);

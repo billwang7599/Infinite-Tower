@@ -73,7 +73,8 @@ Decided by the user:
   humongous castle, to guard and use the stream of avatars, and its rulers see arrivals as theirs by right. "A guide
   greets and explains": the court herald, by the platform, says where you are and what an avatar is, names the
   controls only in what he says (no on-screen hints), and points you into town. Dying, anywhere, wakes you on the
-  platform. Campfires are out in the wild only: the town has none. The town has three shops, food, potions and a
+  platform until you bind yourself to another pad (summoning pads, below). Campfires are out in the wild only: the
+  town has none. The town has three shops, food, potions and a
   blacksmith, each a keeper you trade with (money and shops, below). No enemies in the city.
 - Highmere is the Empire's second city (the user picked "C": the empire's "second" city; "choose something extravagent"
   for its name; "mutlipe works" for its maps): the ancient, sacred Door City where the Maker's door first opened, held
@@ -93,8 +94,12 @@ Decided by the user:
 - The start is linear (the user: "the tutorial/start should be linear. i dont want to confuse the player as to where to
   start"): on the platform only the herald is in sight, and he sends you to Bram. Odo's and Captain Edda's quests wait
   for Bram's yard; Wenna's and Tamsin's are offered from the start (the user, asked whether they should wait: "no").
-- Highmere has one summoning pad, the Castle Ward's platform (the user: "yes", over a pad of the Market Ward's own): a
-  player saved in the Market Ward, or dying there, wakes on it.
+- Highmere has one summoning pad, the Castle Ward's platform (the user: "yes", over a pad of the Market Ward's own).
+- Summoning pads are respawn points (the user: "if we go near a summoning pad, we have the option to set our spawn"):
+  the Interact key (E) by a pad binds you to it ("E yea"), free ("free"), on every pad ("all existing pads -- part of
+  pad mechanics"). Logging in wakes you on "your new set pad", and so does dying, wherever it is ("if hte pad there
+  exists yea"); what you drop lies where you fell. Only the pad is saved, not the level you were on. A new player is
+  bound to Highmere's platform, and so is every save from before this, so those wake in Highmere once after the change.
 - Money and shops (the user: coins are "stored in bags as items", "lost like the bag since its stored in bags as
   items"; "gold silver and copper makes sense. less for the player to think about"; "coins dont repack automatically.
   we should be doing this at a store/bank"): money comes from selling loot to shops and from quest rewards; monsters
@@ -644,7 +649,13 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Resting: each level out in the wild has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within
   1.6 tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as you
   like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your respawn
-  point or bring back defeated boars; dying still wakes you on Highmere's platform.
+  point (a summoning pad does) or bring back defeated boars.
+- Binding to a summoning pad (the user's rules above; these are OptChat's and the agent's picks, tried in a headless
+  browser, not hand-played): no confirm, one press binds and a corner notice says so; on the pad you're already bound
+  to it only says so. A pad is reached as a pile or an NPC is (`INTERACT_RANGE_M`, `INTERACT_LOOK_RAD` and the
+  server's slack), measured to its middle, the level's start, so you face it (standing on its middle counts); the
+  HUD's button says "Bind to this pad". Overworld only. A saved pad that's gone, or a level with none, wakes you on
+  Highmere's platform.
 - Items: boar meat heals 35% of the most HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 60 × (strength / 10)^¼ (60 at the start). Over it, a dodge costs 30% more stamina. A new
@@ -717,9 +728,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
 - Levels: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field and the Mistwood, joined by roads
-  off the edge of each (walk into one to cross). The level you're on is saved: you come back to it, at its start, when
-  you log in. Dying wakes you on Highmere's platform: falling there, at once; elsewhere, the save says the Castle Ward
-  at once (a disconnect mid-fight too) and you cross to it as you leave the arena. Mistwood reuses the floor's enemies
+  off the edge of each (walk into one to cross). Dying wakes you on your pad: falling on its level, at once; elsewhere,
+  you cross to it as you leave the arena. Mistwood reuses the floor's enemies
   (boars, the Kobold, the Warlock) and the mire arena.
 - The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
   everything here is the agent's, tried only in a headless browser): a 48 x 36 floor-1 level north of the Grass Field,
@@ -743,9 +753,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   south. The Market Ward ("Highmere: Market Ward", 70 x 50, `market-ward`): a market square with two fountains (Bette's
   food stall, Mirela's potion stall, Fennick Cooper's changing stall, Garrick's forge), the Gilded Door tavern (a walled
   room with Hesper Wainwright, its keeper, who only talks), streets of houses (Tamsin in the south-west), and the South
-  Gate (Captain Edda) to the Grass Field, which got a road in at its north-west corner. It has no pad: a player saved
-  there logs in on the Castle Ward's platform. Two walled-up gaps wait for later wards: an east road to Temple Hill and
-  a south-west one to the Lower Town. King Osric and Hesper only talk; both wards charge Highmere's prices. Neither has
+  Gate (Captain Edda) to the Grass Field, which got a road in at its north-west corner. It has no pad. Two walled-up
+  gaps wait for later wards: an east road to Temple Hill and a south-west one to the Lower Town. King Osric and Hesper
+  only talk; both wards charge Highmere's prices. Neither has
   an encounter table (a level's `grass` is now optional). Dialogue lines name keys as `{group.action}`, written out as
   the player's own key (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the
   map are drawn only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns
@@ -912,7 +922,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   notice. A joiner comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies
   go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
-  (dropping all they carry where they fell, waking on Highmere's platform), and the fight goes on for the
+  (dropping all they carry where they fell, waking on their pad), and the fight goes on for the
   rest; won, everyone still in it counts a win and they share the drops (one down on the very step it's won still
   wins, standing
   at 1 HP). Anyone who

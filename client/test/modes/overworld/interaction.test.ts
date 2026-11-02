@@ -7,11 +7,12 @@ import {
 import { interactionAt } from "../../../src/modes/overworld/overworld.js";
 
 const FIRE = { x: 0, z: 0 };
-const level = { campfires: [FIRE], npcs: [], traces: [] } as unknown as LevelLayout;
+const level = { campfires: [FIRE], npcs: [], traces: [], pads: [] } as unknown as LevelLayout;
 const at = (x: number, z = 0) => ({ x, z });
 const npcAt = (spot: Vec2): PlacedNpc => ({ npc: "hollis", at: spot, heading: "west" });
 const withNpcs = (...spots: Vec2[]) => ({ ...level, npcs: spots.map(npcAt) });
 const withTraces = (...traces: Vec2[]) => ({ ...level, traces });
+const withPads = (...pads: Vec2[]) => ({ ...level, pads });
 
 describe("what the Interact key does where you stand", () => {
   test("by a campfire, rests, whichever way you face", () => {
@@ -45,6 +46,13 @@ describe("what the Interact key does where you stand", () => {
     assert.equal(interactionAt(withTraces(at(10 - INTERACT_RANGE_M + 0.1)), at(10), "west", [], []), "look");
     assert.equal(interactionAt(withTraces(at(10 - 1)), at(10), "east", [], []), null);
     assert.equal(interactionAt(withTraces(at(10 - INTERACT_RANGE_M - 0.1)), at(10), "west", [], []), null);
+  });
+
+  test("by a summoning pad you face, or standing on it, binds you to it; not one behind you or out of reach", () => {
+    assert.equal(interactionAt(withPads(at(10 - INTERACT_RANGE_M + 0.1)), at(10), "west", [], []), "bindPad");
+    assert.equal(interactionAt(withPads(at(10)), at(10), "east", [], []), "bindPad");
+    assert.equal(interactionAt(withPads(at(10 - 1)), at(10), "east", [], []), null);
+    assert.equal(interactionAt(withPads(at(10 - INTERACT_RANGE_M - 0.1)), at(10), "west", [], []), null);
   });
 
   test("a pile and an NPC both in view: the one nearest the way you face", () => {

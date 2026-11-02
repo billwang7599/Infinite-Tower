@@ -135,6 +135,7 @@ export const EVENT_SOUNDS: { readonly [K in GameEvent["kind"]]?: SoundName } = {
   joinedYou: "notice",
   challenge: "notice",
   rested: "rest",
+  padBound: "notice",
   healed: "rest",
   itemUsed: "eat",
   given: "pickup",

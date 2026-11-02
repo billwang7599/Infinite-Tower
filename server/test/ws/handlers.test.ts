@@ -20,6 +20,7 @@ function fakeSession() {
     setSettings: record("setSettings"),
     setCharacter: record("setCharacter"),
     rest: record("rest"),
+    bindPad: record("bindPad"),
     useItem: record("useItem"),
     moveItem: record("moveItem"),
     closeBag: record("closeBag"),
@@ -81,6 +82,10 @@ describe("message handlers", () => {
     assert.deepEqual(handle({ t: "rest" }), [["rest"]]);
   });
 
+  test("bindPad binds to the pad in view", () => {
+    assert.deepEqual(handle({ t: "bindPad" }), [["bindPad"]]);
+  });
+
   test("useItem uses the item in that cell", () => {
     const at = { in: "bag", x: 1, y: 2 } as const;
     assert.deepEqual(handle({ t: "useItem", at }), [["useItem", at]]);
@@ -137,8 +142,8 @@ describe("message handlers", () => {
 
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
-      "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "openPile", "talk", "train", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge",
+      "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "bindPad", "useItem",
+      "moveItem", "closeBag", "openPile", "talk", "train", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge",
       "answerChallenge", "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());

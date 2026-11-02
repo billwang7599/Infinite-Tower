@@ -5,6 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
+import { START_LEVEL } from "../../../src/core/world/index.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { newStory } from "../../../src/core/game/story.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
@@ -36,7 +37,7 @@ describe("joining", () => {
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
-        skillbook: welcome.skillbook, story: newStory(), level: null, core: welcome.core, shopsBought: [] },
+        skillbook: welcome.skillbook, story: newStory(), pad: START_LEVEL, core: welcome.core, shopsBought: [] },
       newPlayer(),
     );
     assert.deepEqual(welcome.questbook, []);

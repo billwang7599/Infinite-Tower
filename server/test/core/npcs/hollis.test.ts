@@ -45,23 +45,23 @@ function face(session: GameSession, at: Vec2): void {
 describe("Hollis moves on to the Mistwood", () => {
   test("until his first chain is done he keeps the Grass Field's fire, and has left nothing there", () => {
     assert.equal(FIRE.level, "grass-field");
-    const fire = startSession({ saved: { level: FIRE.level, story: ON_MOVING_STEP } });
+    const fire = startSession({ saved: { pad: FIRE.level, story: ON_MOVING_STEP } });
     assert.deepEqual(hollisIn(fire.link), [{ npc: "hollis", at: FIRE.at, heading: FIRE.heading }]);
     assert.deepEqual(tracesIn(fire.link), []);
-    assert.deepEqual(hollisIn(startSession({ saved: { level: AWAY.level, story: ON_MOVING_STEP } }).link), []);
+    assert.deepEqual(hollisIn(startSession({ saved: { pad: AWAY.level, story: ON_MOVING_STEP } }).link), []);
   });
 
   test("once it's done, a player finds him in the Mistwood, and what he left where he stood by the fire", () => {
     assert.equal(AWAY.level, "mistwood");
-    const away = startSession({ saved: { level: AWAY.level, story: MOVED } });
+    const away = startSession({ saved: { pad: AWAY.level, story: MOVED } });
     assert.deepEqual(hollisIn(away.link), [{ npc: "hollis", at: AWAY.at, heading: AWAY.heading }]);
-    const fire = startSession({ saved: { level: FIRE.level, story: MOVED } });
+    const fire = startSession({ saved: { pad: FIRE.level, story: MOVED } });
     assert.deepEqual(hollisIn(fire.link), []);
     assert.deepEqual(tracesIn(fire.link), [TRACE.at]);
   });
 
   test("he says goodbye in person: still by the fire, saying where he's going, until the player comes back", () => {
-    const { session, link } = startSession({ saved: { level: FIRE.level, story: ON_MOVING_STEP } });
+    const { session, link } = startSession({ saved: { pad: FIRE.level, story: ON_MOVING_STEP } });
     talkTo(session, link, "hollis");
     assert.ok(session.story.flags.includes(MOVES));
     const goodbye = FIRE.talk.find((t) => isDeepStrictEqual(t.when, { flag: MOVES }));
@@ -76,7 +76,7 @@ describe("Hollis moves on to the Mistwood", () => {
 
   test("facing what he left, Interact reads it as his trace, and does no step that waits on him", () => {
     const stillOwed = { ...ON_MOVING_STEP, flags: [MOVES] };
-    const { session, link, saves } = startSession({ saved: { level: FIRE.level, story: stillOwed } });
+    const { session, link, saves } = startSession({ saved: { pad: FIRE.level, story: stillOwed } });
     const saved = saves.length;
     face(session, TRACE.at);
     session.talk();
@@ -92,7 +92,7 @@ describe("Hollis moves on to the Mistwood", () => {
   });
 
   test("in the Mistwood he offers a main quest of his own; done, he says what's next and offers nothing", () => {
-    const { session, link } = startSession({ saved: { level: AWAY.level, story: MOVED } });
+    const { session, link } = startSession({ saved: { pad: AWAY.level, story: MOVED } });
     const offer = talkTo(session, link, "hollis").offer;
     assert.ok(offer?.kind === "quest");
     const quest = QUESTS[offer.quest]!;

@@ -25,6 +25,7 @@ export interface LevelMap {
 export interface LevelLayout extends LevelMap {
   npcs: PlacedNpc[];
   traces: Vec2[];
+  pads: Vec2[];
 }
 
 export const NPC_IDS = [

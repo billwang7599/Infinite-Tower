@@ -21,7 +21,7 @@ export function testOverworld(o: { playerAt?: Vec2; rng?: () => number; level?: 
   const player = world.spawn();
   const at = o.playerAt ?? { x: 0, z: 0 };
   world.add(player, OverworldPos, { x: at.x, z: at.z });
-  world.add(player, OverworldPlayer, newWalk(TEST_CHARACTER));
+  world.add(player, OverworldPlayer, newWalk(TEST_CHARACTER, "kingdom"));
   const ctx: OverworldContext = {
     level: o.level ?? TEST_LEVEL,
     rng: o.rng ?? (() => 0),

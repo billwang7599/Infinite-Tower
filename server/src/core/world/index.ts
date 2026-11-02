@@ -6,7 +6,7 @@ import { OLD_QUARRY } from "./floors/1/old-quarry.js";
 import { WAKING_HOLLOW } from "./floors/1/waking-hollow.js";
 import { CASTLE_WARD } from "./highmere/castle-ward.js";
 import { MARKET_WARD } from "./highmere/market-ward.js";
-import type { LevelDef } from "./level.js";
+import { hasPad, type LevelDef } from "./level.js";
 
 export const LEVELS: Readonly<Record<string, LevelDef>> = Object.fromEntries(
   [CASTLE_WARD, MARKET_WARD, WAKING_HOLLOW, GRASS_FIELD, MISTWOOD, OLD_QUARRY].map((l) => [l.layout.id, l]),
@@ -18,9 +18,9 @@ export const ARENAS: Record<string, ArenaDef> = Object.fromEntries(
 
 export const START_LEVEL = CASTLE_WARD.layout.id;
 
-export function loginLevel(saved: string | null): string {
-  const level = saved !== null && Object.hasOwn(LEVELS, saved) ? LEVELS[saved]! : getLevel(START_LEVEL);
-  return level.wakeIn ?? level.layout.id;
+/** Bound to a pad that's gone, or a level without one, you wake on the start level's. */
+export function wakeLevel(pad: string): string {
+  return Object.hasOwn(LEVELS, pad) && hasPad(LEVELS[pad]!) ? pad : START_LEVEL;
 }
 
 export function getLevel(id: string): LevelDef {

@@ -48,7 +48,7 @@ describe("the Waking Hollow's first quests", () => {
     session.acceptQuest(offeredQuest(talkTo(session, link, "maren").offer)!);
     assert.equal(session.story.quests["maren-road"]?.step, QUESTS["maren-road"]!.steps[0]!.id);
 
-    const there = startSession({ saved: { ...saves.at(-1)!, level: stopFor(session.story, NPCS.hollis)!.level } });
+    const there = startSession({ saved: { ...saves.at(-1)!, pad: stopFor(session.story, NPCS.hollis)!.level } });
     const hollis = talkTo(there.session, there.link, "hollis");
     assert.deepEqual(offeredQuest(hollis.offer), "hollis-hides");
     for (const id of CHAIN) assert.equal(there.session.story.quests[id]?.step, null, id);

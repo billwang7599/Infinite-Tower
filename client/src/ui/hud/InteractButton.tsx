@@ -8,6 +8,7 @@ const INTERACTIONS = {
   openPile: { id: "open-pile-button", label: "Open the pile" },
   talk: { id: "talk-button", label: "Talk" },
   look: { id: "look-button", label: "Look" },
+  bindPad: { id: "bind-pad-button", label: "Bind to this pad" },
 } as const;
 
 export function InteractButton({ interaction, interact }: { interaction: Interaction | null; interact: () => void }) {

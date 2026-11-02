@@ -8,7 +8,8 @@ const WIDTH = 40, DEPTH = 26;
 const closed = Array.from({ length: DEPTH }, (_, r) =>
   r === 0 || r === DEPTH - 1 ? "T".repeat(WIDTH) : `T${".".repeat(WIDTH - 2)}T`);
 const level = (tiles: string[]): LevelLayout => ({
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, tiles, campfires: [], npcs: [], traces: [],
+  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, tiles,
+  campfires: [], npcs: [], traces: [], pads: [],
 });
 const open = (rows: string[], at: (r: number, c: number) => boolean) =>
   rows.map((row, r) => [...row].map((ch, c) => (at(r, c) ? ":" : ch)).join(""));

@@ -12,7 +12,7 @@ import {
 // both ends, and a pond (x -3 to -1, z -1 to 0) against nothing.
 const LEVEL: LevelLayout = {
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [{ x: -2, z: 1 }], npcs: [],
-  traces: [],
+  traces: [], pads: [],
   tiles: ["......~.", "......~.", ".~~...~.", "......~."],
 };
 const DRY: LevelLayout = { ...LEVEL, theme: "mistwood", tiles: ["........", "........"], campfires: [] };

@@ -40,7 +40,7 @@ describe("the Old Quarry's folk", () => {
   });
 
   test("each has a word for a new avatar, and offers its first quest", () => {
-    const { session, link } = startSession({ saved: { level: "old-quarry" } });
+    const { session, link } = startSession({ saved: { pad: "old-quarry" } });
     for (const [npc, [first]] of QUARRY_FOLK) {
       const said = talkTo(session, link, npc);
       assert.ok(said.lines.length > 0, npc);
@@ -77,7 +77,7 @@ describe("the Old Quarry's folk", () => {
 
   for (const [npc, chain] of QUARRY_FOLK) {
     test(`${npc}'s quests, played through the server: every step done, rewarded and told; then what's next`, () => {
-      const p = startSession({ dev: true, saved: { level: "old-quarry", story: newStory() } });
+      const p = startSession({ dev: true, saved: { pad: "old-quarry", story: newStory() } });
       for (const id of chain) {
         goTo(p, "old-quarry");
         assert.equal(offeredQuest(talkTo(p.session, p.link, npc).offer), id, `${npc} offers ${id}`);

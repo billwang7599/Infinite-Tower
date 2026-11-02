@@ -30,7 +30,7 @@ function walkInto(session: GameSession, link: FakeLink, exit: ExitDef): void {
 
 describe("entering a level", () => {
   test("sends the maps its exits lead to, each once, so the client can draw them before you cross", () => {
-    const { link } = startSession({ saved: { level: START_LEVEL } });
+    const { link } = startSession({ saved: { pad: START_LEVEL } });
     const next = link.last("level").next;
     assert.deepEqual(next.map((m) => m.id), [...new Set(START.exits.map((e) => e.to))]);
     assert.deepEqual(next[0], getLevel(OUT.to).layout);
@@ -39,7 +39,7 @@ describe("entering a level", () => {
 
 describe("walking into an exit", () => {
   test("takes you to the level it leads to, at its entrance, and off the level you left", () => {
-    const { session, link, overworldOf } = startSession({ saved: { level: START_LEVEL } });
+    const { session, link, overworldOf } = startSession({ saved: { pad: START_LEVEL } });
     session.overworld.place(session.me, BACK.at);
     walkInto(session, link, OUT);
     const arrived = link.last("level");
@@ -51,7 +51,7 @@ describe("walking into an exit", () => {
   });
 
   test("and its way back arrives in front of the exit you took", () => {
-    const { session, link } = startSession({ saved: { level: START_LEVEL } });
+    const { session, link } = startSession({ saved: { pad: START_LEVEL } });
     session.overworld.place(session.me, BACK.at);
     walkInto(session, link, OUT);
     walkInto(session, link, BACK);
@@ -59,37 +59,12 @@ describe("walking into an exit", () => {
     assert.deepEqual(link.last("level").me, BACK.at);
   });
 
-  test("saves the level you arrive on", () => {
-    const { session, link, saves } = startSession({ saved: { level: START_LEVEL } });
-    session.overworld.place(session.me, BACK.at);
-    walkInto(session, link, OUT);
-    assert.equal(saves.at(-1)?.level, OUT.to);
-  });
-
   test("does nothing in a battle", () => {
-    const { session, link } = startSession({ dev: true, saved: { level: START_LEVEL } });
+    const { session, link } = startSession({ dev: true, saved: { pad: START_LEVEL } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.overworld.place(session.me, { x: OUT.area.x + OUT.area.w / 2, z: OUT.area.z + OUT.area.h / 2 });
     tick(session, 5);
     assert.equal(link.all("level").length, 1);
     assert.equal(session.overworld.level.layout.id, START_LEVEL);
-  });
-});
-
-describe("the saved level", () => {
-  test("is where you come back, at its start", () => {
-    const { session, link } = startSession({ saved: { level: "mistwood" } });
-    assert.equal(link.last("level").level.id, "mistwood");
-    assert.deepEqual(link.last("level").me, getLevel("mistwood").spawn);
-    assert.equal(session.overworld.level.layout.id, "mistwood");
-  });
-
-  test("none yet, or one that's gone, is the start level", () => {
-    for (const level of [null, "no-such-level"]) {
-      const { link, session, saves } = startSession({ saved: { level } });
-      assert.equal(link.last("level").level.id, START_LEVEL);
-      session.save();
-      assert.equal(saves.at(-1)?.level, START_LEVEL);
-    }
   });
 });

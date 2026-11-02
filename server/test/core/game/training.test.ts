@@ -20,7 +20,7 @@ const QUEST = "bram-yard";
 const KINGDOM = getLevel("kingdom");
 
 const fresh = (saved: Partial<PlayerSave> = {}) =>
-  startSession({ saved: { level: null, equipment: emptyEquipment(), knownWords: [], bag: emptyBag(), ...saved } });
+  startSession({ saved: { pad: "kingdom", equipment: emptyEquipment(), knownWords: [], bag: emptyBag(), ...saved } });
 
 const onStep = (step: string | null) => ({ quests: { [QUEST]: { step, kills: 0 } }, flags: [] });
 
@@ -96,7 +96,7 @@ describe("the training yard", () => {
 
   test("losing the spar loses nothing: no death, no drops, the same HP, and Bram will go again", () => {
     const equipment = { ...emptyEquipment(), rightHand: "old-stick" as const };
-    const { session, link, saves } = fresh({ story: onStep("spar"), equipment });
+    const { session, link } = fresh({ story: onStep("spar"), equipment });
     const said = talkTo(session, link, "bram");
     assert.equal(said.offer?.kind, "train");
     const before = { vitals: { ...session.vitals }, carried: carried(session), core: session.core };
@@ -112,7 +112,6 @@ describe("the training yard", () => {
     assert.deepEqual(session.vitals, before.vitals);
     assert.deepEqual(carried(session), before.carried);
     assert.deepEqual(session.core, before.core);
-    assert.equal(saves.at(-1)?.level, "kingdom");
     assert.equal(session.story.quests[QUEST]?.step, "spar");
     assert.equal(talkTo(session, link, "bram").offer?.kind, "train");
   });
