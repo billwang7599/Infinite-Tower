@@ -11,9 +11,9 @@ export interface LevelMap {
   id: string;
   name: string;
   /** The tower floor it's on, shown before its name. */
-  floor: number;
+  floor?: number;
   /** Which client look draws it. */
-  theme: "grass-field" | "mistwood";
+  theme: "grass-field" | "mistwood" | "kingdom";
   /** Rows of tile characters (`TILES`), north (+z) first, one character a tile; the map is centred on 0, 0. */
   tiles: string[];
   playerSpeed: number;
@@ -27,7 +27,9 @@ export interface LevelLayout extends LevelMap {
   traces: Vec2[];
 }
 
-export const NPC_IDS = ["hollis", "maren", "tobin", "corwin", "ilse"] as const;
+export const NPC_IDS = [
+  "hollis", "maren", "tobin", "corwin", "ilse", "herald", "grocer", "apothecary", "smith",
+] as const;
 export type NpcId = (typeof NPC_IDS)[number];
 
 export interface PlacedNpc {

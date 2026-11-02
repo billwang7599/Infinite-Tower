@@ -2,7 +2,7 @@ import {
   Color3, Color4, MeshBuilder, StandardMaterial, Texture, TransformNode, Vector4, VertexBuffer, type DynamicTexture,
   type InstancedMesh, type Mesh, type Scene,
 } from "@babylonjs/core";
-import { mapHalfSize, seededRandom, wrapAngle, type LevelLayout, type Vec3 } from "@infinite-tower/shared";
+import { dampFactor, mapHalfSize, seededRandom, wrapAngle, type LevelLayout, type Vec3 } from "@infinite-tower/shared";
 import { campfireLights, drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { paintGround, tileProps } from "../levels/tiles.js";
 import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
@@ -10,7 +10,7 @@ import { spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
 import { pixelCanvas, propTexture, PROP_ART, PX_PER_TILE, type Pen } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
-import { isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
+import { blocksView, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -19,10 +19,11 @@ const CAMPFIRE_TILES = 1.4;
 /** Seen only by shadow maps: the camera's layer mask leaves this bit out. */
 const SHADOW_ONLY_LAYER = 0x10000000;
 const CARD_TURN_STEP_RAD = 0.02;
+const SEE_THROUGH = { visibility: 0.15, rate: 12 };
 
 export interface LevelDrawing {
   root: TransformNode;
-  frame(dt: number): void;
+  frame(dt: number, eye: Vec3, player: Vec3): void;
   face(yawRad: number): void;
 }
 
@@ -39,6 +40,8 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   };
   const brick = lit("overworld-brick", tiled(pixelCanvas(scene, "brick", 32, 32, drawBricks, false)));
   const grass = lit("overworld-grass", tiled(pixelCanvas(scene, "grass", 32, 32, (p) => drawGrass(p, 32, 32, 5), false)));
+  const plaster = lit("overworld-plaster", tiled(pixelCanvas(scene, "plaster", 32, 32, drawPlaster, false)));
+  const roof = lit("overworld-roof", tiled(pixelCanvas(scene, "roof", 32, 32, drawRoof, false)));
   const { halfWidth, halfDepth } = mapHalfSize(level);
   const field = lit("overworld-field", pixelCanvas(scene, `field-${level.id}`, halfWidth * 2 * PX_PER_TILE,
     halfDepth * 2 * PX_PER_TILE, (pen) => paintGround(pen, level, look.tiles), false));
@@ -47,9 +50,12 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
   fringe.emissiveColor = Color3.Black();
   const water = levelWater(scene, level, look.water);
 
+  const looks = { grass: [grass, brick, fringe], castle: [brick, brick, null], house: [roof, plaster, null] } as const;
+  const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
   scenery.ledges.forEach((ledge, i) => {
     const carved = i === 0 ? water.ground : null;
-    const parts = buildLedge(scene, ledge, i, carved ? field : grass, brick, fringe, carved);
+    const [top, side, edge] = looks[ledge.look ?? "grass"];
+    const parts = buildLedge(scene, ledge, i, carved ? field : top, side, edge, carved);
     for (const m of [...parts, ...carved ? [water.surface] : []]) {
       m.parent = root;
       m.receiveShadows = true;
@@ -57,13 +63,19 @@ export function buildLevel(view: OverworldScene, level: LevelLayout): LevelDrawi
     }
     sky.castShadows(parts[0]!);
     if (carved) sky.castShadows(carved);
+    if (ledge.topY > 0) standing.push({ ledge, parts });
   });
   const props = placeProps(view, [...scenery.props, ...tileProps(level, look.tiles)], lights, root);
   const campfires = buildCampfires(view, level, root);
   const upright = [...props.upright, ...campfires.meshes];
   return {
     root,
-    frame(dt) {
+    frame(dt, eye, player) {
+      const k = dampFactor(SEE_THROUGH.rate, dt);
+      for (const { ledge, parts } of standing) {
+        const want = blocksView(ledge, eye, player) ? SEE_THROUGH.visibility : 1;
+        for (const m of parts) m.visibility += (want - m.visibility) * k;
+      }
       campfires.flicker(dt);
       props.light(sky);
     },
@@ -82,8 +94,8 @@ function tiled(tex: DynamicTexture): DynamicTexture {
 }
 
 function buildLedge(
-  scene: Scene, { rect, topY }: Ledge, i: number, top: StandardMaterial, side: StandardMaterial, fringe: StandardMaterial,
-  carved: Mesh | null,
+  scene: Scene, { rect, topY }: Ledge, i: number, top: StandardMaterial, side: StandardMaterial,
+  fringe: StandardMaterial | null, carved: Mesh | null,
 ): Mesh[] {
   const cx = rect.x + rect.w / 2, cz = rect.z + rect.h / 2, wide = (n: number) => new Vector4(0, 0, n / 2, BLOCK_DEPTH / 2);
   const block = MeshBuilder.CreateBox(`ledge-${i}`, {
@@ -105,7 +117,7 @@ function buildLedge(
     [cx, rect.z - 0.02, rect.w, 0], [cx, rect.z + rect.h + 0.02, rect.w, Math.PI],
     [rect.x - 0.02, cz, rect.h, Math.PI / 2], [rect.x + rect.w + 0.02, cz, rect.h, -Math.PI / 2],
   ];
-  const fringes = edges.map(([x, z, length, turn], k) => {
+  const fringes = fringe === null ? [] : edges.map(([x, z, length, turn], k) => {
     const f = MeshBuilder.CreatePlane(`ledge-fringe-${i}-${k}`, { width: length, height: FRINGE_TILES }, scene);
     f.position.set(x, topY - FRINGE_TILES / 2 + 0.03, z);
     f.rotation.y = turn;
@@ -242,6 +254,35 @@ function drawBricks(pen: Pen): void {
       pen.rect(x + 1, y + 1, 11, 1, "#9a92a0");
       pen.rect(x + 1, y + 6, 11, 1, "#55505c");
       if (rand() < 0.35) pen.rect(x + 2 + rand() * 7, y + 5, 3, 2, "#4f7a3a");
+    }
+  }
+}
+
+function drawPlaster(pen: Pen): void {
+  const rand = seededRandom(7);
+  pen.rect(0, 0, 32, 32, "#b9ad94");
+  for (let i = 0; i < 40; i++) pen.rect(rand() * 32, rand() * 32, 2, 1, rand() < 0.5 ? "#a99d84" : "#c6bba3");
+  for (const x of [0, 15]) {
+    pen.rect(x, 0, 2, 32, "#4a3324");
+    pen.rect(x, 0, 1, 32, "#5e4330");
+  }
+  pen.rect(0, 0, 32, 2, "#4a3324");
+  pen.rect(0, 16, 32, 2, "#4a3324");
+  pen.rect(5, 6, 6, 6, "#2c2a33");
+  pen.rect(5, 6, 6, 1, "#4a3324");
+  pen.rect(7, 7, 1, 5, "#6b5a3e");
+  pen.rect(20, 22, 6, 6, "#2c2a33");
+  pen.rect(20, 22, 6, 1, "#4a3324");
+}
+
+function drawRoof(pen: Pen): void {
+  const rand = seededRandom(9);
+  pen.rect(0, 0, 32, 32, "#6e3328");
+  for (let row = 0; row < 8; row++) {
+    const y = row * 4, shift = row % 2 ? 2 : 0;
+    for (let x = -shift; x < 32; x += 4) {
+      pen.rect(x, y, 3, 3, ["#8a4433", "#7d3c2e", "#94503b"][Math.floor(rand() * 3)]!);
+      pen.rect(x, y + 3, 4, 1, "#4f241c");
     }
   }
 }

@@ -12,12 +12,12 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { findBoar, startSession, tick } from "./helpers.js";
+import { findBoar, HOLLOW, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
 const FULL = fullVitals(PLAYER_STATS);
-const LEVEL = getLevel(START_LEVEL);
+const LEVEL = getLevel(HOLLOW);
 const HURT = { hp: 50, stamina: 40 };
 /** Two meat and a tusk. */
 const CARRIED: Bag = {
@@ -210,7 +210,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(session.bag, CARRIED);
   });
 
-  test("a loss (the boar wins) empties the bag, refills HP, wakes the player at the start, and saves", () => {
+  test("a loss (the boar wins) empties the bag, refills HP, wakes the player on the start pad, and saves", () => {
     const { session, link, saves } = inBattle(CARRIED, { hp: 1, stamina: 40 });
     session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
@@ -221,7 +221,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(result.gear.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
-    assert.deepEqual(result.me, LEVEL.spawn);
+    assert.deepEqual(result.me, getLevel(START_LEVEL).spawn);
     assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
@@ -498,15 +498,15 @@ describe("the overworld after a battle", () => {
     const won = touchBoar();
     win(won.session);
     assert.equal(won.session.overworld.world.isAlive(won.boar), false);
-    const lost = touchBoar();
+    const lost = touchBoar(), { overworld } = lost.session;
     lose(lost.session);
     lost.session.leaveBattle();
-    assert.equal(lost.session.overworld.world.isAlive(lost.boar), false);
+    assert.equal(overworld.world.isAlive(lost.boar), false);
   });
 
   test("the level's safe time blocks a new encounter right away, and only for that long", () => {
     const { session, link } = touchBoar();
-    lose(session);
+    win(session);
     session.leaveBattle();
 
     const safeTicks = Math.floor(LEVEL.safeTime / FIXED_DT) - 1;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Health, IDLE_INPUT, type Vec2 } from "@infinite-tower/shared";
+import type { Vec2 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
@@ -30,7 +30,7 @@ function walkInto(session: GameSession, link: FakeLink, exit: ExitDef): void {
 
 describe("walking into an exit", () => {
   test("takes you to the level it leads to, at its entrance, and off the level you left", () => {
-    const { session, link, overworldOf } = startSession();
+    const { session, link, overworldOf } = startSession({ saved: { level: START_LEVEL } });
     session.overworld.place(session.me, BACK.at);
     walkInto(session, link, OUT);
     const arrived = link.last("level");
@@ -42,7 +42,7 @@ describe("walking into an exit", () => {
   });
 
   test("and its way back arrives in front of the exit you took", () => {
-    const { session, link } = startSession();
+    const { session, link } = startSession({ saved: { level: START_LEVEL } });
     session.overworld.place(session.me, BACK.at);
     walkInto(session, link, OUT);
     walkInto(session, link, BACK);
@@ -51,14 +51,14 @@ describe("walking into an exit", () => {
   });
 
   test("saves the level you arrive on", () => {
-    const { session, link, saves } = startSession();
+    const { session, link, saves } = startSession({ saved: { level: START_LEVEL } });
     session.overworld.place(session.me, BACK.at);
     walkInto(session, link, OUT);
     assert.equal(saves.at(-1)?.level, OUT.to);
   });
 
   test("does nothing in a battle", () => {
-    const { session, link } = startSession({ dev: true });
+    const { session, link } = startSession({ dev: true, saved: { level: START_LEVEL } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.overworld.place(session.me, { x: OUT.area.x + OUT.area.w / 2, z: OUT.area.z + OUT.area.h / 2 });
     tick(session, 5);
@@ -82,20 +82,5 @@ describe("the saved level", () => {
       session.save();
       assert.equal(saves.at(-1)?.level, START_LEVEL);
     }
-  });
-
-  test("dying wakes you at the start of the level you died in", () => {
-    const { session, link } = startSession({ dev: true, saved: { level: OUT.to } });
-    session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    const fight = session.battle!.room.fight;
-    fight.world.require(fight.players[0]!, Health).hp = 0;
-    for (let i = 0; i < 3 && !session.battle?.over; i++) {
-      const next = fight.steps + 1;
-      session.battleInput(next, [{ step: next, ...IDLE_INPUT }]);
-      tick(session);
-    }
-    assert.equal(link.last("battleResult").won, false);
-    assert.deepEqual(link.last("battleResult").me, getLevel(OUT.to).spawn);
-    assert.equal(session.overworld.level.layout.id, OUT.to);
   });
 });

@@ -126,7 +126,7 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
   const won = result === "won";
   const { overworld } = session;
   const afterFightMs = battle.room.inArena(battle.seat) ? AFTER_FIGHT_MS : null;
-  let lost: ItemCounts = {}, coreLost: CoreLoss = null;
+  let lost: ItemCounts = {}, coreLost: CoreLoss = null, me = overworld.playerPos(session.me);
 
   if (won) {
     if (afterFightMs !== null) battle.drops.closesAtMs ??= Date.now() + afterFightMs;
@@ -148,14 +148,14 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     }
     session.gear = { ...session.gear, bag: { ...bag, items: bag.items.filter((s) => kept(s.item)) }, equipment };
     dropWhereFell(battle, overworld, lost);
-    overworld.place(session.me, overworld.level.spawn);
+    me = session.wakeOnPad();
     session.core = coreAfterDeath(core);
     coreLost = session.core.steps < core.steps ? "step" : session.core.fill < core.fill ? "fill" : null;
     session.vitals = fullVitals(session.stats);
   }
   session.save();
   session.link.send({
-    t: "battleResult", won, me: overworld.playerPos(session.me), wins: session.wins, vitals: session.vitals,
+    t: "battleResult", won, me, wins: session.wins, vitals: session.vitals,
     lost, gear: session.gear, skillbook: session.skillbook, afterFightMs, core: session.core, coreLost,
   });
 }

@@ -54,13 +54,15 @@ describe("getLevel", () => {
     assert.equal(getArena(getLevel(START_LEVEL).arenaId).id, getLevel(START_LEVEL).arenaId);
   });
 
-  test("the start level is playable: spawn inside, out of the grass, known enemies, a weighted table", () => {
-    const level = getLevel(START_LEVEL);
-    assert.equal(isSolid(level.layout, level.spawn.x, level.spawn.z), false);
-    assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
-    for (const s of level.spawns) assert.ok(ENEMY_IDS.includes(s.enemy));
-    assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
-    assert.ok(level.grass.stepDist > 0);
+  test("every level is playable: spawn inside, out of the grass, known enemies, a weighted table if any", () => {
+    for (const level of Object.values(LEVELS)) {
+      assert.equal(isSolid(level.layout, level.spawn.x, level.spawn.z), false);
+      assert.equal(inTallGrass(level.layout, level.spawn.x, level.spawn.z), false);
+      for (const s of level.spawns) assert.ok(ENEMY_IDS.includes(s.enemy));
+      if (!level.grass) continue;
+      assert.ok(level.grass.enemies.reduce((sum, e) => sum + e.weight, 0) > 0);
+      assert.ok(level.grass.stepDist > 0);
+    }
   });
 
   test("the Kobold Swordsman has a patch of its own: one spawns on the Grass Field, away from the boar", () => {

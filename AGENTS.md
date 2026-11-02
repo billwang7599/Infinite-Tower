@@ -65,6 +65,17 @@ Decided by the user:
   things that work in overworld should work similar/same as battlefield. and vice versa"): what both places have
   (the bag, eating, piles, Interact, resting...) works the same in both, through the same code. A difference needs a
   reason the other place can't support it.
+- The game is more open world now (the user: "more open world now"): no floors and no realm locks, up or down; the
+  tower idea is on hold ([plan/vision.md](plan/vision.md)). The Waking Hollow, the Grass Field and the Mistwood are
+  test areas, kept reachable.
+- New players start "in the main kingdom": every avatar first appears on one extravagant summoning platform, indoors
+  for now, the first and largest pad, where the Maker's door first opened; the kingdom grew round it, with a
+  humongous castle, to guard and use the stream of avatars, and its rulers see arrivals as theirs by right. "A guide
+  greets and explains": the court herald, by the platform, says where you are and what an avatar is, names the
+  controls only in what he says (no on-screen hints), and points you into town. Dying, anywhere, wakes you on the
+  platform. Campfires are out in the wild only: the town has none. The town has three shops, food, potions and a
+  blacksmith; for now each is only a place with a keeper who says a line (money and shops come next). No enemies in
+  the kingdom.
 - HP and stamina carry over between fights and are **not** reset on a new connection. They're saved through a
   server-side `PlayerStore` (Postgres now); game code only sees the interface, so the store stays swappable.
 - Postgres is the only database (no separate NoSQL store). In dev it runs in Docker (`compose.yaml`).
@@ -602,10 +613,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
   made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
   cosmetic only: classless, everyone starts the same.
-- Resting: each level has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within 1.6
-  tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as
-  you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
-  respawn point or bring back defeated boars; dying still wakes you at the level's start.
+- Resting: each level out in the wild has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within
+  1.6 tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as you
+  like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your respawn
+  point or bring back defeated boars; dying still wakes you on the kingdom's platform.
 - Items: boar meat heals 35% of the most HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 60 × (strength / 10)^¼ (60 at the start). Over it, a dodge costs 30% more stamina. A new
@@ -645,19 +656,29 @@ them; treat them as changeable, and still ask before deciding new ones):
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
-- Levels: floor 1 has the Waking Hollow, the Grass Field and the Mistwood, joined by roads off the edge of each (walk
-  into one to cross). The level you're on is saved: you come back to it, at its start, when you log in, and dying wakes
-  you at the start of the level you died on. Mistwood reuses the floor's enemies (boars, the Kobold, the Warlock) and
-  the mire arena.
+- Levels: the kingdom, then the test areas, the Waking Hollow, the Grass Field and the Mistwood, joined by roads off
+  the edge of each (walk into one to cross). The level you're on is saved: you come back to it, at its start, when you
+  log in. Dying wakes you on the kingdom's platform: falling there, at once; elsewhere, the save says the kingdom at
+  once (a disconnect mid-fight too) and you cross to it as you leave the arena. Mistwood reuses the floor's enemies
+  (boars, the Kobold, the Warlock) and the mire arena.
+- The kingdom (the user's decisions above; the names, layout and lines are the agent's): Highmere, a 40 x 44 map with
+  no floor (the HUD shows only its name). North to south: the Hall of Arrival (marble, pillars, the platform, a red
+  carpet), the castle courtyard (lawns, two pools, flower beds), the castle gate, the market streets between houses
+  (Bette's food stall, Mirela's potion stall, Garrick's forge), and the town gate south to the Grass Field, which got
+  a road in at its north-west corner. The herald is Aldric. It has no encounter table (a level's `grass` is now
+  optional). Dialogue lines name keys as `{group.action}`, written out as the player's own key
+  (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the map are drawn
+  only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns see-through, so
+  the hall reads with the camera turned. Music: the title's track for now.
 - The starting area (the user: "go make more content… you can also add more quests and create a proper starting
   area… make any assumptions you want"): the Waking Hollow, a small floor-1 level in the Grass Field's look and music.
   A summoning pad where new characters wake, ringed by four standing stones; a camp by an old waystation with a
   campfire; a brook with a footbridge, and across it the hunting ground: two wandering boars (8 s respawn) and tall
   grass rolling boars at 0.06 a tile, half the other levels' 0.12. Its road east leads to a new exit at the Grass
-  Field's west edge, and back. New characters start there; players already saved keep their level (a migration puts
-  saves from before levels were saved on the Grass Field).
+  Field's west edge, and back. New characters started there until the kingdom; players already saved keep their level
+  (a migration puts saves from before levels were saved on the Grass Field).
 - Every level's start is a summoning pad (plan/lore.md): a new walkable tile (`@`, carved stone with a pale rune ring)
-  laid under the Hollow's, the Grass Field's and the Mistwood's starts.
+  laid under the Hollow's, the Grass Field's and the Mistwood's starts; the kingdom's platform is 4 x 4 of it.
 - The Hollow's natives: Maren, who keeps its pad (standing between it and the fire; she thinks your kind was sent for a
   reason), and Tobin, a hunter by the footbridge, wary of avatars ("a thing that can't stay dead has no business
   hunting"). Their lines, looks and spots are the agent's.
@@ -668,7 +689,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   out. Side quests: Tobin's "How a Kobold Fights" (after his meat: slay a Kobold Swordsman, tell him; 3 boar meat,
   lore "Kobolds") and Maren's "The Old Tongue" (after the Road East: reach the Mistwood, slay a Goblin Warlock, tell
   her; 3 boar meat, lore "The old tongue"). Hollis's pad lines now fit the new start: the stone you woke on is a
-  summoning pad, the Grass Field's is south-west of his fire, and you wake on the pad of the place you fell.
+  summoning pad, the Grass Field's is south-west of his fire, and you wake again on the first, in Highmere's hall.
 - More natives (the user: "more content… add more quests", "make any assumptions you want"): Corwin, who keeps the
   Grass Field's east road for Valdris (the Oath), south of it near the Mistwood gap; and Ilse, Nyra's weaver, by the
   Mistwood's path east of the lake's bridge. Each has a side chain of two that waits on nothing else (no lock-outs):
@@ -737,7 +758,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   notice. A joiner comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies
   go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
-  (dropping all but the starter kit where they fell, waking at the level's start), and the fight goes on for the
+  (dropping all but the starter kit where they fell, waking on the kingdom's platform), and the fight goes on for the
   rest; won, everyone still in it counts a win and they share the drops (one down on the very step it's won still
   wins, standing
   at 1 HP). Anyone who

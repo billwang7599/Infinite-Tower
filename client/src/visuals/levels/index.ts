@@ -5,6 +5,8 @@ import type { MapLight, SkyLook } from "../sky/sky.js";
 import type { SpriteDraw } from "../sprites.js";
 import type { WaterLook } from "../water/water.js";
 import { GRASS_FIELD_TILES } from "./grass-field/tiles.js";
+import { kingdomScenery } from "./kingdom/scenery.js";
+import { KINGDOM_TILES } from "./kingdom/tiles.js";
 import { grassFieldScenery } from "./grass-field/scenery.js";
 import { mistwoodScenery } from "./mistwood/scenery.js";
 import { MISTWOOD_TILES } from "./mistwood/tiles.js";
@@ -59,6 +61,27 @@ export const LEVEL_LOOKS: Record<LevelLayout["theme"], LevelLook> = {
       foamTiles: 0.1,
     },
     scenery: mistwoodScenery,
+  },
+  kingdom: {
+    env: {
+      sky: new Color3(0.29, 0.26, 0.3),
+      fogDensity: 0.012,
+      ambient: new Color3(0.3, 0.27, 0.31),
+      skyLight: { color: new Color3(0.6, 0.6, 0.8), ground: new Color3(0.36, 0.3, 0.25), intensity: 0.55 },
+      sun: { color: new Color3(1, 0.72, 0.5), intensity: 1.5 },
+    },
+    tiles: KINGDOM_TILES,
+    water: {
+      body: new Color3(0.07, 0.2, 0.26),
+      murkPerTile: 1.2,
+      reflectivity: 0.18,
+      glint: new Color3(1.6, 1.5, 1.35),
+      rippleSlope: 0.4,
+      waveHeightTiles: 0.01,
+      foam: new Color3(0.7, 0.74, 0.74),
+      foamTiles: 0.08,
+    },
+    scenery: kingdomScenery,
   },
 };
 

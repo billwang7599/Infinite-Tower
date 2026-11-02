@@ -71,8 +71,8 @@ export const HOLLIS: Npc = {
             "Three fewer. The fire thanks you, and so do I.",
             "The stone you woke on: we call it a summoning pad. Every place your kind comes in has one; this field's "
               + "is a few steps south-west of my fire.",
-            "When your shell comes apart, you wake again on the pad of the place you fell. Nobody of this world built "
-              + "them, and the gods won't say who did.",
+            "When your shell comes apart, you wake again on the first of them, in Highmere's hall. Nobody of this "
+              + "world built them, and the gods won't say who did.",
             "I've a mind to see where the pads lead. Take this for the road.",
             "Meet me in the Mistwood, avatar. It's through the gap at the east edge, past the kobold ruins. Go rested.",
           ],

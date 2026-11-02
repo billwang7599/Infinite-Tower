@@ -29,8 +29,8 @@ export const LORE = {
   "summoning-pads": {
     title: "The summoning pads",
     text: "You first woke on a summoning pad, a wide stone pedestal where the door from your world opens. Every place "
-      + "your kind comes into this world has one, and when your shell comes apart, you wake on one again. Hollis says "
-      + "nobody of his world built them, and the gods won't say who did.",
+      + "your kind comes into this world has one, and when your shell comes apart, you wake again on the first, in "
+      + "Highmere's hall. Hollis says nobody of his world built them, and the gods won't say who did.",
   },
   kobolds: {
     title: "Kobolds",

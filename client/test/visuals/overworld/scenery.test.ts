@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { inRect, mapHalfSize, type LevelLayout } from "@infinite-tower/shared";
 import { grassFieldScenery } from "../../../src/visuals/levels/grass-field/scenery.js";
-import { groundY, openExits, SCENERY_REACH_TILES } from "../../../src/visuals/overworld/scenery.js";
+import { blocksView, groundY, openExits, SCENERY_REACH_TILES } from "../../../src/visuals/overworld/scenery.js";
 
 const WIDTH = 40, DEPTH = 26;
 const closed = Array.from({ length: DEPTH }, (_, r) =>
@@ -48,5 +48,20 @@ describe("openExits", () => {
     for (const p of opened.props) {
       for (const gap of [EAST_GAP, NORTH_GAP]) assert.ok(!inRect(gap, p.x, p.z), `${p.kind} at ${p.x}, ${p.z}`);
     }
+  });
+});
+
+describe("blocksView", () => {
+  const wall = { rect: { x: -2, z: 3, w: 4, h: 1 }, topY: 5 };
+  const player = { x: 0, y: 1, z: 1 };
+
+  test("a ledge between the camera and the player hides them", () => {
+    assert.equal(blocksView(wall, { x: 0, y: 16, z: 14 }, player), true);
+  });
+
+  test("one behind the player, beside the line, or low enough to see over doesn't", () => {
+    assert.equal(blocksView(wall, { x: 0, y: 16, z: -12 }, player), false);
+    assert.equal(blocksView({ ...wall, rect: { ...wall.rect, x: 5 } }, { x: 0, y: 16, z: 14 }, player), false);
+    assert.equal(blocksView({ ...wall, topY: 3 }, { x: 0, y: 16, z: 14 }, player), false);
   });
 });

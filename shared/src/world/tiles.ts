@@ -14,10 +14,18 @@ export const TILES = {
   ruinFloor: { char: "_", solid: false, tallGrass: false },
   tallGrass: { char: '"', solid: false, tallGrass: true },
   pad: { char: "@", solid: false, tallGrass: false },
+  marble: { char: "+", solid: false, tallGrass: false },
+  carpet: { char: "%", solid: false, tallGrass: false },
+  cobbles: { char: ";", solid: false, tallGrass: false },
   tree: { char: "T", solid: true, tallGrass: false },
   rock: { char: "o", solid: true, tallGrass: false },
   water: { char: "~", solid: true, tallGrass: false },
   ruinWall: { char: "#", solid: true, tallGrass: false },
+  castleWall: { char: "W", solid: true, tallGrass: false },
+  house: { char: "H", solid: true, tallGrass: false },
+  foodStall: { char: "F", solid: true, tallGrass: false },
+  potionStall: { char: "P", solid: true, tallGrass: false },
+  forge: { char: "A", solid: true, tallGrass: false },
 } as const satisfies Record<string, TileRule>;
 
 export type TileKind = keyof typeof TILES;

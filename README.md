@@ -21,9 +21,12 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** Floor 1's Waking Hollow, where new characters wake on a summoning pad (a small camp by an old
-  waystation, a brook with a footbridge and two boars in the tall grass across it), the Grass Field east of it and,
-  through a gap in the trees east of that, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire).
+- **Overworld:** new characters wake in Highmere, the kingdom, on the great summoning platform of its castle's
+  hall, where the court herald greets them and explains; dying anywhere wakes you there again. Through the courtyard
+  and the castle gate are the market streets (a food stall, a potion stall and a forge, each with its keeper; no shop
+  yet) and the town gate out to the Grass Field. The test areas lie beyond: the Waking Hollow (a small camp by an old
+  waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
+  through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire).
   Every level's start is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
   and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
   Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
@@ -36,9 +39,10 @@ What's built so far:
   someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
   stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
   crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
-  drops. Natives live along the way: Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the Waking Hollow,
-  Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the Mistwood's lake.
-  Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes). What they say
+  drops. Natives live along the way: the herald and the three keepers in Highmere, Maren (who keeps the Hollow's pad)
+  and Tobin (a hunter) in the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and
+  Ilse, Nyra's weaver, by the Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter,
+  E or a click; Esc closes). What they say
   follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the Mistwood's
   pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own story
   puts him).

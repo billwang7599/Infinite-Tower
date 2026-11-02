@@ -34,7 +34,8 @@ export interface LevelDef {
   duelArenaId: string;
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
   spawns: SpawnDef[];
-  grass: EncounterTable;
+  /** None: its tall grass, if any, starts no fights. */
+  grass?: EncounterTable;
   exits: ExitDef[];
   /** No encounters for this long after a fight. */
   safeTime: number;

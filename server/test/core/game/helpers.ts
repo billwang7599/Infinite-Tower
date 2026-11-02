@@ -18,11 +18,12 @@ import { TEST_CHARACTER } from "../../fixtures/level.js";
 
 export const ACCOUNT: Account = { id: "player-1", username: "tester" };
 
-/** A session that has sent `welcome` and, since it has a character, entered the start level. */
+export const HOLLOW = "waking-hollow";
+
 export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
-  const saved: PlayerSave = { ...newPlayer(), character: TEST_CHARACTER, ...opts.saved };
+  const saved: PlayerSave = { ...newPlayer(), character: TEST_CHARACTER, level: HOLLOW, ...opts.saved };
   const overworlds = new Map<string, Overworld>();
   const overworldOf = (id: string) => {
     if (!overworlds.has(id)) overworlds.set(id, new Overworld(getLevel(id)));

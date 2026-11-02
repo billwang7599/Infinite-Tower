@@ -7,8 +7,7 @@ import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { START_LEVEL } from "../../../src/core/world/index.js";
-import { bagWith, startSession, talkTo, tick, winFight } from "./helpers.js";
+import { bagWith, HOLLOW, startSession, talkTo, tick, winFight } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -24,9 +23,9 @@ describe("the Waking Hollow's first quests", () => {
     }
   });
 
-  test("a new character wakes there, and the native by the fire offers the first", () => {
+  test("the native by its fire offers the first", () => {
     const { session, link } = startSession();
-    assert.equal(session.overworld.level.layout.id, START_LEVEL);
+    assert.equal(session.overworld.level.layout.id, HOLLOW);
     assert.deepEqual(talkTo(session, link, "maren").offer?.quest, CHAIN[0]);
   });
 

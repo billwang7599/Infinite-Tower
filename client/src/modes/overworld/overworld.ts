@@ -126,7 +126,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         state.level = msg.level;
         prediction?.reset(msg.me);
         world.require(player, OverworldActor).heading = START_HEADING;
-        hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor });
+        hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor ?? null });
       });
       joinedNet.on("state", (msg) => {
         if (inBattle) return;

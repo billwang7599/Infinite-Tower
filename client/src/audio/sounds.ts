@@ -114,7 +114,9 @@ export const STEP_SOUNDS: Record<ArenaLook, SoundName> = {
 
 export const ARENA_AMBIENCE: Partial<Record<ArenaLook, SoundName>> = { mire: "mire" };
 
-export const WATER_SOUNDS: Record<LevelLayout["theme"], SoundName> = { "grass-field": "river", mistwood: "mire" };
+export const WATER_SOUNDS: Record<LevelLayout["theme"], SoundName> = {
+  "grass-field": "river", mistwood: "mire", kingdom: "river",
+};
 
 export const EVENT_SOUNDS: { readonly [K in GameEvent["kind"]]?: SoundName } = {
   encounter: "encounter",

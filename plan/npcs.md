@@ -1,11 +1,11 @@
 # NPCs
 
-Status: **next big step**. Hollis by the Grass Field's fire, Maren and Tobin in the Waking Hollow (the starting
-area, where their short chain sends you on to Hollis), Corwin on the Grass Field's east road and Ilse by the
-Mistwood's lake (each with a side chain of two) are the NPCs. Quests, the questbook, lines that follow your
-story, stops (where an NPC stands, by the story, per player) and traces (what one leaves where it moved on from) are
-built (AGENTS.md, ARCHITECTURE.md). Hollis moves on: once his first chain is done he stands by the Mistwood's pad with
-a quest of his own, and his bedroll lies by the Grass Field's fire. The plan below grows from there.
+Status: **next big step**. The herald and the three shopkeepers in the kingdom, Hollis by the Grass Field's fire, Maren
+and Tobin in the Waking Hollow (a test area, where their short chain sends you on to Hollis), Corwin on the Grass
+Field's east road and Ilse by the Mistwood's lake (each with a side chain of two) are the NPCs. Quests, the questbook,
+lines that follow your story, stops (where an NPC stands, by the story, per player) and traces (what one leaves where it
+moved on from) are built (AGENTS.md, ARCHITECTURE.md). Hollis moves on: once his first chain is done he stands by the
+Mistwood's pad with a quest of his own, and his bedroll lies by the Grass Field's fire. The plan below grows from there.
 
 The model the user named: the story of AdventureQuest Worlds (quest chains, a cast that turns up again across the
 maps) with the immersion of Stardew Valley's villagers (routines, dialogue that knows you, friendships).

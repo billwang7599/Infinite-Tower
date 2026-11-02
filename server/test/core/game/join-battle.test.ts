@@ -10,7 +10,7 @@ import { MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
@@ -176,7 +176,7 @@ describe("a battle fought together", () => {
     assert.equal(all[2]!.link.last("joinRefused").reason, "nobodyNear");
   });
 
-  test("a joiner who dies loses their bag and wakes at the start; the host fights on", async () => {
+  test("a joiner who dies loses their bag and wakes on the start level's pad; the host fights on", async () => {
     const { online, host, guest, all } = await hosting();
     guest.joinBattle();
     play(online, [host, guest], 3);
@@ -186,7 +186,7 @@ describe("a battle fought together", () => {
     const result = all[1]!.link.last("battleResult");
     assert.equal(result.won, false);
     assert.equal(bagCounts(guest.bag)["boar-meat"], undefined);
-    assert.deepEqual(result.me, { x: LEVEL.spawn.x, z: LEVEL.spawn.z });
+    assert.deepEqual(result.me, getLevel(START_LEVEL).spawn);
     assert.equal(host.battle?.over, false);
     assert.equal(all[0]!.link.all("battleResult").length, 0);
   });
@@ -266,11 +266,15 @@ describe("one of a battle's players leaving it", () => {
     assert.equal(actors(guest), 1);
   });
 
-  test("a host who fell and walked away: their next fight's enemy stays gone when the first fight is won", async () => {
+  test("a host who fell and walked back: their next fight's enemy stays gone when the first fight is won", async () => {
     const { online, host, guest, fight } = await boarFight();
     fight.world.require(fight.players[0]!, Health).hp = 0;
     play(online, [host, guest], 2);
     host.leaveBattle();
+    const gate = host.overworld.level.exits.find((e) => e.to === LEVEL.layout.id)!.area;
+    place(host, { x: gate.x + gate.w / 2, z: gate.z + gate.h / 2 });
+    online.tick(FIXED_DT);
+    assert.equal(host.overworld.level, LEVEL);
     host.overworld.playerData(host.me).safeTime = 0;
     place(host, actorAt(host, KOBOLD));
     online.tick(FIXED_DT);
