@@ -40,7 +40,7 @@ export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPane
     <aside
       id="admin-panel"
       className={
-        "fixed top-24 left-4 flex max-h-[75vh] w-72 flex-col gap-3 overflow-y-auto rounded-sm border border-white/15 "
+        "absolute top-24 left-4 flex max-h-[calc(100%-17rem)] w-72 flex-col gap-3 overflow-y-auto rounded-sm border border-white/15 "
         + "bg-night/90 p-3 font-ui text-xs text-white shadow-[0_10px_30px_#000a] select-none"
       }
     >

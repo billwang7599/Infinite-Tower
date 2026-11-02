@@ -197,7 +197,7 @@ function BossBar({ hud }: HudProps) {
   const alive = useStore(hud, (s) => s.enemyAlive);
   return (
     <div
-      className={`absolute bottom-12 left-1/2 w-[min(640px,70%)] -translate-x-1/2 transition-opacity duration-600 ${
+      className={`absolute bottom-12 left-1/2 w-[min(640px,70%,100%-20rem)] -translate-x-1/2 transition-opacity duration-600 ${
         alive ? "opacity-100" : "opacity-0"
       }`}
     >

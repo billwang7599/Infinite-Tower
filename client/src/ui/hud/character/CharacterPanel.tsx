@@ -8,7 +8,6 @@ import { NO_FOCUS } from "../../components/noFocus.js";
 import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
-import { CHARACTER_PANEL_WIDTH_PX } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { CHART_RADIUS_PX, CHART_RINGS, chartMax, chartPoints, LABEL_RADIUS_PX } from "./chart.js";
 
@@ -143,16 +142,19 @@ interface PanelProps {
   hud: Store<OverworldHudState>;
   statPoint: (stat: ShownStat, add: boolean) => void;
   close: () => void;
+  shownWidth: (px: number) => void;
 }
 
-export function CharacterPanel({ hud, statPoint, close }: PanelProps) {
+const WIDTH_PX = 336;
+
+export function CharacterPanel({ hud, statPoint, close, shownWidth }: PanelProps) {
   const core = useStore(hud, (s) => s.core);
   const byFire = useStore(hud, (s) => s.byFire);
   const character = useStore(hud, (s) => s.character);
   return (
     <PanelFrame
       id="character-panel" title={character?.name ?? "Character"} titleId="character-name"
-      width={CHARACTER_PANEL_WIDTH_PX} close={close}
+      width={WIDTH_PX} shownWidth={shownWidth} close={close}
     >
       {character && (
         <LookPicture

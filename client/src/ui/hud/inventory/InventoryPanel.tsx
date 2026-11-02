@@ -16,7 +16,7 @@ import { useAction } from "../../components/useAction.js";
 import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
-import { inventoryPanelWidthPx } from "../layout.js";
+import { stacksGrids, useStageSize } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { BagGrid, ItemPicture, ItemTooltip, Placed } from "./BagGrid.js";
 import {
@@ -41,6 +41,7 @@ interface PanelProps {
   openSkillbook: () => void;
   close: () => void;
   trade?: Trading | null;
+  shownWidth?: (px: number) => void;
 }
 
 export interface Trading {
@@ -66,6 +67,7 @@ const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
   const { gear, stats, canHeal, using, input, settingsScreen, use, move, tooWeak, openSkillbook, close, trade } = props;
+  const stacked = stacksGrids(useStageSize());
   const strength = stats?.strength ?? 0;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
@@ -110,11 +112,13 @@ export function InventoryPanel(props: PanelProps) {
 
   const locate = (e: MouseEvent): Pointer => {
     const box = panel.current!.getBoundingClientRect();
-    const x = e.clientX - box.left, y = e.clientY - box.top;
+    // The frame may be scaled down to fit the view; everything inside works in its unscaled pixels.
+    const scale = box.width / panel.current!.offsetWidth;
+    const x = (e.clientX - box.left) / scale, y = (e.clientY - box.top) / scale;
     for (const [key, el] of areas.current) {
       const r = el.getBoundingClientRect();
-      const ix = e.clientX - r.left, iy = e.clientY - r.top;
-      if (ix < 0 || iy < 0 || ix >= r.width || iy >= r.height) continue;
+      const ix = (e.clientX - r.left) / scale, iy = (e.clientY - r.top) / scale;
+      if (ix < 0 || iy < 0 || ix >= el.offsetWidth || iy >= el.offsetHeight) continue;
       pressedAtPx.current = { x: ix % CELL, y: iy % CELL };
       if (isSlot(key)) return { over: { in: "slot", slot: key }, x, y };
       return { over: { in: key, x: Math.floor(ix / CELL), y: Math.floor(iy / CELL) }, x, y };
@@ -153,10 +157,38 @@ export function InventoryPanel(props: PanelProps) {
     ? { item: drag.item, count: 1, x: 0, y: 0, turned: false }
     : gear[drag.from.in].items.find((s) => s.x === (drag.from as GridSpot).x && s.y === (drag.from as GridSpot).y));
   const hovered = hoveredStack(mouse, gear);
-  const width = inventoryPanelWidthPx(gear);
+  const side = trade ? (
+    <Column title="Trade">
+      <ShopColumn shop={trade.shop} gear={gear} buy={trade.buy} exchange={trade.exchange} />
+    </Column>
+  ) : (
+    <Column title="Equipment">
+      <EquipmentSlots gear={gear} mouse={mouse} fits={fits} area={area} />
+    </Column>
+  );
+  const pile = gear.pile.cols > 0 && (
+    <Column title="Pile">
+      <BagGrid name="pile" gear={gear} mouse={mouse} fits={fits} area={area("pile")} />
+      <p className="max-w-48 text-[11px] text-white/40 italic">Anyone nearby can take from it too.</p>
+    </Column>
+  );
+  const cloth = gear.cloth.cols > 0 && (
+    <Column title="Cloth">
+      <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
+      <p className="max-w-48 text-[11px] text-white/40 italic">Left behind when you close the bag. Weighs nothing.</p>
+    </Column>
+  );
+  const bag = (
+    <Column title="Bag">
+      <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
+      {stats && <Weight gear={gear} stats={stats} />}
+    </Column>
+  );
 
   return (
-    <PanelFrame id="inventory-panel" title={trade ? trade.shop.name : "Inventory"} close={close} width={width}>
+    <PanelFrame
+      id="inventory-panel" title={trade ? trade.shop.name : "Inventory"} close={close} shownWidth={props.shownWidth}
+    >
       <div
         ref={panel} className="pointer-events-auto relative touch-none select-none"
         onContextMenu={(e) => e.preventDefault()}
@@ -182,39 +214,18 @@ export function InventoryPanel(props: PanelProps) {
           applyUse(next);
         }}
       >
-        <div className="flex items-start" style={{ gap: INVENTORY_GAP_PX }}>
-          {trade ? (
-            <Column title="Trade">
-              <ShopColumn shop={trade.shop} gear={gear} buy={trade.buy} exchange={trade.exchange} />
-            </Column>
-          ) : (
-            <Column title="Equipment">
-              <EquipmentSlots gear={gear} mouse={mouse} fits={fits} area={area} />
-            </Column>
-          )}
-          {(gear.pile.cols > 0 || gear.cloth.cols > 0) && (
-            <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>
-              {gear.pile.cols > 0 && (
-                <Column title="Pile">
-                  <BagGrid name="pile" gear={gear} mouse={mouse} fits={fits} area={area("pile")} />
-                  <p className="max-w-48 text-[11px] text-white/40 italic">Anyone nearby can take from it too.</p>
-                </Column>
-              )}
-              {gear.cloth.cols > 0 && (
-                <Column title="Cloth">
-                  <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
-                  <p className="max-w-48 text-[11px] text-white/40 italic">
-                    Left behind when you close the bag. Weighs nothing.
-                  </p>
-                </Column>
-              )}
-            </div>
-          )}
-          <Column title="Bag">
-            <BagGrid name="bag" gear={gear} mouse={mouse} fits={fits} area={area("bag")} />
-            {stats && <Weight gear={gear} stats={stats} />}
-          </Column>
-        </div>
+        {stacked ? (
+          <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>
+            <Row>{side}{bag}</Row>
+            {(pile || cloth) && <Row>{pile}{cloth}</Row>}
+          </div>
+        ) : (
+          <Row>
+            {side}
+            {(pile || cloth) && <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>{pile}{cloth}</div>}
+            {bag}
+          </Row>
+        )}
         <BagDetails
           gear={gear} stack={selectedStack(mouse, gear)} using={using !== null}
           usable={(!using && itemToUse(mouse, gear, !canHeal) !== null) || bookInHand(mouse)}
@@ -228,11 +239,15 @@ export function InventoryPanel(props: PanelProps) {
           />
         )}
         {hovered && hover?.tooltip && pointer && (
-          <ItemTooltip stack={hovered} at={pointer} panelWidth={panel.current?.clientWidth ?? width} />
+          <ItemTooltip stack={hovered} at={pointer} panelWidth={panel.current?.clientWidth ?? 0} />
         )}
       </div>
     </PanelFrame>
   );
+}
+
+function Row({ children }: { children: ReactNode }) {
+  return <div className="flex items-start" style={{ gap: INVENTORY_GAP_PX }}>{children}</div>;
 }
 
 function Column({ title, children }: { title: string; children: ReactNode }) {
@@ -259,7 +274,7 @@ function Weight({ gear, stats }: { gear: Gear; stats: Stats }) {
   const look = BURDEN_LOOK[burden];
   const filledPercent = Math.min(100, (weight / limit) * 100);
   return (
-    <div id="bag-weight" data-burden={burden} className="mt-0.5 text-xs">
+    <div id="bag-weight" data-burden={burden} className="mt-0.5 w-0 min-w-full text-xs">
       <div className="flex items-baseline justify-between">
         <span className="tracking-[0.12em] text-white/50 uppercase">Weight</span>
         <span className="tabular-nums">
@@ -362,5 +377,6 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   );
 }
 
-const DETAILS_STRIP = "mt-4 min-h-[88px] border-t border-white/10 pt-3";
+// w-0 min-w-full: as wide as the grids above, without a long description widening the panel.
+const DETAILS_STRIP = "mt-4 min-h-[88px] w-0 min-w-full border-t border-white/10 pt-3";
 const DETAILS_PICTURE_PX = 72;

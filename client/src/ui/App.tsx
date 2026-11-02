@@ -3,7 +3,6 @@ import { Dialogue } from "./dialogue/Dialogue.js";
 import { BattleHud } from "./hud/BattleHud.js";
 import { CoreCard } from "./hud/CoreCard.js";
 import { OverworldHud } from "./hud/OverworldHud.js";
-import { panelWidthPx } from "./hud/layout.js";
 import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
 import { AdminPanel } from "./screens/admin/AdminPanel.js";
@@ -34,7 +33,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
   const phase = useStore(ui.title, (s) => s.phase);
   const creating = useStore(ui.creation, (s) => s.open);
   const panel = useStore(ui.overworldPanel, (s) => s.open);
-  const gear = useStore(ui.overworld, (s) => s.gear);
+  const panelWidthPx = useStore(ui.overworldPanel, (s) => s.widthPx);
   const interaction = useStore(ui.overworld, (s) => s.interaction);
   const playing = inWorld(mode, phase) && !creating;
   const overworldHud = playing && mode === "overworld";
@@ -77,7 +76,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       )}
       <Notices
         notices={ui.notifications.notices} dismiss={ui.notifications.dismissNotice}
-        besidePanelPx={overworldHud && panel ? panelWidthPx(panel, gear) : null}
+        besidePanelPx={overworldHud && panel ? panelWidthPx : null}
         aboveRestButton={overworldHud && interaction !== null}
       />
       <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />

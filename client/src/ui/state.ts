@@ -131,6 +131,7 @@ export type OverworldPanel = "character" | "inventory";
 
 export interface OverworldPanelState {
   open: OverworldPanel | null;
+  widthPx: number;
 }
 
 /**
@@ -203,7 +204,7 @@ export class UiState {
   readonly admin = new Store<AdminState>({ open: false, invulnerable: false });
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
-  readonly overworldPanel = new Store<OverworldPanelState>({ open: null });
+  readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
   readonly overworld = new Store<OverworldHudState>({
     levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, byFire: false,
     character: null, interaction: null, using: null,
