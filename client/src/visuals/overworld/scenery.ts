@@ -33,7 +33,20 @@ export function groundY(ledges: readonly Ledge[], x: number, z: number): number 
   return y === -Infinity ? 0 : y;
 }
 
-export function blocksView({ rect, topY }: Ledge, from: Vec3, to: Vec3): boolean {
+/** The chibi's own extent inside its larger sprite quad. */
+const WALKER_VIEW = { halfWidthTiles: 0.4, heightTiles: 1.3 };
+
+export function hidesWalker(ledge: Ledge, eye: Vec3, feet: Vec3): boolean {
+  const away = Math.hypot(feet.x - eye.x, feet.z - eye.z) || 1;
+  const rightX = (feet.z - eye.z) / away, rightZ = (eye.x - feet.x) / away;
+  return [0, WALKER_VIEW.heightTiles].some((up) => [-1, 0, 1].some((side) => blocksView(ledge, eye, {
+    x: feet.x + rightX * side * WALKER_VIEW.halfWidthTiles,
+    y: feet.y + up,
+    z: feet.z + rightZ * side * WALKER_VIEW.halfWidthTiles,
+  })));
+}
+
+function blocksView({ rect, topY }: Ledge, from: Vec3, to: Vec3): boolean {
   if (topY <= 0) return false;
   let t0 = 0, t1 = 1;
   const slabs: [number, number, number, number][] = [
