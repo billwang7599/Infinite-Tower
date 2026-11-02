@@ -16,6 +16,8 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [tests.md](tests.md): what the unit tests don't cover yet (Postgres stores, UI), and blocking red merges | later |
 | [inventory.md](inventory.md): the rest of the grid inventory (drawing what's worn, armour, splitting stacks) | being built |
 | [drops.md](drops.md): loot and death drops as piles of items, in the arena and on the overworld (3 PRs) | being built |
+| [inscriptions.md](inscriptions.md): permanent passives carved into the core, one build per player | idea |
+| [rarity.md](rarity.md): item and inscription rarity, and unique things only one player can hold | idea |
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
 | [weapons.md](weapons.md): the arsenal and the sword (built); the Kobolds' AI and weapons from parts next | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
