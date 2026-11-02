@@ -250,6 +250,17 @@ const forge: Draw = (pen) => {
   pen.outline(OUTLINE);
 };
 
+const dummy: Draw = (pen) => {
+  pen.rect(7, 2, 2, 22, WOOD.mid);
+  pen.rect(1, 8, 14, 2, WOOD.mid);
+  pen.rect(1, 8, 14, 1, WOOD.light);
+  pen.rect(4, 10, 8, 8, "#b89a52");
+  pen.rect(4, 13, 8, 1, "#4a3a26");
+  pen.rect(5, 2, 6, 5, "#b89a52");
+  pen.rect(5, 2, 6, 1, "#d2b46a");
+  pen.outline(OUTLINE);
+};
+
 export const PROP_ART: Record<PropKind, PropArt> = {
   tree: { widthPx: 48, heightPx: 64, draw: tree },
   pine: { widthPx: 32, heightPx: 64, draw: pine },
@@ -266,6 +277,7 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   potionStall: { widthPx: 16, heightPx: 24, draw: potions },
   forge: { widthPx: 16, heightPx: 24, draw: forge },
   changerStall: { widthPx: 16, heightPx: 24, draw: coins },
+  dummy: { widthPx: 16, heightPx: 24, draw: dummy },
 };
 
 export function pixelCanvas(

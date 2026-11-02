@@ -1,9 +1,8 @@
 /** Builders for the game tests: a started session with fakes around it, and the overworld's boar. */
 import assert from "node:assert/strict";
 import {
-  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag, type DialogueOffer,
-  type EnemyId,
-  type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
+  addItem, distXZ, WORDS, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag,
+  type DialogueOffer, type EnemyId, type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
@@ -15,6 +14,7 @@ import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
 import { getLevel } from "../../../src/core/world/index.js";
 import { FakeLink } from "../../fixtures/fakes.js";
+import { armed } from "../../fixtures/fight.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 
 export const ACCOUNT: Account = { id: "player-1", username: "tester" };
@@ -24,7 +24,9 @@ export const HOLLOW = "waking-hollow";
 export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
-  const saved: PlayerSave = { ...newPlayer(), character: TEST_CHARACTER, level: HOLLOW, ...opts.saved };
+  const saved: PlayerSave = {
+    ...newPlayer(), character: TEST_CHARACTER, level: HOLLOW, equipment: armed(), knownWords: [...WORDS], ...opts.saved,
+  };
   const overworlds = new Map<string, Overworld>();
   const overworldOf = (id: string) => {
     if (!overworlds.has(id)) overworlds.set(id, new Overworld(getLevel(id)));

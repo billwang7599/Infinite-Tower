@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, Body, carryLimit, emptyBag, FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, ITEMS,
-  physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, starterEquipment, useSteps, WEAPONS, type Bag, type Equipment,
+  bagCounts, blankSkillbook, Body, carryLimit, emptyBag, emptyEquipment, FIXED_DT, HASH_EVERY_STEPS, Health,
+  IDLE_INPUT, ITEMS, physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, useSteps, WEAPONS, type Bag, type Equipment,
   type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
@@ -13,6 +13,7 @@ import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
 import { findBoar, HOLLOW, startSession, tick } from "./helpers.js";
+import { armed } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -121,14 +122,14 @@ describe("starting a battle", () => {
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, core: session.core, burden: "light",
-      gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), seed: playerSeed,
+      gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook(), seed: playerSeed,
       invulnerable: false, who: { name: session.name, character: session.character! },
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
 
   test("gives the fight the player's bag and what they have in hand (no sword there, no swinging)", () => {
-    const bookOnly: Equipment = { ...starterEquipment(), rightHand: null };
+    const bookOnly: Equipment = { ...armed(), rightHand: null };
     const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, equipment: bookOnly });
@@ -217,7 +218,7 @@ describe("the server runs the fight", () => {
     const result = link.last("battleResult");
     assert.equal(result.won, false);
     assert.equal(link.last("battleSync").fight.players[0]!.health.hp, 0, "the boar hit them");
-    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
+    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1, sword: 1, skillbook: 1 });
     assert.deepEqual(result.gear.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
@@ -227,18 +228,9 @@ describe("the server runs the fight", () => {
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
   });
 
-  test("after a death the starter kit is kept where it was, in hand or in the bag, and isn't listed as lost", () => {
-    const swapped: Equipment = { ...starterEquipment(), rightHand: null, leftHand: "sword" };
-    const kit: Bag = {
-      ...CARRIED,
-      items: [
-        ...CARRIED.items,
-        { item: "skillbook", count: 1, x: 2, y: 0, turned: false },
-        { item: "greatsword", count: 1, x: 5, y: 0, turned: false },
-      ],
-    };
+  test("after a death everything carried is lost, the hands and the bag alike", () => {
     const started = startSession({
-      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: swapped, bag: kit },
+      dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: armed(), bag: CARRIED },
     });
     const { session, link, saves } = started;
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
@@ -246,25 +238,10 @@ describe("the server runs the fight", () => {
     play(session, () => IDLE_INPUT);
     const result = link.last("battleResult");
     assert.equal(result.won, false);
-    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
-    assert.deepEqual(result.gear.equipment, swapped);
-    assert.deepEqual(result.gear.bag.items, kit.items.slice(CARRIED.items.length));
-    assert.deepEqual(session.gear.equipment, swapped);
-    assert.deepEqual(saves.at(-1)?.equipment, swapped);
-    assert.deepEqual(saves.at(-1)?.bag, result.gear.bag);
-  });
-
-  test("after a death a weapon that isn't in the kit is lost from the hand too", () => {
-    const enemyBlade: Equipment = { ...starterEquipment(), rightHand: "kobold-blade" };
-    const started = startSession({ dev: true, saved: { vitals: { hp: 1, stamina: 40 }, equipment: enemyBlade } });
-    const { session, link } = started;
-    session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    session.overworld.place(session.me, { x: 3, z: 3 });
-    play(session, () => IDLE_INPUT);
-    const result = link.last("battleResult");
-    assert.equal(result.won, false);
-    assert.deepEqual(result.lost, { "kobold-blade": 1 });
-    assert.deepEqual(result.gear.equipment, { ...starterEquipment(), rightHand: null });
+    assert.deepEqual(result.lost, { ...bagCounts(CARRIED), sword: 1, skillbook: 1 });
+    assert.deepEqual(result.gear.equipment, emptyEquipment());
+    assert.deepEqual(result.gear.bag.items, []);
+    assert.deepEqual(saves.at(-1)?.equipment, emptyEquipment());
   });
 
   test("after a death the book's pages and the words the player knows are kept", () => {
@@ -359,7 +336,7 @@ describe("casting skills", () => {
   });
 
   test("chanting needs no skillbook in hand", () => {
-    const equipment = { ...starterEquipment(), leftHand: null };
+    const equipment = { ...armed(), leftHand: null };
     assert.equal(casts({ knownWords: ["nova", "fire"], equipment }, true), true);
   });
 
@@ -429,15 +406,15 @@ describe("the bag in a fight", () => {
     assert.deepEqual(saves.at(-1)?.bag, gear.bag);
   });
 
-  test("a loss empties the bag as the fight left it: a sword put away there stays put", () => {
+  test("a loss drops what the fight's bag and hands hold: a sword put away there is lost with the rest", () => {
     const { session, link } = inBattle(CARRIED);
     play(session, () => IDLE_INPUT, 2);
     moveInBag(session, SWORD_AWAY);
     lose(session);
     const result = link.last("battleResult");
-    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1 });
-    assert.deepEqual(result.gear.equipment, { ...starterEquipment(), rightHand: null });
-    assert.deepEqual(result.gear.bag.items, [{ item: "sword", count: 1, x: 5, y: 0, turned: false }]);
+    assert.deepEqual(result.lost, { "boar-meat": 2, "boar-tusk": 1, sword: 1, skillbook: 1 });
+    assert.deepEqual(result.gear.equipment, emptyEquipment());
+    assert.deepEqual(result.gear.bag.items, []);
   });
 
   test("meat eaten from it, as the fight's input: the server's fight heals at the end and keeps it in the result", () => {

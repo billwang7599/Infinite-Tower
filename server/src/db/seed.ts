@@ -5,7 +5,7 @@ import { PgAccountStore } from "./account-store.js";
 import { connectDb, errorText } from "./db.js";
 
 /** Each one's password is its username, which sign-up would refuse (too short). */
-const TEST_ACCOUNTS = ["test1", "test2", "test3"];
+const TEST_ACCOUNTS = ["test1", "test2", "test3", "user"];
 
 if (!DEV) {
   console.error("[seed] refusing to seed a production database");

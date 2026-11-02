@@ -17,6 +17,7 @@ export interface Weapon {
 }
 
 export const WEAPONS = {
+  "old-stick": { kind: "sword", length: 1, damage: 5, heft: 1, minStrength: 0 },
   sword: { kind: "sword", length: 1.1, damage: 9, heft: 1, minStrength: 0 },
   "kobold-blade": { kind: "sword", length: 1.1, damage: 14, heft: 1, minStrength: 0 },
   longsword: { kind: "sword", length: 1.4, damage: 11, heft: 1.2, minStrength: 6 },

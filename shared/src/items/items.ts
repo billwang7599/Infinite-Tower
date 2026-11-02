@@ -71,6 +71,10 @@ export const ITEMS = {
     name: "Boar tusk", description: "Dense and curved. Heavier than it looks.", cols: 1, rows: 2, stackSize: 1,
     weight: 5,
   },
+  "old-stick": {
+    name: "Old stick", description: "A length of ash, worn smooth by old hands. It's no blade, but it swings like one.",
+    cols: 1, rows: 2, stackSize: 1, weight: 1, wearable: { on: "hand" },
+  },
   sword: {
     name: "Sword", description: "A plain straight blade. Quick to swing, and it guards as well as any.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },

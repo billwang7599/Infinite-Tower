@@ -1,6 +1,13 @@
 import type { LoreEntry } from "@infinite-tower/shared";
 
 export const LORE = {
+  "soft-as-dough": {
+    title: "Soft as dough",
+    text: "Avatars come through Highmere's door with empty hands and bodies that have never held a blade. Bram has "
+      + "kept the castle's yard since before the kingdom thought to pay him for it, putting a stick in each pair of "
+      + "hands and knocking the worst habits out of them. He says the kingdom wants its avatars armed and grateful, "
+      + "and that he only cares about the first part.",
+  },
   "the-seed": {
     title: "The seed",
     text: "What wakes on the pad is a seed: a piece of a soul, given at the door by someone in your own world, the one "

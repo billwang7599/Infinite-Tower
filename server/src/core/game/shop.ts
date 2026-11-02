@@ -2,7 +2,6 @@ import {
   addItem, bagCounts, COIN_VALUE, COINS, coinsFor, exchangeRate, itemAt, takeItems, type CoinId, type Gear,
   type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
 } from "@infinite-tower/shared";
-import { STARTER_KIT } from "../content/player.js";
 import {
   FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, SELL_SHARE, SHOPS, type ShopId,
 } from "../content/shops.js";
@@ -20,8 +19,7 @@ export function shopView(id: ShopId, level: string, boughtThere: boolean): ShopV
     const full = fullPrice(item, level);
     return { item, price: boughtThere ? full : Math.round(full * (1 - FIRST_PURCHASE_DISCOUNT)), fullPrice: full };
   });
-  // The starter kit comes back on every load: buying it would be free money.
-  const buys = shop.buys.filter((item) => !STARTER_KIT.includes(item) && paidFor(item) > 0);
+  const buys = shop.buys.filter((item) => paidFor(item) > 0);
   return { name: shop.name, stock, buys: Object.fromEntries(buys.map((item) => [item, paidFor(item)])) };
 }
 

@@ -93,7 +93,8 @@ export type CoreLoss = "fill" | "step" | null;
 export type DialogueOffer =
   | { kind: "quest"; quest: string; title: string; step: string }
   | { kind: "deliver"; quest: string; item: ItemId; count: number }
-  | { kind: "shop"; name: string };
+  | { kind: "shop"; name: string }
+  | { kind: "train"; foe: string };
 
 /** Prices in copper. `price` is what the next one costs you (the first purchase there is cheaper than `fullPrice`). */
 export interface ShopView {
@@ -140,7 +141,7 @@ export type ServerMsg =
    * (whether or not in view), or null. */
   | { t: "chat"; line: ChatLine; speaker: number | "you" | null }
   | { t: "chatRefused"; reason: "tooFast" | "tooLong" }
-  | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" }
+  | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" | "spar" }
   /** Using what's at `at` has started (its `useTime`, then `itemUsed`), or null: it stopped, nothing used. */
   | { t: "using"; at: UseSpot | null }
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
@@ -159,10 +160,12 @@ export type ServerMsg =
   | { t: "noQuest" }
   | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what a death dropped. `afterFightMs`: how long the arena
-   * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel. */
+   * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel;
+   * `spar`: the foe's, after a training fight. */
   | {
     t: "battleResult"; won: boolean; me: Vec2; wins: number; vitals: Vitals; lost: ItemCounts; gear: Gear;
     skillbook: Skillbook; afterFightMs: number | null; core: CoreState; coreLost: CoreLoss; duel?: string;
+    spar?: string;
   }
   /** After a win, the drops lying in the arena (metres), each time they change. */
   | { t: "arenaDrops"; piles: PileSnap[] }

@@ -110,6 +110,8 @@ export interface HealthData {
   hitstun: number;
   flash: number;
   regenDelay: number;
+  /** A spar's: hurt goes no lower, and at it the fighter yields. 0 elsewhere. */
+  floor: number;
 }
 export const Health = defineComponent<HealthData>("Health");
 
@@ -231,6 +233,8 @@ export interface EnemyData {
   move: EnemyMove;
   /** Its random numbers' seed, kept in the fight (and its hash) so both sides roll the same. */
   rng: number;
+  /** A dummy's: the strikes that have landed on it, replaced rather than changed (snapshots share it). */
+  struck: Strike[];
 }
 export const Enemy = defineComponent<EnemyData>("Enemy");
 

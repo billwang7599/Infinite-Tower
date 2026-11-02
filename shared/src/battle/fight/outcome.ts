@@ -34,7 +34,7 @@ export function outcomeSystem(outcome: FightOutcome, duel: boolean): System {
     if (outcome.state !== "fighting") return;
     let playersUp = 0, enemiesUp = false;
     for (const [, f, h] of world.query(Fighter, Health)) {
-      if (h.hp <= 0) continue;
+      if (h.hp <= h.floor) continue;
       if (f.team === "player") playersUp++;
       else enemiesUp = true;
     }

@@ -213,6 +213,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   const takeOffer = (offer: DialogueOffer) => {
     ui.closeDialogue();
     if (offer.kind === "shop") net?.send({ t: "openShop" });
+    else if (offer.kind === "train") net?.send({ t: "train" });
     else if (offer.kind === "quest") net?.send({ t: "acceptQuest", quest: offer.quest });
     else net?.send({ t: "deliver", quest: offer.quest });
   };

@@ -21,31 +21,33 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** new characters wake in Highmere, the kingdom, on the great summoning platform of its castle's
-  hall, where the court herald greets them and explains; dying anywhere wakes you there again. Through the courtyard
-  and the castle gate are the market streets (a food stall, a potion stall, a forge and a money changer, each with
-  its keeper) and the town gate out to the Grass Field. The test areas lie beyond: the Waking Hollow (a small camp by an
-  old waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
-  through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire).
-  Every level's start is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines, rocks, a stream
-  and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a
-  Kobold Swordsman (a Kobold Greatsword beside it) and a Goblin Warlock wander
-  and chase you on sight. Touching one, or walking through tall grass (boars only), starts a fight. Wider screens
-  than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a
-  tilt-shift blur, lit by the same 24-minute day as the fights (the sun and moon cast the shadows, the campfire
-  flickers and lights what's near it). The stream runs off the map; ponds and the marsh lie still, with a ring now and
-  then at a random spot. The arrow keys turn the camera a quarter turn; walking follows it. Everyone
-  on a level shares it: you see other players (their chibi and name, crossed swords while they fight), and an enemy
-  someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in
-  stone ruins of your own, everything working player against player, that costs and wins nothing. Next to a player's
-  crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each with their own result and
-  drops. Natives live along the way: the herald and the three keepers in Highmere, Maren (who keeps the Hollow's pad)
-  and Tobin (a hunter) in the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and
-  Ilse, Nyra's weaver, by the Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter,
-  E or a click; Esc closes). What they say
-  follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the Mistwood's
-  pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own story
-  puts him).
+- **Overworld:** new characters wake in Highmere, the kingdom, on the great summoning platform of its castle's hall,
+  where the court herald greets them and explains; dying anywhere wakes you there again. Off the courtyard, Bram keeps
+  the training yard (below). Through the courtyard and the castle gate are the market streets (a food stall, a potion
+  stall, a forge and a money changer, each with its keeper) and the town gate out to the Grass Field. The test areas lie
+  beyond: the Waking Hollow (a small camp by an old waystation, a brook with a footbridge and two boars in the tall
+  grass across it) west of the Grass Field and, through a gap in the trees east of it, the Mistwood (dark pines, a marsh
+  crossed by boardwalks, its own campfire). Every level's start is a summoning pad. The Grass Field is a dusky tile map
+  of paths, tree lines, rocks, a stream and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls
+  block walking. A boar and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword beside it) and a
+  Goblin Warlock wander and chase you on sight. Touching one, or walking through tall grass (boars only), starts a
+  fight. Wider screens than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round
+  the field and a tilt-shift blur, lit by the same 24-minute day as the fights (the sun and moon cast the shadows, the
+  campfire flickers and lights what's near it). The stream runs off the map; ponds and the marsh lie still, with a ring
+  now and then at a random spot. The arrow keys turn the camera a quarter turn; walking follows it. Everyone on a level
+  shares it: you see other players (their chibi and name, crossed swords while they fight), and an enemy someone touches
+  is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your
+  own, everything working player against player, that costs and wins nothing. Next to a player's crossed swords, E (or
+  "Join the fight") joins their battle, up to 4 to a fight, each with their own result and drops. Natives live along the
+  way: the herald, Bram and the three keepers in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in
+  the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the
+  Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes).
+  What they say follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the
+  Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own
+  story puts him).
+- **The training yard:** you start with nothing. The herald sends you to Bram, who gives you an old stick, then has
+  you knock down a straw dummy (a light swing, a heavy and a stab) and spar with him. His fights are spars: whoever
+  is down to a tenth of their HP yields, nobody can join, and nothing is lost or gained but the quest.
 - **Quests:** NPCs offer quests at the end of what they say (Accept or Not now), and hand over what a step asks
   for the same way. Steps ask you to gather items, hand them over, go somewhere, talk to someone or win fights against
   an enemy, and give items, lore and story progress. The Hollow's short first chain (a first boar, meat for Tobin's
@@ -101,7 +103,7 @@ What's built so far:
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Every monster drops its
-  essence, and boars sometimes meat (heals), a hide or a tusk. Dying drops all but your weapons and skillbook. The
+  essence, and boars sometimes meat (heals), a hide or a tusk. Dying drops all you carry. The
   bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked
   with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
   or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or
@@ -122,11 +124,11 @@ What's built so far:
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it
   needs no book, and anyone chanting shows their words in front of them. The skillbook has four pages, written from the
   bag screen (Open on the book in hand) or in a fight (2 s, standing still), and quick-cast with 1-4 (hold the key to
-  keep a Beam going). For now everyone knows every word. Dying keeps the pages and the words.
-- **Equipment:** you start with a sword in your right hand and a skillbook in your left, and for now a longsword and
-  a greatsword in the bag; dying keeps them all where they were. Without a sword in hand you can't attack or
-  block; without the skillbook you can't quick-cast. Worn things count toward the weight. A heavier weapon swings
-  slower and costs more stamina, less so the stronger you are, and too heavy for your strength it can't be wielded.
+  keep a Beam going). A new character knows no words yet. Dying keeps the pages and the words.
+- **Equipment:** hands, head, body, legs and boots; you start empty-handed (Bram's stick is the first weapon), and dying
+  drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
+  quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the
+  stronger you are, and too heavy for your strength it can't be wielded.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying,
   resting, eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the
@@ -167,7 +169,7 @@ npm run typecheck  # shared, server, client and their tests, then the server's l
 npm run build      # the client bundle
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
-npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3 (password = username)
+npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3, user (password = username)
 npm run db:psql    # SQL shell
 npm run db:generate -- --name <what-changed>  # after editing server/src/db/schema.ts: writes the migration
 ```

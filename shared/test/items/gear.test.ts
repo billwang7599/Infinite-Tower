@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   AVERAGE_STAT, bagWeight, BASE_STATS, carryLimit, CLOTH, emptyBag, emptyCloth, gearBurden, gearWeight, heldIn, ITEMS,
-  moveGear as moveGearWith, NO_PILE, SLOTS, starterEquipment, WEAPONS, type Bag, type BagItem, type Equipment,
+  moveGear as moveGearWith, NO_PILE, SLOTS, WEAPONS, type Bag, type BagItem, type Equipment,
   type Gear, type ItemId, type Spot,
 } from "@infinite-tower/shared";
+import { armed } from "../battle/fight/fixtures.js";
 
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
@@ -24,17 +25,17 @@ function frozen(g: Gear): Gear {
 }
 
 const gear = (over: Partial<Gear> = {}): Gear => frozen({
-  bag: emptyBag(), cloth: grid(CLOTH.cols, CLOTH.rows), pile: NO_PILE, equipment: starterEquipment(), ...over,
+  bag: emptyBag(), cloth: grid(CLOTH.cols, CLOTH.rows), pile: NO_PILE, equipment: armed(), ...over,
 });
 
 describe("the starting gear", () => {
   test("the sword in the right hand, the skillbook in the left, nothing else worn", () => {
-    assert.deepEqual(starterEquipment(), { ...NOTHING, rightHand: "sword", leftHand: "skillbook" });
+    assert.deepEqual(armed(), { ...NOTHING, rightHand: "sword", leftHand: "skillbook" });
   });
 
   test("an empty cloth is the cloth's size, and each piece of starting gear is its own object", () => {
     assert.deepEqual(emptyCloth(), { cols: CLOTH.cols, rows: CLOTH.rows, items: [] });
-    assert.notEqual(starterEquipment(), starterEquipment());
+    assert.notEqual(armed(), armed());
   });
 
   test("the sword and the skillbook are held in a hand, and don't stack", () => {
@@ -47,7 +48,7 @@ describe("the starting gear", () => {
 
 describe("heldIn", () => {
   test("the hand that holds it, or null", () => {
-    assert.equal(heldIn(starterEquipment(), "sword"), "rightHand");
+    assert.equal(heldIn(armed(), "sword"), "rightHand");
     assert.equal(heldIn({ ...NOTHING, leftHand: "sword" }, "sword"), "leftHand");
     assert.equal(heldIn({ ...NOTHING, rightHand: "skillbook" }, "sword"), null);
   });

@@ -1,7 +1,7 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
   Enemy, heldIn, LocalPlayer, Player, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity, type Hand,
-  type Look, type SkillObjectKind, type World,
+  type Look, type NpcId, type SkillObjectKind, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
 import type { Mode } from "../game/transition.js";
@@ -15,7 +15,8 @@ import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
 import { PlayerLook } from "./characters.js";
-import { byEnemy } from "./enemies/index.js";
+import { byEnemy, ENEMY_LOOKS } from "./enemies/index.js";
+import { NPC_LOOKS } from "./npcs/index.js";
 import { overworldStage } from "./overworld/overworld.js";
 import { WALKERS } from "./overworld/walker.js";
 import { createOverworldScene } from "./overworld/scene.js";
@@ -127,10 +128,11 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const level = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
-  const newPeer = (i: number): Peer =>
+  const newPeer = (i: number | string): Peer =>
     ({ look: new PlayerLook({ battle: playerFrames(arena.scene, `peer${i}`) }, redrawSprite), painted: null });
   // In order among the other players, kept between fights: making materials as a fight starts would slow it.
   const peers = [newPeer(0)];
+  const npcPeers = new Map<NpcId, Peer>();
   const fighters: Drawn<VisualKind> = new Map();
   const walkers: Drawn<OverworldActorData["kind"]> = new Map();
   let fired = new FiredEffects();
@@ -167,6 +169,15 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
       peer.painted = paintHeld(peer.look, peer.painted, fight, e);
       arena.looks.set(e, peer.look);
     });
+    for (const e of fight.enemies) {
+      const npc = ENEMY_LOOKS[fight.world.require(e, Enemy).def.id].npc;
+      if (!npc) continue;
+      let peer = npcPeers.get(npc);
+      if (!peer) npcPeers.set(npc, peer = newPeer(`-${npc}`));
+      peer.look.wear(NPC_LOOKS[npc].look);
+      peer.painted = paintHeld(peer.look, peer.painted, fight, e);
+      arena.looks.set(e, peer.look);
+    }
   };
 
   const drawArena = (dt: number) => {

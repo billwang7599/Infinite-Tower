@@ -22,7 +22,7 @@ const UNSTAGGERABLE = new Set(["staggered", "stunned"]);
 function targetFor(world: World, from: Vec3): { e: Entity; pos: Vec3; alive: boolean } | null {
   let best: { e: Entity; pos: Vec3; alive: boolean; dist: number } | null = null;
   for (const [e, , body, health] of world.query(Player, Body, Health)) {
-    const alive = health.hp > 0, dist = distXZ(from, body.pos);
+    const alive = health.hp > health.floor, dist = distXZ(from, body.pos);
     if (!best || (alive && !best.alive) || (alive === best.alive && dist < best.dist)) {
       best = { e, pos: body.pos, alive, dist };
     }
@@ -45,7 +45,7 @@ export function enemyBrainSystem(): System {
       enemy.stateTime += dt;
       if (enemy.state !== "staggered") enemy.poise = Math.min(def.poise, enemy.poise + def.poiseRegen * dt);
 
-      if (health.hp <= 0) {
+      if (health.hp <= health.floor) {
         if (enemy.state !== "dead") enter(world, e, enemy, "dead");
       } else if (enemy.poise <= 0 && !enemy.armored && !UNSTAGGERABLE.has(enemy.state)) {
         enter(world, e, enemy, "staggered", stunTime(def.staggerTime, stats));

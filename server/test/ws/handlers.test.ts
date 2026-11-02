@@ -138,8 +138,8 @@ describe("message handlers", () => {
   test("every session message type has a handler", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "useItem", "moveItem",
-      "closeBag", "openPile", "talk", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge", "answerChallenge",
-      "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange",
+      "closeBag", "openPile", "talk", "train", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge",
+      "answerChallenge", "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

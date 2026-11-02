@@ -23,7 +23,8 @@ import type { Duels } from "./duels.js";
 import { buy, exchange, openShop, sell } from "./shop.js";
 import { stateMsg } from "./snapshot.js";
 import { progressStory, questbookOf, type Story } from "./story.js";
-import { handOver, placeFor, takeQuest, talkTo, type Placed } from "./talk.js";
+import { handOver, placeFor, takeQuest, talkTo, trainingInView, type Placed } from "./talk.js";
+import { startTraining } from "./training.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
@@ -289,6 +290,11 @@ export class GameSession {
 
   talk(): void {
     talkTo(this);
+  }
+
+  train(): void {
+    const foe = trainingInView(this);
+    if (foe) startTraining(this, foe);
   }
 
   acceptQuest(quest: string): void {

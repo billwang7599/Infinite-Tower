@@ -52,8 +52,8 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    enter sequence (`ui/screens/title/sequence.ts`): the view goes into the tower and speeds up it until the game has
    joined. Only
    once the title has cleared off the world (`inWorld` in `ui/state.ts`) does the HUD show and the game, and the
-   screens over it, take keys. The server finds the account, loads the save, tops it up with the starter kit
-   (`withStarterKit`: every word, and each kit item not carried) and sends
+   screens over it, take keys. The server finds the account, loads the save (a new one carries and knows nothing)
+   and sends
    `welcome` (HP / stamina, the core, settings, character, wins, gear, known words, the skillbook's pages, the
    questbook). With no
    character yet, the white the
@@ -73,13 +73,13 @@ the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `s
    The server runs the same fight on those inputs at those steps (hits, damage, stamina, deaths), sends a hash of it
    4 times a second (`battleHash`; a client whose copy differs asks for the whole of it, `battleSync`), and the
    moment it's decided, sends the final `battleSync`, rolls drops and lays them as a pile in the arena beside the
-   fallen enemy (or, on a loss, drops all in the bag and slots but the starter kit as a pile where they fell), saves
+   fallen enemy (or, on a loss, drops all in the bag and slots as a pile where they fell), saves
    and sends `battleResult`: only then does the result show. After a win the fight runs on for up to `AFTER_FIGHT_MS` (5
    minutes) while the winners walk to the drops and take what they want; Enter leaves the arena (`leaveBattle`;
    asking first while drops are still there), and the overworld goes on. The last one out leaves what's left as an
    overworld pile where the fight began.
 6. **Leave.** Return to title, closing the tab or losing the connection closes the socket, and the server saves.
-   Mid-fight, that loses the fight (`LEAVING_LOSES`): what they carry drops as on a death, all but the starter kit.
+   Mid-fight, that loses the fight (`LEAVING_LOSES`): what they carry drops as on a death.
    In the arena after a win it's leaving the arena, with what was taken kept.
    A second tab on the same account takes over: the first one is closed and lands on the title.
 
@@ -225,7 +225,10 @@ main.ts
   controller -> enemy brain -> attacks -> motor -> physics -> player ground -> combat -> outcome. It reports what
   happened in a step as `events` (hits, blocks, a charge slamming the wall, a skill's release). How a fight ends is
   `fight/outcome.ts`: lost when no player stands, won when no enemy does, lost after `MAX_FIGHT_TIME` (10 minutes,
-  a guard on the server's resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`).
+  a guard on the server's resources), and a player who disconnects is down and has lost it (`LEAVING_LOSES`). A spar
+  (the setup's `yieldAt`, a share of the most HP) keeps every fighter's HP at or above that share (`Health.floor`),
+  and one at it counts as down. A `dummy` enemy takes no damage and falls once struck with a light, a heavy and a stab
+  (`Enemy.struck`).
   `Fight.leave` marks a player gone from the arena (`Player.leftArena`, part of the state), downing them only while
   it's fought.
   Every hit, skill and burn hurts through `hurt` (`fight/skills/statuses.ts`), which spares an invulnerable player
@@ -799,7 +802,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
   the capital's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
   change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
-  and only what a shop deals in bought (never the starter kit), coins changed a tier at a time at any shop, and the
+  and only what a shop deals in bought, coins changed a tier at a time at any shop, and the
   shop closing with the bag or on walking. Coins (`shared/test/items/coins.test.ts`): their worth, prices written out,
   the fewest coins, changing rates, the money in some grids.
   Hollis moving on (`npcs/hollis.test.ts`): at the fire until his chain is done, then in the Mistwood with his trace at
@@ -836,10 +839,12 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   making it go), no cloth there but eating (the fight's HP following) and writing a page, leaving with what was
   taken, the leftovers landing at the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then),
   `AFTER_FIGHT_MS` sending them out (`arenaClosed`), and a disconnect there being no loss. Death drops
-  (`death-drops.test.ts`): all but the starter kit from the bag and hands, alone landing at the fight's spot at once
+  (`death-drops.test.ts`): all from the bag and hands, alone landing at the fight's spot at once
   (a disconnect and the time limit alike, its `PILE_LIFETIME_MS` from then), with others fighting on lying where you
   fell, not openable mid-fight, then taken from after the win, the arena's piles landing as one, everyone down landing
-  it all, and a duel dropping nothing.
+  it all, and a duel dropping nothing. The training yard (`training.test.ts`): the herald sending a new avatar to
+  Bram, the old stick given once (at once when the quest is taken from him), the dummy and spar fights started only
+  from his talk, unjoinable, costing nothing won or lost, and moving the quest only when won.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -1106,12 +1111,13 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
                        a player as the fight takes them; seatInBattle: a session put in a room and sent its
                        `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, a loss dropping all but STARTER_KIT where they fell (dropWhereFell), vitals; the arena
+                       it, wins, a loss dropping all they carry where they fell (dropWhereFell), vitals; the arena
                        after a win: ArenaDrops (shared by the room), the drops rolled once as the room is won
                        (dropInArena, dropSpot), arenaPiles, arenaPileInView, landDrops (what's left, as one pile);
-                       AFTER_FIGHT_MS, DROP_GAP_M), snapshot.ts (the state
-                       message: only actors, other players and piles within VIEW_RADIUS_TILES, each player's
-                       character sent once),
+                       AFTER_FIGHT_MS, DROP_GAP_M), training.ts (startTraining: a spar from an NPC's talk, at
+                       TRAINING_YIELD_SHARE, nobody joining, nothing lost or gained but the story),
+                       snapshot.ts (the state message: only actors, other players and piles within
+                       VIEW_RADIUS_TILES, each player's character sent once),
                        story.ts (the story engine, for quests and NPCs: Story, newStory; When and holds; Effect,
                        Seen and unfold; stepOn; questbookOf; keptStory; progressStory, the session's side),
                        talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf; the session's side:
@@ -1153,13 +1159,14 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
         floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts (tile map,
                          campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, kobold-swordsman.ts, kobold-greatsword.ts
-                       (the swordsman with a greatsword), goblin-warlock.ts (its EnemyDef, its drops, its overworld
-                       actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
+                       (the swordsman with a greatsword), goblin-warlock.ts, training-dummy.ts and bram.ts (the
+                       training yard's, fought only as spars: no drops, no overworld actor) (its EnemyDef, its drops,
+                       its overworld actor's behavior parts). index.ts (ENEMIES, one line each; rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
-                       grocer.ts, apothecary.ts, smith.ts, changer.ts (its
+                       grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
-      content/         player.ts (PLAYER_STATS: Early Yan's; STARTER_KIT, fullVitals, newPlayer, withStarterKit),
+      content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
                        quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
                        entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
                        PRICE_FACTOR by level, SELL_SHARE, FIRST_PURCHASE_DISCOUNT)
@@ -1427,10 +1434,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk) and sprite.ts
                        (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and animation.ts:
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
-                       WEAPON_LOOKS). index.ts (ENEMY_LOOKS, one line each;
-                       byEnemy)
+                       WEAPON_LOOKS); training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark
+                       lit for each kind of strike landed; sprite.ts); bram/ (only sprite.ts: in a fight he's drawn
+                       as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
+                       one line each; byEnemy)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
-                       apothecary/, smith/, changer/, each with look.ts
+                       apothecary/, smith/, changer/, bram/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
@@ -1452,7 +1461,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
-                         trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to fade
+                         trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to
+                         fade; personEnemyVisual, the same drawing for an NPC fought as an enemy (its stance from its
+                         state)
         slash.ts         A swing's crescent trail across the swinger's view (buildSlash, placeSlash from the motion's
                          TrailPose): every player's and the Kobolds'
         blade.ts         The 3D sword: buildBlade (grip, guard and blade along a hand's +y, from WEAPON_LOOKS: the
@@ -1503,7 +1514,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          in reach, each cast by its own light), the campfires; face turns the props to the camera;
                          a ledge hiding any of the player from the camera turns see-through (hidesWalker, SEE_THROUGH)
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the market's stalls
-                         and forge), drawn standing up;
+                         and forge, the yard's dummies), drawn standing up;
                          Pen
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture

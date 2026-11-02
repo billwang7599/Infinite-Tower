@@ -1,6 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { SKILL_EFFECTS, REACTIONS, STATUSES, type Reaction, type Status } from "../../../skills/effects.js";
-import { Health, Player, Statuses, type StatusData } from "../../components.js";
+import { Enemy, Health, Player, Statuses, type StatusData } from "../../components.js";
 import {
   FighterStats, HP_REGEN_PAUSE_TIME, hpRegenPerSec, physicalTakenFactor, skillTakenFactor,
 } from "../../stats.js";
@@ -34,7 +34,7 @@ export function damageDealtFactor(world: World, e: Entity): number {
 }
 
 export function hurt(world: World, e: Entity, damage: number, kind: "physical" | "skill"): number {
-  if (world.get(e, Player)?.invulnerable) return 0;
+  if (world.get(e, Player)?.invulnerable || world.get(e, Enemy)?.def.dummy) return 0;
   const health = world.require(e, Health), s = world.get(e, Statuses), stats = world.get(e, FighterStats);
   let rest = damage;
   if (stats) rest *= kind === "physical" ? physicalTakenFactor(stats) : skillTakenFactor(stats);
@@ -45,7 +45,7 @@ export function hurt(world: World, e: Entity, damage: number, kind: "physical" |
     s.shield -= absorbed;
     rest -= absorbed;
   }
-  health.hp = Math.max(0, health.hp - rest);
+  health.hp = Math.max(Math.min(health.hp, health.floor), health.hp - rest);
   return rest;
 }
 

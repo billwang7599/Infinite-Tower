@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  addItem, bagCounts, Body, distXZ, emptyBag, FIXED_DT, Health, IDLE_INPUT, NO_PILE, PlayerInput, starterEquipment,
+  addItem, bagCounts, Body, distXZ, emptyBag, emptyEquipment, FIXED_DT, Health, IDLE_INPUT, NO_PILE, PlayerInput,
   type Bag, type Equipment, type ItemCounts, type Vec2,
 } from "@infinite-tower/shared";
 import { initPhysics, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
@@ -24,11 +24,11 @@ const CARRIED: Bag = {
   items: [
     { item: "boar-meat", count: 2, x: 0, y: 0, turned: false },
     { item: "boar-tusk", count: 1, x: 1, y: 0, turned: false },
-    { item: "greatsword", count: 1, x: 5, y: 0, turned: false },
+    { item: "longsword", count: 1, x: 5, y: 0, turned: false },
   ],
 };
-const BLADE_IN_HAND: Equipment = { ...starterEquipment(), rightHand: "kobold-blade" };
-const DROPPED: ItemCounts = { "boar-meat": 2, "boar-tusk": 1, "kobold-blade": 1 };
+const BLADE_IN_HAND: Equipment = { ...emptyEquipment(), rightHand: "kobold-blade" };
+const DROPPED: ItemCounts = { "boar-meat": 2, "boar-tusk": 1, longsword: 1, "kobold-blade": 1 };
 const FIGHT_SPOT: Vec2 = { x: 3, z: 3 };
 
 const fightOf = (session: GameSession) => session.battle!.room.fight;
@@ -66,13 +66,13 @@ function die(session: GameSession): void {
 }
 
 describe("dying alone", () => {
-  test("all but the starter kit lands as one pile where the fight began, listed in the result", () => {
+  test("all they carry lands as one pile where the fight began, listed in the result", () => {
     const { session, link } = fighting();
     die(session);
     assert.deepEqual(countsAt(session.overworld, FIGHT_SPOT), DROPPED);
     assert.equal(pilesOn(session.overworld).length, 1);
     assert.deepEqual(link.last("battleResult").lost, DROPPED);
-    assert.deepEqual(bagCounts(session.bag), { greatsword: 1 });
+    assert.deepEqual(bagCounts(session.bag), {});
   });
 
   test("the pile vanishes PILE_LIFETIME_MS after it lands", (t) => {
@@ -87,8 +87,8 @@ describe("dying alone", () => {
     assert.equal(countsAt(session.overworld, FIGHT_SPOT), null);
   });
 
-  test("carrying only the starter kit, nothing is dropped", () => {
-    const { session } = fighting({ bag: { ...CARRIED, items: CARRIED.items.slice(2) }, equipment: starterEquipment() });
+  test("carrying nothing, nothing is dropped", () => {
+    const { session } = fighting({ bag: emptyBag(), equipment: emptyEquipment() });
     die(session);
     assert.deepEqual(pilesOn(session.overworld), []);
   });

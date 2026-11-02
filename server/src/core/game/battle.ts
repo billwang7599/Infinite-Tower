@@ -1,13 +1,13 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  bagCounts, Body, coreAfterDeath, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss, type EnemyId, type Entity,
-  type ItemCounts, type ItemId, type ServerMsgOf, type Vec2, type Vitals,
+  bagCounts, Body, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss, type EnemyId,
+  type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type Fight, type FightSetup, type PlayerResult, type PlayerSetup,
 } from "@infinite-tower/shared/fight";
 import { BattleRoom, type Kept, type Seat } from "../battle/room.js";
-import { fullVitals, STARTER_KIT } from "../content/player.js";
+import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { inViewWithSlack } from "../overworld/interact.js";
@@ -136,17 +136,13 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    // Dying drops all that's carried where they fell but the starter kit, which stays put.
-    const kept = (item: ItemId) => STARTER_KIT.includes(item);
-    const { bag } = session, equipment = { ...session.gear.equipment };
-    lost = bagCounts({ ...bag, items: bag.items.filter((s) => !kept(s.item)) });
+    const { bag } = session, equipment = session.gear.equipment;
+    lost = bagCounts(bag);
     for (const slot of SLOTS) {
       const item = equipment[slot];
-      if (item === null || kept(item)) continue;
-      lost[item] = (lost[item] ?? 0) + 1;
-      equipment[slot] = null;
+      if (item !== null) lost[item] = (lost[item] ?? 0) + 1;
     }
-    session.gear = { ...session.gear, bag: { ...bag, items: bag.items.filter((s) => kept(s.item)) }, equipment };
+    session.gear = { ...session.gear, bag: { ...bag, items: [] }, equipment: emptyEquipment() };
     dropWhereFell(battle, overworld, lost);
     me = session.wakeOnPad();
     session.core = coreAfterDeath(core);

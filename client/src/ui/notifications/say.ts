@@ -77,6 +77,7 @@ const JOIN_REFUSED: Record<ServerMsgOf<"joinRefused">["reason"], string> = {
   nobodyNear: "Nobody close by is fighting.",
   full: "That fight is full.",
   duel: "A duel can't be joined.",
+  spar: "A spar can't be joined.",
 };
 
 const CHAT_REFUSED: Record<ServerMsgOf<"chatRefused">["reason"], string> = {

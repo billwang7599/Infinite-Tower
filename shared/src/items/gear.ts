@@ -28,8 +28,8 @@ export type Spot = { in: GridName; x: number; y: number } | { in: "slot"; slot: 
 export type GridSpot = Extract<Spot, { in: GridName }>;
 export type UseSpot = GridSpot & { in: "bag" | "cloth" };
 
-export const starterEquipment = (): Equipment =>
-  ({ rightHand: "sword", leftHand: "skillbook", head: null, body: null, legs: null, boots: null });
+export const emptyEquipment = (): Equipment =>
+  ({ rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null });
 export const emptyCloth = (): Bag => ({ cols: CLOTH.cols, rows: CLOTH.rows, items: [] });
 export const NO_PILE: Bag = { cols: 0, rows: 0, items: [] };
 

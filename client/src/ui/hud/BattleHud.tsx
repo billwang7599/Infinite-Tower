@@ -211,7 +211,7 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   const result = useStore(hud, (s) => s.result);
   const show = useStore(hud, (s) => s.showResult);
   const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);
-  const duel = useStore(hud, (s) => s.duel);
+  const evenMatch = useStore(hud, (s) => s.duel || s.spar);
   const died = result === "lost";
   return (
     <div
@@ -220,7 +220,7 @@ function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
       } duration-1200`}
     >
       <div className={`font-title text-4xl font-normal tracking-[4px] ${died ? "text-died" : "text-victory"}`}>
-        {duel ? (died ? "DEFEATED" : "VICTORY") : died ? "YOU DIED" : "PREY SLAUGHTERED"}
+        {evenMatch ? (died ? "DEFEATED" : "VICTORY") : died ? "YOU DIED" : "PREY SLAUGHTERED"}
       </div>
       {leaveKey && <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>}
     </div>

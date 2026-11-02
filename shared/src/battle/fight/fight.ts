@@ -72,6 +72,7 @@ export class Fight {
   private readonly seated: Entity[];
   readonly enemies: readonly Entity[];
   readonly duel: boolean;
+  readonly yieldAt: number;
   /** What an input's `locked` indexes: the enemies, or in a duel the players. */
   readonly targets: readonly Entity[];
   readonly outcome: FightOutcome = { state: "fighting", stateTime: 0 };
@@ -90,6 +91,8 @@ export class Fight {
     this.seated = setup.players.map((p, i) => spawnPlayer(this.world, this.physics, p, this.duel ? i : 0));
     this.enemies = setup.enemies.map((e) => spawnEnemy(this.world, this.physics, e));
     this.targets = this.duel ? this.players : this.enemies;
+    this.yieldAt = setup.yieldAt ?? 0;
+    for (const e of [...this.seated, ...this.enemies]) this.setFloor(e);
     const ctx: FightContext = {
       world: this.world, physics: this.physics, arena: this.arena, enemies: this.enemies, events: this.events,
       outcome: this.outcome,
@@ -116,8 +119,14 @@ export class Fight {
 
   join(setup: PlayerSetup): Entity {
     const e = spawnPlayer(this.world, this.physics, setup);
+    this.setFloor(e);
     this.seated.push(e);
     return e;
+  }
+
+  private setFloor(e: Entity): void {
+    const health = this.world.require(e, Health);
+    health.floor = health.max * this.yieldAt;
   }
 
   /** One step. `inputs[i]` is what `players[i]` does; a missing one keeps that player's last input. */

@@ -69,6 +69,7 @@ export interface BattleHudState {
   enemyAlive: boolean;
   result: FightState;
   duel: boolean;
+  spar: boolean;
   /** Turns on a moment after `result` is decided (and off again soon, after a win that keeps the arena open). */
   showResult: boolean;
   afterFight: boolean;
@@ -213,8 +214,8 @@ export class UiState {
   });
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, enemyName: "", enemyHpFraction: 1,
-    enemyAlive: false,
-    result: "fighting", duel: false, showResult: false, afterFight: false, arenaSecondsLeft: 0, dropInView: false,
+    enemyAlive: false, result: "fighting", duel: false, spar: false, showResult: false, afterFight: false,
+    arenaSecondsLeft: 0, dropInView: false,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },

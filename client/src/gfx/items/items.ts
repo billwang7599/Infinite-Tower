@@ -164,6 +164,17 @@ const blade = (half: number, gripRows: number) => (px: Pixels): void => {
   hilt.shade(darkEdge(pommel, 2), SHADOW);
 };
 
+function oldStick(px: Pixels): void {
+  const pen = new Pen(px, 0);
+  const shaft = union(bar([7, 1.5], [9, 17], 1.5), bar([9, 17], [8, 30], 1.8));
+  pen.fill(shaft, ink("root", BASE));
+  pen.shade((x, y) => shaft(x, y) && !shaft(x - 1, y), LIGHT);
+  pen.shade((x, y) => shaft(x, y) && !shaft(x + 1, y), SHADOW);
+  pen.shade(both(shaft, union(rect(0, 8, 15, 8), rect(0, 14, 15, 14))), DEEP);
+  pen.fill(both(shaft, rect(0, 21, 15, 27)), ink("leather", BASE));
+  pen.shade(both(shaft, both(rect(0, 21, 15, 27), (_x, y) => y % 2 === 0)), SHADOW, "leather");
+}
+
 const sword = blade(3, 7), longsword = blade(3, 10), greatsword = blade(4, 12);
 
 function skillbook(px: Pixels): void {
@@ -237,8 +248,8 @@ const coin = (metal: Material) => (px: Pixels): void => {
 };
 
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
-  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, longsword, greatsword,
-  "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
+  "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
+  longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
   "goblin-warlock-essence": essence("wisp"), bread, "health-potion": bottle("blood"),
   "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),

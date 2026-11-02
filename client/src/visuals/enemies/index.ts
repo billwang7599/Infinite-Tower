@@ -1,12 +1,16 @@
-import type { EnemyId } from "@infinite-tower/shared";
+import type { EnemyId, NpcId } from "@infinite-tower/shared";
+import { personEnemyVisual } from "../battle/player.js";
 import type { SpriteDraw } from "../sprites.js";
 import type { Visual } from "../visuals.js";
+import { bramSprite } from "./bram/sprite.js";
 import { goblinVisual } from "./goblin-warlock/animation.js";
 import { goblinSprite } from "./goblin-warlock/sprite.js";
 import { koboldGreatswordVisual } from "./kobold-greatsword/animation.js";
 import { koboldGreatswordSprite } from "./kobold-greatsword/sprite.js";
 import { koboldSwordsmanVisual } from "./kobold-swordsman/animation.js";
 import { koboldSprite } from "./kobold-swordsman/sprite.js";
+import { trainingDummyVisual } from "./training-dummy/animation.js";
+import { trainingDummySprite } from "./training-dummy/sprite.js";
 import { boarVisual } from "./wild-boar/animation.js";
 import { boarSprite } from "./wild-boar/sprite.js";
 
@@ -19,6 +23,7 @@ export interface EnemySprite {
 export interface EnemyLook {
   battle: Visual<any>;
   sprite: EnemySprite;
+  npc?: NpcId;
 }
 
 export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
@@ -26,6 +31,8 @@ export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
   "kobold-swordsman": { battle: koboldSwordsmanVisual, sprite: koboldSprite },
   "kobold-greatsword": { battle: koboldGreatswordVisual, sprite: koboldGreatswordSprite },
   "goblin-warlock": { battle: goblinVisual, sprite: goblinSprite },
+  "training-dummy": { battle: trainingDummyVisual, sprite: trainingDummySprite },
+  bram: { battle: personEnemyVisual, sprite: bramSprite, npc: "bram" },
 };
 
 export function byEnemy<T>(f: (look: EnemyLook, id: EnemyId) => T): Record<EnemyId, T> {

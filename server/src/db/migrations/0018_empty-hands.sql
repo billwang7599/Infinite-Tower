@@ -1,0 +1,1 @@
+ALTER TABLE "players" ALTER COLUMN "equipment" SET DEFAULT '{"rightHand":null,"leftHand":null,"head":null,"body":null,"legs":null,"boots":null}'::jsonb;

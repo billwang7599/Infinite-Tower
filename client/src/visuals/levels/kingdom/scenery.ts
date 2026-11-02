@@ -10,6 +10,7 @@ const BULK_Y = 6;
 const HOUSE_Y = { low: 2, high: 3 };
 /** South of this the walls are the town's; north of it, round the castle, the land is the castle's. */
 const CASTLE_SOUTH_Z = -1;
+const DUMMIES = [{ x: -13.5, z: 12.5 }, { x: -12.5, z: 13.5 }];
 
 export function kingdomScenery(level: LevelLayout): Scenery {
   const rand = seededRandom(17);
@@ -50,6 +51,7 @@ export function kingdomScenery(level: LevelLayout): Scenery {
     const x = (rand() * 2 - 1) * W, z = -D - 3 - rand() * (REACH - 3);
     add(rand() < 0.5 ? "bush" : "tree", x, z);
   }
+  for (const { x, z } of DUMMIES) add("dummy", x, z);
   return { ledges, props };
 }
 

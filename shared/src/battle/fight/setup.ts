@@ -42,7 +42,9 @@ export interface PlayerSetup {
 }
 /** `at`: the feet. `seed`: its random numbers' (the server picks it). */
 export interface EnemySetup { def: EnemyDef; at: Vec3; yaw: number; seed?: number }
-export interface FightSetup { arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[]; duel?: boolean }
+export interface FightSetup {
+  arena: ArenaDef; players: PlayerSetup[]; enemies: EnemySetup[]; duel?: boolean; yieldAt?: number;
+}
 
 /** From the feet to the capsule's center, and from there to each cap's middle. */
 const PLAYER_CENTER_HEIGHT = PLAYER.height / 2;
@@ -51,7 +53,7 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
 const fresh = (maxHp: number): HealthData =>
-  ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0 });
+  ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
 
 const wielder = (hands: WielderData["hands"], armReachM: number): WielderData => ({
   hands, armReachM, swing: null, combo: null, comboTime: 0, momentum: 0,
@@ -105,7 +107,7 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
   world.add(e, Enemy, {
     def, state: "approach", stateTime: 0, duration: 0, yaw, poise: def.poise, armored: false,
     sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false, target: null },
-    move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false }, rng: seed >>> 0,
+    move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false }, rng: seed >>> 0, struck: [],
   });
   for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {
     if (attack) ATTACKS[kind](world, e, attack);

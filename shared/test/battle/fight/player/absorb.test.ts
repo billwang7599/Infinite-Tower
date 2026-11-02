@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   absorb, CORE_STEPS, coreStats, emptyBag, fillToFinish, FIXED_DT, FighterStats, Health, ITEMS, maxHpOf, newCore,
-  Player, Stamina, staminaMaxOf, starterEquipment, STAT_KEYS, type Carried, type CoreState, type EnemyDef,
+  Player, Stamina, staminaMaxOf, STAT_KEYS, type Carried, type CoreState, type EnemyDef,
   type UseSpot, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
-import { ARENA, bodyOf, enemy, input, player, run, STATS, STATUE, SWORDSMAN } from "../fixtures.js";
+import { ARENA, bodyOf, enemy, input, player, run, STATS, STATUE, SWORDSMAN, armed } from "../fixtures.js";
 
 await initPhysics();
 
@@ -18,7 +18,7 @@ const ABSORB = input({ bag: true, use: AT });
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const withEssence = (count = 2): Carried => ({
   bag: { ...emptyBag(), items: [{ item: "boar-essence", count, x: 0, y: 0, turned: false }] },
-  equipment: starterEquipment(),
+  equipment: armed(),
 });
 
 function holding(

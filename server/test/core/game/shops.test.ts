@@ -3,7 +3,6 @@ import { describe, test } from "node:test";
 import {
   addItem, bagCounts, COIN_VALUE, emptyBag, emptyCloth, type Bag, type ItemCounts, type ItemId, type NpcId,
 } from "@infinite-tower/shared";
-import { STARTER_KIT } from "../../../src/core/content/player.js";
 import {
   FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, SELL_SHARE, SHOPS,
 } from "../../../src/core/content/shops.js";
@@ -129,14 +128,14 @@ describe("shops", () => {
     });
   });
 
-  test("a shop buys only what it deals in, and never the starter kit, which comes back on every load", () => {
+  test("a shop buys only what it deals in", () => {
     const bag = bagWith({ "boar-meat": 1 });
     const { session, link } = atShop("smith", bag);
     session.sell({ in: "bag", x: 0, y: 0 }, 1);
     assert.deepEqual(session.bag, bag);
     assert.deepEqual(link.last("trade").news, { kind: "refused", reason: "notBought" });
     const view = link.last("shop").shop!;
-    for (const item of STARTER_KIT) assert.equal(view.buys[item], undefined, item);
+    assert.equal(view.buys["boar-meat"], undefined);
     assert.ok(view.buys["boar-hide"]);
   });
 

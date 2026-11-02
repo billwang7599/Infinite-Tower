@@ -198,7 +198,7 @@ Gear mechanics, for the user (see "Ask before deciding any game mechanic" in AGE
 - **Stats**: does gear change anything in play, or is it looks only for now?
 - **Weight**: worn gear already counts toward the carry limit without taking bag space (AGENTS.md); how much does
   each piece weigh?
-- **Death**: dying empties the bag but for the starter kit (the weapons and the skillbook); is worn gear lost too?
+- **Death**: dying drops the bag and everything worn.
 - **Durability**: does gear wear out?
 - **Color**: per piece, fixed colors or a dyeable accent?
 - **Slots**: which get hand-drawn art first. The slots for now: helmet, chest, cape, belt, pants, boots, gloves.

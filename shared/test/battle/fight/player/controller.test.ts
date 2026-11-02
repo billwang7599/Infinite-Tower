@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, Player, Stamina, starterEquipment, strikeCost, wayStepsAfter, WEAPONS,
+  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, Player, Stamina, strikeCost, wayStepsAfter, WEAPONS,
   type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
-import { ARENA, dumpState, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE } from "../fixtures.js";
+import { ARENA, dumpState, enemy, FULL_HP, FULL_STAMINA, input, player, STATUE, armed } from "../fixtures.js";
 
 await initPhysics();
 
@@ -128,7 +128,7 @@ describe("what the player holds", () => {
   const unarmed = ({ sword, skillbook }: Record<"sword" | "skillbook", Hand | null>) => new Fight({
     arena: ARENA,
     players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), equipment: {
-      ...starterEquipment(), rightHand: null, leftHand: null,
+      ...armed(), rightHand: null, leftHand: null,
       ...(sword && { [sword]: "sword" }), ...(skillbook && { [skillbook]: "skillbook" }),
     } } })],
     enemies: [enemy(STATUE, { x: 0, y: 0.05, z: 6 })],

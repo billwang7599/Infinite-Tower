@@ -53,7 +53,6 @@ function byAPile(opts: Parameters<typeof startSession>[0] = {}) {
 
 const itemsIn = (session: GameSession) => session.bag.items.map((s) => s.item);
 
-/** Players who joined carry the starter kit, so their bags aren't empty. */
 function roomFor(session: GameSession, item: ItemId): GridSpot {
   const { bag } = session;
   for (let y = 0; y < bag.rows; y++) {

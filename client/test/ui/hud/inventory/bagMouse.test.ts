@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CLOTH, emptyCloth, ITEMS, NO_PILE, starterEquipment, WEAPONS, type BagItem, type Equipment, type Gear,
+  AVERAGE_STAT, CLOTH, emptyCloth, ITEMS, NO_PILE, WEAPONS, type BagItem, type Equipment, type Gear,
   type ItemId, type Slot, type Spot,
 } from "@infinite-tower/shared";
 import {
@@ -9,6 +9,7 @@ import {
   pointerMove, pointerUp, rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnInPlace, turnKey,
   type BagMouse, type Pointer,
 } from "../../../../src/ui/hud/inventory/bagMouse.js";
+import { armed } from "../../../fixtures/armed.js";
 
 const STRENGTH = AVERAGE_STAT;
 const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
@@ -360,7 +361,7 @@ describe("the cloth and the equipment", () => {
   });
 
   test("a slot's item is hovered and selected by its slot, and dragged held by its first cell", () => {
-    const g: Gear = { ...BAG, equipment: starterEquipment() };
+    const g: Gear = { ...BAG, equipment: armed() };
     assert.equal(hoveredStack(pointerMove(NO_MOUSE, g, overSpot(slot("rightHand")), 0), g)?.item, "sword");
     const clicked =
       pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
@@ -372,7 +373,7 @@ describe("the cloth and the equipment", () => {
   });
 
   test("taken off a hand into the bag, or swapped to the other hand", () => {
-    const g: Gear = { ...bag(6, 4), equipment: starterEquipment() };
+    const g: Gear = { ...bag(6, 4), equipment: armed() };
     const press = pointerDown(NO_MOUSE, g, overSpot(slot("rightHand")));
     const dragging = pointerMove(press, g, overSpot(slot("rightHand"), FAR), 0);
     assert.deepEqual(
@@ -383,7 +384,7 @@ describe("the cloth and the equipment", () => {
   });
 
   test("worn things don't turn in place, nor get used", () => {
-    const g: Gear = { ...BAG, equipment: starterEquipment() };
+    const g: Gear = { ...BAG, equipment: armed() };
     assert.equal(turnInPlace(g, slot("rightHand")), null);
     const clicked =
       pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
@@ -398,7 +399,7 @@ describe("the cloth and the equipment", () => {
   });
 
   test("a selected hand that's emptied (by the server's answer) is let go", () => {
-    const g: Gear = { ...BAG, equipment: starterEquipment() };
+    const g: Gear = { ...BAG, equipment: armed() };
     const clicked =
       pointerUp(pointerDown(NO_MOUSE, g, overSpot(slot("rightHand"))), g, overSpot(slot("rightHand")), 0, STRENGTH);
     assert.equal(keepUp(clicked.mouse, { ...g, equipment: NOTHING_WORN }).selected, null);
