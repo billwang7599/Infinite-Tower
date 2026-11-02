@@ -40,7 +40,7 @@ export function SkillbookScreen({ skills, input, save, close, writingPage = null
     <section
       id="skillbook" aria-label="Skillbook"
       className={
-        "pointer-events-auto absolute top-1/2 left-1/2 w-[min(720px,90%)] -translate-x-1/2 -translate-y-1/2 "
+        "pointer-events-auto absolute top-1/2 left-1/2 w-[min(720px,90%)] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)] overflow-y-auto "
         + "rounded-sm border border-white/15 bg-night/95 px-6 py-5 font-normal shadow-[0_12px_40px_#000a]"
       }
     >

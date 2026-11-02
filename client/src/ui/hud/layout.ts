@@ -1,26 +1,11 @@
-/**
- * Where the overworld HUD's pieces sit, in pixels, so the notices (notifications/Notices.tsx) can keep clear of
- * them.
- */
-import type { OverworldPanel } from "../state.js";
-import type { Gear } from "@infinite-tower/shared";
-import { CELL, EQUIPMENT_WIDTH_PX, GRID_FRAME_PX, INVENTORY_GAP_PX } from "./inventory/grid.js";
+import { useEffect, useState } from "react";
 
-/** PanelFrame's padding and border, left and right together. */
-const FRAME_PX = 42;
-
-export const CHARACTER_PANEL_WIDTH_PX = 336;
-/** An open pile shares the cloth's column. */
-export function inventoryPanelWidthPx({ bag, cloth, pile }: Gear): number {
-  const groundCols = Math.max(cloth.cols, pile.cols);
-  const grids = groundCols > 0 ? 2 : 1;
-  const gridsPx = (groundCols + bag.cols) * CELL + grids * (INVENTORY_GAP_PX + 2 * GRID_FRAME_PX);
-  return EQUIPMENT_WIDTH_PX + gridsPx + FRAME_PX;
+export interface Size {
+  width: number;
+  height: number;
 }
 
-/** The side panels' width on screen (PanelFrame, at the top right). */
-export const panelWidthPx = (panel: OverworldPanel, gear: Gear): number =>
-  panel === "inventory" ? inventoryPanelWidthPx(gear) : CHARACTER_PANEL_WIDTH_PX;
+export const MARGIN_PX = 16;
 
 export const CORE_CARD_LEFT_PX = 16;
 export const CORE_CARD_WIDTH_PX = 128;
@@ -28,3 +13,48 @@ export const CORE_CARD_WIDTH_PX = 128;
 /** The Rest button, bottom centre, by a campfire (OverworldHud.tsx). */
 export const REST_BUTTON_BOTTOM_PX = 32;
 export const REST_BUTTON_HEIGHT_PX = 46;
+
+// Must match PlayerBars' left-4 w-75 (300 px).
+export const STATUS = { right: 16 + 300, bottom: 88 };
+const PANEL_TOP_PX = 56;
+
+// The room that shrinks the panel least wins; the first on a tie.
+const PANEL_ROOMS = [
+  { top: PANEL_TOP_PX, left: STATUS.right + MARGIN_PX },
+  { top: STATUS.bottom + MARGIN_PX / 2, left: CORE_CARD_LEFT_PX + CORE_CARD_WIDTH_PX + MARGIN_PX },
+];
+
+export interface PanelFit {
+  top: number;
+  right: number;
+  scale: number;
+}
+
+export function fitPanel(panel: Size, view: Size): PanelFit {
+  let best: PanelFit | null = null;
+  for (const room of PANEL_ROOMS) {
+    const width = view.width - room.left - MARGIN_PX, height = view.height - room.top - MARGIN_PX;
+    const scale = Math.max(0, Math.min(1, width / panel.width, height / panel.height));
+    if (!best || scale > best.scale) best = { top: room.top, right: MARGIN_PX, scale };
+  }
+  return best!;
+}
+
+export const stacksGrids = (view: Size): boolean => view.height > view.width;
+
+const stageSize = (): Size => {
+  const stage = document.getElementById("stage");
+  return { width: stage?.clientWidth ?? innerWidth, height: stage?.clientHeight ?? innerHeight };
+};
+
+export function useStageSize(): Size {
+  const [size, setSize] = useState(stageSize);
+  useEffect(() => {
+    const stage = document.getElementById("stage");
+    if (!stage) return;
+    const observer = new ResizeObserver(() => setSize(stageSize()));
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+  return size;
+}

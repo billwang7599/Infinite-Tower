@@ -52,7 +52,7 @@ export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps
     <section
       id="chant" aria-label="Chant"
       className={
-        "pointer-events-auto absolute top-1/2 left-1/2 w-[min(640px,88%)] -translate-x-1/2 -translate-y-1/2 "
+        "pointer-events-auto absolute top-1/2 left-1/2 w-[min(640px,88%)] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)] overflow-y-auto "
         + "rounded-sm border border-white/15 bg-night/75 px-6 py-5 font-normal shadow-[0_12px_40px_#000a]"
       }
     >

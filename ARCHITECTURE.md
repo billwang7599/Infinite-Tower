@@ -511,7 +511,9 @@ main.ts
   fine. Motion comes with `motion-reduce:animate-none`.
 - **Every screen sees the same amount, at most**: 16:9 (`shared/src/overworld/view.ts`).
   `client/index.html` puts the game in a frame that wide, so wider windows get bars on the sides and taller ones see
-  a little less width.
+  a little less width. Every window fits that frame: the side panels (bag, shop, character) shrink to fit with
+  `fitPanel` (`ui/hud/layout.ts`); the others (Settings, the questbook, the chant, the skillbook, admin) scroll
+  once they reach their most height.
 
 ## Networking
 
@@ -1268,7 +1270,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        a game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
-                       (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open),
+                       (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open, its width on screen),
                        `chant`, `battleBag`, `leaveArena`, `skillbookScreen`, `admin`, `challenge`, `chat` (open,
                        focused, and the log: hearChat keeps the last CHAT_LOG_LINES), `dialogue` (who's talking,
                        their lines and the one shown, the offer: openDialogue, nextLine (past the last line, the offer
@@ -1304,15 +1306,18 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        what the stat does; chart.ts: chartPoints, the polygon's corners for any number of stats, and
                        chartMax, its rim: the most a stat could be at the step), inventory/ (the bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
-                       coins and changing them), an open pile over the cloth, and the bag, wires the
+                       coins and changing them), an open pile over the cloth, and the bag, in a row (in a window taller
+                       than it's wide, the pile and the cloth below the other two), wires the
                        mouse and the bag keys, and shows the selected item (with Sell when a shop buys it), the
                        dragged ghost and the tooltip;
                        BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
                        states as plain data, itemInfo.ts the tooltip's lines, grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
-                       box), layout.ts (the side panels' widths, the core card's and the Rest button's place, which
-                       the notices keep clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
+                       box: it measures itself and shrinks to fit the view), layout.ts (fitPanel: where a side panel
+                       goes and how far it shrinks to stay on screen and clear of the status block and the core card;
+                       stacksGrids; useStageSize; the core card's and the Rest button's place, which the notices
+                       keep clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
       chat/            Chat.tsx (the chat, bottom left in both modes, above the core card: the log's last lines,
                        or, open, all of it and the field it's typed in; / opens it or focuses it again, Enter sends,
                        Esc closes; unfocused, the field is dimmed with "Press / to chat", the key read from the
@@ -1692,7 +1697,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
 | The core: the realms and steps, each step's fill, what a step gives (stats, free points) | `shared/src/soul/core.ts` (`CORE`, `REALMS`, `STEP_NAMES`) |
 | What each stat does: HP and stamina per point, defenses, HP regen and its pause, the carry limit | `shared/src/battle/stats.ts` |
-| The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `CHARACTER_PANEL_WIDTH_PX` in `client/src/ui/hud/layout.ts` |
+| The stats chart: its size, where the names sit, its rings; the character panel's width | `client/src/ui/hud/character/chart.ts`; `WIDTH_PX` in `client/src/ui/hud/character/CharacterPanel.tsx` |
 | How the core's sphere looks: each realm's colours and light, the light's size and brightness by step, its breath, when sparks start, a breakthrough's timing, how long the card shows it | `REALM_LOOKS`, `LIGHT`, `SPARKS_FROM` in `client/src/gfx/core/light.ts`; `BREAKTHROUGH`, `BREATH_TIME` in `client/src/gfx/core/sphere.ts`; `BREAKTHROUGH_SHOWN_MS` in `client/src/ui/hud/CoreCard.tsx` |
 | Each monster's essence: its worth and how long it takes to absorb | `shared/src/items/items.ts` (`essence`, `ABSORB_TIME`); who drops it in `server/src/core/enemies/<id>.ts` |
 | Enemy stats, attacks, sidesteps, keeping away, what and how it casts, drops, overworld wandering and chasing | `server/src/core/enemies/<id>.ts` |

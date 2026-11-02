@@ -64,6 +64,7 @@ export function OverworldHud(props: OverworldHudProps) {
   const interaction = useStore(hud, (s) => s.interaction);
   const shop = useStore(props.shop, (s) => s.view);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
+  const shownWidth = (widthPx: number) => panels.set({ widthPx });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
   });
@@ -95,12 +96,15 @@ export function OverworldHud(props: OverworldHudProps) {
       </div>
       <InteractButton interaction={interaction} interact={interact} />
       <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
-      {panel === "character" && <CharacterPanel hud={hud} statPoint={props.statPoint} close={close} />}
+      {panel === "character" && (
+        <CharacterPanel hud={hud} statPoint={props.statPoint} close={close} shownWidth={shownWidth} />
+      )}
       {panel === "inventory" && (
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
           use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
           close={close} trade={shop && { shop, buy: props.buy, sell: props.sell, exchange: props.exchange }}
+          shownWidth={shownWidth}
         />
       )}
       {panel === "inventory" && bookOpen && (
