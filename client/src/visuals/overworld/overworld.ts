@@ -1,13 +1,13 @@
 import { Vector3 } from "@babylonjs/core";
 import { dampFactor, wrapAngle, type LevelLayout } from "@infinite-tower/shared";
 import { OverworldPos } from "../../modes/overworld/components.js";
+import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
 import type { OverworldScene } from "./scene.js";
 import { buildLevel, type LevelDrawing } from "./terrain.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
-const CAMERA_TURN_TIME = 0.25;
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
   let level: { layout: LevelLayout; drawing: LevelDrawing } | null = null;

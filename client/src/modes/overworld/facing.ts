@@ -26,11 +26,19 @@ export function mapMove(keys: { x: number; z: number }, turns: number): { x: num
   }
 }
 
+// Counted on past a full turn, so the compass slides the short way round.
+export function unwrapTurns(previous: number, turns: number): number {
+  const ahead = quarter(turns - previous);
+  return previous + (ahead > OVERWORLD_CAMERA_ANGLES / 2 ? ahead - OVERWORLD_CAMERA_ANGLES : ahead);
+}
+
 export const facingOnScreen = (heading: Heading, turns: number): Facing =>
   FACINGS[quarter(HEADINGS.indexOf(heading) - turns)]!;
 
 /** -1 to mirror a picture drawn facing right (the side views), 1 for every other way. */
 export const mirrorFor = (facing: Facing): 1 | -1 => (facing === "left" ? -1 : 1);
+
+export const CAMERA_TURN_TIME = 0.25;
 
 // The camera's angle above the ground, looking at you: straight down would be π/2.
 export const CAMERA_PITCH = {

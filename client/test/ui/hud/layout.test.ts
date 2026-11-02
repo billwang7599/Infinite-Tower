@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { COMPASS } from "../../../src/ui/hud/compassMarks.js";
 import {
-  CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX, fitPanel, MARGIN_PX, STATUS, stacksGrids, type Size,
+  CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX, fitCompass, fitPanel, MARGIN_PX, STATUS, stacksGrids, TOP_RIGHT,
+  type Size,
 } from "../../../src/ui/hud/layout.js";
 
 const SCREENS: Size[] = [
@@ -40,5 +42,27 @@ describe("stacksGrids", () => {
   test("only in a window taller than it's wide", () => {
     assert.equal(stacksGrids({ width: 900, height: 1200 }), true);
     assert.equal(stacksGrids({ width: 1280, height: 720 }), false);
+  });
+});
+
+describe("fitCompass", () => {
+  test("in the top row, centred, when it fits between the status block and the top-right buttons", () => {
+    assert.ok(fitCompass({ width: 1920, height: 1080 }).top < TOP_RIGHT.bottom);
+    assert.ok(fitCompass({ width: 1366, height: 768 }).top < TOP_RIGHT.bottom);
+  });
+
+  test("a 1366 x 657 window's 16:9 view keeps it just under the top row, not under the status block", () => {
+    assert.equal(fitCompass({ width: 1168, height: 657 }).top, TOP_RIGHT.bottom + MARGIN_PX / 2);
+  });
+
+  test("on every screen, it's on it and clear of the status block and the top-right buttons", () => {
+    for (const view of SCREENS) {
+      const { top } = fitCompass(view);
+      const left = (view.width - COMPASS.widthPx) / 2, right = left + COMPASS.widthPx;
+      const where = `${view.width}x${view.height}`;
+      assert.ok(left >= MARGIN_PX && top + COMPASS.heightPx <= view.height, where);
+      assert.ok(left >= STATUS.right + MARGIN_PX || top >= STATUS.bottom, where);
+      assert.ok(right <= view.width - MARGIN_PX - TOP_RIGHT.widthPx - MARGIN_PX || top >= TOP_RIGHT.bottom, where);
+    }
   });
 });

@@ -57,6 +57,8 @@ export interface OverworldHudState {
   interaction: Interaction | null;
   gear: Gear;
   using: UseSpot | null;
+  /** The camera's quarter turns right from north, unwrapped. */
+  cameraTurns: number;
 }
 
 export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look";
@@ -207,7 +209,7 @@ export class UiState {
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
   readonly overworld = new Store<OverworldHudState>({
     levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, byFire: false,
-    character: null, interaction: null, using: null,
+    character: null, interaction: null, using: null, cameraTurns: 0,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },

@@ -16,10 +16,13 @@ import type {
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
+import { COMPASS } from "./compassMarks.js";
+import { Compass } from "./Compass.js";
 import { HudLayer } from "./HudLayer.js";
 import { BagIcon, BookIcon, GearIcon, PersonIcon } from "./icons.js";
 import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { InteractButton } from "./InteractButton.js";
+import { fitCompass, MARGIN_PX, useStageSize } from "./layout.js";
 import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
@@ -65,6 +68,7 @@ export function OverworldHud(props: OverworldHudProps) {
   const shop = useStore(props.shop, (s) => s.view);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
   const shownWidth = (widthPx: number) => panels.set({ widthPx });
+  const compassTop = fitCompass(useStageSize()).top;
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
   });
@@ -78,6 +82,7 @@ export function OverworldHud(props: OverworldHudProps) {
   return (
     <HudLayer id="overworld-hud">
       <PlayerStatus hud={hud} />
+      <Compass hud={hud} top={compassTop} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <LevelName hud={hud} />
         <Ping ping={props.ping} hud={props.hudSettings} />
@@ -95,7 +100,10 @@ export function OverworldHud(props: OverworldHudProps) {
         </HudButton>
       </div>
       <InteractButton interaction={interaction} interact={interact} />
-      <ChallengeNotice challenge={props.challenge} input={input} answer={props.answerChallenge} />
+      <ChallengeNotice
+        challenge={props.challenge} input={input} answer={props.answerChallenge}
+        top={Math.max(CHALLENGE_TOP_PX, compassTop + COMPASS.heightPx + MARGIN_PX)}
+      />
       {panel === "character" && (
         <CharacterPanel hud={hud} statPoint={props.statPoint} close={close} shownWidth={shownWidth} />
       )}
@@ -130,10 +138,13 @@ function PlayerStatus({ hud }: HudProps) {
   );
 }
 
+const CHALLENGE_TOP_PX = 96;
+
 interface ChallengeNoticeProps {
   challenge: Store<{ from: string | null }>;
   input: Actions;
   answer: (accept: boolean) => void;
+  top: number;
 }
 
 function ChallengeNotice(props: ChallengeNoticeProps) {
@@ -145,9 +156,9 @@ function ChallengeNotice(props: ChallengeNoticeProps) {
   if (from === null) return null;
   return (
     <div
-      id="challenge-notice"
+      id="challenge-notice" style={{ top: props.top }}
       className={
-        "pointer-events-auto absolute top-24 left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
+        "pointer-events-auto absolute left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
         + "bg-black/75 px-5 py-3 text-center"
       }
     >

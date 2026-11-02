@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { COMPASS } from "./compassMarks.js";
 
 export interface Size {
   width: number;
@@ -17,6 +18,18 @@ export const REST_BUTTON_HEIGHT_PX = 46;
 // Must match PlayerBars' left-4 w-75 (300 px).
 export const STATUS = { right: 16 + 300, bottom: 88 };
 const PANEL_TOP_PX = 56;
+
+// The level's name, the ping and the four buttons: 454 px measured with "Highmere: Castle Ward".
+export const TOP_RIGHT = { top: 12, bottom: 12 + 36, widthPx: 470 };
+
+export function fitCompass(view: Size): { top: number } {
+  const left = (view.width - COMPASS.widthPx) / 2, right = left + COMPASS.widthPx;
+  const clearOfStatus = left >= STATUS.right + MARGIN_PX;
+  if (clearOfStatus && right <= view.width - TOP_RIGHT.widthPx - 2 * MARGIN_PX) {
+    return { top: TOP_RIGHT.top + (TOP_RIGHT.bottom - TOP_RIGHT.top - COMPASS.heightPx) / 2 };
+  }
+  return { top: (clearOfStatus ? TOP_RIGHT.bottom : Math.max(STATUS.bottom, TOP_RIGHT.bottom)) + MARGIN_PX / 2 };
+}
 
 // The room that shrinks the panel least wins; the first on a tie.
 const PANEL_ROOMS = [

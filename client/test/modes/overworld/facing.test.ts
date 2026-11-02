@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { faceToward, type Heading } from "@infinite-tower/shared";
 import {
-  CAMERA_PITCH, facingOnScreen, headingFromSide, mapMove, mirrorFor, tiltCamera,
+  CAMERA_PITCH, facingOnScreen, headingFromSide, mapMove, mirrorFor, tiltCamera, unwrapTurns,
 } from "../../../src/modes/overworld/facing.js";
 
 describe("headingFromSide: the server's side (1 east, -1 west) for actors seen only from the side", () => {
@@ -82,5 +82,15 @@ describe("tiltCamera: Up / Down tilt the overworld camera, held, and it stays wh
     assert.equal(tiltCamera(startRad, 1, 100), maxRad);
     assert.equal(tiltCamera(startRad, -1, 100), minRad);
     assert.ok(maxRad < Math.PI / 2 && minRad > 0 && minRad < startRad && startRad < maxRad);
+  });
+});
+
+describe("unwrapTurns: the camera's turns for the compass", () => {
+  test("keeps counting past a full turn, so the strip slides the short way", () => {
+    assert.equal(unwrapTurns(3, 0), 4);
+    assert.equal(unwrapTurns(0, 3), -1);
+    assert.equal(unwrapTurns(-1, 2), -2);
+    assert.equal(unwrapTurns(5, 1), 5);
+    assert.equal(unwrapTurns(5, 2), 6);
   });
 });
