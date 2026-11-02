@@ -540,7 +540,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   - A point is still placed or taken back at once, with no confirm step. Hovering + or − shows the polygon after it
     (dashed) and the stat's effect now and after; hovering a stat shows what it does under the chart (the list's
     lines are gone otherwise).
-  - The character panel is wider for it: 336 px (was 288).
+  - The character panel is wider for it: 680 px now, with tabs (below).
 - The sphere HUD (the user: "just make it. assume whatever you want"; only checked in a headless browser):
   - It follows the mockups the user saw: a smoky pixel-art glass sphere, 64 pixels shown at 2x, dithered to 8 shades,
     lit from the top left, its glass clearing realm by realm. Each realm's light has its own shape and colour: Yan a
@@ -729,7 +729,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     unique its player doesn't hold loses it. Removing it frees it.
   - The rings: one per inscription round the sphere, tilted, the far half behind the glass, tinted by the sigil's
     rarity, a glint running round; packed closer the more there are (`RINGS` in `client/src/gfx/core/sphere.ts`).
-    The character panel lists them under the chart with what each does; the fight's HUD shows each as a status tile
+    The character panel's Core tab lists them with what each does; the fight's HUD shows each as a status tile
     with no timer.
 - Blessings, built (the user's rules above; every pick here is the agent's, tried by tests only, not hand-played;
   numbers in FORMULAS.md, "Blessings"):
@@ -741,8 +741,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   - Three gods bless, each a permanent status in the shared fight: Kaelith's Edge (damage dealt × 1.1), Brannoc's
     Anvil (damage taken × 0.9, knockback × 0.5), Haldis's Hearth (stamina refill × 1.2). The other nine have none
     yet.
-  - A corner notice says your faith grows (no number) and names a blessing as it comes; the character panel lists
-    each god you have faith with (n / 100) and what their blessing does. A fight's HUD shows a blessing as a tile.
+  - A corner notice says your faith grows (no number) and names a blessing as it comes; the character panel's
+    Relationships tab shows your faith with each god and what their blessing does. A fight's HUD shows a blessing as a
+    tile.
+- The character panel's tabs (the user: "a relationship tab. and faith is one of the tabs", "a bigger view of the
+  core with the ring stuff and engravings within a tab", "make the character state menu bigger"; the layout is the
+  agent's, checked in a headless browser at 1366x768 and 1920x1080, not hand-played): 680 px wide, the same height on
+  every tab, clicked with the mouse (no keys). Stats: the portrait, the step and free points beside a bigger chart.
+  Core: the sphere at 5x with its rings, and the rings listed with their rarity, what each does and the slots used.
+  Relationships has sub-tabs, only Gods for now: all twelve gods, each with a faith bar to 100 and their blessing's
+  effect once it's on. NPC relationships aren't decided, so there's no tab for them. The panel opens on Stats.
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.

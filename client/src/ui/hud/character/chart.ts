@@ -1,7 +1,7 @@
 import { coreStats, pointsEarned, SHOWN_STATS, type CoreState } from "@infinite-tower/shared";
 
-export const CHART_RADIUS_PX = 64;
-export const LABEL_RADIUS_PX = 76;
+export const CHART_RADIUS_PX = 100;
+export const LABEL_RADIUS_PX = 116;
 export const CHART_RINGS = 4;
 
 export function chartPoints(values: readonly number[], max: number, radiusPx: number): [number, number][] {

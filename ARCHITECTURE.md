@@ -348,7 +348,7 @@ main.ts
   (`npcs/carver.ts`, the Market Ward) offers `{ shop: "collegium" }`, its `ShopView` has `carving`, and `carve` (a
   sigil's spot) or `uncarve` (an id) pay coins as a shop does and essences, any kind, cheapest first, off the cloth
   then the bag. The answer is a `trade` and, through `takeCore`, a `core`. The sphere draws a ring round the glass for
-  each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel lists them.
+  each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel's Core tab lists them.
 - **Blessings** (`shared/src/soul/blessings.ts`; [FORMULAS.md](FORMULAS.md#blessings)): the session's `faith`, a
   number per god (`GODS`), saved with the player. A quest step's `reward.faith` adds to it as the story unfolds
   (`unfold`, then `GameSession.gainFaith`), and so does the admin's `faith` cheat; each change sends `faith` (all of it,
@@ -1419,13 +1419,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left in both
                        modes, under the chat: your portrait and name, turned by a click, or on a breakthrough for its
-                       moment, to your core, gfx/core/'s sphere painted at most 30 times a second while it shows, and
+                       moment, to your core, gfx/core/'s sphere painted while it shows, and
                        the realm and step), character/ (CharacterPanel.tsx: the
+                       panel and its tabs, from panelTabs.ts's tables, drawn by Tabs.tsx; StatsTab.tsx: the
                        portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
                        between − (only by a campfire) and + for free points, hovering them previewing the change and
-                       what the stat does, then its rings and your faith; chart.ts: chartPoints, the polygon's
-                       corners for any number of stats, and chartMax, its rim: the most a stat could be at the
-                       step), inventory/ (the bag screen:
+                       what the stat does; CoreTab.tsx: the sphere big, with its rings, and the rings listed;
+                       RelationshipsTab.tsx: its sub-tabs, so far only Gods, your faith with each; chart.ts:
+                       chartPoints, the polygon's corners for any number of stats, and chartMax, its rim: the most a
+                       stat could be at the step), paintSphere.ts (usePaintedSphere: a sphere painted onto a canvas
+                       at most 30 times a second, for the card and the Core tab), inventory/ (the bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
                        coins and changing them; at the Collegium your rings and Unmake), an open pile over the
                        cloth, and the bag, in a row (in a window taller than it's wide, the pile and the cloth below
