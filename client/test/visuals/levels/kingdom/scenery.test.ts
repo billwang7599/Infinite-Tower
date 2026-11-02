@@ -17,7 +17,8 @@ const ROWS = [
   "WWWWWWWWWWWWWWWWWWWW",
 ];
 const LEVEL: LevelLayout = {
-  id: "test-town", name: "Test Town", theme: "kingdom", playerSpeed: 5, tiles: ROWS, campfires: [], npcs: [], traces: [],
+  id: "test-town", name: "Test Town", theme: "kingdom", playerSpeed: 5, tiles: ROWS,
+  campfires: [], npcs: [], traces: [], pads: [],
 };
 const { halfWidth: L, halfDepth: D } = mapHalfSize(LEVEL);
 const STALLS: TileKind[] = ["foodStall", "potionStall", "changerStall", "forge"];

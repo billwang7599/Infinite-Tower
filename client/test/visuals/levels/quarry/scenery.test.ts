@@ -18,7 +18,7 @@ const ROWS = [
 ];
 const LEVEL: LevelLayout = {
   id: "test-quarry", name: "Test Quarry", floor: 1, theme: "quarry", playerSpeed: 5, tiles: ROWS, campfires: [],
-  npcs: [], traces: [],
+  npcs: [], traces: [], pads: [],
 };
 const { halfWidth: L, halfDepth: D } = mapHalfSize(LEVEL);
 const MAP = { x: -L, z: -D, w: L * 2, h: D * 2 };

@@ -63,7 +63,6 @@ export const MARKET_WARD: LevelDef = {
     campfires: [],
   },
   spawn: { x: 0, z: 7 },
-  wakeIn: "kingdom",
   arenaId: GRASS_FIELD_ARENA.id,
   duelArenaId: KOBOLD_RUINS_ARENA.id,
   spawns: [],

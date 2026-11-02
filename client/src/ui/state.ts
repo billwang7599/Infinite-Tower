@@ -61,7 +61,7 @@ export interface OverworldHudState {
   cameraTurns: number;
 }
 
-export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look";
+export type Interaction = "rest" | "joinFight" | "openPile" | "talk" | "look" | "bindPad";
 
 export interface BattleHudState {
   hpFraction: number;

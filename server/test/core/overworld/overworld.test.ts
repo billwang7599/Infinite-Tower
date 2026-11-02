@@ -11,7 +11,7 @@ const EMPTY_LEVEL: LevelDef = { ...TEST_LEVEL, spawns: [] };
 
 function overworldIn(level: LevelDef = EMPTY_LEVEL): { overworld: Overworld; me: Entity } {
   const overworld = new Overworld(level);
-  return { overworld, me: overworld.join(TEST_CHARACTER, () => assert.fail("no encounter expected")) };
+  return { overworld, me: overworld.join(TEST_CHARACTER, "kingdom", () => assert.fail("no encounter expected")) };
 }
 
 function sendInputs({ overworld, me }: { overworld: Overworld; me: Entity }, count: number, firstSeq = 1): void {
@@ -136,7 +136,7 @@ describe("Overworld players", () => {
 
   test("players walk on their own inputs", () => {
     const { overworld, me } = overworldIn();
-    const other = overworld.join(TEST_CHARACTER, () => {});
+    const other = overworld.join(TEST_CHARACTER, "kingdom", () => {});
     overworld.input(other, 1, 0, 1);
     overworld.step(FIXED_DT);
     assert.deepEqual(overworld.playerPos(me), EMPTY_LEVEL.spawn);

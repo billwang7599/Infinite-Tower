@@ -3,12 +3,12 @@ import {
   bagCounts, HEADING_WAY, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
   type System, type Vec2,
 } from "@infinite-tower/shared";
-import type { LevelDef, SpawnDef } from "../world/level.js";
+import { hasPad, type LevelDef, type SpawnDef } from "../world/level.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";
 import { touchSystem } from "./behaviors/touch.js";
 import { wanderSystem } from "./behaviors/wander.js";
-import { OverworldPlayer, OverworldPos, Pile, type OverworldPlayerData } from "./components.js";
+import { OverworldPlayer, OverworldPos, Pile, SummoningPad, type OverworldPlayerData } from "./components.js";
 import type { OverworldContext } from "./context.js";
 import { inViewWithSlack } from "./interact.js";
 import { packPile, PILE_LIFETIME_MS, pileSystem } from "./piles.js";
@@ -30,12 +30,17 @@ export class Overworld implements OverworldContext {
       (world, dt) => this.spawner.system(world, dt), pileSystem,
     ];
     this.spawner = new Spawner(this.world, level.spawns);
+    if (hasPad(level)) {
+      const pad = this.world.spawn();
+      this.world.add(pad, OverworldPos, { ...level.spawn });
+      this.world.add(pad, SummoningPad, { level: level.layout.id });
+    }
   }
 
-  join(character: Character, onEncounter: OnEncounter, at: Vec2 = this.level.spawn): Entity {
+  join(character: Character, pad: string, onEncounter: OnEncounter, at: Vec2 = this.level.spawn): Entity {
     const player = this.world.spawn();
     this.world.add(player, OverworldPos, { x: at.x, z: at.z });
-    this.world.add(player, OverworldPlayer, newWalk(character));
+    this.world.add(player, OverworldPlayer, newWalk(character, pad));
     this.onEncounter.set(player, onEncounter);
     return player;
   }
@@ -137,6 +142,16 @@ export class Overworld implements OverworldContext {
   pileInView(player: Entity): Entity | null {
     const piles = [...this.world.query(Pile, OverworldPos)].map(([pile, , pos]) => ({ pile, x: pos.x, z: pos.z }));
     return this.inView(player, piles)?.pile ?? null;
+  }
+
+  padInView(player: Entity): string | null {
+    const pads = [...this.world.query(SummoningPad, OverworldPos)]
+      .map(([, pad, pos]) => ({ level: pad.level, x: pos.x, z: pos.z }));
+    return this.inView(player, pads)?.level ?? null;
+  }
+
+  get pads(): Vec2[] {
+    return [...this.world.query(SummoningPad, OverworldPos)].map(([, , pos]) => ({ x: pos.x, z: pos.z }));
   }
 
   inView<T extends Vec2>(player: Entity, things: readonly T[]): T | null {

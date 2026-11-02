@@ -22,7 +22,8 @@ What's built so far:
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
 - **Overworld:** new characters wake in Highmere, the Door City of the Empire of Aurevaine, on the great summoning
-  platform of its castle's hall, where the court herald greets them and explains; dying anywhere wakes you there again.
+  platform of its castle's hall, where the court herald greets them and explains. Interact by any summoning pad binds
+  you to it: you log in there and wake there after dying.
   The city is two maps joined by the castle gate: the Castle Ward (the hall, King Osric's throne room, the barracks with
   Bram's training yard (below), the courtyard and the garden) and below it the much bigger Market Ward (a square with a
   food stall, a potion stall, a forge and a money changer, each with its keeper, the Gilded Door tavern, streets of

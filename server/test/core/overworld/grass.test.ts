@@ -23,7 +23,7 @@ function overworldWithRandom(t: TestContext, random: number, level = LEVEL): Set
   const encounters: Setup["encounters"] = [];
   const queuedAtEncounter: number[] = [];
   const overworld = new Overworld(level);
-  const me = overworld.join(TEST_CHARACTER, (source, enemy) => {
+  const me = overworld.join(TEST_CHARACTER, "kingdom", (source, enemy) => {
     encounters.push({ source, enemy });
     queuedAtEncounter.push(overworld.playerData(me).queue.length);
   });

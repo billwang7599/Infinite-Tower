@@ -11,7 +11,7 @@ import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getArena, getLevel } from "../../../src/core/world/index.js";
 import { findBoar, HOLLOW, startSession, tick } from "./helpers.js";
 import { armed } from "../../fixtures/fight.js";
 
@@ -90,7 +90,7 @@ describe("starting a battle", () => {
   const ARENA_SPAWN = FIELD.spawns.find((s) => s.arenaId !== undefined)!;
 
   test("an actor whose spawn names an arena is fought there", () => {
-    const { session, link } = startSession({ saved: { level: FIELD.layout.id } });
+    const { session, link } = startSession({ saved: { pad: FIELD.layout.id } });
     const found = [...session.overworld.world.query(OverworldActor)].find(([, a]) => a.kind === ARENA_SPAWN.enemy);
     assert.ok(found);
     session.overworld.startEncounter(session.me, found[0], ARENA_SPAWN.enemy);
@@ -104,7 +104,7 @@ describe("starting a battle", () => {
   });
 
   test("a dev fight against an enemy is held in the arena of its spawn", () => {
-    const { session, link } = startSession({ dev: true, saved: { level: FIELD.layout.id } });
+    const { session, link } = startSession({ dev: true, saved: { pad: FIELD.layout.id } });
     session.cheat({ kind: "encounter", enemy: ARENA_SPAWN.enemy });
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
@@ -211,7 +211,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(session.bag, CARRIED);
   });
 
-  test("a loss (the boar wins) empties the bag, refills HP, wakes the player on the start pad, and saves", () => {
+  test("a loss (the boar wins) empties the bag, refills HP, wakes the player on their pad, and saves", () => {
     const { session, link, saves } = inBattle(CARRIED, { hp: 1, stamina: 40 });
     session.overworld.place(session.me, { x: 3, z: 3 });
     play(session, () => IDLE_INPUT);
@@ -222,7 +222,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(result.gear.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
-    assert.deepEqual(result.me, getLevel(START_LEVEL).spawn);
+    assert.deepEqual(result.me, getLevel(session.pad).spawn);
     assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, result.gear.bag);

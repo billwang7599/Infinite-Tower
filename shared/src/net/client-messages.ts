@@ -130,6 +130,7 @@ const CharacterMsg = z.object({
 }) satisfies z.ZodType<{ t: "character"; character: Character }>;
 
 const RestMsg = z.object({ t: z.literal("rest") });
+const BindPadMsg = z.object({ t: z.literal("bindPad") });
 
 const UseItemMsg = z.object({ t: z.literal("useItem"), at: UseSpotSchema });
 
@@ -189,7 +190,7 @@ export type Cheat = z.infer<typeof CheatSchema>;
 const CheatMsg = z.object({ t: z.literal("cheat"), cheat: CheatSchema });
 
 export const ClientMsg = z.discriminatedUnion("t", [
-  InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, UseItemMsg,
+  InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, BindPadMsg, UseItemMsg,
   MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, TrainMsg, AcceptQuestMsg, DeliverMsg, SaveSkillMsg, PingMsg, CheatMsg,
   ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg, StatPointMsg, OpenShopMsg, BuyMsg, SellMsg, ExchangeMsg,
 ]);

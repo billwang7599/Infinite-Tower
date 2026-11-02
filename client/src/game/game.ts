@@ -348,6 +348,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         overworld.setVitals(msg.vitals);
         say(ui.notifications, { kind: "rested" });
       });
+      net.on("padBound", ({ already }) => say(ui.notifications, { kind: "padBound", already }));
       net.on("using", ({ at }) => ui.overworld.set({ using: at }));
       net.on("itemUsed", (msg) => {
         ui.overworld.set({ using: null });

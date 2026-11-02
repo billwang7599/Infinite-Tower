@@ -16,10 +16,10 @@ export function queueInput(walk: OverworldPlayerData, input: QueuedInput): void 
   if (walk.queue.length < MAX_QUEUED_INPUTS) walk.queue.push(input);
 }
 
-export function newWalk(character: Character): OverworldPlayerData {
+export function newWalk(character: Character, pad: string): OverworldPlayerData {
   return {
     character, queue: [], lastSeq: 0, credits: 0, ack: 0, grassDist: 0, safeTime: 0, pace: 1, vx: 0, vz: 0,
-    heading: START_HEADING, fighting: false,
+    heading: START_HEADING, fighting: false, pad,
   };
 }
 

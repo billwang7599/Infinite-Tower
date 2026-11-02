@@ -14,7 +14,7 @@ import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { getLevel, loginLevel, START_LEVEL } from "../world/index.js";
+import { getLevel, wakeLevel } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -78,6 +78,8 @@ export class GameSession {
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
   private levelId: string;
+  /** While they walk a level, their walker's `pad` is the one that counts. */
+  private offLevelPad: string;
   private wasReset = false;
 
   constructor(
@@ -99,7 +101,8 @@ export class GameSession {
     this.skillbook = saved.skillbook;
     this.story = saved.story;
     this.shopsBought = saved.shopsBought;
-    this.levelId = loginLevel(saved.level);
+    this.offLevelPad = wakeLevel(saved.pad);
+    this.levelId = this.offLevelPad;
     this.soul = saved.core;
   }
 
@@ -173,11 +176,15 @@ export class GameSession {
     if (this.levelId !== this.overworld.level.layout.id) this.enterLevel(this.levelId);
   }
 
-  /** Dead: back to the start level's platform, at once if they fell there, else as they leave the arena. */
+  get pad(): string {
+    return this.walking ? this.overworld.playerData(this.me).pad : this.offLevelPad;
+  }
+
+  /** Dead: back to their pad, at once if they fell on its level, else as they leave the arena. */
   wakeOnPad(): Vec2 {
-    this.levelId = START_LEVEL;
-    const { spawn } = getLevel(START_LEVEL);
-    if (this.overworld.level.layout.id === START_LEVEL) this.overworld.place(this.me, spawn);
+    this.levelId = this.pad;
+    const { spawn } = getLevel(this.pad);
+    if (this.overworld.level.layout.id === this.pad) this.overworld.place(this.me, spawn);
     return spawn;
   }
 
@@ -185,6 +192,7 @@ export class GameSession {
   disconnect(): void {
     const battle = this.battle;
     if (battle) battle.room.leave(battle.seat);
+    this.offLevelPad = this.pad;
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
     this.save();
@@ -233,6 +241,16 @@ export class GameSession {
       this.save();
     }
     this.link.send({ t: "rested", vitals: this.vitals });
+  }
+
+  bindPad(): void {
+    if (!this.inOverworld) return;
+    const pad = this.overworld.padInView(this.me);
+    if (pad === null) return;
+    const walk = this.overworld.playerData(this.me), already = walk.pad === pad;
+    walk.pad = pad;
+    if (!already) this.save();
+    this.link.send({ t: "padBound", already });
   }
 
   useItem(at: UseSpot): void {
@@ -355,7 +373,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      story: this.story, level: this.levelId, core: this.core, shopsBought: this.shopsBought,
+      story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought,
     });
   }
 
@@ -491,17 +509,20 @@ export class GameSession {
 
   private enterLevel(id: string, at?: Vec2): void {
     if (!this.character) return;
+    const { pad } = this;
     if (this.walking) {
       this.closeBag();
       this.walking.overworld.leave(this.walking.me);
     }
     const overworld = this.overworldOf(id);
-    const me = overworld.join(this.character, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), at);
+    const me = overworld.join(
+      this.character, pad, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), at,
+    );
     this.walking = { overworld, me };
     this.levelId = id;
     this.introduced.clear();
     this.gear = this.held;
-    const level = { ...overworld.level.layout, ...placeFor(this, id) };
+    const level = { ...overworld.level.layout, ...placeFor(this, id), pads: overworld.pads };
     const next = [...new Set(overworld.level.exits.map((e) => e.to))].map((to) => getLevel(to).layout);
     this.link.send({ t: "level", level, me: overworld.playerPos(me), next });
   }

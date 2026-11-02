@@ -17,7 +17,7 @@ before(() => initPhysics());
 
 const NPC = stopFor(newStory(), NPCS.hollis)!;
 const start = (opts: Parameters<typeof startSession>[0] = {}) =>
-  startSession({ ...opts, saved: { level: NPC.level, ...opts.saved } });
+  startSession({ ...opts, saved: { pad: NPC.level, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
 const NOBODY_THERE = Object.keys(LEVELS).find((id) => id !== NPC.level && NPC_IDS.every((npc) => {
   const stop = stopFor(newStory(), NPCS[npc])!;
@@ -42,13 +42,13 @@ const on = (id: string, stepId: string | null): Story =>
 describe("talking to an NPC", () => {
   test("it's sent with the level its stop is on for this player, and not with another", () => {
     const hollisOn = (level: string) =>
-      start({ saved: { level } }).link.last("level").level.npcs.filter((n) => n.npc === "hollis");
+      start({ saved: { pad: level } }).link.last("level").level.npcs.filter((n) => n.npc === "hollis");
     assert.deepEqual(hollisOn(NPC.level), [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
     assert.deepEqual(hollisOn(NOBODY_THERE), []);
   });
 
   test("on another level, the same spot says nothing", () => {
-    const { session, link } = start({ saved: { level: NOBODY_THERE } });
+    const { session, link } = start({ saved: { pad: NOBODY_THERE } });
     standBy(session, 1);
     session.talk();
     assert.equal(link.all("dialogue").length, 0);

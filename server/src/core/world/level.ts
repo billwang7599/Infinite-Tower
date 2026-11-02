@@ -1,5 +1,5 @@
 /** A level. Only `layout` is sent to the client; the rest stays here so a player can't read or change it. */
-import type { EnemyId, LevelMap, Rect, Vec2 } from "@infinite-tower/shared";
+import { tileAt, type EnemyId, type LevelMap, type Rect, type Vec2 } from "@infinite-tower/shared";
 
 export interface SpawnDef {
   enemy: EnemyId;
@@ -28,10 +28,8 @@ export interface ExitDef {
 
 export interface LevelDef {
   layout: LevelMap;
-  /** Where you appear when you enter other than through an exit. */
+  /** Where you appear when you enter other than through an exit: the middle of its summoning pad, if it has one. */
   spawn: Vec2;
-  /** It has no summoning pad: a player saved here logs in at that level's start. */
-  wakeIn?: string;
   arenaId: string;
   duelArenaId: string;
   /** Overworld actors, spawned when the level loads and respawned after they are defeated. */
@@ -49,3 +47,5 @@ export function rollEnemy(table: EncounterTable, rng: () => number): EnemyId {
   for (const e of table.enemies) if ((r -= e.weight) < 0) return e.enemy;
   return table.enemies[table.enemies.length - 1]!.enemy;
 }
+
+export const hasPad = (level: LevelDef): boolean => tileAt(level.layout, level.spawn.x, level.spawn.z) === "pad";

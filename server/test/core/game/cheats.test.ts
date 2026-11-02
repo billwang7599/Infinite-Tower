@@ -241,7 +241,7 @@ describe("resetSave", () => {
   const SETTINGS = { camera: { sensitivity: 2 } };
   const played = (): PlayerSave => ({
     ...newPlayer(), character: TEST_CHARACTER, settings: SETTINGS, vitals: { ...HURT }, wins: 5,
-    bag: bagWith({ "boar-meat": 3 }), shopsBought: ["grocer"], level: "grass-field", knownWords: ["bolt"],
+    bag: bagWith({ "boar-meat": 3 }), shopsBought: ["grocer"], pad: "grass-field", knownWords: ["bolt"],
     story: { quests: { [Object.keys(QUESTS)[0]!]: { step: null, kills: 0 } }, flags: ["x"] },
     core: coreAtStep(newCore(), 3),
   });

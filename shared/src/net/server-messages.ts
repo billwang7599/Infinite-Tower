@@ -148,6 +148,7 @@ export type ServerMsg =
   | { t: "itemUsed"; item: ItemId; vitals: Vitals; gear: Gear }
   | { t: "gear"; gear: Gear }
   | { t: "rested"; vitals: Vitals }
+  | { t: "padBound"; already: boolean }
   | { t: "core"; core: CoreState; vitals: Vitals; brokeThrough: boolean }
   | { t: "dialogue"; npc: NpcId; trace: boolean; lines: readonly string[]; offer: DialogueOffer | null }
   | { t: "questbook"; quests: QuestView[]; news: QuestNews[] }

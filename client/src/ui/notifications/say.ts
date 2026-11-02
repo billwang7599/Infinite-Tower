@@ -18,6 +18,7 @@ export type GameEvent =
   | { kind: "joinRefused"; reason: ServerMsgOf<"joinRefused">["reason"] }
   | { kind: "challenge"; news: ChallengeNews }
   | { kind: "rested" }
+  | { kind: "padBound"; already: boolean }
   | { kind: "itemUsed"; item: ItemId }
   | { kind: "tooWeak"; item: WeaponId }
   | { kind: "leftOnCloth"; items: ItemCounts }
@@ -49,6 +50,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   joinRefused:  { where: "corner", lines: ({ reason }) => [JOIN_REFUSED[reason]] },
   challenge:    { where: "corner", lines: ({ news }) => challengeLines(news) },
   rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
+  padBound:     { where: "corner", lines: ({ already }) => [already ? PAD_ALREADY : PAD_BOUND] },
   itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
   tooWeak:      { where: "corner", lines: ({ item }) => [tooWeakLine(item)] },
   leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
@@ -72,6 +74,9 @@ export function say(to: Notifications, event: GameEvent): void {
     else to.notify(line);
   }
 }
+
+const PAD_BOUND = "You're bound to this summoning pad: you'll wake here when you die or come back.";
+const PAD_ALREADY = "You're already bound to this summoning pad.";
 
 const JOIN_REFUSED: Record<ServerMsgOf<"joinRefused">["reason"], string> = {
   nobodyNear: "Nobody close by is fighting.",

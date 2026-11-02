@@ -35,6 +35,7 @@ export function interactionAt(
     ...piles.map((pile) => ({ what: "openPile" as const, ...pile })),
     ...level.npcs.map((npc) => ({ what: "talk" as const, ...npc.at })),
     ...level.traces.map((trace) => ({ what: "look" as const, ...trace })),
+    ...level.pads.map((pad) => ({ what: "bindPad" as const, ...pad })),
   ]);
   const reachable: [Interaction, readonly Vec2[], number][] = [
     ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
@@ -50,8 +51,8 @@ export function interactionAt(
   return best?.what ?? null;
 }
 
-const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile" | "talk"> = {
-  rest: "rest", joinFight: "joinBattle", openPile: "openPile", talk: "talk", look: "talk",
+const INTERACT_MSG: Record<Interaction, "rest" | "joinBattle" | "openPile" | "talk" | "bindPad"> = {
+  rest: "rest", joinFight: "joinBattle", openPile: "openPile", talk: "talk", look: "talk", bindPad: "bindPad",
 };
 
 const SPEECH_TIME = 6;

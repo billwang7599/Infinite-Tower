@@ -122,7 +122,7 @@ describe("chase on sight", () => {
     c.world.require(c.player, OverworldPlayer).fighting = true;
     const other = c.world.spawn();
     c.world.add(other, OverworldPos, { x: 0, z: -3 });
-    c.world.add(other, OverworldPlayer, newWalk(TEST_CHARACTER));
+    c.world.add(other, OverworldPlayer, newWalk(TEST_CHARACTER, "kingdom"));
     c.step(CHASE.noticeTime / DT + 2);
     assert.equal(c.chase.state, "chase");
     assert.ok(c.actor.vz < 0 && Math.abs(c.actor.vx) < 1e-9, "runs at the one not fighting");

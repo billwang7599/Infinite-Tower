@@ -10,7 +10,7 @@ import { FakeNet } from "../../fixtures/fake-net.js";
 /** An open 20 x 10 field: x ∈ [-10, 10], z ∈ [-5, 5]. */
 const LEVEL: LevelLayout = {
   id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5,
-  tiles: Array.from({ length: 10 }, () => ".".repeat(20)), campfires: [], npcs: [], traces: [],
+  tiles: Array.from({ length: 10 }, () => ".".repeat(20)), campfires: [], npcs: [], traces: [], pads: [],
 };
 
 const RIGHT: WalkInput = { moveX: 1, moveZ: 0 };

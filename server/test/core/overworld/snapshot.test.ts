@@ -17,7 +17,7 @@ const BIG_LEVEL: LevelDef = {
 };
 function overworldIn(level: LevelDef): { overworld: Overworld; me: Entity } {
   const overworld = new Overworld(level);
-  return { overworld, me: overworld.join(TEST_CHARACTER, () => {}) };
+  return { overworld, me: overworld.join(TEST_CHARACTER, "kingdom", () => {}) };
 }
 
 function ids(overworld: Overworld, me: Entity): number[] {
@@ -97,7 +97,7 @@ describe("state snapshot", () => {
 
   test("another player is sent with their character once, and as fighting while in a battle", () => {
     const { overworld, me } = overworldIn(BIG_LEVEL);
-    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, () => {});
+    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, "kingdom", () => {});
     overworld.place(other, { x: 1, z: 2 });
     const introduced = new Set<Entity>();
     const [first] = stateMsg(overworld, me, introduced).players;
@@ -112,7 +112,7 @@ describe("state snapshot", () => {
 
   test("a player who leaves the view or the level is forgotten, and introduced again on coming back", () => {
     const { overworld, me } = overworldIn(BIG_LEVEL);
-    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, () => {});
+    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, "kingdom", () => {});
     const introduced = new Set<Entity>();
     stateMsg(overworld, me, introduced);
     overworld.place(other, { x: VIEW_RADIUS_TILES + 1, z: 0 });

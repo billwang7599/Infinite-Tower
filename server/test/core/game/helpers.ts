@@ -31,7 +31,7 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const link = new FakeLink();
   const saves: PlayerSave[] = [];
   const saved: PlayerSave = {
-    ...newPlayer(), character: TEST_CHARACTER, level: HOLLOW, equipment: armed(), knownWords: [...WORDS], ...opts.saved,
+    ...newPlayer(), character: TEST_CHARACTER, pad: HOLLOW, equipment: armed(), knownWords: [...WORDS], ...opts.saved,
   };
   const overworlds = new Map<string, Overworld>();
   const overworldOf = (id: string) => {
@@ -121,9 +121,9 @@ export function arriveIn(session: GameSession, level: string): void {
   assert.equal(session.overworld.level.layout.id, level);
 }
 
-/** Saved on a level that wakes you elsewhere, they walk in from there. */
+/** A level with no pad wakes you elsewhere: they walk in from there. */
 export function startIn(level: string, opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
-  const started = startSession({ ...opts, saved: { ...opts.saved, level } });
+  const started = startSession({ ...opts, saved: { ...opts.saved, pad: level } });
   arriveIn(started.session, level);
   return started;
 }
@@ -181,4 +181,16 @@ export function doStep(p: Played, id: string, step: QuestStep): void {
     kind: "advanced", quest: quest.title, next: next?.text ?? null, gained: step.reward?.items ?? {}, dropped: {},
     lore: (step.reward?.lore ?? []).map((l) => LORE[l].title),
   });
+}
+
+export function dieIn(session: GameSession): void {
+  session.cheat({ kind: "encounter", enemy: "wild-boar" });
+  const fight = session.battle!.room.fight;
+  fight.world.require(fight.players[0]!, Health).hp = 0;
+  for (let i = 0; i < 3 && !session.battle!.over; i++) {
+    const next = fight.steps + 1;
+    session.battleInput(next, [{ step: next, ...IDLE_INPUT }]);
+    tick(session);
+  }
+  assert.equal(session.battle!.over, true);
 }

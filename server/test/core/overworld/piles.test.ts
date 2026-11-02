@@ -45,7 +45,7 @@ describe("a pile on the overworld", () => {
 
   test("a player sees the one in reach and in front of the way they face, each with the lag slack", () => {
     const overworld = new Overworld(TEST_LEVEL);
-    const me = overworld.join(TEST_CHARACTER, () => {});
+    const me = overworld.join(TEST_CHARACTER, "kingdom", () => {});
     overworld.place(me, { x: 0, z: 0 });
     const ahead = HEADING_WAY[START_HEADING], reachM = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
     const lookRad = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;

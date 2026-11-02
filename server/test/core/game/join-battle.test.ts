@@ -10,7 +10,7 @@ import { MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getLevel } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../../fixtures/level.js";
 import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
@@ -28,7 +28,7 @@ const characterOf = (i: number): Character => ({ ...TEST_CHARACTER, name: `Playe
 async function players(count = 2) {
   const store = new MemoryPlayerStore();
   ACCOUNTS.slice(0, count).forEach((account, i) => {
-    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG, level: LEVEL.layout.id });
+    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG, pad: LEVEL.layout.id });
   });
   const online = new OnlinePlayers(store, true, 50);
   const all: { link: FakeLink; session: GameSession }[] = [];
@@ -176,7 +176,7 @@ describe("a battle fought together", () => {
     assert.equal(all[2]!.link.last("joinRefused").reason, "nobodyNear");
   });
 
-  test("a joiner who dies loses their bag and wakes on the start level's pad; the host fights on", async () => {
+  test("a joiner who dies loses their bag and wakes on their pad; the host fights on", async () => {
     const { online, host, guest, all } = await hosting();
     guest.joinBattle();
     play(online, [host, guest], 3);
@@ -186,7 +186,7 @@ describe("a battle fought together", () => {
     const result = all[1]!.link.last("battleResult");
     assert.equal(result.won, false);
     assert.equal(bagCounts(guest.bag)["boar-meat"], undefined);
-    assert.deepEqual(result.me, getLevel(START_LEVEL).spawn);
+    assert.deepEqual(result.me, LEVEL.spawn);
     assert.equal(host.battle?.over, false);
     assert.equal(all[0]!.link.all("battleResult").length, 0);
   });
