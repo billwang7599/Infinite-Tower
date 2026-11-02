@@ -300,4 +300,88 @@ export const QUESTS: Quests = {
       },
     ],
   },
+  "captain-boars": {
+    title: "Thin the Herd",
+    half: "side",
+    when: { done: "bram-yard" },
+    steps: [
+      {
+        id: "boars",
+        task: { kind: "kill", enemy: "wild-boar", count: 3 },
+        text: "Slay 3 wild boars.",
+        hint: "Captain Edda said they root about in the Grass Field's tall grass, out through Highmere's town gate.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "captain" },
+        text: "Report to Captain Edda.",
+        hint: "She keeps Highmere's town gate, at the south end of the market.",
+        reward: { items: { "silver-coin": 1 }, lore: ["highmere-claim"] },
+      },
+    ],
+  },
+  "cook-meat": {
+    title: "For the Castle Pot",
+    half: "side",
+    steps: [
+      {
+        id: "gather",
+        task: { kind: "gather", item: "boar-meat", count: 3 },
+        text: "Gather 3 boar meat.",
+        hint: "Wenna said the boars out on the Grass Field give it, more often than not.",
+      },
+      {
+        id: "bring",
+        task: { kind: "deliver", item: "boar-meat", count: 3, to: "cook" },
+        text: "Bring the 3 boar meat to Wenna.",
+        hint: "She stands by the castle's kitchen door, in the east of the courtyard.",
+        reward: { items: { "copper-coin": 60 }, lore: ["haldis-fires"] },
+      },
+    ],
+  },
+  "tamsin-son": {
+    title: "A Son in the Mistwood",
+    half: "side",
+    steps: [
+      {
+        id: "ilse",
+        task: { kind: "talk", to: "ilse" },
+        text: "Ask Ilse whether Rook's thread still runs.",
+        hint: "Tamsin said Nyra's weaver sits by the Mistwood's lake, past the Grass Field's east edge, and can read "
+          + "any native's thread.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "tamsin" },
+        text: "Go back to Tamsin.",
+        hint: "She waits by her door in the south-west of Highmere's market.",
+        reward: { items: { "silver-coin": 1 }, lore: ["running-thread"] },
+      },
+    ],
+  },
+  "chronicler-roads": {
+    title: "Beyond the Walls",
+    half: "side",
+    steps: [
+      {
+        id: "hollow",
+        task: { kind: "reach", level: "waking-hollow" },
+        text: "Go to the Waking Hollow.",
+        hint: "Odo said the road west off the Grass Field leads down into it.",
+      },
+      {
+        id: "mistwood",
+        task: { kind: "reach", level: "mistwood" },
+        text: "Go to the Mistwood.",
+        hint: "Odo said it lies past the Grass Field, through the gap at its east edge.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "chronicler" },
+        text: "Tell Odo what you saw.",
+        hint: "He keeps the roll in the Hall of Arrival, west of the platform.",
+        reward: { items: { "silver-coin": 1, "copper-coin": 50 }, lore: ["arrivals-roll"] },
+      },
+    ],
+  },
 };

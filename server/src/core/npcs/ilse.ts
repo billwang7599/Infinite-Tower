@@ -17,6 +17,14 @@ export const ILSE: Npc = {
           ],
         },
         {
+          when: { quest: "tamsin-son", step: "ilse" },
+          lines: [
+            "Rook? Tamsin's boy, from Highmere. Hold still, I'll find him. Natives are easy; it's you I can't read.",
+            "There. His thread runs on. Thin, and a long way off, past anywhere the loom will show me, but it runs.",
+            "Tell his mother he's alive. Where he is, and why he hasn't come home, the thread won't say.",
+          ],
+        },
+        {
           when: { done: "ilse-snapped" },
           lines: [
             "Still no thread. I've stopped expecting one.",

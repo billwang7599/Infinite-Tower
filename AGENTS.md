@@ -769,6 +769,16 @@ them; treat them as changeable, and still ask before deciding new ones):
   wagers the same hands), then lines for after it. Ilse's line for that step comes first in her talk, so it wins over
   her own quests' for that one talk. No routines, sleep or friendship yet; Maren's and Corwin's lines don't mention his
   move.
+- Highmere's townsfolk (the user: "continue to add content for the game… based off of your best judgement"; names,
+  looks, spots, lines, rewards and lore are the agent's, not hand-played): Captain Edda at the town gate, "Thin the
+  Herd" (after Bram's yard: slay 3 wild boars, report back; 1 silver, lore "Highmere's claim"); Wenna, the castle's
+  cook, by its kitchen door in the courtyard's east, "For the Castle Pot" (gather and hand over 3 boar meat; 60
+  copper, lore "Haldis's fires"); Tamsin in the market's south-west, "A Son in the Mistwood" (ask Ilse whether Rook's
+  thread runs, then back; 1 silver, lore "A thread that runs on"; Ilse's line for it comes after Hollis's); Odo, keeper
+  of the roll of arrivals, in the Hall of Arrival west of the platform, "Beyond the Walls" (reach the Waking Hollow,
+  then the Mistwood, then back; 1 silver 50 copper, lore "The roll of arrivals"); and Ottilie, Aurel's priest, in the
+  courtyard's west, with no quest, her lines following the story. All four quests are side quests; only the captain's
+  waits on another.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

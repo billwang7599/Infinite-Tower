@@ -3,14 +3,19 @@ import type { ShopId } from "../content/shops.js";
 import type { When } from "../game/story.js";
 import { APOTHECARY } from "./apothecary.js";
 import { BRAM } from "./bram.js";
+import { CAPTAIN } from "./captain.js";
 import { CHANGER } from "./changer.js";
+import { CHRONICLER } from "./chronicler.js";
+import { COOK } from "./cook.js";
 import { CORWIN } from "./corwin.js";
 import { GROCER } from "./grocer.js";
 import { HERALD } from "./herald.js";
 import { HOLLIS } from "./hollis.js";
 import { ILSE } from "./ilse.js";
 import { MAREN } from "./maren.js";
+import { PRIEST } from "./priest.js";
 import { SMITH } from "./smith.js";
+import { TAMSIN } from "./tamsin.js";
 import { TOBIN } from "./tobin.js";
 
 export interface Talk {
@@ -54,4 +59,9 @@ export const NPCS: Record<NpcId, Npc> = {
   smith: SMITH,
   changer: CHANGER,
   bram: BRAM,
+  captain: CAPTAIN,
+  cook: COOK,
+  tamsin: TAMSIN,
+  chronicler: CHRONICLER,
+  priest: PRIEST,
 };
