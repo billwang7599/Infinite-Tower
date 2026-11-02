@@ -6,7 +6,7 @@ export const BRAM: Npc = {
   stops: [
     {
       level: "kingdom",
-      at: { x: -16.5, z: 12.5 },
+      at: { x: -21.5, z: 10.5 },
       heading: "east",
       talk: [
         {
@@ -43,7 +43,7 @@ export const BRAM: Npc = {
         {
           when: { done: QUEST },
           lines: [
-            "You'll do. The market's past the castle gate, and the wild's past the town gate. Come back for a "
+            "You'll do. The market's down through the castle gate, and the wild's past the South Gate. Come back for a "
               + "spar whenever you like.",
           ],
           offer: { train: "bram" },

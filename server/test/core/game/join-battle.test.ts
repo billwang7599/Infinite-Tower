@@ -271,9 +271,11 @@ describe("one of a battle's players leaving it", () => {
     fight.world.require(fight.players[0]!, Health).hp = 0;
     play(online, [host, guest], 2);
     host.leaveBattle();
-    const gate = host.overworld.level.exits.find((e) => e.to === LEVEL.layout.id)!.area;
-    place(host, { x: gate.x + gate.w / 2, z: gate.z + gate.h / 2 });
-    online.tick(FIXED_DT);
+    for (const to of ["market-ward", LEVEL.layout.id]) {
+      const gate = host.overworld.level.exits.find((e) => e.to === to)!.area;
+      place(host, { x: gate.x + gate.w / 2, z: gate.z + gate.h / 2 });
+      online.tick(FIXED_DT);
+    }
     assert.equal(host.overworld.level, LEVEL);
     host.overworld.playerData(host.me).safeTime = 0;
     place(host, actorAt(host, KOBOLD));

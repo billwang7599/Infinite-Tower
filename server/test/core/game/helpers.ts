@@ -112,10 +112,26 @@ export function bagWith(items: ItemCounts): Bag {
 
 export interface Played { session: GameSession; link: FakeLink; saves: PlayerSave[] }
 
+export function arriveIn(session: GameSession, level: string): void {
+  if (session.overworld.level.layout.id === level) return;
+  const exit = session.overworld.level.exits.find((e) => e.to === level);
+  assert.ok(exit, `an exit to ${level}`);
+  session.overworld.place(session.me, { x: exit.area.x + exit.area.w / 2, z: exit.area.z + exit.area.h / 2 });
+  session.tick();
+  assert.equal(session.overworld.level.layout.id, level);
+}
+
+/** Saved on a level that wakes you elsewhere, they walk in from there. */
+export function startIn(level: string, opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
+  const started = startSession({ ...opts, saved: { ...opts.saved, level } });
+  arriveIn(started.session, level);
+  return started;
+}
+
 export function goTo(p: Played, level: string): void {
   if (p.session.overworld.level.layout.id === level) return;
   p.session.save();
-  Object.assign(p, startSession({ dev: true, saved: { ...p.saves.at(-1)!, level } }));
+  Object.assign(p, startIn(level, { dev: true, saved: p.saves.at(-1)! }));
 }
 
 export const levelOf = (story: Story, npc: NpcId): string => stopFor(story, NPCS[npc])!.level;

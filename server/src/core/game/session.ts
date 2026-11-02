@@ -14,7 +14,7 @@ import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { getLevel, levelOrStart, START_LEVEL } from "../world/index.js";
+import { getLevel, loginLevel, START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -99,7 +99,7 @@ export class GameSession {
     this.skillbook = saved.skillbook;
     this.story = saved.story;
     this.shopsBought = saved.shopsBought;
-    this.levelId = levelOrStart(saved.level);
+    this.levelId = loginLevel(saved.level);
     this.soul = saved.core;
   }
 

@@ -4,8 +4,8 @@ export const COOK: Npc = {
   stops: [
     {
       level: "kingdom",
-      at: { x: 13.5, z: 8.5 },
-      heading: "south",
+      at: { x: 18.5, z: -0.5 },
+      heading: "west",
       talk: [
         {
           when: { done: "cook-meat" },

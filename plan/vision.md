@@ -16,7 +16,7 @@ Status: **direction** (the user's). Details are undecided unless listed under "D
 
 ## Decided so far
 
-- New players start in the kingdom, on its summoning platform, and wake there after dying (see
+- New players start in Highmere's Castle Ward, on its summoning platform, and wake there after dying (see
   [AGENTS.md](../AGENTS.md)). The Waking Hollow, the Grass Field and the Mistwood are test areas.
 - Fights lock on to an enemy, and the sword's swings come from mouse movement (see [AGENTS.md](../AGENTS.md)).
 - The rest (HP / stamina carrying over, resting, items, stats, character looks) is listed in
@@ -29,7 +29,7 @@ These were asked early on and never answered:
 - What dying costs beyond the bag and the core's fill ([core.md](core.md)).
 - Party size for co-op, and whether there's PvP.
 - Art direction beyond the current pixel sprites and simple 3D models.
-- How the open world is laid out beyond the kingdom, and whether the tower comes back.
+- How the open world is laid out beyond Highmere, and whether the tower comes back.
 
 ## Notes
 

@@ -69,14 +69,32 @@ Decided by the user:
   tower idea is on hold ([plan/vision.md](plan/vision.md)). The Waking Hollow, the Grass Field, the Mistwood and the
   Old Quarry are test areas, kept reachable.
 - New players start "in the main kingdom": every avatar first appears on one extravagant summoning platform, indoors
-  for now, the first and largest pad, where the Maker's door first opened; the kingdom grew round it, with a
+  for now, the first and largest pad, where the Maker's door first opened; the city grew round it, with a
   humongous castle, to guard and use the stream of avatars, and its rulers see arrivals as theirs by right. "A guide
   greets and explains": the court herald, by the platform, says where you are and what an avatar is, names the
   controls only in what he says (no on-screen hints), and points you into town. Dying, anywhere, wakes you on the
   platform. Campfires are out in the wild only: the town has none. The town has three shops, food, potions and a
-  blacksmith, each a keeper you trade with (money and shops, below). No enemies in the kingdom.
+  blacksmith, each a keeper you trade with (money and shops, below). No enemies in the city.
+- Highmere is the Empire's second city (the user picked "C": the empire's "second" city; "choose something extravagent"
+  for its name; "mutlipe works" for its maps): the ancient, sacred Door City where the Maker's door first opened, held
+  for the Emperor by a vassal king while the Emperor's court sits in a newer, richer capital far away. The names are the
+  main chat's picks: the Most Radiant and Thrice-Crowned Empire of Aurevaine ("Aurevaine", "the Empire"), its capital
+  Seraphel, the Gilded Throne (not built), His Imperial Radiance Valerian Aurelius IX, and King Osric of House Vantmere,
+  Vassal-King of Highmere ("His Majesty"). The far court wants a firmer hand on the door: hinted, no plot. Highmere is
+  several maps joined by gates (its wards, below).
+- NPCs have family names, passed down the medieval way (the user): city-born commoners (Seraphel, Highmere) have
+  inherited surnames, mostly old trades or places, that no longer fit them ("Fennick Cooper" is a money changer, not a
+  cooper); country folk (the quarry, the Mistwood, farms) have bynames that describe them and aren't inherited yet
+  ("Harl of the Pit", "Sorrel by-the-Fen"); nobles a house name or "of <seat>" ("Osric of House Vantmere, King of
+  Highmere"); the imperial dynasty is the Aurelian line (Valerian Aurelius IX). In dialogue a short name is fine where
+  people would really use one. Only the NPCs added or renamed with Highmere's wards have them so far.
 - New players start with nothing (the user: "start with nothing"): an empty bag, empty hands, no skill words. The
   herald sends you to an old man who gives you an old stick (the training yard, below). No spells to start.
+- The start is linear (the user: "the tutorial/start should be linear. i dont want to confuse the player as to where to
+  start"): on the platform only the herald is in sight, and he sends you to Bram. Odo's and Captain Edda's quests wait
+  for Bram's yard; Wenna's and Tamsin's are offered from the start (the user, asked whether they should wait: "no").
+- Highmere has one summoning pad, the Castle Ward's platform (the user: "yes", over a pad of the Market Ward's own): a
+  player saved in the Market Ward, or dying there, wakes on it.
 - Money and shops (the user: coins are "stored in bags as items", "lost like the bag since its stored in bags as
   items"; "gold silver and copper makes sense. less for the player to think about"; "coins dont repack automatically.
   we should be doing this at a store/bank"): money comes from selling loot to shops and from quest rewards; monsters
@@ -626,7 +644,7 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Resting: each level out in the wild has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within
   1.6 tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as you
   like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your respawn
-  point or bring back defeated boars; dying still wakes you on the kingdom's platform.
+  point or bring back defeated boars; dying still wakes you on Highmere's platform.
 - Items: boar meat heals 35% of the most HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
   own. The carry limit is 60 × (strength / 10)^¼ (60 at the start). Over it, a dodge costs 30% more stamina. A new
@@ -698,10 +716,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
-- Levels: the kingdom, then the test areas, the Waking Hollow, the Grass Field and the Mistwood, joined by roads off
-  the edge of each (walk into one to cross). The level you're on is saved: you come back to it, at its start, when you
-  log in. Dying wakes you on the kingdom's platform: falling there, at once; elsewhere, the save says the kingdom at
-  once (a disconnect mid-fight too) and you cross to it as you leave the arena. Mistwood reuses the floor's enemies
+- Levels: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field and the Mistwood, joined by roads
+  off the edge of each (walk into one to cross). The level you're on is saved: you come back to it, at its start, when
+  you log in. Dying wakes you on Highmere's platform: falling there, at once; elsewhere, the save says the Castle Ward
+  at once (a disconnect mid-fight too) and you cross to it as you leave the arena. Mistwood reuses the floor's enemies
   (boars, the Kobold, the Warlock) and the mire arena.
 - The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
   everything here is the agent's, tried only in a headless browser): a 48 x 36 floor-1 level north of the Grass Field,
@@ -716,15 +734,22 @@ them; treat them as changeable, and still ask before deciding new ones):
   (looks only: pale cut slabs, stacked blocks, terraced faces, a crane, a cart, lanterns and drifting dust;
   `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable signs: the game has no way
   to read one without an NPC (a trace is an NPC's), so there are none.
-- The kingdom (the user's decisions above; the names, layout and lines are the agent's): Highmere, a 40 x 44 map with
-  no floor (the HUD shows only its name). North to south: the Hall of Arrival (marble, pillars, the platform, a red
-  carpet), the castle courtyard (lawns, two pools, flower beds), the castle gate, the market streets between houses
-  (Bette's food stall, Mirela's potion stall, Garrick's forge), and the town gate south to the Grass Field, which got
-  a road in at its north-west corner. The herald is Aldric. It has no encounter table (a level's `grass` is now
-  optional). Dialogue lines name keys as `{group.action}`, written out as the player's own key
-  (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the map are drawn
-  only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns see-through, so
-  the hall reads with the camera turned. Music: the title's track for now.
+- Highmere (the user's decisions above; the layout, the lines and who stands where are the agent's): two maps with no
+  floor (the HUD shows only the name), joined by the castle gate. The Castle Ward ("Highmere: Castle Ward", 50 x 40, its
+  level id still `kingdom`): the Hall of Arrival (marble, pillars, the platform, a red carpet; Aldric the herald beside
+  the carpet below it, and Odo's archive through a door at its west end), King Osric's throne room east of it (a door
+  from the hall and one from the courtyard), the barracks and Bram's training yard west of it, the courtyard (lawns, two
+  pools, flower beds; Wenna at the kitchen in its east), the castle garden (two pools; Ottilie) and the castle gate
+  south. The Market Ward ("Highmere: Market Ward", 70 x 50, `market-ward`): a market square with two fountains (Bette's
+  food stall, Mirela's potion stall, Fennick Cooper's changing stall, Garrick's forge), the Gilded Door tavern (a walled
+  room with Hesper Wainwright, its keeper, who only talks), streets of houses (Tamsin in the south-west), and the South
+  Gate (Captain Edda) to the Grass Field, which got a road in at its north-west corner. It has no pad: a player saved
+  there logs in on the Castle Ward's platform. Two walled-up gaps wait for later wards: an east road to Temple Hill and
+  a south-west one to the Lower Town. King Osric and Hesper only talk; both wards charge Highmere's prices. Neither has
+  an encounter table (a level's `grass` is now optional). Dialogue lines name keys as `{group.action}`, written out as
+  the player's own key (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the
+  map are drawn only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns
+  see-through, so the hall reads with the camera turned. Music: the title's track for now.
 - Money and shops (kingdom PR 2; the user: "use your best discretion"; tried in a headless browser, not hand-played).
   Numbers in `server/src/core/content/shops.ts` and `shared/src/items/coins.ts`, the formulas in FORMULAS.md:
   - Coins are 1 x 1, stacks of 100, weight 0.01 each (gold 0.02).
@@ -736,9 +761,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     nothing; Garrick's forge sells the three swords and buys hides, tusks, the old stick and swords.
   - New items: bread (heals 20% of the most HP, 20 at the start; stacks of 5, weight 0.3), the health potion (50%) and
     the stamina tonic (stamina to full, at full HP too), drunk in 1 s, stacks of 5, weight 0.4.
-  - A money changer, Osric, with a stall on the market's west side across from the forge, changes coins and sells
-    nothing. Changing is one tier at a time: 1 coin for 100 of the next smaller or 100 for 1 of the next bigger, no
-    fee, a click each.
+  - A money changer, Fennick Cooper (was Osric, renamed for the king), with a stall on the market's west side across
+    from the forge, changes coins and sells nothing. Changing is one tier at a time: 1 coin for 100 of the next smaller
+    or 100 for 1 of the next bigger, no fee, a click each.
   - Paying takes the smallest coins first, as many as go into the price whole, then the smallest coin that covers
     the rest; coins on the cloth go before the bag's. A purchase or a sale whose items and change can't all fit in the
     bag and on the cloth doesn't happen, and says so.
@@ -748,8 +773,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     saved within a second, like a move in the bag.
 - The training yard (kingdom PR 3; the user decided only "start with nothing", the herald sending you to an old man
   and an old stick; the rest is the agent's, tried in a headless browser, not hand-played):
-  - Bram (a placeholder name) keeps a 7 x 5 dirt yard through a 2-tile gap in the courtyard's north-west wall, two
-    straw dummies drawn in it.
+  - Bram (a placeholder name) keeps an 11 x 6 dirt yard by the barracks, through a 2-tile gap in the courtyard's
+    north-west wall, two straw dummies drawn in it.
   - The quest "The Old Man's Yard" (main), offered by Aldric (a last line sends you there) and by Bram if not taken:
     find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummy, best Bram in
     a spar (lore "Soft as dough"). A quest taken from the NPC its first step asks you to talk to does that step at
@@ -776,10 +801,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   A summoning pad where new characters wake, ringed by four standing stones; a camp by an old waystation with a
   campfire; a brook with a footbridge, and across it the hunting ground: two wandering boars (8 s respawn) and tall
   grass rolling boars at 0.06 a tile, half the other levels' 0.12. Its road east leads to a new exit at the Grass
-  Field's west edge, and back. New characters started there until the kingdom; players already saved keep their level
+  Field's west edge, and back. New characters started there until Highmere; players already saved keep their level
   (a migration puts saves from before levels were saved on the Grass Field).
-- Every level's start is a summoning pad (plan/lore.md): a new walkable tile (`@`, carved stone with a pale rune ring)
-  laid under the Hollow's, the Grass Field's and the Mistwood's starts; the kingdom's platform is 4 x 4 of it.
+- Where you wake is a summoning pad (plan/lore.md): a new walkable tile (`@`, carved stone with a pale rune ring)
+  laid under the Hollow's, the Grass Field's and the Mistwood's starts; the Castle Ward's platform is 4 x 4 of it.
 - The Hollow's natives: Maren, who keeps its pad (standing between it and the fire; she thinks your kind was sent for a
   reason), and Tobin, a hunter by the footbridge, wary of avatars ("a thing that can't stay dead has no business
   hunting"). Their lines, looks and spots are the agent's.
@@ -815,15 +840,15 @@ them; treat them as changeable, and still ask before deciding new ones):
   her own quests' for that one talk. No routines, sleep or friendship yet; Maren's and Corwin's lines don't mention his
   move.
 - Highmere's townsfolk (the user: "continue to add content for the game… based off of your best judgement"; names,
-  looks, spots, lines, rewards and lore are the agent's, not hand-played): Captain Edda at the town gate, "Thin the
+  looks, spots, lines, rewards and lore are the agent's, not hand-played): Captain Edda at the South Gate, "Thin the
   Herd" (after Bram's yard: slay 3 wild boars, report back; 1 silver, lore "Highmere's claim"); Wenna, the castle's
-  cook, by its kitchen door in the courtyard's east, "For the Castle Pot" (gather and hand over 3 boar meat; 60
-  copper, lore "Haldis's fires"); Tamsin in the market's south-west, "A Son in the Mistwood" (ask Ilse whether Rook's
+  cook, by its kitchen door in the courtyard's east, "For the Castle Pot" (gather and hand over 3 boar meat; 60 copper,
+  lore "Haldis's fires"); Tamsin in the Market Ward's south-west, "A Son in the Mistwood" (ask Ilse whether Rook's
   thread runs, then back; 1 silver, lore "A thread that runs on"; Ilse's line for it comes after Hollis's); Odo, keeper
-  of the roll of arrivals, in the Hall of Arrival west of the platform, "Beyond the Walls" (reach the Waking Hollow,
-  then the Mistwood, then back; 1 silver 50 copper, lore "The roll of arrivals"); and Ottilie, Aurel's priest, in the
-  courtyard's west, with no quest, her lines following the story. All four quests are side quests; only the captain's
-  waits on another.
+  of the roll of arrivals, in his archive off the Hall of Arrival's west end, out of sight of the platform, "Beyond the
+  Walls" (after Bram's yard: reach the Waking Hollow, then the Mistwood, then back; 1 silver 50 copper, lore "The roll
+  of arrivals"); and Ottilie, Aurel's priest, in the castle garden, with no quest, her lines following the story. All
+  four quests are side quests; the captain's and Odo's wait on Bram's yard.
 - The Old Quarry's folk (the user: "continue to add content for the game… based off of your best judgement"; names,
   looks, spots, lines, rewards and lore are the agent's, not hand-played): Harl, the old foreman, 3 tiles west of the
   campfire facing it, "Down the Pit" (reach the pool at the pit's bottom, slay the Kobold Greatsword, back to him;
@@ -887,7 +912,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   notice. A joiner comes in at the arena's edge (`joinStart`), at once, with what they carry. No friendly fire; enemies
   go for the
   nearest player standing; enemy HP doesn't scale. A player who goes down has lost, there and then, as on any death
-  (dropping all they carry where they fell, waking on the kingdom's platform), and the fight goes on for the
+  (dropping all they carry where they fell, waking on Highmere's platform), and the fight goes on for the
   rest; won, everyone still in it counts a win and they share the drops (one down on the very step it's won still
   wins, standing
   at 1 HP). Anyone who

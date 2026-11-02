@@ -3,8 +3,8 @@ import type { Npc } from "./index.js";
 export const CHANGER: Npc = {
   stops: [
     {
-      level: "kingdom",
-      at: { x: -10.5, z: -9.5 },
+      level: "market-ward",
+      at: { x: -13.5, z: -0.5 },
       heading: "east",
       talk: [
         {

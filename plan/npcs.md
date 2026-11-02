@@ -1,8 +1,9 @@
 # NPCs
 
-Status: **next big step**. The herald, Bram, the three shopkeepers, the money changer and five townsfolk in the kingdom
-(Edda at the town gate, Wenna by the castle's kitchen door, Tamsin in the market, Odo in the Hall of Arrival and
-Ottilie, Aurel's priest, in the courtyard; four with a side quest paying in coin), Hollis by the Grass Field's fire,
+Status: **next big step**. The herald, Bram, King Osric, the three shopkeepers, the money changer, Hesper of the Gilded
+Door and five townsfolk in Highmere's two wards (Edda at the South Gate, Wenna by the castle's kitchen door, Tamsin in
+the Market Ward, Odo in an archive off the Hall of Arrival and Ottilie, Aurel's priest, in the castle garden; four
+with a side quest paying in coin), Hollis by the Grass Field's fire,
 Maren and Tobin in the Waking Hollow (a test area, where their short chain sends you on to Hollis), Corwin on the Grass
 Field's east road and Ilse by the Mistwood's lake (each with a side chain of two) are the NPCs. Quests, the questbook,
 lines that follow your story, stops (where an NPC stands, by the story, per player) and traces (what one leaves where it

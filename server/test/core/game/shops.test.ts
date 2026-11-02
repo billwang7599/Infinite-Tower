@@ -10,15 +10,15 @@ import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { bagWith, startSession, talkTo } from "./helpers.js";
+import { bagWith, startIn, talkTo } from "./helpers.js";
 
 const SILVER = COIN_VALUE["silver-coin"], GOLD = COIN_VALUE["gold-coin"];
-const price = (item: ItemId) => Math.round(ITEM_VALUES[item]! * PRICE_FACTOR.kingdom!);
+const price = (item: ItemId) => Math.round(ITEM_VALUES[item]! * PRICE_FACTOR["market-ward"]!);
 const firstPrice = (item: ItemId) => Math.round(price(item) * (1 - FIRST_PURCHASE_DISCOUNT));
 const sellPrice = (item: ItemId) => Math.floor(ITEM_VALUES[item]! * SELL_SHARE);
 
 function atShop(npc: NpcId, bag: Bag, saved: Partial<PlayerSave> = {}) {
-  const started = startSession({ saved: { level: "kingdom", bag, ...saved } });
+  const started = startIn("market-ward", { saved: { bag, ...saved } });
   const said = talkTo(started.session, started.link, npc);
   started.session.openShop();
   return { ...started, said };
@@ -32,9 +32,9 @@ function packed(grid: Bag, free = 0): Bag {
 }
 
 describe("shops", () => {
-  test("the food, potion and blacksmith keepers and a money changer stand in the kingdom, each offering trade", () => {
+  test("the food, potion and blacksmith keepers and a money changer stand in Highmere's Market Ward, each offering trade", () => {
     for (const npc of ["grocer", "apothecary", "smith", "changer"] as const) {
-      assert.equal(stopFor(newStory(), NPCS[npc])?.level, "kingdom", npc);
+      assert.equal(stopFor(newStory(), NPCS[npc])?.level, "market-ward", npc);
       const { said, link } = atShop(npc, emptyBag());
       assert.equal(said.offer?.kind, "shop", npc);
       assert.ok(link.last("shop").shop, npc);
@@ -51,7 +51,7 @@ describe("shops", () => {
   });
 
   test("nobody's shop opens without its keeper in view", () => {
-    const { session, link } = startSession({ saved: { level: "kingdom" } });
+    const { session, link } = startIn("market-ward");
     session.openShop();
     assert.equal(link.all("shop").length, 0);
   });

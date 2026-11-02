@@ -15,6 +15,8 @@ import { HERALD } from "./herald.js";
 import { HERBALIST } from "./herbalist.js";
 import { HOLLIS } from "./hollis.js";
 import { ILSE } from "./ilse.js";
+import { INNKEEPER } from "./innkeeper.js";
+import { KING } from "./king.js";
 import { MAREN } from "./maren.js";
 import { PRIEST } from "./priest.js";
 import { SCAVENGER } from "./scavenger.js";
@@ -72,4 +74,6 @@ export const NPCS: Record<NpcId, Npc> = {
   scavenger: SCAVENGER,
   herbalist: HERBALIST,
   burner: BURNER,
+  king: KING,
+  innkeeper: INNKEEPER,
 };

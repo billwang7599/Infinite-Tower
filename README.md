@@ -21,34 +21,35 @@ What's built so far:
   pick a name, boy or girl, and a look (build, face, skin, hair and its color, eyes and their color, mouth,
   clothes and trim colors) beside a pixel-art anime portrait and the chibi they'll be in the world. Confirmed, it's
   kept for good. The character panel shows the portrait and your stats.
-- **Overworld:** new characters wake in Highmere, the kingdom, on the great summoning platform of its castle's hall,
-  where the court herald greets them and explains; dying anywhere wakes you there again. Off the courtyard, Bram keeps
-  the training yard (below). Through the courtyard and the castle gate are the market streets (a food stall, a potion
-  stall, a forge and a money changer, each with its keeper) and the town gate out to the Grass Field. The test areas lie
-  beyond: the Waking Hollow (a small camp by an old waystation, a brook with a footbridge and two boars in the tall
-  grass across it) west of the Grass Field and, through a gap in the trees east of it, the Mistwood (dark pines, a marsh
-  crossed by boardwalks, its own campfire), and through a gap in the trees on the Grass Field's north edge, the Old
-  Quarry (pale cut-stone terraces round a dry pit with a still pool, cranes, carts on rails, a ruined overseer's hut and
-  a campfire by the way in), held by Kobolds and Goblin Warlocks. Every level's start is a summoning pad. The Grass
-  Field is a dusky tile map of paths, tree lines, rocks, a stream and pond, ruins and a patch of tall grass; trees,
-  rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a Kobold Swordsman (a Kobold
-  Greatsword beside it), a Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight;
-  two bog lurkers lie low in the Mistwood's reeds.
-  Touching one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's
-  drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a tilt-shift blur, lit by the same
-  24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The
-  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
-  the camera a quarter turn (walking follows it), up and down tilt it. Everyone on a level shares it: you see other
-  players (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone
-  until it respawns. T challenges a player next to you to a duel: a spar in an arena of your own, everything working
-  player against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins
-  their battle, up to 4 to a fight, each with their own result and drops. Natives live along the way: the herald, Bram,
-  the three keepers and five townsfolk in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the
-  Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the
-  Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes).
-  What they say follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the
-  Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own
-  story puts him).
+- **Overworld:** new characters wake in Highmere, the Door City of the Empire of Aurevaine, on the great summoning
+  platform of its castle's hall, where the court herald greets them and explains; dying anywhere wakes you there again.
+  The city is two maps joined by the castle gate: the Castle Ward (the hall, King Osric's throne room, the barracks with
+  Bram's training yard (below), the courtyard and the garden) and below it the much bigger Market Ward (a square with a
+  food stall, a potion stall, a forge and a money changer, each with its keeper, the Gilded Door tavern, streets of
+  houses and the South Gate out to the Grass Field). The test areas lie beyond: the Waking Hollow (a small camp by an
+  old waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
+  through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire), and
+  through a gap in the trees on the Grass Field's north edge, the Old Quarry (pale cut-stone terraces round a dry pit
+  with a still pool, cranes, carts on rails, a ruined overseer's hut and a campfire by the way in), held by Kobolds and
+  Goblin Warlocks. Each place you wake is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines,
+  rocks, a stream and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar
+  and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword beside it), a Goblin Warlock and a grey wolf
+  (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low in the Mistwood's reeds. Touching
+  one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
+  HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a tilt-shift blur, lit by the same 24-minute
+  day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The stream
+  runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn the
+  camera a quarter turn (walking follows it), up and down tilt it. Everyone on a level shares it: you see other players
+  (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone until it
+  respawns. T challenges a player next to you to a duel: a spar in an arena of your own, everything working player
+  against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins their
+  battle, up to 4 to a fight, each with their own result and drops. Natives live along the way: the herald, Bram, King
+  Osric, the keepers, the Gilded Door's innkeeper and five townsfolk in Highmere, Maren (who keeps the Hollow's pad) and
+  Tobin (a hunter) in the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse,
+  Nyra's weaver, by the Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a
+  click; Esc closes). What they say follows your story, and so does where they stand: once his first chain is done,
+  Hollis moves on to the Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player
+  sees him where their own story puts him).
 - **The training yard:** you start with nothing. The herald sends you to Bram, who gives you an old stick, then has
   you knock down a straw dummy (a light swing, a heavy and a stab) and spar with him. His fights are spars: whoever
   is down to a tenth of their HP yields, nobody can join, and nothing is lost or gained but the quest.
