@@ -32,21 +32,22 @@ What's built so far:
   a campfire by the way in), held by Kobolds and Goblin Warlocks. Every level's start is a summoning pad. The Grass
   Field is a dusky tile map of paths, tree lines, rocks, a stream and pond, ruins and a patch of tall grass; trees,
   rocks, water and ruin walls block walking. A boar and, each in a corner of its own, a Kobold Swordsman (a Kobold
-  Greatsword beside it) and a Goblin Warlock wander and chase you on sight. Touching one, or walking through tall grass
-  (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn HD-2D: pixel-art billboards on 3D
-  ground, with cliffs round the field and a tilt-shift blur, lit by the same 24-minute day as the fights (the sun and
-  moon cast the shadows, the campfire flickers and lights what's near it). The stream runs off the map; ponds and the
-  marsh lie still, with a ring now and then at a random spot. Left and right turn the camera a quarter turn (walking
-  follows it), up and down tilt it. Everyone on a level shares it: you see other players (their chibi and name, crossed
-  swords while they fight), and an enemy someone touches is gone for everyone until it respawns. T challenges a player
-  next to you to a duel: a spar in stone ruins of your own, everything working player against player, that costs and
-  wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins their battle, up to 4 to a fight, each
-  with their own result and drops. Natives live along the way: the herald, Bram, the three keepers and five townsfolk in
-  Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the Waking Hollow, Hollis by the Grass Field's
-  campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the Mistwood's lake. Face one and press E (or
-  "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes). What they say follows your story, and so
-  does where they stand: once his first chain is done, Hollis moves on to the Mistwood's pad, leaving his bedroll by the
-  fire with a note saying where he went (each player sees him where their own story puts him).
+  Greatsword beside it), a Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight.
+  Touching one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's
+  drawn HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a tilt-shift blur, lit by the same
+  24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The
+  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
+  the camera a quarter turn (walking follows it), up and down tilt it. Everyone on a level shares it: you see other
+  players (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone
+  until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your own, everything working
+  player against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins
+  their battle, up to 4 to a fight, each with their own result and drops. Natives live along the way: the herald, Bram,
+  the three keepers and five townsfolk in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in the
+  Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the
+  Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes).
+  What they say follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the
+  Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own
+  story puts him).
 - **The training yard:** you start with nothing. The herald sends you to Bram, who gives you an old stick, then has
   you knock down a straw dummy (a light swing, a heavy and a stab) and spar with him. His fights are spars: whoever
   is down to a tenth of their HP yields, nobody can join, and nothing is lost or gained but the quest.
@@ -61,9 +62,9 @@ What's built so far:
   loom, and the keeper of the roll of arrivals for a look at the Hollow and the Mistwood. The questbook (H, or the
   HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
   it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
-- **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
-  its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and set, the
-  shadows follow them, and glowing mushrooms light the mire.
+- **Fights:** a 2D sprite against a 3D boar, grey wolf, Kobold Swordsman or Goblin Warlock in a small round arena,
+  each with its own look (a forest clearing, stone ruins, a mire), lit by a 24-minute day: the sun and moon rise and
+  set, the shadows follow them, and glowing mushrooms light the mire.
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the wheel or K stabs,
   and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
@@ -75,8 +76,10 @@ What's built so far:
   A fight starts locked onto the
   closest enemy: you face it, circle it with A / D, and the camera follows it. The boar lunges up close and does a
   telegraphed charge from further away (it's stunned if it hits the wall), and staggers after a few quick hits; its
-  blows can only be blocked. The Kobold Swordsman swings the same ways in long-told chains, blocks as it walks up, and
-  now and then perfect-blocks you. The Kobold Greatsword fights the same
+  blows can only be blocked. The grey wolf is quick and frail: it circles out of reach, then crouches with a growl
+  and leaps in to bite (sidestep it as it locks on, dodge or block it), standing open a moment (longer if it missed)
+  before it hops back out; swinging at it while it circles only tires you. The Kobold Swordsman swings the same ways
+  in long-told chains, blocks as it walks up, and now and then perfect-blocks you. The Kobold Greatsword fights the same
   with a much heavier blade. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
@@ -107,7 +110,8 @@ What's built so far:
   or dying refills them, and HP slowly comes back on its own.
 - **Inventory:** a 6 x 4 bag that items fit into by size, and a weight limit that grows with strength. Over the
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Every monster drops its
-  essence, and boars sometimes meat (heals), a hide or a tusk. Dying drops all you carry. The
+  essence, boars sometimes meat (heals), a hide or a tusk, and wolves a pelt or a fang (the forge buys both). Dying
+  drops all you carry. The
   bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and the bag, worked
   with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
   or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or

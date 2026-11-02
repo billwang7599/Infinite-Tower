@@ -63,6 +63,7 @@ export const ITEMS = {
     "Kobold greatsword essence", "A heavy, smouldering spark of a kobold's soul.", 50,
   ),
   "goblin-warlock-essence": essence("Goblin warlock essence", "A flickering wisp of a goblin's soul.", 30),
+  "grey-wolf-essence": essence("Grey wolf essence", "A cold, restless flicker of a wolf's soul.", 25),
   "boar-hide": {
     name: "Boar hide", description: "A stiff, bristly pelt. Bulky, but light.", cols: 2, rows: 2, stackSize: 1,
     weight: 2,
@@ -70,6 +71,13 @@ export const ITEMS = {
   "boar-tusk": {
     name: "Boar tusk", description: "Dense and curved. Heavier than it looks.", cols: 1, rows: 2, stackSize: 1,
     weight: 5,
+  },
+  "wolf-pelt": {
+    name: "Wolf pelt", description: "Thick grey fur, soft underneath. Bulky, but light.", cols: 2, rows: 2,
+    stackSize: 1, weight: 1.5,
+  },
+  "wolf-fang": {
+    name: "Wolf fang", description: "Small, curved and still sharp.", cols: 1, rows: 1, stackSize: 10, weight: 0.1,
   },
   "old-stick": {
     name: "Old stick", description: "A length of ash, worn smooth by old hands. It's no blade, but it swings like one.",

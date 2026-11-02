@@ -1,10 +1,10 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy,
-  Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject,
+  ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack,
+  maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject,
   Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
-  type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
-  type SkillAttackDef, type Equipment, type Vec3, type WeaponAttackDef,
+  type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
+  type Skill, type Stats, type SkillAttackDef, type Equipment, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -52,6 +52,17 @@ export const BOAR: EnemyDef = {
       recover: 0.9, stunTime: 2.2, damage: 30, knockback: 15, lift: 6, cooldown: 4.5, firstDelay: 2,
     },
   },
+};
+
+export const pounce = (over: Partial<PounceDef>): PounceDef => ({
+  circleM: 4, circleSpeed: 3, leapFromM: 5.5, windup: 0.5, lockAt: 0.2, speed: 12, active: 0.35, range: 1.1,
+  minDot: 0.5, recover: 0.5, missRecover: 1, hopSpeed: 8, hopTime: 0.3, damage: 12, knockback: 5, lift: 2,
+  cooldown: 1.5, cooldownSpread: 1, firstDelay: 1, ...over,
+});
+
+/** Like the grey wolf: circles at a distance, leaps in to bite, hops back out. */
+export const WOLF: EnemyDef = {
+  ...ENEMY_BASE, id: "grey-wolf", radius: 0.5, walkSpeed: 4.5, turnRate: 6, attacks: { pounce: pounce({}) },
 };
 
 export const swings = (over: Partial<WeaponAttackDef>): WeaponAttackDef => ({
@@ -133,6 +144,7 @@ export function dumpState(fight: Fight): string {
       // `sense` and `move` are worked out afresh each step before they're read: not part of the state.
       enemy: enemyData && { ...enemyData, def: enemyData.def.id, sense: undefined, move: undefined },
       lunge: fight.world.get(e, LungeAttack)?.cooldown,
+      pounce: fight.world.get(e, PounceAttack) && { ...fight.world.get(e, PounceAttack), def: undefined },
       charge: fight.world.get(e, ChargeAttack) && { ...fight.world.get(e, ChargeAttack), def: undefined },
       weapon: fight.world.get(e, WeaponAttack) && { ...fight.world.get(e, WeaponAttack), def: undefined },
       wielder: fight.world.get(e, Wielder),

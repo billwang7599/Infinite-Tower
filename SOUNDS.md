@@ -156,6 +156,11 @@ A new sound: a CC0 file only, named `<sound>-<n>.ogg`, its row in `SOUNDS`, and 
 | `swing-5.ogg` | [Swishes Sound Pack](https://opengameart.org/content/swishes-sound-pack): `swish-9.wav` | artisticdude | CC0 |
 | `victory-1.ogg` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx): `gong_01.ogg` | rubberduck | CC0 |
 | `windup-magic-1.ogg` | [RPG Sound Pack](https://opengameart.org/content/rpg-sound-pack): `magic1.wav` | artisticdude | CC0 |
+| `wolf-death-1.ogg` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx): `creature_die_01.ogg` | rubberduck | CC0 |
+| `wolf-growl-1.ogg` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx): `creature_roar_01.ogg` | rubberduck | CC0 |
+| `wolf-growl-2.ogg` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx): `creature_roar_02.ogg` | rubberduck | CC0 |
+| `wolf-hurt-1.ogg` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx): `creature_hurt_01.ogg` | rubberduck | CC0 |
+| `wolf-hurt-2.ogg` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx): `creature_hurt_02.ogg` | rubberduck | CC0 |
 
 ## Music
 

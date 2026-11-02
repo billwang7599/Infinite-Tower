@@ -39,6 +39,8 @@ const RAMPS = {
   cork: ["#24170d", "#3f2a18", "#5d4027", "#7a5837", "#987452", "#b99a78"],
   blood: ["#22060a", "#4a0d14", "#7a1520", "#a8222c", "#d04a4a", "#f08c80"],
   moss: ["#0d1f0c", "#1d3d18", "#2f6126", "#4a8a37", "#74b356", "#b4e08a"],
+  greyfur: ["#18191c", "#2c2e33", "#45474e", "#62656c", "#858890", "#b0b3ba"],
+  frost: ["#0f1a24", "#20364a", "#3a5a78", "#5f86a8", "#93b7d2", "#d8ecf8"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -125,6 +127,36 @@ function hide(px: Pixels): void {
   const spine = both(pelt, union(rect(15, 6, 16, 26), both(ellipse(16, 16, 2.4, 9), speckle(1, 1, 2))));
   pen.shade(spine, DEEP);
   pen.shade(both(spine, speckle(2, 5, 9)), SHADOW);
+}
+
+function pelt(px: Pixels): void {
+  const W = ITEM_PX * 2;
+  const pen = new Pen(px, 0);
+  const legs = mirror(union(
+    bar([11, 11], [5, 6], 2), ellipse(4.6, 5.4, 2.2, 2),
+    bar([11, 21], [5, 26], 2), ellipse(4.6, 26.4, 2.2, 2),
+  ), W);
+  const head = union(ellipse(16, 4.4, 3.6, 3.4), polygon([[12.5, 3], [13.5, 0], [15, 2.5]]),
+    polygon([[19.5, 3], [18.5, 0], [17, 2.5]]));
+  const fur = union(ellipse(16, 16, 8.6, 10.8), legs, head, bar([16, 26], [17.5, 31], 2.2));
+  pen.fill(fur, ink("greyfur", BASE));
+  pen.shade(litEdge(fur, 2), LIGHT);
+  pen.shade(darkEdge(fur, 2), SHADOW);
+  pen.shade(both(fur, speckle(3, 7, 9)), LIGHT);
+  pen.shade(both(fur, speckle(5, 2, 11)), SHADOW);
+  const back = both(fur, union(rect(14, 7, 17, 25), both(ellipse(16, 16, 3.4, 9), speckle(1, 1, 2))));
+  pen.shade(back, DEEP);
+  pen.fill(both(fur, minus(ellipse(16, 16, 8.6, 10.8), ellipse(16, 16, 7, 9.4))), ink("fat", LIGHT));
+}
+
+function fang(px: Pixels): void {
+  const pen = new Pen(px, 0);
+  const shape = horn([5.5, 14], [10.5, 2], -2.4, 3, 0.8);
+  pen.fill(shape, ink("ivory", LIGHT));
+  pen.shade((x, y) => shape(x, y) && !shape(x - 1, y), SHINE);
+  pen.shade((x, y) => shape(x, y) && !shape(x + 1, y), SHADOW);
+  pen.fill(both(shape, rect(0, 11, 15, 15)), ink("ivory", BASE));
+  pen.shade(both(shape, rect(0, 13, 15, 15)), SHADOW);
 }
 
 /** A tusk, curved like a new moon, its root stained dark. */
@@ -251,7 +283,8 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
-  "goblin-warlock-essence": essence("wisp"), bread, "health-potion": bottle("blood"),
+  "goblin-warlock-essence": essence("wisp"), "grey-wolf-essence": essence("frost"), "wolf-pelt": pelt,
+  "wolf-fang": fang, bread, "health-potion": bottle("blood"),
   "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),
   "gold-coin": coin("gold"),
 };

@@ -637,6 +637,20 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
   8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's 14 damage. Numbers: `WEAPONS` in `shared/src/weapons/weapons.ts`.
+- The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
+  circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
+  and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight
+  it circles 4.5 m off (3.2 m/s round, its walk in or out), then after 1.2 s plus up to 1.6 s (seeded; 1 s plus the
+  same at the start) crouches 0.6 s with a growl, tracking you until 0.2 s before it leaps (13 m/s for 0.35 s, from
+  within 6.5 m), biting 14 within 1 m (a body blow: blocked, never perfectly; knockback 6). It then stands open
+  0.45 s if the bite met you (taken or blocked) or 1.1 s if it met nobody, and hops back 2.4 m. It can't be staggered
+  from the crouch to the landing, so swinging at it while it commits only trades. Its tells are the crouch, the
+  growl and its eyes lighting, no marker. Numbers: `server/src/core/enemies/grey-wolf.ts`, the behaviour in
+  `shared/src/battle/fight/behaviors/pounce.ts`. Drops: its essence (worth 25) always, a wolf pelt 35% (2 x 2, weight
+  1.5, worth 30c) and a wolf fang 60% (1 x 1, stacks of 10, weight 0.1, worth 15c); the forge buys both. One on the
+  Grass Field's far north-east corner and one in the Mistwood's south-west woods, back 10 s after their fight; on the
+  overworld it wanders at 1.8, notices you within 5 tiles in 0.4 s and chases at 4.2 (you walk 5). Not in tall
+  grass. Its sounds are CC0 creature sounds pitched up (`wolf-*` in SOUNDS.md), unheard.
 - Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
   is opened by looking at it, as in the arena (below). It only gives: nothing goes onto it, nothing is moved about on
   it or eaten straight off it; taken things go into the bag, a hand or the cloth. It shows in the bag screen above
@@ -678,7 +692,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   more rings beyond it), a dry pit ringed by low cut stone with three ways in and a still pool at its bottom (silent,
   as still water is), two cranes on the pit's north rim and three ore carts on the rails (both new solid tiles, `Y`
   and `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry scrub (its tall
-  grass), a 2 x 2 pad and one campfire by the way in. No boars: two Kobold Swordsmen, a Kobold Greatsword and two
+  grass), a 2 x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold Greatsword and two
   Goblin Warlocks stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile (the Grass Field's
   rate) for a Kobold Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there is in the stone
   ruins arena, duels too. Its music is the Mistwood's for now. No readable signs: the game has no way to read one

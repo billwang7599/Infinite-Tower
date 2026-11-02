@@ -57,6 +57,7 @@ export const OLD_QUARRY: LevelDef = {
     { enemy: "kobold-greatsword", at: { x: 3.5, z: 4.5 }, respawnTime: 15 },
     { enemy: "goblin-warlock", at: { x: -13.5, z: 12.5 }, respawnTime: 15 },
     { enemy: "goblin-warlock", at: { x: 9.5, z: 14.5 }, respawnTime: 15 },
+    { enemy: "kobold-swordsman", at: { x: -17.5, z: -0.5 }, respawnTime: 15 },
   ],
   grass: {
     stepDist: 1,

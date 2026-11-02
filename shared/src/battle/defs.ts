@@ -45,6 +45,23 @@ export interface ChargeDef extends AttackDef {
   stunTime: number;
 }
 
+/** `cooldown` (counted once it's back to circling) and `firstDelay` each get up to `cooldownSpread` more, seeded. */
+export interface PounceDef extends AttackDef {
+  circleM: number;
+  circleSpeed: number;
+  cooldownSpread: number;
+  leapFromM: number;
+  /** Stops tracking the target this long before the leap: the dodge cue. */
+  lockAt: number;
+  speed: number;
+  /** How long the leap, and its bite, last. */
+  active: number;
+  /** `recover` if the bite met someone (taken or blocked), this if it met nobody. */
+  missRecover: number;
+  hopSpeed: number;
+  hopTime: number;
+}
+
 export interface WeaponAttackDef {
   /** Starts a chain within this center distance, facing the target. */
   triggerDist: number;
@@ -90,12 +107,13 @@ export interface SkillAttackDef {
 export interface EnemyAttacks {
   lunge?: LungeDef;
   charge?: ChargeDef;
+  pounce?: PounceDef;
   weapon?: WeaponAttackDef;
   skill?: SkillAttackDef;
 }
 
 export const ENEMY_IDS = [
-  "wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock", "training-dummy", "bram",
+  "wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock", "training-dummy", "bram", "grey-wolf",
 ] as const;
 export type EnemyId = (typeof ENEMY_IDS)[number];
 
