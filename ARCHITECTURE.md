@@ -1371,12 +1371,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, dialogue, the HUD's card), a 32x32 chibi facing front, back or side (the
                        world) and a 64x64 battle sprite from behind and the front in each pose (the arena), in
-                       code. art.ts (VIEWS, CHIBI_FACINGS, BATTLE_FACINGS, layers, Frame, render), pixels.ts (Pen,
+                       code. art.ts (VIEWS, CHIBI_FACINGS, BATTLE_FACINGS, layers, Frame, Sketch, render, renderParts:
+                       a picture cut into its parts), pixels.ts (Pen,
                        masks), palette.ts (ramps), body.ts (body types), battle.ts (POSES, SWORD_POSES, the front as
                        the back mirrored, leftHanded, frontHead), moves.ts (the sword fight's frames),
                        head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
-                       (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle, with or
-                       without the sword; battleBody, a pose's frame for a hand)
+                       (wear, named: STARTER_CLOTHES), sword.ts, look.ts (Look -> picture: portraitSketch, chibiSketch,
+                       battleSketch, each Art named by its part; drawPortrait, drawChibi, drawBattle, with or without
+                       the sword; battleBody, a pose's frame for a hand)
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
                        banner, the fade between modes (game/transition.ts sets it), the questbook, Settings, character
@@ -1743,15 +1745,19 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
                      trackpad gesture to zoom steps), names.ts (save names). A project is pages of one size sharing
                      one stack of layers (layers.ts): one page for a sprite, a page per tile for a tileset, a page per
                      frame (and an fps) for an animation. modes.ts (MODE_LOOKS: each mode's name, canvas sizes and
-                     starting layers; tiles are PX_PER_TILE square). templates.ts (TEMPLATES: the art the game draws
-                     today, by its own code, to start a drawing from). The page: state.ts (Editor: a project per mode,
+                     starting layers; tiles are PX_PER_TILE square). lookParts.ts (SHOT_SETS: the portrait, the chibi's
+                     facings, each battle pose's frames; partsProject: a look as a layer per part; PART_CHOICES and
+                     partAloneProject: one part on its own), underlay.ts (the base model under the canvas: its picture,
+                     reading it from a file, its panel). templates.ts (TEMPLATES: the art the game draws today, by its
+                     own code, to start a drawing from). The page: state.ts (Editor: a project per mode,
                      the tool, the color, the selection and what floats in it, undo), tools.ts (what each tool does
-                     with the pointer), view.ts (the zoomable, pannable canvas with its grid), toolbar.ts (the tool rail and the options bar), colors.ts
-                     (the game's ramps and a free picker; palette.ts lists them), layerList.ts, pageStrip.ts (the
-                     tiles or frames: pick, add, copy, reorder, name, delete), timeline.ts (Playback: play / stop, the
-                     fps, onion skin), filePanel.ts (save, open, new, templates, own PNGs, photos, export) over
-                     fileIo.ts (decoding, saving to /api/files, downloads), editor.ts (the layout: the top bar's modes
-                     and actions, the tool rail, the canvas, the sidebar's collapsible panels and the status bar; the
+                     with the pointer), view.ts (the zoomable, pannable canvas with its grid and the underlay),
+                     toolbar.ts (the tool rail and the options bar), colors.ts (the game's ramps and a free picker;
+                     palette.ts lists them), layerList.ts, pageStrip.ts (the tiles or frames: pick, add, copy,
+                     reorder, name, delete), timeline.ts (Playback: play / stop, the fps, onion skin), filePanel.ts
+                     (save, open, new, templates, a part alone, own PNGs, photos, export) over fileIo.ts (decoding,
+                     saving to /api/files, downloads), editor.ts (the layout: the top bar's modes and actions, the
+                     tool rail, the canvas, the sidebar's collapsible panels and the status bar; the
                      previews and playing them, drag-and-drop, the shortcuts' key listener)
 ```
 

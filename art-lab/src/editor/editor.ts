@@ -15,6 +15,7 @@ import { Editor } from "./state.js";
 import { Playback, timeline } from "./timeline.js";
 import { toolOptions, toolRail } from "./toolbar.js";
 import { TOOLS } from "./tools.js";
+import { underlayPanel } from "./underlay.js";
 import { CanvasView, toCanvas } from "./view.js";
 
 const PREVIEW_SCALES = [1, 2, 4];
@@ -164,6 +165,7 @@ export function mountEditor(root: HTMLElement, bar: HTMLElement, look: () => Loo
         : []),
       panel("Color", colors(ed)),
       panel("Layers", layerList(ed, (i) => exportLayer(ed, i))),
+      ...(ed.mode === "tiles" ? [] : [panel("Underlay", underlayPanel(ed))]),
       panel("File", filePanel(ed, look, { saved, save, fitView: () => view.fit(), report })),
     );
   });

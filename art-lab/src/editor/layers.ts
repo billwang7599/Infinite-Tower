@@ -1,3 +1,4 @@
+import { DEFAULT_LOOK, type Look } from "@infinite-tower/shared";
 import { blank, copyBitmap, type Bitmap } from "./bitmap.js";
 import { stamp } from "./selection.js";
 
@@ -7,7 +8,24 @@ export interface Layer { name: string; visible: boolean; opacity: number; pixels
 /** Layers bottom to top. */
 export interface Doc { name: string; width: number; height: number; layers: Layer[] }
 /** Pages of one size sharing one stack of layers; only their pixels differ. `fps` is for animations. */
-export interface Project { pages: Doc[]; page: number; fps: number }
+export interface Project { pages: Doc[]; page: number; fps: number; underlay?: Underlay }
+
+// `shots` names a SHOT_SETS entry, "" for none.
+export interface Underlay {
+  shots: string;
+  body: Look["body"] | "all";
+  face: Look["face"];
+  skin: Look["skin"];
+  hair: Look["hair"] | null;
+  dressed: boolean;
+  opacity: number;
+  shown: boolean;
+}
+
+export const NO_UNDERLAY: Underlay = {
+  shots: "", body: DEFAULT_LOOK.body, face: DEFAULT_LOOK.face, skin: DEFAULT_LOOK.skin, hair: null, dressed: false,
+  opacity: 0.5, shown: true,
+};
 
 export const START_FPS = 8;
 export const MAX_FPS = 60;

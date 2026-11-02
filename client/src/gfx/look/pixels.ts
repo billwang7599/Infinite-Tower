@@ -23,12 +23,16 @@ export class Pixels {
   readonly layers: Int8Array;
   /** 1 where a pixel merges into the same material under it: no inner outline between them (Pen.blend). */
   readonly blended: Uint8Array;
+  // -1 where nothing has painted.
+  readonly painters: Int16Array;
+  painter = -1;
 
   constructor(readonly width: number, readonly height: number) {
     this.materials = new Array<string | null>(width * height).fill(null);
     this.tones = new Uint8Array(width * height);
     this.layers = new Int8Array(width * height).fill(-1);
     this.blended = new Uint8Array(width * height);
+    this.painters = new Int16Array(width * height).fill(-1);
   }
 
   inside(x: number, y: number): boolean {
@@ -50,6 +54,7 @@ export class Pixels {
     this.tones[i] = ink[1];
     this.layers[i] = layer;
     this.blended[i] = 0;
+    this.painters[i] = this.painter;
   }
 
   retone(x: number, y: number, tone: Tone): void {

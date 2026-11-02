@@ -1,5 +1,6 @@
 import { MAX_FPS, MAX_SIDE, START_FPS, type Doc, type Layer, type Project } from "./layers.js";
 import { MODES, type Mode } from "./modes.js";
+import { underlayFrom } from "./underlay.js";
 
 export const toBase64 = (bytes: Iterable<number>) => {
   let text = "";
@@ -10,7 +11,7 @@ export const toBase64 = (bytes: Iterable<number>) => {
 const fromBase64 = (text: string) => Uint8ClampedArray.from(atob(text), (ch) => ch.charCodeAt(0));
 
 export const projectToJson = (mode: Mode, p: Project) => JSON.stringify({
-  mode, fps: p.fps,
+  mode, fps: p.fps, underlay: p.underlay,
   pages: p.pages.map((d) => ({
     name: d.name, width: d.width, height: d.height,
     layers: d.layers.map((l) => ({ name: l.name, visible: l.visible, opacity: l.opacity, pixels: toBase64(l.pixels.rgba) })),
@@ -18,7 +19,7 @@ export const projectToJson = (mode: Mode, p: Project) => JSON.stringify({
 });
 
 export function projectFromJson(text: string): { mode: Mode; project: Project } {
-  const raw = JSON.parse(text) as { mode?: unknown; pages?: unknown; fps?: unknown };
+  const raw = JSON.parse(text) as { mode?: unknown; pages?: unknown; fps?: unknown; underlay?: unknown };
   if (!MODES.includes(raw.mode as Mode) || !Array.isArray(raw.pages) || raw.pages.length === 0) {
     throw new Error("Not a drawing saved by the art lab");
   }
@@ -28,7 +29,8 @@ export function projectFromJson(text: string): { mode: Mode; project: Project } 
     throw new Error("The pages don't match in size or layers");
   }
   const fps = typeof raw.fps === "number" ? Math.max(1, Math.min(MAX_FPS, Math.round(raw.fps))) : START_FPS;
-  return { mode: raw.mode as Mode, project: { pages, page: 0, fps } };
+  const underlay = underlayFrom(raw.underlay);
+  return { mode: raw.mode as Mode, project: { pages, page: 0, fps, ...(underlay && { underlay }) } };
 }
 
 function docFrom(raw: Record<string, unknown>): Doc {

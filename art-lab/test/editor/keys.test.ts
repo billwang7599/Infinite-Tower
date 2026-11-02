@@ -65,3 +65,8 @@ test("keys typed into a text box or a list are the box's, not the editor's", () 
   assert.ok(!typingIn({ tagName: "BUTTON" }));
   assert.ok(!typingIn(null));
 });
+
+test("H shows or hides the underlay", () => {
+  assert.deepEqual(commandFor(press("h")), { do: "underlay" });
+  assert.equal(commandFor(press("h", { ctrl: true })), null);
+});

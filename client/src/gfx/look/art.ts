@@ -103,15 +103,6 @@ export interface Art {
   battle?: Partial<Record<BattleFacing, Piece<BattleFrame>>>;
 }
 
-/** The ramps the picked colors fill in; everything else comes from palette.ts's FIXED. */
-export interface Colors {
-  skin: Ramp;
-  hair: Ramp;
-  iris: Ramp;
-  cloth: Ramp;
-  accent: Ramp;
-}
-
 export interface Picture {
   width: number;
   height: number;
@@ -119,22 +110,59 @@ export interface Picture {
   rgba: Uint8ClampedArray;
 }
 
-/**
- * Draw `pieces` (each Art's piece for this picture, in the Arts' order) at `view`'s size on the body `frame`,
- * colored with `colors` (plus `fixed`, the shared materials).
- */
-export function render<F extends Frame>(
-  view: View, frame: F, pieces: readonly (Piece<F> | undefined)[], colors: Colors,
-  fixed: Readonly<Record<string, Ramp>>,
-): Picture {
+export interface Sketch<F extends Frame = Frame> {
+  view: View;
+  frame: F;
+  parts: readonly (readonly [part: string, piece: Piece<F> | undefined])[];
+  colors: Readonly<Record<string, Ramp>>;
+}
+
+export type AnySketch = Sketch | Sketch<BattleFrame>;
+
+const OUTLINED = new Set(LAYERS.flatMap((layer, i) => (UNOUTLINED.has(layer) ? [] : [i])));
+
+// A draw is numbered by its layer, then its part.
+function paint({ view, frame, parts }: AnySketch, lastDraw = Infinity, only?: readonly string[]): Pixels {
   const { width, height } = VIEWS[view];
   const px = new Pixels(width, height);
   LAYERS.forEach((layer, i) => {
     const pen = new Pen(px, i);
-    for (const piece of pieces) piece?.[layer]?.(pen, frame);
+    parts.forEach(([part, piece], j) => {
+      const draw = only && !only.includes(part) ? undefined : piece?.[layer];
+      px.painter = i * parts.length + j;
+      if (draw && px.painter <= lastDraw) draw(pen, frame as BattleFrame); // a sketch's pieces take its own frame
+    });
   });
-  outline(px, new Set(LAYERS.flatMap((layer, i) => (UNOUTLINED.has(layer) ? [] : [i]))));
-  return toPicture(px, { ...fixed, ...colors });
+  outline(px, OUTLINED);
+  return px;
+}
+
+export const render = (sketch: AnySketch, only?: readonly string[]): Picture =>
+  toPicture(paint(sketch, Infinity, only), sketch.colors);
+
+// Stacked bottom to top, the cuts are the picture; each keeps what later cuts cover, as it was before them.
+export function renderParts(
+  sketch: AnySketch, only?: readonly string[],
+): { part: string; layer: Layer; picture: Picture }[] {
+  const { parts, colors } = sketch;
+  const whole = paint(sketch, Infinity, only), wholePicture = toPicture(whole, colors);
+  const cuts: { part: string; layer: Layer; draws: number[] }[] = [];
+  LAYERS.forEach((layer, i) => parts.forEach(([part, piece], j) => {
+    if (!piece?.[layer] || (only && !only.includes(part))) return;
+    const last = cuts.at(-1);
+    if (last?.part === part && last.layer === layer) last.draws.push(i * parts.length + j);
+    else cuts.push({ part, layer, draws: [i * parts.length + j] });
+  }));
+  return cuts.map(({ part, layer, draws }) => {
+    const before = paint(sketch, draws.at(-1), only), beforePicture = toPicture(before, colors);
+    const rgba = new Uint8ClampedArray(wholePicture.rgba.length);
+    for (let i = 0; i < whole.painters.length; i++) {
+      const from = draws.includes(whole.painters[i]!) ? wholePicture
+        : draws.includes(before.painters[i]!) ? beforePicture : null;
+      if (from) rgba.set(from.rgba.subarray(i * 4, i * 4 + 4), i * 4);
+    }
+    return { part, layer, picture: { width: whole.width, height: whole.height, rgba } };
+  });
 }
 
 /** Painted pixels in color: each one's material ramp at its tone. Unpainted ones stay see-through. */

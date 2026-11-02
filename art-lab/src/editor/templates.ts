@@ -1,10 +1,7 @@
-import { DEFAULT_LOOK, ITEMS, LOOK_OPTIONS, seededRandom, type ItemId } from "@infinite-tower/shared";
+import { DEFAULT_LOOK, ITEMS, LOOK_OPTIONS, seededRandom, type ItemId, type Look } from "@infinite-tower/shared";
 import { PX_PER_TILE, SPRITE_PX } from "@infinite-tower/client/src/gfx/grid.js";
 import { drawItem } from "@infinite-tower/client/src/gfx/items/items.js";
-import { POSES, SWORD_POSES, type Pose, type SwordPose } from "@infinite-tower/client/src/gfx/look/battle.js";
-import {
-  BATTLE_FACINGS, CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait,
-} from "@infinite-tower/client/src/gfx/look/look.js";
+import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
 import { goblinSprite } from "@infinite-tower/client/src/visuals/enemies/goblin-warlock/sprite.js";
 import { koboldGreatswordSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-greatsword/sprite.js";
 import { koboldSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-swordsman/sprite.js";
@@ -19,6 +16,7 @@ import { el } from "../dom.js";
 import { blank, hexToRgba, type Bitmap } from "./bitmap.js";
 import { paint, rectPoints } from "./draw.js";
 import { projectOf, type Project } from "./layers.js";
+import { partsProject, SHOT_SETS } from "./lookParts.js";
 import type { Mode } from "./modes.js";
 
 export interface Template { group: string; name: string; mode: Mode; make: () => Project }
@@ -50,18 +48,20 @@ const tileset = (looks: TileLooks): Named[] => Object.entries(looks).map(([kind,
   pixels: onCanvas(PX_PER_TILE, PX_PER_TILE, (pen) => look.ground(pen, 0, 0, seededRandom(i + 1), () => true)),
 }));
 
-const POSE_FRAMES: Record<string, number> = { ...Object.fromEntries(POSES.map((p) => [p, 1])), ...SWORD_POSES };
+const shots = (name: string) => SHOT_SETS.find((s) => s.name === name)!;
+
+const inParts = (group: string, name: string, shotSet: string, look: Look): Template => ({
+  group, name, mode: shotSet === "portrait" ? "sprite" : "animation",
+  make: () => partsProject(shots(shotSet), look, STARTER_CLOTHES),
+});
 
 export const TEMPLATES: readonly Template[] = [
   ...LOOK_OPTIONS.body.flatMap((body) => LOOK_OPTIONS.face.map((face) =>
-    one("Portraits", `portrait ${body} ${face}`, () => drawPortrait({ ...DEFAULT_LOOK, body, face })))),
-  ...LOOK_OPTIONS.body.map((body) => pages("Chibi", `chibi ${body}`, "animation", () =>
-    CHIBI_FACINGS.map((facing) => ({ name: facing, pixels: drawChibi({ ...DEFAULT_LOOK, body }, facing) })))),
-  ...BATTLE_FACINGS.flatMap((facing) => Object.entries(POSE_FRAMES).map(([pose, count]) =>
-    pages("Battle sprite", `battle ${pose} ${facing}`, "animation", () => Array.from({ length: count }, (_, frame) => ({
-      name: `${pose} ${frame + 1}`, pixels: drawBattle(DEFAULT_LOOK, pose as Pose | SwordPose, frame, facing),
-    }))))),
-  ...Object.entries(NPC_LOOKS).map(([id, npc]) => one("NPCs", `${id} portrait`, () => drawPortrait(npc.look))),
+    inParts("Portraits, in parts", `portrait ${body} ${face}`, "portrait", { ...DEFAULT_LOOK, body, face }))),
+  ...LOOK_OPTIONS.body.map((body) => inParts("Chibi, in parts", `chibi ${body}`, "chibi", { ...DEFAULT_LOOK, body })),
+  ...SHOT_SETS.filter((s) => s.name.startsWith("battle ")).map((s) =>
+    inParts("Battle sprite, in parts", s.name, s.name, DEFAULT_LOOK)),
+  ...Object.entries(NPC_LOOKS).map(([id, npc]) => inParts("NPCs, in parts", `${id} portrait`, "portrait", npc.look)),
   ...Object.entries({
     "wild boar": boarSprite, "kobold swordsman": koboldSprite, "kobold greatsword": koboldGreatswordSprite,
     "goblin warlock": goblinSprite,

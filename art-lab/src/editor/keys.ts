@@ -1,7 +1,7 @@
 import type { ToolName } from "./state.js";
 
 export type Command =
-  | { do: "undo" | "redo" | "save" | "copy" | "cut" | "paste" | "clear" | "selectAll" | "deselect" }
+  | { do: "undo" | "redo" | "save" | "copy" | "cut" | "paste" | "clear" | "selectAll" | "deselect" | "underlay" }
   | { do: "zoom"; by: 1 | -1 }
   | { do: "nudge"; dx: number; dy: number }
   | { do: "tool"; tool: ToolName };
@@ -38,6 +38,7 @@ export function commandFor(e: KeyPress): Command | null {
   if (key === "-" || key === "_") return { do: "zoom", by: -1 };
   if (key === "Delete" || key === "Backspace") return { do: "clear" };
   if (key === "Escape") return { do: "deselect" };
+  if (key === "h") return { do: "underlay" };
   return null;
 }
 

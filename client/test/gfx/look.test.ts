@@ -1,22 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { DEFAULT_LOOK, LOOK_OPTIONS } from "@infinite-tower/shared";
-import { BATTLE_FACINGS, VIEWS, type Art, type Picture } from "../../src/gfx/look/art.js";
+import { BATTLE_FACINGS, VIEWS, type Picture } from "../../src/gfx/look/art.js";
 import { POSES, SWORD_POSES, type SwordPose } from "../../src/gfx/look/battle.js";
 import { BODY_TYPES } from "../../src/gfx/look/body.js";
 import { LEATHER_JERKIN } from "../../src/gfx/look/jerkin.js";
 import { CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait } from "../../src/gfx/look/look.js";
-import { STARTER_CLOTHES } from "../../src/gfx/look/outfit.js";
+import { STARTER_CLOTHES, type Wear } from "../../src/gfx/look/outfit.js";
 import { EYES, FIXED } from "../../src/gfx/look/palette.js";
 import { BASE, LIGHT } from "../../src/gfx/look/pixels.js";
 
-const WEARS: Record<string, readonly Art[]> = {
+const WEARS: Record<string, Wear> = {
   "starter clothes": STARTER_CLOTHES,
-  "with the jerkin": [...STARTER_CLOTHES, LEATHER_JERKIN],
+  "with the jerkin": { ...STARTER_CLOTHES, jerkin: LEATHER_JERKIN },
 };
 
 /** Every picture of the default look in `wear`, with the view it's drawn in. */
-const pictures = (wear: readonly Art[]) => [
+const pictures = (wear: Wear) => [
   { name: "portrait", view: VIEWS.portrait, pic: drawPortrait(DEFAULT_LOOK, wear) },
   ...CHIBI_FACINGS.map((facing) => ({
     name: `chibi ${facing}`, view: VIEWS.chibi, pic: drawChibi(DEFAULT_LOOK, facing, wear),

@@ -22,6 +22,9 @@ export function runCommand(cmd: Command, ed: Editor, view: CanvasView, save: () 
     case "deselect":
       ed.selection = null;
       return ed.changed();
+    case "underlay":
+      if (ed.project.underlay) ed.project.underlay = { ...ed.project.underlay, shown: !ed.project.underlay.shown };
+      return ed.changed();
     case "copy":
     case "cut":
       if (!sel) return;

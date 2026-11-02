@@ -33,7 +33,7 @@ function canvas(pic: Picture, scale: number, className = ""): HTMLCanvasElement 
   return c;
 }
 
-const wear = () => (jerkin ? [...STARTER_CLOTHES, LEATHER_JERKIN] : STARTER_CLOTHES);
+const wear = () => (jerkin ? { ...STARTER_CLOTHES, jerkin: LEATHER_JERKIN } : STARTER_CLOTHES);
 const portrait = (l: Look) => drawPortrait(l, wear());
 const chibi = (l: Look, facing: ChibiFacing) => drawChibi(l, facing, wear());
 const battle = (pose: Pose | SwordPose, frame: number, facing: BattleFacing) =>

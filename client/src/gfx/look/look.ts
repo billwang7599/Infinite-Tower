@@ -5,35 +5,53 @@
  */
 import type { Hand, Look } from "@infinite-tower/shared";
 import {
-  render, type Art, type BattleFacing, type BattleFrame, type ChibiFacing, type Colors, type Picture,
+  render, type Art, type BattleFacing, type BattleFrame, type ChibiFacing, type Picture, type Sketch,
 } from "./art.js";
 import { leftHanded, type Pose, type SwordPose } from "./battle.js";
 import { BODY, BODY_TYPES } from "./body.js";
 import { EYE_TYPES, MOUTH_TYPES } from "./face.js";
 import { FACE_SHAPES } from "./head.js";
 import { HAIR_STYLES } from "./hair/index.js";
-import { STARTER_CLOTHES } from "./outfit.js";
-import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN } from "./palette.js";
+import { STARTER_CLOTHES, type Wear } from "./outfit.js";
+import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN, type Ramp } from "./palette.js";
 import { SWORD } from "./sword.js";
 
 export type { Look };
 export { BATTLE_FACINGS, CHIBI_FACINGS, type BattleFacing, type ChibiFacing } from "./art.js";
 
-/** Everything drawn for a look: the body and head, its features, then what it wears. */
-function lookArts(look: Look, wear: readonly Art[] = STARTER_CLOTHES): Art[] {
-  return [BODY, FACE_SHAPES[look.face], HAIR_STYLES[look.hair], EYE_TYPES[look.eyes], MOUTH_TYPES[look.mouth], ...wear];
+function lookArts(look: Look, wear: Wear): (readonly [string, Art])[] {
+  return [
+    ["base", BODY], ["base", FACE_SHAPES[look.face]], ["hair", HAIR_STYLES[look.hair]], ["eyes", EYE_TYPES[look.eyes]],
+    ["mouth", MOUTH_TYPES[look.mouth]], ...Object.entries(wear),
+  ];
 }
 
-export function drawPortrait(look: Look, wear?: readonly Art[]): Picture {
-  const pieces = lookArts(look, wear).map((art) => art.portrait);
-  return render("portrait", BODY_TYPES[look.body].portrait, pieces, colorsOf(look), FIXED);
+export const portraitSketch = (look: Look, wear: Wear = STARTER_CLOTHES): Sketch => ({
+  view: "portrait", frame: BODY_TYPES[look.body].portrait, colors: colorsOf(look),
+  parts: lookArts(look, wear).map(([part, art]) => [part, art.portrait]),
+});
+
+export const chibiSketch = (look: Look, facing: ChibiFacing, wear: Wear = STARTER_CLOTHES): Sketch => ({
+  view: "chibi", frame: BODY_TYPES[look.body].chibi[facing], colors: colorsOf(look),
+  parts: lookArts(look, wear).map(([part, art]) => [part, art.chibi?.[facing]]),
+});
+
+export function battleSketch(
+  look: Look, pose: Pose | SwordPose, frame = 0, facing: BattleFacing = "back", wear: Wear = STARTER_CLOTHES,
+  swordHand: Hand | null = "rightHand", weapon: Art | null = SWORD,
+): Sketch<BattleFrame> {
+  const arts = lookArts(look, swordHand && weapon ? { ...wear, weapon } : wear);
+  return {
+    view: "battle", frame: battleBody(look, pose, frame, facing, swordHand), colors: colorsOf(look),
+    parts: arts.map(([part, art]) => [part, art.battle?.[facing]]),
+  };
 }
+
+export const drawPortrait = (look: Look, wear?: Wear): Picture => render(portraitSketch(look, wear));
 
 /** The chibi facing `facing`; the overworld picks one by where the player last walked. */
-export function drawChibi(look: Look, facing: ChibiFacing, wear?: readonly Art[]): Picture {
-  const pieces = lookArts(look, wear).map((art) => art.chibi?.[facing]);
-  return render("chibi", BODY_TYPES[look.body].chibi[facing], pieces, colorsOf(look), FIXED);
-}
+export const drawChibi = (look: Look, facing: ChibiFacing, wear?: Wear): Picture =>
+  render(chibiSketch(look, facing, wear));
 
 export function battleBody(
   look: Look, pose: Pose | SwordPose, frame: number, facing: BattleFacing, swordHand: Hand | null,
@@ -44,16 +62,9 @@ export function battleBody(
   return body;
 }
 
-export function drawBattle(
-  look: Look, pose: Pose | SwordPose, frame = 0, facing: BattleFacing = "back", wear: readonly Art[] = STARTER_CLOTHES,
-  swordHand: Hand | null = "rightHand", weapon: Art | null = SWORD,
-): Picture {
-  const body = battleBody(look, pose, frame, facing, swordHand);
-  const pieces = lookArts(look, swordHand && weapon ? [...wear, weapon] : wear).map((art) => art.battle?.[facing]);
-  return render("battle", body, pieces, colorsOf(look), FIXED);
-}
+export const drawBattle = (...args: Parameters<typeof battleSketch>): Picture => render(battleSketch(...args));
 
-const colorsOf = (look: Look): Colors => ({
-  skin: SKIN[look.skin], hair: HAIR[look.hairColor], iris: EYES[look.eyeColor], cloth: DYES[look.outfit],
+const colorsOf = (look: Look): Readonly<Record<string, Ramp>> => ({
+  ...FIXED, skin: SKIN[look.skin], hair: HAIR[look.hairColor], iris: EYES[look.eyeColor], cloth: DYES[look.outfit],
   accent: ACCENTS[look.accent],
 });
