@@ -1,6 +1,7 @@
 import type { Look, NpcId } from "@infinite-tower/shared";
 import { apothecaryLook } from "./apothecary/look.js";
 import { bramLook } from "./bram/look.js";
+import { burnerLook } from "./burner/look.js";
 import { captainLook } from "./captain/look.js";
 import { changerLook } from "./changer/look.js";
 import { chroniclerLook } from "./chronicler/look.js";
@@ -9,6 +10,7 @@ import { corwinLook } from "./corwin/look.js";
 import { foremanLook } from "./foreman/look.js";
 import { grocerLook } from "./grocer/look.js";
 import { heraldLook } from "./herald/look.js";
+import { herbalistLook } from "./herbalist/look.js";
 import { hollisLook } from "./hollis/look.js";
 import { ilseLook } from "./ilse/look.js";
 import { marenLook } from "./maren/look.js";
@@ -42,4 +44,6 @@ export const NPC_LOOKS: Record<NpcId, NpcLook> = {
   priest: priestLook,
   foreman: foremanLook,
   scavenger: scavengerLook,
+  herbalist: herbalistLook,
+  burner: burnerLook,
 };

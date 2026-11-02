@@ -449,4 +449,77 @@ export const QUESTS: Quests = {
       },
     ],
   },
+  "herbalist-fangs": {
+    title: "Fangs for the Mortar",
+    half: "side",
+    steps: [
+      {
+        id: "gather",
+        task: { kind: "gather", item: "wolf-fang", count: 3 },
+        text: "Gather 3 wolf fangs.",
+        hint: "Sorrel said a grey wolf lies up in the woods just west of her reeds, and another prowls the Grass "
+          + "Field's far north-east corner. Not every one gives a fang.",
+      },
+      {
+        id: "bring",
+        task: { kind: "deliver", item: "wolf-fang", count: 3, to: "herbalist" },
+        text: "Bring the 3 wolf fangs to Sorrel.",
+        hint: "She gathers by the reeds at the Mistwood lake's south-west shore.",
+        reward: { items: { "copper-coin": 80 }, lore: ["thinning-wood"] },
+      },
+    ],
+  },
+  "herbalist-mist": {
+    title: "What Rises off the Mire",
+    half: "side",
+    when: { done: "herbalist-fangs" },
+    steps: [
+      {
+        id: "island",
+        task: { kind: "reach", level: "mistwood", area: { x: -1, z: 2, w: 3, h: 3 } },
+        text: "Stand on the island in the Mistwood's lake.",
+        hint: "Sorrel said to walk out along the bridge and, where it forks, go north.",
+      },
+      {
+        id: "warlock",
+        task: { kind: "kill", enemy: "goblin-warlock", count: 1 },
+        text: "Slay a Goblin Warlock.",
+        hint: "Sorrel said one keeps the broken walls south-east of the Mistwood's lake.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "herbalist" },
+        text: "Go back to Sorrel.",
+        hint: "She gathers by the reeds at the Mistwood lake's south-west shore.",
+        reward: { items: { "silver-coin": 1 }, lore: ["mire-mist"] },
+      },
+    ],
+  },
+  "burner-rook": {
+    title: "Rook's Last Hunt",
+    half: "side",
+    when: { done: "tamsin-son" },
+    steps: [
+      {
+        id: "wolf",
+        task: { kind: "kill", enemy: "grey-wolf", count: 1 },
+        text: "Slay a grey wolf.",
+        hint: "Bryn said the one Rook hunted lies up in the woods west of the Mistwood's mire.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "burner" },
+        text: "Go back to Bryn.",
+        hint: "She burns charcoal in the Mistwood's south, below the lake.",
+        reward: { items: { "silver-coin": 1 } },
+      },
+      {
+        id: "tamsin",
+        task: { kind: "talk", to: "tamsin" },
+        text: "Tell Tamsin which way Rook went.",
+        hint: "She waits by her door in the south-west of Highmere's market.",
+        reward: { lore: ["past-the-trees"] },
+      },
+    ],
+  },
 };

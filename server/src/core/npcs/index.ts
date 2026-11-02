@@ -3,6 +3,7 @@ import type { ShopId } from "../content/shops.js";
 import type { When } from "../game/story.js";
 import { APOTHECARY } from "./apothecary.js";
 import { BRAM } from "./bram.js";
+import { BURNER } from "./burner.js";
 import { CAPTAIN } from "./captain.js";
 import { CHANGER } from "./changer.js";
 import { CHRONICLER } from "./chronicler.js";
@@ -11,6 +12,7 @@ import { CORWIN } from "./corwin.js";
 import { FOREMAN } from "./foreman.js";
 import { GROCER } from "./grocer.js";
 import { HERALD } from "./herald.js";
+import { HERBALIST } from "./herbalist.js";
 import { HOLLIS } from "./hollis.js";
 import { ILSE } from "./ilse.js";
 import { MAREN } from "./maren.js";
@@ -68,4 +70,6 @@ export const NPCS: Record<NpcId, Npc> = {
   priest: PRIEST,
   foreman: FOREMAN,
   scavenger: SCAVENGER,
+  herbalist: HERBALIST,
+  burner: BURNER,
 };
