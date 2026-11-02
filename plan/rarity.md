@@ -22,9 +22,6 @@ below is what's still to build or decide. Covers items and inscriptions (sigils,
 - **How it shows:** a glow on piles holding Rare or better, and an Epic or better drop getting its own notice.
 - **Telling the world:** when a unique thing drops, changes hands or goes back, everyone gets a notice.
 - **Never in a stash or bank** when those come: dying with a unique thing is the risk of carrying it.
-- **A unique inscription, once carved, is kept through death** like every inscription (user's decision), so it only
-  goes back to the world when it's removed or its holder goes 7 days without logging in. An uncarved unique sigil
-  is an item, and is lost on death like one (built: it drops in the death pile).
 - Rare things from quests, crafting, bosses and hidden places (the tiers' other sources), and more treasure than one
   sigil a tier.
 

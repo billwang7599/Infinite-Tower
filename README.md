@@ -138,9 +138,13 @@ What's built so far:
   A pile vanishes once it's empty, or 10 minutes after it lands. What a player drops on dying lies where they fell,
   for the others in the arena to take once the fight is won, and goes the same way.
 - **Rarity:** every kind of item is common, uncommon, rare, epic, legendary or unique, shown by its name's colour and
-  a tinted edge in the bag. Beyond its own drops, a monster now and then drops a treasure of one tier (sigils, for
-  inscriptions not built yet). A unique thing is one of a kind in the world: it drops only while nobody has it, and
-  goes back to the world when its pile vanishes or its holder stays away 7 days.
+  a tinted edge in the bag. Beyond its own drops, a monster now and then drops a treasure of one tier (sigils). A
+  unique thing is one of a kind in the world: it drops only while nobody has it, and goes back to the world when its
+  pile vanishes or its holder stays away 7 days.
+- **Inscriptions:** a sigil carved into your core by the Collegium of Thresholds in the Market Ward, for coins and
+  essence: a permanent passive (Grit, Embers, the Last Breath, the Red Blade, the one-of-a-kind First Door), kept
+  through every death and shown as a ring round the core's sphere. The core holds more as it grows; unmaking one costs
+  more and it's gone.
 - **Skills:** words chained into skills (five Forms: Bolt, Beam, Nova, Imbue and Self; seven elements with their
   statuses and four reactions; eight modifiers), paid in stamina. In a fight, R opens the chant: a skill built word by
   word in a carousel of squares (click a word, search for one, or pick by number; Backspace undoes), cast with Enter; it

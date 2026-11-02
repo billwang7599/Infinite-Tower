@@ -1,13 +1,16 @@
 import { useState } from "react";
 import {
-  carryLimit, coreName, coreStats, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, placePoint, pointsLeft,
-  SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type CoreState, type ShownStat, type Stats,
+  carryLimit, coreName, coreStats, inscriptionSlots, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor,
+  placePoint, pointsLeft, SHOWN_STATS, skillDamage, skillTakenFactor, staminaMaxOf, takeBackPoint, type CoreState,
+  type ShownStat, type Stats,
 } from "@infinite-tower/shared";
 import { LookPicture } from "../../components/LookPicture.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import type { OverworldHudState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
+import { RARITY_TEXT } from "../inventory/itemInfo.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { CHART_RADIUS_PX, CHART_RINGS, chartMax, chartPoints, LABEL_RADIUS_PX } from "./chart.js";
 
@@ -173,8 +176,31 @@ export function CharacterPanel({ hud, statPoint, close, shownWidth }: PanelProps
             </span>
           </div>
           <StatChart core={core} byFire={byFire} statPoint={statPoint} />
+          <Rings core={core} />
         </>
       )}
     </PanelFrame>
+  );
+}
+
+function Rings({ core }: { core: CoreState }) {
+  return (
+    <section id="character-rings" className="mt-1 border-t border-white/10 pt-2 text-xs">
+      <div className="flex items-baseline justify-between text-white/70">
+        <span className="tracking-[0.12em] uppercase">Rings</span>
+        <span className="tabular-nums">{core.inscriptions.length} / {inscriptionSlots(core)}</span>
+      </div>
+      {core.inscriptions.length === 0 && (
+        <p className="mt-1 text-white/45 italic">Nothing carved yet. The Collegium carves sigils into a core.</p>
+      )}
+      <ul className="mt-1 flex flex-col gap-1">
+        {core.inscriptions.map((id) => (
+          <li key={id} data-inscription={id}>
+            <span className={RARITY_TEXT[inscriptionRarity(id)]}>{inscriptionName(id)}</span>
+            <span className="text-white/55"> {INSCRIPTION_TEXT[id]}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

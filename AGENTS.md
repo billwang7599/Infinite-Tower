@@ -291,8 +291,14 @@ Decided by the user:
   "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
   only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
   for 7 days goes back to the world, and so does one whose death pile vanishes. Unique things can be traded (no trade
-  system yet: nothing stops one changing hands). A carved unique inscription will be kept through every death
+  system yet: nothing stops one changing hands). A carved unique inscription is kept through every death
   ([plan/rarity.md](plan/rarity.md)).
+- Inscriptions (the user: "inscriptions and their numbers and stuff you can make up"): a permanent passive skill
+  carved onto the core, a player's build. It shows as a ring round the core's sphere, like Saturn's, only once carved.
+  How many a core holds is capped by how far it has grown. Death keeps them, PvP deaths too. Removing one costs a lot
+  (essence and coins) and it's gone, to be earned again. They come from super rare drops, crafting (the common ones,
+  not built) and quest rewards. Unique ones exist once in the world. Blessings are separate
+  ([plan/lore.md](plan/lore.md)).
 - Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
   overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
   battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
@@ -692,15 +698,36 @@ them; treat them as changeable, and still ask before deciding new ones):
   per enemy (FORMULAS.md, "Treasure"; boar 3% / 0.8% / 0.2% / 0.05% / 0.01% from uncommon to unique, tougher
   monsters up to twice that), at most one a kill, picked from the tier's `TREASURE` in
   `server/src/core/enemies/index.ts`. New items: five sigils, 1 x 1, weight 0.1, not stacking, each naming the
-  inscription it would carve (carving isn't built): Grit (uncommon, a stat boost), Embers (rare, always on fire), the
-  Last Breath (epic, swinging and dodging past your stamina for HP), the Red Blade (legendary, sword damage heals) and
-  the First Door (unique, its power undecided); none can be sold. A bog pearl (rare, 1 x 1, stacks of 10, weight 0.1,
+  inscription it carves (below); none can be sold. A bog pearl (rare, 1 x 1, stacks of 10, weight 0.1,
   worth 250c, the forge buys it), dropped by the bog lurker 5% of the time. A unique drops only while it's free:
   nobody has saved holding it within the 7 days, and it lies in no pile and on no player online; a unique roll with
   none free drops nothing. The holder is whoever last saved carrying it (saved in `unique_items`, as of their latest
   save); a player who loads carrying one they don't hold has it taken out of their bag and slots. A unique left on
   the cloth, or in a pile that vanishes or is lost to a restart, is free again at once. The admin panel's give can
   still make a second one (dev only); the copy is taken away from whoever doesn't hold it on their next login.
+- Inscriptions, built (the user's rules above; every pick here is the agent's, tried by tests and a headless look,
+  not hand-played; numbers in FORMULAS.md, "Inscriptions"):
+  - A sigil is carved and used up; carving is the core's `inscriptions`, saved in their own column. Slots: 1 at Early
+    Yan, 1 more each step, 2 on the first step of each new realm (19 at Peak Tian). No doubles. A death that costs a
+    step keeps every ring even past the slots left; none more can be carved until the core grows back.
+  - The five, each a permanent status in the shared fight: Grit + 4 strength and + 4 vitality (on the core's stats,
+    the overworld too); Embers immune to burning, and weapon hits burn the foe 3 a second for 3 s; the Last Breath
+    lets an attack or a dodge go on too little stamina, the stamina short paid 0.5 HP a point, never your last HP
+    (at 0 stamina only if you have more HP than that); the Red Blade heals 25% of weapon damage dealt; the First Door
+    once a fight turns a killing blow into 1 HP and 2 s of taking no damage.
+  - Carving is done by Ysolde Thatcher of the Collegium of Thresholds, in the Market Ward at the east end by the
+    walled road to Temple Hill (31.5, -3.5), a shop ("collegium") opened from her talk. The bag screen's Trade column
+    lists your rings with Unmake; a sigil selected in the bag shows Carve with its price. Prices by the sigil's
+    rarity in copper and essences of any kind (paid cheapest first, cloth before bag): common 50c + 1, uncommon 2s + 3,
+    rare 10s + 6, epic 40s + 12, legendary 1g 50s + 25, unique 3g + 40, the same everywhere; removing is × 3 the
+    coins and × 2 the essence, and no sigil comes back. A refusal (too poor, no essence, no slot, carved already,
+    no room for change) changes nothing.
+  - A carved unique holds its sigil like carrying it does (the 7-day rule still applies); a loaded core carved with a
+    unique its player doesn't hold loses it. Removing it frees it.
+  - The rings: one per inscription round the sphere, tilted, the far half behind the glass, tinted by the sigil's
+    rarity, a glint running round; packed closer the more there are (`RINGS` in `client/src/gfx/core/sphere.ts`).
+    The character panel lists them under the chart with what each does; the fight's HUD shows each as a status tile
+    with no timer.
 - Eating, as the open bag already behaves in each place: you stand still while eating; one thing at a time, and
   nothing in the bag moves meanwhile (as while a page is written); closing the bag, a fight starting or a dodge
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.

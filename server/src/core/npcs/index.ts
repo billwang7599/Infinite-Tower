@@ -4,6 +4,7 @@ import type { When } from "../game/story.js";
 import { APOTHECARY } from "./apothecary.js";
 import { BRAM } from "./bram.js";
 import { BURNER } from "./burner.js";
+import { CARVER } from "./carver.js";
 import { CAPTAIN } from "./captain.js";
 import { CHANGER } from "./changer.js";
 import { CHRONICLER } from "./chronicler.js";
@@ -76,4 +77,5 @@ export const NPCS: Record<NpcId, Npc> = {
   burner: BURNER,
   king: KING,
   innkeeper: INNKEEPER,
+  carver: CARVER,
 };

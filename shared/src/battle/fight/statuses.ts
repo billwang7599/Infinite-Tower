@@ -2,7 +2,8 @@ import type { Entity, System, World } from "../../core/ecs.js";
 import { REACTIONS, type Reaction } from "../../skills/effects.js";
 import { Enemy, Health, Player, Statuses, type StatusData } from "../components.js";
 import { FighterStats, HP_REGEN_PAUSE_TIME, hpRegenPerSec, physicalTakenFactor, skillTakenFactor } from "../stats.js";
-import { modsFrom, NO_MODS, statusDef, type StatMods } from "../statuses.js";
+import { FIRST_DOOR } from "../../soul/inscriptions.js";
+import { applyStatus, endStatus, modsFrom, NO_MODS, statusDef, statusOn, type StatMods } from "../statuses.js";
 
 export function noStatuses(): StatusData {
   return { on: [], cooldown: Object.fromEntries(REACTIONS.map((r) => [r, 0])) as Record<Reaction, number> };
@@ -16,9 +17,12 @@ export const modsOf = (world: World, e: Entity): StatMods => {
 export function statusSystem(): System {
   return (world, dt) => {
     for (const [e, s, health] of world.query(Statuses, Health)) {
+      const burnTaken = modsFrom(s.on).burnTakenFactor;
       for (const o of [...s.on]) {
         const kind = statusDef(o.status).amount;
-        if (kind === "hurtsPerSec" && health.hp > 0) hurt(world, e, o.amount * dt, "skill");
+        if (kind === "hurtsPerSec" && health.hp > 0 && burnTaken > 0) {
+          hurt(world, e, o.amount * dt * burnTaken, "skill");
+        }
         if (kind === "healsPerSec") heal(world, e, o.amount * dt);
       }
       s.on = s.on.filter((o) => {
@@ -45,7 +49,12 @@ export function hurt(world: World, e: Entity, damage: number, kind: "physical" |
     }
     s.on = s.on.filter((o) => statusDef(o.status).amount !== "absorbs" || o.amount > 0);
   }
-  health.hp = Math.max(Math.min(health.hp, health.floor), health.hp - rest);
+  const hp = Math.max(Math.min(health.hp, health.floor), health.hp - rest);
+  if (hp <= 0 && health.hp > 0 && s && statusOn(s.on, "firstDoor")) {
+    endStatus(s.on, "firstDoor");
+    applyStatus(s.on, "openedDoor", FIRST_DOOR.openTime);
+    health.hp = FIRST_DOOR.hpLeft;
+  } else health.hp = hp;
   return rest;
 }
 
@@ -63,7 +72,7 @@ export function heal(world: World, e: Entity, amount: number): void {
   if (health.hp > 0) health.hp = Math.min(health.max, health.hp + amount);
 }
 
-export function lifesteal(world: World, e: Entity, dealt: number): void {
-  const share = modsOf(world, e).lifesteal;
+export function lifesteal(world: World, e: Entity, dealt: number, weapon = false): void {
+  const mods = modsOf(world, e), share = mods.lifesteal + (weapon ? mods.weaponLifesteal : 0);
   if (share > 0) heal(world, e, dealt * share);
 }

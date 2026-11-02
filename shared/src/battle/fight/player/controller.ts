@@ -13,7 +13,7 @@ import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec } from "../../stats.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
-import { breakOff, spend } from "../combat.js";
+import { breakOff, canPay, pay, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { endCast, startCast } from "../skills/skilled.js";
 import { modsOf } from "../statuses.js";
@@ -147,13 +147,14 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
     const dodgeable = free || chanting || inBag || usingNow || player.action === "cast"
       || player.action === "beam";
-    if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded && stamina.value > 0) {
+    if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded
+      && canPay(world, e, stamina, dodgeStamina)) {
       let dx = input.moveX, dz = input.moveZ;
       const len = Math.hypot(dx, dz);
       if (len < 0.2) { dx = -input.aimX; dz = -input.aimZ; } // backstep
       else { dx /= len; dz /= len; }
       startAction(world, e, player, "dodge", dx, dz);
-      spend(stamina, dodgeStamina);
+      pay(world, e, stamina, dodgeStamina);
       player.dodgeBuffer = 0;
       endChain(wielder);
     } else if ((free || player.action === "chant") && player.castBuffer > 0 && queuedCast !== null

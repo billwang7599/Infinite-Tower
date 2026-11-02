@@ -6,7 +6,8 @@ import {
   takeBackPoint, type CoreState,
 } from "@infinite-tower/shared";
 
-const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreState => ({ steps, fill, points });
+const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreState =>
+  ({ steps, fill, points, inscriptions: [] });
 const realmOf = (step: number) => Math.floor((step - 1) / STEP_NAMES.length);
 
 describe("the ladder", () => {
@@ -19,7 +20,7 @@ describe("the ladder", () => {
   });
 
   test("a new core is Early Yan with nothing in it", () => {
-    assert.deepEqual(newCore(), { steps: 0, fill: 0, points: {} });
+    assert.deepEqual(newCore(), { steps: 0, fill: 0, points: {}, inscriptions: [] });
   });
 
   test("the first step takes the first fill, and each step's fill doubles every few steps", () => {

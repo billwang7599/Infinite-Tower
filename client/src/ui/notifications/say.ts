@@ -3,8 +3,9 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, WEAPONS, type ChallengeNews, type CoinId,
-  type CoreState, type EnemyDef, type ItemCounts, type ItemId, type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
+  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, WEAPONS, type ChallengeNews, type CoinId,
+  type CoreState, type EnemyDef, type ItemCounts, type ItemId, type QuestNews, type ServerMsgOf, type TradeNews,
+  type WeaponId,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -128,10 +129,21 @@ const TRADE_REFUSED: Record<Extract<TradeNews, { kind: "refused" }>["reason"], s
   notSold: "That isn't sold here.",
   notBought: "They don't buy that here.",
   noCoins: "You don't have the coins to change.",
+  noEssence: "You don't have the essence for that.",
+  noSlot: "Your core has no room for another ring: it holds more as it grows.",
+  carved: "That ring is carved into your core already.",
+  notCarved: "That isn't carved into your core.",
 };
 
 function tradeLines(news: TradeNews): string[] {
   if (news.kind === "refused") return [TRADE_REFUSED[news.reason]];
+  if (news.kind === "carved" || news.kind === "uncarved") {
+    const name = itemDef(sigilOf(news.inscription)).name.replace("Sigil of ", "");
+    const paid = `${formatPrice(news.price.copper)} and ${news.price.essence} essence`;
+    return [news.kind === "carved"
+      ? `${name} is carved into your core, for ${paid}.`
+      : `${name} is unmade from your core, for ${paid}. It's gone.`];
+  }
   const onCloth = news.onCloth ? ["Not all of it fits in the bag: the rest is on the cloth."] : [];
   if (news.kind === "bought") {
     return [`You buy ${describeItems({ [news.item]: 1 })} for ${formatPrice(news.price)}.`, ...onCloth];

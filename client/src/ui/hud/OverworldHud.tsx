@@ -1,6 +1,6 @@
 import {
-  coreStats, type CoinId, type ItemId, type ShopView, type ShownStat, type Skill, type Spot, type UseSpot,
-  type WeaponId,
+  coreStats, type CoinId, type InscriptionId, type ItemId, type ShopView, type ShownStat, type Skill, type Spot,
+  type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useMemo, type ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
@@ -52,6 +52,8 @@ interface OverworldHudProps extends HudProps {
   buy: (item: ItemId) => void;
   sell: (at: UseSpot, count: number) => void;
   exchange: (from: CoinId, to: CoinId) => void;
+  carve: (at: UseSpot) => void;
+  uncarve: (inscription: InscriptionId) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -111,7 +113,10 @@ export function OverworldHud(props: OverworldHudProps) {
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
           use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
-          close={close} trade={shop && { shop, buy: props.buy, sell: props.sell, exchange: props.exchange }}
+          close={close} trade={shop && core && {
+            shop, buy: props.buy, sell: props.sell, exchange: props.exchange, carve: props.carve,
+            uncarve: props.uncarve, core,
+          }}
           shownWidth={shownWidth}
         />
       )}

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { CORE_STEPS, fillToFinish, REALMS, STEP_NAMES, type CoreState } from "@infinite-tower/shared";
 import { coreLight, nearness, REALM_LOOKS, SPARKS_FROM, sparksPerSec } from "../../src/gfx/core/light.js";
-import { BREAKTHROUGH, CoreSphere } from "../../src/gfx/core/sphere.js";
+import { BREAKTHROUGH, CoreSphere, SPHERE_PX } from "../../src/gfx/core/sphere.js";
 
-const core = (steps: number, fill = 0): CoreState => ({ steps, fill, points: {} });
+const core = (steps: number, fill = 0): CoreState => ({ steps, fill, points: {}, inscriptions: [] });
 const STEPS_PER_REALM = STEP_NAMES.length;
 
 describe("the core's light", () => {
@@ -95,5 +95,22 @@ describe("a breakthrough", () => {
     sphere.show(core(2));
     assert.equal(sphere.steps, 2);
     assert.ok(!sphere.bursting);
+  });
+});
+
+describe("rings", () => {
+  const painted = (inscriptions: CoreState["inscriptions"]) => {
+    const sphere = new CoreSphere(), rgba = new Uint8ClampedArray(SPHERE_PX * SPHERE_PX * 4);
+    sphere.show({ ...core(4), inscriptions });
+    sphere.paint(rgba, 3);
+    return rgba;
+  };
+  const changed = (a: Uint8ClampedArray, b: Uint8ClampedArray) => a.filter((v, i) => v !== b[i]).length;
+
+  test("none until one is carved, then one ring round the glass for each", () => {
+    const bare = painted([]), one = painted(["grit"]), two = painted(["grit", "embers"]);
+    assert.equal(changed(bare, painted([])), 0);
+    assert.ok(changed(bare, one) > 0);
+    assert.ok(changed(bare, two) > changed(bare, one));
   });
 });

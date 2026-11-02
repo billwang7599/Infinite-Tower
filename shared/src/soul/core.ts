@@ -1,4 +1,5 @@
 import { BASE_STATS, HIDDEN_STATS, SHOWN_STATS, type ShownStat, type Stats } from "../battle/stats.js";
+import { inscriptionStat, keptInscriptions, type InscriptionId } from "./inscriptions.js";
 
 export const REALMS = ["Yan", "Sol", "Lux", "Ling", "Tian"] as const;
 export const STEP_NAMES = ["Early", "Middle", "Peak"] as const;
@@ -22,9 +23,10 @@ export interface CoreState {
   steps: number;
   fill: number;
   points: StatPoints;
+  inscriptions: InscriptionId[];
 }
 
-export const newCore = (): CoreState => ({ steps: 0, fill: 0, points: {} });
+export const newCore = (): CoreState => ({ steps: 0, fill: 0, points: {}, inscriptions: [] });
 
 export const fillToFinish = (step: number): number =>
   Math.round(CORE.firstFill * 2 ** ((step - 1) / CORE.fillDoublingSteps));
@@ -52,7 +54,9 @@ export const pointsLeft = (core: CoreState): number => pointsEarned(core) - poin
 export function coreStats(core: CoreState): Stats {
   const gain = sumTo(core.steps, gainOf), hidden = core.steps * CORE.hiddenGain;
   const stats = { ...BASE_STATS };
-  for (const stat of SHOWN_STATS) stats[stat] += gain + (core.points[stat] ?? 0);
+  for (const stat of SHOWN_STATS) {
+    stats[stat] += gain + (core.points[stat] ?? 0) + inscriptionStat(core.inscriptions, stat);
+  }
   for (const stat of HIDDEN_STATS) stats[stat] += hidden;
   return stats;
 }
@@ -100,15 +104,18 @@ export const coreAtStep = (core: CoreState, steps: number): CoreState =>
 const wholeAtLeast = (n: unknown, min: number): number =>
   (typeof n === "number" && Number.isFinite(n) ? Math.max(min, Math.floor(n)) : min);
 
-export function keptCore(saved: { steps: unknown; fill: unknown; points: unknown }): CoreState {
+export function keptCore(
+  saved: { steps: unknown; fill: unknown; points: unknown; inscriptions?: unknown },
+): CoreState {
   const steps = Math.min(CORE_STEPS, wholeAtLeast(saved.steps, 0));
   const fill = steps >= CORE_STEPS ? 0 : Math.min(fillToFinish(steps + 1) - 1, wholeAtLeast(saved.fill, 0));
   const given: Record<string, unknown> =
     saved.points !== null && typeof saved.points === "object" ? saved.points as Record<string, unknown> : {};
-  const points: StatPoints = {}, earned = pointsEarned({ steps, fill, points });
+  const points: StatPoints = {}, inscriptions = keptInscriptions(saved.inscriptions);
+  const earned = pointsEarned({ steps, fill, points, inscriptions });
   for (const stat of SHOWN_STATS) {
     const placed = Math.min(earned, wholeAtLeast(given[stat], 0));
     if (placed > 0) points[stat] = placed;
   }
-  return fitPoints({ steps, fill, points });
+  return fitPoints({ steps, fill, points, inscriptions });
 }

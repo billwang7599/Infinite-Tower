@@ -144,7 +144,7 @@ describe("message handlers", () => {
     const types: SessionMsg["t"][] = [
       "input", "battleInput", "battleResync", "leaveBattle", "settings", "character", "rest", "bindPad", "useItem",
       "moveItem", "closeBag", "openPile", "talk", "train", "acceptQuest", "deliver", "saveSkill", "cheat", "challenge",
-      "answerChallenge", "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange",
+      "answerChallenge", "joinBattle", "chat", "statPoint", "openShop", "buy", "sell", "exchange", "carve", "uncarve",
     ];
     assert.deepEqual(Object.keys(handlers).sort(), [...types].sort());
   });

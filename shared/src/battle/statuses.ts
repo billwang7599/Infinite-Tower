@@ -8,11 +8,19 @@ export interface StatMods {
   knockbackFactor: number;
   stunTimeFactor: number;
   lifesteal: number;
+  weaponLifesteal: number;
+  weaponBurnPerSec: number;
+  burnTakenFactor: number;
+  /** HP paid for each point of stamina an attack or dodge costs beyond what's left; 0: none can be. */
+  hpPerStaminaShort: number;
 }
+
+const ADDED: readonly (keyof StatMods)[] = ["lifesteal", "weaponLifesteal", "weaponBurnPerSec", "hpPerStaminaShort"];
 
 export const NO_MODS: Readonly<StatMods> = {
   damageDealtFactor: 1, damageTakenFactor: 1, moveFactor: 1, dodgeCostFactor: 1, attackCostFactor: 1,
-  staminaRegenFactor: 1, knockbackFactor: 1, stunTimeFactor: 1, lifesteal: 0,
+  staminaRegenFactor: 1, knockbackFactor: 1, stunTimeFactor: 1, lifesteal: 0, weaponLifesteal: 0,
+  weaponBurnPerSec: 0, burnTakenFactor: 1, hpPerStaminaShort: 0,
 };
 
 // "absorbs": its amount soaks up damage (a shield); the others hurt or heal their amount a second.
@@ -42,6 +50,12 @@ export const STATUS_DEFS = {
   renewal: { harmful: false, amount: "healsPerSec" },
   bulwark: { harmful: false, mods: { stunTimeFactor: 0.5, knockbackFactor: 0 } },
   bloodrage: { harmful: false, mods: { damageDealtFactor: 1.35, damageTakenFactor: 1.25 } },
+  grit: { harmful: false },
+  embers: { harmful: false, mods: { weaponBurnPerSec: 3, burnTakenFactor: 0 } },
+  lastBreath: { harmful: false, mods: { hpPerStaminaShort: 0.5 } },
+  redBlade: { harmful: false, mods: { weaponLifesteal: 0.25 } },
+  firstDoor: { harmful: false },
+  openedDoor: { harmful: false, mods: { damageTakenFactor: 0 } },
 } as const satisfies Record<string, StatusDef>;
 
 export type Status = keyof typeof STATUS_DEFS;
@@ -104,7 +118,7 @@ export function modsFrom(on: readonly StatusOn[]): StatMods {
     const own = statusDef(status).mods ?? {};
     for (const key of Object.keys(own) as (keyof StatMods)[]) {
       // Multiplied out rather than **, so every engine gets the same bits.
-      for (let i = 0; i < stacks; i++) mods[key] = key === "lifesteal" ? mods[key] + own[key]! : mods[key] * own[key]!;
+      for (let i = 0; i < stacks; i++) mods[key] = ADDED.includes(key) ? mods[key] + own[key]! : mods[key] * own[key]!;
     }
   }
   return mods;

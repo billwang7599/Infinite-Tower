@@ -1,4 +1,5 @@
 /** What each item is and does. Who drops what is in each enemy's server file (server/src/core/enemies/). */
+import type { InscriptionId } from "../soul/inscriptions.js";
 
 export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
 
@@ -30,7 +31,7 @@ export interface ItemDef {
   weight: number;
   consumable?: Consumable;
   wearable?: Wearable;
-  inscription?: string;
+  inscription?: InscriptionId;
 }
 
 const ABSORB_TIME = 2;
@@ -50,9 +51,8 @@ const essence = <const Worth extends number>(
   consumable: { verb: "Absorb", useTime: ABSORB_TIME, effects: [{ essence: worth }] as const },
 });
 
-const sigil = <const Inscription extends string>(
-  name: string, rarity: Rarity, description: string, inscription: Inscription,
-) => ({ name, rarity, description, cols: 1, rows: 1, stackSize: 1, weight: 0.1, inscription });
+const sigil = (name: string, rarity: Rarity, description: string, inscription: InscriptionId) =>
+  ({ name, rarity, description, cols: 1, rows: 1, stackSize: 1, weight: 0.1, inscription });
 
 export const ITEMS = {
   "boar-meat": {

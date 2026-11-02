@@ -1,4 +1,6 @@
-import { clamp, REALMS, smoothstep, STEP_NAMES, type CoreState } from "@infinite-tower/shared";
+import {
+  clamp, itemDef, REALMS, sigilOf, smoothstep, STEP_NAMES, type CoreState, type Rarity,
+} from "@infinite-tower/shared";
 import {
   coreLight, fbm2, mixRamps, nearness, noise2, rampAt, REALM_LOOKS, sparksPerSec, type Color, type Lit, type Rgb,
 } from "./light.js";
@@ -16,6 +18,12 @@ const NEXT_REALM_SPARKS = 0.35;
 const SECOND_RAMP_SPARKS = 0.4;
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 const SHADES = 8;
+/** In glass radii. */
+const RINGS = { tiltRad: -0.32, flat: 0.27, inner: 1.1, outer: 1.4, mostGap: 0.1, widthPx: 0.8 } as const;
+const RARITY_RGB: Record<Rarity, Rgb> = {
+  common: [0.9, 0.88, 0.84], uncommon: [0.44, 0.81, 0.42], rare: [0.35, 0.63, 1], epic: [0.71, 0.49, 1],
+  legendary: [0.94, 0.66, 0.24], unique: [1, 0.32, 0.28],
+};
 
 type SparkKind = "near" | "inward" | "burst";
 interface Spark {
@@ -25,6 +33,7 @@ interface Spark {
 export class CoreSphere {
   steps = 0;
   nearness = 0;
+  private rings: Rgb[] = [];
   private wanted: CoreState | null = null;
   private burst: { startTime: number; switched: boolean } | null = null;
   private sparks: Spark[] = [];
@@ -51,6 +60,7 @@ export class CoreSphere {
   private take(core: CoreState): void {
     this.steps = core.steps;
     this.nearness = nearness(core);
+    this.rings = core.inscriptions.map((id) => RARITY_RGB[itemDef(sigilOf(id)).rarity]);
   }
 
   frame(time: number): void {
@@ -209,6 +219,14 @@ export class CoreSphere {
           const flash = view.flash * Math.exp(-out * 9) * 0.8;
           r += flash; g += flash; b += flash;
         }
+        if (this.rings.length > 0) {
+          const ring = this.ringAt(u, w, d, time);
+          if (ring.k > 0) {
+            const under = 1 - ring.k * 0.85;
+            r = r * under + ring.r; g = g * under + ring.g; b = b * under + ring.b;
+            crisp ||= ring.k > 0.5;
+          }
+        }
         r = Math.min(r, 1); g = Math.min(g, 1); b = Math.min(b, 1);
         const k = shadeScale(Math.max(r, g, b), crisp ? 0.5 : BAYER[(y & 3) * 4 + (x & 3)]!) * 255;
         const i = (y * SPHERE_PX + x) * 4;
@@ -222,6 +240,26 @@ export class CoreSphere {
       const trail = 0.045 * R;
       if (s.kind !== "inward" || left < 0.9) plot(rgba, sx - s.vx * trail, sy - s.vy * trail, s.color, k * 0.45);
     }
+  }
+
+  private readonly ring = { k: 0, r: 0, g: 0, b: 0 };
+
+  private ringAt(u: number, w: number, d: number, time: number) {
+    const out = this.ring, cs = Math.cos(RINGS.tiltRad), sn = Math.sin(RINGS.tiltRad);
+    const a = u * cs + w * sn, c = (w * cs - u * sn) / RINGS.flat;
+    out.k = out.r = out.g = out.b = 0;
+    if (d <= 1 && c < 0) return out;
+    const e = Math.hypot(a, c), slope = Math.hypot(a, c / RINGS.flat) / (e || 1), angle = Math.atan2(c, a);
+    const n = this.rings.length, gap = n > 1 ? Math.min(RINGS.mostGap, (RINGS.outer - RINGS.inner) / (n - 1)) : 0;
+    this.rings.forEach(([cr, cg, cb], i) => {
+      const off = (Math.abs(e - RINGS.inner - i * gap) / slope) * GLASS_PX;
+      const k = clamp(1 - off / RINGS.widthPx, 0, 1);
+      if (k <= out.k) return;
+      const glint = 0.6 + 0.4 * (0.5 + 0.5 * Math.cos(angle - time * 0.7 + i * 1.3));
+      out.k = k;
+      out.r = cr * k * glint; out.g = cg * k * glint; out.b = cb * k * glint;
+    });
+    return out;
   }
 }
 

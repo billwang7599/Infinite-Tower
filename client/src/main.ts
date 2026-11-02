@@ -148,6 +148,8 @@ mountUi(document.getElementById("ui")!, ui, settings, input, {
   buy: (item) => void preparing.then((game) => game.buy(item)),
   sell: (at, count) => void preparing.then((game) => game.sell(at, count)),
   exchange: (from, to) => void preparing.then((game) => game.exchange(from, to)),
+  carve: (at) => void preparing.then((game) => game.carve(at)),
+  uncarve: (inscription) => void preparing.then((game) => game.uncarve(inscription)),
   tooWeak: (item) => void preparing.then((game) => game.tooWeak(item)),
   castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
   saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),

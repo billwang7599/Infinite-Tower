@@ -6,9 +6,9 @@ import {
   CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
   hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
   placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
-  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Gear, type ItemId, type SavedSettings,
-  type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type UseSpot, type Using,
-  type Vec2, type Vitals, type Word,
+  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Gear, type InscriptionId,
+  type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats,
+  type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
@@ -20,6 +20,7 @@ import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } fro
 import type { Chat } from "./chat.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
+import { carveSigil, removeInscription } from "./carving.js";
 import { buy, exchange, openShop, sell } from "./shop.js";
 import { stateMsg } from "./snapshot.js";
 import { progressStory, questbookOf, type Story } from "./story.js";
@@ -279,6 +280,14 @@ export class GameSession {
 
   exchange(from: CoinId, to: CoinId): void {
     exchange(this, from, to);
+  }
+
+  carve(at: UseSpot): void {
+    carveSigil(this, at);
+  }
+
+  uncarve(inscription: InscriptionId): void {
+    removeInscription(this, inscription);
   }
 
   /**
