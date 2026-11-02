@@ -1,8 +1,8 @@
 /**
  * Ways in the overworld: on the map (a Heading: +z is north, +x east) and on the screen (a Facing), which the
- * camera's quarter turns right from north tie together.
+ * camera's quarter turns right from north tie together; and how far the camera tilts.
  */
-import { OVERWORLD_CAMERA_ANGLES, type Heading } from "@infinite-tower/shared";
+import { clamp, OVERWORLD_CAMERA_ANGLES, type Heading } from "@infinite-tower/shared";
 
 export type Facing = "up" | "right" | "down" | "left";
 
@@ -31,3 +31,11 @@ export const facingOnScreen = (heading: Heading, turns: number): Facing =>
 
 /** -1 to mirror a picture drawn facing right (the side views), 1 for every other way. */
 export const mirrorFor = (facing: Facing): 1 | -1 => (facing === "left" ? -1 : 1);
+
+// The camera's angle above the ground, looking at you: straight down would be π/2.
+export const CAMERA_PITCH = {
+  startRad: (50 * Math.PI) / 180, minRad: (25 * Math.PI) / 180, maxRad: (65 * Math.PI) / 180, radPerSec: 1,
+} as const;
+
+export const tiltCamera = (pitchRad: number, look: number, dt: number): number =>
+  clamp(pitchRad + look * CAMERA_PITCH.radPerSec * dt, CAMERA_PITCH.minRad, CAMERA_PITCH.maxRad);

@@ -103,10 +103,10 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(ACTIONS.battle.dragCamera.keys, []);
   });
 
-  test("the overworld's own: interact (E), the bag's turn (R) and use (Enter), camera turns, duels (T, Y, N)", () => {
+  test("the overworld's own: interact (E), the bag's turn (R) and use (Enter), camera turns and tilts, duels", () => {
     assert.deepEqual(Object.keys(ACTIONS.overworld), [
-      "interact", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "challenge", "acceptChallenge",
-      "declineChallenge",
+      "interact", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "lookUp", "lookDown", "challenge",
+      "acceptChallenge", "declineChallenge",
     ]);
     assert.deepEqual(ACTIONS.overworld.challenge.keys, ["KeyT"]);
     assert.deepEqual(ACTIONS.overworld.acceptChallenge.keys, ["KeyY"]);
@@ -115,6 +115,8 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(ACTIONS.overworld.useItem.keys, ["Enter"]);
     assert.deepEqual(ACTIONS.overworld.turnCameraLeft.keys, ["ArrowLeft"]);
     assert.deepEqual(ACTIONS.overworld.turnCameraRight.keys, ["ArrowRight"]);
+    assert.deepEqual(ACTIONS.overworld.lookUp.keys, ["ArrowUp"]);
+    assert.deepEqual(ACTIONS.overworld.lookDown.keys, ["ArrowDown"]);
   });
 
   test("a right click turns too, shown next to the turn keys (mouse buttons can't be rebound)", () => {

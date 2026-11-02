@@ -34,4 +34,5 @@ export interface OverworldState {
   level: LevelLayout | null;
   /** Quarter turns right from north. */
   cameraTurns: number;
+  cameraPitchRad: number;
 }
