@@ -8,12 +8,14 @@ import { CHANGER } from "./changer.js";
 import { CHRONICLER } from "./chronicler.js";
 import { COOK } from "./cook.js";
 import { CORWIN } from "./corwin.js";
+import { FOREMAN } from "./foreman.js";
 import { GROCER } from "./grocer.js";
 import { HERALD } from "./herald.js";
 import { HOLLIS } from "./hollis.js";
 import { ILSE } from "./ilse.js";
 import { MAREN } from "./maren.js";
 import { PRIEST } from "./priest.js";
+import { SCAVENGER } from "./scavenger.js";
 import { SMITH } from "./smith.js";
 import { TAMSIN } from "./tamsin.js";
 import { TOBIN } from "./tobin.js";
@@ -64,4 +66,6 @@ export const NPCS: Record<NpcId, Npc> = {
   tamsin: TAMSIN,
   chronicler: CHRONICLER,
   priest: PRIEST,
+  foreman: FOREMAN,
+  scavenger: SCAVENGER,
 };
