@@ -21,6 +21,7 @@ done. Nothing here is built yet. What is built is described in [ARCHITECTURE.md]
 | [skills.md](skills.md): skills built from words (Forms, elements, modifiers) and cast in fights | being built |
 | [weapons.md](weapons.md): the arsenal and the sword (built); the Kobolds' AI and weapons from parts next | being built |
 | [art.md](art.md): character art that grows: hand-drawn gear and bodies, animation, PNG export | later |
+| [art-lab.md](art-lab.md): the art lab: tiles and animations next; a level editor maybe later | being built |
 | [overworld-2d.md](overworld-2d.md): the flat 2D overworld, archived at a git tag, and what bringing it back takes | archived |
 | [ideas.md](ideas.md): smaller things mentioned but not decided | ideas |
 

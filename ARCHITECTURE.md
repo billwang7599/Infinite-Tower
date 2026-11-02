@@ -35,11 +35,13 @@ Arrows point at what each piece plugs into or calls.
 
 shared/: code both sides run (ECS, math, message types + Zod schemas, overworld walking, the view size, the arena
          fight with its Rapier physics)
+art-lab/: a dev tool beside the game, never shipped: it imports the client's character art; nothing imports it
 ```
 
-Three npm workspaces. The rule: **shared = code both sides run; server = anything a player must not be able to
-change; client = drawing, input, feel.** Everything in `shared/` and `client/` ships to the browser, so data only
-the server needs (encounter rates, spawns, enemy stats, drop tables) stays in `server/`.
+Three npm workspaces make the game, and a fourth, `art-lab/`, is a tool for drawing its art. The rule: **shared =
+code both sides run; server = anything a player must not be able to change; client = drawing, input, feel.**
+Everything in `shared/` and `client/` ships to the browser, so data only the server needs (encounter rates, spawns,
+enemy stats, drop tables) stays in `server/`.
 
 ## A player's visit, start to end
 
@@ -1373,9 +1375,6 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        head.ts (face shapes), face.ts (eye and mouth types), hair/ (styles), outfit.ts + jerkin.ts
                        (wear), sword.ts, look.ts (Look -> picture: drawPortrait, drawChibi, drawBattle, with or
                        without the sword; battleBody, a pose's frame for a hand)
-    dev/             art-lab.ts: localhost:5173/art.html (dev server only) draws every look option as the portrait,
-                     the chibi facing each way and the battle sprite in each pose and frame, from behind and the
-                     front, in either hand, to check art
     ui/              React: everything drawn over the canvas
       mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
                        banner, the fade between modes (game/transition.ts sets it), the questbook, Settings, character
@@ -1711,6 +1710,28 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         mire/            the Goblin Warlock's: peat, stumps, glowing mushrooms, pools, reeds, dead trees
         quarry/          the Old Quarry's: pale cut slabs, stacked blocks, terraced faces, a crane, a cart on rails,
                          rubble, dry scrub, two lanterns, drifting dust
+
+art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never built into the game or shipped. It
+                 imports the client's character art (`@infinite-tower/client/src/gfx/look/`) and the game's
+                 palette, and nothing imports it. What's drawn in it is exported as files; none of it is wired
+                 into the game yet. No localStorage: work is kept by saving a file.
+  index.html       The page
+  vite.config.ts   Dev server :5175
+  test/            Unit tests of the editor's pure logic, mirroring src/
+  src/
+    main.ts          The tabs: Characters and Pixel editor (#editor opens it)
+    characters.ts    Every look option as the portrait, the chibi facing each way and the battle sprite in each
+                     pose and frame, from behind and the front, in either hand; a mock dialogue; random looks
+    dom.ts           el, button, select, checkbox, caption: the page's small DOM helpers
+    editor/          The pixel editor. Pure logic, tested: bitmap.ts (Bitmap = the art's Picture, pixels, hex),
+                     draw.ts (lines, rectangles, flood fill), resample.ts (nearest and smoothed resizing, fitting
+                     an image to the canvas, snapping to a palette), selection.ts (lift and stamp), layers.ts
+                     (Doc: layers bottom to top, by part plus free ones; compositing with opacity), history.ts
+                     (undo / redo), json.ts (a drawing as JSON). The page: state.ts (Editor: the drawing, the tool,
+                     the color, the selection, undo), tools.ts (what each tool does with the pointer), view.ts
+                     (the zoomable, pannable canvas with its grid), toolbar.ts, colors.ts (the game's ramps and a
+                     free picker; palette.ts lists them), layerList.ts, filePanel.ts (new, import an image,
+                     export PNGs, save and open JSON), editor.ts (lays it out, wires drag-and-drop)
 ```
 
 ## Adding things

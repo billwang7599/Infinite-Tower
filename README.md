@@ -196,9 +196,10 @@ and the client (Vite on :5173, which forwards `/ws` and `/api` to the server).
 
 ```sh
 npm start          # production: build the client; the server serves it + /ws + /api on http://localhost:8787
-npm test           # unit tests (shared, server, client); no database needed. CI runs typecheck, test, build
-npm run typecheck  # shared, server, client and their tests, then the server's layering (server/scripts/check-layers.ts)
-npm run build      # the client bundle
+npm test           # unit tests (shared, server, client, art lab); no database needed. CI runs typecheck, test, build
+npm run typecheck  # shared, server, client, the art lab and their tests, then the server's layering (server/scripts/check-layers.ts)
+npm run build      # the client bundle (and the art lab's, to check it builds)
+npm run art        # the art lab on http://localhost:5175: the character art, and a pixel editor
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
 npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3, user (password = username)
@@ -258,6 +259,7 @@ docker compose -f compose.prod.yaml start app
 shared/            code the server and the browser both run: ECS, math, the arena fight (Rapier), the Zod messages
 server/            the authoritative game server: core/ is the game, api/ ws/ db/ plug into it
 client/            the browser game: its modes, their drawing (Babylon.js), React UI, character art in code (ART.md)
+art-lab/           a dev tool: the character art in every option, and a pixel editor (npm run art)
 */test/            unit tests for each workspace, mirroring its src/ (npm test)
 .github/workflows/ CI: typecheck, test and build on every PR
 plan/              future plans and parked ideas
@@ -266,7 +268,7 @@ compose.prod.yaml  hosting: the server (Dockerfile) and Postgres
 .env.example       local settings; copied to .env
 ```
 
-The character art can be previewed at http://localhost:5173/art.html while `npm run dev` runs.
+The character art can be previewed, and new art drawn, in the art lab: `npm run art`, then http://localhost:5175.
 
 | Doc | What's in it |
 |---|---|

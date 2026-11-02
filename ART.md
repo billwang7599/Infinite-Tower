@@ -1,8 +1,9 @@
 # ART.md
 
-How the game's art should look, and how to make it. Read this before drawing anything. All art is code: there are
-no image files, and nothing is painted by hand outside the source. Hand-drawn art from an artist is a plan for later
-([plan/art.md](plan/art.md)); for now it stays code-first. [What to draw](#what-to-draw) says how much there would
+How the game's art should look, and how to make it. Read this before drawing anything. All the game's art is code:
+there are no image files in it, and nothing is painted by hand outside the source. Hand-drawn art is a plan for later
+([plan/art.md](plan/art.md)); the art lab's [pixel editor](#the-pixel-editor) draws it, but nothing it makes is in the
+game yet. [What to draw](#what-to-draw) says how much there would
 be to draw.
 
 ## Characters
@@ -200,7 +201,7 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
   arena's materials and their painting follow it. `visuals/battle/pose.ts` picks the pose and its frame. A sword-fight
   pose: its name and frame count in `SWORD_POSES` and its frames' keys in `moves.ts` (hands and sword tip from the
   shoulders, and `front` where the front needs other ones). Check it from the front too.
-- **Check it** on the dev page: `npm run dev`, then http://localhost:5173/art.html. It shows every option, the
+- **Check it** in the art lab: `npm run art`, then http://localhost:5175. Its Characters tab shows every option, the
   portrait, the chibi facing each way, the battle sprite in each pose and every sword-fight frame, the sample jerkin
   on and off, a mock dialogue and a crowd of random looks. The battle sprite is shown from behind and the front,
   with the sword in either hand.
@@ -223,3 +224,25 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.
+
+## The pixel editor
+
+The art lab (`npm run art`, http://localhost:5175, the Pixel editor tab) draws art by hand, for export only: nothing
+it makes goes into the game yet, and nothing is kept in the browser, so save the drawing as a file.
+
+- **Canvas**: the game's view sizes (portrait 64x64, chibi 32x32, battle 64x64, from `VIEWS`) or any size up to
+  512x512. The mouse wheel zooms, the middle or right button (or the Pan tool) drags it about, and a grid shows from
+  6x, stronger every 8 pixels.
+- **Tools**: pencil, eraser, fill (the touching pixels of one color), eyedropper (from what shows), line, rectangle
+  (filled with Shift or the checkbox), and select, whose box moves what's under it on the layer when dragged from
+  inside; the selection can be cleared, moved to a new layer or cropped to. Undo and redo keep 100 steps. There are no
+  keyboard shortcuts: the game owns the only key listener (`client/src/core/keyboard.ts`).
+- **Colors**: every ramp in `palette.ts`, swatch by swatch, and any other color from a picker.
+- **Layers**: body, outfit, head, face and hair to start, plus free ones; each can be shown or hidden, renamed,
+  moved up or down, faded, deleted and exported on its own.
+- **Importing** a photo or picture (Import image, or drop it on the canvas): fitted inside the canvas, filling it
+  cropped, or stretched; scaled smoothed or nearest-neighbour; and snapped to the game's ramps (pixels under half
+  opacity dropped) so it reads as this game's art. It lands on a new layer, to trace over or paint into by hand.
+  "Add the look's picture" puts the Characters tab's look on a layer the same way.
+- **Out**: the whole picture as a PNG, each layer as its own, and the drawing as a JSON file (every layer, its
+  name, whether it shows, its opacity, its pixels) that Open loads back. A dropped .json opens too.
