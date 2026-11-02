@@ -3,7 +3,7 @@ import { readdirSync } from "node:fs";
 import { describe, test } from "node:test";
 import { ARENA_LOOK_IDS, ELEMENTS, ENEMY_IDS } from "@infinite-tower/shared";
 import {
-  ARENA_AMBIENCE, bagSound, ELEMENT_SOUNDS, ENEMY_SOUNDS, fileOf, soundDef, SOUNDS, STEP_SOUNDS, take, WATER_SOUNDS,
+  ARENA_AMBIENCE, bagSound, ELEMENT_SOUNDS, ENEMY_SOUNDS, fileOf, soundDef, SOUNDS, STEP_SOUNDS, take, RUNNING_WATER_SOUND, STILL_WATER_SOUNDS,
   type SoundName,
 } from "../../src/audio/sounds.js";
 
@@ -24,7 +24,7 @@ describe("the sound table", () => {
       ...ENEMY_IDS.flatMap((id) => Object.values(ENEMY_SOUNDS[id])),
       ...Object.values(ELEMENT_SOUNDS).flatMap((el) => [el.cast, el.loop, el.impact]),
       ...ARENA_LOOK_IDS.flatMap((look) => [STEP_SOUNDS[look], ARENA_AMBIENCE[look]]),
-      ...Object.values(WATER_SOUNDS),
+      RUNNING_WATER_SOUND, ...Object.values(STILL_WATER_SOUNDS),
     ];
     for (const name of named) if (name !== null && name !== undefined) assert.ok(name in SOUNDS, name);
   });

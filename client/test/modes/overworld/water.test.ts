@@ -145,8 +145,14 @@ describe("waterMap", () => {
     everywhere(waterMap(POND), (p, x, z) => assert.equal(speed(p), 0, `at ${x}, ${z}`));
   });
 
+  test("running water is every water tile of a body that runs off the map; the rest is still", () => {
+    assert.deepEqual([water.running, water.still], [water.tiles, []]);
+    const pond = waterMap(POND);
+    assert.deepEqual([pond.running, pond.still], [[], pond.tiles]);
+  });
+
   test("a level with no water has none", () => {
     const dry = waterMap(level(["....", "...."]));
-    assert.deepEqual([dry.tiles, dry.banks], [[], []]);
+    assert.deepEqual([dry.tiles, dry.running, dry.still, dry.banks], [[], [], [], []]);
   });
 });

@@ -3,7 +3,7 @@ import { OverworldActor, OverworldPos, type OverworldState } from "../modes/over
 import { waterMap } from "../modes/overworld/water.js";
 import type { Cue, Heard } from "./battle.js";
 import { nearestWater, type Hearing } from "./mix.js";
-import { WATER_SOUNDS } from "./sounds.js";
+import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "./sounds.js";
 
 export const OVERWORLD_HEARING: Hearing = { near: 1.5, far: 16 };
 export const STRIDE_TILES = 0.9;
@@ -13,11 +13,11 @@ const JUMPED_TILES = 1.5;
 interface Walked { last: Vec2; strideTiles: number }
 
 export function overworldEars(): (state: OverworldState) => Heard | null {
-  let heardLevel: LevelLayout | null = null, water: readonly Vec2[] = [];
+  let heardLevel: LevelLayout | null = null, running: readonly Vec2[] = [], still: readonly Vec2[] = [];
   const walkers = new Map<Entity, Walked>();
   return ({ world, player, level, cameraTurns }) => {
     if (!level) return null;
-    if (level !== heardLevel) [heardLevel, water] = [level, waterMap(level).tiles];
+    if (level !== heardLevel) ({ running, still } = waterMap(heardLevel = level));
     const me = world.require(player, OverworldPos), cues: Cue[] = [], loops = new Map<string, Cue>();
 
     const seen = new Set<Entity>();
@@ -37,8 +37,10 @@ export function overworldEars(): (state: OverworldState) => Heard | null {
     for (const e of walkers.keys()) if (!seen.has(e)) walkers.delete(e);
 
     level.campfires.forEach((at, i) => loops.set(`campfire ${i}`, { sound: "campfire", at }));
-    const wet = nearestWater(water, me);
-    if (wet) loops.set("water", { sound: WATER_SOUNDS[level.theme], at: wet });
+    const river = nearestWater(running, me), pool = nearestWater(still, me);
+    const poolSound = STILL_WATER_SOUNDS[level.theme];
+    if (river) loops.set("running water", { sound: RUNNING_WATER_SOUND, at: river });
+    if (pool && poolSound) loops.set("still water", { sound: poolSound, at: pool });
     return { ears: { x: me.x, z: me.z, yaw: (cameraTurns * Math.PI) / 2 }, hearing: OVERWORLD_HEARING, cues, loops };
   };
 }

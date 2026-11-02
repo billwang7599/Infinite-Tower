@@ -135,7 +135,7 @@ What's built so far:
   big banner in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
-  and clicks; flowing water and crackling campfires nearby. Sounds come from where they happen: quieter further
+  and clicks; flowing rivers and crackling campfires nearby. Sounds come from where they happen: quieter further
   away, and to the left or right. Looping music on the title, in each level and in fights (the mire has its own),
   crossfading from one to the next. Every file is CC0 ([SOUNDS.md](SOUNDS.md)).
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,

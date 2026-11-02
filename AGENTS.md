@@ -356,8 +356,9 @@ Decided by the user:
   With blocks (the agent's picks): a perfect block's clash, a heavy crash as a guard breaks, and a heavy's wind-up told
   by a low blade-draw (a player's as it starts; the Kobold's tell lower before a heavy).
   Ambient loops: flowing
-  water near the river and the mire, louder the nearer the water (from the shared water map), and crackling near each
-  campfire; the mire arena bubbles. Sounds come from where they happen: quieter further off, panned left or right, and
+  water near running water only (a lake or pond is silent), the mire's bubbling near the Mistwood's still water,
+  louder the nearer the water (from the shared water map), and crackling near each campfire; the mire arena bubbles.
+  Sounds come from where they happen: quieter further off, panned left or right, and
   each play a little off in pitch and volume so repeats differ. Master, Effects and Ambient volumes in Settings
   (80%, 100%, 100% to start), saved with the other settings. Sound starts only after a click (the browser's rule).
   Every file is CC0, listed in [SOUNDS.md](SOUNDS.md).

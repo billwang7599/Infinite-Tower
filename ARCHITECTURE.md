@@ -187,9 +187,10 @@ main.ts
   fighter has begun (a swing's blade setting off, an enemy's wind-up or death, a dodge, a jump, a skill winding up: each
   once, keyed by the step it began, so a resync's replay isn't heard twice), a landing, a step every `STRIDE_M` walked
   and a Bolt gone (its impact, unless a resync's reload remade it), and keeps a loop going for each flying skill object
-  and the arena's ambience; `overworldEars` (`audio/overworld.ts`) hears footsteps, each campfire and the nearest water
-  (`nearestWater` on the water map, `modes/overworld/water.ts`, so the drawing and the sound find the same water). Both
-  only return plain cues and loops (a sound, where, a rate and a gain on top of its own), tested without a browser;
+  and the arena's ambience; `overworldEars` (`audio/overworld.ts`) hears footsteps, each campfire, the nearest running
+  water and, where the theme gives it a sound, the nearest still water (`nearestWater` on the water map,
+  `modes/overworld/water.ts`, so the drawing and the sound find the same water). Both only return plain cues and loops
+  (a sound, where, a rate and a gain on top of its own), tested without a browser;
   `audio/audio.ts` alone plays them with Web Audio, each through a gain (`place` and `mixGain`, `audio/mix.ts`: full
   within the place's near distance, fading to silence at its far one, the master volume times its bus's, effects or
   ambient) and a stereo pan (left or right of where the ears face: the arena camera's look point and yaw, or the
@@ -1373,7 +1374,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         water.ts         waterMap: each water tile's flow, width, depth and banks from the level's tiles, for the
                          drawing and the sound alike (WATER_DEPTH_TILES); only water that runs off the map (touches
                          its edge, or the woods joined to it, in two places) flows, bridges joining a river's pieces;
-                         tested
+                         its tiles split into running and still; tested
         facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
                          left, on screen): mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles, and the
@@ -1414,12 +1415,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      plays on the title, each level theme and each arena look; musicFor), sounds.ts (SOUNDS:
                      each sound's files, volume, rate, spread, bus, loop, reach; `take`, a variant other than the
                      last; ENEMY_SOUNDS, ELEMENT_SOUNDS, STEP_SOUNDS (each arena look's ground), ARENA_AMBIENCE,
-                     WATER_SOUNDS (each level theme's), EVENT_SOUNDS (what `say` events sound like), bagSound),
+                     RUNNING_WATER_SOUND, STILL_WATER_SOUNDS (by level theme), EVENT_SOUNDS (what `say` events
+                     sound like), bagSound),
                      mix.ts (Ears, Hearing, place: a sound's gain and pan from where it is; mixGain;
                      nearestWater), battle.ts (fightEars: a fight's cues and loops each frame; swingVoice;
                      ARENA_HEARING, STRIDE_M), overworld.ts (overworldEars: footsteps, campfires, the nearest
-                     water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files, SOUNDS.md), music/ (a
-                     track's .ogg, `<track>.ogg`, a seamless loop)
+                     running and still water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files,
+                     SOUNDS.md), music/ (a track's .ogg, `<track>.ogg`, a seamless loop)
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
       visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
                        painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
