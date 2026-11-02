@@ -7,11 +7,13 @@ import type { Vec2, Vec3 } from "../../core/math.js";
 import { STRIKES, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
-  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, WeaponAttack, Wielder,
+  ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
-import { FighterStats, stunTime } from "../stats.js";
+import { FighterStats, HP_REGEN_PAUSE_TIME, stunTime } from "../stats.js";
+import { applyStatus } from "../statuses.js";
+import { EMBERS } from "../../soul/inscriptions.js";
 import type { FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
@@ -103,6 +105,30 @@ export function spend(stamina: StaminaData, cost: number): void {
   stamina.regenDelay = PLAYER.staminaRegenDelay;
 }
 
+const hpShortOf = (world: World, e: Entity, stamina: StaminaData, cost: number): number =>
+  Math.max(0, cost - stamina.value) * modsOf(world, e).hpPerStaminaShort;
+
+/** An attack or a dodge: on empty, only if what's short can be paid in HP (Last Breath) without the last of it. */
+export function canPay(world: World, e: Entity, stamina: StaminaData, cost: number): boolean {
+  if (stamina.value > 0) return true;
+  const short = hpShortOf(world, e, stamina, cost);
+  return short > 0 && world.require(e, Health).hp > short;
+}
+
+export function pay(world: World, e: Entity, stamina: StaminaData, cost: number): void {
+  const short = hpShortOf(world, e, stamina, cost);
+  spend(stamina, cost);
+  if (short <= 0) return;
+  const health = world.require(e, Health);
+  health.hp = Math.max(Math.min(health.hp, 1), health.hp - short);
+  health.regenDelay = HP_REGEN_PAUSE_TIME;
+}
+
+function burnOnHit(world: World, attacker: Entity, target: Entity, hit: ActiveHitData): void {
+  const perSec = modsOf(world, attacker).weaponBurnPerSec, s = world.get(target, Statuses);
+  if (hit.attack !== null && perSec > 0 && s) applyStatus(s.on, "burning", EMBERS.burnTime, perSec);
+}
+
 export function stagger(world: World, e: Entity, time: number): void {
   endSwing(world, e);
   const player = world.get(e, Player), enemy = world.get(e, Enemy);
@@ -140,7 +166,8 @@ function hitPlayer(
     breakOff(player, world.require(target, Skilled));
   }
   endChain(world.require(target, Wielder));
-  lifesteal(world, attacker, dealt);
+  lifesteal(world, attacker, dealt, hit.attack !== null);
+  burnOnHit(world, attacker, target, hit);
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
 }
 
@@ -163,6 +190,7 @@ function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: Act
   const damage = hurt(world, target, hit.damage * modsOf(world, attacker).damageDealtFactor, "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;
-  lifesteal(world, attacker, damage);
+  lifesteal(world, attacker, damage, hit.attack !== null);
+  burnOnHit(world, attacker, target, hit);
   events.push({ type: "hit", by: attacker, target, team: "enemy", damage, weapon: hit.attack !== null });
 }

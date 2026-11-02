@@ -31,4 +31,6 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   buy: (msg, s) => s.buy(msg.item),
   sell: (msg, s) => s.sell(msg.at, msg.count),
   exchange: (msg, s) => s.exchange(msg.from, msg.to),
+  carve: (msg, s) => s.carve(msg.at),
+  uncarve: (msg, s) => s.uncarve(msg.inscription),
 };

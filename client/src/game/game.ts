@@ -5,8 +5,8 @@
  */
 import {
   bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type CoinId,
-  type DayChange, type DialogueOffer, type EnemyId, type ItemId, type ServerMsgOf, type ShownStat, type Skill,
-  type Spot, type UseSpot, type WeaponId,
+  type DayChange, type DialogueOffer, type EnemyId, type InscriptionId, type ItemId, type ServerMsgOf, type ShownStat,
+  type Skill, type Spot, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -43,6 +43,8 @@ export interface Game {
   buy(item: ItemId): void;
   sell(at: UseSpot, count: number): void;
   exchange(from: CoinId, to: CoinId): void;
+  carve(at: UseSpot): void;
+  uncarve(inscription: InscriptionId): void;
   tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
@@ -275,6 +277,12 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     },
     exchange(from, to) {
       if (mode === "overworld" && !transition) net?.send({ t: "exchange", from, to });
+    },
+    carve(at) {
+      if (mode === "overworld" && !transition) net?.send({ t: "carve", at });
+    },
+    uncarve(inscription) {
+      if (mode === "overworld" && !transition) net?.send({ t: "uncarve", inscription });
     },
     tooWeak(item) {
       say(ui.notifications, { kind: "tooWeak", item });

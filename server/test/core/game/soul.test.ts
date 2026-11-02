@@ -18,7 +18,8 @@ const ABSORB_TICKS = useSteps("boar-essence");
 const CELL: UseSpot = { in: "bag", x: 0, y: 0 };
 const essence = (count = 2): Bag =>
   ({ ...emptyBag(), items: [{ item: "boar-essence", count, x: CELL.x, y: CELL.y, turned: false }] });
-const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreState => ({ steps, fill, points });
+const at = (steps: number, fill = 0, points: CoreState["points"] = {}): CoreState =>
+  ({ steps, fill, points, inscriptions: [] });
 const HURT = { hp: 50, stamina: 40 };
 const campfire = () => getLevel(HOLLOW).layout.campfires[0]!;
 const holding = (core: CoreState, dev = false) =>

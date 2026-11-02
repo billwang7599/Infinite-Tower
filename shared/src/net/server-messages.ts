@@ -8,7 +8,8 @@ import type { FightSnapshot } from "../battle/fight/state.js";
 import type { Character } from "../character/character.js";
 import type { Gear, UseSpot } from "../items/gear.js";
 import type { CoinId } from "../items/coins.js";
-import type { ItemCounts, ItemId } from "../items/items.js";
+import type { ItemCounts, ItemId, Rarity } from "../items/items.js";
+import type { InscriptionId } from "../soul/inscriptions.js";
 import type { LevelLayout, LevelMap, NpcId } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
@@ -102,14 +103,24 @@ export interface ShopView {
   stock: { item: ItemId; price: number; fullPrice: number }[];
   /** What it pays for one of each thing it buys. */
   buys: Partial<Record<ItemId, number>>;
+  carving?: { carve: Record<Rarity, CarvePrice>; remove: Record<Rarity, CarvePrice> };
 }
+
+/** `essence`: monster essences of any kind, counted one each. */
+export interface CarvePrice { copper: number; essence: number }
 
 /** `onCloth`: some of what you got didn't fit in the bag. */
 export type TradeNews =
   | { kind: "bought"; item: ItemId; price: number; onCloth: boolean }
   | { kind: "sold"; item: ItemId; count: number; price: number; onCloth: boolean }
   | { kind: "exchanged"; from: CoinId; to: CoinId; onCloth: boolean }
-  | { kind: "refused"; reason: "tooPoor" | "noRoom" | "notSold" | "notBought" | "noCoins" };
+  | { kind: "carved"; inscription: InscriptionId; price: CarvePrice }
+  | { kind: "uncarved"; inscription: InscriptionId; price: CarvePrice }
+  | {
+    kind: "refused";
+    reason:
+      | "tooPoor" | "noRoom" | "notSold" | "notBought" | "noCoins" | "noEssence" | "noSlot" | "carved" | "notCarved";
+  };
 
 export type ServerMsg =
   /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines

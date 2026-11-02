@@ -31,7 +31,7 @@ describe("startUse", () => {
 
   test("essence at full HP, but not into a core that's whole", () => {
     assert.ok(startUse(bagWith("boar-essence", 1), AT, hurt(MAX_HP)));
-    const whole = { steps: CORE_STEPS, fill: 0, points: {} };
+    const whole = { steps: CORE_STEPS, fill: 0, points: {}, inscriptions: [] };
     assert.equal(startUse(bagWith("boar-essence", 1), AT, hurt(50, whole)), null);
   });
 });

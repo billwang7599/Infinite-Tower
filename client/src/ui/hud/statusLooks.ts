@@ -30,4 +30,23 @@ export const STATUS_LOOKS: Record<Status, { name: string; color: string; path: s
     path: "M5 3h14v10c0 4-3 7-7 9-4-2-7-5-7-9zM8 6v7c0 2 1.5 4 4 5.5 2.5-1.5 4-3.5 4-5.5V6z",
   },
   bloodrage: { name: "Bloodrage", color: "#e0303c", path: "M4 3h16l-3 8-2-3-3 10-3-10-2 3z" },
+  grit: {
+    name: "Grit", color: "#c8c2b4", path: "M6 9h12v4l-2 8H8l-2-8zM7 4h2.5v4H7zm3.75-1h2.5v5h-2.5zM14.5 4H17v4h-2.5z",
+  },
+  embers: {
+    name: "Embers", color: "#ff8a3c",
+    path: "M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-4 2-5 0 2 1 3 2 3 1-3 0-6 1-9zM3 20h18v2H3z",
+  },
+  lastBreath: {
+    name: "Last Breath", color: "#c070d8",
+    path: "M12 21 3.5 12.5A5 5 0 0 1 12 6a5 5 0 0 1 8.5 6.5zM11 7l2 4-2 2 2 4-1 1-2-4 2-2-2-4z",
+  },
+  redBlade: {
+    name: "Red Blade", color: "#ff5a4a",
+    path: "M20 2h2v2L10 16l-2-2zM6 14l4 4-1.5 1.5L7 18l-2.5 2.5L3 19l2.5-2.5L4 15z",
+  },
+  firstDoor: { name: "First Door", color: "#ff7068", path: "M6 22V9a6 6 0 0 1 12 0v13zm3-2h6V9a3 3 0 0 0-6 0z" },
+  openedDoor: {
+    name: "Door Opened", color: "#fff1d0", path: "M6 22V9a6 6 0 0 1 12 0v13zM9 20h3V6.2A3 3 0 0 0 9 9z",
+  },
 };

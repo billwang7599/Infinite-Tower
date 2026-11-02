@@ -3,12 +3,13 @@ import {
   type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
 } from "@infinite-tower/shared";
 import {
-  FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, SELL_SHARE, SHOPS, type ShopId,
+  CARVE_PRICES, CARVING_SHOP, FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, REMOVE_PRICES, SELL_SHARE, SHOPS,
+  type ShopId,
 } from "../content/shops.js";
 import type { GameSession } from "./session.js";
 import { shopInView } from "./talk.js";
 
-interface Trade { gear: Gear; onCloth: boolean }
+export interface Trade { gear: Gear; onCloth: boolean }
 
 const fullPrice = (item: ItemId, level: string) => Math.round((ITEM_VALUES[item] ?? 0) * (PRICE_FACTOR[level] ?? 1));
 const paidFor = (item: ItemId) => Math.floor((ITEM_VALUES[item] ?? 0) * SELL_SHARE);
@@ -20,10 +21,14 @@ export function shopView(id: ShopId, level: string, boughtThere: boolean): ShopV
     return { item, price: boughtThere ? full : Math.round(full * (1 - FIRST_PURCHASE_DISCOUNT)), fullPrice: full };
   });
   const buys = shop.buys.filter((item) => paidFor(item) > 0);
-  return { name: shop.name, stock, buys: Object.fromEntries(buys.map((item) => [item, paidFor(item)])) };
+  const view: ShopView = {
+    name: shop.name, stock, buys: Object.fromEntries(buys.map((item) => [item, paidFor(item)])),
+  };
+  if (id === CARVING_SHOP) view.carving = { carve: CARVE_PRICES, remove: REMOVE_PRICES };
+  return view;
 }
 
-function receive(gear: Gear, items: ItemCounts): Trade | null {
+export function receive(gear: Gear, items: ItemCounts): Trade | null {
   let { bag, cloth } = gear, onCloth = false;
   for (const [item, count] of Object.entries(items) as [ItemId, number][]) {
     const packed = addItem(bag, item, count);
@@ -38,14 +43,14 @@ function receive(gear: Gear, items: ItemCounts): Trade | null {
 }
 
 /** Off the cloth first, then the bag. */
-function take(gear: Gear, item: ItemId, count: number): Gear | null {
+export function take(gear: Gear, item: ItemId, count: number): Gear | null {
   const fromCloth = Math.min(count, bagCounts(gear.cloth)[item] ?? 0);
   const cloth = takeItems(gear.cloth, item, fromCloth), bag = takeItems(gear.bag, item, count - fromCloth);
   return cloth && bag ? { ...gear, cloth, bag } : null;
 }
 
 /** Smallest coins first; if that's short, the smallest coin that covers the rest, its change in the fewest coins. */
-function pay(gear: Gear, price: number): { gear: Gear; change: number } | null {
+export function pay(gear: Gear, price: number): { gear: Gear; change: number } | null {
   const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
   const have = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);
   const given: ItemCounts = {};
@@ -67,11 +72,11 @@ function pay(gear: Gear, price: number): { gear: Gear; change: number } | null {
   return paid && { gear: paid, change };
 }
 
-function trading(session: GameSession): ShopId | null {
+export function trading(session: GameSession): ShopId | null {
   return session.inOverworld && !session.busyUsing ? session.shop : null;
 }
 
-function done(session: GameSession, id: ShopId, news: TradeNews, gear?: Gear): void {
+export function done(session: GameSession, id: ShopId, news: TradeNews, gear?: Gear): void {
   if (gear) {
     session.gear = gear;
     session.saveSoon();

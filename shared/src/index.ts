@@ -12,6 +12,7 @@ export * from "./battle/netcode.js";
 export * from "./battle/stats.js";
 export * from "./battle/statuses.js";
 export * from "./soul/core.js";
+export * from "./soul/inscriptions.js";
 export * from "./character/character.js";
 export * from "./items/items.js";
 export * from "./items/bag.js";

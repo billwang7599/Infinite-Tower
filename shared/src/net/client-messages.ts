@@ -10,6 +10,7 @@ import { COINS } from "../items/coins.js";
 import { ITEM_IDS, ITEMS, type ItemId } from "../items/items.js";
 import { ENEMY_IDS } from "../battle/defs.js";
 import { SHOWN_STATS } from "../battle/stats.js";
+import { INSCRIPTION_IDS, type InscriptionId } from "../soul/inscriptions.js";
 import { MODIFIERS, ELEMENTS, FORMS, SKILLBOOK_PAGES, type Skill } from "../skills/skill.js";
 import { CHARACTER_NAME_RULES, GENDERS, LOOK_OPTIONS, type Character } from "../character/character.js";
 import { MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES } from "./settings.js";
@@ -153,6 +154,10 @@ const OpenShopMsg = z.object({ t: z.literal("openShop") });
 const BuyMsg = z.object({ t: z.literal("buy"), item: z.enum(ITEM_IDS as [ItemId, ...ItemId[]]) });
 const SellMsg = z.object({ t: z.literal("sell"), at: UseSpotSchema, count: z.number().int().min(1).max(MAX_STACK) });
 const ExchangeMsg = z.object({ t: z.literal("exchange"), from: z.enum(COINS), to: z.enum(COINS) });
+const CarveMsg = z.object({ t: z.literal("carve"), at: UseSpotSchema });
+const UncarveMsg = z.object({
+  t: z.literal("uncarve"), inscription: z.enum(INSCRIPTION_IDS as [InscriptionId, ...InscriptionId[]]),
+});
 
 const SaveSkillMsg = z.object({
   t: z.literal("saveSkill"), page: PageSchema, skill: SkillSchema,
@@ -193,6 +198,7 @@ export const ClientMsg = z.discriminatedUnion("t", [
   InputMsg, BattleInputMsg, BattleResyncMsg, LeaveBattleMsg, SettingsMsg, CharacterMsg, RestMsg, BindPadMsg, UseItemMsg,
   MoveItemMsg, CloseBagMsg, OpenPileMsg, TalkMsg, TrainMsg, AcceptQuestMsg, DeliverMsg, SaveSkillMsg, PingMsg, CheatMsg,
   ChallengeMsg, AnswerChallengeMsg, JoinBattleMsg, ChatMsg, StatPointMsg, OpenShopMsg, BuyMsg, SellMsg, ExchangeMsg,
+  CarveMsg, UncarveMsg,
 ]);
 export type ClientMsg = z.infer<typeof ClientMsg>;
 

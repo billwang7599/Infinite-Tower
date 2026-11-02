@@ -284,7 +284,7 @@ describe("equipment", () => {
   test("a weapon goes into a hand only with its minimum strength; the server answers with the gear as it is", () => {
     const need = WEAPONS.greatsword.minStrength;
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
-      const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT } };
+      const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
       const equipment = { ...armed(), rightHand: null };
       const bag = { ...emptyBag(), items: [{ item: "greatsword" as const, count: 1, x: 0, y: 0, turned: false }] };
       const { session, link } = startSession({ saved: { core, equipment, bag } });

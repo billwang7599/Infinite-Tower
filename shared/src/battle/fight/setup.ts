@@ -6,6 +6,7 @@ import type { Burden } from "../../items/burden.js";
 import type { Carried } from "../../items/gear.js";
 import type { Skillbook } from "../../skills/skill.js";
 import type { CoreState } from "../../soul/core.js";
+import { INSCRIPTIONS } from "../../soul/inscriptions.js";
 import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
@@ -16,6 +17,7 @@ import type { EnemyAttacks, EnemyDef } from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
+import type { Status, StatusOn } from "../statuses.js";
 import { circleAgain } from "./behaviors/pounce.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { newSkilled } from "./skills/skilled.js";
@@ -53,6 +55,8 @@ const PLAYER_HALF_SEGMENT = PLAYER.height / 2 - PLAYER.radius;
 
 const centerAbove = (feet: Vec3, height: number): Vec3 => ({ x: feet.x, y: feet.y + height, z: feet.z });
 
+const permanent = (status: Status): StatusOn => ({ status, left: null, time: null, stacks: 1, amount: 0 });
+
 const fresh = (maxHp: number): HealthData =>
   ({ hp: maxHp, max: maxHp, invuln: 0, hitstun: 0, flash: 0, regenDelay: 0, floor: 0 });
 
@@ -84,7 +88,8 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Stamina, { value: setup.vitals.stamina, max: staminaMaxOf(setup.stats), regenDelay: 0 });
   world.add(e, FighterStats, { ...setup.stats });
   world.add(e, Fighter, { team: "player", side, radius: PLAYER.radius });
-  world.add(e, Statuses, noStatuses());
+  const carved = setup.core.inscriptions.map((id) => INSCRIPTIONS[id].status);
+  world.add(e, Statuses, { ...noStatuses(), on: carved.map((status) => permanent(status)) });
   return e;
 }
 

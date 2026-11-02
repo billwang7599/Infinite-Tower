@@ -336,6 +336,19 @@ main.ts
   (`REALM_LOOKS`); it breathes, and sparks show from `SPARKS_FROM` of the step's fill. A breakthrough is told by `say`,
   and the card listens to `notifications.said` for it: it turns to the core, the light gathers, flashes (the new step
   showing from then), settles (`BREAKTHROUGH`) and turns back. In a fight it draws the fight's core (`ui.battle`).
+- **Inscriptions** (`shared/src/soul/inscriptions.ts`; the numbers in [FORMULAS.md](FORMULAS.md#inscriptions)): the
+  core's `inscriptions`, carved from sigils (an item whose `inscription` names one), saved with it and kept through
+  every death. `inscriptionSlots` caps them by the core's step, `carve` and `uncarve` add and take one (no doubles).
+  Each is a status (`INSCRIPTIONS[id].status`): a fight puts every carved one on its player as a permanent status
+  (`spawnPlayer`), so its mods (`STATUS_DEFS`) run through the same rules as a timed buff, the fight's HUD showing it
+  as a tile; Grit's stats are the core's (`coreStats`), on the overworld too. The three that need more than a mod are
+  in the fight's code: Embers' burn in `combat.ts` (`burnOnHit`) and its immunity in `statusSystem`, Last Breath's HP
+  for stamina in `combat.ts` (`canPay` / `pay`, for attacks and dodges), the First Door in `hurt`. Carving is a shop
+  (`core/game/carving.ts`, the prices in `CARVE_PRICES` / `REMOVE_PRICES`, `content/shops.ts`): the Collegium's carver
+  (`npcs/carver.ts`, the Market Ward) offers `{ shop: "collegium" }`, its `ShopView` has `carving`, and `carve` (a
+  sigil's spot) or `uncarve` (an id) pay coins as a shop does and essences, any kind, cheapest first, off the cloth
+  then the bag. The answer is a `trade` and, through `takeCore`, a `core`. The sphere draws a ring round the glass for
+  each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel lists them.
 - **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
   `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
   (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
@@ -480,27 +493,27 @@ main.ts
   got goes into the bag and what doesn't fit onto the cloth, or nothing happens. Coins are never packed up by
   themselves: changing them is `exchange`, one tier at a time. Each answer is a `trade` (the news, the gear, the
   shop). The shop closes with the bag (`closeBag`, walking, a fight starting, a new level).
-- **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`,
-  `useTime`, `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't
-  ECS entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set
-  by hand, the same for every one of that kind; a sigil also names the `inscription` it would carve (carving isn't
-  built). The bag screen draws a stack's name in its rarity's colour (tooltip, the selected item, the shop) and its
-  cells with a tinted edge above common: the `rarity-*` colours in `styles.css`, by `RARITY_TEXT` / `RARITY_EDGE` in
-  `itemInfo.ts`.
+- **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`, `useTime`,
+  `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't ECS
+  entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set by
+  hand, the same for every one of that kind; a sigil also names the `inscription` it carves. The bag screen draws a
+  stack's name in its rarity's colour (tooltip, the selected item, the shop) and its cells with a tinted edge above
+  common: the `rarity-*` colours in `styles.css`, by `RARITY_TEXT` / `RARITY_EDGE` in `itemInfo.ts`.
 - **Drops and treasure** (`core/enemies/index.ts`, server only): `rollDrops` rolls an enemy's own `drops` (each row on
   its own), then one roll for its `treasure`: each tier's chance per kill, their bands laid end to end on the roll
   (`TREASURE_TIERS`, commonest first), so a kill drops one treasure at most, picked at random from that tier's
   `TREASURE` (the sigils so far). A unique drops only while it's free, and a unique roll with none free drops nothing.
 - **Unique things** (`core/game/uniques.ts`; `UNIQUE_ITEMS`, the items of rarity unique): one of each in the world.
-  `Uniques` keeps who holds each (`PlayerStore.uniqueHolds` / `holdUnique`; the `unique_items` table, one row per
-  held thing, its holder's latest save as when they were last seen). A player's save that carries one makes them its
-  holder, and their save without it lets it go (`saved`, from `OnlinePlayers`' save). It's free (`isFree`) when
-  nobody's held it within `UNIQUE_HOLD_MS` (7 days) and it's nowhere in play: in no pile on any level (arena piles
-  too) and in no online player's bag, cloth or hands (`OnlinePlayers.inPlay`). So it's free again as soon as the pile
-  it lay in vanishes, or the cloth it was left on is cleared, with nothing to tell; and nothing stops it changing
-  hands, since whoever saves with it last holds it. A player loading with one they don't hold (any more: someone
-  else's, or theirs gone 7 days) has it taken out of their bag and slots (`kept`). Nothing unique drops until the
-  holds are loaded (`ready`).
+  `Uniques` keeps who holds each (`PlayerStore.uniqueHolds` / `holdUnique`; the `unique_items` table, one row per held
+  thing, its holder's latest save as when they were last seen). A player's save that carries one makes them its holder,
+  and their save without it lets it go (`saved`, from `OnlinePlayers`' save). It's free (`isFree`) when nobody's held it
+  within `UNIQUE_HOLD_MS` (7 days) and it's nowhere in play: in no pile on any level (arena piles too) and in no online
+  player's bag, cloth, hands or core (`OnlinePlayers.inPlay`). A carved unique inscription holds its sigil the same way,
+  and a loaded core carved with one its player doesn't hold loses it. So it's free again as soon as the pile it lay in
+  vanishes, or the cloth it was left on is cleared, with nothing to tell; and nothing stops it changing hands, since
+  whoever saves with it last holds it. A player loading with one they don't hold (any more: someone else's, or theirs
+  gone 7 days) has it taken out of their bag and slots (`kept`). Nothing unique drops until the holds are loaded
+  (`ready`).
 - **Using an item is one rule in both places** (`shared/src/items/using.ts`): `startUse` (a consumable whose effects
   would do something, so no healing at full HP), `stepUse` (its item's `useTime`, counted in `FIXED_DT` steps:
   `useSteps`) and `finishUse` (one used up, its effects applied). `applyEffects` is the one place an effect does
@@ -606,6 +619,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `buy {item}` | buy one of what the open shop sells, paid in coins from the cloth and the bag |
 | `sell {at, count}` | sell `count` of the stack at a bag or cloth cell to the open shop, if it buys that |
 | `exchange {from, to}` | change one coin for 100 of the next smaller, or 100 for one of the next bigger, at the open shop |
+| `carve {at}` | at the Collegium: carve the sigil at that bag or cloth spot into the core, for its rarity's coins and essence |
+| `uncarve {inscription}` | at the Collegium: take a carved inscription off the core, for far more; it's gone |
 | `openPile` | Interact by a pile (on the overworld, or in the arena after a win): open the one in view beside the bag |
 | `talk` | Interact (or the HUD's "Talk") facing an NPC: the server checks it's in reach and in view |
 | `acceptQuest {quest}` | Accept (or going on past the last line) on a quest offer: only the quest the NPC in view offers |
@@ -651,7 +666,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
 | `shop` | the shop opened (its name, stock and prices, what it buys and for how much), or null: it closed |
-| `trade` | the answer to `buy`, `sell` or `exchange`: what happened (or why not), the gear, and the shop's prices now |
+| `trade` | the answer to `buy`, `sell`, `exchange`, `carve` or `uncarve`: what happened (or why not), the gear, and the shop's prices now |
 | `pong {id}` | the answer to `ping {id}` |
 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
@@ -722,7 +737,8 @@ moment it's decided, or lost by leaving it), rest, item use, quest progress and 
 and within a second of a settings change, a move in the bag, a trade or a page written. The shops where the first,
 cheaper, purchase is made are saved (`shops_bought`; unknown ids dropped on load). The cloth and an open
 pile are never saved, and nor are the overworld's piles (a restart loses them, so a unique thing in one is free
-again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`).
+again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`). The core's inscriptions
+are a column of their own (`inscriptions`, `0021_inscriptions`; unknown ids and doubles dropped on load).
 The pad you're bound to is saved (`pad`, a level id), and you log in on it (`wakeLevel`: a pad that's gone, or a level
 without one, is `START_LEVEL`'s); neither the level you were on nor your position is saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
@@ -742,7 +758,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
 
 - **shared**: the ECS, math, walking, the view rules, every Zod schema, the stats' formulas and the core's rules
   (`soul/core.test.ts`: the ladder and its names, each step's fill, absorbing with breakthroughs and the rest carried,
-  a whole core, each step's gains and points, placing and taking back, what a death takes, a saved core made right),
+  a whole core, each step's gains and points, placing and taking back, what a death takes, a saved core made right;
+  `soul/inscriptions.test.ts`: the slots by step, carving with no doubles, Grit's stats, death keeping them),
   essence absorbed (`items/using.test.ts`), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
@@ -842,6 +859,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   and the talk said there, offers only while they stand; each real one always standing somewhere (its last stop
   unconditional, every stop on a level) with something to say there (its last talk unconditional), its traces with
   lines and none at its first stop, all clear of solid tiles, and one by the start level's fire for a new player.
+  Carving (`carving.test.ts`): the Collegium's carver and prices, a sigil carved for coins and essence (cheapest
+  first), every refusal changing nothing, removing for more with nothing back, a carved unique held like a carried
+  one. Inscriptions in a fight (`shared/test/battle/fight/inscriptions.test.ts`): permanent statuses from the start,
+  Embers, Red Blade, Last Breath (never your last HP) and the First Door once a fight.
   Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
   Highmere's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
   change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
@@ -1051,9 +1072,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    and hidden ones, BASE_STATS, FighterStats; what each does: physicalDamage, skillDamage,
                    moveSpeed, maxHpOf, staminaMaxOf, the defenses' taken factors, stunTime, staminaRegenPerSec,
                    hpRegenPerSec, carryLimit; grownVitals)
-  soul/            core.ts (the core: REALMS, STEP_NAMES, CORE; CoreState (steps done, fill, points placed),
-                   newCore, fillToFinish, coreName, coreStats, absorb, placePoint, takeBackPoint, pointsEarned /
-                   pointsLeft, coreAfterDeath, coreAtStep, keptCore)
+  soul/            core.ts (the core: REALMS, STEP_NAMES, CORE; CoreState (steps done, fill, points placed,
+                   inscriptions), newCore, fillToFinish, coreName, coreStats, absorb, placePoint, takeBackPoint,
+                   pointsEarned / pointsLeft, coreAfterDeath, coreAtStep, keptCore), inscriptions.ts (INSCRIPTIONS:
+                   each one's status and stats; EMBERS, FIRST_DOOR; sigilOf, inscriptionSlots, carve, uncarve)
     fight/           The arena fight, "@infinite-tower/shared/fight" (index.ts; Rapier comes with it).
                      fight.ts (Fight: its own world and physics, the system order, step(inputs), steps, save /
                      load / hash, join(player) and leave(player) (gone from the arena; down mid-fight), outcome,
@@ -1191,7 +1213,8 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf; the session's side:
                        placeFor, talkTo, takeQuest, handOver, shopInView),
                        shop.ts (shopView: a shop's stock and prices for a player; openShop, buy, sell, exchange:
-                       paying, change and what doesn't fit going to the cloth),
+                       paying, change and what doesn't fit going to the cloth), carving.ts (carveSigil,
+                       removeInscription: the Collegium's carving, paid in coins and essences),
                        uniques.ts (Uniques: who holds each unique thing, whether it's free, taking it out of a
                        save that doesn't hold it; UNIQUE_HOLD_MS),
                        clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
@@ -1243,13 +1266,13 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
                        chronicler.ts, priest.ts, foreman.ts, scavenger.ts, herbalist.ts, burner.ts, king.ts,
-                       innkeeper.ts (its
+                       innkeeper.ts, carver.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
       content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
                        quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
                        entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
-                       PRICE_FACTOR by level, SELL_SHARE, FIRST_PURCHASE_DISCOUNT)
+                       PRICE_FACTOR by level, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1324,7 +1347,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       core/            The core as a sphere (the HUD's card): light.ts (REALM_LOOKS: each realm's glyph, glass smoke,
                        glow, colour ramps, halo and light shape; coreLight: the light's size and brightness by step;
                        nearness and sparksPerSec, from SPARKS_FROM; the noise), sphere.ts (CoreSphere: the core shown,
-                       a breakthrough's gather, flash and settle, the sparks, and paint into SPHERE_PX² RGBA pixels)
+                       a breakthrough's gather, flash and settle, the sparks, the inscriptions' rings, and paint into
+                       SPHERE_PX² RGBA pixels)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
@@ -1373,7 +1397,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
                        "Join the fight" / "Open the pile" / "Talk" / "Look"), StatusRow.tsx (status tiles: an
                        icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;
-                       statusLooks.ts: each status's name, colour and SVG icon),
+                       statusLooks.ts: each status's name, colour and SVG icon), inscriptions.ts (INSCRIPTION_TEXT:
+                       what each does, for the bag, the shop and the character panel),
                        BattleHud.tsx (your bars and statuses top left, the foe's name, statuses and bar at the
                        bottom; the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
@@ -1384,12 +1409,14 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the realm and step), character/ (CharacterPanel.tsx: the
                        portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
                        between − (only by a campfire) and + for free points, hovering them previewing the change and
-                       what the stat does; chart.ts: chartPoints, the polygon's corners for any number of stats, and
-                       chartMax, its rim: the most a stat could be at the step), inventory/ (the bag screen:
+                       what the stat does, then its rings; chart.ts: chartPoints, the polygon's corners for any
+                       number of stats, and chartMax, its rim: the most a stat could be at the step), inventory/ (the
+                       bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
-                       coins and changing them), an open pile over the cloth, and the bag, in a row (in a window taller
-                       than it's wide, the pile and the cloth below the other two), wires the
-                       mouse and the bag keys, and shows the selected item (with Sell when a shop buys it), the
+                       coins and changing them; at the Collegium your rings and Unmake), an open pile over the
+                       cloth, and the bag, in a row (in a window taller than it's wide, the pile and the cloth below
+                       the other two), wires the mouse and the bag keys, and shows the selected item (with Sell when
+                       a shop buys it, Carve for a sigil at the Collegium), the
                        dragged ghost and the tooltip;
                        BagGrid.tsx draws a grid (the bag, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots; bagMouse.ts holds those
@@ -1536,7 +1563,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        one line each; byEnemy)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
                        apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
-                       scavenger/, herbalist/, burner/, king/, innkeeper/, each with look.ts
+                       scavenger/, herbalist/, burner/, king/, innkeeper/, carver/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)

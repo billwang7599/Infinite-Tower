@@ -2,7 +2,7 @@
  * Who's playing: one session per account, loaded on join and saved on leave. Joining from another tab takes over:
  * the old session is saved first, so the new one loads what it had.
  */
-import { CLOSE_CODES, SLOTS, type ItemId } from "@infinite-tower/shared";
+import { CLOSE_CODES, sigilOf, SLOTS, type ItemId } from "@infinite-tower/shared";
 import { newPlayer } from "../content/player.js";
 import { Pile } from "../overworld/components.js";
 import { Overworld } from "../overworld/overworld.js";
@@ -100,6 +100,7 @@ export class OnlinePlayers {
       const { bag, cloth, equipment } = session.gear;
       for (const stack of [...bag.items, ...cloth.items]) yield stack.item;
       for (const slot of SLOTS) if (equipment[slot]) yield equipment[slot];
+      for (const id of session.core.inscriptions) yield sigilOf(id);
     }
   }
 

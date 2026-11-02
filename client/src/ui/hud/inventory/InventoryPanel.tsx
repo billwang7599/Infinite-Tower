@@ -4,9 +4,9 @@
  * to the server (in a fight, as the fight's inputs), which has the last word on all of it.
  */
 import {
-  carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type Cell, type CoinId,
-  type Gear, type GearMove, type GridName, type GridSpot, type ItemId, type ShopView, type Slot, type Spot, type Stats,
-  type UseSpot, type WeaponId,
+  carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type CarvePrice,
+  type Cell, type CoinId, type CoreState, type Gear, type GearMove, type GridName, type GridSpot, type InscriptionId,
+  type ItemId, type ShopView, type Slot, type Spot, type Stats, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
@@ -16,6 +16,7 @@ import { useAction } from "../../components/useAction.js";
 import type { SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
+import { INSCRIPTION_TEXT } from "../inscriptions.js";
 import { stacksGrids, useStageSize } from "../layout.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { BagGrid, ItemPicture, ItemTooltip, Placed } from "./BagGrid.js";
@@ -49,6 +50,9 @@ export interface Trading {
   buy: (item: ItemId) => void;
   sell: (at: UseSpot, count: number) => void;
   exchange: (from: CoinId, to: CoinId) => void;
+  carve: (at: UseSpot) => void;
+  uncarve: (inscription: InscriptionId) => void;
+  core: CoreState;
 }
 
 /** The mouse, and where in its grip cell the dragged item is held (pixels), so its ghost doesn't jump. */
@@ -159,7 +163,10 @@ export function InventoryPanel(props: PanelProps) {
   const hovered = hoveredStack(mouse, gear);
   const side = trade ? (
     <Column title="Trade">
-      <ShopColumn shop={trade.shop} gear={gear} buy={trade.buy} exchange={trade.exchange} />
+      <ShopColumn
+        shop={trade.shop} gear={gear} core={trade.core} buy={trade.buy} exchange={trade.exchange}
+        uncarve={trade.uncarve}
+      />
     </Column>
   ) : (
     <Column title="Equipment">
@@ -301,10 +308,17 @@ interface Sale {
   sell: (count: number) => void;
 }
 
-function saleOf(selected: Spot | null, trade: Trading): ((stack: BagItem) => Sale | null) | null {
+interface Carving {
+  price: CarvePrice;
+  carve: () => void;
+}
+
+function saleOf(selected: Spot | null, trade: Trading): ((stack: BagItem) => Sale | Carving | null) | null {
   if (!selected || (selected.in !== "bag" && selected.in !== "cloth")) return null;
   const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
   return (stack) => {
+    const def = itemDef(stack.item), carving = trade.shop.carving;
+    if (carving && def.inscription) return { price: carving.carve[def.rarity], carve: () => trade.carve(at) };
     const each = trade.shop.buys[stack.item];
     return each === undefined ? null : { each, sell: (count) => trade.sell(at, count) };
   };
@@ -317,7 +331,7 @@ interface DetailsProps {
   usable: boolean;
   using: boolean;
   use: () => void;
-  sale: ((stack: BagItem) => Sale | null) | null;
+  sale: ((stack: BagItem) => Sale | Carving | null) | null;
 }
 
 function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
@@ -329,7 +343,8 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
     );
   }
   const def = itemDef(stack.item), verb = def.consumable?.verb ?? def.wearable?.verb;
-  const selling = sale?.(stack) ?? null;
+  const offer = sale?.(stack) ?? null;
+  const selling = offer && "sell" in offer ? offer : null, carving = offer && "carve" in offer ? offer : null;
   return (
     <div id="bag-details" data-item={stack.item} className={`${DETAILS_STRIP} flex items-start gap-4`}>
       <div
@@ -344,6 +359,7 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
         </div>
         <p className="mt-0.5 text-xs text-white/60">
           {def.description}{def.consumable ? ` ${effectsText(def.consumable.effects)}` : ""}
+          {def.inscription ? ` ${INSCRIPTION_TEXT[def.inscription]}` : ""}
         </p>
         <p className="mt-1 text-[11px] text-white/40 tabular-nums">Weight {itemInfo(stack).weight}</p>
       </div>
@@ -364,6 +380,14 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
             </button>
           )}
         </div>
+      )}
+      {carving && (
+        <button
+          type="button" id="bag-carve" {...NO_FOCUS} disabled={using} onClick={carving.carve}
+          className={`pointer-events-auto self-center ${BUTTON.primary}`}
+        >
+          Carve for {formatPrice(carving.price.copper)} + {carving.price.essence} essence
+        </button>
       )}
       {verb && (
         <button

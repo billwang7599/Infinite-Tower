@@ -11,6 +11,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 
 - [Stats](#stats)
 - [The core](#the-core)
+- [Inscriptions](#inscriptions)
 - [Weapon attacks](#weapon-attacks)
 - [Body blows](#body-blows)
 - [Blocks](#blocks)
@@ -69,6 +70,30 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
 
 Example: Early Yan, 90 in: a boar's essence (20) breaks through to Middle Yan with 10 in. Every shown stat is 11, the
 hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more than before and stamina 15 more.
+
+## Inscriptions
+
+`INSCRIPTIONS` and the rules in `shared/src/soul/inscriptions.ts`; what each status does in `STATUS_DEFS`
+(`shared/src/battle/statuses.ts`).
+
+- **Slots** (`inscriptionSlots`) = 1 + s + floor(s / 3), s the steps finished (at most 14): Early Yan 1, Middle Yan 2,
+  Peak Yan 3, Early Sol 5, Peak Tian (and a whole core) 19. A death that costs a step keeps every ring, even past the
+  slots left; none more can be carved until the core grows back.
+- **Grit** (uncommon): + 4 strength and + 4 vitality on the core's stats (40 more HP at the start).
+- **Embers** (rare): burning does you no harm (`burnTakenFactor` 0); each weapon hit you land sets the foe burning 3
+  per second for 3 s (`weaponBurnPerSec`, `EMBERS.burnTime`), on again from 3 s at the next hit: 9 a hit on top of
+  the sword's 9.
+- **Last Breath** (epic): an attack or a dodge with too little stamina is paid for, the part you lack × 0.5 HP
+  (`hpPerStaminaShort`). At 0 stamina only if your HP is more than that: a light (10) costs 5 HP, a dodge (22) 11.
+  Paying never takes your last HP.
+- **Red Blade** (legendary): your weapon hits heal 25% of the damage they deal (`weaponLifesteal`), on top of any
+  lifesteal; a sword's 9 heals 2.25.
+- **The First Door** (unique): once a fight, a blow that would bring you to 0 HP leaves you at 1 (`FIRST_DOOR`) and
+  takes no damage at all for 2 s (`openedDoor`, damage taken × 0).
+- **Carving** (`CARVE_PRICES`, `server/src/core/content/shops.ts`), by the sigil's rarity, copper and essences of any
+  kind: common 50c + 1, uncommon 2s + 3, rare 10s + 6, epic 40s + 12, legendary 1g 50s + 25, unique 3g + 40.
+  Essences are paid cheapest first (boar before Kobold), off the cloth then the bag.
+- **Removing** (`REMOVE_PRICES`) = carving × 3 in coins (`REMOVE_PRICE_FACTOR`) and × 2 in essence: Grit 6s + 6.
 
 ## Weapon attacks
 

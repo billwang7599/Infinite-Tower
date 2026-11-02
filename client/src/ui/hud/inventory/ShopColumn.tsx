@@ -1,9 +1,10 @@
 import {
-  bagCounts, COIN_LETTER, COINS, exchangeRate, formatPrice, itemDef, moneyIn, type CoinId, type Gear, type ItemId,
-  type ShopView,
+  bagCounts, COIN_LETTER, COINS, exchangeRate, formatPrice, inscriptionSlots, itemDef, moneyIn, type CoinId,
+  type CoreState, type Gear, type InscriptionId, type ItemId, type ShopView,
 } from "@infinite-tower/shared";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
+import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
 import { ItemPicture } from "./BagGrid.js";
 import { EQUIPMENT_WIDTH_PX } from "./grid.js";
 import { RARITY_TEXT } from "./itemInfo.js";
@@ -19,11 +20,13 @@ const EXCHANGES = COINS.flatMap((coin, i) => {
 interface ShopColumnProps {
   shop: ShopView;
   gear: Gear;
+  core: CoreState;
   buy: (item: ItemId) => void;
   exchange: (from: CoinId, to: CoinId) => void;
+  uncarve: (inscription: InscriptionId) => void;
 }
 
-export function ShopColumn({ shop, gear, buy, exchange }: ShopColumnProps) {
+export function ShopColumn({ shop, gear, core, buy, exchange, uncarve }: ShopColumnProps) {
   const money = moneyIn(gear.bag, gear.cloth);
   const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
   const coins = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);
@@ -57,6 +60,7 @@ export function ShopColumn({ shop, gear, buy, exchange }: ShopColumnProps) {
           ))}
         </ul>
       )}
+      {shop.carving && <Rings core={core} remove={shop.carving.remove} uncarve={uncarve} />}
       {discounted && <p className="text-xs text-white/50 italic">Your first purchase here is cheaper.</p>}
       {buys.length > 0 && (
         <p className="text-xs text-white/50">
@@ -82,6 +86,43 @@ export function ShopColumn({ shop, gear, buy, exchange }: ShopColumnProps) {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+interface RingsProps {
+  core: CoreState;
+  remove: NonNullable<ShopView["carving"]>["remove"];
+  uncarve: (inscription: InscriptionId) => void;
+}
+
+function Rings({ core, remove, uncarve }: RingsProps) {
+  return (
+    <div id="shop-rings" className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs tracking-[0.12em] text-white/50 uppercase">Rings on your core</span>
+        <span className="text-xs tabular-nums">{core.inscriptions.length} / {inscriptionSlots(core)}</span>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {core.inscriptions.map((id) => {
+          const price = remove[inscriptionRarity(id)];
+          return (
+            <li key={id} data-inscription={id} className="flex items-start gap-2 rounded-sm bg-black/40 p-1.5">
+              <div className="min-w-0 flex-1">
+                <div className={RARITY_TEXT[inscriptionRarity(id)]}>{inscriptionName(id)}</div>
+                <p className="text-xs text-white/55">{INSCRIPTION_TEXT[id]}</p>
+              </div>
+              <button
+                type="button" {...NO_FOCUS} className={SMALL_BUTTON} data-uncarve={id} onClick={() => uncarve(id)}
+                title={`Unmake it for ${formatPrice(price.copper)} and ${price.essence} essence: it's gone for good`}
+              >
+                Unmake
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-white/50">Pick a sigil in your bag to carve it.</p>
     </div>
   );
 }

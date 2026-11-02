@@ -6,9 +6,9 @@
  */
 import {
   blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
-  type CoinId, type DayChange, type DialogueOffer, type GameServer, type Gear, type ItemId, type Look,
-  type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type Status, type UseSpot,
-  type WeaponId, type Word,
+  type CoinId, type DayChange, type DialogueOffer, type GameServer, type Gear, type InscriptionId, type ItemId,
+  type Look, type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot, type Status,
+  type UseSpot, type WeaponId, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -196,6 +196,8 @@ export interface UiActions {
   buy(item: ItemId): void;
   sell(at: UseSpot, count: number): void;
   exchange(from: CoinId, to: CoinId): void;
+  carve(at: UseSpot): void;
+  uncarve(inscription: InscriptionId): void;
   tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
