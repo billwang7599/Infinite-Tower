@@ -68,6 +68,9 @@ export const KINGDOM_TILES: TileLooks = {
   potionStall: { ground: cobbles },
   forge: { ground: cobbles },
   changerStall: { ground: cobbles },
+  cutStone: { ground: PAINT.flagstones },
+  cart: { ground: cobbles },
+  crane: { ground: cobbles },
 };
 
 export const TOWN_TILES = {

@@ -1,6 +1,6 @@
-import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type Rect, type TileKind } from "@infinite-tower/shared";
+import { mapHalfSize, seededRandom, tileAt, type LevelLayout, type TileKind } from "@infinite-tower/shared";
 import {
-  groundY, SCENERY_REACH_TILES as REACH, type Ledge, type Prop, type PropKind, type Scenery,
+  groundY, SCENERY_REACH_TILES as REACH, tileBlocks, type Ledge, type Prop, type PropKind, type Scenery,
 } from "../../overworld/scenery.js";
 
 const WALL_Y = 3;
@@ -20,6 +20,8 @@ const STALLS: { kind: TileKind; goods: PropKind; awning?: readonly [string, stri
   { kind: "changerStall", goods: "scales", awning: ["#e8dcc0", "#a8862e"] },
   { kind: "forge", goods: "embers" },
 ];
+
+const blocks = (level: LevelLayout, kind: TileKind) => tileBlocks(level, (x, z) => tileAt(level, x, z) === kind);
 
 export function kingdomScenery(level: LevelLayout): Scenery {
   const rand = seededRandom(17);
@@ -86,23 +88,4 @@ function castle(D: number): Ledge[] {
     at(-5, 3, 10, 7, 18),
     at(-2, 5, 4, 4, 26),
   ];
-}
-
-function blocks(level: LevelLayout, kind: TileKind): Rect[] {
-  const { halfWidth: L, halfDepth: D } = mapHalfSize(level), cols = L * 2, rows = D * 2;
-  const is = (c: number, r: number) => tileAt(level, c - L + 0.5, D - r - 0.5) === kind;
-  const taken = new Set<string>(), rects: Rect[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (!is(c, r) || taken.has(`${c},${r}`)) continue;
-      let w = 1, h = 1;
-      while (c + w < cols && is(c + w, r) && !taken.has(`${c + w},${r}`)) w++;
-      const rowMatches = (rr: number) => Array.from({ length: w }, (_, i) => c + i)
-        .every((cc) => is(cc, rr) && !taken.has(`${cc},${rr}`));
-      while (r + h < rows && rowMatches(r + h)) h++;
-      for (let rr = r; rr < r + h; rr++) for (let cc = c; cc < c + w; cc++) taken.add(`${cc},${rr}`);
-      rects.push({ x: c - L, z: D - r - h, w, h });
-    }
-  }
-  return rects;
 }

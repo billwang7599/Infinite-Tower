@@ -246,6 +246,82 @@ const dummy: Draw = (pen) => {
   pen.outline(OUTLINE);
 };
 
+const CUT = { deep: "#6f6656", dark: "#958b76", mid: "#b8ae97", light: "#d3cab4", dust: "#e2dac6" };
+const IRON = { dark: "#3b3733", mid: "#5c5650", light: "#7d766d", rust: "#8a5a3a" };
+const ROPE = "#c9b27e";
+
+const block = (pen: Pen, x: number, y: number, w: number, h: number) => {
+  pen.rect(x, y, w, h, CUT.mid);
+  pen.rect(x, y, w, 1, CUT.light);
+  pen.rect(x, y + h - 1, w, 1, CUT.dark);
+  pen.rect(x + w - 1, y + 1, 1, h - 1, CUT.dark);
+};
+
+const rubble: Draw = (pen, rand) => {
+  const stones = [[2, 10, 8, 7], [9, 11, 9, 6], [16, 12, 6, 5], [5, 5, 7, 6], [11, 6, 6, 5], [8, 2, 6, 4]] as const;
+  for (const [x, y, w, h] of stones) block(pen, x + Math.floor(rand() * 2), y + Math.floor(rand() * 2), w, h);
+  for (let i = 0; i < 5; i++) pen.rect(1 + rand() * 21, 16, 2, 1, CUT.deep);
+  pen.rect(6, 4, 1, 1, CUT.dust);
+  pen.outline(OUTLINE);
+};
+
+const chips: Draw = (pen, rand) => {
+  for (let i = 0; i < 5; i++) {
+    const x = 1 + Math.floor(rand() * 12), y = 3 + Math.floor(rand() * 4), w = 2 + Math.floor(rand() * 2);
+    pen.rect(x, y, w, 2, rand() < 0.5 ? CUT.mid : CUT.light);
+    pen.rect(x, y + 1, w, 1, CUT.dark);
+  }
+};
+
+const SCRUB = { dark: "#6c634d", mid: "#8f835f", light: "#b1a27a", shine: "#d4c596" };
+
+const scrub: Draw = (pen, rand) => blades(pen, rand, 16, 12, 9, SCRUB);
+
+const cart: Draw = (pen, rand) => {
+  for (let i = 0; i < 6; i++) pen.disc(6 + rand() * 12, 6 + rand() * 2, 2.5, rand() < 0.5 ? CUT.mid : CUT.light);
+  pen.rect(2, 8, 20, 2, IRON.light);
+  pen.rect(3, 10, 18, 5, IRON.mid);
+  pen.rect(4, 15, 16, 1, IRON.dark);
+  for (const x of [6, 12, 17]) pen.rect(x, 10, 1, 5, IRON.dark);
+  pen.rect(14, 12, 3, 2, IRON.rust);
+  pen.rect(4, 11, 2, 1, IRON.rust);
+  for (const x of [6, 17]) { pen.disc(x, 17, 2.5, IRON.dark); pen.rect(x, 16, 1, 1, IRON.light); }
+  pen.outline(OUTLINE);
+};
+
+const crane: Draw = (pen) => {
+  pen.rect(4, 74, 26, 4, WOOD.dark);
+  pen.rect(4, 74, 26, 1, WOOD.light);
+  for (let i = 0; i < 64; i++) {
+    pen.rect(10 + Math.floor(i / 8), 74 - i, 2, 1, WOOD.mid);
+    pen.rect(24 - Math.floor(i / 8), 74 - i, 2, 1, WOOD.mid);
+  }
+  for (const y of [58, 40, 24]) pen.rect(12, y, 12, 2, WOOD.dark);
+  pen.rect(16, 6, 4, 6, WOOD.dark);
+  for (let i = 0; i < 30; i++) pen.rect(18 + i, 8 + Math.floor(i * 0.35), 2, 2, i % 6 ? WOOD.mid : WOOD.light);
+  for (let i = 0; i < 18; i++) pen.rect(18 - Math.floor(i * 0.7), 9 + i * 2, 1, 2, ROPE);
+  pen.rect(46, 19, 1, 34, ROPE);
+  block(pen, 41, 53, 11, 8);
+  pen.rect(13, 62, 9, 9, WOOD.dark);
+  pen.disc(17, 66, 4, WOOD.light);
+  pen.disc(17, 66, 2, WOOD.dark);
+  pen.outline(OUTLINE);
+};
+
+const WEATHERED = ["#7d6e5c", "#6c5e4d", "#8d7e69", "#76675a"];
+
+const shack: Draw = (pen, rand) => {
+  for (let x = 0; x < 16; x += 2) {
+    const top = 2 + Math.floor(rand() * (rand() < 0.3 ? 12 : 4));
+    pen.rect(x, top, 2, 19 - top, WEATHERED[Math.floor(rand() * WEATHERED.length)]!);
+    pen.rect(x, top, 1, 19 - top, "#5a4d3f");
+  }
+  pen.rect(0, 9, 16, 2, WOOD.dark);
+  pen.rect(0, 9, 16, 1, WOOD.mid);
+  for (let x = 0; x < 16; x += 5) block(pen, x, 19, 5, 5);
+  pen.outline(OUTLINE);
+};
+
 export const PROP_ART: Record<PropKind, PropArt> = {
   tree: { widthPx: 48, heightPx: 64, draw: tree },
   pine: { widthPx: 32, heightPx: 64, draw: pine },
@@ -263,6 +339,12 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   scales: { widthPx: 16, heightPx: 10, draw: scales },
   embers: { widthPx: 16, heightPx: 8, draw: embers },
   dummy: { widthPx: 16, heightPx: 24, draw: dummy },
+  rubble: { widthPx: 24, heightPx: 18, draw: rubble },
+  chips: { widthPx: 16, heightPx: 8, draw: chips },
+  scrub: { widthPx: 16, heightPx: 12, draw: scrub },
+  cart: { widthPx: 24, heightPx: 20, draw: cart },
+  crane: { widthPx: 56, heightPx: 80, draw: crane },
+  shack: { widthPx: 16, heightPx: 24, draw: shack },
 };
 
 export function pixelCanvas(
