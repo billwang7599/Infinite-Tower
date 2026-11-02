@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { CLOSE_CODES, type ServerMsg, type ServerMsgOf } from "@infinite-tower/shared";
 import { SERVER_UNREACHABLE } from "../../src/net/api.js";
-import { CONNECT_TIMEOUT_MS, LOAD_FAILED, Net, NotLoggedInError, SERVER_FULL } from "../../src/net/net.js";
+import { CONNECT_TIMEOUT_MS, LOAD_FAILED, Net, NotLoggedInError, SAVE_RESET, SERVER_FULL } from "../../src/net/net.js";
 
 class FakeSocket {
   static readonly OPEN = 1;
@@ -157,6 +157,14 @@ describe("Net", () => {
     ws.drop();
     net.onLost((reason) => lost.push(reason));
     assert.deepEqual(lost, ["You started playing in another tab or browser.", "You started playing in another tab or browser."]);
+  });
+
+  test("a reset save's close is told apart, so the game can join again", async (t) => {
+    const { net, ws } = await connect(t);
+    const lost: string[] = [];
+    net.onLost((reason) => lost.push(reason));
+    ws.drop(CLOSE_CODES.saveReset);
+    assert.deepEqual(lost, [SAVE_RESET]);
   });
 
   test("close() hangs up quietly: no onLost, and nothing more is delivered", async (t) => {

@@ -4,6 +4,7 @@ import { startPinging } from "./ping.js";
 
 export const SERVER_FULL = "That server is full. Try again later, or pick another one.";
 export const LOAD_FAILED = "The server couldn't load your character. Try again in a moment.";
+export const SAVE_RESET = "Your save was reset.";
 export const CONNECT_TIMEOUT_MS = 10_000;
 
 type GameMsgType = Exclude<ServerMsg["t"], "welcome" | "pong">;
@@ -145,5 +146,6 @@ function refusedReason(closeCode: number): string {
 
 function closeReason(closeCode: number): string {
   if (closeCode === CLOSE_CODES.replaced) return "You started playing in another tab or browser.";
+  if (closeCode === CLOSE_CODES.saveReset) return SAVE_RESET;
   return "Lost the connection to the game server.";
 }

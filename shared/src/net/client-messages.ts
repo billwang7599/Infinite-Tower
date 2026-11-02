@@ -179,6 +179,8 @@ const CheatSchema = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("heal") }),
   z.object({ kind: z.literal("coreStep"), add: z.boolean() }),
+  z.object({ kind: z.literal("completeQuest") }),
+  z.object({ kind: z.literal("resetSave") }),
 ]);
 export type Cheat = z.infer<typeof CheatSchema>;
 

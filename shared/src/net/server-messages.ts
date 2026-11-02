@@ -156,6 +156,7 @@ export type ServerMsg =
   | { t: "healed"; vitals: Vitals }
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
   | { t: "invulnerable"; on: boolean }
+  | { t: "noQuest" }
   | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what a death dropped. `afterFightMs`: how long the arena
    * stays open for its drops after a win, or null if it's over for you. `duel`: the opponent's name, after a duel. */
@@ -179,6 +180,7 @@ export const CLOSE_CODES = {
   /** No (or an expired) login cookie. */
   notLoggedIn: 4001,
   full: 4002,
+  saveReset: 4003,
   /** Loading the player's save failed (WebSocket's "internal error"). */
   loadFailed: 1011,
 } as const;

@@ -340,7 +340,8 @@ main.ts
   kills counted toward a kill step, and the flags set. One condition type, `When` (a flag, a quest on a step, a quest
   done, a quest that can start), is checked by `holds` for quests, stops and talk alike. One function changes a story,
   `unfold`: it applies the effects (`{ start }`: the first step; `{ advance }`: the step done, a deliver step taking its
-  items from the bag or refusing if short), then does every gather, reach or kill step the world already meets (`Seen`:
+  items from the bag or refusing if short; `{ finish }`, the admin's: every step left, a short handover taking
+  nothing), then does every gather, reach or kill step the world already meets (`Seen`:
   the level, where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its
   reward (what doesn't fit is `dropped`) and each change is told (`news`). It's pure over a story, a bag and a quest
   table (as are `holds`, `questbookOf`, `keptStory`, and `stopFor` and `dialogueOf` in `talk.ts`), so tests bring their
@@ -588,7 +589,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `statPoint {stat, add}` | the character panel's + / −: place a free point in a shown stat (outside fights), or take one back (by a campfire too); answered with `core` either way |
-| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only) |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (overworld only), `completeQuest`, `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
 
 | Server -> client | When |
 |---|---|
@@ -611,7 +612,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `core` | the core changed outside a fight (essence absorbed, a point placed or taken back, the admin's step), or a point was refused: the core, HP / stamina, and whether it broke through |
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
-| `healed`, `given`, `invulnerable` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off |
+| `healed`, `given`, `invulnerable`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off, no quest left to complete |
 | `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
@@ -623,7 +624,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 Close codes the client handles: 4001 not logged in (login form), 4000 the account is playing in another tab, 4002
 the server is full (`MAX_PLAYERS` are on; a player already on it may still take over from another tab) (`CLOSE_CODES`
 in `shared/src/net/server-messages.ts`), 1011 loading the save failed (try again); 1008 and 1009 end in "connection
-lost". A welcome that doesn't come within `CONNECT_TIMEOUT_MS` (`client/src/net/net.ts`) counts as unreachable.
+lost"; 4003 a dev cheat reset the save (the client goes back through the title and joins again). A welcome that
+doesn't come within `CONNECT_TIMEOUT_MS` (`client/src/net/net.ts`) counts as unreachable.
 Positions in `state` are rounded to 1 cm, and it only carries actors and players within
 `VIEW_RADIUS_TILES` of the server's copy of you (a circle, as the camera may look any way), so a hacked client can't
 see further.
@@ -767,7 +769,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   one in one message, too far ahead dropped, a silent player stopping, lateness, the latest of late chant words
   kept).
   The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
-  client. The core (`soul.test.ts`): in `welcome` and a fight's setup, saved; essence absorbed on the overworld (told,
+  client; completing the current quest (main first, its rewards, clicks walking the main story); resetting the save
+  (a new player's with the character and settings, nothing saved over it, joining again at the start). The core
+  (`soul.test.ts`): in `welcome` and a fight's setup, saved; essence absorbed on the overworld (told,
   saved, a breakthrough growing the vitals, not into a whole core), in a fight and kept after a win, and in the arena
   after a win with the fight following; free points (placed while any are left, taken back only by a campfire, not in
   a battle); HP regen on the overworld and in `state`; a death losing the fill or a step (leaving mid-fight too); the

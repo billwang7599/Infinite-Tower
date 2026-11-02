@@ -7,7 +7,7 @@ import { Actions } from "./core/actions.js";
 import { Keyboard } from "./core/keyboard.js";
 import { Mouse } from "./core/mouse.js";
 import { currentAccount, listServers, logIn, logOut, register, SERVER_UNREACHABLE } from "./net/api.js";
-import { Net, NotLoggedInError } from "./net/net.js";
+import { Net, NotLoggedInError, SAVE_RESET } from "./net/net.js";
 import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
 import { LEAVE_COVERED_MS } from "./ui/screens/title/sequence.js";
@@ -98,7 +98,10 @@ async function play(): Promise<void> {
     (await preparing).join(joined);
     ui.title.set({ phase: "entering" });
     // Also catches a connection that dropped while the game was loading.
-    joined.net.onLost((reason) => void backToTitle(reason));
+    joined.net.onLost((reason) => {
+      if (reason === SAVE_RESET) void backToTitle().then(play);
+      else void backToTitle(reason);
+    });
   } catch (err) {
     joined.net.close();
     fail(err);
