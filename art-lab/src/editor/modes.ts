@@ -1,5 +1,5 @@
 import { VIEWS } from "@infinite-tower/client/src/gfx/look/art.js";
-import { PX_PER_TILE } from "@infinite-tower/client/src/gfx/tile.js";
+import { PX_PER_TILE } from "@infinite-tower/client/src/gfx/grid.js";
 import { PARTS } from "./layers.js";
 
 export const MODES = ["sprite", "tiles", "animation"] as const;

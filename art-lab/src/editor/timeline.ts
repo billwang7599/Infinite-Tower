@@ -1,8 +1,7 @@
 import { FIELD, button, checkbox, el } from "../dom.js";
+import { MAX_FPS } from "./layers.js";
 import type { Editor } from "./state.js";
 import type { CanvasView } from "./view.js";
-
-const MAX_FPS = 60;
 
 export class Playback {
   playing = false;

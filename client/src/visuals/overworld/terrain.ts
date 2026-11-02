@@ -1,15 +1,15 @@
 import {
-  Color3, Color4, MeshBuilder, StandardMaterial, Texture, TransformNode, Vector4, VertexBuffer, type DynamicTexture,
+  Color3, Color4, DynamicTexture, MeshBuilder, StandardMaterial, Texture, TransformNode, Vector4, VertexBuffer,
   type AbstractMesh, type InstancedMesh, type Mesh, type Scene,
 } from "@babylonjs/core";
 import { dampFactor, mapHalfSize, seededRandom, wrapAngle, type LevelMap, type Vec3 } from "@infinite-tower/shared";
 import { campfireLights, drawCampfire, FLICKER_TIME, LEVEL_LOOKS } from "../levels/index.js";
 import { paintGround, tileProps } from "../levels/tiles.js";
 import { cardYawRad, type MapLight, type Sky } from "../sky/sky.js";
-import { spriteMaterial } from "../sprites.js";
+import { pixelCanvas, spriteMaterial } from "../sprites.js";
 import { levelWater } from "../water/level.js";
-import { PX_PER_TILE } from "../../gfx/tile.js";
-import { Pen, pixelCanvas, propTexture, PROP_ART } from "./props.js";
+import { PX_PER_TILE } from "../../gfx/grid.js";
+import { Pen, PROP_ART } from "./props.js";
 import { cutoutMaterial, standingQuad, type OverworldScene } from "./scene.js";
 import { stallLooks, type StallLooks } from "./stalls.js";
 import { hidesWalker, isTall, openExits, type Ledge, type Prop, type PropKind } from "./scenery.js";
@@ -438,4 +438,9 @@ function buildCampfires(
     for (const m of fires) m.material = frame;
   };
   return { meshes: fires, flicker };
+}
+
+function propTexture(scene: Scene, kind: PropKind, seed: number): DynamicTexture {
+  const art = PROP_ART[kind], rand = seededRandom(seed);
+  return pixelCanvas(scene, `prop-${kind}`, art.widthPx, art.heightPx, (pen) => art.draw(pen, rand));
 }

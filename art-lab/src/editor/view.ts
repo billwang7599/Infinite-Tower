@@ -3,6 +3,7 @@ import type { Bitmap } from "./bitmap.js";
 import { composite } from "./layers.js";
 import type { Editor } from "./state.js";
 import { TOOLS } from "./tools.js";
+import { WheelZoom, wheelPx } from "./wheel.js";
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64];
 const GRID_FROM_ZOOM = 6;
@@ -23,6 +24,8 @@ export class CanvasView {
   grid = true;
   onion = true;
   hover: [number, number] | null = null;
+  spaceHeld = false;
+  private readonly wheel = new WheelZoom();
   private panX = 0;
   private panY = 0;
   private drag: { button: number; x: number; y: number } | null = null;
@@ -36,7 +39,8 @@ export class CanvasView {
     this.canvas.oncontextmenu = (e) => e.preventDefault();
     this.canvas.onwheel = (e) => {
       e.preventDefault();
-      this.zoomBy(e.deltaY < 0 ? 1 : -1, ...this.at(e));
+      const steps = this.wheel.steps(wheelPx(e), e.timeStamp);
+      if (steps !== 0) this.zoomBy(steps, ...this.at(e));
     };
   }
 
@@ -62,6 +66,7 @@ export class CanvasView {
     const g = this.canvas.getContext("2d")!;
     const { width, height } = this.ed.doc;
     const [x0, y0, z] = [Math.round(this.panX), Math.round(this.panY), this.zoom];
+    this.canvas.style.cursor = this.panning() ? "grab" : "crosshair";
     g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     g.imageSmoothingEnabled = false;
     const cell = Math.max(z, 8);
@@ -106,6 +111,10 @@ export class CanvasView {
     }
   }
 
+  private panning(): boolean {
+    return this.spaceHeld || this.ed.tool === "hand";
+  }
+
   private pixelAt(e: PointerEvent): [number, number] {
     const [x, y] = this.at(e);
     return [Math.floor((x - this.panX) / this.zoom), Math.floor((y - this.panY) / this.zoom)];
@@ -120,7 +129,7 @@ export class CanvasView {
     this.canvas.setPointerCapture(e.pointerId);
     const [sx, sy] = this.at(e);
     this.drag = { button: e.button, x: sx, y: sy };
-    if (e.button !== 0 || this.ed.tool === "hand") return;
+    if (e.button !== 0 || this.panning()) return;
     const [x, y] = this.pixelAt(e);
     TOOLS[this.ed.tool].down(this.ed, x, y, e);
   }
@@ -133,7 +142,7 @@ export class CanvasView {
       if (moved) this.ed.changed(false);
       return;
     }
-    if (this.drag.button !== 0 || this.ed.tool === "hand") {
+    if (this.drag.button !== 0 || this.panning()) {
       const [sx, sy] = this.at(e);
       this.panX += sx - this.drag.x;
       this.panY += sy - this.drag.y;

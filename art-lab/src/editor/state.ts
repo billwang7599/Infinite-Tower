@@ -1,11 +1,14 @@
-import { hexToRgba, type Rgba } from "./bitmap.js";
+import { copyBitmap, hexToRgba, type Bitmap, type Rgba } from "./bitmap.js";
 import { History } from "./history.js";
 import { copyProject, newProject, projectBytes, type Doc, type Layer, type Project } from "./layers.js";
 import { MODES, MODE_LOOKS, type Mode } from "./modes.js";
-import type { Rect } from "./selection.js";
+import { lift, type Rect } from "./selection.js";
 
 export const TOOL_NAMES = ["pencil", "eraser", "fill", "picker", "line", "rect", "select", "hand"] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
+
+// A pasted or moved selection floats over what was under it (`under`) until something else edits the layer.
+export interface Floating { layer: Layer; piece: Bitmap; under: Bitmap }
 
 interface Snapshot { mode: Mode; project: Project; active: number; selection: Rect | null }
 
@@ -26,6 +29,7 @@ export class Editor {
   color: Rgba = hexToRgba("#c8cbd2");
   filledRect = false;
   selection: Rect | null = null;
+  floating: Floating | null = null;
   private readonly history = new History<Snapshot>(
     (s) => ({ ...s, project: copyProject(s.project) }), MAX_UNDO_STEPS, (s) => projectBytes(s.project), MAX_UNDO_BYTES,
   );
@@ -53,7 +57,22 @@ export class Editor {
   }
 
   record(): void {
+    this.floating = null;
     this.history.record(this.snapshot());
+  }
+
+  floatingHere(): Floating | null {
+    return this.floating?.layer === this.layer && this.selection ? this.floating : null;
+  }
+
+  takeSelection(): Floating {
+    const floating = this.floatingHere();
+    this.record();
+    this.floating = floating ?? (() => {
+      const piece = lift(this.layer.pixels, this.selection!);
+      return { layer: this.layer, piece, under: copyBitmap(this.layer.pixels) };
+    })();
+    return this.floating;
   }
 
   edit(change: () => void): void {
@@ -97,6 +116,7 @@ export class Editor {
 
   private restore(s: Snapshot | null): void {
     if (!s) return;
+    this.floating = null;
     this.mode = s.mode;
     this.projects[s.mode] = s.project;
     ({ active: this.active, selection: this.selection } = s);

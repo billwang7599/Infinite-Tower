@@ -1070,7 +1070,7 @@ npm run dev        # db:up + db:seed, then server :8787 (tsx watch, reloads on s
 npm run typecheck  # run it from the root (the workspaces have none of their own); also checks the server's layering
 npm test           # unit tests of shared, server, client and the art lab (Node's test runner through tsx; no database needed)
 npm run build      # client bundle, and the art lab's (to check it builds)
-npm run art        # the art lab on :5175: the character art, and a pixel editor (no game server needed)
+npm run art        # the art lab on :5175: the character art, and a pixel editor (no game server needed); saves to art-lab/files
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
 npm run db:seed    # dev accounts test1, test2, test3, user, password = username (dev runs it; safe to repeat)
@@ -1185,6 +1185,8 @@ The global rules apply; here is how to set one up in this repo.
   `client/src/core/keyboard.ts` is the only one. Keys become actions only in `client/src/core/actions.ts`: game code
   reads them there, the UI listens with `useAction`, and on-screen keys come from `keyName`. Groups: general,
   overworld, arena (rebindable), MENUS (fixed). Esc and ⌘ can't be rebound.
+  This is the game's rule. The art lab (`art-lab/`, a dev tool) has its own fixed editor shortcuts (Ctrl / ⌘ + Z,
+  tool letters as in Aseprite) and its own key listener, `art-lab/src/editor/keys.ts` and `editor.ts`.
 - **Drawing has one owner, `client/src/visuals/`**: the only code that imports Babylon. It reads the modes' state
   each frame (`VISUALS` by entity kind, `EFFECTS` by fight event); game code never draws or pushes state to drawing
   code. `npm run typecheck` checks the imports.

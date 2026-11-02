@@ -4,6 +4,7 @@ import { wrapShift } from "./draw.js";
 import { addLayer } from "./layers.js";
 import { lift, stamp } from "./selection.js";
 import { TOOL_NAMES, type Editor } from "./state.js";
+import { TOOL_KEYS } from "./keys.js";
 import { TOOLS } from "./tools.js";
 import type { CanvasView } from "./view.js";
 
@@ -15,9 +16,10 @@ export function toolbar(ed: Editor, view: CanvasView): HTMLElement {
   for (const name of TOOL_NAMES) {
     const b = el("button", BUTTON, TOOLS[name].label);
     if (ed.tool === name) b.style.background = "#8a6d2a";
+    const key = Object.keys(TOOL_KEYS).find((k) => TOOL_KEYS[k] === name);
+    b.title = key ? `${key.toUpperCase()}` : "Or hold Space";
     b.onclick = () => {
       ed.tool = name;
-      view.canvas.style.cursor = name === "hand" ? "grab" : "crosshair";
       ed.changed();
     };
     tools.append(b);
@@ -25,11 +27,11 @@ export function toolbar(ed: Editor, view: CanvasView): HTMLElement {
 
   const options = el("div", ROW);
   options.append(
-    button("Undo", () => ed.undo()),
-    button("Redo", () => ed.redo()),
-    button("−", () => view.zoomBy(-1), "Zoom out (or the mouse wheel)"),
+    button("Undo", () => ed.undo(), "Ctrl+Z"),
+    button("Redo", () => ed.redo(), "Ctrl+Shift+Z or Ctrl+Y"),
+    button("−", () => view.zoomBy(-1), "Zoom out: -, or the mouse wheel"),
     el("span", "font-size:12px;min-width:36px;text-align:center", `${view.zoom}x`),
-    button("+", () => view.zoomBy(1), "Zoom in (or the mouse wheel)"),
+    button("+", () => view.zoomBy(1), "Zoom in: +, or the mouse wheel"),
     button("Fit", () => view.fit()),
     checkbox("Grid", view.grid, (on) => { view.grid = on; ed.changed(false); }),
     checkbox("Filled rectangle (or hold Shift)", ed.filledRect, (on) => { ed.filledRect = on; }),
@@ -48,8 +50,8 @@ export function toolbar(ed: Editor, view: CanvasView): HTMLElement {
 function selectionButtons(ed: Editor): HTMLButtonElement[] {
   const sel = ed.selection ?? { x: 0, y: 0, w: 0, h: 0 };
   const buttons = [
-    button("Deselect", () => { ed.selection = null; ed.changed(); }),
-    button("Clear selected", () => ed.edit(() => { lift(ed.layer.pixels, sel); })),
+    button("Deselect", () => { ed.selection = null; ed.changed(); }, "Esc or Ctrl+D"),
+    button("Clear selected", () => ed.edit(() => { lift(ed.layer.pixels, sel); }), "Delete"),
     button("Selected to new layer", () => ed.edit(() => {
       const piece = lift(ed.layer.pixels, sel);
       ed.active = addLayer(ed.project, `${ed.layer.name} piece`, ed.active);

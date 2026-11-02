@@ -1,4 +1,4 @@
-import { blank, getPixel, setPixel, type Bitmap } from "./bitmap.js";
+import { blank, CLEAR, getPixel, setPixel, type Bitmap } from "./bitmap.js";
 
 export interface Rect { x: number; y: number; w: number; h: number }
 
@@ -7,13 +7,18 @@ export const rectBetween = (x0: number, y0: number, x1: number, y1: number): Rec
 
 export const inRect = (r: Rect, x: number, y: number) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 
-export function lift(b: Bitmap, r: Rect): Bitmap {
+export function copyRect(b: Bitmap, r: Rect): Bitmap {
   const piece = blank(r.w, r.h);
   for (let y = 0; y < r.h; y++) {
-    for (let x = 0; x < r.w; x++) {
-      setPixel(piece, x, y, getPixel(b, r.x + x, r.y + y));
-      setPixel(b, r.x + x, r.y + y, [0, 0, 0, 0]);
-    }
+    for (let x = 0; x < r.w; x++) setPixel(piece, x, y, getPixel(b, r.x + x, r.y + y));
+  }
+  return piece;
+}
+
+export function lift(b: Bitmap, r: Rect): Bitmap {
+  const piece = copyRect(b, r);
+  for (let y = 0; y < r.h; y++) {
+    for (let x = 0; x < r.w; x++) setPixel(b, r.x + x, r.y + y, CLEAR);
   }
   return piece;
 }

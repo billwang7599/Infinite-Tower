@@ -1,5 +1,3 @@
-import { DynamicTexture, Texture, type Scene } from "@babylonjs/core";
-import { seededRandom } from "@infinite-tower/shared";
 import type { PropKind } from "./scenery.js";
 
 type Draw = (pen: Pen, rand: () => number) => void;
@@ -343,20 +341,3 @@ export const PROP_ART: Record<PropKind, PropArt> = {
   crane: { widthPx: 56, heightPx: 80, draw: crane },
   shack: { widthPx: 16, heightPx: 24, draw: shack },
 };
-
-export function pixelCanvas(
-  scene: Scene, name: string, widthPx: number, heightPx: number, draw: (pen: Pen) => void, alpha = true,
-): DynamicTexture {
-  const tex = new DynamicTexture(name, { width: widthPx, height: heightPx }, scene, false, Texture.NEAREST_SAMPLINGMODE);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, widthPx, heightPx);
-  draw(new Pen(ctx));
-  tex.update();
-  tex.hasAlpha = alpha;
-  return tex;
-}
-
-export function propTexture(scene: Scene, kind: PropKind, seed: number): DynamicTexture {
-  const art = PROP_ART[kind], rand = seededRandom(seed);
-  return pixelCanvas(scene, `prop-${kind}`, art.widthPx, art.heightPx, (pen) => art.draw(pen, rand));
-}
