@@ -1,6 +1,9 @@
-import { bagCounts, type Bag, type DialogueOffer, type LevelLayout, type NpcId } from "@infinite-tower/shared";
+import {
+  bagCounts, type Bag, type DialogueOffer, type EnemyId, type LevelLayout, type NpcId,
+} from "@infinite-tower/shared";
 import { QUESTS, type Quests } from "../content/quests.js";
 import { SHOPS, type ShopId } from "../content/shops.js";
+import { ENEMIES } from "../enemies/index.js";
 import { NPCS, type Npc, type Stop, type Talk, type Trace } from "../npcs/index.js";
 import type { GameSession } from "./session.js";
 import { holds, progressStory, stepOn, type Story } from "./story.js";
@@ -47,6 +50,7 @@ export function dialogueOf(
 function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): DialogueOffer | null {
   if (!offer) return null;
   if ("shop" in offer) return { kind: "shop", name: SHOPS[offer.shop].name };
+  if ("train" in offer) return { kind: "train", foe: ENEMIES[offer.train].def.name };
   if ("start" in offer) {
     const quest = quests[offer.start], first = quest?.steps[0];
     if (!quest || !first || !holds({ canStart: offer.start }, story, quests)) return null;
@@ -69,10 +73,19 @@ function facing(session: GameSession): Faced | null {
   return session.overworld.inView(session.me, things);
 }
 
-export function shopInView(session: GameSession): ShopId | null {
+function rawOfferInView(session: GameSession): Talk["offer"] {
   const faced = facing(session);
-  const offer = faced && "stop" in faced ? faced.stop.talk.find((t) => holds(t.when, session.story))?.offer : undefined;
+  return faced && "stop" in faced ? faced.stop.talk.find((t) => holds(t.when, session.story))?.offer : undefined;
+}
+
+export function shopInView(session: GameSession): ShopId | null {
+  const offer = rawOfferInView(session);
   return offer && "shop" in offer ? offer.shop : null;
+}
+
+export function trainingInView(session: GameSession): EnemyId | null {
+  const offer = rawOfferInView(session);
+  return offer && "train" in offer ? offer.train : null;
 }
 
 function offerInView(session: GameSession): DialogueOffer | null {
@@ -96,9 +109,13 @@ export function talkTo(session: GameSession): void {
   progressStory(session, talked.map((id) => ({ advance: id })));
 }
 
+/** Taken from the NPC its first step sends you to, that step is done there and then. */
 export function takeQuest(session: GameSession, id: string): void {
-  const offer = offerInView(session);
-  if (offer?.kind === "quest" && offer.quest === id) progressStory(session, [{ start: id }]);
+  const offer = offerInView(session), faced = facing(session);
+  if (offer?.kind !== "quest" || offer.quest !== id) return;
+  const first = QUESTS[id]?.steps[0]?.task;
+  const talked = first?.kind === "talk" && faced !== null && faced.npc === first.to;
+  progressStory(session, talked ? [{ start: id }, { advance: id }] : [{ start: id }]);
 }
 
 export function handOver(session: GameSession, id: string): void {

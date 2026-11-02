@@ -2,7 +2,7 @@ import { inRect, isSolid, mapHalfSize, type LevelLayout, type Rect, type Vec3 } 
 
 export type PropKind =
   | "tree" | "pine" | "deadTree" | "bush" | "rock" | "ruin" | "tuft" | "flowers" | "tallGrass" | "reeds" | "mushrooms"
-  | "foodStall" | "potionStall" | "forge" | "changerStall";
+  | "foodStall" | "potionStall" | "forge" | "changerStall" | "dummy";
 
 export interface Prop { kind: PropKind; x: number; y: number; z: number; scale: number }
 

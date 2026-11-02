@@ -1,8 +1,10 @@
 import type { EnemyDef, EnemyId, ItemCounts, ItemId } from "@infinite-tower/shared";
 import type { Part } from "../overworld/parts.js";
+import { BRAM } from "./bram.js";
 import { GOBLIN_WARLOCK } from "./goblin-warlock.js";
 import { KOBOLD_GREATSWORD } from "./kobold-greatsword.js";
 import { KOBOLD_SWORDSMAN } from "./kobold-swordsman.js";
+import { TRAINING_DUMMY } from "./training-dummy.js";
 import { WILD_BOAR } from "./wild-boar.js";
 
 export interface Enemy {
@@ -18,6 +20,8 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   "kobold-swordsman": KOBOLD_SWORDSMAN,
   "kobold-greatsword": KOBOLD_GREATSWORD,
   "goblin-warlock": GOBLIN_WARLOCK,
+  "training-dummy": TRAINING_DUMMY,
+  bram: BRAM,
 };
 
 export function rollDrops(enemy: EnemyId, rng: () => number): ItemCounts {

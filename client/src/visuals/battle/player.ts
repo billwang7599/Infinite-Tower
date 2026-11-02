@@ -1,8 +1,9 @@
 import { Color3, Material, Mesh, MeshBuilder, StandardMaterial, TransformNode } from "@babylonjs/core";
 import {
-  Body, clamp, damp, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
-  type World,
+  Body, clamp, damp, Enemy, Health, Player, PLAYER, SkillObject, Skilled, weaponItemIn, WEAPONS, Wielder, type Entity,
+  type PlayerData, type Vec2, type World,
 } from "@infinite-tower/shared";
+import { blocking } from "@infinite-tower/shared/fight";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
@@ -41,7 +42,32 @@ interface PlayerSprite {
   blade: HeldBlade | null;
 }
 
-export const playerVisual = fighter<PlayerSprite>("player", { spawn, frame, dispose });
+interface Stance extends Pick<PlayerData, "action" | "actionDir" | "way" | "grounded"> {
+  leaving: boolean;
+  aim: Vec2;
+}
+type StanceOf = (world: World, e: Entity) => Stance;
+
+const playerStance: StanceOf = (world, e) => {
+  const { action, actionDir, way, grounded, leftArena } = world.require(e, Player);
+  return { action, actionDir, way, grounded, leaving: leftArena, aim: world.require(e, Skilled).aim };
+};
+
+const ENEMY_STAGGERS = ["staggered", "stunned"];
+
+const enemyStance: StanceOf = (world, e) => {
+  const { state, yaw } = world.require(e, Enemy), facing = { x: Math.sin(yaw), z: Math.cos(yaw) };
+  const action = ENEMY_STAGGERS.includes(state) ? "stagger" : blocking(world, e) ? "block" : "none";
+  return { action, actionDir: world.require(e, Wielder).swing?.dir ?? facing, way: null, grounded: true,
+    leaving: false, aim: facing };
+};
+
+const personVisual = (kind: "player" | "enemy", stanceOf: StanceOf) => fighter<PlayerSprite>(kind, {
+  spawn, dispose, frame: (sprite, world, e, dt) => frame(sprite, world, e, dt, stanceOf(world, e)),
+});
+
+export const playerVisual = personVisual("player", playerStance);
+export const personEnemyVisual = personVisual("enemy", enemyStance);
 
 function spawn(ctx: ArenaScene, _world: World, e: Entity, node: TransformNode): PlayerSprite {
   const { scene, materials } = ctx;
@@ -83,13 +109,13 @@ function dispose(sprite: PlayerSprite): void {
   dropBlade(sprite.blade);
 }
 
-function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void {
+function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player: Stance): void {
   const { ctx } = sprite;
-  const body = world.require(e, Body), player = world.require(e, Player), health = world.require(e, Health);
+  const body = world.require(e, Body), health = world.require(e, Health);
   const wielder = world.require(e, Wielder), { swing, hands } = wielder, weapon = weaponItemIn(hands);
   const motion = weapon && MOTIONS[WEAPONS[weapon].kind];
   const p = sprite.node.position, vel = body.vel;
-  const alive = health.hp > 0;
+  const alive = health.hp > health.floor;
 
   const speed = Math.hypot(vel.x, vel.z);
   const walking = alive && player.grounded && speed > 0.5 && player.action === "none";
@@ -104,13 +130,13 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number): void 
   sprite.stretch = damp(sprite.stretch, targetStretch, 18, dt);
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const pose = spritePose(player, wielder, alive, sprite.stretch, { left: health.hitstun, of: sprite.staggerTime });
-  const aim = world.require(e, Skilled).aim;
+  const { aim } = player;
   sprite.facing = facingSeen(ctx.battle.view.eye, p, aim, sprite.facing);
   const look = ctx.looks.get(e);
   const picture = look?.battleSprite(sprite.facing, pose.pose, pose.frame)
     ?? ctx.materials.player.back[pose.pose][pose.frame]!;
   ctx.sky.tintAt(p, picture.emissiveColor);
-  const shown = player.leftArena ? fadingCopy(sprite, picture) : picture;
+  const shown = player.leaving ? fadingCopy(sprite, picture) : picture;
   if (sprite.plane.material !== shown) sprite.plane.material = shown;
   sprite.plane.scaling.set(pose.scaleX, pose.scaleY, 1);
   sprite.plane.position.y = spriteY(sprite.stretch, bob);

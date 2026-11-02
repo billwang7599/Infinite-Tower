@@ -16,6 +16,7 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   closeBag: (_msg, s) => s.closeBag(),
   openPile: (_msg, s) => s.openPile(),
   talk: (_msg, s) => s.talk(),
+  train: (_msg, s) => s.train(),
   acceptQuest: (msg, s) => s.acceptQuest(msg.quest),
   deliver: (msg, s) => s.deliver(msg.quest),
   saveSkill: (msg, s) => s.saveSkill(msg.page, msg.skill),

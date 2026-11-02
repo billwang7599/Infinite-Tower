@@ -16,9 +16,11 @@ const HELD_POSES: Record<Way, SwordPose> = {
 };
 export const STAGGERED: readonly PlayerAction[] = ["stagger"];
 
-const stanceOf = (player: PlayerData): Way | null => (player.action === "block" ? "tb" : player.way);
+type Held = Pick<PlayerData, "action" | "way">;
 
-function stanceCut(player: PlayerData): Cut | null {
+const stanceOf = (player: Held): Way | null => (player.action === "block" ? "tb" : player.way);
+
+function stanceCut(player: Held): Cut | null {
   const stance = stanceOf(player);
   return stance && wayCut(stance, true);
 }
@@ -40,7 +42,7 @@ export interface SpritePose {
  * with (the player's actionTime stands still while staggered).
  */
 export function spritePose(
-  player: PlayerData, { swing }: Pick<WielderData, "swing">, alive: boolean, stretch: number,
+  player: Held, { swing }: Pick<WielderData, "swing">, alive: boolean, stretch: number,
   stagger = { left: 0, of: 0 },
 ): SpritePose {
   const attacking = swing !== null && swing.step < swing.endAt;
@@ -61,7 +63,7 @@ const SPRITE_DRAWBACK = 0.5;
 const DROPPED_BLADE: Vec3 = { x: 0.9, y: 0, z: Math.sqrt(1 - 0.9 ** 2) };
 
 export function playerBlade(
-  player: PlayerData, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
+  player: Held, { swing }: Pick<WielderData, "swing">, alive: boolean, motion: WeaponMotion,
 ): { blade: Vec3; exact: boolean } {
   if (!alive) return { blade: DROPPED_BLADE, exact: false };
   if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false };

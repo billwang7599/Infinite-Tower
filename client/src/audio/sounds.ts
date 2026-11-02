@@ -91,6 +91,8 @@ export const ENEMY_SOUNDS: Record<EnemyId, EnemySounds> = {
   "kobold-swordsman": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "kobold-greatsword": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "goblin-warlock": { hurt: "goblin-hurt", death: "goblin-death", windup: null },
+  "training-dummy": { hurt: "hit-body", death: "fall", windup: null },
+  bram: { hurt: "hit-body", death: "fall", windup: "draw-blade" },
 };
 
 interface ElementSounds { cast: SoundName; loop: SoundName; impact: SoundName; rate: number }

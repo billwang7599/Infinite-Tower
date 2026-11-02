@@ -2,9 +2,9 @@
 import {
   ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy,
   Health, LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, Sidestep, SkillAttack, Skilled, SkillObject,
-  Stamina, staminaMaxOf, starterEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
+  Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PlayerInputData, type Segment, type Skill, type Stats,
-  type SkillAttackDef, type Vec3, type WeaponAttackDef,
+  type SkillAttackDef, type Equipment, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
 import { Fight, type EnemySetup, type PlayerSetup } from "@infinite-tower/shared/fight";
 
@@ -78,9 +78,11 @@ export const CASTER: EnemyDef = {
   keepAway: { nearM: 4, farM: 7 }, attacks: { skill: casts({}) },
 };
 
+export const armed = (): Equipment => ({ ...emptyEquipment(), rightHand: "sword", leftHand: "skillbook" });
+
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: FULL_HP, stamina: FULL_STAMINA }, stats: STATS, core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook(), ...over });
+    gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook(), ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */

@@ -100,6 +100,7 @@ By weapon, at strength 10, an opening swing (light / heavy; times in seconds):
 
 | Weapon | Heft | Damage | Wind-up | Stamina (light / heavy / stab) |
 |---|---|---|---|---|
+| Old stick | 1 | 5 / 10 | 0.35 / 0.7 | 10 / 16 / 12 |
 | Sword | 1 | 9 / 18 | 0.35 / 0.7 | 10 / 16 / 12 |
 | Longsword | 1.2 | 11 / 22 | 0.42 / 0.84 | 12 / 19.2 / 14.4 |
 | Greatsword | 1.6 | 16 / 32 | 0.56 / 1.12 | 16 / 25.6 / 19.2 |
@@ -312,18 +313,21 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 - Dealt = damage × the attacker's Empowered 1.2 × Cursed 0.85 (weapon, body and skill hits alike).
 - Taken = dealt × 50 / (40 + defense) for a weapon or body hit, × 50 / (40 + special defense) for a skill's (a burn
   too), × Warded 0.7, less what the Light shield absorbs, off HP (never below 0). Any damage stops HP regen for 5 s.
+- In a spar (Bram's training fights) HP never goes below a share of the most, `TRAINING_YIELD_SHARE` 0.1
+  (`server/src/core/game/training.ts`), and a fighter at it has yielded: 100 HP stops at 10. The training dummy takes
+  nothing and falls once a light, a heavy and a stab have each landed.
 - Siphoning heals the attacker 10% of what was taken. A player with the dev cheat on takes nothing.
 
 ## Enemies
 
 Each in `server/src/core/enemies/<id>.ts`.
 
-| | Wild Boar | Kobold Swordsman | Kobold Greatsword | Goblin Warlock |
-|---|---|---|---|---|
-| HP | 160 | 160 | 160 | 40 |
-| Poise, regen a second, stagger | 36, 8, 1 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s |
-| Walk | 3.2 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s |
-| Hits | bite 16, charge 30 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning |
+| | Wild Boar | Kobold Swordsman | Kobold Greatsword | Goblin Warlock | Bram (spars only) |
+|---|---|---|---|---|---|
+| HP | 160 | 160 | 160 | 40 | 60 |
+| Poise, regen a second, stagger | 36, 8, 1 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
+| Walk | 3.2 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
+| Hits | bite 16, charge 30 | light 14, heavy 28 | light 14, heavy 28 (1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -334,6 +338,9 @@ Each in `server/src/core/enemies/<id>.ts`.
   after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it perfect-blocks 30% of
   a player's swings (rolled as each starts) and answers at once with a chained swing. A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
+- **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, its first live 1.3 s after it
+  starts and the rest 0.6 s, 0.7 s to recover and 1.8 s more; first after 2 s; blocks from 0.35 s in walking up,
+  perfect-blocks 10% of swings, never parries, never feints.
 - **Goblin Warlock:** keeps 4-7 m away; pokes within 1.6 m (0.4 s wind-up, then 0.5 + 0.8 s before the next); casts
   within 14 m once its last cast's effects are gone and 1.2 s more have passed: Bolt Fire, adding Follow 1 time in 3 and
   Split 1 in 4, each rolled on its own.
@@ -377,5 +384,6 @@ Each in `server/src/core/enemies/<id>.ts`.
 - **Paying:** coins smallest first, as many of each as fit in what's left whole; if that's short, one more of the
   smallest coin that covers the rest, and the change in the fewest coins. 1g 30c for a 5c loaf: 5 copper, nothing
   back. 33c and 100s for a 3s 38c sword: 33 copper and 3 silver, then 1 more silver, 95c back.
-- **Selling:** the worth × `SELL_SHARE` 0.4, rounded down, each: boar meat 2c, a hide 10c, a tusk 16c.
+- **Selling:** the worth × `SELL_SHARE` 0.4, rounded down, each: the old stick 2c, boar meat 2c, a hide 10c, a tusk
+  16c.
 - **Changing coins:** 1 for 100 of the next smaller, or 100 for 1 of the next bigger, no fee.

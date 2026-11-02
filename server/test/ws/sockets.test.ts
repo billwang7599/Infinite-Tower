@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, newCore, skillCost, staminaMaxOf,
-  starterEquipment, type Modifier, type Skill, type StepInput,
+  type Modifier, type Skill, type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { parseClientMsg } from "@infinite-tower/shared/net/client-messages";
-import { PLAYER_STATS, withStarterKit } from "../../src/core/content/player.js";
+import { PLAYER_STATS } from "../../src/core/content/player.js";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import { newStory } from "../../src/core/game/story.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
@@ -15,17 +15,18 @@ import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/so
 import { MemoryPlayerStore } from "../fixtures/fakes.js";
 import { TEST_CHARACTER } from "../fixtures/level.js";
 import { FakeSocket } from "./fake-socket.js";
+import { armed } from "../fixtures/fight.js";
 
 before(() => initPhysics());
 
 const ACCOUNT: Account = { id: "account-1", username: "tester" };
 
-const SAVED: PlayerSave = withStarterKit({
+const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: START_LEVEL, shopsBought: [],
+  equipment: armed(), skillbook: blankSkillbook(), story: newStory(), level: START_LEVEL, shopsBought: [],
   core: newCore(),
-});
+};
 
 /** Lets a pending store load (and what follows it) finish. */
 const settle = () => new Promise(setImmediate);

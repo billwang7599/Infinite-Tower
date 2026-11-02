@@ -35,4 +35,9 @@ describe("battleResultLines", () => {
     assert.deepEqual(battleResultLines({ ...WIN, duel: "Bee" }), ["You won the duel against Bee."]);
     assert.deepEqual(battleResultLines({ ...LOSS, duel: "Bee" }), ["You lost the duel against Bee."]);
   });
+
+  test("a spar's win says nothing (the questbook does), and its loss only that you yielded", () => {
+    assert.deepEqual(battleResultLines({ ...WIN, spar: "Bram" }), []);
+    assert.deepEqual(battleResultLines({ ...LOSS, spar: "Bram" }), ["You yield to Bram."]);
+  });
 });

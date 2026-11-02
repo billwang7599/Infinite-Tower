@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, ITEMS, Player, starterEquipment, type Carried, type EnemyDef, type UseSpot, type Vec3,
+  emptyBag, FIXED_DT, Health, ITEMS, Player, type Carried, type EnemyDef, type UseSpot, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, bodyOf, enemy, FULL_HP, FULL_STAMINA, IDLE, input, player, run, STATUE, SWORDSMAN,
+  ARENA, BITER, bodyOf, enemy, FULL_HP, FULL_STAMINA, IDLE, input, player, run, STATUE, SWORDSMAN, armed,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -19,7 +19,7 @@ const EAT = input({ bag: true, use: MEAT_AT });
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const withMeat = (count = 2): Carried => ({
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count, x: 0, y: 0, turned: false }] },
-  equipment: starterEquipment(),
+  equipment: armed(),
 });
 
 function hungry(foe: EnemyDef = STATUE, foeAt = at(0, 6), hp = HURT_HP): Fight {

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, starterEquipment, WEAPONS, Wielder, type Bag, type Carried,
+  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, WEAPONS, Wielder, type Bag, type Carried,
   type GearMove, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
-import { ARENA, BITER, bodyOf, enemy, IDLE, input, player, run, segment, skill, STATS, STATUE } from "../fixtures.js";
+import {
+  ARENA, armed, BITER, bodyOf, enemy, IDLE, input, player, run, segment, skill, STATS, STATUE,
+} from "../fixtures.js";
 
 await initPhysics();
 
@@ -84,7 +86,7 @@ describe("the bag in a fight", () => {
       players: [player(at(0, -4), {
         stats: { ...STATS, strength },
         gear: { bag: { ...emptyBag(), items: [{ item: "greatsword", count: 1, x: 0, y: 0, turned: false }] },
-          equipment: { ...starterEquipment(), rightHand: null } },
+          equipment: { ...armed(), rightHand: null } },
       })],
     });
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
@@ -134,7 +136,7 @@ describe("the bag in a fight", () => {
 
   test("the fight starts with the gear the player brings", () => {
     const bag: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 1, y: 1, turned: false }] };
-    const gear = { bag, equipment: { ...starterEquipment(), rightHand: null } };
+    const gear = { bag, equipment: { ...armed(), rightHand: null } };
     const fight = alone(gear);
     assert.deepEqual(playerOf(fight).gear, gear);
     assert.equal(handsOf(fight).rightHand, null);
@@ -181,7 +183,7 @@ describe("the bag in a fight", () => {
   });
 
   test("without the book in hand, no page is written from the bag", () => {
-    const fight = alone({ bag: emptyBag(), equipment: { ...starterEquipment(), leftHand: null } });
+    const fight = alone({ bag: emptyBag(), equipment: { ...armed(), leftHand: null } });
     run(fight, 0.3);
     fight.step([BAG]);
     fight.step([input({ bag: true, write: { page: 1, skill: NOVA } })]);

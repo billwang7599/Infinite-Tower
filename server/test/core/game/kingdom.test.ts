@@ -7,7 +7,7 @@ import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { startSession, talkTo, tick } from "./helpers.js";
+import { offeredQuest, startSession, talkTo, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -47,14 +47,14 @@ describe("the kingdom", () => {
     assert.ok(KINGDOM.exits.some((e) => e.to === "grass-field"));
   });
 
-  test("a herald stands by the platform and greets a new avatar, offering nothing", () => {
+  test("a herald stands by the platform and greets a new avatar, sending them to the training yard", () => {
     const stop = stopFor(newStory(), NPCS.herald)!;
     assert.equal(stop.level, "kingdom");
     assert.ok(distXZ(stop.at, KINGDOM.spawn) <= HERALD_REACH_TILES);
     const { session, link } = startSession({ saved: { level: null } });
     const said = talkTo(session, link, "herald");
     assert.ok(said.lines.length > 1);
-    assert.equal(said.offer, null);
+    assert.equal(offeredQuest(said.offer), "bram-yard");
   });
 
   test("the food, potion and blacksmith keepers stand in town, each with a word and their shop", () => {

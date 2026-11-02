@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   blankSkillbook, releaseTime, emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, SkillObject, Skilled,
-  starterEquipment, type PlayerInputData, type Skill, type Vec3, type Word,
+  type PlayerInputData, type Skill, type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
-  ARENA, BITER, bodyOf, dumpState, enemy, IDLE, input, player, run, segment, skill, STATUE, SWORDSMAN,
+  ARENA, BITER, bodyOf, dumpState, enemy, IDLE, input, player, run, segment, skill, STATUE, SWORDSMAN, armed,
 } from "../fixtures.js";
 
 await initPhysics();
@@ -15,7 +15,7 @@ const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const BOLT_FIRE = skill(segment("bolt", ["fire"]));
 const NOVA_WATER = skill(segment("nova", ["water"]));
 const CHANT = input({ chant: true });
-const NO_BOOK = { ...starterEquipment(), leftHand: null };
+const NO_BOOK = { ...armed(), leftHand: null };
 
 function alone(book = blankSkillbook()): Fight {
   return new Fight({ arena: ARENA, players: [player(at(0, -4), { book })], enemies: [enemy(STATUE, at(0, 6))] });

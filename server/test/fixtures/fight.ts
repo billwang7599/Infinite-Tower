@@ -4,7 +4,7 @@
  * back for a number of server ticks.
  */
 import {
-  blankSkillbook, emptyBag, IDLE_INPUT, newCore, sameInput, starterEquipment, type EnemyDef,
+  blankSkillbook, emptyBag, emptyEquipment, IDLE_INPUT, newCore, sameInput, type EnemyDef, type Equipment,
   type PlayerInputData, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -15,6 +15,8 @@ import { fullVitals, PLAYER_STATS } from "../../src/core/content/player.js";
 import { ENEMIES } from "../../src/core/enemies/index.js";
 import { FakeLink } from "./fakes.js";
 
+export const armed = (): Equipment => ({ ...emptyEquipment(), rightHand: "sword", leftHand: "skillbook" });
+
 export const FULL = fullVitals(PLAYER_STATS);
 
 /** The wild boar, rooted to the spot and harmless. */
@@ -24,7 +26,7 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   return {
     arena: { id: "test", radius: 16, look: "forest-clearing" },
     players: [{ at: playerAt, vitals: { ...FULL }, stats: PLAYER_STATS, core: newCore(),
-      burden: "light", gear: { bag: emptyBag(), equipment: starterEquipment() }, book: blankSkillbook() }],
+      burden: "light", gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }

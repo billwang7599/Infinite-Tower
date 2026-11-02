@@ -72,8 +72,9 @@ export class BattleRoom {
     return { ...this.start, players: [...this.players] };
   }
 
-  get refusal(): "duel" | "full" | null {
+  get refusal(): "duel" | "spar" | "full" | null {
     if (this.fight.duel) return "duel";
+    if (this.fight.yieldAt > 0) return "spar";
     return this.decided || this.seats.filter((s) => !s.gone).length >= MAX_BATTLE_PLAYERS ? "full" : null;
   }
 

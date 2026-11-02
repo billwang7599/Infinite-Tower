@@ -4,7 +4,7 @@ import {
   addItem, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, type Character, type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
-import { newPlayer, withStarterKit } from "../../../src/core/content/player.js";
+import { newPlayer } from "../../../src/core/content/player.js";
 import { CHALLENGE_RANGE_TILES, CHALLENGE_TIME } from "../../../src/core/game/duels.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
@@ -22,7 +22,7 @@ const B_CHARACTER: Character = { ...TEST_CHARACTER, name: "Bee" };
 const C_CHARACTER: Character = { ...TEST_CHARACTER, name: "Sea" };
 const LEVEL = getLevel(START_LEVEL);
 const HURT = { hp: 40, stamina: 70 };
-const BAG = withStarterKit({ ...newPlayer(), bag: addItem(emptyBag(), "boar-meat", 3).bag }).bag;
+const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
 
 async function players() {
   const store = new MemoryPlayerStore();

@@ -4,11 +4,11 @@
  */
 import type { Entity, System, World } from "../../core/ecs.js";
 import type { Vec2, Vec3 } from "../../core/math.js";
-import type { Way } from "../../weapons/hybrid.js";
+import { STRIKES, type Strike, type Way } from "../../weapons/hybrid.js";
 import type { AttackKind, HitShape } from "../../weapons/weapons.js";
 import {
   ActiveHit, Body, Enemy, Fighter, Health, Player, Skilled, Statuses, WeaponAttack, Wielder,
-  type ActiveHitData, type PlayerData, type SkilledData, type StaminaData,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, stunTime } from "../stats.js";
@@ -76,7 +76,7 @@ export function combatSystem(events: FightEvent[]): System {
 
     for (const [attacker, hit, attackerBody, attackerFighter] of world.query(ActiveHit, Body, Fighter)) {
       for (const [target, targetHealth, targetBody, targetFighter] of world.query(Health, Body, Fighter)) {
-        if (targetFighter.side === attackerFighter.side || targetHealth.hp <= 0) continue;
+        if (targetFighter.side === attackerFighter.side || targetHealth.hp <= targetHealth.floor) continue;
         if (hit.alreadyHit.has(target)) continue;
         const player = world.get(target, Player);
         if (player?.action === "dodge"
@@ -142,6 +142,11 @@ function hitPlayer(
   events.push({ type: "hit", by: attacker, target, team: "player", damage: dealt, weapon: hit.attack !== null });
 }
 
+function strikeDummy(enemy: EnemyData, health: HealthData, strike: Strike): void {
+  if (!enemy.struck.includes(strike)) enemy.struck = [...enemy.struck, strike];
+  if (STRIKES.every((s) => enemy.struck.includes(s))) health.hp = 0;
+}
+
 export function breakOff(player: PlayerData, skilled: SkilledData): void {
   if (["chant", "write", "bag", "use"].includes(player.action)) player.brokenOff = true;
   player.action = "none";
@@ -152,6 +157,7 @@ export function breakOff(player: PlayerData, skilled: SkilledData): void {
 
 function hitEnemy(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
   const enemy = world.require(target, Enemy), health = world.require(target, Health);
+  if (enemy.def.dummy && hit.attack !== null) strikeDummy(enemy, health, hit.way === "stab" ? "stab" : hit.attack);
   const damage = hurt(world, target, hit.damage * damageDealtFactor(world, attacker), "physical");
   health.flash = HIT_FLASH_TIME;
   enemy.poise -= hit.poiseDamage;

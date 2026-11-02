@@ -156,6 +156,9 @@ export interface WeaponLook {
 const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
+  "old-stick": {
+    blade: { lengthM: lengthOf("old-stick"), widthM: 0.06, color: "#7a5a3a" }, twoHanded: false, hitStopMs: 50,
+  },
   sword: { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
   "kobold-blade": { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
   longsword: {

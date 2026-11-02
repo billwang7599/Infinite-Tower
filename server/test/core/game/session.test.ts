@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
   AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, REST_RANGE_TILES,
-  starterEquipment, useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
+  useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import { getLevel } from "../../../src/core/world/index.js";
 import { HOLLOW, near, regenOver, startSession, tick } from "./helpers.js";
+import { armed } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
@@ -257,7 +258,7 @@ describe("moveItem", () => {
     session.moveItem(bagSpot(0, 0), bagSpot(3, 2), false);
     session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(3, 2), false);
     assert.deepEqual(session.bag, start);
-    assert.deepEqual(session.gear.equipment, starterEquipment());
+    assert.deepEqual(session.gear.equipment, armed());
     assert.equal(link.all("gear").length, 0);
   });
 });
@@ -265,8 +266,8 @@ describe("moveItem", () => {
 describe("equipment", () => {
   test("a new player has the sword and the skillbook in hand, and the welcome says so", () => {
     const { session, link } = startSession();
-    assert.deepEqual(session.gear.equipment, starterEquipment());
-    assert.deepEqual(link.last("welcome")?.gear.equipment, starterEquipment());
+    assert.deepEqual(session.gear.equipment, armed());
+    assert.deepEqual(link.last("welcome")?.gear.equipment, armed());
   });
 
   test("taking the sword off puts it in the bag, and the save has it there", (t) => {
@@ -284,7 +285,7 @@ describe("equipment", () => {
     const need = WEAPONS.greatsword.minStrength;
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
       const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT } };
-      const equipment = { ...starterEquipment(), rightHand: null };
+      const equipment = { ...armed(), rightHand: null };
       const bag = { ...emptyBag(), items: [{ item: "greatsword" as const, count: 1, x: 0, y: 0, turned: false }] };
       const { session, link } = startSession({ saved: { core, equipment, bag } });
       assert.equal(session.stats.strength, strength);

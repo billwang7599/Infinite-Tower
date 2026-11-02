@@ -94,7 +94,9 @@ export interface EnemyAttacks {
   skill?: SkillAttackDef;
 }
 
-export const ENEMY_IDS = ["wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock"] as const;
+export const ENEMY_IDS = [
+  "wild-boar", "kobold-swordsman", "kobold-greatsword", "goblin-warlock", "training-dummy", "bram",
+] as const;
 export type EnemyId = (typeof ENEMY_IDS)[number];
 
 export interface EnemyDef {
@@ -116,4 +118,6 @@ export interface EnemyDef {
   sidestep?: SidestepDef;
   keepAway?: { nearM: number; farM: number };
   resist?: Partial<Record<SkillElement, number>>;
+  /** Takes no damage, and falls once it's been struck with every kind of strike. */
+  dummy?: boolean;
 }
