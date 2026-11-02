@@ -26,6 +26,7 @@ export const TILES = {
   foodStall: { char: "F", solid: true, tallGrass: false },
   potionStall: { char: "P", solid: true, tallGrass: false },
   forge: { char: "A", solid: true, tallGrass: false },
+  changerStall: { char: "C", solid: true, tallGrass: false },
 } as const satisfies Record<string, TileRule>;
 
 export type TileKind = keyof typeof TILES;

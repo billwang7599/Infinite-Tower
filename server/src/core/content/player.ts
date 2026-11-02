@@ -16,6 +16,7 @@ export const fullVitals = (stats: Stats): Vitals => ({ hp: maxHpOf(stats), stami
 export const newPlayer = (): PlayerSave => ({
   vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
   equipment: starterEquipment(), skillbook: blankSkillbook(), story: newStory(), level: null, core: newCore(),
+  shopsBought: [],
 });
 
 export function withStarterKit(save: PlayerSave): PlayerSave {

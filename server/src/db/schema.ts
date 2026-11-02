@@ -47,5 +47,6 @@ export const players = pgTable("players", {
   coreSteps: integer("core_steps").notNull().default(0),
   coreFill: integer("core_fill").notNull().default(0),
   statPoints: jsonb("stat_points").$type<StatPoints>().notNull().default({}),
+  shopsBought: text("shops_bought").array().notNull().default([]),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -4,9 +4,9 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type DayChange,
-  type DialogueOffer, type EnemyId, type ServerMsgOf, type ShownStat, type Skill, type Spot, type UseSpot,
-  type WeaponId,
+  bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type CoinId,
+  type DayChange, type DialogueOffer, type EnemyId, type ItemId, type ServerMsgOf, type ShownStat, type Skill,
+  type Spot, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -40,6 +40,9 @@ export interface Game {
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
+  buy(item: ItemId): void;
+  sell(at: UseSpot, count: number): void;
+  exchange(from: CoinId, to: CoinId): void;
   tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
@@ -116,8 +119,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   updateInput();
 
   const closeBag = () => {
-    const { gear, using } = ui.overworld.get();
-    if (gear.cloth.items.length === 0 && gear.pile.cols === 0 && !using) return;
+    const { gear, using } = ui.overworld.get(), shopOpen = ui.shop.get().view !== null;
+    if (gear.cloth.items.length === 0 && gear.pile.cols === 0 && !using && !shopOpen) return;
+    ui.shop.set({ view: null });
     if (gear.cloth.items.length > 0) say(ui.notifications, { kind: "leftOnCloth", items: bagCounts(gear.cloth) });
     overworld.setGear({ ...gear, cloth: { ...gear.cloth, items: [] }, pile: NO_PILE });
     net?.send({ t: "closeBag" });
@@ -208,7 +212,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
   const takeOffer = (offer: DialogueOffer) => {
     ui.closeDialogue();
-    net?.send(offer.kind === "quest" ? { t: "acceptQuest", quest: offer.quest } : { t: "deliver", quest: offer.quest });
+    if (offer.kind === "shop") net?.send({ t: "openShop" });
+    else if (offer.kind === "quest") net?.send({ t: "acceptQuest", quest: offer.quest });
+    else net?.send({ t: "deliver", quest: offer.quest });
   };
   const afterFight = () => mode === "battle" && !transition && battle.ctx.afterFightMs !== null;
 
@@ -259,6 +265,15 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       if (!moved) return;
       overworld.setGear(moved);
       net.send({ t: "moveItem", from, to, turned });
+    },
+    buy(item) {
+      if (mode === "overworld" && !transition) net?.send({ t: "buy", item });
+    },
+    sell(at, count) {
+      if (mode === "overworld" && !transition) net?.send({ t: "sell", at, count });
+    },
+    exchange(from, to) {
+      if (mode === "overworld" && !transition) net?.send({ t: "exchange", from, to });
     },
     tooWeak(item) {
       say(ui.notifications, { kind: "tooWeak", item });
@@ -318,6 +333,15 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         const { name, look } = NPC_LOOKS[npc];
         if (trace) ui.openDialogue(`${name}'s bedroll`, null, lines);
         else ui.openDialogue(name, look, lines, offer);
+      });
+      net.on("shop", ({ shop }) => {
+        ui.shop.set({ view: shop });
+        if (shop && ui.overworldPanel.get().open !== "inventory") ui.toggleOverworldPanel("inventory");
+      });
+      net.on("trade", (msg) => {
+        overworld.setGear(msg.gear);
+        ui.shop.set({ view: msg.shop });
+        say(ui.notifications, { kind: "trade", news: msg.news });
       });
       net.on("rested", (msg) => {
         overworld.setVitals(msg.vitals);
@@ -381,6 +405,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       ui.challenge.set({ from: null });
       ui.chat.set({ open: false, focused: false, lines: [] });
       ui.questbook.set({ open: false, quests: [] });
+      ui.shop.set({ view: null });
       ui.notifications.clear();
       ui.screen.set({ fadeOpacity: 0 });
       setMode(null);

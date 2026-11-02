@@ -120,6 +120,13 @@
       "when": 1793415245659,
       "tag": "0016_core",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793495104345,
+      "tag": "0017_shops-bought",
+      "breakpoints": true
     }
   ]
 }

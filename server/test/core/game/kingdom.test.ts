@@ -57,13 +57,13 @@ describe("the kingdom", () => {
     assert.equal(said.offer, null);
   });
 
-  test("the food, potion and blacksmith keepers stand in town, each with a word and nothing to offer yet", () => {
+  test("the food, potion and blacksmith keepers stand in town, each with a word and their shop", () => {
     const { session, link } = startSession({ saved: { level: null } });
     for (const npc of SHOPKEEPERS) {
       assert.equal(stopFor(newStory(), NPCS[npc])?.level, "kingdom", npc);
       const said = talkTo(session, link, npc);
       assert.ok(said.lines.length > 0, npc);
-      assert.equal(said.offer, null, npc);
+      assert.equal(said.offer?.kind, "shop", npc);
     }
   });
 });

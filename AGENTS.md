@@ -74,8 +74,17 @@ Decided by the user:
   greets and explains": the court herald, by the platform, says where you are and what an avatar is, names the
   controls only in what he says (no on-screen hints), and points you into town. Dying, anywhere, wakes you on the
   platform. Campfires are out in the wild only: the town has none. The town has three shops, food, potions and a
-  blacksmith; for now each is only a place with a keeper who says a line (money and shops come next). No enemies in
-  the kingdom.
+  blacksmith, each a keeper you trade with (money and shops, below). No enemies in the kingdom.
+- Money and shops (the user: coins are "stored in bags as items", "lost like the bag since its stored in bags as
+  items"; "gold silver and copper makes sense. less for the player to think about"; "coins dont repack automatically.
+  we should be doing this at a store/bank"): money comes from selling loot to shops and from quest rewards; monsters
+  drop no coins, and players start with none. Three coins, gold, silver and copper, 100 of one making one of the next,
+  carried in the bag as items, so lost on death as the rest is. Coins never repack by themselves: they're changed at
+  any shop and at a money changer, both ways. Shops take any coins and give change in the fewest coins; what doesn't
+  fit in the bag lands on the cloth, where the player may leave it. The cloth is much bigger (the user: "it's
+  technically an infinite area... what if we need to rearrange a big item like a greatsword"). Three shops for now:
+  food, potions ("make up some effects") and a blacksmith. Prices go by place (the capital, full of new avatars, is
+  pricier), and a player's first purchase at each shop is cheaper; prices by how an NPC likes you come later.
 - HP and stamina carry over between fights and are **not** reset on a new connection. They're saved through a
   server-side `PlayerStore` (Postgres now); game code only sees the interface, so the store stays swappable.
 - Postgres is the only database (no separate NoSQL store). In dev it runs in Docker (`compose.yaml`).
@@ -259,7 +268,7 @@ Decided by the user:
   This is temporary, so the user and friends can play around. In the real game dying loses everything on you: the
   avatar disintegrates and leaves it all behind, for anyone to pick up for a while, as death drops are (plan/lore.md).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
-  sword and the skillbook, and each monster's essence.
+  swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, and the three coins.
 - Eating takes time, the same everywhere (the user: "change it to delay everywhere. whatever we have in the
   overworld should mimic battle. and vice versa", "we should be able to interact with anything in our bag even during
   battle"): boar meat eaten from the bag screen takes about 1 s (its `useTime` in `ITEMS`) on the overworld, in a
@@ -268,8 +277,9 @@ Decided by the user:
 - An item is its components (the user: "each item is an entity, and the entity has things attached like consumable.
   if its consumable, it holds the data of how long. and what the effect is"): `consumable { verb, useTime, effects }`
   and `wearable { on, verb? }` in `ITEMS`, as data (the bag stays counts per cell). Anything consumable is used
-  through one shared rule (`shared/src/items/using.ts`) on the overworld and in a fight. Healing is the only effect
-  so far; new effects (damage, strength, a duration...) are game mechanics to ask about first.
+  through one shared rule (`shared/src/items/using.ts`) on the overworld and in a fight. Healing and refilling
+  stamina (the tonic) are the only effects so far; new effects (damage, strength, a duration...) are game mechanics
+  to ask about first.
 - The bag screen is worked with the mouse, with no keyboard movement. An item is hovered (a light highlight; at
   rest about 600 ms, a tooltip with its name, size, weight and what it does), selected (a click; the same item or
   empty space deselects) or dragged (past a few pixels: a ghost under the pointer, green where it fits and red
@@ -598,9 +608,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   the other swaps them; from a grid, only into an empty slot that takes it. No sword in hand means no attacks and no
   block (you block with the blade); no skillbook, no quick-casting or writing pages. Head, body, legs and boots stay
   empty (no armour yet). Saves from before equipment get the starting sword and skillbook in hand.
-- The cloth is 4 x 4, overworld only, and laid on the ground, so what's on it weighs nothing. It lives on the
-  server, which drops what's on it when the bag closes, when you walk (the bag must be shut), when a fight starts
-  and on disconnect; it's never saved. Things on it can be eaten from there.
+- The cloth is 8 x 6 (it was 4 x 4; `CLOTH` in `shared/src/items/gear.ts`), overworld only, and laid on the ground, so
+  what's on it weighs nothing. It lives on the server, which drops what's on it when the bag closes, when you walk (the
+  bag must be shut), when a fight starts and on disconnect; it's never saved. Things on it can be eaten from there.
 - The bag in a fight: B opens the bag screen in the arena too, without the cloth; the fight goes on, it holds you
   still while the bag is open (stamina still recovers), and B or Esc close it. Things move between the bag and the
   equipment slots, and within the bag, at once, as the shared fight's inputs (`bag` held, `gear` pressed), so the
@@ -670,6 +680,28 @@ them; treat them as changeable, and still ask before deciding new ones):
   (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the map are drawn
   only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns see-through, so
   the hall reads with the camera turned. Music: the title's track for now.
+- Money and shops (kingdom PR 2; the user: "use your best discretion"; tried in a headless browser, not hand-played).
+  Numbers in `server/src/core/content/shops.ts` and `shared/src/items/coins.ts`, the formulas in FORMULAS.md:
+  - Coins are 1 x 1, stacks of 100, weight 0.01 each (gold 0.02).
+  - What things are worth, in copper: boar meat 6, hide 25, tusk 40, bread 4, health potion 60, stamina tonic 40,
+    sword 300, longsword 900, greatsword 1500. A shop sells at worth × the level's price factor (Highmere 1.5, else 1),
+    and buys at 40% of worth, rounded down, whatever the place. The first purchase at each shop is 25% off, that one
+    item, once per player per shop, saved with the player (`shops_bought`).
+  - Bette's food stall sells bread and boar meat and buys both; Mirela's potion stall sells the two potions and buys
+    nothing; Garrick's forge sells the three swords and buys hides, tusks and swords. No shop buys a starter-kit item
+    while the kit exists: it comes back on every load, so selling it would be free money.
+  - New items: bread (heals 20% of the most HP, 20 at the start; stacks of 5, weight 0.3), the health potion (50%) and
+    the stamina tonic (stamina to full, at full HP too), drunk in 1 s, stacks of 5, weight 0.4.
+  - A money changer, Osric, with a stall on the market's west side across from the forge, changes coins and sells
+    nothing. Changing is one tier at a time: 1 coin for 100 of the next smaller or 100 for 1 of the next bigger, no
+    fee, a click each.
+  - Paying takes the smallest coins first, as many as go into the price whole, then the smallest coin that covers
+    the rest; coins on the cloth go before the bag's. A purchase or a sale whose items and change can't all fit in the
+    bag and on the cloth doesn't happen, and says so.
+  - The shop opens from the keeper's talk (Trade, or going on past the last line), in the bag screen where the
+    equipment shows otherwise; selecting something in the bag or on the cloth that the shop buys shows Sell (one) and,
+    for a stack, Sell all. It closes with the bag, on walking, when a fight starts and on leaving the level. A trade is
+    saved within a second, like a move in the bag.
 - The starting area (the user: "go make more content… you can also add more quests and create a proper starting
   area… make any assumptions you want"): the Waking Hollow, a small floor-1 level in the Grass Field's look and music.
   A summoning pad where new characters wake, ringed by four standing stones; a camp by an old waystation with a

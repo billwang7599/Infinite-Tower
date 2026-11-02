@@ -31,6 +31,14 @@ const RAMPS = {
   spark: ["#201a08", "#4a3c12", "#8a7020", "#c9a93a", "#ecd36f", "#fff4c2"],
   smoulder: ["#1f0606", "#470f0b", "#7a1d12", "#b0371c", "#da6a35", "#f7b27a"],
   wisp: ["#140a24", "#2e1a52", "#4f3283", "#7a58b5", "#a989dc", "#e2d4fb"],
+  crust: ["#2e1a0c", "#5a3416", "#8a5523", "#b57a34", "#d69f57", "#f0cf92"],
+  copper: ["#2a1208", "#542611", "#86401d", "#b4602e", "#d58a52", "#f2bb8a"],
+  silver: ["#24272c", "#4a4f57", "#777e88", "#a5acb5", "#ccd2d9", "#f4f7fa"],
+  gold: ["#2e2006", "#5e430c", "#967018", "#c99e2a", "#e8c654", "#fff1a8"],
+  glass: ["#1d2428", "#3a464d", "#62737c", "#8fa2ab", "#bfd0d6", "#eef6f8"],
+  cork: ["#24170d", "#3f2a18", "#5d4027", "#7a5837", "#987452", "#b99a78"],
+  blood: ["#22060a", "#4a0d14", "#7a1520", "#a8222c", "#d04a4a", "#f08c80"],
+  moss: ["#0d1f0c", "#1d3d18", "#2f6126", "#4a8a37", "#74b356", "#b4e08a"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -197,11 +205,44 @@ const essence = (material: Material) => (px: Pixels): void => {
   pen.fill(ellipse(6.6, 7, 1.3, 1.3), ink(material, SHINE));
 };
 
+function bread(px: Pixels): void {
+  const pen = new Pen(px, 0), loaf = ellipse(8, 9, 6.6, 5);
+  pen.fill(loaf, ink("crust", BASE));
+  pen.shade(litEdge(loaf, 2), LIGHT);
+  pen.shade(darkEdge(loaf, 2), SHADOW);
+  for (const x of [4.5, 8, 11.5]) pen.shade(both(loaf, bar([x - 1, 6.5], [x + 1, 10.5], 0.6)), DEEP);
+  pen.shade(both(loaf, ellipse(6, 7, 1.6, 1)), SHINE);
+}
+
+const bottle = (liquid: Material) => (px: Pixels): void => {
+  const glass = new Pen(px, 0), body = union(ellipse(8, 10.5, 4.6, 4.4), rect(6, 3, 9, 7));
+  glass.fill(body, ink("glass", LIGHT));
+  const fill = both(ellipse(8, 10.5, 3.6, 3.4), (_x, y) => y >= 8);
+  glass.fill(fill, ink(liquid, BASE));
+  glass.shade(darkEdge(fill, 1), SHADOW, liquid);
+  glass.fill(rect(9, 9, 9, 10), ink("glass", SHINE));
+  const cork = new Pen(px, 1);
+  cork.fill(rect(6, 1, 9, 3), ink("cork", BASE));
+  cork.shade(rect(6, 1, 9, 1), LIGHT);
+};
+
+const coin = (metal: Material) => (px: Pixels): void => {
+  const pen = new Pen(px, 0), face = ellipse(8, 8.5, 5, 5);
+  pen.fill(face, ink(metal, BASE));
+  pen.shade(litEdge(face, 1), LIGHT);
+  pen.shade(darkEdge(face, 1), SHADOW);
+  const stamp = ellipse(8, 8.5, 2.6, 2.6);
+  pen.shade(minus(stamp, ellipse(8, 8.5, 1.6, 1.6)), DEEP);
+  pen.shade(ellipse(6, 6.4, 1, 1), SHINE);
+};
+
 const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, sword, "kobold-blade": sword, longsword, greatsword,
   "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
-  "goblin-warlock-essence": essence("wisp"),
+  "goblin-warlock-essence": essence("wisp"), bread, "health-potion": bottle("blood"),
+  "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),
+  "gold-coin": coin("gold"),
 };
 
 const drawn = new Map<ItemId, Picture>();

@@ -96,7 +96,7 @@ describe("moveGear", () => {
   test("not where it doesn't fit, nor from an empty cell", () => {
     const g = gear({ bag: bag(stack("boar-tusk", 0, 0)), cloth: cloth(stack("boar-hide", 0, 0)) });
     assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: 1, y: 1 }, false), null);
-    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: 3, y: 3 }, false), null);
+    assert.equal(moveGear(g, { in: "bag", x: 0, y: 0 }, { in: "cloth", x: CLOTH.cols - 1, y: CLOTH.rows - 1 }, false), null);
     assert.equal(moveGear(g, { in: "bag", x: 3, y: 3 }, { in: "cloth", x: 3, y: 0 }, false), null);
   });
 

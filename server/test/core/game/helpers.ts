@@ -1,7 +1,8 @@
 /** Builders for the game tests: a started session with fakes around it, and the overworld's boar. */
 import assert from "node:assert/strict";
 import {
-  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag, type EnemyId,
+  addItem, distXZ, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag, type DialogueOffer,
+  type EnemyId,
   type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
 import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
@@ -91,6 +92,9 @@ export function winFight(session: GameSession, enemy: EnemyId): void {
   assert.ok(session.battle!.over, "won");
   session.leaveBattle();
 }
+
+export const offeredQuest = (offer: DialogueOffer | null): string | undefined =>
+  offer && "quest" in offer ? offer.quest : undefined;
 
 export function bagWith(items: ItemCounts): Bag {
   let bag = emptyBag();

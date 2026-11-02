@@ -22,7 +22,7 @@ describe("player content", () => {
     assert.deepEqual(newPlayer(), {
       vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
       equipment: starterEquipment(), skillbook: [null, null, null, null], story: { quests: {}, flags: [] }, level: null,
-      core: newCore(),
+      core: newCore(), shopsBought: [],
     });
   });
 

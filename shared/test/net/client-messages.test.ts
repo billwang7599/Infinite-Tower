@@ -60,6 +60,10 @@ describe("parseClientMsg", () => {
       { t: "statPoint", stat: "specialDefense", add: true },
       { t: "ping", id: 0 },
       { t: "chat", text: "hello there" },
+      { t: "openShop" },
+      { t: "buy", item: "bread" },
+      { t: "sell", at: { in: "cloth", x: 1, y: 2 }, count: 3 },
+      { t: "exchange", from: "gold-coin", to: "silver-coin" },
     ];
     for (const msg of messages) assert.deepEqual(parse(msg), msg, JSON.stringify(msg));
   });
@@ -270,6 +274,14 @@ describe("parseClientMsg", () => {
     for (const id of [-1, 1.5, "3", null, undefined, Number.MAX_SAFE_INTEGER + 2]) {
       assert.equal(parse({ t: "ping", id }), null, `id ${id}`);
     }
+  });
+
+  test("trades: a real item, a whole count of at least one, from the bag or the cloth, between real coins", () => {
+    assert.equal(parse({ t: "buy", item: "gold-bar" }), null);
+    assert.equal(parse({ t: "sell", at: { in: "bag", x: 0, y: 0 }, count: 0 }), null);
+    assert.equal(parse({ t: "sell", at: { in: "bag", x: 0, y: 0 }, count: 1.5 }), null);
+    assert.equal(parse({ t: "sell", at: { in: "pile", x: 0, y: 0 }, count: 1 }), null);
+    assert.equal(parse({ t: "exchange", from: "gold-coin", to: "boar-meat" }), null);
   });
 
   test("useItem and moveItem: cells are whole, non-negative numbers in the bag or the cloth, slots are named", () => {

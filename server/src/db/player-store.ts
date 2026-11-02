@@ -4,6 +4,7 @@ import {
 } from "@infinite-tower/shared";
 import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
 import { eq, sql } from "drizzle-orm";
+import { SHOPS, type ShopId } from "../core/content/shops.js";
 import { keptStory } from "../core/game/story.js";
 import type { PlayerId, PlayerSave, PlayerStore } from "../core/ports.js";
 import type { Db } from "./db.js";
@@ -51,7 +52,7 @@ const toRow = (data: PlayerSave): PlayerRow => ({
   hp: data.vitals.hp, stamina: data.vitals.stamina, wins: data.wins, settings: data.settings,
   character: data.character, bag: data.bag, equipment: data.equipment, knownWords: data.knownWords,
   skillbook: data.skillbook, story: data.story, level: data.level, coreSteps: data.core.steps,
-  coreFill: data.core.fill, statPoints: data.core.points,
+  coreFill: data.core.fill, statPoints: data.core.points, shopsBought: data.shopsBought,
 });
 
 function fromRow(row: typeof players.$inferSelect): PlayerSave {
@@ -61,6 +62,7 @@ function fromRow(row: typeof players.$inferSelect): PlayerSave {
     character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
     skillbook: readable(row.skillbook, new Set(knownWords)), story: keptStory(row.story), level: row.level,
     core: keptCore({ steps: row.coreSteps, fill: row.coreFill, points: row.statPoints }),
+    shopsBought: row.shopsBought.filter((shop): shop is ShopId => Object.hasOwn(SHOPS, shop)),
   };
 }
 

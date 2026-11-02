@@ -9,9 +9,11 @@ export const GROCER: Npc = {
       talk: [
         {
           lines: [
-            "Bread, smoked boar, apples from the castle orchard. Not today, mind: the cart's still on the road.",
-            "Come back when I've stock to sell, avatar.",
+            "Bread from the castle ovens, boar off the hunters' carts. Highmere prices, mind: the door keeps sending "
+              + "you lot, and you all have to eat.",
+            "I'll buy meat too, if you bring it fresh.",
           ],
+          offer: { shop: "grocer" },
         },
       ],
     },

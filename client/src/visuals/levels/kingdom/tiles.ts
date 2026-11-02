@@ -67,10 +67,11 @@ export const KINGDOM_TILES: TileLooks = {
   foodStall: { ground: cobbles, props: { kinds: ["foodStall"], count: 1, scale: 1 } },
   potionStall: { ground: cobbles, props: { kinds: ["potionStall"], count: 1, scale: 1 } },
   forge: { ground: cobbles, props: { kinds: ["forge"], count: 1, scale: 1 } },
+  changerStall: { ground: cobbles, props: { kinds: ["changerStall"], count: 1, scale: 1 } },
 };
 
 export const TOWN_TILES = {
   marble: KINGDOM_TILES.marble, carpet: KINGDOM_TILES.carpet, cobbles: KINGDOM_TILES.cobbles,
   castleWall: KINGDOM_TILES.castleWall, house: KINGDOM_TILES.house, foodStall: KINGDOM_TILES.foodStall,
-  potionStall: KINGDOM_TILES.potionStall, forge: KINGDOM_TILES.forge,
+  potionStall: KINGDOM_TILES.potionStall, forge: KINGDOM_TILES.forge, changerStall: KINGDOM_TILES.changerStall,
 } satisfies Partial<TileLooks>;

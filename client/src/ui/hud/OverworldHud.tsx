@@ -1,4 +1,7 @@
-import { coreStats, type ShownStat, type Skill, type Spot, type UseSpot, type WeaponId } from "@infinite-tower/shared";
+import {
+  coreStats, type CoinId, type ItemId, type ShopView, type ShownStat, type Skill, type Spot, type UseSpot,
+  type WeaponId,
+} from "@infinite-tower/shared";
 import { useMemo, type ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
@@ -42,6 +45,10 @@ interface OverworldHudProps extends HudProps {
   answerChallenge: (accept: boolean) => void;
   toggleQuestbook: () => void;
   statPoint: (stat: ShownStat, add: boolean) => void;
+  shop: Store<{ view: ShopView | null }>;
+  buy: (item: ItemId) => void;
+  sell: (at: UseSpot, count: number) => void;
+  exchange: (from: CoinId, to: CoinId) => void;
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -55,6 +62,7 @@ export function OverworldHud(props: OverworldHudProps) {
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const using = useStore(hud, (s) => s.using);
   const interaction = useStore(hud, (s) => s.interaction);
+  const shop = useStore(props.shop, (s) => s.view);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
@@ -92,7 +100,7 @@ export function OverworldHud(props: OverworldHudProps) {
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
           use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
-          close={close}
+          close={close} trade={shop && { shop, buy: props.buy, sell: props.sell, exchange: props.exchange }}
         />
       )}
       {panel === "inventory" && bookOpen && (

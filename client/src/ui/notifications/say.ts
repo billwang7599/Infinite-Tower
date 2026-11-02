@@ -3,8 +3,8 @@
  * shows and in what words. Small things are corner notices; the centre banner is only for big events.
  */
 import {
-  coreName, itemDef, MAX_CHAT_CHARS, WEAPONS, type ChallengeNews, type CoreState, type EnemyDef, type ItemCounts,
-  type ItemId, type QuestNews, type ServerMsgOf, type WeaponId,
+  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, WEAPONS, type ChallengeNews, type CoinId,
+  type CoreState, type EnemyDef, type ItemCounts, type ItemId, type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
 } from "@infinite-tower/shared";
 import { battleResultLines, describeItems, type BattleOutcome } from "./battleResult.js";
 import type { Notifications } from "./state.js";
@@ -26,7 +26,8 @@ export type GameEvent =
   | { kind: "chatRefused"; reason: ServerMsgOf<"chatRefused">["reason"] }
   | { kind: "battleResult"; outcome: BattleOutcome }
   | { kind: "quest"; news: QuestNews }
-  | { kind: "breakthrough"; core: CoreState };
+  | { kind: "breakthrough"; core: CoreState }
+  | { kind: "trade"; news: TradeNews };
 
 type EventKind = GameEvent["kind"];
 type EventOf<K extends EventKind> = Extract<GameEvent, { kind: K }>;
@@ -56,6 +57,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
   quest:        { where: "corner", lines: ({ news }) => questLines(news) },
   breakthrough: { where: "corner", lines: ({ core }) => [`Your core breaks through: ${coreName(core)}.`] },
+  trade:        { where: "corner", lines: ({ news }) => tradeLines(news) },
 };
 
 /** Tells the player about `event` in its place: each line is a notice, or the banner (a new one replaces it). */
@@ -110,6 +112,28 @@ function givenLines({ item, count, left }: EventOf<"given">): string[] {
   const lines = count > 0 ? [`You get ${describeItems({ [item]: count })}.`] : [];
   if (left > 0) lines.push(`The bag is full: ${describeItems({ [item]: left })} didn't fit.`);
   return lines;
+}
+
+const TRADE_REFUSED: Record<Extract<TradeNews, { kind: "refused" }>["reason"], string> = {
+  tooPoor: "You can't afford that.",
+  noRoom: "There's no room for it in the bag or on the cloth.",
+  notSold: "That isn't sold here.",
+  notBought: "They don't buy that here.",
+  noCoins: "You don't have the coins to change.",
+};
+
+function tradeLines(news: TradeNews): string[] {
+  if (news.kind === "refused") return [TRADE_REFUSED[news.reason]];
+  const onCloth = news.onCloth ? ["Not all of it fits in the bag: the rest is on the cloth."] : [];
+  if (news.kind === "bought") {
+    return [`You buy ${describeItems({ [news.item]: 1 })} for ${formatPrice(news.price)}.`, ...onCloth];
+  }
+  if (news.kind === "sold") {
+    return [`You sell ${describeItems({ [news.item]: news.count })} for ${formatPrice(news.price)}.`, ...onCloth];
+  }
+  const { give, get } = exchangeRate(news.from, news.to) ?? { give: 0, get: 0 };
+  const metal = (coin: CoinId) => itemDef(coin).name.split(" ")[0]!.toLowerCase();
+  return [`You change ${give} ${metal(news.from)} for ${get} ${metal(news.to)}.`, ...onCloth];
 }
 
 function questLines(news: QuestNews): string[] {

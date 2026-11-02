@@ -11,7 +11,7 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { dialogueOf, stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { bagWith, pileAt, startSession, tick, winFight } from "./helpers.js";
+import { bagWith, offeredQuest, pileAt, startSession, tick, winFight } from "./helpers.js";
 
 before(() => initPhysics());
 
@@ -123,7 +123,7 @@ describe("Hollis's quests", () => {
     }]);
     assert.deepEqual(saves.at(-1)!.bag, session.bag);
     session.talk();
-    assert.equal(link.last("dialogue").offer?.quest, SECOND, "the next quest is offered");
+    assert.equal(offeredQuest(link.last("dialogue").offer), SECOND, "the next quest is offered");
   });
 
   test("a reward that doesn't fit is left in a pile at your feet", () => {

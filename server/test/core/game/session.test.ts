@@ -148,6 +148,15 @@ describe("eating (useItem)", () => {
     assert.deepEqual(session.bag, emptyBag());
   });
 
+  test("a stamina tonic refills stamina, at full HP too", () => {
+    const saved = { vitals: { hp: FULL.hp, stamina: 20 }, bag: bagOf(["stamina-tonic", 1, 2, 1]) };
+    const { session } = startSession({ saved });
+    session.useItem(MEAT_CELL);
+    tick(session, useSteps("stamina-tonic"));
+    assert.equal(session.vitals.stamina, FULL.stamina);
+    assert.deepEqual(session.bag, emptyBag());
+  });
+
   test("doesn't start at full HP", () => {
     const { session, link, saves } = startSession({ saved: { bag: bagOf(["boar-meat", 1, 2, 1]) } });
     session.useItem(MEAT_CELL);

@@ -2,7 +2,7 @@
 
 export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
 
-export type ItemEffect = { healShare: number } | { essence: number };
+export type ItemEffect = { healShare: number } | { staminaShare: number } | { essence: number };
 
 export interface Consumable {
   verb: string;
@@ -30,6 +30,14 @@ export interface ItemDef {
 
 const ABSORB_TIME = 2;
 
+const coin = (name: string, description: string, weight: number) =>
+  ({ name, description, cols: 1, rows: 1, stackSize: 100, weight });
+
+const drink = <const Effect extends ItemEffect>(name: string, description: string, effect: Effect) => ({
+  name, description, cols: 1, rows: 1, stackSize: 5, weight: 0.4,
+  consumable: { verb: "Drink", useTime: 1, effects: [effect] as const },
+});
+
 const essence = <const Worth extends number>(name: string, description: string, worth: Worth) => ({
   name, description, cols: 1, rows: 1, stackSize: 10, weight: 0.1,
   consumable: { verb: "Absorb", useTime: ABSORB_TIME, effects: [{ essence: worth }] as const },
@@ -40,6 +48,15 @@ export const ITEMS = {
     name: "Boar meat", description: "Tough, but filling.", cols: 1, rows: 1, stackSize: 5, weight: 0.5,
     consumable: { verb: "Eat", useTime: 1, effects: [{ healShare: 0.35 }] },
   },
+  bread: {
+    name: "Bread", description: "A round loaf from a Highmere oven.", cols: 1, rows: 1, stackSize: 5, weight: 0.3,
+    consumable: { verb: "Eat", useTime: 1, effects: [{ healShare: 0.2 }] },
+  },
+  "health-potion": drink("Health potion", "Red, thick and bitter.", { healShare: 0.5 }),
+  "stamina-tonic": drink("Stamina tonic", "Green, and it fizzes.", { staminaShare: 1 }),
+  "copper-coin": coin("Copper coin", "A hundred make a silver.", 0.01),
+  "silver-coin": coin("Silver coin", "A hundred make a gold.", 0.01),
+  "gold-coin": coin("Gold coin", "Stamped with Highmere's castle.", 0.02),
   "boar-essence": essence("Boar essence", "A warm ember of a boar's soul.", 20),
   "kobold-swordsman-essence": essence("Kobold swordsman essence", "A quick, sharp spark of a kobold's soul.", 40),
   "kobold-greatsword-essence": essence(

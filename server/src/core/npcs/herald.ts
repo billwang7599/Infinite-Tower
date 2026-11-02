@@ -24,8 +24,8 @@ export const HERALD: Npc = {
             "Out in the wild you'll fight. Your blade answers the left and right mouse buttons, a flick of the hand "
               + "sets which way it swings, {battle.block} raises your guard and {battle.dodge} throws you clear.",
             "Fall out there and you'll wake again on this very stone. Most of what you carried stays where you fell.",
-            "Down the carpet and out through the courtyard. Past the castle gate is the market: food, potions and the "
-              + "smithy. The town gate beyond it leads out to the Grass Field.",
+            "Down the carpet and out through the courtyard. Past the castle gate is the market: food, potions, the "
+              + "smithy and a money changer. The town gate beyond it leads out to the Grass Field.",
           ],
         },
       ],

@@ -9,9 +9,9 @@ export const APOTHECARY: Npc = {
       talk: [
         {
           lines: [
-            "Tinctures, salves, little bottles that do what the label says. Mostly.",
-            "The shelves stay bare until the next caravan comes in. Come back then.",
+            "Tinctures and tonics: red for wounds, green for tired legs. They do what the label says. Mostly.",
           ],
+          offer: { shop: "apothecary" },
         },
       ],
     },

@@ -18,6 +18,7 @@ export interface ItemInfo {
 
 export const effectsText = (effects: readonly ItemEffect[]): string => effects
   .map((effect) => ("healShare" in effect ? `Heals ${Math.round(effect.healShare * 100)}% of your HP.`
+    : "staminaShare" in effect ? `Refills ${Math.round(effect.staminaShare * 100)}% of your stamina.`
     : "Absorbed into your core."))
   .join(" ");
 

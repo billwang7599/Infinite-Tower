@@ -1,6 +1,6 @@
 import {
-  addItem, bagCounts, inRect, type Bag, type EnemyId, type ItemCounts, type ItemId, type QuestNews, type QuestView,
-  type Tally, type Vec2,
+  addItem, bagCounts, inRect, takeItems, type Bag, type EnemyId, type ItemCounts, type ItemId, type QuestNews,
+  type QuestView, type Tally, type Vec2,
 } from "@infinite-tower/shared";
 import { LORE } from "../content/lore.js";
 import { QUESTS, type Quests, type QuestStep, type Task } from "../content/quests.js";
@@ -96,18 +96,6 @@ function advance(out: Unfolding, id: string, quests: Quests): boolean {
     lore: lore.map((l) => LORE[l].title),
   });
   return true;
-}
-
-function takeItems(bag: Bag, item: ItemId, count: number): Bag | null {
-  if ((bagCounts(bag)[item] ?? 0) < count) return null;
-  let left = count;
-  const items = bag.items.map((s) => {
-    if (s.item !== item || left === 0) return s;
-    const taken = Math.min(s.count, left);
-    left -= taken;
-    return { ...s, count: s.count - taken };
-  });
-  return { ...bag, items: items.filter((s) => s.count > 0) };
 }
 
 /** A fight's kills count only toward the step it began on. */

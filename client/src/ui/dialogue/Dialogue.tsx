@@ -11,6 +11,8 @@ import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { withKeys } from "./keys.js";
 
+const OFFER_BUTTON: Record<DialogueOffer["kind"], string> = { quest: "Accept", deliver: "Hand over", shop: "Trade" };
+
 interface DialogueProps {
   dialogue: Store<DialogueState>;
   input: Actions;
@@ -56,10 +58,11 @@ export function Dialogue({ dialogue, input, bindings, next, take, close }: Dialo
           <span className="mr-auto text-sm text-white/75">
             {offer.kind === "quest"
               ? <><span className="font-semibold text-victory">{offer.title}</span>: {offer.step}</>
+              : offer.kind === "shop" ? <span className="font-semibold text-victory">{offer.name}</span>
               : `Hand over ${describeItems({ [offer.item]: offer.count })}?`}
           </span>
           <button type="button" id="dialogue-take" {...NO_FOCUS} className={BUTTON.primary} onClick={() => take(offer)}>
-            {offer.kind === "quest" ? "Accept" : "Hand over"}
+            {OFFER_BUTTON[offer.kind]}
           </button>
           <button type="button" id="dialogue-decline" {...NO_FOCUS} className={BUTTON.plain} onClick={close}>
             Not now

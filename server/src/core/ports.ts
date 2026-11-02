@@ -2,6 +2,7 @@
 import type {
   Bag, Character, CoreState, Equipment, SavedSettings, ServerMsg, Skillbook, Vitals, Word,
 } from "@infinite-tower/shared";
+import type { ShopId } from "./content/shops.js";
 import type { Story } from "./game/story.js";
 
 /** The account's id. */
@@ -28,6 +29,7 @@ export interface PlayerSave {
   /** The level they were last on (null: never in one); one that's gone from the game is the start level. */
   level: string | null;
   core: CoreState;
+  shopsBought: ShopId[];
 }
 
 export interface PlayerStore {

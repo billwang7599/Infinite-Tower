@@ -129,6 +129,7 @@ export const EVENT_SOUNDS: { readonly [K in GameEvent["kind"]]?: SoundName } = {
   itemUsed: "eat",
   given: "pickup",
   leftOnCloth: "drop",
+  trade: "pickup",
 };
 
 export const bagSound = (from: Spot, to: Spot): SoundName =>

@@ -17,6 +17,7 @@ export * from "./items/bag.js";
 export * from "./items/gear.js";
 export * from "./items/burden.js";
 export * from "./items/using.js";
+export * from "./items/coins.js";
 export * from "./skills/skill.js";
 export * from "./skills/effects.js";
 export * from "./weapons/weapons.js";

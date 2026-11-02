@@ -4,8 +4,9 @@
  * to the server (in a fight, as the fight's inputs), which has the last word on all of it.
  */
 import {
-  carryLimit, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type Cell, type Gear, type GearMove,
-  type GridName, type GridSpot, type Slot, type Spot, type Stats, type UseSpot, type WeaponId,
+  carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type Cell, type CoinId,
+  type Gear, type GearMove, type GridName, type GridSpot, type ItemId, type ShopView, type Slot, type Spot, type Stats,
+  type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
@@ -23,6 +24,7 @@ import {
   rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Pointer,
 } from "./bagMouse.js";
 import { EquipmentSlots } from "./EquipmentSlots.js";
+import { ShopColumn } from "./ShopColumn.js";
 import { CELL, INVENTORY_GAP_PX } from "./grid.js";
 import { effectsText, formatWeight, itemInfo } from "./itemInfo.js";
 
@@ -38,6 +40,14 @@ interface PanelProps {
   tooWeak: (item: WeaponId) => void;
   openSkillbook: () => void;
   close: () => void;
+  trade?: Trading | null;
+}
+
+export interface Trading {
+  shop: ShopView;
+  buy: (item: ItemId) => void;
+  sell: (at: UseSpot, count: number) => void;
+  exchange: (from: CoinId, to: CoinId) => void;
 }
 
 /** The mouse, and where in its grip cell the dragged item is held (pixels), so its ghost doesn't jump. */
@@ -55,7 +65,7 @@ const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
-  const { gear, stats, canHeal, using, input, settingsScreen, use, move, tooWeak, openSkillbook, close } = props;
+  const { gear, stats, canHeal, using, input, settingsScreen, use, move, tooWeak, openSkillbook, close, trade } = props;
   const strength = stats?.strength ?? 0;
   const settingsOpen = useStore(settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
@@ -146,7 +156,7 @@ export function InventoryPanel(props: PanelProps) {
   const width = inventoryPanelWidthPx(gear);
 
   return (
-    <PanelFrame id="inventory-panel" title="Inventory" close={close} width={width}>
+    <PanelFrame id="inventory-panel" title={trade ? trade.shop.name : "Inventory"} close={close} width={width}>
       <div
         ref={panel} className="pointer-events-auto relative touch-none select-none"
         onContextMenu={(e) => e.preventDefault()}
@@ -173,9 +183,15 @@ export function InventoryPanel(props: PanelProps) {
         }}
       >
         <div className="flex items-start" style={{ gap: INVENTORY_GAP_PX }}>
-          <Column title="Equipment">
-            <EquipmentSlots gear={gear} mouse={mouse} fits={fits} area={area} />
-          </Column>
+          {trade ? (
+            <Column title="Trade">
+              <ShopColumn shop={trade.shop} gear={gear} buy={trade.buy} exchange={trade.exchange} />
+            </Column>
+          ) : (
+            <Column title="Equipment">
+              <EquipmentSlots gear={gear} mouse={mouse} fits={fits} area={area} />
+            </Column>
+          )}
           {(gear.pile.cols > 0 || gear.cloth.cols > 0) && (
             <div className="flex flex-col" style={{ gap: INVENTORY_GAP_PX }}>
               {gear.pile.cols > 0 && (
@@ -202,7 +218,7 @@ export function InventoryPanel(props: PanelProps) {
         <BagDetails
           gear={gear} stack={selectedStack(mouse, gear)} using={using !== null}
           usable={(!using && itemToUse(mouse, gear, !canHeal) !== null) || bookInHand(mouse)}
-          use={() => applyUse(current())}
+          use={() => applyUse(current())} sale={trade ? saleOf(mouse.selected, trade) : null}
         />
         {drag && dragged && pointer && (
           <Placed
@@ -265,6 +281,20 @@ function Weight({ gear, stats }: { gear: Gear; stats: Stats }) {
   );
 }
 
+interface Sale {
+  each: number;
+  sell: (count: number) => void;
+}
+
+function saleOf(selected: Spot | null, trade: Trading): ((stack: BagItem) => Sale | null) | null {
+  if (!selected || (selected.in !== "bag" && selected.in !== "cloth")) return null;
+  const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
+  return (stack) => {
+    const each = trade.shop.buys[stack.item];
+    return each === undefined ? null : { each, sell: (count) => trade.sell(at, count) };
+  };
+}
+
 interface DetailsProps {
   gear: Gear;
   /** The selected stack. */
@@ -272,10 +302,10 @@ interface DetailsProps {
   usable: boolean;
   using: boolean;
   use: () => void;
+  sale: ((stack: BagItem) => Sale | null) | null;
 }
 
-/** Under the grid: the selected item's name, count and description, and its use button. */
-function BagDetails({ gear, stack, usable, using, use }: DetailsProps) {
+function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   if (!stack) {
     return (
       <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-white/45 italic`}>
@@ -284,6 +314,7 @@ function BagDetails({ gear, stack, usable, using, use }: DetailsProps) {
     );
   }
   const def = itemDef(stack.item), verb = def.consumable?.verb ?? def.wearable?.verb;
+  const selling = sale?.(stack) ?? null;
   return (
     <div id="bag-details" data-item={stack.item} className={`${DETAILS_STRIP} flex items-start gap-4`}>
       <div
@@ -301,6 +332,24 @@ function BagDetails({ gear, stack, usable, using, use }: DetailsProps) {
         </p>
         <p className="mt-1 text-[11px] text-white/40 tabular-nums">Weight {itemInfo(stack).weight}</p>
       </div>
+      {selling && (
+        <div className="flex flex-col gap-1.5 self-center">
+          <button
+            type="button" id="bag-sell" {...NO_FOCUS} disabled={using} onClick={() => selling.sell(1)}
+            className={`pointer-events-auto ${BUTTON.primary}`}
+          >
+            Sell for {formatPrice(selling.each)}
+          </button>
+          {stack.count > 1 && (
+            <button
+              type="button" id="bag-sell-all" {...NO_FOCUS} disabled={using} onClick={() => selling.sell(stack.count)}
+              className={`pointer-events-auto ${BUTTON.plain}`}
+            >
+              All {stack.count} for {formatPrice(selling.each * stack.count)}
+            </button>
+          )}
+        </div>
+      )}
       {verb && (
         <button
           type="button" id="bag-use" {...NO_FOCUS} disabled={!usable} onClick={use}

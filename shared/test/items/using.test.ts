@@ -12,7 +12,9 @@ const ESSENCE = ITEMS["boar-essence"].consumable;
 const AT: UseSpot = { in: "bag", x: 1, y: 0 };
 const bagWith = (item: ItemId, count: number): Bag =>
   ({ ...emptyBag(), items: [{ item, count, x: AT.x, y: AT.y, turned: false }] });
-const hurt = (hp: number, core: CoreState = newCore()): UseTarget => ({ hp, max: MAX_HP, core });
+const MAX_STAMINA = 150;
+const hurt = (hp: number, core: CoreState = newCore(), stamina = MAX_STAMINA): UseTarget =>
+  ({ hp, max: MAX_HP, stamina, staminaMax: MAX_STAMINA, core });
 
 describe("startUse", () => {
   test("meat while hurt: using it starts, for as many steps as its useTime", () => {
@@ -62,6 +64,25 @@ describe("finishUse", () => {
     assert.equal(target.hp, 50);
   });
 
+  test("a stamina tonic refills stamina, and isn't drunk with stamina full", () => {
+    const share = ITEMS["stamina-tonic"].consumable.effects[0].staminaShare;
+    assert.equal(startUse(bagWith("stamina-tonic", 1), AT, hurt(50)), null);
+    const using = startUse(bagWith("stamina-tonic", 1), AT, hurt(MAX_HP, newCore(), 10))!;
+    const target = hurt(MAX_HP, newCore(), 10);
+    assert.deepEqual(finishUse(using, bagWith("stamina-tonic", 1), target), emptyBag());
+    assert.equal(target.stamina, Math.min(MAX_STAMINA, 10 + share * MAX_STAMINA));
+    assert.equal(target.hp, MAX_HP);
+  });
+
+  test("a health potion and bread heal their shares of the most HP", () => {
+    for (const id of ["health-potion", "bread"] as const) {
+      const using = startUse(bagWith(id, 1), AT, hurt(1))!;
+      const target = hurt(1);
+      finishUse(using, bagWith(id, 1), target);
+      assert.equal(target.hp, 1 + ITEMS[id].consumable.effects[0].healShare * MAX_HP, id);
+    }
+  });
+
   test("nothing if it's no longer there", () => {
     const using = startUse(bagWith("boar-meat", 1), AT, hurt(50))!;
     const target = hurt(50);
@@ -76,12 +97,12 @@ describe("any consumable", () => {
     for (const id of ITEM_IDS) {
       const consumable = itemDef(id).consumable;
       if (!consumable) continue;
-      const target = hurt(1);
+      const target = hurt(1, newCore(), 1);
       let using = startUse(bagWith(id, 1), AT, target)!, steps = 0;
       for (; using.stepsLeft > 0; steps++) using = stepUse(using);
       assert.equal(steps, Math.round(consumable.useTime / FIXED_DT), id);
       finishUse(using, bagWith(id, 1), target);
-      assert.ok(target.hp > 1 || target.core.fill > 0, id);
+      assert.ok(target.hp > 1 || target.stamina > 1 || target.core.fill > 0, id);
     }
   });
 

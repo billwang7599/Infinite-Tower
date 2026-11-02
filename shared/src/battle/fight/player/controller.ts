@@ -135,7 +135,9 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
     const chanting = player.action === "chant" || player.action === "write";
     const inBag = player.action === "bag", usingNow = player.action === "use";
     const using = inBag && usePressed && input.use?.in === "bag"
-      ? startUse(player.gear.bag, input.use, { hp: health.hp, max: health.max, core: player.core }) : null;
+      ? startUse(player.gear.bag, input.use, {
+        hp: health.hp, max: health.max, stamina: stamina.value, staminaMax: stamina.max, core: player.core,
+      }) : null;
     let queuedCast = player.castQueued;
     if (queuedCast !== null && player.action !== "chant" && !(skillbook && onPage(player.book, queuedCast))) {
       player.castQueued = queuedCast = null;

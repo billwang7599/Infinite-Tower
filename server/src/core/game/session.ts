@@ -5,13 +5,14 @@
 import {
   coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
   hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
-  placePoint, roundTo, skillOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden,
-  type Character, type Cheat, type CoreState, type Entity, type Gear, type SavedSettings,
+  placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
+  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Gear, type ItemId, type SavedSettings,
   type ShownStat, type Skill, type Skillbook, type Spot, type StepInput, type Stats, type UseSpot, type Using,
   type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals } from "../content/player.js";
+import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { getLevel, levelOrStart, START_LEVEL } from "../world/index.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
@@ -19,6 +20,7 @@ import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } fro
 import type { Chat } from "./chat.js";
 import { runCheat } from "./cheats.js";
 import type { Duels } from "./duels.js";
+import { buy, exchange, openShop, sell } from "./shop.js";
 import { stateMsg } from "./snapshot.js";
 import { progressStory, questbookOf, type Story } from "./story.js";
 import { handOver, placeFor, takeQuest, talkTo, type Placed } from "./talk.js";
@@ -61,6 +63,8 @@ export class GameSession {
   /** Kept on death, like the words they know. */
   story: Story;
   placed: Placed = { npcs: [], traces: [] };
+  shop: ShopId | null = null;
+  shopsBought: ShopId[];
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
   private held: Gear;
@@ -92,6 +96,7 @@ export class GameSession {
     this.knownWords = saved.knownWords;
     this.skillbook = saved.skillbook;
     this.story = saved.story;
+    this.shopsBought = saved.shopsBought;
     this.levelId = levelOrStart(saved.level);
     this.soul = saved.core;
   }
@@ -230,8 +235,26 @@ export class GameSession {
 
   useItem(at: UseSpot): void {
     if ((!this.inOverworld && !this.afterFight) || this.using) return;
-    this.using = startUse(this.gear[at.in], at, { hp: this.vitals.hp, max: maxHpOf(this.stats), core: this.core });
+    this.using = startUse(this.gear[at.in], at, this.useTarget());
     if (this.using) this.link.send({ t: "using", at });
+  }
+
+  get busyUsing(): boolean { return this.using !== null; }
+
+  openShop(): void {
+    openShop(this);
+  }
+
+  buy(item: ItemId): void {
+    buy(this, item);
+  }
+
+  sell(at: UseSpot, count: number): void {
+    sell(this, at, count);
+  }
+
+  exchange(from: CoinId, to: CoinId): void {
+    exchange(this, from, to);
   }
 
   /**
@@ -280,6 +303,10 @@ export class GameSession {
       this.using = null;
       this.link.send({ t: "using", at: null });
     }
+    if (this.shop) {
+      this.shop = null;
+      this.link.send({ t: "shop", shop: null });
+    }
     if (this.gear.cloth.items.length === 0 && this.pileOpen === null) return;
     this.pileOpen = null;
     this.gear = { ...this.gear, cloth: emptyCloth(), pile: NO_PILE };
@@ -320,7 +347,7 @@ export class GameSession {
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
       bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      story: this.story, level: this.levelId, core: this.core,
+      story: this.story, level: this.levelId, core: this.core, shopsBought: this.shopsBought,
     });
   }
 
@@ -408,23 +435,29 @@ export class GameSession {
     const using = stepUse(this.using);
     this.using = using.stepsLeft > 0 ? using : null;
     if (this.using) return;
-    const target = { hp: this.vitals.hp, max: maxHpOf(this.stats), core: this.core };
+    const target = this.useTarget();
     const grid = finishUse(using, this.gear[using.at.in], target);
     if (!grid) {
       this.link.send({ t: "using", at: null });
       return;
     }
     this.gear = { ...this.gear, [using.at.in]: grid };
-    this.vitals = { ...this.vitals, hp: target.hp };
+    this.vitals = { hp: target.hp, stamina: target.stamina };
     if (target.core !== this.core) this.takeCore(target.core, target.core.steps > this.core.steps);
     const battle = this.afterFight;
     // In the arena after a win the fight follows, so its HUD shows it.
     battle?.room.edit(battle.seat, (world, me) => {
       takeCore(world, me, this.core);
       world.require(me, Health).hp = this.vitals.hp;
+      world.require(me, Stamina).value = this.vitals.stamina;
     });
     this.save();
     this.link.send({ t: "itemUsed", item: using.item, vitals: this.vitals, gear: this.gear });
+  }
+
+  private useTarget() {
+    const { stats } = this;
+    return { ...this.vitals, max: maxHpOf(stats), staminaMax: staminaMaxOf(stats), core: this.core };
   }
 
   /** True if the open pile changed under them (others took from it, or it vanished). */
@@ -438,7 +471,7 @@ export class GameSession {
   }
 
   /** Within SAVE_SOON_MS, or on disconnect, whichever is first. */
-  private saveSoon(): void {
+  saveSoon(): void {
     this.saveTimer ??= setTimeout(() => this.save(), SAVE_SOON_MS);
   }
 

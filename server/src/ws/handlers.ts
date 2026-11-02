@@ -25,4 +25,8 @@ export const handlers: Handlers<SessionMsg, GameSession> = {
   joinBattle: (_msg, s) => s.joinBattle(),
   chat: (msg, s) => s.chat(msg.text),
   statPoint: (msg, s) => s.statPoint(msg.stat, msg.add),
+  openShop: (_msg, s) => s.openShop(),
+  buy: (msg, s) => s.buy(msg.item),
+  sell: (msg, s) => s.sell(msg.at, msg.count),
+  exchange: (msg, s) => s.exchange(msg.from, msg.to),
 };
