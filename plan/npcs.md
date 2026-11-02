@@ -1,7 +1,9 @@
 # NPCs
 
-Status: **next big step**. The herald and the three shopkeepers in the kingdom, Hollis by the Grass Field's fire, Maren
-and Tobin in the Waking Hollow (a test area, where their short chain sends you on to Hollis), Corwin on the Grass
+Status: **next big step**. The herald, Bram, the three shopkeepers, the money changer and five townsfolk in the kingdom
+(Edda at the town gate, Wenna by the castle's kitchen door, Tamsin in the market, Odo in the Hall of Arrival and
+Ottilie, Aurel's priest, in the courtyard; four with a side quest paying in coin), Hollis by the Grass Field's fire,
+Maren and Tobin in the Waking Hollow (a test area, where their short chain sends you on to Hollis), Corwin on the Grass
 Field's east road and Ilse by the Mistwood's lake (each with a side chain of two) are the NPCs. Quests, the questbook,
 lines that follow your story, stops (where an NPC stands, by the story, per player) and traces (what one leaves where it
 moved on from) are built (AGENTS.md, ARCHITECTURE.md). Hollis moves on: once his first chain is done he stands by the

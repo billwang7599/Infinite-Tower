@@ -39,12 +39,12 @@ What's built so far:
   and an enemy someone touches is gone for everyone until it respawns. T challenges a player next to you to a duel: a spar in stone ruins of your
   own, everything working player against player, that costs and wins nothing. Next to a player's crossed swords, E (or
   "Join the fight") joins their battle, up to 4 to a fight, each with their own result and drops. Natives live along the
-  way: the herald, Bram and the three keepers in Highmere, Maren (who keeps the Hollow's pad) and Tobin (a hunter) in
-  the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse, Nyra's weaver, by the
-  Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or a click; Esc closes).
-  What they say follows your story, and so does where they stand: once his first chain is done, Hollis moves on to the
-  Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player sees him where their own
-  story puts him).
+  way: the herald, Bram, the three keepers and five townsfolk in Highmere, Maren (who keeps the Hollow's pad) and
+  Tobin (a hunter) in the Waking Hollow, Hollis by the Grass Field's campfire and Corwin on its east road, and Ilse,
+  Nyra's weaver, by the Mistwood's lake. Face one and press E (or "Talk") to hear them, a line at a time (Enter, E or
+  a click; Esc closes). What they say follows your story, and so does where they stand: once his first chain is done,
+  Hollis moves on to the Mistwood's pad, leaving his bedroll by the fire with a note saying where he went (each player
+  sees him where their own story puts him).
 - **The training yard:** you start with nothing. The herald sends you to Bram, who gives you an old stick, then has
   you knock down a straw dummy (a light swing, a heavy and a stab) and spar with him. His fights are spars: whoever
   is down to a tenth of their HP yields, nobody can join, and nothing is lost or gained but the quest.
@@ -54,7 +54,9 @@ What's built so far:
   rack, then on to Hollis) leads into Hollis's: two boar hides, three boars, and what he knows about the pads you
   wake on; then, in the Mistwood, what Ilse's loom makes of its pad. Maren and Tobin each have a side quest further
   out (a Goblin Warlock in the Mistwood, a Kobold in the Grass Field), and Corwin and Ilse two each (hides for a
-  blind and a count of Kobolds; tusks for a loom and the Kobold in the Mistwood's ruins). The questbook (H, or the
+  blind and a count of Kobolds; tusks for a loom and the Kobold in the Mistwood's ruins). Highmere's townsfolk pay in
+  coin: the gate's captain for three boars, the castle's cook for boar meat, a mother for word of her son from Ilse's
+  loom, and the keeper of the roll of arrivals for a look at the Hollow and the Mistwood. The questbook (H, or the
   HUD's book; in fights too) has the main quest and side quests, each with its next step and a hint as the NPC gave
   it, and the lore found so far under the quest that revealed it. Your story is yours alone and kept on death.
 - **Fights:** a 2D sprite against a 3D boar, Kobold Swordsman or Goblin Warlock in a small round arena, each with
