@@ -131,6 +131,37 @@ Original gods that echo Olympus and Asgard without being them.
 
 The gods inside a philosophy still disagree on how far to go, and a god can change sides, so the lines can move.
 
+### The orders (the user's idea)
+
+- **Every god heads a craft.** People follow a god because of what they do: every smith knows Brannoc, every
+  hunter Skadrin. Knowing and praying to a god doesn't make you one of their order.
+- **Each god has an order**, the faithful who follow that god religiously and lead the craft's worship. Being in
+  one doesn't make you good at the craft: the orders hold masters and hopefuls alike.
+- **Blessings.** The faithful follow for the god's blessing, but it comes now and then, and to the talented, not
+  to the most devout. A great smith who never prays may be blessed before a priest of the forge, which the orders
+  argue over endlessly. Players can be blessed too (user's decision), by earning high faith (reputation) with
+  that god, maybe through the god's own quests later. Blessings have no cap, and they aren't inscriptions
+  (plan/inscriptions.md). Only a plan for now: what a blessing gives is still open.
+
+The orders, drafted by OptChat (names and crafts for the user to change):
+
+| God | Order | Craft |
+| --- | --- | --- |
+| Valdris | the Sworn Court | judges, heralds, nobles, anyone who keeps the law |
+| Brannoc | the Anvil Brotherhood | smiths, armourers, miners |
+| Thalor | the Tidewardens | sailors, fishers, ferrymen, weather-callers |
+| Aurel | the Dawnkeepers | healers, lamplighters, glassmakers |
+| Calyx | the Green Hands | farmers, herbalists, millers |
+| Haldis | the Hearthkin | innkeepers, cooks, the keepers of campfires |
+| Kaelith | the Ninefold Blade | soldiers, duellists, sword schools |
+| Ithra | the Collegium of Thresholds | scholars of the tongue and its skills (below) |
+| Nyra | the Loomreaders | seers, chroniclers, archivists |
+| Morvane | the Quiet Hands | undertakers, gravediggers, those who sit with the dying |
+| Skadrin | the Hunt | hunters, trappers, tanners |
+| Vesk | the Waywise | merchants, couriers, money-changers, thieves |
+
+Odo the chronicler fits Nyra's, Fennick the changer Vesk's and Bram Kaelith's, if the user wants them in one.
+
 ## Ring 3: the Maker (the user's direction; details open)
 
 - **The true creator is the game's maker: the user.** The Maker made the world and the twelve, then stepped back.
@@ -150,6 +181,23 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   by right. Every avatar first wakes there, and wakes there again after dying; the court herald greets them. In play,
   Ilse finds no thread on Nyra's loom to the pads, as to avatars, and Hollis wagers the same hands made both: a hint at
   the Maker, no more.
+- **How skills are conjured (the user's pick: a mix of the Maker's tongue and the soul).** The words are the
+  tongue the Maker wrote the world in, so a skill is a sentence the world obeys. Ithra didn't invent it; she was the
+  first to learn it. But a spoken word does nothing alone: a soul has to push it into the world. The words say what
+  happens, the soul gives the force, and skillpower is how hard a soul pushes. That's why the words you know survive
+  death (they're written into your soul, not your shell), and why avatars pick them up so fast: they come from the
+  Maker's side.
+- **Copied pads.** A pad is a skill carved in stone: the words that pull the door open, cut into rock, with the
+  door's energy pushing them instead of a soul. Highmere's platform is the Maker's own; every other pad is a copy of
+  its carvings, made by the Collegium of Thresholds.
+- **The Collegium of Thresholds (the user's pick: a religious order under Ithra, a science faction).** To them,
+  learning the tongue is worship: every new word, and every new way to use an old one, brings them closer to Ithra.
+  They're always chasing new words and new uses for skills, and they test them, write them down and argue over them
+  like scholars. The pads are their greatest work, copied from the Maker's platform. Drafted by OptChat: a copy takes
+  rare stone and years of exact carving, so there are few, and the crown of Aurevaine pays for each where it wants
+  avatars to arrive. The Old Quarry was where they cut pad stone, until the good stone ran out. They follow the
+  Ascent through Ithra, and avatars, who learn words so fast, fascinate them. Nyra studies the pads because, like
+  avatars, they have no thread on her loom.
 - **The world lives only while souls keep coming.** The rift never stops draining, so if souls stop coming through
   the door, the world ends. Not by slow decay: it holds until the last soul runs out, then blips out of existence
   all at once. That is the game shutting down when its players leave. In play the world never visibly withers.
@@ -170,7 +218,13 @@ The gods inside a philosophy still disagree on how far to go, and a god can chan
   either).
 - Whether the soul cycle shows in play later (a monster that kills you carries your lost fill; places where many
   avatars die grow stronger monsters; bosses born from pools). Mechanics, so asked before anything is built.
-- Which factions there are, and which philosophy each follows (later, as the world grows).
+- To be determined: players can likely join an order and leave it when they like (the user's lean). OptChat's
+  draft: one order at a time; joining is a small rite at the order's hall; leaving is free but drops your faith
+  with that god a step, so hopping has a cost; members get the order's quests first and a discount on its
+  services (the Collegium's carving). Nothing decided.
+- How faith with a god is earned and lost, and what a blessing gives (blessings are only a plan for now).
+  Inscriptions' open questions are in plan/inscriptions.md.
+- Factions beyond the orders (kingdoms, guilds), later as the world grows.
 - What Seraphel's firmer hand on the door means in play, and what Temple Hill and the Lower Town hold.
 - Backing a god in play: when the player chooses, what switching or going back to neutral costs, and what backing
   one gives. These are mechanics, so they're asked before anything is built.

@@ -11,6 +11,8 @@ agent-decided list, and every number in FORMULAS.md ("Stats", "The core"). What'
 - Other ways to fill the core: meditating, elixirs, using skills.
 - Breakthrough as a small minigame (something rhythm-based) instead of automatic.
 - Elemental affinity.
+- Inscriptions: permanent passive skills, a ring round the core for each one carved, kept on death, capped by how
+  far the core has grown (plan/inscriptions.md).
 
 ## For the user to review
 
