@@ -651,6 +651,24 @@ them; treat them as changeable, and still ask before deciding new ones):
   Grass Field's far north-east corner and one in the Mistwood's south-west woods, back 10 s after their fight; on the
   overworld it wanders at 1.8, notices you within 5 tiles in 0.4 s and chases at 4.2 (you walk 5). Not in tall
   grass. Its sounds are CC0 creature sounds pitched up (`wolf-*` in SOUNDS.md), unheard.
+- The Bog Lurker (the user: "continue to add content... based off of your best judgement"; the design, slow and
+  tanky where the wolf is quick and frail, lying low and rising to a slam or a tail sweep you should dodge rather
+  than block, was OptChat's brief; every number is the agent's, tried by bots and a headless browser, not
+  hand-played): 200 HP, walks 1.5 m/s and turns 1.4 rad/s, poise 100 (10 a second, 1.2 s stagger). It creeps up low
+  in the bog; within 3 m and facing you it rises over 1.3 s with a groan, turning toward you until 0.35 s before it
+  slams (38, 2.6 m ahead, 60° either side, knockback 12, the screen shaking), then stands open 1.5 s. If you're
+  within 2.8 m and over about 73° off its facing (beside or behind it, where its slow turn lets you get), it coils
+  0.75 s and sweeps its tail all round (20, knockback 10), then stands 1 s. 0.8 s after either before the next; the
+  first after 1.5 s. It can't be staggered from the rise or coil to the blow. Both are body blows, so blockable, but a
+  blocked slam costs 38 stamina (a dodge 22) and its push puts you out of reach of the opening: in the bot fights a
+  dodger wins in about 39 s, a blocker in about 66 s, and one who only swings loses. No new rules: the slam reuses
+  the charge's `slam` event for its thud and shake. Its tells are the rise, the eyes lighting and its groan, no
+  marker. Numbers: `server/src/core/enemies/bog-lurker.ts`, the behaviour in
+  `shared/src/battle/fight/behaviors/slam.ts`. Drops: its essence (worth 45) always and 2 lurker scales 70% (1 x 1,
+  stacks of 10, weight 0.4, worth 20c, the forge buys them). Two in the Mistwood's reeds by the lake, north (0.5,
+  10.5) and south (0.5, -7.5), back 15 s after their fight, fought in the level's mire arena; on the overworld it
+  wanders at 0.7 within 3 tiles, notices you within 3.5 tiles in 0.8 s and chases at 2.2. Its sounds are the boar's
+  files pitched down (`lurker-*` stems in `client/src/audio/sounds.ts`; no new files), unheard.
 - Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
   is opened by looking at it, as in the arena (below). It only gives: nothing goes onto it, nothing is moved about on
   it or eaten straight off it; taken things go into the bag, a hand or the cloth. It shows in the bag screen above

@@ -41,6 +41,8 @@ const RAMPS = {
   moss: ["#0d1f0c", "#1d3d18", "#2f6126", "#4a8a37", "#74b356", "#b4e08a"],
   greyfur: ["#18191c", "#2c2e33", "#45474e", "#62656c", "#858890", "#b0b3ba"],
   frost: ["#0f1a24", "#20364a", "#3a5a78", "#5f86a8", "#93b7d2", "#d8ecf8"],
+  bog: ["#0b1009", "#182214", "#29391f", "#3c522d", "#587042", "#8a9f66"],
+  murk: ["#10140a", "#262f16", "#434f24", "#677836", "#94a555", "#cfdc92"],
 } as const satisfies Record<string, Ramp>;
 
 type Material = keyof typeof RAMPS;
@@ -157,6 +159,17 @@ function fang(px: Pixels): void {
   pen.shade((x, y) => shape(x, y) && !shape(x + 1, y), SHADOW);
   pen.fill(both(shape, rect(0, 11, 15, 15)), ink("ivory", BASE));
   pen.shade(both(shape, rect(0, 13, 15, 15)), SHADOW);
+}
+
+function scale(px: Pixels): void {
+  const pen = new Pen(px, 0);
+  const plate = union(ellipse(8, 6.5, 5.6, 5), polygon([[2.6, 7], [13.4, 7], [8, 15]]));
+  pen.fill(plate, ink("bog", BASE));
+  pen.shade(litEdge(plate, 1), LIGHT);
+  pen.shade(darkEdge(plate, 1), SHADOW);
+  pen.shade(both(plate, bar([8, 2.5], [8, 12.5], 0.7)), DEEP);
+  pen.shade(both(plate, union(bar([4.5, 4.5], [6.5, 9.5], 0.5), bar([11.5, 4.5], [9.5, 9.5], 0.5))), LIGHT);
+  pen.shade(both(plate, ellipse(5.5, 4.5, 1.2, 0.9)), SHINE);
 }
 
 /** A tusk, curved like a new moon, its root stained dark. */
@@ -283,7 +296,8 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
-  "goblin-warlock-essence": essence("wisp"), "grey-wolf-essence": essence("frost"), "wolf-pelt": pelt,
+  "goblin-warlock-essence": essence("wisp"), "grey-wolf-essence": essence("frost"),
+  "bog-lurker-essence": essence("murk"), "lurker-scale": scale, "wolf-pelt": pelt,
   "wolf-fang": fang, bread, "health-potion": bottle("blood"),
   "stamina-tonic": bottle("moss"), "copper-coin": coin("copper"), "silver-coin": coin("silver"),
   "gold-coin": coin("gold"),

@@ -2,6 +2,8 @@ import type { EnemyId, NpcId } from "@infinite-tower/shared";
 import { personEnemyVisual } from "../battle/player.js";
 import type { SpriteDraw } from "../sprites.js";
 import type { Visual } from "../visuals.js";
+import { lurkerVisual } from "./bog-lurker/animation.js";
+import { lurkerSprite } from "./bog-lurker/sprite.js";
 import { bramSprite } from "./bram/sprite.js";
 import { goblinVisual } from "./goblin-warlock/animation.js";
 import { goblinSprite } from "./goblin-warlock/sprite.js";
@@ -34,6 +36,7 @@ export const ENEMY_LOOKS: Record<EnemyId, EnemyLook> = {
   "kobold-greatsword": { battle: koboldGreatswordVisual, sprite: koboldGreatswordSprite },
   "goblin-warlock": { battle: goblinVisual, sprite: goblinSprite },
   "grey-wolf": { battle: wolfVisual, sprite: wolfSprite },
+  "bog-lurker": { battle: lurkerVisual, sprite: lurkerSprite },
   "training-dummy": { battle: trainingDummyVisual, sprite: trainingDummySprite },
   bram: { battle: personEnemyVisual, sprite: bramSprite, npc: "bram" },
 };

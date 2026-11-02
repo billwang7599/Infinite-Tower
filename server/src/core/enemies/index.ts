@@ -1,5 +1,6 @@
 import type { EnemyDef, EnemyId, ItemCounts, ItemId } from "@infinite-tower/shared";
 import type { Part } from "../overworld/parts.js";
+import { BOG_LURKER } from "./bog-lurker.js";
 import { BRAM } from "./bram.js";
 import { GOBLIN_WARLOCK } from "./goblin-warlock.js";
 import { GREY_WOLF } from "./grey-wolf.js";
@@ -22,6 +23,7 @@ export const ENEMIES: Record<EnemyId, Enemy> = {
   "kobold-greatsword": KOBOLD_GREATSWORD,
   "goblin-warlock": GOBLIN_WARLOCK,
   "grey-wolf": GREY_WOLF,
+  "bog-lurker": BOG_LURKER,
   "training-dummy": TRAINING_DUMMY,
   bram: BRAM,
 };

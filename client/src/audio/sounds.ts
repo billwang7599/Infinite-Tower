@@ -45,6 +45,9 @@ export const SOUNDS = {
   "wolf-growl": { variants: 2, volume: 0.7, rate: 1.35, spread: 0.06 },
   "wolf-hurt": { variants: 2, volume: 0.8, rate: 1.3, spread: 0.08 },
   "wolf-death": { variants: 1, volume: 0.9, rate: 1.2 },
+  "lurker-rise": { variants: 2, stem: "boar-windup", volume: 1, rate: 0.6, spread: 0.05 },
+  "lurker-hurt": { variants: 5, stem: "boar-hurt", volume: 0.9, rate: 0.65, spread: 0.06 },
+  "lurker-death": { variants: 1, stem: "boar-death", volume: 1, rate: 0.6 },
   "cast-fire": { variants: 4, volume: 0.8, spread: 0.06 },
   "cast-magic": { variants: 5, volume: 0.8, spread: 0.06 },
   "windup-magic": { variants: 1, volume: 0.5, spread: 0.06 },
@@ -95,6 +98,7 @@ export const ENEMY_SOUNDS: Record<EnemyId, EnemySounds> = {
   "kobold-greatsword": { hurt: "kobold-hurt", death: "kobold-death", windup: "draw-blade" },
   "goblin-warlock": { hurt: "goblin-hurt", death: "goblin-death", windup: null },
   "grey-wolf": { hurt: "wolf-hurt", death: "wolf-death", windup: "wolf-growl" },
+  "bog-lurker": { hurt: "lurker-hurt", death: "lurker-death", windup: "lurker-rise" },
   "training-dummy": { hurt: "hit-body", death: "fall", windup: null },
   bram: { hurt: "hit-body", death: "fall", windup: "draw-blade" },
 };
