@@ -57,5 +57,8 @@
   html, body { @apply m-0 h-full overflow-hidden bg-night; }
 }
 
-@utility bar { @apply relative mb-1.5 h-2.5 border border-white/20 bg-black/60; }
+@utility bar {
+  @apply relative mb-1.5 overflow-hidden rounded-[2px] border border-gilt/60 bg-black/70;
+  box-shadow: inset 0 1px 3px #000c, 0 1px 2px #0008;
+}
 @utility bar-layer { @apply absolute inset-y-0 left-0; }

@@ -10,11 +10,12 @@ interface BarProps {
   className?: string;
 }
 
-export function Bar({ fraction, fill, chip = false, className = "" }: BarProps) {
+export function Bar({ fraction, fill, chip = false, className = "h-2.5" }: BarProps) {
   return (
     <div className={`bar ${className}`}>
       {chip && <DamageChip fraction={fraction} />}
       <div className={`bar-layer bg-linear-to-b ${fill}`} style={{ width: percent(fraction) }} />
+      <div className="bar-layer h-1/2 w-full bg-white/12" />
     </div>
   );
 }

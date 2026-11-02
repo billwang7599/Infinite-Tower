@@ -1339,15 +1339,19 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
       styles.css       Tailwind v4 entry + @theme tokens
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
-                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs), styles.ts (BUTTON,
+                       PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers),
+                       styles.ts (BUTTON,
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
                        portrait, or the chibi facing front)
       hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
-                       "Join the fight" / "Open the pile" / "Talk" / "Look"),
-                       BattleHud.tsx (the bag in a fight:
+                       "Join the fight" / "Open the pile" / "Talk" / "Look"), StatusRow.tsx (status tiles: an
+                       icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;
+                       statusLooks.ts: each status's name, colour and SVG icon),
+                       BattleHud.tsx (your bars and statuses top left, the foe's name, statuses and bar at the
+                       bottom; the bag in a fight:
                        the fight's gear, no cloth, eating as a fight input;
                        the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
                        the leave popup), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left in both
@@ -1470,7 +1474,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
                          straight down; a block pressed or held)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
-                         included
+                         included; statusIcons: your and the foe's statuses as the HUD shows them (buffs first, the
+                         share of time left), the last list kept while nothing shown changes
     audio/           All the sound (Web Audio). audio.ts (createAudio: the AudioContext, made on a user gesture;
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
                      page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
