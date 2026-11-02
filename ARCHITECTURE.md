@@ -835,7 +835,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   for each talk step and after, and lore no other quest reveals. Highmere's townsfolk (`townsfolk.test.ts`): each in
   town on open ground, apart from the rest, with a word for a new avatar; their side quests paying in coin and lore of
   their own, played through the session the same way (across levels where a step leads), the captain's waiting on
-  Bram's yard, and the priest's lines following the story. The story's data
+  Bram's yard, and the priest's lines following the story. The Old Quarry's folk (`quarry-folk.test.ts`): each in the
+  quarry on open ground, apart from the pad, the fire and the enemies; the foreman's pool step round the Kobold
+  Greatsword; the scavenger's second quest waiting on her first; both chains played through the session, paying in coin
+  with lore of their own. The story's data
   (`content/quests.test.ts`, `content/lore.test.ts`): step ids unique, real items, enemies, NPCs and levels, a quest
   waiting only on one listed earlier, every condition naming real quests, steps and flags, every quest offered by
   someone and revealing a lore entry, a talk step's NPC with lines for it and a deliver step's asking for it, every
@@ -1179,7 +1182,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        rollDrops)
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
-                       chronicler.ts, priest.ts (its
+                       chronicler.ts, priest.ts, foreman.ts, scavenger.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
       content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
@@ -1461,8 +1464,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
                        one line each; byEnemy)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
-                       apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, each with
-                       look.ts
+                       apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
+                       scavenger/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
       sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)

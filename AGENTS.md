@@ -805,6 +805,14 @@ them; treat them as changeable, and still ask before deciding new ones):
   then the Mistwood, then back; 1 silver 50 copper, lore "The roll of arrivals"); and Ottilie, Aurel's priest, in the
   courtyard's west, with no quest, her lines following the story. All four quests are side quests; only the captain's
   waits on another.
+- The Old Quarry's folk (the user: "continue to add content for the game… based off of your best judgement"; names,
+  looks, spots, lines, rewards and lore are the agent's, not hand-played): Harl, the old foreman, 3 tiles west of the
+  campfire facing it, "Down the Pit" (reach the pool at the pit's bottom, slay the Kobold Greatsword, back to him;
+  2 silver, lore "The pool in the pit": the cutters broke into a hollow of loose soul under the pit, Kobolds climbed
+  out, the crown took its cutters home); and Nim, a scavenger in the overseer's ruined hut, "A Roof of Pelts" (gather
+  and hand over 2 wolf pelts; 1 silver, lore "The overseer's ledger": the hall's platform was there before the first
+  block was cut) then "The Chanters at the Rim" (slay 2 Goblin Warlocks, back to her; 1 silver 50 copper, lore "The
+  chanters at the rim"). All side quests; only Nim's second waits, on her first.
 - The view is 16:9 at most. Wider windows get bars on the sides; taller ones see a little less width. The server sends
   only the actors within `VIEW_RADIUS_TILES` (20) of the player, a circle that holds what the camera shows at 16:9
   whichever way it looks (a guess at the screen would be cheatable).

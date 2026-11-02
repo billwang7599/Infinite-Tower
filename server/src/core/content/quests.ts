@@ -384,4 +384,69 @@ export const QUESTS: Quests = {
       },
     ],
   },
+  "foreman-pit": {
+    title: "Down the Pit",
+    half: "side",
+    steps: [
+      {
+        id: "pool",
+        task: { kind: "reach", level: "old-quarry", area: { x: -8, z: 2, w: 16, h: 4 } },
+        text: "Go down to the pool at the bottom of the pit.",
+        hint: "Harl said the way in on the pit's south side is straight up the rails from his fire.",
+      },
+      {
+        id: "greatsword",
+        task: { kind: "kill", enemy: "kobold-greatsword", count: 1 },
+        text: "Slay the Kobold Greatsword.",
+        hint: "Harl said it stands over the pool at the bottom of the pit, like it's guarding it.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "foreman" },
+        text: "Go back up to Harl.",
+        hint: "He sits by the Old Quarry's campfire, near the way in from the Grass Field.",
+        reward: { items: { "silver-coin": 2 }, lore: ["quarry-pool"] },
+      },
+    ],
+  },
+  "scavenger-pelts": {
+    title: "A Roof of Pelts",
+    half: "side",
+    steps: [
+      {
+        id: "gather",
+        task: { kind: "gather", item: "wolf-pelt", count: 2 },
+        text: "Gather 2 wolf pelts.",
+        hint: "Nim said a grey wolf prowls the Grass Field's far north-east corner and another the Mistwood's "
+          + "south-west woods, and they don't give up the pelt every time.",
+      },
+      {
+        id: "bring",
+        task: { kind: "deliver", item: "wolf-pelt", count: 2, to: "scavenger" },
+        text: "Bring the 2 wolf pelts to Nim.",
+        hint: "She lives in the ruined overseer's hut, in the Old Quarry's south-west.",
+        reward: { items: { "silver-coin": 1 }, lore: ["overseer-ledger"] },
+      },
+    ],
+  },
+  "scavenger-chanters": {
+    title: "The Chanters at the Rim",
+    half: "side",
+    when: { done: "scavenger-pelts" },
+    steps: [
+      {
+        id: "warlocks",
+        task: { kind: "kill", enemy: "goblin-warlock", count: 2 },
+        text: "Slay 2 Goblin Warlocks.",
+        hint: "Nim said they keep to the Old Quarry's north rim, up by the cranes.",
+      },
+      {
+        id: "back",
+        task: { kind: "talk", to: "scavenger" },
+        text: "Go back to Nim.",
+        hint: "She lives in the ruined overseer's hut, in the Old Quarry's south-west.",
+        reward: { items: { "silver-coin": 1, "copper-coin": 50 }, lore: ["rim-chanters"] },
+      },
+    ],
+  },
 };

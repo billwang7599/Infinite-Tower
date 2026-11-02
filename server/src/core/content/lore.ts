@@ -119,6 +119,28 @@ export const LORE = {
       + "leaves are older than the castle, and hold no names at all, only tallies: someone counted arrivals on that "
       + "stone before there was a Highmere to claim them.",
   },
+  "quarry-pool": {
+    title: "The pool in the pit",
+    text: "Every block in Highmere's walls, keep and hall was cut from the Old Quarry's terraces. Going down for a "
+      + "deeper seam, the cutters broke into a hollow under the pit, and what welled up wasn't water: it was loose "
+      + "soul, pooled there since before there was a crown to want it, still and clear. Inside a season Kobolds were "
+      + "climbing out of the pit. The crown called the stone finished and took its cutters home. Harl, the old "
+      + "foreman, swore to Brannoc he'd keep the place, and stayed.",
+  },
+  "overseer-ledger": {
+    title: "The overseer's ledger",
+    text: "The quarry's overseer tallied every block that left for Highmere, by terrace and seam: the walls, the keep, "
+      + "the hall. Nim found his ledger under the hut's floor. The platform at the heart of the hall isn't in it: the "
+      + "first page says it was already lying there when the first block was cut, and nobody knew whose it was. The "
+      + "last page, in another hand, reads: pit broken, cutters off, stone enough.",
+  },
+  "rim-chanters": {
+    title: "The chanters at the rim",
+    text: "Goblin Warlocks came to the quarry after the Kobolds did. They don't hunt the scavengers. They sit on the "
+      + "pit's north rim, by the cranes, and chant down at the pool in the old tongue all night. Nim swears the pool "
+      + "sinks a finger's width every time, and is full again by morning. Whether they drink from it or feed it, "
+      + "nobody has stayed close enough to tell.",
+  },
 } satisfies Record<string, LoreEntry>;
 
 export type LoreId = keyof typeof LORE;
