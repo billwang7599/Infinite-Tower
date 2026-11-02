@@ -9,7 +9,7 @@ import type { CameraSettings } from "../../settings/camera.js";
 import type { Interaction, OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
-import { CAMERA_PITCH, mapMove, tiltCamera } from "./facing.js";
+import { CAMERA_PITCH, mapMove, tiltCamera, unwrapTurns } from "./facing.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
 
@@ -173,7 +173,8 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       for (const [e, speech] of world.query(Speech)) if ((speech.remainingTime -= dt) <= 0) world.remove(e, Speech);
       state.cameraTurns = camera.get().overworldTurns;
       const byFire = !inBattle && state.level !== null && nearCampfire(state.level, playerPos());
-      hud.set({ interaction: interaction(), byFire });
+      const cameraTurns = unwrapTurns(hud.get().cameraTurns, state.cameraTurns);
+      hud.set({ interaction: interaction(), byFire, cameraTurns });
     },
     onBattleResult(msg) {
       inBattle = false;

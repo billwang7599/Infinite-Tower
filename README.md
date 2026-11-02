@@ -147,9 +147,9 @@ What's built so far:
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the
   stronger you are, and too heavy for your strength it can't be wielded.
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
-  buttons for the character panel, the inventory, the questbook and Settings. Small notices (loot, a full bag, dying,
-  resting, eating, a breakthrough, quests) stack in the bottom-right corner and fade; only a fight starting gets the
-  big banner in the middle.
+  buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the
+  top shows which way the camera faces. Small notices (loot, a full bag, dying, resting, eating, a breakthrough, quests)
+  stack in the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing rivers and crackling campfires nearby. Sounds come from where they happen: quieter further

@@ -1355,7 +1355,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        box: it measures itself and shrinks to fit the view), layout.ts (fitPanel: where a side panel
                        goes and how far it shrinks to stay on screen and clear of the status block and the core card;
                        stacksGrids; useStageSize; the core card's and the Rest button's place, which the notices
-                       keep clear of), icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping)
+                       keep clear of; fitCompass: the compass in the top row, or below it where there's no room),
+                       icons.tsx (the HUD buttons' icons), Ping.tsx (both HUDs' ping), Compass.tsx (the overworld's
+                       compass strip, top centre, sliding as the camera turns; compassMarks.ts: its marks and shift)
       chat/            Chat.tsx (the chat, bottom left in both modes, above the core card: the log's last lines,
                        or, open, all of it and the field it's typed in; / opens it or focuses it again, Enter sends,
                        Esc closes; unfocused, the field is dimmed with "Press / to chat", the key read from the
@@ -1420,7 +1422,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          its tiles split into running and still; tested
         facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
                          left, on screen): mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor;
-                         the camera's tilt (CAMERA_PITCH, tiltCamera)
+                         the camera's turn time (CAMERA_TURN_TIME) and its turns unwrapped for the compass
+                         (unwrapTurns); the camera's tilt (CAMERA_PITCH, tiltCamera)
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles, and the
                          level's NPCs and traces (enter); entityOf
         components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin, a
@@ -1784,7 +1787,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's colour grade and camera (its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
+| How each tile looks; the overworld's colour grade and camera (its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
 | A level's daylight sky, fog and light; a campfire's light | `env` in `LEVEL_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/levels/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
