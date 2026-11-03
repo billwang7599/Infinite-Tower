@@ -3,6 +3,34 @@ import type { Npc } from "./index.js";
 const QUEST = "bram-yard";
 
 export const BRAM: Npc = {
+  quests: {
+    "bram-yard": {
+      title: "The Old Man's Yard",
+      half: "main",
+      steps: [
+        {
+          id: "bram",
+          task: { kind: "talk", to: "bram" },
+          text: "Find Bram in the training yard.",
+          hint: "Aldric said old Bram keeps a yard off the castle courtyard, through the gap in its north-west wall.",
+          reward: { items: { "old-stick": 1 } },
+        },
+        {
+          id: "dummy",
+          task: { kind: "kill", enemy: "training-dummy", count: 1 },
+          text: "Knock down the training dummy.",
+          hint: "Bram said it stays up until it's taken a light swing, a heavy one and a stab. Talk to him to begin.",
+        },
+        {
+          id: "spar",
+          task: { kind: "kill", enemy: "bram", count: 1 },
+          text: "Best Bram in a spar.",
+          hint: "Bram said he'll yield before he's hurt badly, and so should you. Talk to him in the yard to begin.",
+          reward: { lore: ["soft-as-dough"], faith: { kaelith: 20 } },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "kingdom",

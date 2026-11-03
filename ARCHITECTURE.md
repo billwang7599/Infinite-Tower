@@ -366,29 +366,30 @@ main.ts
   is at `BLESSING_FAITH`: nothing about a blessing is stored. A fight's setup carries the player's `blessings`
   (`fighterOf`), and `spawnPlayer` puts each on as a permanent status, beside the inscriptions'.
 - **Quests and the story** (`core/game/story.ts`, the one engine for quests and NPCs, which `talk.ts` uses; the data:
-  `QUESTS` in `core/content/quests.ts`, `LORE` in `core/content/lore.ts`): a quest is a title, a half of the questbook
+  each giver's `quests` in its NPC file, gathered into `QUESTS` in `core/content/quests.ts` in `QUEST_ORDER`, `LORE`
+  in `core/content/lore.ts`): a quest is a title, a half of the questbook
   (main or side), a condition to start (`when`, e.g. `{ done: "hollis-hides" }`) and named steps, each a `Task` (gather,
   deliver, reach, talk, kill), the questbook's text and hint, and its `reward` (items, story flags, lore ids). Quests
-  hold no lines and name no giver: an NPC's talk offers them. Lore entries are one table by id. Each player's `Story`
-  (on the `GameSession`, saved with the player) is the step each quest taken is on, by its id (null once done), the
-  kills counted toward a kill step, and the flags set. One condition type, `When` (a flag, a quest on a step, a quest
-  done, a quest that can start), is checked by `holds` for quests, stops and talk alike. One function changes a story,
-  `unfold`: it applies the effects (`{ start }`: the first step; `{ advance }`: the step done, a deliver step taking its
-  items from the bag or refusing if short; `{ finish }`, the admin's: every step left, a short handover taking
-  nothing), then does every gather, reach or kill step the world already meets (`Seen`:
-  the region and where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its
-  reward (what doesn't fit is `dropped`) and each change is told (`news`). It's pure over a story, a bag and a quest
-  table (as are `holds`, `questbookOf`, `keptStory`, and `stopFor` and `dialogueOf` in `talk.ts`), so tests bring their
-  own quests and NPCs. A talk does each talk step to that NPC once, and a fight's kills count only toward the step they
-  began on. The session's side is `talkTo` in `talk.ts` (the dialogue as the story stood, then `{ advance }` for each
-  talk step to that NPC), `takeQuest` (`acceptQuest`: only the quest the dialogue of the NPC in view offers) and
-  `handOver` (`deliver`: only the handover it asks for), both through `progressStory`, which every tick on the overworld
-  (and in the arena after a win) also checks gather and reach steps, and `settleBattle` calls with a win's enemies.
-  Anything done or counted saves, leaves what didn't fit in a pile at the player's feet (`Overworld.dropPile`), sends
-  `gear` if it changed and `questbook`: `questbookOf` (only taken quests, open ones first: the step on with its hint and
-  a `Tally`, and the lore its done steps revealed) and the `news` (taken, a kill counted, a step done with what it
-  gave). Death doesn't touch the story. The client keeps the questbook in `ui.questbook` and tells each piece of news
-  with `say`; `QuestbookScreen` (`ui/screens/questbook/`) is a layer of its own (`questbook`, over either mode, like
+  hold no lines: they're written in their giver's file, and an NPC's talk offers them. Lore entries are one table by id.
+  Each player's `Story` (on the `GameSession`, saved with the player) is the step each quest taken is on, by its id
+  (null once done), the kills counted toward a kill step, and the flags set. One condition type, `When` (a flag, a quest
+  on a step, a quest done, a quest that can start), is checked by `holds` for quests, stops and talk alike. One function
+  changes a story, `unfold`: it applies the effects (`{ start }`: the first step; `{ advance }`: the step done, a
+  deliver step taking its items from the bag or refusing if short; `{ finish }`, the admin's: every step left, a short
+  handover taking nothing), then does every gather, reach or kill step the world already meets (`Seen`: the region and
+  where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its reward (what
+  doesn't fit is `dropped`) and each change is told (`news`). It's pure over a story, a bag and a quest table (as are
+  `holds`, `questbookOf`, `keptStory`, and `stopFor` and `dialogueOf` in `talk.ts`), so tests bring their own quests and
+  NPCs. A talk does each talk step to that NPC once, and a fight's kills count only toward the step they began on. The
+  session's side is `talkTo` in `talk.ts` (the dialogue as the story stood, then `{ advance }` for each talk step to
+  that NPC), `takeQuest` (`acceptQuest`: only the quest the dialogue of the NPC in view offers) and `handOver`
+  (`deliver`: only the handover it asks for), both through `progressStory`, which every tick on the overworld (and in
+  the arena after a win) also checks gather and reach steps, and `settleBattle` calls with a win's enemies. Anything
+  done or counted saves, leaves what didn't fit in a pile at the player's feet (`Overworld.dropPile`), sends `gear` if
+  it changed and `questbook`: `questbookOf` (only taken quests, open ones first: the step on with its hint and a
+  `Tally`, and the lore its done steps revealed) and the `news` (taken, a kill counted, a step done with what it gave).
+  Death doesn't touch the story. The client keeps the questbook in `ui.questbook` and tells each piece of news with
+  `say`; `QuestbookScreen` (`ui/screens/questbook/`) is a layer of its own (`questbook`, over either mode, like
   Settings: you stand still, the world goes on), opened by H (the general action `questbook`) or the HUD's book; H, Esc
   or × close it, and a change of mode does. An item step's tally is counted from the bag on the client (`tallyText`), a
   kill step's is the server's.
@@ -446,19 +447,18 @@ main.ts
   hitstun, an enemy's "staggered" state); a held block stops it for a chip of damage and the blocker's stamina (an
   enemy's poise), the guard breaking when it runs out; a body blow is only blocked, pushing the defender back.
   Anything else lands.
-- **Weapons are a system of their own, like skills.** The arsenal is in `shared/src/weapons/weapons.ts`: `WEAPONS`
-  (each weapon by item id: its `kind`, the moveset it swings with, its length, damage, heft and minimum strength;
-  `feltHeft` is the heft a wielder's strength feels, `canWield` whether it's enough). Equipping a weapon is refused
-  below its minimum by the shared gear rules (`moveGear`), on the server, in a fight and in the bag screen alike.
-  The sword's rules
-  and numbers are in `shared/src/weapons/hybrid.ts`: the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and
-  momentum (`CHAIN`, `MOMENTUM`), the strikes and the block (`HYBRID`), the hit shapes (`wayShape`: one reach from
-  the wielder's own arm reach plus the weapon's length, the arc by line), and `wayStepsAfter`,
-  `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's strength. Fighters care
-  only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach and the swing under way)
-  attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide when, what and which
-  way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing the same way,
-  raising its hitbox exactly while it's live. Ending an action or an enemy state (`enter`) ends its swing
+- **Weapons are a system of their own, like skills.** The arsenal is each weapon item's `weapon` component in `ITEMS`,
+  gathered by `shared/src/weapons/weapons.ts` into `WEAPONS` (each weapon by item id: its `kind`, the moveset it swings
+  with, its length, damage, heft and minimum strength; `feltHeft` is the heft a wielder's strength feels, `canWield`
+  whether it's enough). Equipping a weapon is refused below its minimum by the shared gear rules (`moveGear`), on the
+  server, in a fight and in the bag screen alike. The sword's rules and numbers are in `shared/src/weapons/hybrid.ts`:
+  the ways (`SWING_DIRS`, `WAYS`, `mirrorWay`), the chains and momentum (`CHAIN`, `MOMENTUM`), the strikes and the block
+  (`HYBRID`), the hit shapes (`wayShape`: one reach from the wielder's own arm reach plus the weapon's length, the arc
+  by line), and `wayStepsAfter`, `strikeDamage`, `strikeCost`, worked out from them, the weapon's heft and the wielder's
+  strength. Fighters care only which weapon they hold. Anyone with a `Wielder` (what each hand holds, its arm reach and
+  the swing under way) attacks with the weapon in hand: the player's controller and an enemy's weapon attack decide
+  when, what and which way, and call `startWaySwing` (`fight/weapons/swing.ts`); `weaponSystem` then runs every swing
+  the same way, raising its hitbox exactly while it's live. Ending an action or an enemy state (`enter`) ends its swing
   (`endSwing`). The visuals draw the blade from the swing's steps and its way.
 - **Skills are inputs too, and any fighter's.** Every fighter is `Skilled` (`fight/skills/skilled.ts`): what it's
   chanting (`chanting`, `words`), the skill winding up (`casting`, `castTime`), a held Beam, where its skills go (`aim`,
@@ -502,7 +502,7 @@ main.ts
 - **Shops** (`core/game/shop.ts`; their stock, what they buy and every price in `core/content/shops.ts`, server only):
   a keeper's talk offers `{ shop }`, and taking it (Trade, or going on past the last line) sends `openShop`; the session
   opens the shop of the NPC in view (`shopInView` in `talk.ts`), keeps its id in `GameSession.shop` and sends its
-  `ShopView` (prices already worked out: the region's `PRICE_FACTOR`, the first purchase there cheaper until the
+  `ShopView` (prices already worked out: the region's `priceFactor`, the first purchase there cheaper until the
   player's `shopsBought` has it). The client shows it in the bag screen in place of the equipment (`ShopColumn.tsx`).
   `buy`, `sell` and `exchange` run on the gear: coins (`shared/src/items/coins.ts`, three items, 100 of one make one of
   the next) are paid off the cloth and then the bag, smallest first, the last coin's change in the fewest coins; what's
@@ -1177,11 +1177,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    the order they're chanted <-> a skill), effects.ts (SKILL_EFFECTS: what skills
                    do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
-  weapons/         weapons.ts (WEAPONS, the arsenal by item id, each of a WEAPON_KINDS kind, with its heft and
-                   minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape), hybrid.ts (the sword's: SWING_DIRS and WAYS (the
-                   stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind, CHAIN, MOMENTUM; HYBRID (light, heavy, stab,
-                   the block and perfect block, the lunge); wayShape, wayStepsAfter, strikeCost, strikeDamage,
-                   guardRaiseTime, perfectBlockTime)
+  weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
+                   heft and minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape),
+                   hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
+                   CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
+                   wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime)
   net/             client-messages.ts (Zod schemas + inferred ClientMsg, SkillSchema; server-only import),
                    server-messages.ts (ServerMsg types, ServerMsgOf<t>, the socket's CLOSE_CODES; ChatLine,
                    MAX_CHAT_CHARS; the questbook's QuestView, Tally, LoreEntry, QuestNews; DialogueOffer), handlers.ts
@@ -1298,13 +1298,13 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
       npcs/            One file per NPC, by its NpcId: hollis.ts, maren.ts, tobin.ts, corwin.ts, ilse.ts, herald.ts,
                        grocer.ts, apothecary.ts, smith.ts, changer.ts, bram.ts, captain.ts, cook.ts, tamsin.ts,
                        chronicler.ts, priest.ts, foreman.ts, scavenger.ts, herbalist.ts, burner.ts, king.ts,
-                       innkeeper.ts, carver.ts (its
-                       stops: where it stands and what it says there, by the story, and what it leaves at one it
-                       moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
-      content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed; keptSave),
-                       quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
-                       entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
-                       PRICE_FACTOR by region, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
+                       innkeeper.ts, carver.ts (the quests it gives; its stops: where it stands and what it says there,
+                       by the story, and what it leaves at one it moves on from). index.ts (Npc, Stop, Talk, Trace;
+                       NPCS, one line each)
+      content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed; keptSave), quests.ts
+                       (QUESTS: every NPC's quests, by id, in QUEST_ORDER; QuestDef, QuestStep, Task), lore.ts (LORE:
+                       every lore entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in
+                       copper, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1862,19 +1862,20 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   next walk into another region. The old stop keeps a talk for that flag (its goodbye, said until they walk off) and
   gets a `trace` (where it lies and its lines, pointing the way), which lies there for anyone who sees the NPC further
   on.
-- **A quest.** A row in `QUESTS` (`server/src/core/content/quests.ts`): its title, half, a `when` to start it (for a
-  chain, `{ done: <the one before> }`, listed earlier), and its steps, each with an `id` (saved with players: renaming
-  one forgets the quest for anyone on it), a `Task`, the questbook's text and hint (only what the NPC told) and its
-  `reward` (`items`, `flags`, `lore` ids). Then, in the NPC's file, at the stop where it's given: a talk `when: {
-  canStart: <quest> }` with `offer: { start: <quest> }`; a talk `when: { quest, step }` for each step that needs its
-  own words; on a deliver step, one with `offer: { deliver: <quest> }`; and on a talk step, the lines the NPC says as
-  it's done. The data tests check every item, enemy, NPC, region, condition and lore id is real, every quest is
-  offered, and every talk and deliver step has its NPC's lines. A new kind of task is a member of `Task`, a case in
-  `met` (`server/src/core/game/story.ts`, or `false` if an NPC does it) and, if it counts something, a `Tally`.
+- **A quest.** An entry in its giver's `quests` (`server/src/core/npcs/<id>.ts`) and its id in `QUEST_ORDER`
+  (`server/src/core/content/quests.ts`, where the questbook lists it): its title, half, a `when` to start it (for a
+  chain, `{ done: <the one before> }`, earlier in `QUEST_ORDER`), and its steps, each with an `id` (saved with players:
+  renaming one forgets the quest for anyone on it), a `Task`, the questbook's text and hint (only what the NPC told) and
+  its `reward` (`items`, `flags`, `lore` ids). Then, in the same file, at the stop where it's given: a talk `when: {
+  canStart: <quest> }` with `offer: { start: <quest> }`; a talk `when: { quest, step }` for each step that needs its own
+  words; on a deliver step, one with `offer: { deliver: <quest> }`; and on a talk step, the lines the NPC says as it's
+  done. The data tests check every item, enemy, NPC, region, condition and lore id is real, every quest is offered, and
+  every talk and deliver step has its NPC's lines. A new kind of task is a member of `Task`, a case in `met`
+  (`server/src/core/game/story.ts`, or `false` if an NPC does it) and, if it counts something, a `Tally`.
 - **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
   that reveals it; the questbook lists it under that quest once the step is done.
-- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand), its row in `WEAPONS`
-  (`shared/src/weapons/weapons.ts`: kind, length, damage, heft, minimum strength), its bag picture (`client/src/gfx/items/items.ts`)
+- **A weapon.** An item in `ITEMS` (`shared/src/items/items.ts`, `wearable` on a hand) with a `weapon` component
+  (kind, length, damage, heft, minimum strength), its bag picture (`client/src/gfx/items/items.ts`)
   and its row in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`). Whoever holds it swings it with the
   kind's moves and `MOTIONS` row, so a weapon of a kind that exists needs no animation code: a player's sprite holds
   the same 3D blade as a model. A new kind is a name in `WEAPON_KINDS` and a `MOTIONS` row (and, for the player, its
@@ -1950,7 +1951,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | What | Where |
 |---|---|
 | Player speeds, dodge costs and feel (at stats of 10) | `shared/src/battle/player.ts` (`PLAYER`) |
-| Weapons: the arsenal (length, damage, heft, minimum strength) | `shared/src/weapons/weapons.ts` (`WEAPONS`) |
+| Weapons: the arsenal (length, damage, heft, minimum strength) | each weapon item's `weapon` in `ITEMS` (`shared/src/items/items.ts`) |
 | The sword: the swings' starts by chain (and their floor), momentum, the heavy and the stab, the reach; the held block, its drain and costs, the guard break, the guard's raise time, the perfect block, the heavy's feint, the lunge | `shared/src/weapons/hybrid.ts` (`CHAIN`, `MOMENTUM`, `HYBRID`, `REACH_FACTOR`, `ARC_DEG`) |
 | A swordsman: its wind-ups, recovery, chains, when it blocks, how often it perfect-blocks and feints a heavy; its poise | its def and weapon attack (`server/src/core/enemies/kobold-swordsman.ts`) |
 | Arm reach (to the hilt) | `PLAYER.armReachM`; an enemy's `wielder.armReachM` |
@@ -1974,7 +1975,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Players a server lets on, its name in the server list | `.env` (`MAX_PLAYERS`, `SERVER_NAME`); defaults in `server/src/env.ts` |
 | Carry limit | `shared/src/battle/stats.ts` (`CARRY_LIMIT_AT_AVERAGE`) |
 | What carrying too much does | `shared/src/items/burden.ts` (`BURDEN`) |
-| Shops: what each sells and buys, what things are worth, the capital's prices, what a shop pays, the first purchase's discount | `server/src/core/content/shops.ts` (`SHOPS`, `ITEM_VALUES`, `PRICE_FACTOR`, `SELL_SHARE`, `FIRST_PURCHASE_DISCOUNT`); the coins' worth in `shared/src/items/coins.ts` (`COIN_VALUE`) |
+| Shops: what each sells and buys, what things are worth, the capital's prices, what a shop pays, the first purchase's discount | `server/src/core/content/shops.ts` (`SHOPS`, `ITEM_VALUES`, `SELL_SHARE`, `FIRST_PURCHASE_DISCOUNT`), each region's `priceFactor` (`server/src/core/world/regions/`); the coins' worth in `shared/src/items/coins.ts` (`COIN_VALUE`) |
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
@@ -1993,7 +1994,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Chunks: how far round you they're sent, held, drawn (in detail, and past what's seen), built ahead and kept built, the build budget and which build first, the edge's fog and the plain ground under the world, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SEEN_MARGIN_TILES`, `NEAR_TILES`, `AHEAD_TILES`, `HIDE_MARGIN_TILES`, `DROPPED_TILES`, `AHEAD_BIAS_TILES`, `MUST_BUILD_TILES`, `BUILD_BUDGET_MS`, `FOG_FADE_M`, `SKIRT`, `SKY_BLEND_TILES`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | How far from a walking player monsters stay awake | `AWAKE_TILES` in `server/src/core/overworld/sleep.ts` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
-| Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
+| Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | each giver's `quests` in `server/src/core/npcs/<id>.ts`, `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |

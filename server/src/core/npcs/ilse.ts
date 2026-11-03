@@ -1,6 +1,54 @@
+import { regionRect } from "../world/index.js";
 import type { Npc } from "./index.js";
 
 export const ILSE: Npc = {
+  quests: {
+    "ilse-weights": {
+      title: "Weights for the Loom",
+      half: "side",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "boar-tusk", count: 2 },
+          text: "Gather 2 boar tusks.",
+          hint: "Ilse said the boars carry them, the Mistwood's and the Grass Field's alike, though few give one up.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "boar-tusk", count: 2, to: "ilse" },
+          text: "Bring the 2 boar tusks to Ilse.",
+          hint: "She sits by the Mistwood's path where it comes off the lake's bridge, on the east shore.",
+          reward: { items: { "boar-meat": 2 }, lore: ["nyras-loom", "the-realms"] },
+        },
+      ],
+    },
+    "ilse-snapped": {
+      title: "The Snapped Thread",
+      half: "side",
+      when: { done: "ilse-weights" },
+      steps: [
+        {
+          id: "ruins",
+          task: { kind: "reach", region: "mistwood", area: regionRect("mistwood", { x: 11, z: 12, w: 9, h: 5 }) },
+          text: "Go to the broken walls north of the lake.",
+          hint: "Ilse said they stand in the Mistwood's north-east, up the path from where she sits.",
+        },
+        {
+          id: "kobold",
+          task: { kind: "kill", enemy: "kobold-swordsman", count: 1 },
+          text: "Slay a Kobold Swordsman.",
+          hint: "Ilse said one keeps the broken walls, and fights like nothing else in the wood.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "ilse" },
+          text: "Tell Ilse how it fought.",
+          hint: "She sits by the Mistwood's path on the lake's east shore, where the bridge comes in.",
+          reward: { items: { "boar-meat": 3 }, lore: ["snapped-tether"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "mistwood",

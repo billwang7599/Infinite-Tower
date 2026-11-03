@@ -1,6 +1,27 @@
 import type { Npc } from "./index.js";
 
 export const COOK: Npc = {
+  quests: {
+    "cook-meat": {
+      title: "For the Castle Pot",
+      half: "side",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "boar-meat", count: 3 },
+          text: "Gather 3 boar meat.",
+          hint: "Wenna said the boars out on the Grass Field give it, more often than not.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "boar-meat", count: 3, to: "cook" },
+          text: "Bring the 3 boar meat to Wenna.",
+          hint: "She stands by the castle's kitchen door, in the east of the courtyard.",
+          reward: { items: { "copper-coin": 60 }, lore: ["haldis-fires"], faith: { haldis: 30 } },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "kingdom",

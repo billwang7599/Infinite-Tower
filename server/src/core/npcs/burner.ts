@@ -1,6 +1,35 @@
 import type { Npc } from "./index.js";
 
 export const BURNER: Npc = {
+  quests: {
+    "burner-rook": {
+      title: "Rook's Last Hunt",
+      half: "side",
+      when: { done: "tamsin-son" },
+      steps: [
+        {
+          id: "wolf",
+          task: { kind: "kill", enemy: "grey-wolf", count: 1 },
+          text: "Slay a grey wolf.",
+          hint: "Bryn said the one Rook hunted lies up in the woods west of the Mistwood's mire.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "burner" },
+          text: "Go back to Bryn.",
+          hint: "She burns charcoal in the Mistwood's south, below the lake.",
+          reward: { items: { "silver-coin": 1 } },
+        },
+        {
+          id: "tamsin",
+          task: { kind: "talk", to: "tamsin" },
+          text: "Tell Tamsin which way Rook went.",
+          hint: "She waits by her door in the south-west of Highmere's Market Ward.",
+          reward: { lore: ["past-the-trees"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "mistwood",

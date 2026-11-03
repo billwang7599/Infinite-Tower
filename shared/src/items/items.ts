@@ -1,5 +1,6 @@
 /** What each item is and does. Who drops what is in each enemy's server file (server/src/core/enemies/). */
 import type { InscriptionId } from "../soul/inscriptions.js";
+import type { Weapon } from "../weapons/weapons.js";
 
 export type WornOn = "hand" | "head" | "body" | "legs" | "boots";
 
@@ -32,6 +33,7 @@ export interface ItemDef {
   consumable?: Consumable;
   wearable?: Wearable;
   inscription?: InscriptionId;
+  weapon?: Weapon;
 }
 
 const ABSORB_TIME = 2;
@@ -107,30 +109,36 @@ export const ITEMS = {
     name: "Old stick", rarity: "common",
     description: "A length of ash, worn smooth by old hands. It's no blade, but it swings like one.",
     cols: 1, rows: 2, stackSize: 1, weight: 1, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1, damage: 5, heft: 1, minStrength: 0 },
   },
   sword: {
     name: "Sword", rarity: "common",
     description: "A plain straight blade. Quick to swing, and it guards as well as any.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1.1, damage: 9, heft: 1, minStrength: 0 },
   },
   "kobold-blade": {
     name: "Kobold blade", rarity: "uncommon",
     description: "A notched blade, heavier at the tip. Kobolds don't let go of theirs.", cols: 1,
     rows: 3, stackSize: 1, weight: 3, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1.1, damage: 14, heft: 1, minStrength: 0 },
   },
   longsword: {
     name: "Longsword", rarity: "uncommon", description: "A longer, heavier blade. Slower to swing, and it hits harder.",
     cols: 1, rows: 3, stackSize: 1, weight: 4.5, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1.4, damage: 11, heft: 1.2, minStrength: 6 },
   },
   greatsword: {
     name: "Greatsword", rarity: "uncommon",
     description: "Taller than a kobold. Slow to swing, but it lands like a door.", cols: 1, rows: 4, stackSize: 1,
     weight: 8, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1.9, damage: 16, heft: 1.6, minStrength: 9 },
   },
   "kobold-greatsword": {
     name: "Kobold greatsword", rarity: "uncommon",
     description: "A slab of iron with a handle. Kobolds don't let go of theirs either.",
     cols: 1, rows: 4, stackSize: 1, weight: 8, wearable: { on: "hand" },
+    weapon: { kind: "sword", length: 1.9, damage: 14, heft: 1.6, minStrength: 9 },
   },
   skillbook: {
     name: "Skillbook", rarity: "common",

@@ -109,7 +109,7 @@ hidden ones 11, 2 points free; the most HP 110, the stamina bar 165, HP 10 more 
 ## Weapon attacks
 
 `CHAIN`, `MOMENTUM`, `HYBRID`, `wayStepsAfter`, `strikeDamage` and `strikeCost` in `shared/src/weapons/hybrid.ts`, with
-each weapon's numbers in `WEAPONS` (`weapons.ts`); the rules in `fight/player/sword.ts` and `fight/weapons/`. Damage
+each weapon's numbers in its `weapon` (`ITEMS`); the rules in `fight/player/sword.ts` and `fight/weapons/`. Damage
 goes × √(strength / 10), and every time and stamina cost × the heft the wielder feels (`feltHeft`): 1 + (heft − 1) ×
 10 / strength. Strength 10 feels a weapon's heft as it is, 20 half the extra, 5 twice it; a sword (heft 1) feels the
 same to everyone. Below a weapon's `minStrength` it can't be wielded at all (sword 0, longsword 6, greatsword 9; the
@@ -448,7 +448,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 - **Coins** (`COIN_VALUE`, `shared/src/items/coins.ts`): copper 1, silver 100, gold 10000, in copper. Written out
   largest first, leaving out what's 0: 12 345 copper is "1g 23s 45c".
 - **Buying** (`server/src/core/content/shops.ts`): the item's worth (`ITEM_VALUES`, copper) × the region's
-  `PRICE_FACTOR` (Highmere 1.5, elsewhere 1), rounded; a player's first purchase at each shop × (1 −
+  `priceFactor` (Highmere 1.5, elsewhere 1), rounded; a player's first purchase at each shop × (1 −
   `FIRST_PURCHASE_DISCOUNT` 0.25), rounded. Bread, worth 4: 6c in Highmere, 5c the first time (4.5 rounds up). A sword,
   worth 300: 4s 50c, 3s 38c the first time.
 - **Paying:** coins smallest first, as many of each as fit in what's left whole; if that's short, one more of the

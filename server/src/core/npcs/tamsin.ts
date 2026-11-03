@@ -1,6 +1,28 @@
 import type { Npc } from "./index.js";
 
 export const TAMSIN: Npc = {
+  quests: {
+    "tamsin-son": {
+      title: "A Son in the Mistwood",
+      half: "side",
+      steps: [
+        {
+          id: "ilse",
+          task: { kind: "talk", to: "ilse" },
+          text: "Ask Ilse whether Rook's thread still runs.",
+          hint: "Tamsin said Nyra's weaver sits by the Mistwood's lake, past the Grass Field's east edge, and can read "
+            + "any native's thread.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "tamsin" },
+          text: "Go back to Tamsin.",
+          hint: "She waits by her door in the south-west of Highmere's Market Ward.",
+          reward: { items: { "silver-coin": 1 }, lore: ["running-thread"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "market-ward",

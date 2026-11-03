@@ -1,6 +1,34 @@
 import type { Npc } from "./index.js";
 
 export const CHRONICLER: Npc = {
+  quests: {
+    "chronicler-roads": {
+      title: "Beyond the Walls",
+      half: "side",
+      when: { done: "bram-yard" },
+      steps: [
+        {
+          id: "hollow",
+          task: { kind: "reach", region: "waking-hollow" },
+          text: "Go to the Waking Hollow.",
+          hint: "Odo said the road from the South Gate runs straight down into it.",
+        },
+        {
+          id: "mistwood",
+          task: { kind: "reach", region: "mistwood" },
+          text: "Go to the Mistwood.",
+          hint: "Odo said it lies past the Grass Field, through the gap at its east edge.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "chronicler" },
+          text: "Tell Odo what you saw.",
+          hint: "He keeps the roll in the archive off the Hall of Arrival's west end.",
+          reward: { items: { "silver-coin": 1, "copper-coin": 50 }, lore: ["arrivals-roll"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "kingdom",

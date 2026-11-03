@@ -7,10 +7,10 @@ stats)."
 
 ## Built
 
-- The arsenal is `WEAPONS` (`shared/src/weapons/weapons.ts`), one row per weapon item: its `kind` (the moveset it
-  swings with; only `sword` so far) and its stats (length, damage, heft). A fighter holds items; `weaponIn` gives the
-  stats of the one in hand. Reach is the wielder's arm reach (`PLAYER.armReachM`, an enemy's `wielder.armReachM`,
-  0.8 m for everyone) plus the weapon's length.
+- The arsenal is each weapon item's `weapon` component (gathered into `WEAPONS`), one per weapon item: its `kind` (the
+  moveset it swings with; only `sword` so far) and its stats (length, damage, heft). A fighter holds items; `weaponIn`
+  gives the stats of the one in hand. Reach is the wielder's arm reach (`PLAYER.armReachM`, an enemy's
+  `wielder.armReachM`, 0.8 m for everyone) plus the weapon's length.
 - Six weapons, all with the sword's moveset: the old stick (1 m, 5 damage, heft 1; Bram's first gift), the sword
   (1.1 m, 9 damage, heft 1), the longsword (1.4 m, 11, 1.2) and the greatsword (1.9 m, 16, 1.6), and the Kobolds'
   own blades, which never drop: the Kobold blade (the sword's, 14 damage) and the Kobold greatsword (the greatsword's,

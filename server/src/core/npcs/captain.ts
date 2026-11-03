@@ -1,6 +1,29 @@
 import type { Npc } from "./index.js";
 
 export const CAPTAIN: Npc = {
+  quests: {
+    "captain-boars": {
+      title: "Thin the Herd",
+      half: "side",
+      when: { done: "bram-yard" },
+      steps: [
+        {
+          id: "boars",
+          task: { kind: "kill", enemy: "wild-boar", count: 3 },
+          text: "Slay 3 wild boars.",
+          hint: "Captain Edda said they root about in the Grass Field's tall grass, past the Hollow, down the South "
+            + "Gate's road.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "captain" },
+          text: "Report to Captain Edda.",
+          hint: "She keeps Highmere's South Gate, at the south end of the Market Ward.",
+          reward: { items: { "silver-coin": 1 }, lore: ["highmere-claim"], faith: { kaelith: 20 } },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "market-ward",

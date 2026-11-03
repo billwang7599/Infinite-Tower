@@ -1,6 +1,34 @@
+import { regionRect } from "../world/index.js";
 import type { Npc } from "./index.js";
 
 export const FOREMAN: Npc = {
+  quests: {
+    "foreman-pit": {
+      title: "Down the Pit",
+      half: "side",
+      steps: [
+        {
+          id: "pool",
+          task: { kind: "reach", region: "old-quarry", area: regionRect("old-quarry", { x: -8, z: 2, w: 16, h: 4 }) },
+          text: "Go down to the pool at the bottom of the pit.",
+          hint: "Harl said the way in on the pit's south side is straight up the rails from his fire.",
+        },
+        {
+          id: "greatsword",
+          task: { kind: "kill", enemy: "kobold-greatsword", count: 1 },
+          text: "Slay the Kobold Greatsword.",
+          hint: "Harl said it stands over the pool at the bottom of the pit, like it's guarding it.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "foreman" },
+          text: "Go back up to Harl.",
+          hint: "He sits by the Old Quarry's campfire, near the way in from the Grass Field.",
+          reward: { items: { "silver-coin": 2 }, lore: ["quarry-pool"], faith: { brannoc: 30 } },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "old-quarry",

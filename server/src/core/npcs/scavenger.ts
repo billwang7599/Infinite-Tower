@@ -1,6 +1,48 @@
 import type { Npc } from "./index.js";
 
 export const SCAVENGER: Npc = {
+  quests: {
+    "scavenger-pelts": {
+      title: "A Roof of Pelts",
+      half: "side",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "wolf-pelt", count: 2 },
+          text: "Gather 2 wolf pelts.",
+          hint: "Nim said a grey wolf prowls the Grass Field's far north-east corner and another the Mistwood's "
+            + "south-west woods, and they don't give up the pelt every time.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "wolf-pelt", count: 2, to: "scavenger" },
+          text: "Bring the 2 wolf pelts to Nim.",
+          hint: "She lives in the ruined overseer's hut, in the Old Quarry's south-west.",
+          reward: { items: { "silver-coin": 1 }, lore: ["overseer-ledger"] },
+        },
+      ],
+    },
+    "scavenger-chanters": {
+      title: "The Chanters at the Rim",
+      half: "side",
+      when: { done: "scavenger-pelts" },
+      steps: [
+        {
+          id: "warlocks",
+          task: { kind: "kill", enemy: "goblin-warlock", count: 2 },
+          text: "Slay 2 Goblin Warlocks.",
+          hint: "Nim said they keep to the Old Quarry's north rim, up by the cranes.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "scavenger" },
+          text: "Go back to Nim.",
+          hint: "She lives in the ruined overseer's hut, in the Old Quarry's south-west.",
+          reward: { items: { "silver-coin": 1, "copper-coin": 50 }, lore: ["rim-chanters"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "old-quarry",

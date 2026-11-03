@@ -1,5 +1,6 @@
 import type { RegionDef } from "../region.js";
 import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA } from "../arenas.js";
+import { CASTLE_WARD } from "./castle-ward.js";
 
 // The walled-up gaps east (Temple Hill) and south-west (the Lower Town) open when those wards are built.
 export const MARKET_WARD: RegionDef = {
@@ -64,5 +65,6 @@ export const MARKET_WARD: RegionDef = {
   spawn: { x: 0, z: 7 },
   arenaId: GRASS_FIELD_ARENA.id,
   duelArenaId: KOBOLD_RUINS_ARENA.id,
+  priceFactor: CASTLE_WARD.priceFactor,
   spawns: [],
 };

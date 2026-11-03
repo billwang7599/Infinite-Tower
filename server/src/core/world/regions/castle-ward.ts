@@ -53,5 +53,7 @@ export const CASTLE_WARD: RegionDef = {
   spawn: { x: 0, z: 15 },
   arenaId: GRASS_FIELD_ARENA.id,
   duelArenaId: KOBOLD_RUINS_ARENA.id,
+  // Highmere, full of new avatars, charges more.
+  priceFactor: 1.5,
   spawns: [],
 };

@@ -1,6 +1,55 @@
+import { regionRect } from "../world/index.js";
 import type { Npc } from "./index.js";
 
 export const HERBALIST: Npc = {
+  quests: {
+    "herbalist-fangs": {
+      title: "Fangs for the Mortar",
+      half: "side",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "wolf-fang", count: 3 },
+          text: "Gather 3 wolf fangs.",
+          hint: "Sorrel said a grey wolf lies up in the woods just west of her reeds, and another prowls the Grass "
+            + "Field's far north-east corner. Not every one gives a fang.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "wolf-fang", count: 3, to: "herbalist" },
+          text: "Bring the 3 wolf fangs to Sorrel.",
+          hint: "She gathers by the reeds at the Mistwood lake's south-west shore.",
+          reward: { items: { "copper-coin": 80 }, lore: ["thinning-wood"] },
+        },
+      ],
+    },
+    "herbalist-mist": {
+      title: "What Rises off the Mire",
+      half: "side",
+      when: { done: "herbalist-fangs" },
+      steps: [
+        {
+          id: "island",
+          task: { kind: "reach", region: "mistwood", area: regionRect("mistwood", { x: -1, z: 2, w: 3, h: 3 }) },
+          text: "Stand on the island in the Mistwood's lake.",
+          hint: "Sorrel said to walk out along the bridge and, where it forks, go north.",
+        },
+        {
+          id: "warlock",
+          task: { kind: "kill", enemy: "goblin-warlock", count: 1 },
+          text: "Slay a Goblin Warlock.",
+          hint: "Sorrel said one keeps the broken walls south-east of the Mistwood's lake.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "herbalist" },
+          text: "Go back to Sorrel.",
+          hint: "She gathers by the reeds at the Mistwood lake's south-west shore.",
+          reward: { items: { "silver-coin": 1 }, lore: ["mire-mist"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "mistwood",
