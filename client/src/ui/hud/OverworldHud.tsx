@@ -9,6 +9,7 @@ import { useAction } from "../components/useAction.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import type {
   GameRequests, OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SkillsState,
+  YouState,
 } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
@@ -23,8 +24,9 @@ import { fitCompass, MARGIN_PX, useStageSize } from "./layout.js";
 import { Ping } from "./Ping.js";
 
 type HudProps = { hud: Store<OverworldHudState> };
+type YouProps = { you: Store<YouState> };
 
-interface OverworldHudProps extends HudProps {
+interface OverworldHudProps extends HudProps, YouProps {
   input: Actions;
   ping: Store<PingState>;
   hudSettings: HudSettings;
@@ -49,14 +51,14 @@ interface OverworldHudProps extends HudProps {
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
 export function OverworldHud(props: OverworldHudProps) {
-  const { hud, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, interact } = props;
+  const { hud, you, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, interact } = props;
   const panel = useStore(panels, (s) => s.open);
   const bookOpen = useStore(props.skillbookScreen, (s) => s.open);
-  const gear = useStore(hud, (s) => s.gear);
-  const core = useStore(hud, (s) => s.core);
+  const gear = useStore(you, (s) => s.gear);
+  const core = useStore(you, (s) => s.core);
   const stats = useMemo(() => core && coreStats(core), [core]);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
-  const using = useStore(hud, (s) => s.using);
+  const using = useStore(you, (s) => s.using);
   const interaction = useStore(hud, (s) => s.interaction);
   const shop = useStore(props.shop, (s) => s.view);
   const showBook = (open: boolean) => props.skillbookScreen.set({ open });
@@ -74,7 +76,7 @@ export function OverworldHud(props: OverworldHudProps) {
 
   return (
     <HudLayer id="overworld-hud">
-      <PlayerStatus hud={hud} />
+      <PlayerStatus hud={hud} you={you} />
       <Compass hud={hud} top={compassTop} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
         <RegionName hud={hud} />
@@ -99,7 +101,7 @@ export function OverworldHud(props: OverworldHudProps) {
       />
       {panel === "character" && (
         <CharacterPanel
-          hud={hud} statPoint={(stat, add) => props.request({ t: "statPoint", stat, add })} close={close}
+          hud={hud} you={you} statPoint={(stat, add) => props.request({ t: "statPoint", stat, add })} close={close}
           shownWidth={shownWidth}
         />
       )}
@@ -118,11 +120,11 @@ export function OverworldHud(props: OverworldHudProps) {
   );
 }
 
-function PlayerStatus({ hud }: HudProps) {
-  const name = useStore(hud, (s) => s.character?.name);
+function PlayerStatus({ hud, you }: HudProps & YouProps) {
+  const name = useStore(you, (s) => s.character?.name);
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
-  const wins = useStore(hud, (s) => s.wins);
+  const wins = useStore(you, (s) => s.wins);
   return (
     <div className="absolute top-3 left-4">
       {name && <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}

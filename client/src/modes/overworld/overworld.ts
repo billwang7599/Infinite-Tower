@@ -1,12 +1,12 @@
 import {
   coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M,
   maxHpOf, nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState,
-  type Gear, type Heading, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
+  type Gear, type Heading, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
 import type { CameraSettings } from "../../settings/camera.js";
-import type { Interaction, OverworldHudState } from "../../ui/state.js";
+import type { Interaction, OverworldHudState, YouState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
 import { CAMERA_PITCH, mapMove, tiltCamera, unwrapTurns } from "./facing.js";
@@ -19,11 +19,8 @@ export interface Overworld {
   join(joined: Joined): void;
   leave(): void;
   update(dt: number, frozen: boolean): void;
-  onBattleResult(msg: ServerMsgOf<"battleResult">): void;
-  /** Rested, or used an item. */
-  setVitals(vitals: Vitals): void;
+  backFromBattle(me: Vec2): void;
   setGear(gear: Gear): void;
-  setCore(core: CoreState): void;
   interact(): Interaction | null;
 }
 
@@ -60,10 +57,11 @@ interface OverworldOptions {
   world: World;
   actions: Actions;
   hud: Store<OverworldHudState>;
+  you: Store<YouState>;
   camera: CameraSettings;
 }
 
-export function createOverworld({ world, actions, hud, camera }: OverworldOptions): Overworld {
+export function createOverworld({ world, actions, hud, you, camera }: OverworldOptions): Overworld {
   const player = world.spawn();
   world.add(player, OverworldPos, { x: 0, z: 0 });
   world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
@@ -103,12 +101,12 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   };
   const setGear = (next: Gear) => {
     gear = next;
-    hud.set({ gear: next });
+    you.set({ gear: next });
     if (prediction && stats) prediction.pace = overworldPace(next, stats);
   };
   const setCore = (core: CoreState) => {
     stats = coreStats(core);
-    hud.set({ core });
+    you.set({ core });
     if (gear) setGear(gear);
     setVitals(vitals);
   };
@@ -120,7 +118,8 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       net = joinedNet;
       prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
-      hud.set({ regionName: "…", wins: welcome.wins });
+      hud.set({ regionName: "…" });
+      you.set({ wins: welcome.wins, character: welcome.character, faith: welcome.faith });
       vitals = welcome.vitals;
       gear = welcome.gear;
       setCore(welcome.core);
@@ -156,6 +155,29 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
         if (e !== undefined) world.add(e, Speech, { text: line.text, remainingTime: SPEECH_TIME });
       });
       joinedNet.on("gear", (msg) => setGear(msg.gear));
+      joinedNet.on("character", ({ character }) => you.set({ character }));
+      joinedNet.on("faith", ({ faith }) => you.set({ faith }));
+      joinedNet.on("using", ({ at }) => you.set({ using: at }));
+      joinedNet.on("trade", (msg) => setGear(msg.gear));
+      joinedNet.on("given", (msg) => setGear(msg.gear));
+      joinedNet.on("rested", (msg) => setVitals(msg.vitals));
+      joinedNet.on("healed", (msg) => setVitals(msg.vitals));
+      joinedNet.on("itemUsed", (msg) => {
+        you.set({ using: null });
+        setVitals(msg.vitals);
+        setGear(msg.gear);
+      });
+      joinedNet.on("core", (msg) => {
+        setCore(msg.core);
+        setVitals(msg.vitals);
+      });
+      // Applied while you're still in the arena, so what's used or absorbed there after a win counts on top of it.
+      joinedNet.on("battleResult", (msg) => {
+        you.set({ wins: msg.wins });
+        setGear(msg.gear);
+        setCore(msg.core);
+        setVitals(msg.vitals);
+      });
     },
     leave() {
       hush();
@@ -188,16 +210,11 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       const at = playerPos(), regionName = state.map ? regionAt(state.map, at.x, at.z).name : "…";
       hud.set({ interaction: interaction(), byFire, cameraTurns, regionName });
     },
-    onBattleResult(msg) {
+    backFromBattle(me) {
       inBattle = false;
-      prediction?.reset(msg.me);
-      hud.set({ wins: msg.wins });
-      setCore(msg.core);
-      setVitals(msg.vitals);
+      prediction?.reset(me);
     },
-    setVitals,
     setGear,
-    setCore,
     interact,
   };
 }

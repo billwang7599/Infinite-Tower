@@ -46,7 +46,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
         <>
           {mode === "overworld" && (
             <OverworldHud
-              hud={ui.overworld} input={input} ping={ui.ping} hudSettings={settings.hud}
+              hud={ui.overworld} you={ui.you} input={input} ping={ui.ping} hudSettings={settings.hud}
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} interact={actions.interact} useItem={actions.useItem}
@@ -62,13 +62,13 @@ export function App({ ui, settings, input, actions }: AppProps) {
               chant={ui.chant} input={input} castSkill={actions.castSkill} saveSkill={actions.saveSkill}
               interact={actions.interact} leaving={{ asking: ui.leaveArena, leave: () => actions.leaveBattle(true) }}
               bag={{
-                open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
+                open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, you: ui.you,
                 settingsScreen: ui.settingsScreen, skillbookScreen: ui.skillbookScreen, moveItem: actions.moveItem,
                 tooWeak, useItem: actions.useItem,
               }}
             />
           )}
-          <CoreCard mode={mode} overworld={ui.overworld} battle={ui.battle} said={ui.notifications.said} />
+          <CoreCard mode={mode} you={ui.you} battle={ui.battle} said={ui.notifications.said} />
           <Chat
             chat={ui.chat} input={input} bindings={settings.bindings}
             send={(text) => actions.request({ t: "chat", text })}
@@ -88,7 +88,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       <Fade screen={ui.screen} />
       {playing && (
         <QuestbookScreen
-          questbook={ui.questbook} overworld={ui.overworld} input={input} toggle={ui.toggleQuestbook}
+          questbook={ui.questbook} you={ui.you} input={input} toggle={ui.toggleQuestbook}
           close={ui.closeQuestbook}
         />
       )}
@@ -106,7 +106,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
       )}
       {mode !== null && (
         <CreationScreen
-          creation={ui.creation} overworld={ui.overworld} title={ui.title} active={inWorld(mode, phase)}
+          creation={ui.creation} you={ui.you} title={ui.title} active={inWorld(mode, phase)}
           input={input} save={(character) => actions.request({ t: "character", character })}
           close={ui.closeCreation}
         />

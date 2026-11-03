@@ -9,7 +9,7 @@ import type { Actions } from "../../../core/actions.js";
 import type { MenuAction } from "../../../settings/bindings.js";
 import { LookPicture } from "../../components/LookPicture.js";
 import { useAction } from "../../components/useAction.js";
-import type { CreationState, OverworldHudState, TitleState } from "../../state.js";
+import type { CreationState, TitleState, YouState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { useReducedMotion } from "../title/useSequence.js";
@@ -37,7 +37,7 @@ const FLOOR_LINE = "absolute inset-x-[-8%] -bottom-2 h-px bg-linear-to-r from-tr
 
 interface CreationProps {
   /** Gets the character once the server has saved it. */
-  overworld: Store<OverworldHudState>;
+  you: Store<YouState>;
   /** The username suggests a name. */
   title: Store<TitleState>;
   /** The title has cleared off this screen. */
@@ -53,9 +53,9 @@ export function CreationScreen({ creation, ...props }: CreationProps & { creatio
   return open ? <Creation {...props} /> : null;
 }
 
-function Creation({ overworld, title, active, input, save, close }: CreationProps) {
+function Creation({ you, title, active, input, save, close }: CreationProps) {
   const username = useStore(title, (s) => s.username);
-  const saved = useStore(overworld, (s) => s.character);
+  const saved = useStore(you, (s) => s.character);
   const still = useReducedMotion();
   const motion = still ? "still" : "moving";
   const [scene, dispatch] = useReducer(nextScene, START);

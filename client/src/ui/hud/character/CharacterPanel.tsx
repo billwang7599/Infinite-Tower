@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ShownStat } from "@infinite-tower/shared";
-import type { OverworldHudState } from "../../state.js";
+import type { OverworldHudState, YouState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
@@ -12,6 +12,7 @@ import { Tabs } from "./Tabs.js";
 
 interface PanelProps {
   hud: Store<OverworldHudState>;
+  you: Store<YouState>;
   statPoint: (stat: ShownStat, add: boolean) => void;
   close: () => void;
   shownWidth: (px: number) => void;
@@ -20,11 +21,11 @@ interface PanelProps {
 const WIDTH_PX = 680;
 const BODY_HEIGHT_PX = 400;
 
-export function CharacterPanel({ hud, statPoint, close, shownWidth }: PanelProps) {
-  const core = useStore(hud, (s) => s.core);
+export function CharacterPanel({ hud, you, statPoint, close, shownWidth }: PanelProps) {
+  const core = useStore(you, (s) => s.core);
   const byFire = useStore(hud, (s) => s.byFire);
-  const character = useStore(hud, (s) => s.character);
-  const faith = useStore(hud, (s) => s.faith);
+  const character = useStore(you, (s) => s.character);
+  const faith = useStore(you, (s) => s.faith);
   const [shown, show] = useState<CharacterTab>("stats");
   return (
     <PanelFrame

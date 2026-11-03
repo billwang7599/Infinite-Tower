@@ -156,7 +156,8 @@ main.ts
   (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) live in the game's world; only the active mode updates. The fighters live in the
   fight's own world (below), made on encounter and dropped when you return. The fight's result comes while you're
-  still in the arena; game.ts holds it and applies it (gear, vitals, wins, notices) as you come back.
+  still in the arena; the overworld applies its gear, core, vitals and wins to your save (`ui.you`) at once, and
+  game.ts holds it for where you come back and what you're told as you do.
 - **Drawing has one owner: `client/src/visuals/`.** It owns the engine, both Babylon scenes and everything in them
   (meshes, sprites and their painted frames, animation, the camera, effects). The modes do game logic only and import
   no Babylon (`npm run typecheck` checks it); they never call into drawing or hand it state. Each frame, after the
@@ -179,7 +180,7 @@ main.ts
   front of it (`chantWords.ts`), and its going: a dead enemy lies `DISSOLVE_DELAY_TIME`, then crumbles over
   `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena (`Player.leftArena`) fades over
   `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are alpha-tested, and its shadow with
-  it). The player's look is read from `ui.overworld`'s character and painted once
+  it). The player's look is read from `ui.you`'s character and painted once
   (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
   every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
   turned by the same blade poses as a Kobold's (`playerBlade`, `visuals/battle/pose.ts`). Every other player in the
@@ -617,10 +618,12 @@ answers it with a `pong` itself.
 In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect(socket)` opens a server's socket
 (from the list: a path on the page's host, or a whole URL) and resolves with it and the `welcome`; `net.send(msg)`
 sends; each part of the game subscribes to the messages it needs with `net.on(type, fn)`, which returns an
-unsubscribe: the overworld to `world`, `npcs`, `state`, `encounter` and `gear`, the battle to `battleHash` and
-`battleSync` from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens (the world,
-while the game still loads) are held and delivered, in order, once the first listeners are in. `net.onLost(fn)` hears a
-dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and `net.close()` hangs up quietly.
+unsubscribe: the overworld to `world`, `npcs`, `state`, `encounter` and every message that changes your save (`gear`,
+`core`, `itemUsed`, `trade`, `battleResult`...), the battle to `battleHash` and `battleSync` from its start to its end,
+`game.ts` to the encounters and results, and `game/hear.ts` to the rest, with their notices. Messages that come before
+anyone listens (the world, while the game still loads) are held and delivered, in order, once the first listeners are
+in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and
+`net.close()` hangs up quietly.
 
 | Client -> server | When |
 |---|---|
@@ -1331,13 +1334,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     game/            start.ts (its own lazily loaded chunk with Babylon and Rapier: prepareGame() loads the
                      physics and builds the modes, the drawing (createDrawing: the engine and both scenes) and
                      the sound (createAudio) once, behind the title, and returns the Game),
-                     game.ts (Game: join() starts a session on a connection, leave() ends it; subscribes to
-                     the server messages no mode owns, keeps the settings in sync, runs the frame loop (the
-                     mode's update, then `drawing.frame` and `audio.frame`), overworld <-> battle switching, who
-                     has the keys, the character from `welcome` / `character`, opening creation without one;
-                     tells the player what happened with `say`; the known words and pages from the server; the fight
-                     breaking off the chant; `saveSkill` as the fight's `write` in a battle; the chat log and
-                     `sendChat`),
+                     game.ts (Game: join() starts a session on a connection, leave() ends it; keeps the settings
+                     in sync, runs the frame loop (the mode's update, then `drawing.frame` and `audio.frame`),
+                     overworld <-> battle switching and who has the keys), hear.ts (the server messages no mode
+                     owns: opening creation without a character, the known words and pages, the chat log, quests,
+                     talk, shops and every notice told with `say`), requests.ts (the UI's requests: sent to the
+                     server, or in a battle the fight's inputs (`saveSkill` its `write`); closing the bag; the fight
+                     breaking off the chant and the bag),
                      transition.ts (Mode,
                      flash / fade), debug.ts (the dev handles on `window`, `cast(skill)` among them)
     net/             net.ts (Net, the game socket: connect, send, `on(type)` with an unsubscribe, onLost, onPing,
@@ -1399,7 +1402,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        creation, title
                        screen (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as
                        a game runs without a character, under the title)
-      state.ts         UiState: the stores the game writes (title, screen, overworld HUD, battle HUD, ping, skills:
+      state.ts         UiState: the stores the game writes (title, screen, `you` (your save: character, core, faith,
+                       gear, using, wins; the overworld writes it), overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open, its width on screen),
                        `chant`, `battleBag`, `leaveArena`, `skillbookScreen`, `admin`, `challenge`, `chat` (open,
@@ -1515,7 +1519,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the world's map, the actors, the camera's turns), the walk keys
-                         (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
+                         (turned to the camera) and the camera's turn keys, server state, the overworld HUD, the
+                         only writer of your save (`ui.you`, from `welcome` and every message that changes it);
                          interactionAt: the Interact key rests, joins a fight, or opens the pile, talks to the NPC,
                          looks at the trace or binds to the pad you face (inView along your heading), the nearest
                          in reach; the
