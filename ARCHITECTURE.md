@@ -1110,7 +1110,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      player ground systems), setup.ts (FightSetup, the one-on-one and DUEL_STARTS
                      starting spots, joinStart (where a joiner comes in), spawning players and enemies:
                      components + a collider, one component per attack in the def, a Wielder for whoever holds
-                     things), context.ts (FightContext,
+                     things; ATTACKS: each enemy attack's component, start and system), context.ts (FightContext,
                      FightOutcome, FightEvent), combat.ts (addHit,
                      hits in an arc, the weapon's defence asked first, stagger, knockback, the hit timers),
                      outcome.ts (won /
@@ -1844,10 +1844,12 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   (its `EnemyDef` combining behaviors, its drops, its overworld actor's behavior parts) and its line in `ENEMIES`;
   a folder named by it in `client/src/visuals/enemies/` (model, pose and its test, animation, sprite) and its line
   in `ENEMY_LOOKS` (TypeScript errors until both are there); and a spawn in a region. A new enemy behavior is a def
-  shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
-  (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
-  `shared/src/battle/fight/behaviors/`, listed in `fight.ts`, its state in `fight/state.ts`. A new overworld
-  behavior: component + factory + system in `server/src/core/overworld/behaviors/`.
+  shape in `shared/src/battle/defs.ts` (a key of `EnemyAttacks`), a component (`{ def, ...state }`) and its states in
+  `EnemyState` (`shared/src/battle/components.ts`), a system in `shared/src/battle/fight/behaviors/`, and one row in
+  `ATTACKS` (`shared/src/battle/fight/setup.ts`: the component, how it starts and its system). The row is all the
+  fight needs: the systems run in the table's order, and the fight's state saves and loads the component but its
+  `def`, so its state must be plain data. A new overworld behavior: component + factory + system in
+  `server/src/core/overworld/behaviors/`.
 - **An NPC.** Its id in `NPC_IDS` (`shared/src/world/layout.ts`); a file named by it in `server/src/core/npcs/`
   (its `stops`, the last with no `when`, each `{ region, at, heading, talk }` with its talk there, the last with no
   `when`) and its line in `NPCS`; a folder named by it in `client/src/visuals/npcs/` (`look.ts`: its name and a look
