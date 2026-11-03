@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const GROCER: Npc = {
   stops: [
     {
-      level: "market-ward",
+      region: "market-ward",
       at: { x: -11.5, z: 9.5 },
       heading: "south",
       talk: [

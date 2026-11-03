@@ -1,4 +1,4 @@
-import { addItem, coreAtStep, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
+import { addItem, coreAtStep, distXZ, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
 import { fullVitals } from "../content/player.js";
 import { QUESTS } from "../content/quests.js";
 import type { GameSession } from "./session.js";
@@ -11,7 +11,9 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
   switch (cheat.kind) {
     case "encounter":
       if (session.inOverworld) {
-        const spawn = session.overworld.level.spawns.find((s) => s.enemy === cheat.enemy);
+        const at = session.overworld.playerPos(session.me);
+        const spawn = session.overworld.map.spawns.filter((s) => s.enemy === cheat.enemy)
+          .sort((a, b) => distXZ(a.at, at) - distXZ(b.at, at))[0];
         session.overworld.startEncounter(session.me, null, cheat.enemy, spawn);
       }
       return;

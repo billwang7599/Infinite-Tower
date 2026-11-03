@@ -6,12 +6,12 @@ import { LORE } from "../../../src/core/content/lore.js";
 import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory, type Story } from "../../../src/core/game/story.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { getLevel } from "../../../src/core/world/index.js";
-import { doStep, goTo, levelOf, linesFor, offeredQuest, startIn, startSession, talkTo } from "./helpers.js";
+import { getRegion, WORLD } from "../../../src/core/world/index.js";
+import { doStep, goTo, regionOf, linesFor, offeredQuest, startIn, startSession, talkTo } from "./helpers.js";
 
 before(() => initPhysics());
 
-const MISTWOOD = getLevel("mistwood");
+const MISTWOOD = getRegion("mistwood");
 const MISTWOOD_FOLK: [NpcId, readonly string[]][] = [
   ["herbalist", ["herbalist-fangs", "herbalist-mist"]],
   ["burner", ["burner-rook"]],
@@ -24,17 +24,17 @@ const rewardsOf = (id: string) => QUESTS[id]!.steps.flatMap((s) => Object.keys(s
 
 describe("the Mistwood's folk", () => {
   test("each stands in the Mistwood on open ground, facing open ground, apart from everyone and every spawn", () => {
-    const [fire] = MISTWOOD.layout.campfires;
+    const [fire] = MISTWOOD.campfires;
     const others = Object.entries(NPCS).flatMap(([id, { stops }]) =>
-      stops.filter((s) => s.level === "mistwood").map((s) => ({ id, at: s.at })));
+      stops.filter((s) => s.region === "mistwood").map((s) => ({ id, at: s.at })));
     const spawns = MISTWOOD.spawns.flatMap(({ at }) => [at, { x: -at.x, z: at.z }]);
     for (const [npc] of MISTWOOD_FOLK) {
       const { stops } = NPCS[npc];
       assert.equal(stops.length, 1, npc);
-      const { level, at, heading } = stops[0]!, way = HEADING_WAY[heading];
-      assert.equal(level, "mistwood", npc);
-      assert.ok(!isSolid(MISTWOOD.layout, at.x, at.z), npc);
-      assert.ok(!isSolid(MISTWOOD.layout, at.x + way.x, at.z + way.z), `${npc} faces open ground`);
+      const { region, at, heading } = stops[0]!, way = HEADING_WAY[heading];
+      assert.equal(region, "mistwood", npc);
+      assert.ok(!isSolid(WORLD.layout, at.x, at.z), npc);
+      assert.ok(!isSolid(WORLD.layout, at.x + way.x, at.z + way.z), `${npc} faces open ground`);
       assert.ok(distXZ(at, MISTWOOD.spawn) > MIN_GAP_TILES, npc);
       assert.ok(distXZ(at, fire!) > MIN_GAP_TILES, npc);
       for (const spawn of spawns) assert.ok(distXZ(at, spawn) > MIN_GAP_TILES, npc);
@@ -66,11 +66,11 @@ describe("the Mistwood's folk", () => {
     assert.equal(QUESTS["herbalist-fangs"]!.when, undefined);
     assert.deepEqual(QUESTS["herbalist-mist"]!.when, { done: "herbalist-fangs" });
     const [reach] = QUESTS["herbalist-mist"]!.steps;
-    assert.ok(reach?.task.kind === "reach" && reach.task.level === "mistwood" && reach.task.area);
+    assert.ok(reach?.task.kind === "reach" && reach.task.region === "mistwood" && reach.task.area);
     const { area } = reach.task;
     assert.ok(!inRect(area, MISTWOOD.spawn.x, MISTWOOD.spawn.z));
-    assert.ok(!isSolid(MISTWOOD.layout, area.x + area.w / 2, area.z + area.h / 2));
-    assert.equal(tileAt(MISTWOOD.layout, area.x + area.w / 2, area.z + area.h + 0.5), "water", "the lake lies past it");
+    assert.ok(!isSolid(WORLD.layout, area.x + area.w / 2, area.z + area.h / 2));
+    assert.equal(tileAt(WORLD.layout, area.x + area.w / 2, area.z + area.h + 0.5), "water", "the lake lies past it");
   });
 
   test("the burner has news of Tamsin's son only for someone who has asked after him", () => {
@@ -108,7 +108,7 @@ describe("the Mistwood's folk", () => {
     const story: Story = {
       ...sonFound(), quests: { ...sonFound().quests, "burner-rook": { step: null, kills: 0 } },
     };
-    const { session, link } = startIn(levelOf(story, "tamsin"), { saved: { story } });
+    const { session, link } = startIn(regionOf(story, "tamsin"), { saved: { story } });
     assert.deepEqual(talkTo(session, link, "tamsin").lines, linesFor(story, "tamsin", { done: "burner-rook" }));
   });
 });

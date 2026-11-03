@@ -4,7 +4,7 @@ import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, type PlayerInputData } from 
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { SHOPS } from "../../../src/core/content/shops.js";
-import { LEVELS } from "../../../src/core/world/index.js";
+import { getRegion } from "../../../src/core/world/index.js";
 import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -100,7 +100,7 @@ describe("the grey wolf", () => {
   });
 
   test("roams the Grass Field and the Mistwood", () => {
-    const count = (level: string, enemy: string) => LEVELS[level]!.spawns.filter((s) => s.enemy === enemy).length;
+    const count = (region: string, enemy: string) => getRegion(region).spawns.filter((s) => s.enemy === enemy).length;
     assert.ok(count("grass-field", "grey-wolf") >= 1);
     assert.ok(count("mistwood", "grey-wolf") >= 1);
   });

@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const MAREN: Npc = {
   stops: [
     {
-      level: "waking-hollow",
+      region: "waking-hollow",
       at: { x: -2.5, z: 6 },
       heading: "west",
       talk: [

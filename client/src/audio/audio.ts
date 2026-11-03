@@ -6,7 +6,7 @@ import type { Notifications } from "../ui/notifications/state.js";
 import { fightEars, type Cue, type Heard } from "./battle.js";
 import { mixGain, place } from "./mix.js";
 import { MUSIC, musicFor, TRACKS, type TrackName } from "./music.js";
-import { overworldEars } from "./overworld.js";
+import { overworldEars, themeHere } from "./overworld.js";
 import { EVENT_SOUNDS, soundDef, take, type SoundName } from "./sounds.js";
 
 const URLS = import.meta.glob<string>("./sounds/*.ogg", { eager: true, query: "?url", import: "default" });
@@ -178,7 +178,7 @@ export function createAudio({ volumes, notifications, battle, overworld }: Audio
     frame(mode) {
       render(mode === "battle" ? hearFight(battle) : mode === "overworld" ? hearOverworld(overworld) : null);
       playMusic(musicFor({
-        mode, level: overworld.level?.theme ?? null, arena: battle.fight?.arena.look ?? null,
+        mode, region: themeHere(overworld), arena: battle.fight?.arena.look ?? null,
         decided: battle.outcome.state !== "fighting",
       }));
     },

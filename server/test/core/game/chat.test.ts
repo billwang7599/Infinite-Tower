@@ -9,7 +9,7 @@ import {
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import type { Account } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT, startSession } from "./helpers.js";
 
 before(() => initPhysics());

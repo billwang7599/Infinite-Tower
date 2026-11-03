@@ -43,9 +43,11 @@ interface Lamp { light: PointLight; shadows: ShadowGenerator }
 
 export interface Sky {
   look(look: SkyLook, lights: MapLight[]): void;
+  tint(look: SkyLook): void;
   /** `only`: cast by the sun or moon alone, or by that map light alone (a card turned to it). */
   castShadows(mesh: AbstractMesh, only?: "direct" | MapLight): void;
   clearShadows(): void;
+  dropShadows(meshes: readonly AbstractMesh[]): void;
   frame(nowMs: number, camera: Vec3): void;
   tintAt(at: Vec3, out: Color3): Color3;
   blobs(material: Material, lengthM: number, widthM: number): Blobs;
@@ -122,6 +124,10 @@ export function createSky(scene: Scene): Sky {
       for (const { light } of pool.slice(lamps.length)) light.setEnabled(false);
     },
 
+    tint(look) {
+      place = look;
+    },
+
     castShadows(mesh, only) {
       if (only === "direct") bodyShadows.addShadowCaster(mesh);
       else if (only) lamps.find((l) => l.def === only)?.shadows.addShadowCaster(mesh);
@@ -133,6 +139,17 @@ export function createSky(scene: Scene): Sky {
         }
         bodyShadows.addShadowCaster(mesh);
         for (const lamp of lamps) lamp.shadows.addShadowCaster(mesh);
+      }
+    },
+
+    dropShadows(meshes) {
+      const gone = new Set(meshes);
+      for (const m of meshes) casters.delete(m);
+      for (const { shadows } of [{ shadows: bodyShadows }, ...pool]) {
+        const list = shadows.getShadowMap()!.renderList!;
+        let kept = 0;
+        for (const m of list) if (!gone.has(m)) list[kept++] = m;
+        list.length = kept;
       }
     },
 

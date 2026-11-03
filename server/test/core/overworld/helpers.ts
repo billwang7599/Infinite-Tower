@@ -3,8 +3,8 @@ import { World, type EnemyId, type Entity, type Vec2 } from "@infinite-tower/sha
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
 import { newWalk } from "../../../src/core/overworld/player.js";
 import type { OverworldContext } from "../../../src/core/overworld/context.js";
-import type { LevelDef } from "../../../src/core/world/level.js";
-import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
+import type { WorldDef } from "../../../src/core/world/world.js";
+import { TEST_CHARACTER, TEST_WORLD } from "../../fixtures/world.js";
 
 interface Encounter { player: Entity; source: Entity | null; enemy: EnemyId }
 
@@ -15,7 +15,7 @@ export interface TestOverworld {
   encounters: Encounter[];
 }
 
-export function testOverworld(o: { playerAt?: Vec2; rng?: () => number; level?: LevelDef } = {}): TestOverworld {
+export function testOverworld(o: { playerAt?: Vec2; rng?: () => number; map?: WorldDef } = {}): TestOverworld {
   const world = new World();
   const encounters: Encounter[] = [];
   const player = world.spawn();
@@ -23,7 +23,7 @@ export function testOverworld(o: { playerAt?: Vec2; rng?: () => number; level?: 
   world.add(player, OverworldPos, { x: at.x, z: at.z });
   world.add(player, OverworldPlayer, newWalk(TEST_CHARACTER, "kingdom"));
   const ctx: OverworldContext = {
-    level: o.level ?? TEST_LEVEL,
+    map: o.map ?? TEST_WORLD,
     rng: o.rng ?? (() => 0),
     startEncounter: (p, source, enemy) => {
       world.require(p, OverworldPlayer).fighting = true;

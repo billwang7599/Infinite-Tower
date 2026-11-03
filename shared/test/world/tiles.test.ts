@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inTallGrass, isSolid, mapHalfSize, tileAt, TILES, type TileKind } from "@infinite-tower/shared";
-import { TEST_LAYOUT as level } from "./level.js";
+import { inTallGrass, isSolid, tileAt, TILES, type TileKind } from "@infinite-tower/shared";
+import { TEST_LAYOUT as level } from "./map.js";
 
 describe("tiles", () => {
-  test("the map is centred: its half size comes from the grid", () => {
-    assert.deepEqual(mapHalfSize(level), { halfWidth: 10, halfDepth: 5 });
+  test("the map's bounds say where its grid lies", () => {
+    const moved = { ...level, bounds: { ...level.bounds, x: level.bounds.x + 100, z: level.bounds.z - 50 } };
+    assert.equal(tileAt(moved, 97.5, -46.5), "rock");
+    assert.equal(tileAt(moved, -2.5, 3.5), null);
   });
 
   test("tileAt reads the grid, the first row the northern edge (+z)", () => {

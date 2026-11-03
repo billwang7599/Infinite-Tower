@@ -1,5 +1,5 @@
 import {
-  faceToward, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type PileSnap,
+  faceToward, type ActorSnap, type Character, type Entity, type Heading, type WorldLayout, type PileSnap,
   type PlayerSnap, type Vec2, type World,
 } from "@infinite-tower/shared";
 import { Npc, OverworldActor, OverworldPos, Peer, type OverworldActorData } from "./components.js";
@@ -42,8 +42,14 @@ export class ActorMirror {
     return this.local.get(id);
   }
 
-  enter(level: LevelLayout): void {
+  enter(placed: Pick<WorldLayout, "npcs" | "traces">): void {
     this.clear();
+    this.place(placed);
+  }
+
+  place({ npcs, traces }: Pick<WorldLayout, "npcs" | "traces">): void {
+    for (const e of this.placed) this.world.destroy(e);
+    this.world.flush();
     const place = (at: Vec2, kind: "npc" | "trace", heading: Heading) => {
       const e = this.world.spawn();
       this.world.add(e, OverworldPos, { x: at.x, z: at.z });
@@ -51,12 +57,12 @@ export class ActorMirror {
       return e;
     };
     this.placed = [
-      ...level.npcs.map(({ npc, at, heading }) => {
+      ...npcs.map(({ npc, at, heading }) => {
         const e = place(at, "npc", heading);
         this.world.add(e, Npc, { id: npc });
         return e;
       }),
-      ...level.traces.map((at) => place(at, "trace", "west")),
+      ...traces.map((at) => place(at, "trace", "west")),
     ];
   }
 

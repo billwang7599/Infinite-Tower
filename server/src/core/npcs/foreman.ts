@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const FOREMAN: Npc = {
   stops: [
     {
-      level: "old-quarry",
+      region: "old-quarry",
       at: { x: -6.5, z: -12.5 },
       heading: "east",
       talk: [

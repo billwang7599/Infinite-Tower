@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const TOBIN: Npc = {
   stops: [
     {
-      level: "waking-hollow",
+      region: "waking-hollow",
       at: { x: 4.5, z: 2.5 },
       heading: "west",
       talk: [

@@ -4,7 +4,7 @@ import { Body, Enemy, FIXED_DT, Health, IDLE_INPUT, PLAYER, type PlayerInputData
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { ENEMIES, rollDrops } from "../../../src/core/enemies/index.js";
 import { SHOPS } from "../../../src/core/content/shops.js";
-import { LEVELS } from "../../../src/core/world/index.js";
+import { getRegion } from "../../../src/core/world/index.js";
 import { fightWith, FULL } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
@@ -98,6 +98,6 @@ describe("the bog lurker", () => {
   });
 
   test("lurks in the Mistwood", () => {
-    assert.ok(LEVELS["mistwood"]!.spawns.some((s) => s.enemy === "bog-lurker"));
+    assert.ok(getRegion("mistwood").spawns.some((s) => s.enemy === "bog-lurker"));
   });
 });

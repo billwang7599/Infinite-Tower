@@ -21,7 +21,7 @@ export class NotLoggedInError extends Error {
 
 export class Net {
   private readonly listeners = new Map<GameMsgType, Set<Listener>>();
-  /** Until the first listener: the server sends the level right after `welcome`, while the game may still load. */
+  /** Until the first listener: the server sends the world right after `welcome`, while the game may still load. */
   private held: ServerMsg[] | null = [];
   private flushQueued = false;
   private readonly lostListeners = new Set<(reason: string) => void>();

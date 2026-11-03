@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const BURNER: Npc = {
   stops: [
     {
-      level: "mistwood",
+      region: "mistwood",
       at: { x: -1.5, z: -12.5 },
       heading: "north",
       talk: [

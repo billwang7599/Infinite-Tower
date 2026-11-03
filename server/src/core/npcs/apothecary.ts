@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const APOTHECARY: Npc = {
   stops: [
     {
-      level: "market-ward",
+      region: "market-ward",
       at: { x: 10.5, z: 9.5 },
       heading: "south",
       talk: [

@@ -1,6 +1,7 @@
 import type { EnemyId, Heading, NpcId, Vec2 } from "@infinite-tower/shared";
 import type { ShopId } from "../content/shops.js";
 import type { When } from "../game/story.js";
+import { inRegion } from "../world/index.js";
 import { APOTHECARY } from "./apothecary.js";
 import { BRAM } from "./bram.js";
 import { BURNER } from "./burner.js";
@@ -36,9 +37,10 @@ export interface Trace {
   lines: readonly string[];
 }
 
+/** Spots are written in `region`'s own tiles; `NPCS` holds them in world tiles. */
 export interface Stop {
   when?: When;
-  level: string;
+  region: string;
   at: Vec2;
   heading: Heading;
   talk: readonly Talk[];
@@ -54,7 +56,15 @@ export interface Npc {
   stops: readonly Stop[];
 }
 
-export const NPCS: Record<NpcId, Npc> = {
+const inWorld = (npc: Npc): Npc => ({
+  stops: npc.stops.map((stop) => ({
+    ...stop,
+    at: inRegion(stop.region, stop.at),
+    ...stop.trace && { trace: { ...stop.trace, at: inRegion(stop.region, stop.trace.at) } },
+  })),
+});
+
+const WRITTEN: Record<NpcId, Npc> = {
   hollis: HOLLIS,
   maren: MAREN,
   tobin: TOBIN,
@@ -79,3 +89,7 @@ export const NPCS: Record<NpcId, Npc> = {
   innkeeper: INNKEEPER,
   carver: CARVER,
 };
+
+export const NPCS = Object.fromEntries(
+  Object.entries(WRITTEN).map(([id, npc]) => [id, inWorld(npc)]),
+) as Record<NpcId, Npc>;

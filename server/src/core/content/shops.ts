@@ -7,7 +7,7 @@ export const ITEM_VALUES: Partial<Record<ItemId, number>> = {
   sword: 300, longsword: 900, greatsword: 1500,
 };
 
-/** By level; 1 where it's left out. Highmere, full of new avatars, charges more. */
+/** By region; 1 where it's left out. Highmere, full of new avatars, charges more. */
 export const PRICE_FACTOR: Partial<Record<string, number>> = { kingdom: 1.5, "market-ward": 1.5 };
 
 export const SELL_SHARE = 0.4;

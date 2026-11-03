@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  INTERACT_LOOK_RAD, INTERACT_RANGE_M, JOIN_RANGE_TILES, REST_RANGE_TILES, type LevelLayout, type PlacedNpc,
+  INTERACT_LOOK_RAD, INTERACT_RANGE_M, JOIN_RANGE_TILES, REST_RANGE_TILES, type PlacedNpc, type WorldLayout,
   type Vec2,
 } from "@infinite-tower/shared";
 import { interactionAt } from "../../../src/modes/overworld/overworld.js";
 
 const FIRE = { x: 0, z: 0 };
-const level = { campfires: [FIRE], npcs: [], traces: [], pads: [] } as unknown as LevelLayout;
+const level = { campfires: [FIRE], npcs: [], traces: [], pads: [] } as unknown as WorldLayout;
 const at = (x: number, z = 0) => ({ x, z });
 const npcAt = (spot: Vec2): PlacedNpc => ({ npc: "hollis", at: spot, heading: "west" });
 const withNpcs = (...spots: Vec2[]) => ({ ...level, npcs: spots.map(npcAt) });

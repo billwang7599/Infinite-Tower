@@ -125,7 +125,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const arena = createBattleScene(engine, from.battle);
   const overworld = createOverworldScene(engine, from.overworld);
   const stage = arenaStage(arena);
-  const level = overworldStage(overworld);
+  const land = overworldStage(overworld);
   const frames = { chibi: overworld.materials.player, battle: arena.materials.player };
   const playerLook = new PlayerLook(frames, redrawSprite);
   const newPeer = (i: number | string): Peer =>
@@ -212,7 +212,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   const drawOverworld = (dt: number) => {
     const { world } = from.overworld, kinds = new Map<Entity, OverworldActorData["kind"]>();
     for (const [e, actor] of world.query(OverworldActor)) kinds.set(e, actor.kind);
-    level(dt, fresh);
+    land(dt, fresh);
     drawEntities(WALKERS, overworld, world, walkers, kinds, dt);
     fresh = false;
     overworld.scene.render();

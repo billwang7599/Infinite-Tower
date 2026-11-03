@@ -3,7 +3,8 @@ import {
   distXZ, faceToward, FIXED_DT, inTallGrass, START_HEADING, stepWalker, type Character, type System, type Vec2,
   type World,
 } from "@infinite-tower/shared";
-import { rollEnemy } from "../world/level.js";
+import { rollEnemy } from "../world/region.js";
+import { regionOf } from "../world/world.js";
 import { OverworldPlayer, OverworldPos, type OverworldPlayerData, type QueuedInput } from "./components.js";
 import type { OverworldContext } from "./context.js";
 
@@ -37,7 +38,7 @@ export function nearestHuntablePlayer(world: World, at: Vec2): { pos: Vec2; dist
 
 export function overworldPlayerSystem(ctx: OverworldContext): System {
   return (world, dt) => {
-    const { layout, grass } = ctx.level;
+    const { layout } = ctx.map;
     for (const [player, walk, pos] of world.query(OverworldPlayer, OverworldPos)) {
       if (walk.fighting) continue;
       walk.safeTime = Math.max(0, walk.safeTime - dt);
@@ -51,6 +52,7 @@ export function overworldPlayerSystem(ctx: OverworldContext): System {
         const x0 = pos.x, z0 = pos.z;
         stepWalker(layout, pos, input, FIXED_DT, { pace: walk.pace, vel: walk });
         walk.heading = faceToward(walk.heading, input.moveX, input.moveZ);
+        const { grass } = regionOf(ctx.map, pos);
         if (!grass || !inTallGrass(layout, pos.x, pos.z)) continue;
         walk.grassDist += Math.hypot(pos.x - x0, pos.z - z0);
         while (walk.grassDist >= grass.stepDist) {

@@ -11,7 +11,7 @@ import type { CoinId } from "../items/coins.js";
 import type { ItemCounts, ItemId, Rarity } from "../items/items.js";
 import type { InscriptionId } from "../soul/inscriptions.js";
 import type { BlessingGod, Faith } from "../soul/blessings.js";
-import type { LevelLayout, LevelMap, NpcId } from "../world/layout.js";
+import type { NpcId, PlacedNpc, WorldLayout } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
 import type { SavedSettings } from "./client-messages.js";
@@ -124,7 +124,7 @@ export type TradeNews =
   };
 
 export type ServerMsg =
-  /** `character` is null until the player has made one; the level comes only after that. `chat`: the last lines
+  /** `character` is null until the player has made one; the world comes only after that. `chat`: the last lines
    * said, oldest first. */
   | {
     t: "welcome"; wins: number; vitals: Vitals; core: CoreState; settings: SavedSettings; character: Character | null;
@@ -132,8 +132,8 @@ export type ServerMsg =
     faith: Faith;
   }
   | { t: "character"; character: Character }
-  /** `next`: the maps its exits lead to, so they can be drawn before you cross. */
-  | { t: "level"; level: LevelLayout; me: Vec2; next: LevelMap[] }
+  | { t: "world"; world: WorldLayout; me: Vec2 }
+  | { t: "npcs"; npcs: PlacedNpc[]; traces: Vec2[] }
   /** 20 times a second, so only what moves (your HP too: it comes back on its own). */
   | { t: "state"; ack: number; me: Vec2; hp: number; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }
   /** `source`: the actor that touched you, or null for tall grass. You're `setup.players[seat]`. */
@@ -151,8 +151,8 @@ export type ServerMsg =
   /** The other players' changes of input, as the server ran them, since the last of these. */
   | { t: "battleInputs"; inputs: { seat: number; changes: StepInput[] }[] }
   | { t: "challengeNews"; news: ChallengeNews }
-  /** A line said anywhere on the server. `speaker`: you, their id among `state`'s players if they're on your level
-   * (whether or not in view), or null. */
+  /** A line said anywhere on the server. `speaker`: you, their id among `state`'s players if they're in the
+   * world (whether or not in view), or null. */
   | { t: "chat"; line: ChatLine; speaker: number | "you" | null }
   | { t: "chatRefused"; reason: "tooFast" | "tooLong" }
   | { t: "joinRefused"; reason: "nobodyNear" | "full" | "duel" | "spar" }

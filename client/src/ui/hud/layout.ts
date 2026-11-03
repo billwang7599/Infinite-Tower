@@ -19,7 +19,7 @@ export const REST_BUTTON_HEIGHT_PX = 46;
 export const STATUS = { right: 16 + 300, bottom: 88 };
 const PANEL_TOP_PX = 56;
 
-// The level's name, the ping and the four buttons: 454 px measured with "Highmere: Castle Ward".
+// The region's name, the ping and the four buttons: 454 px measured with "Highmere: Castle Ward".
 export const TOP_RIGHT = { top: 12, bottom: 12 + 36, widthPx: 470 };
 
 export function fitCompass(view: Size): { top: number } {

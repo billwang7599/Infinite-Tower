@@ -7,7 +7,7 @@ import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { START_LEVEL } from "../../../src/core/world/index.js";
+import { START_REGION } from "../../../src/core/world/index.js";
 import { doStep, linesFor, offeredQuest, startSession, talkTo } from "./helpers.js";
 
 before(() => initPhysics());
@@ -20,8 +20,8 @@ const NATIVES: [NpcId, readonly string[]][] = [
 describe("the Grass Field's and the Mistwood's natives", () => {
   test("each stands past the Hollow, and offers even a new character their first quest", () => {
     for (const [npc, [first]] of NATIVES) {
-      const level = stopFor(newStory(), NPCS[npc])!.level;
-      assert.notEqual(level, START_LEVEL, npc);
+      const level = stopFor(newStory(), NPCS[npc])!.region;
+      assert.notEqual(level, START_REGION, npc);
       const { session, link } = startSession({ saved: { pad: level } });
       assert.equal(offeredQuest(talkTo(session, link, npc).offer), first, npc);
     }
@@ -38,7 +38,7 @@ describe("the Grass Field's and the Mistwood's natives", () => {
 
   for (const [npc, chain] of NATIVES) {
     test(`${npc}'s quests, played through the server: every step done, rewarded and told; then what's next`, () => {
-      const level = stopFor(newStory(), NPCS[npc])!.level;
+      const level = stopFor(newStory(), NPCS[npc])!.region;
       const p = startSession({ dev: true, saved: { pad: level } });
       for (const id of chain) {
         const offer = talkTo(p.session, p.link, npc).offer;

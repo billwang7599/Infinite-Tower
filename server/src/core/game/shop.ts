@@ -11,13 +11,14 @@ import { shopInView } from "./talk.js";
 
 export interface Trade { gear: Gear; onCloth: boolean }
 
-const fullPrice = (item: ItemId, level: string) => Math.round((ITEM_VALUES[item] ?? 0) * (PRICE_FACTOR[level] ?? 1));
+const fullPrice = (item: ItemId, region: string) =>
+  Math.round((ITEM_VALUES[item] ?? 0) * (PRICE_FACTOR[region] ?? 1));
 const paidFor = (item: ItemId) => Math.floor((ITEM_VALUES[item] ?? 0) * SELL_SHARE);
 
-export function shopView(id: ShopId, level: string, boughtThere: boolean): ShopView {
+export function shopView(id: ShopId, region: string, boughtThere: boolean): ShopView {
   const shop = SHOPS[id];
   const stock = shop.sells.map((item) => {
-    const full = fullPrice(item, level);
+    const full = fullPrice(item, region);
     return { item, price: boughtThere ? full : Math.round(full * (1 - FIRST_PURCHASE_DISCOUNT)), fullPrice: full };
   });
   const buys = shop.buys.filter((item) => paidFor(item) > 0);
@@ -85,7 +86,7 @@ export function done(session: GameSession, id: ShopId, news: TradeNews, gear?: G
 }
 
 const viewFor = (session: GameSession, id: ShopId) =>
-  shopView(id, session.overworld.level.layout.id, session.shopsBought.includes(id));
+  shopView(id, session.region, session.shopsBought.includes(id));
 
 export function openShop(session: GameSession): void {
   const id = session.inOverworld ? shopInView(session) : null;

@@ -10,10 +10,10 @@ import { PLAYER_STATS } from "../../src/core/content/player.js";
 import { OnlinePlayers } from "../../src/core/game/online.js";
 import { newStory } from "../../src/core/game/story.js";
 import type { Account, PlayerSave } from "../../src/core/ports.js";
-import { START_LEVEL } from "../../src/core/world/index.js";
+import { START_REGION } from "../../src/core/world/index.js";
 import { connectionPingMs, gameSockets, type PingOptions } from "../../src/ws/sockets.js";
 import { MemoryPlayerStore } from "../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../fixtures/level.js";
+import { TEST_CHARACTER } from "../fixtures/world.js";
 import { FakeSocket } from "./fake-socket.js";
 import { armed } from "../fixtures/fight.js";
 
@@ -24,7 +24,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
-  equipment: armed(), skillbook: blankSkillbook(), story: newStory(), pad: START_LEVEL, shopsBought: [],
+  equipment: armed(), skillbook: blankSkillbook(), story: newStory(), pad: START_REGION, shopsBought: [],
   core: newCore(), faith: {},
 };
 
@@ -62,11 +62,11 @@ describe("game sockets", () => {
     assert.equal(socket.closed, null);
   });
 
-  test("welcome a returning player with their save, then their level", async () => {
+  test("welcome a returning player with their save, then the world", async () => {
     const { store, connect } = setup();
     store.saved.set(ACCOUNT.id, structuredClone(SAVED));
     const socket = await connect();
-    assert.deepEqual(socket.kinds(), ["welcome", "level"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "world"]);
     const welcome = socket.messages[0];
     assert.ok(welcome?.t === "welcome");
     assert.deepEqual(welcome.vitals, SAVED.vitals);
@@ -76,11 +76,11 @@ describe("game sockets", () => {
     assert.deepEqual(welcome.gear.equipment, SAVED.equipment);
   });
 
-  test("a character message gets the character and the level back, and is saved", async () => {
+  test("a character message gets the character and the world back, and is saved", async () => {
     const { store, connect } = setup();
     const socket = await connect();
     socket.receive({ t: "character", character: TEST_CHARACTER });
-    assert.deepEqual(socket.kinds(), ["welcome", "character", "level"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "character", "world"]);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
 
@@ -233,6 +233,6 @@ describe("the simulated ping (dev only)", () => {
     const socket = await connect(ACCOUNT, "200");
     assert.deepEqual(socket.sent, []);
     t.mock.timers.tick(100);
-    assert.deepEqual(socket.kinds(), ["welcome", "level"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "world"]);
   });
 });

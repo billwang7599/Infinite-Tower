@@ -1,31 +1,29 @@
 import { Vector3 } from "@babylonjs/core";
-import { dampFactor, wrapAngle, type LevelMap } from "@infinite-tower/shared";
+import { dampFactor, wrapAngle } from "@infinite-tower/shared";
 import { OverworldPos } from "../../modes/overworld/components.js";
 import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
 import type { OverworldScene } from "./scene.js";
-import { levelDrawings, type LevelDrawing } from "./terrain.js";
+import { worldDrawing, type WorldDrawing } from "./chunks.js";
+import { terrainArt, type TerrainArt } from "./terrainArt.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
-const WARM_BUDGET_MS = 3;
 
 export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
-  const drawings = levelDrawings(view);
-  let level: { layout: LevelMap; drawing: LevelDrawing } | null = null;
+  let art: TerrainArt | null = null, world: WorldDrawing | null = null;
   const target = new Vector3(), back = new Vector3(), feet = { x: 0, y: 0, z: 0 };
   const turn = { fromRad: 0, toRad: 0, time: CAMERA_TURN_TIME };
   let facedYaw = NaN;
   return (dt, fresh) => {
     const { state, camera } = view;
-    if (state.level !== level?.layout) {
-      level?.drawing.leave();
-      level = state.level && { layout: state.level, drawing: drawings.of(state.level) };
-      level?.drawing.enter();
+    if (state.map !== world?.map) {
+      world?.dispose();
+      world = state.map && worldDrawing(view, state.map, art ??= terrainArt(view.scene));
       facedYaw = NaN;
       fresh = true;
     }
-    if (!level) return;
+    if (!world) return;
     const wantedRad = state.cameraTurns * QUARTER_TURN_RAD;
     if (fresh) Object.assign(turn, { fromRad: wantedRad, toRad: wantedRad, time: CAMERA_TURN_TIME });
     else if (Math.abs(wrapAngle(wantedRad - turn.toRad)) > 1e-6) {
@@ -34,7 +32,7 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     turn.time = Math.min(turn.time + dt, CAMERA_TURN_TIME);
     const share = turn.time / CAMERA_TURN_TIME;
     view.yawRad = turn.fromRad + (turn.toRad - turn.fromRad) * share * share * (3 - 2 * share);
-    if (view.yawRad !== facedYaw) level.drawing.face(facedYaw = view.yawRad);
+    if (view.yawRad !== facedYaw) world.face(facedYaw = view.yawRad);
     const flat = Math.cos(state.cameraPitchRad) * CAMERA_DISTANCE;
     back.set(
       -Math.sin(view.yawRad) * flat, Math.sin(state.cameraPitchRad) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat,
@@ -48,7 +46,6 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     view.sky.frame(Date.now(), camera.position);
     feet.x = target.x;
     feet.z = target.z;
-    level.drawing.frame(dt, camera.position, feet);
-    if (!fresh) drawings.warm(state.next, WARM_BUDGET_MS);
+    world.frame(dt, camera.position, feet);
   };
 }

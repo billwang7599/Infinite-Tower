@@ -4,7 +4,7 @@ import { dispatch } from "@infinite-tower/shared";
 import type { GameSession } from "../../src/core/game/session.js";
 import type { SessionMsg } from "../../src/ws/connection.js";
 import { handlers } from "../../src/ws/handlers.js";
-import { TEST_CHARACTER } from "../fixtures/level.js";
+import { TEST_CHARACTER } from "../fixtures/world.js";
 
 type Call = [method: string, ...args: unknown[]];
 

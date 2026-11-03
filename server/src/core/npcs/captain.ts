@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const CAPTAIN: Npc = {
   stops: [
     {
-      level: "market-ward",
+      region: "market-ward",
       at: { x: -2.5, z: -21.5 },
       heading: "east",
       talk: [
@@ -28,7 +28,7 @@ export const CAPTAIN: Npc = {
         },
         {
           when: { quest: "captain-boars", step: "boars" },
-          lines: ["Three boars off the Grass Field. Out through this gate and along the road; they're in the grass."],
+          lines: ["Three boars off the Grass Field. Down the road to the Hollow, then east; they're in the grass."],
         },
         {
           when: { canStart: "bram-yard" },

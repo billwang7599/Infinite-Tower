@@ -1,7 +1,7 @@
-/** Spawns a level's actors and replaces defeated ones after `respawnTime`, away from players if they're near. */
+/** Spawns the world's actors and replaces defeated ones after `respawnTime`, away from players if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { ENEMIES } from "../enemies/index.js";
-import type { SpawnDef } from "../world/level.js";
+import type { SpawnDef } from "../world/region.js";
 import { OverworldPlayer, OverworldPos } from "./components.js";
 import { spawnActor } from "./parts.js";
 
@@ -52,12 +52,13 @@ export class Spawner {
   }
 
   private spawn(def: SpawnDef): Entity {
-    return spawnActor(this.world, def.enemy, this.placeAway(def.at), ENEMIES[def.enemy].overworld());
+    return spawnActor(this.world, def.enemy, this.placeAway(def.at, def.away ?? { x: -def.at.x, z: def.at.z }),
+      ENEMIES[def.enemy].overworld());
   }
 
-  private placeAway(at: Vec2): Vec2 {
+  private placeAway(at: Vec2, away: Vec2): Vec2 {
     for (const [, , pos] of this.world.query(OverworldPlayer, OverworldPos)) {
-      if (distXZ(pos, at) < MIN_PLAYER_DIST) return { x: -at.x, z: at.z };
+      if (distXZ(pos, at) < MIN_PLAYER_DIST) return away;
     }
     return at;
   }

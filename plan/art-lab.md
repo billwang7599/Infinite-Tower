@@ -9,7 +9,7 @@ the game yet.
 - **A level editor.** Levels stay in code for now (the user: "maybe i can make levels by code level changes, that
   might be fine too"). One may come later; nothing about it is decided.
 - **Tiles that join**: edge and corner variants (grass meeting dirt) and a preview of tiles side by side; the game
-  paints its ground in code with edges where neighbours differ (`client/src/visuals/levels/ground.ts`).
+  paints its ground in code with edges where neighbours differ (`client/src/visuals/regions/ground.ts`).
 - **Animations**: a duration per frame, and playing them on the canvas, not only in the preview.
 - **Selections**: flip and rotate, and copying between drawings through the system clipboard (the clipboard is the
   lab's own for now). A paste floats over the layer it's pasted on, but not on a layer of its own.

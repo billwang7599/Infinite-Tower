@@ -39,7 +39,7 @@ const rich = (more: ItemCounts = {}) => bagWith({ "gold-coin": 10, "boar-essence
 
 describe("the Collegium's carver", () => {
   test("stands in the Market Ward, offering carving, its prices by rarity", () => {
-    assert.equal(stopFor(newStory(), NPCS.carver)?.level, "market-ward");
+    assert.equal(stopFor(newStory(), NPCS.carver)?.region, "market-ward");
     const { said, link } = atCollegium(rich());
     assert.equal(said.offer?.kind, "shop");
     const carving = link.last("shop").shop?.carving;

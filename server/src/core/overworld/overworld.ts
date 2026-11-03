@@ -1,9 +1,10 @@
-/** One level's overworld, shared by every player on it: their walkers and the level's actors, in one ECS world. */
+/** The overworld, shared by every player: their walkers and the world's actors, in one ECS world. */
 import {
   bagCounts, HEADING_WAY, World, type Bag, type Character, type EnemyId, type Entity, type ItemCounts, type ItemId,
   type System, type Vec2,
 } from "@infinite-tower/shared";
-import { hasPad, type LevelDef, type SpawnDef } from "../world/level.js";
+import type { SpawnDef } from "../world/region.js";
+import type { WorldDef } from "../world/world.js";
 import { chaseSystem } from "./behaviors/chase.js";
 import { moveSystem } from "./behaviors/move.js";
 import { touchSystem } from "./behaviors/touch.js";
@@ -24,20 +25,20 @@ export class Overworld implements OverworldContext {
   private readonly systems: System[];
   private readonly onEncounter = new Map<Entity, OnEncounter>();
 
-  constructor(readonly level: LevelDef) {
+  constructor(readonly map: WorldDef) {
     this.systems = [
       overworldPlayerSystem(this), chaseSystem(), wanderSystem(this), moveSystem(this), touchSystem(this),
       (world, dt) => this.spawner.system(world, dt), pileSystem,
     ];
-    this.spawner = new Spawner(this.world, level.spawns);
-    if (hasPad(level)) {
+    this.spawner = new Spawner(this.world, map.spawns);
+    for (const region of map.regions.filter((r) => r.hasPad)) {
       const pad = this.world.spawn();
-      this.world.add(pad, OverworldPos, { ...level.spawn });
-      this.world.add(pad, SummoningPad, { level: level.layout.id });
+      this.world.add(pad, OverworldPos, { ...region.spawn });
+      this.world.add(pad, SummoningPad, { region: region.id });
     }
   }
 
-  join(character: Character, pad: string, onEncounter: OnEncounter, at: Vec2 = this.level.spawn): Entity {
+  join(character: Character, pad: string, onEncounter: OnEncounter, at = this.map.regions[0]!.spawn): Entity {
     const player = this.world.spawn();
     this.world.add(player, OverworldPos, { x: at.x, z: at.z });
     this.world.add(player, OverworldPlayer, newWalk(character, pad));
@@ -146,8 +147,8 @@ export class Overworld implements OverworldContext {
 
   padInView(player: Entity): string | null {
     const pads = [...this.world.query(SummoningPad, OverworldPos)]
-      .map(([, pad, pos]) => ({ level: pad.level, x: pos.x, z: pos.z }));
-    return this.inView(player, pads)?.level ?? null;
+      .map(([, pad, pos]) => ({ region: pad.region, x: pos.x, z: pos.z }));
+    return this.inView(player, pads)?.region ?? null;
   }
 
   get pads(): Vec2[] {

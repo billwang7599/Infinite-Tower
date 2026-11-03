@@ -4,7 +4,7 @@ import { ChaseOnSight, chaseOnSight, chaseSystem } from "../../../src/core/overw
 import { OverworldActor, OverworldPlayer, OverworldPos } from "../../../src/core/overworld/components.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
 import { newWalk } from "../../../src/core/overworld/player.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { pos, testOverworld } from "./helpers.js";
 
 const CHASE = { range: 5, noticeTime: 0.5, speed: 4, giveUpDist: 8 };

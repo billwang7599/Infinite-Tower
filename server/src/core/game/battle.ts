@@ -11,8 +11,9 @@ import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { inViewWithSlack } from "../overworld/interact.js";
-import type { SpawnDef } from "../world/level.js";
+import type { SpawnDef } from "../world/region.js";
 import { getArena } from "../world/index.js";
+import { regionOf } from "../world/world.js";
 import type { GameSession } from "./session.js";
 import { progressStory } from "./story.js";
 import type { Uniques } from "./uniques.js";
@@ -53,13 +54,13 @@ export const DROP_GAP_M = 0.5;
 
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
-/** Held in the arena of the spawn it came from; tall grass has no spawn, so the level's. */
+/** Held in the arena of the spawn it came from; tall grass has no spawn, so the region's. */
 export function startBattle(
   session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
   const { overworld } = session;
   const setup: FightSetup = {
-    arena: getArena(spawn?.arenaId ?? overworld.level.arenaId),
+    arena: getArena(spawn?.arenaId ?? regionOf(overworld.map, overworld.playerPos(session.me)).arenaId),
     players: [{ ...fighterOf(session), at: PLAYER_START }],
     // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
     enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],

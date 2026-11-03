@@ -51,7 +51,7 @@ This applies to defaults that seem obvious, too. If you notice that something al
 nobody approved, say so and ask. When the user decides something, add it to the list below.
 
 The world as it stands is a test world (the user: "the starter stuff is just to test things. dont assume the world we
-have right now is permanent. its just a testing world + testing items."): the levels, items and their numbers
+have right now is permanent. its just a testing world + testing items."): the regions, items and their numbers
 are there to try things with. Their numbers may be tweaked freely for testing; don't build on them as if they
 were the real game.
 
@@ -69,6 +69,12 @@ Decided by the user:
 - The game is more open world now (the user: "more open world now"): no floors and no realm locks, up or down; the
   tower idea is on hold ([plan/vision.md](plan/vision.md)). The Waking Hollow, the Grass Field, the Mistwood and the
   Old Quarry are test areas, kept reachable.
+- One open world (the user: "i think an open world concept would be better", "we dont have tower floors anymore",
+  modelled on AQW "but with more immersive combat"): every region lies on one map and you walk from one into the next
+  ("i still want seamless jumps between regions"), with no loading; a region is a label (its name, music, sky, arena
+  look and monsters). Monsters may chase across a region's border ("i would say yes"). The client must not load a
+  whole region at once (the user's worry): the world is drawn and sent in chunks round you. Fights still happen in the
+  arena. The layout is the agent's ("sure"; Decided by the agent, below).
 - New players start "in the main kingdom": every avatar first appears on one extravagant summoning platform, indoors
   for now, the first and largest pad, where the Maker's door first opened; the city grew round it, with a
   humongous castle, to guard and use the stream of avatars, and its rulers see arrivals as theirs by right. "A guide
@@ -83,7 +89,7 @@ Decided by the user:
   main chat's picks: the Most Radiant and Thrice-Crowned Empire of Aurevaine ("Aurevaine", "the Empire"), its capital
   Seraphel, the Gilded Throne (not built), His Imperial Radiance Valerian Aurelius IX, and King Osric of House Vantmere,
   Vassal-King of Highmere ("His Majesty"). The far court wants a firmer hand on the door: hinted, no plot. Highmere is
-  several maps joined by gates (its wards, below).
+  several wards joined by gates (below), regions of the one world.
 - NPCs have family names, passed down the medieval way (the user): city-born commoners (Seraphel, Highmere) have
   inherited surnames, mostly old trades or places, that no longer fit them ("Fennick Cooper" is a money changer, not a
   cooper); country folk (the quarry, the Mistwood, farms) have bynames that describe them and aren't inherited yet
@@ -99,7 +105,7 @@ Decided by the user:
 - Summoning pads are respawn points (the user: "if we go near a summoning pad, we have the option to set our spawn"):
   the Interact key (E) by a pad binds you to it ("E yea"), free ("free"), on every pad ("all existing pads -- part of
   pad mechanics"). Logging in wakes you on "your new set pad", and so does dying, wherever it is ("if hte pad there
-  exists yea"); what you drop lies where you fell. Only the pad is saved, not the level you were on. A new player is
+  exists yea"); what you drop lies where you fell. Only the pad is saved, not where you were. A new player is
   bound to Highmere's platform, and so is every save from before this, so those wake in Highmere once after the change.
 - Money and shops (the user: coins are "stored in bags as items", "lost like the bag since its stored in bags as
   items"; "gold silver and copper makes sense. less for the player to think about"; "coins dont repack automatically.
@@ -380,8 +386,8 @@ Decided by the user:
   goes on. How fast is the agent's pick: its walking speed, as when it backs away otherwise.
 - Arenas have looks of their own, looks only: the same round wall and radius, nothing inside it, nothing that changes
   how a fight plays. Dusky and muted with warm light (toward the title's dark fantasy, not black). The server picks
-  the arena: a spawn may name its own, else the level's (tall grass uses the level's). On the Grass Field the boar
-  fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire; every fight in the Old
+  the arena: a spawn may name its own, else its region's (tall grass uses the region you're in). On the Grass Field the
+  boar fights in a forest clearing, both Kobolds in stone ruins and the Goblin Warlock in a mire; every fight in the Old
   Quarry, duels too, is in a quarry (the looks and which enemy gets which are the agent's picks).
 - A player who disconnects mid-fight has lost it: what they carry drops as on a death. A fight
   still undecided after a time limit ends as a loss, a guard on the server's resources. Both are named constants in
@@ -420,9 +426,8 @@ Decided by the user:
   Production never delays.
 - The Grass Field is a tile map (the user: "go" on these picks): trees, rocks, water and ruin walls block walking for
   the player and overworld enemies alike (you slide along them; a walker is a 0.6-tile square), the start, campfire
-  and spawns stayed where they were, and the map grew to 44 x 30 tiles with a ring of trees round it. Still one level,
-  no exits. It's a dusky, muted grassland with warm campfire light, and the HUD shows "Floor 1" before its name (the
-  floor comes with the level). Its paths, stream, ruins and tree lines are the agent's layout.
+  and spawns stayed where they were, and the map grew with a ring of trees round it. It's a dusky, muted grassland with
+  warm campfire light. Its paths, stream, ruins and tree lines are the agent's layout.
 - The overworld is drawn in 3D, HD-2D style (the user: "i think 3d view is much cooler actually. can we make that
   default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
@@ -436,7 +441,7 @@ Decided by the user:
   (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`); past about 65° the upright sprites look squashed.
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
-- Chat is the whole server's: everyone online hears every line, on any level and in fights. A line shows in the
+- Chat is the whole server's: everyone online hears every line, anywhere in the world and in fights. A line shows in the
   chat log and, in the overworld, as a bubble over the speaker's head (in a fight, the log only). / opens it (a
   binding, in the overworld and the arena), and while its box has focus it's its own input layer, `chat`, owning
   only Enter (send) and Esc (close): nothing else fires (no walking, challenges or attacks; you stand still), and
@@ -451,7 +456,7 @@ Decided by the user:
 
 - Quests: NPCs give them, and the story runs through chains of them. An NPC offers one at the end of what it says,
   and you pick Accept or Not now; there are no other dialogue choices. A step asks you to gather (have N of an item),
-  deliver (hand N over, taken from the bag), go somewhere (a level, or an area of it), talk to someone, or kill N of
+  deliver (hand N over, taken from the bag), go somewhere (a region, or an area of it), talk to someone, or kill N of
   an enemy kind (counted from won fights). Rewards are items, story progress (flags) and lore entries only (no
   essence or friendship yet). Each player's story is their own (no party sharing), kept on death like the words, and
   saved with the player as one `jsonb` (`story`). The server decides all progress; the client only asks (accept,
@@ -461,11 +466,11 @@ Decided by the user:
   npc to display dialogue based off of where they are + quest"). Quests are one table on the server
   (`server/src/core/content/quests.ts`): named steps (saved by name) and what each gives (items, flags, lore ids), no
   lines. Lore entries are one table by id (`server/src/core/content/lore.ts`). An NPC's own file
-  (`server/src/core/npcs/<id>.ts`) holds where it stands and what it says: its stops (a level and a spot, with a
-  condition on the story), each with its lines by the story (a quest's step, a quest that can start or is done, a
-  flag) and what they offer. The server places each NPC per player at its first stop that holds (two players may see
-  it in different places), and it says the first lines there that hold. One engine (`server/src/core/game/story.ts`)
-  checks the conditions and applies the effects for quests and NPCs alike.
+  (`server/src/core/npcs/<id>.ts`) holds where it stands and what it says: its stops (a region and a spot in its tiles,
+  with a condition on the story), each with its lines by the story (a quest's step, a quest that can start or is done, a
+  flag) and what they offer. The server places each NPC per player at its first stop that holds (two players may see it
+  in different places), and it says the first lines there that hold. One engine (`server/src/core/game/story.ts`) checks
+  the conditions and applies the effects for quests and NPCs alike.
 - The questbook is always yours (not a bag item, never lost), its own screen on H (a general key, so it opens in
   the arena too; the agent's pick: it was J, journal, until the sword's aim grid took J). It has two halves:
   the main quest
@@ -676,17 +681,17 @@ them; treat them as changeable, and still ask before deciding new ones):
   no dodge gets through.
 - A character is a name (2-16 letters, digits, spaces, ' or -), boy or girl (only how the game refers to you; every
   look is open to both), and a look (shared LOOK_OPTIONS, drawn in client/src/gfx/look/, ART.md). One per account,
-  made on the first visit before the server sends a level, then locked: the server ignores a second one. It's
+  made on the first visit before the server sends the world, then locked: the server ignores a second one. It's
   cosmetic only: classless, everyone starts the same.
-- Resting: each level out in the wild has campfires (the Grass Field has one, 3-4 tiles from the start). Standing within
-  1.6 tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often as you
-  like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your respawn
-  point (a summoning pad does) or bring back defeated boars.
+- Resting: each region out in the wild has campfires (the Grass Field has one, 3-4 tiles from the start). Standing
+  within 1.6 tiles of one, the Interact key (E) or the HUD's "Rest by the fire" button refills HP and stamina, as often
+  as you like. The server checks you're there (with 0.6 tiles of slack for lag) and saves. Resting doesn't move your
+  respawn point (a summoning pad does) or bring back defeated boars.
 - Binding to a summoning pad (the user's rules above; these are OptChat's and the agent's picks, tried in a headless
   browser, not hand-played): no confirm, one press binds and a corner notice says so; on the pad you're already bound
   to it only says so. A pad is reached as a pile or an NPC is (`INTERACT_RANGE_M`, `INTERACT_LOOK_RAD` and the
-  server's slack), measured to its middle, the level's start, so you face it (standing on its middle counts); the
-  HUD's button says "Bind to this pad". Overworld only. A saved pad that's gone, or a level with none, wakes you on
+  server's slack), measured to its middle, the region's spawn, so you face it (standing on its middle counts); the
+  HUD's button says "Bind to this pad". Overworld only. A saved pad that's gone, or a region with none, wakes you on
   Highmere's platform.
 - Items: boar meat heals 35% of the most HP (eaten from the bag screen, not at full HP) and weighs 0.5; a hide
   weighs 2 and a tusk 5. A beaten boar drops meat 60% of the time, a hide 35% and a tusk 25%, each rolled on its
@@ -787,7 +792,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   marker. Numbers: `server/src/core/enemies/bog-lurker.ts`, the behaviour in
   `shared/src/battle/fight/behaviors/slam.ts`. Drops: its essence (worth 45) always and 2 lurker scales 70% (1 x 1,
   stacks of 10, weight 0.4, worth 20c, the forge buys them). Two in the Mistwood's reeds by the lake, north (0.5,
-  10.5) and south (0.5, -7.5), back 15 s after their fight, fought in the level's mire arena; on the overworld it
+  10.5) and south (0.5, -7.5), back 15 s after their fight, fought in the region's mire arena; on the overworld it
   wanders at 0.7 within 3 tiles, notices you within 3.5 tiles in 0.8 s and chases at 2.2. Its sounds are the boar's
   files pitched down (`lurker-*` stems in `client/src/audio/sounds.ts`; no new files), unheard.
 - Overworld piles (drops, PR 1): a pile is laid out 4 cells wide (`PILE_COLS`), with as many rows as it needs, and
@@ -814,49 +819,65 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Overworld piles by looking: the overworld takes the arena's numbers as they are (2 tiles, 35°, and 1 tile and 15° of
   slack; the reach was 1.6 tiles and its slack 0.6). The way you face there is the chibi's heading, one of four, so a
   pile 45° off isn't in view until you turn toward it. The server turns its copy of you by the same rule
-  (`faceToward`) from the same inputs, both starting south on entering a level (`START_HEADING`).
+  (`faceToward`) from the same inputs, both starting south on entering the world (`START_HEADING`).
 - Death drops (drops, PR 3): the pile lies exactly where the server's copy of the fight has you when you fall (or
   leave), and, as the enemy's drops, is seen and opened in the arena only once the fight is won; the arena's piles
   land on the overworld as one pile (the death's leftovers and the enemy's together). The death's notice lists what
   dropped and says what's left of it lands where the fight began. A duel still drops nothing (a spar).
-- Levels: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field and the Mistwood, joined by roads
-  off the edge of each (walk into one to cross). Dying wakes you on your pad: falling on its level, at once; elsewhere,
-  you cross to it as you leave the arena. Mistwood reuses the floor's enemies
-  (boars, the Kobold, the Warlock) and the mire arena.
+- The open world's layout (One open world, above; every pick here is the agent's, walked across in a headless browser,
+  not hand-played): one map in world tiles, the Grass Field in the middle (0, 0). The Waking Hollow lies west of it and
+  the Mistwood east, each meeting its edge where its old road did; the Old Quarry north of it through the old gap.
+  Highmere lies north-west: the Market Ward (x -98 to -28, z 22 to 72) with the Castle Ward north of it, and a road
+  from the South Gate runs 17 tiles south through the woods into the Hollow's north-west corner, so the way from the
+  platform runs city, Hollow, Grass Field. The Grass Field's old north-west way out (into the quarry's rock now) is
+  closed with trees. The land between and round the regions is filled with the nearest one's `fill` (trees, the
+  town's houses, castle wall, cut stone) out to 16 tiles (`WORLD_MARGIN_TILES`), nothing past that; a point there
+  belongs to the nearest region, so the name and music change halfway along a road between two. Region ids are the old
+  level ids, so saved pads still hold (no migration). NPCs are placed again each time you walk into another region
+  (sent only if someone moved). A spawn's "away" spot (where it comes back with a player near) is mirrored across its
+  own region. The admin's fight with an enemy uses that enemy's nearest spawn's arena. The cliffs, banks and outer
+  woods once drawn round each map are gone (the fill's tiles stand there now); the Castle Ward's keep stays. Lines
+  that named the old exits (the herald, Odo, Captain Edda, their quest hints) now point down the South Gate's road.
+  Drawing: chunks of 16 x 16 tiles (`CHUNK_TILES`); those within 30 tiles of you are shown (`SHOWN_TILES`), 16 more
+  built ahead (`AHEAD_TILES`) at 3 ms a frame (`BUILD_BUDGET_MS`); the sky's colours and fog ease to the region you're
+  in (`SKY_BLEND_RATE`, `client/src/visuals/overworld/chunks.ts`); music follows the region's theme.
+- Regions: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field, the Mistwood and the Old Quarry,
+  on one map (One open world, above; the layout under it, below). Dying wakes you on your pad, at once. Mistwood reuses
+  the Grass Field's enemies (boars, the Kobold, the Warlock) and the mire arena.
 - The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
-  everything here is the agent's, tried only in a headless browser): a 48 x 36 floor-1 level north of the Grass Field,
-  through a 3-tile gap in its north tree line (`old-quarry` in `server/src/core/world/floors/1/old-quarry.ts`). Pale
-  cut-stone terraces (a new solid tile, `Q`) stepping up toward the map's edge (1.2 m a step, 4 on the map, then 4 more
-  rings beyond it), a dry pit ringed by low cut stone with three ways in and a still pool at its bottom (silent, as
-  still water is), two cranes on the pit's north rim and three ore carts on the rails (both new solid tiles, `Y` and
-  `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry scrub (its tall grass), a 2
-  x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold Greatsword and two Goblin Warlocks
-  stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile (the Grass Field's rate) for a Kobold
-  Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there is in its own quarry arena, duels too
-  (looks only: pale cut slabs, stacked blocks, terraced faces, a crane, a cart, lanterns and drifting dust;
-  `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable signs: the game has no way
-  to read one without an NPC (a trace is an NPC's), so there are none.
-- Highmere (the user's decisions above; the layout, the lines and who stands where are the agent's): two maps with no
-  floor (the HUD shows only the name), joined by the castle gate. The Castle Ward ("Highmere: Castle Ward", 50 x 40, its
-  level id still `kingdom`): the Hall of Arrival (marble, pillars, the platform, a red carpet; Aldric the herald beside
+  everything here is the agent's, tried only in a headless browser): a 48 x 36 region north of the Grass Field,
+  through a 3-tile gap in its north tree line (`old-quarry` in `server/src/core/world/regions/old-quarry.ts`). Pale
+  cut-stone terraces (a new solid tile, `Q`) stepping up toward its edge (1.2 m a step, 4 in the quarry, then a step
+  more each 4 tiles of the cut stone beyond it), a dry pit ringed by low cut stone with three ways in and a still pool
+  at its bottom (silent, as still water is), two cranes on the pit's north rim and three ore carts on the rails (both
+  new solid tiles, `Y` and `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry
+  scrub (its tall grass), a 2 x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold
+  Greatsword and two Goblin Warlocks stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile
+  (the Grass Field's rate) for a Kobold Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there
+  is in its own quarry arena, duels too (looks only: pale cut slabs, stacked blocks, terraced faces, a crane, a cart,
+  lanterns and drifting dust; `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable
+  signs: the game has no way to read one without an NPC (a trace is an NPC's), so there are none.
+- Highmere (the user's decisions above; the layout, the lines and who stands where are the agent's): two regions, joined
+  by the castle gate. The Castle Ward ("Highmere: Castle Ward", 50 x 40, its
+  id still `kingdom`): the Hall of Arrival (marble, pillars, the platform, a red carpet; Aldric the herald beside
   the carpet below it, and Odo's archive through a door at its west end), King Osric's throne room east of it (a door
   from the hall and one from the courtyard), the barracks and Bram's training yard west of it, the courtyard (lawns, two
   pools, flower beds; Wenna at the kitchen in its east), the castle garden (two pools; Ottilie) and the castle gate
   south. The Market Ward ("Highmere: Market Ward", 70 x 50, `market-ward`): a market square with two fountains (Bette's
   food stall, Mirela's potion stall, Fennick Cooper's changing stall, Garrick's forge), the Gilded Door tavern (a walled
   room with Hesper Wainwright, its keeper, who only talks), streets of houses (Tamsin in the south-west), and the South
-  Gate (Captain Edda) to the Grass Field, which got a road in at its north-west corner. It has no pad. Two walled-up
+  Gate (Captain Edda), whose road runs down to the Waking Hollow. It has no pad. Two walled-up
   gaps wait for later wards: an east road to Temple Hill and a south-west one to the Lower Town. King Osric and Hesper
   only talk; both wards charge Highmere's prices. Neither has
-  an encounter table (a level's `grass` is now optional). Dialogue lines name keys as `{group.action}`, written out as
-  the player's own key (`client/src/ui/dialogue/keys.ts`). The castle's bulk, the keep and the town's rooftops round the
-  map are drawn only, and on any level a ledge (a wall, a house, a cliff) standing between the camera and you turns
-  see-through, so the hall reads with the camera turned. Music: the title's track for now.
+  an encounter table (a region's `grass` is optional). Dialogue lines name keys as `{group.action}`, written out as
+  the player's own key (`client/src/ui/dialogue/keys.ts`). The castle's keep is drawn only, and the land round the wards
+  is thick castle wall or the town's rooftops; anywhere a ledge (a wall, a house, a cliff) standing between the camera
+  and you turns see-through, so the hall reads with the camera turned. Music: the title's track for now.
 - Money and shops (kingdom PR 2; the user: "use your best discretion"; tried in a headless browser, not hand-played).
   Numbers in `server/src/core/content/shops.ts` and `shared/src/items/coins.ts`, the formulas in FORMULAS.md:
   - Coins are 1 x 1, stacks of 100, weight 0.01 each (gold 0.02).
   - What things are worth, in copper: the old stick 5, boar meat 6, hide 25, tusk 40, bread 4, health potion 60,
-    stamina tonic 40, sword 300, longsword 900, greatsword 1500. A shop sells at worth × the level's price factor
+    stamina tonic 40, sword 300, longsword 900, greatsword 1500. A shop sells at worth × the region's price factor
     (Highmere 1.5, else 1), and buys at 40% of worth, rounded down, whatever the place. The first purchase at each shop
     is 25% off, that one item, once per player per shop, saved with the player (`shops_bought`).
   - Bette's food stall sells bread and boar meat and buys both; Mirela's potion stall sells the two potions and buys
@@ -871,7 +892,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     bag and on the cloth doesn't happen, and says so.
   - The shop opens from the keeper's talk (Trade, or going on past the last line), in the bag screen where the
     equipment shows otherwise; selecting something in the bag or on the cloth that the shop buys shows Sell (one) and,
-    for a stack, Sell all. It closes with the bag, on walking, when a fight starts and on leaving the level. A trade is
+    for a stack, Sell all. It closes with the bag, on walking, and when a fight starts. A trade is
     saved within a second, like a move in the bag.
 - The training yard (kingdom PR 3; the user decided only "start with nothing", the herald sending you to an old man
   and an old stick; the rest is the agent's, tried in a headless browser, not hand-played):
@@ -884,7 +905,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   - The old stick: 1 x 2, weight 1, held in a hand, the sword's moveset: 1 m long, 5 damage, heft 1, no strength
     needed; worth 5 copper (the forge buys it for 2). It goes into the bag, not a hand: Bram says to hold it, and the
     bag works in a fight too.
-  - Both fights start from Bram's talk (Begin), in the level's arena, as a spar (`TRAINING_YIELD_SHARE`, 0.1, in
+  - Both fights start from Bram's talk (Begin), in the region's arena, as a spar (`TRAINING_YIELD_SHARE`, 0.1, in
     `server/src/core/game/training.ts`): no fighter's HP goes under 10% of its most, and one at it has yielded, so
     the fight is decided. Nothing is lost or gained but the quest: HP and stamina come back as they went in, no drops,
     no death, no win counted, the core as it was; gear moved and pages written are kept. Nobody can join one (a
@@ -899,12 +920,11 @@ them; treat them as changeable, and still ask before deciding new ones):
   - The dummy and Bram aren't monsters: no essence, no overworld actor.
   - A dev account `user` (password `user`) is seeded too, to try the start on.
 - The starting area (the user: "go make more content… you can also add more quests and create a proper starting
-  area… make any assumptions you want"): the Waking Hollow, a small floor-1 level in the Grass Field's look and music.
+  area… make any assumptions you want"): the Waking Hollow, a small region in the Grass Field's look and music.
   A summoning pad where new characters wake, ringed by four standing stones; a camp by an old waystation with a
   campfire; a brook with a footbridge, and across it the hunting ground: two wandering boars (8 s respawn) and tall
-  grass rolling boars at 0.06 a tile, half the other levels' 0.12. Its road east leads to a new exit at the Grass
-  Field's west edge, and back. New characters started there until Highmere; players already saved keep their level
-  (a migration puts saves from before levels were saved on the Grass Field).
+  grass rolling boars at 0.06 a tile, half the other regions' 0.12. Its road east runs into the Grass Field's
+  west edge. New characters started there until Highmere.
 - Where you wake is a summoning pad (plan/lore.md): a new walkable tile (`@`, carved stone with a pale rune ring)
   laid under the Hollow's, the Grass Field's and the Mistwood's starts; the Castle Ward's platform is 4 x 4 of it.
 - The Hollow's natives: Maren, who keeps its pad (standing between it and the fire; she thinks your kind was sent for a
@@ -929,8 +949,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Hollis moves on (the user: a recurring NPC moves on with the story, leaving a trace; Hollis to the Mistwood once his
   first chain is done; "make any assumptions you want"). With `hollis-to-mistwood` set he stands by the Mistwood's
   pad (1.5 tiles east of it, between it and the campfire, facing it), per player. Where each player sees an NPC is
-  fixed as they enter a level: done by the fire, he stays there for the rest of that visit saying goodbye ("meet me in
-  the Mistwood ... I'll be by its pad"), and is gone the next time they come (another level, a reconnect). His trace
+  fixed until they walk into another region: done by the fire, he stays there while they're still in the Grass Field
+  saying goodbye ("meet me in the Mistwood ... I'll be by its pad"), and is gone once they walk out of it (or
+  reconnect). His trace
   is a bedroll, rolled and tied, where he stood by the fire, drawn as a small sprite; Interact ("Look") reads it,
   titled "Hollis's bedroll" with no portrait: it was left for whoever needs the fire, with a note saying he's gone on
   to the Mistwood's pad through the gap at the field's east edge. It lies there for good, does no quest step, and
@@ -983,7 +1004,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   needed), and anyone may pick a full server and try (the server decides). Logging in no longer goes straight in:
   it shows the list with the first server picked, and Play joins the picked one. The list is fetched again on the
   title (after logging in, a failed join, and Return to title), not live.
-- The shared overworld: one per level, made when its first player arrives, for everyone on it. Other players show as
+- The shared overworld: one for the world, made when its first player arrives, for everyone. Other players show as
   their own chibi with their name above (a character is sent each time they come into view), gliding toward the
   server's positions as enemies do, and pass through each other. An enemy a player touches leaves the overworld for
   everyone at once; it comes back `respawnTime` after that fight is over for everyone in it (even while its fighters
@@ -999,7 +1020,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   overworld's keys), and the challenger hears of a decline. A challenge expires after 15 s (`CHALLENGE_TIME`), and is called off if either
   leaves or starts another fight. One open challenge per player, either side: challenging while yours is open, or
   someone in one, is refused with a notice. Range is checked when challenging, not when accepting. Accepted, both go
-  into one fight in the level's duel arena (the Grass Field's stone ruins), 12 m apart facing each other
+  into one fight in the challenger's region's duel arena (the Grass Field's stone ruins), 12 m apart facing each other
   (`DUEL_STARTS`), each locked on the other. Everything works both ways: attacks, blocks, perfect blocks and skills,
   each way named as its swinger sees it (a duelist's swing from the left comes from the other's right). Weapon hits
   only hurt, as the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
@@ -1030,7 +1051,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   above). No shop. The lines live on the server and come only when you talk. NPCs are kept like enemies (the user:
   "their sprites and interaction and stuff should be saved like monsters"): one server file per NPC for where it
   stands and what it says (`server/src/core/npcs/<id>.ts`) and one client folder for its name and look
-  (`client/src/visuals/npcs/<id>/`); levels don't place NPCs.
+  (`client/src/visuals/npcs/<id>/`); regions don't place NPCs.
 - Still and running water (the user: "water should not be flowing if it has nowhere to flow to ... lakes and stuff
   shouldnt flow. they can ripple if they have things in it"): only water that runs off the map flows. A body touching
   the map's edge (or the woods, rocks and walls joined to it) in two separate places runs from one to the other (the
@@ -1113,12 +1134,12 @@ tests say what was agreed. Where tests go and how they're written:
   `server/src/core/game/session.ts`. Node's runner (`node:test`, `node:assert/strict`), run through tsx; no test
   framework. `npm run typecheck` checks the tests too (each `test/` has its own tsconfig with Node's types).
 - Server core is tested through its ports with the fakes in `server/test/fixtures/` (`FakeLink`,
-  `MemoryPlayerStore`, `MemoryAccountStore`, `TEST_LEVEL`), so no database or socket is needed. The HTTP API is
-  tested with `buildServer()` and `app.inject()` / `app.injectWS()`, without a port.
+  `MemoryPlayerStore`, `MemoryAccountStore`, `TEST_REGION` / `testWorld`), so no database or socket is needed. The HTTP
+  API is tested with `buildServer()` and `app.inject()` / `app.injectWS()`, without a port.
 - Time and chance are faked with node:test's mocks: `t.mock.timers` for `setTimeout` and `Date`, and
   `t.mock.method(Math, "random", ...)` before an `Overworld` is made (it keeps `Math.random` as its `rng`). A fight
   needs no clock: tests step it (`session.tick`, `room.tick`), and test files that make one await `initPhysics()`.
-- Tuning numbers come from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, the level's campfires).
+- Tuning numbers come from the code (`PLAYER.maxHp`, `ITEMS[id].stackSize`, a region's campfires).
 - What has no unit tests (Babylon rendering, React screens, how the arena fight feels, the Postgres stores) is
   still tried in a browser before calling it done.
 
@@ -1166,7 +1187,7 @@ The global rules apply; here is how to set one up in this repo.
 ## Architecture rules (the reasons and details are in ARCHITECTURE.md)
 
 - **The server decides; the client asks and draws.** Anything a player shouldn't be able to change lives on the
-  server: levels, encounters, enemy stats, fight results, wins, HP / stamina. Client messages are checked with Zod
+  server: the world, encounters, enemy stats, fight results, wins, HP / stamina. Client messages are checked with Zod
   (`shared/src/net/client-messages.ts`).
 - **The server is core plus outlets (hexagonal).** Game rules go in `server/src/core/`, which imports only core/,
   `shared` and `node:crypto`: no sockets, HTTP, SQL or env. Anything that talks to the outside world goes in an

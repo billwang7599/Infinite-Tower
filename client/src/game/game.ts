@@ -32,7 +32,6 @@ export interface Game {
   mode(): Mode | null;
   /** On a connection the server has welcomed. */
   join(joined: Joined): void;
-  /** Sends any unsent settings, hangs up, stops drawing, forgets the level and any fight. */
   leave(): void;
   leaveBattle(sure?: boolean): void;
   interact(): void;
@@ -168,7 +167,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     setMode("overworld");
   };
 
-  /** No character yet: the creation screen opens (it closes itself), and the server holds the level back. */
   const applyCharacter = (character: Character | null) => {
     ui.overworld.set({ character });
     if (!character) ui.creation.set({ open: true });

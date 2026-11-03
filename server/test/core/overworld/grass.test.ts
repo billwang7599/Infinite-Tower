@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { describe, test, type TestContext } from "node:test";
 import { FIXED_DT, inTallGrass, type EnemyId, type Entity } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
-import type { LevelDef } from "../../../src/core/world/level.js";
-import { TEST_CHARACTER, TEST_GRASS as PATCH, TEST_LEVEL } from "../../fixtures/level.js";
+import type { WorldDef } from "../../../src/core/world/world.js";
+import { TEST_CHARACTER, TEST_GRASS as PATCH, TEST_REGION, testWorld } from "../../fixtures/world.js";
 
-const LEVEL: LevelDef = { ...TEST_LEVEL, spawns: [] };
-const GRASS = LEVEL.grass!;
+const WORLD: WorldDef = testWorld({ spawns: [] });
+const GRASS = TEST_REGION.grass!;
 /** Just left of the grass patch, level with its middle. */
 const BESIDE_GRASS = { x: PATCH.x - 1, z: PATCH.z + PATCH.h / 2 };
 
@@ -18,11 +18,11 @@ interface Setup {
 }
 
 /** Math.random is read once, when the Overworld is built, so it's mocked before that. */
-function overworldWithRandom(t: TestContext, random: number, level = LEVEL): Setup {
+function overworldWithRandom(t: TestContext, random: number, world = WORLD): Setup {
   t.mock.method(Math, "random", () => random);
   const encounters: Setup["encounters"] = [];
   const queuedAtEncounter: number[] = [];
-  const overworld = new Overworld(level);
+  const overworld = new Overworld(world);
   const me = overworld.join(TEST_CHARACTER, "kingdom", (source, enemy) => {
     encounters.push({ source, enemy });
     queuedAtEncounter.push(overworld.playerData(me).queue.length);
@@ -44,17 +44,17 @@ function walk({ overworld, me, encounters }: Setup, ticks: number, moveX: number
 }
 
 /** Ticks to walk straight across the patch and out the other side. */
-const CROSS_TICKS = Math.ceil((PATCH.w + 2) / (LEVEL.layout.playerSpeed * FIXED_DT));
+const CROSS_TICKS = Math.ceil((PATCH.w + 2) / (WORLD.layout.playerSpeed * FIXED_DT));
 
 describe("grass encounters", () => {
-  test("walking into tall grass starts a fight with an enemy from the level's table", (t) => {
+  test("walking into tall grass starts a fight with an enemy from the region's table", (t) => {
     const setup = overworldWithRandom(t, 0);
     const { overworld, me, encounters } = setup;
     walk(setup, CROSS_TICKS, 1);
     assert.equal(encounters.length, 1);
     assert.deepEqual(encounters[0], { source: null, enemy: GRASS.enemies[0]!.enemy });
     const at = overworld.playerPos(me);
-    assert.ok(inTallGrass(LEVEL.layout, at.x, at.z), "the fight starts where the player is in the grass");
+    assert.ok(inTallGrass(WORLD.layout, at.x, at.z), "the fight starts where the player is in the grass");
   });
 
   test("the encounter throws away the inputs still queued", (t) => {
@@ -68,14 +68,14 @@ describe("grass encounters", () => {
   test("the first roll comes only after walking grass.stepDist tiles in grass", (t) => {
     const setup = overworldWithRandom(t, 0);
     const { overworld, me, encounters } = setup;
-    const ticksToEnter = Math.ceil(1 / (LEVEL.layout.playerSpeed * FIXED_DT));
+    const ticksToEnter = Math.ceil(1 / (WORLD.layout.playerSpeed * FIXED_DT));
     walk(setup, ticksToEnter, 1);
     assert.equal(encounters.length, 0);
     assert.ok(overworld.playerData(me).grassDist < GRASS.stepDist);
   });
 
-  test("a level with no encounter table: its tall grass never starts one", (t) => {
-    const setup = overworldWithRandom(t, 0, { ...LEVEL, grass: undefined });
+  test("a region with no encounter table: its tall grass never starts one", (t) => {
+    const setup = overworldWithRandom(t, 0, testWorld({ grass: undefined, spawns: [] }));
     walk(setup, CROSS_TICKS, 1);
     assert.equal(setup.encounters.length, 0);
     assert.ok(setup.overworld.playerPos(setup.me).x > PATCH.x + PATCH.w, "walked all the way through");

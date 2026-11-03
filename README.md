@@ -24,11 +24,13 @@ What's built so far:
 - **Overworld:** new characters wake in Highmere, the Door City of the Empire of Aurevaine, on the great summoning
   platform of its castle's hall, where the court herald greets them and explains. Interact by any summoning pad binds
   you to it: you log in there and wake there after dying.
-  The city is two maps joined by the castle gate: the Castle Ward (the hall, King Osric's throne room, the barracks with
-  Bram's training yard (below), the courtyard and the garden) and below it the much bigger Market Ward (a square with a
-  food stall, a potion stall, a forge and a money changer, each with its keeper, the Gilded Door tavern, streets of
-  houses and the South Gate out to the Grass Field). The test areas lie beyond: the Waking Hollow (a small camp by an
-  old waystation, a brook with a footbridge and two boars in the tall grass across it) west of the Grass Field and,
+  The world is one open map of regions you walk between with no loading: the name in the corner, the music and the
+  sky change as you cross. Highmere is two wards joined by the castle gate: the Castle Ward (the hall, King Osric's
+  throne room, the barracks with Bram's training yard (below), the courtyard and the garden) and below it the much
+  bigger Market Ward (a square with a food stall, a potion stall, a forge and a money changer, each with its keeper, the
+  Gilded Door tavern, streets of houses and the South Gate, whose road runs down through the woods to the Waking
+  Hollow). The test areas lie beyond: the Waking Hollow (a small camp by an old waystation, a brook with a footbridge
+  and two boars in the tall grass across it) west of the Grass Field and,
   through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire), and
   through a gap in the trees on the Grass Field's north edge, the Old Quarry (pale cut-stone terraces round a dry pit
   with a still pool, cranes, carts on rails, a ruined overseer's hut and a campfire by the way in), held by Kobolds and
@@ -37,10 +39,10 @@ What's built so far:
   and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword beside it), a Goblin Warlock and a grey wolf
   (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low in the Mistwood's reeds. Touching
   one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
-  HD-2D: pixel-art billboards on 3D ground, with cliffs round the field and a tilt-shift blur, lit by the same 24-minute
-  day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The stream
-  runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn the
-  camera a quarter turn (walking follows it), up and down tilt it. Everyone on a level shares it: you see other players
+  HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
+  24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it). The
+  stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
+  the camera a quarter turn (walking follows it), up and down tilt it. Everyone shares the world: you see other players
   (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone until it
   respawns. T challenges a player next to you to a duel: a spar in an arena of your own, everything working player
   against player, that costs and wins nothing. Next to a player's crossed swords, E (or "Join the fight") joins their
@@ -161,14 +163,14 @@ What's built so far:
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the
   stronger you are, and too heavy for your strength it can't be wielded.
-- **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the level's name, the ping, and
+- **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the region's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the
   top shows which way the camera faces. Small notices (loot, a full bag, dying, resting, eating, a breakthrough, quests)
   stack in the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing rivers and crackling campfires nearby. Sounds come from where they happen: quieter further
-  away, and to the left or right. Looping music on the title, in each level and in fights (the mire has its own),
+  away, and to the left or right. Looping music on the title, in each region and in fights (the mire has its own),
   crossfading from one to the next. Every file is CC0 ([SOUNDS.md](SOUNDS.md)).
 - **Settings** (Esc): camera and swing sensitivity, auto mouse lock and show ping (both on by default), master,
   effects, ambient and music volume, key bindings (general: Esc, WASD, the panels; the overworld's; the arena's),

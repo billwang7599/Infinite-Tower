@@ -28,7 +28,7 @@ export function holds(when: When | undefined, story: Story, quests: Quests = QUE
 export type Effect = { start: string } | { advance: string } | { finish: string };
 
 export interface Seen {
-  level: string;
+  region: string;
   at: Vec2;
   killed?: readonly EnemyId[];
 }
@@ -123,7 +123,7 @@ function meetSteps(out: Unfolding, id: string, seen: Seen, quests: Quests): void
 function met(task: Task, bag: Bag, seen: Seen, kills: number): boolean {
   switch (task.kind) {
     case "gather": return (bagCounts(bag)[task.item] ?? 0) >= task.count;
-    case "reach": return seen.level === task.level && (!task.area || inRect(task.area, seen.at.x, seen.at.z));
+    case "reach": return seen.region === task.region && (!task.area || inRect(task.area, seen.at.x, seen.at.z));
     case "kill": return kills >= task.count;
     case "deliver": case "talk": return false;
   }
@@ -159,7 +159,7 @@ export function progressStory(
 ): void {
   const { overworld, me } = session, at = overworld.playerPos(me), bagWas = session.bag;
   const { story, bag, dropped, news, faith } = unfold(
-    { story: session.story, bag: bagWas }, effects, { level: overworld.level.layout.id, at, killed },
+    { story: session.story, bag: bagWas }, effects, { region: session.region, at, killed },
   );
   if (news.length === 0) return;
   session.story = story;

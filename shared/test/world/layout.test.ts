@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  faceToward, FIXED_DT, HEADING_WAY, inRect, mapHalfSize, moveWalker, nearCampfire, REST_RANGE_TILES, stepWalker,
+  faceToward, FIXED_DT, HEADING_WAY, inRect, moveWalker, nearCampfire, regionAt, REST_RANGE_TILES, stepWalker,
   WALKER_RADIUS, type Vec2, type Velocity2,
 } from "@infinite-tower/shared";
-import { ROCKS, TEST_LAYOUT as level } from "./level.js";
+import { ROCKS, TEST_LAYOUT as level } from "./map.js";
 
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≉ ${expected}`);
@@ -40,9 +40,9 @@ describe("stepWalker", () => {
   test("stops at the map's edge", () => {
     const pos: Vec2 = { x: 0, z: 0 };
     for (let i = 0; i < 600; i++) stepWalker(level, pos, { moveX: 1, moveZ: -1 }, FIXED_DT);
-    const { halfWidth, halfDepth } = mapHalfSize(level);
-    close(pos.x, halfWidth - WALKER_RADIUS);
-    close(pos.z, -(halfDepth - WALKER_RADIUS));
+    const { bounds } = level;
+    close(pos.x, bounds.x + bounds.w - WALKER_RADIUS);
+    close(pos.z, bounds.z + WALKER_RADIUS);
   });
 
   test("is deterministic: the same inputs end in the same place", () => {
@@ -153,5 +153,17 @@ describe("HEADING_WAY: the way a heading looks, on the ground", () => {
     assert.deepEqual(HEADING_WAY, {
       north: { x: 0, z: 1 }, east: { x: 1, z: 0 }, south: { x: 0, z: -1 }, west: { x: -1, z: 0 },
     });
+  });
+});
+
+describe("regionAt", () => {
+  test("the region holding the point", () => {
+    assert.equal(regionAt(level, -0.5, 0).id, "west");
+    assert.equal(regionAt(level, 0.5, 0).id, "east");
+  });
+
+  test("outside every region, the nearest one", () => {
+    assert.equal(regionAt(level, -30, 2).id, "west");
+    assert.equal(regionAt(level, 12, -9).id, "east");
   });
 });

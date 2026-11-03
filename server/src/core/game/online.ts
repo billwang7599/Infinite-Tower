@@ -6,7 +6,7 @@ import { CLOSE_CODES, sigilOf, SLOTS, type ItemId } from "@infinite-tower/shared
 import { newPlayer } from "../content/player.js";
 import { Pile } from "../overworld/components.js";
 import { Overworld } from "../overworld/overworld.js";
-import { getLevel } from "../world/index.js";
+import { WORLD } from "../world/index.js";
 import type { Account, PlayerId, PlayerLink, PlayerStore } from "../ports.js";
 import { Chat } from "./chat.js";
 import { Duels } from "./duels.js";
@@ -15,7 +15,7 @@ import { Uniques } from "./uniques.js";
 
 export class OnlinePlayers {
   private readonly byAccount = new Map<PlayerId, GameSession>();
-  private readonly overworlds = new Map<string, Overworld>();
+  private world: Overworld | null = null;
   private readonly online = () => this.byAccount.values();
   readonly uniques: Uniques;
   private readonly others: Others;
@@ -55,7 +55,7 @@ export class OnlinePlayers {
   }
 
   tick(dt: number): void {
-    for (const overworld of this.overworlds.values()) if (!overworld.empty) overworld.step(dt);
+    if (this.world && !this.world.empty) this.world.step(dt);
     for (const session of this.byAccount.values()) session.tick();
     this.others.duels.tick();
   }
@@ -72,17 +72,15 @@ export class OnlinePlayers {
       this.uniques.saved(id, data);
       this.store.save(id, data)
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
-    }, (levelId) => this.overworldOf(levelId), this.others);
+    }, () => this.overworld, this.others);
     session.start();
     // Only once it has started: a session that failed to start is never ticked or saved.
     this.byAccount.set(id, session);
     return session;
   }
 
-  private overworldOf(levelId: string): Overworld {
-    let overworld = this.overworlds.get(levelId);
-    if (!overworld) this.overworlds.set(levelId, overworld = new Overworld(getLevel(levelId)));
-    return overworld;
+  private get overworld(): Overworld {
+    return this.world ??= new Overworld(WORLD);
   }
 
   /** A player already on (in another tab) is never refused: they'd only take their own place. */
@@ -93,9 +91,7 @@ export class OnlinePlayers {
   }
 
   private *inPlay(): Iterable<ItemId> {
-    for (const overworld of this.overworlds.values()) {
-      for (const [, pile] of overworld.world.query(Pile)) for (const stack of pile.items.items) yield stack.item;
-    }
+    for (const [, pile] of this.world?.world.query(Pile) ?? []) for (const stack of pile.items.items) yield stack.item;
     for (const session of this.byAccount.values()) {
       const { bag, cloth, equipment } = session.gear;
       for (const stack of [...bag.items, ...cloth.items]) yield stack.item;

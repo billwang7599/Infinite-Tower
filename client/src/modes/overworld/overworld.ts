@@ -1,7 +1,7 @@
 import {
   coreStats, distXZ, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M, maxHpOf,
-  nearCampfire, overworldPace, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState, type Gear,
-  type Heading, type LevelLayout, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World,
+  nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState, type Gear,
+  type Heading, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
@@ -15,9 +15,7 @@ import { Prediction } from "./prediction.js";
 
 export interface Overworld {
   state: OverworldState;
-  /** A session starts: your walking goes to this connection, which sends the level next. */
   join(joined: Joined): void;
-  /** The session ended: forget the level and its actors. */
   leave(): void;
   update(dt: number, frozen: boolean): void;
   onBattleResult(msg: ServerMsgOf<"battleResult">): void;
@@ -29,16 +27,16 @@ export interface Overworld {
 }
 
 export function interactionAt(
-  level: LevelLayout, at: Vec2, heading: Heading, fights: readonly Vec2[], piles: readonly Vec2[],
+  map: WorldLayout, at: Vec2, heading: Heading, fights: readonly Vec2[], piles: readonly Vec2[],
 ): Interaction | null {
   const faced = inView(at, HEADING_WAY[heading], [
     ...piles.map((pile) => ({ what: "openPile" as const, ...pile })),
-    ...level.npcs.map((npc) => ({ what: "talk" as const, ...npc.at })),
-    ...level.traces.map((trace) => ({ what: "look" as const, ...trace })),
-    ...level.pads.map((pad) => ({ what: "bindPad" as const, ...pad })),
+    ...map.npcs.map((npc) => ({ what: "talk" as const, ...npc.at })),
+    ...map.traces.map((trace) => ({ what: "look" as const, ...trace })),
+    ...map.pads.map((pad) => ({ what: "bindPad" as const, ...pad })),
   ]);
   const reachable: [Interaction, readonly Vec2[], number][] = [
-    ["rest", level.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
+    ["rest", map.campfires, REST_RANGE_TILES], ["joinFight", fights, JOIN_RANGE_TILES],
   ];
   if (faced) reachable.push([faced.what, [faced], INTERACT_RANGE_M]);
   let best: { what: Interaction; dist: number } | null = null;
@@ -70,7 +68,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
-    world, player, level: null, next: [], cameraTurns: camera.get().overworldTurns,
+    world, player, map: null, cameraTurns: camera.get().overworldTurns,
     cameraPitchRad: CAMERA_PITCH.startRad,
   };
   const actors = new ActorMirror(world);
@@ -86,11 +84,11 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
 
   const playerPos = () => world.require(player, OverworldPos);
   const interaction = (): Interaction | null => {
-    if (!prediction || inBattle || !state.level) return null;
+    if (!prediction || inBattle || !state.map) return null;
     const fights = [...world.query(Peer, OverworldPos)].flatMap(([, peer, pos]) => (peer.fighting ? [pos] : []));
     const piles = [...world.query(OverworldActor, OverworldPos)]
       .flatMap(([, actor, pos]) => (actor.kind === "pile" ? [pos] : []));
-    return interactionAt(state.level, playerPos(), world.require(player, OverworldActor).heading, fights, piles);
+    return interactionAt(state.map, playerPos(), world.require(player, OverworldActor).heading, fights, piles);
   };
   const interact = () => {
     const what = interaction();
@@ -121,17 +119,20 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       net = joinedNet;
       prediction = new Prediction(world, state, player, joinedNet);
       inBattle = false;
-      hud.set({ levelName: "…", levelFloor: null, wins: welcome.wins });
+      hud.set({ regionName: "…", wins: welcome.wins });
       vitals = welcome.vitals;
       gear = welcome.gear;
       setCore(welcome.core);
-      joinedNet.on("level", (msg) => {
-        actors.enter(msg.level);
-        state.level = msg.level;
-        state.next = msg.next;
+      joinedNet.on("world", (msg) => {
+        actors.enter(msg.world);
+        state.map = msg.world;
         prediction?.reset(msg.me);
         world.require(player, OverworldActor).heading = START_HEADING;
-        hud.set({ levelName: msg.level.name, levelFloor: msg.level.floor ?? null });
+      });
+      joinedNet.on("npcs", (msg) => {
+        if (!state.map) return;
+        Object.assign(state.map, { npcs: msg.npcs, traces: msg.traces });
+        actors.place(msg);
       });
       joinedNet.on("state", (msg) => {
         if (inBattle) return;
@@ -157,11 +158,10 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       net = null;
       inBattle = false;
       actors.clear();
-      state.level = null;
-      state.next = [];
+      state.map = null;
     },
     update(dt, frozen) {
-      if (frozen || inBattle || !state.level || !prediction) accumulator = 0;
+      if (frozen || inBattle || !state.map || !prediction) accumulator = 0;
       else accumulator += dt;
       while (prediction && accumulator >= FIXED_DT) {
         const polled = actions.poll();
@@ -176,9 +176,10 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       }
       for (const [e, speech] of world.query(Speech)) if ((speech.remainingTime -= dt) <= 0) world.remove(e, Speech);
       state.cameraTurns = camera.get().overworldTurns;
-      const byFire = !inBattle && state.level !== null && nearCampfire(state.level, playerPos());
+      const byFire = !inBattle && state.map !== null && nearCampfire(state.map, playerPos());
       const cameraTurns = unwrapTurns(hud.get().cameraTurns, state.cameraTurns);
-      hud.set({ interaction: interaction(), byFire, cameraTurns });
+      const at = playerPos(), regionName = state.map ? regionAt(state.map, at.x, at.z).name : "…";
+      hud.set({ interaction: interaction(), byFire, cameraTurns, regionName });
     },
     onBattleResult(msg) {
       inBattle = false;

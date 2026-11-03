@@ -26,7 +26,7 @@ export interface PlayerSave {
   knownWords: Word[];
   skillbook: Skillbook;
   story: Story;
-  /** The level whose summoning pad they wake on, at login and after dying. */
+  /** The region whose summoning pad they wake on, at login and after dying. */
   pad: string;
   core: CoreState;
   shopsBought: ShopId[];

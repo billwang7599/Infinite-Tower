@@ -12,7 +12,7 @@ import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core
 import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import type { Account } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());

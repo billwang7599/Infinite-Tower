@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const SCAVENGER: Npc = {
   stops: [
     {
-      level: "old-quarry",
+      region: "old-quarry",
       at: { x: -12.5, z: -9.5 },
       heading: "east",
       talk: [
