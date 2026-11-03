@@ -752,9 +752,9 @@ round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
-equipment (items gone from the game or in the wrong slot are dropped on load), the skill words they know
-(`knownWords`), the skillbook's 4 pages (`skillbook`, each a skill or null) and the story (`story`, one `jsonb`: the
-quests taken and their steps by id, kills counted, flags), keyed by account; words not in the shared `WORDS` are
+equipment (items gone from the game, or in the wrong slot, are dropped on load, from the bag too), the skill words they
+know (`knownWords`), the skillbook's 4 pages (`skillbook`, each a skill or null) and the story (`story`, one `jsonb`:
+the quests taken and their steps by id, kills counted, flags), keyed by account; words not in the shared `WORDS` are
 dropped on load, and so is a page that's no longer a skill of known words, and a quest gone from `QUESTS` or on a step
 it no longer has (`keptStory`: forgotten, so it's offered again). The `GameSession` saves after every fight (the
 moment it's decided, or lost by leaving it), rest, item use, quest progress and making a character, on disconnect,
@@ -764,9 +764,11 @@ pile are never saved, and nor are the overworld's piles (a restart loses them, s
 again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`). The core's inscriptions
 are a column of their own (`inscriptions`, `0021_inscriptions`; unknown ids and doubles dropped on load), and so is
 the faith with each god (`faith`, `0022_faith`; `keptFaith` drops unknown gods on load).
-The pad you're bound to is saved (`pad`, a region id), and you log in on it (`wakeRegion`: a pad that's gone, or a
-region without one, is `START_REGION`'s); your position isn't saved. The core is (`core_steps`,
-`core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
+The store only maps columns: it loads a `StoredSave`, and every rule about what of it still fits the game is in
+`keptSave` (`core/content/player.ts`), called as a player joins. The pad you're bound to is saved (`pad`, a region id, a
+plain field of the session), and you log in on it (`wakeRegion`: a pad that's gone, or a region without one, is
+`START_REGION`'s); your position isn't saved. The core is (`core_steps`, `core_fill`, `stat_points`; `keptCore` makes a
+saved one right on load), and the stats come from it, so they aren't.
 A new character is bound to `START_REGION`, Highmere's Castle Ward (id `kingdom`), and so was every save from before
 pads were bound (`0019_pad-binding` dropped the saved `level`); a death wakes you on your pad at once (the session's
 `wakeOnPad`). The regions kept the ids the old levels had, so saved pads still hold. Saves from before the core
@@ -1256,7 +1258,7 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        landPile (an arena's), pileInView, padInView and inView (the one a player faces; inView
                        among the NPCs and traces placed for that player), pads, pileItems, setPileItems),
                        components.ts (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading,
-                       character, the pad they're bound to and whether they're fighting; Pile; SummoningPad, its
+                       character and whether they're fighting; Pile; SummoningPad, its
                        region), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
                        interact.ts (LAG_SLACK_TILES; inViewWithSlack, the shared inView with INTERACT_LAG_SLACK_M and
                        INTERACT_LOOK_SLACK_RAD: the overworld's piles, NPCs and pads, and an arena's piles),
@@ -1297,7 +1299,7 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        innkeeper.ts, carver.ts (its
                        stops: where it stands and what it says there, by the story, and what it leaves at one it
                        moves on from). index.ts (Npc, Stop, Talk, Trace; NPCS, one line each)
-      content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
+      content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed; keptSave),
                        quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
                        entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
                        PRICE_FACTOR by region, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
@@ -1886,8 +1888,9 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   fight event is an entry in `EFFECTS`. Nothing outside `visuals/` changes: the mode already holds the state it
   draws (if it doesn't, add it to the mode's state, not a call into drawing).
 - **Something kept between connections.** A field on `PlayerSave` (`server/src/core/ports.ts`) and `newPlayer()`
-  (`core/content/player.ts`), read in `GameSession`'s constructor and written in `GameSession.save()`; a column in
-  `server/src/db/schema.ts` (then a migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
+  (`core/content/player.ts`), checked on load in `keptSave` (`StoredSave` in `ports.ts` has it as stored), read in
+  `GameSession`'s constructor and written in `GameSession.save()`; a column in `server/src/db/schema.ts` (then a
+  migration, below), and `toRow` / `fromRow` in `db/player-store.ts`.
   Another store is a class implementing `PlayerStore`, swapped in for `new PgPlayerStore(db)` in `main.ts`.
 - **A schema change.** Edit `server/src/db/schema.ts`, run `npm run db:generate -- --name <what-changed>`, read the
   SQL it wrote and commit it with `migrations/meta/`. drizzle-kit asks when it can't tell a rename from a drop +

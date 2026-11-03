@@ -17,7 +17,7 @@ const TEN_SECONDS = Math.round(10 / FIXED_DT);
 function setup(t: TestContext) {
   t.mock.method(Math, "random", () => 0.5);
   const overworld = new Overworld(WIDE);
-  const me = overworld.join(TEST_CHARACTER, "test-region", () => {});
+  const me = overworld.join(TEST_CHARACTER, () => {});
   const [boar] = [...overworld.world.query(OverworldActor, OverworldPos)].map(([e]) => e);
   const step = (ticks: number) => { for (let i = 0; i < ticks; i++) overworld.step(FIXED_DT); };
   const boarAt = () => ({ ...overworld.world.require(boar!, OverworldPos) });

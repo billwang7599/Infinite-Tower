@@ -13,7 +13,7 @@ const BIG_WORLD = testWorld({ tiles: Array.from({ length: 200 }, () => ".".repea
 
 function overworldIn(map: WorldDef): { overworld: Overworld; me: Entity } {
   const overworld = new Overworld(map);
-  return { overworld, me: overworld.join(TEST_CHARACTER, "kingdom", () => {}) };
+  return { overworld, me: overworld.join(TEST_CHARACTER, () => {}) };
 }
 
 function ids(overworld: Overworld, me: Entity): number[] {
@@ -93,7 +93,7 @@ describe("state snapshot", () => {
 
   test("another player is sent with their character once, and as fighting while in a battle", () => {
     const { overworld, me } = overworldIn(BIG_WORLD);
-    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, "kingdom", () => {});
+    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, () => {});
     overworld.place(other, { x: 1, z: 2 });
     const introduced = new Set<Entity>();
     const [first] = stateMsg(overworld, me, introduced).players;
@@ -108,7 +108,7 @@ describe("state snapshot", () => {
 
   test("a player who leaves the view or the level is forgotten, and introduced again on coming back", () => {
     const { overworld, me } = overworldIn(BIG_WORLD);
-    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, "kingdom", () => {});
+    const other = overworld.join({ ...TEST_CHARACTER, name: "Other" }, () => {});
     const introduced = new Set<Entity>();
     stateMsg(overworld, me, introduced);
     overworld.place(other, { x: VIEW_RADIUS_TILES + 1, z: 0 });

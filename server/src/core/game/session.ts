@@ -70,6 +70,7 @@ export class GameSession {
   placed: Placed = { npcs: [], traces: [] };
   shop: ShopId | null = null;
   shopsBought: ShopId[];
+  pad: string;
   faith: Faith;
   /** A dev cheat for this connection: not saved. */
   invulnerable = false;
@@ -82,7 +83,6 @@ export class GameSession {
   private readonly introduced = new Set<Entity>();
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
-  private offWorldPad: string;
   private readonly sentChunks = new Set<string>();
   /** The region they were last in: walking into another places the NPCs again. */
   private regionId: string | null = null;
@@ -108,7 +108,7 @@ export class GameSession {
     this.story = saved.story;
     this.shopsBought = saved.shopsBought;
     this.faith = saved.faith;
-    this.offWorldPad = wakeRegion(saved.pad);
+    this.pad = wakeRegion(saved.pad);
     this.soul = saved.core;
   }
 
@@ -183,10 +183,6 @@ export class GameSession {
     this.overworld.endFight(this.me, this.overworld.map.safeTime);
   }
 
-  get pad(): string {
-    return this.walking ? this.overworld.playerData(this.me).pad : this.offWorldPad;
-  }
-
   get region(): string {
     return regionOf(this.overworld.map, this.overworld.playerPos(this.me)).id;
   }
@@ -202,7 +198,6 @@ export class GameSession {
   disconnect(): void {
     const battle = this.battle;
     if (battle) battle.room.leave(battle.seat);
-    this.offWorldPad = this.pad;
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
     this.save();
@@ -257,8 +252,8 @@ export class GameSession {
     if (!this.inOverworld) return;
     const pad = this.overworld.padInView(this.me);
     if (pad === null) return;
-    const walk = this.overworld.playerData(this.me), already = walk.pad === pad;
-    walk.pad = pad;
+    const already = this.pad === pad;
+    this.pad = pad;
     if (!already) this.save();
     this.link.send({ t: "padBound", already });
   }
@@ -534,7 +529,7 @@ export class GameSession {
     if (!this.character || this.walking) return;
     const { pad } = this, overworld = this.overworldOf();
     const me = overworld.join(
-      this.character, pad, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), getRegion(pad).spawn,
+      this.character, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), getRegion(pad).spawn,
     );
     this.walking = { overworld, me };
     this.regionId = this.region;
