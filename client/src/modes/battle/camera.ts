@@ -1,5 +1,6 @@
-import { Body, clamp, damp, dampFactor, LocalPlayer, wrapAngle, type Vec3 } from "@infinite-tower/shared";
+import { Body, clamp, damp, dampFactor, wrapAngle, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../components.js";
 import type { BattleContext } from "./context.js";
 import { lockYaw } from "./lock.js";
 

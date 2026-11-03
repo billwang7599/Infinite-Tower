@@ -1,12 +1,12 @@
 /** Spawns the world's actors and replaces defeated ones after `respawnTime`, away from players if they're near. */
 import { distXZ, type Entity, type System, type Vec2, type World } from "@infinite-tower/shared";
 import { ENEMIES } from "../enemies/index.js";
-import type { SpawnDef } from "../world/region.js";
+import type { Spawn } from "../world/region.js";
 import { OverworldPlayer, OverworldPos } from "./components.js";
 import { spawnActor } from "./parts.js";
 
 interface Slot {
-  def: SpawnDef;
+  def: Spawn;
   entity: Entity | null;
   /** Seconds until a defeated actor comes back. */
   timeToRespawn: number;
@@ -20,7 +20,7 @@ const MIN_PLAYER_DIST = 6;
 export class Spawner {
   private readonly slots: Slot[];
 
-  constructor(private readonly world: World, spawns: SpawnDef[]) {
+  constructor(private readonly world: World, spawns: Spawn[]) {
     this.slots = spawns.map((def) => ({ def, entity: this.spawn(def), timeToRespawn: 0, taken: null }));
   }
 
@@ -37,7 +37,7 @@ export class Spawner {
     }
   };
 
-  spawnOf(e: Entity): SpawnDef | undefined {
+  spawnOf(e: Entity): Spawn | undefined {
     return this.slots.find((s) => s.entity === e)?.def;
   }
 
@@ -51,9 +51,8 @@ export class Spawner {
     for (const slot of this.slots) if (slot.taken === actor) slot.taken = null;
   }
 
-  private spawn(def: SpawnDef): Entity {
-    return spawnActor(this.world, def.enemy, this.placeAway(def.at, def.away ?? { x: -def.at.x, z: def.at.z }),
-      ENEMIES[def.enemy].overworld());
+  private spawn(def: Spawn): Entity {
+    return spawnActor(this.world, def.enemy, this.placeAway(def.at, def.away), ENEMIES[def.enemy].overworld());
   }
 
   private placeAway(at: Vec2, away: Vec2): Vec2 {

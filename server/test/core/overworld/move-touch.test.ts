@@ -9,7 +9,7 @@ import { TEST_HALF } from "../../fixtures/world.js";
 import { pos, testOverworld } from "./helpers.js";
 
 const ENEMY: EnemyId = "wild-boar";
-const TOUCH = { range: 1, enemy: ENEMY };
+const TOUCH = { range: 1 };
 
 describe("move", () => {
   test("applies the actor's velocity over dt", () => {

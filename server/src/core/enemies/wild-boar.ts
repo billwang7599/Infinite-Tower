@@ -41,6 +41,6 @@ export const WILD_BOAR: Enemy = {
   overworld: () => [
     wander({ speed: 1.6 }),
     chaseOnSight({ range: 4.5, noticeTime: 0.5, speed: 3.4 }),
-    encounterOnTouch({ range: 0.9, enemy: "wild-boar" }),
+    encounterOnTouch({ range: 0.9 }),
   ],
 };

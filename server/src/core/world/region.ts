@@ -7,8 +7,11 @@ export interface SpawnDef {
   respawnTime: number;
   /** Fought here rather than in the region's arena. */
   arenaId?: string;
+}
+
+export interface Spawn extends SpawnDef {
   /** Where it comes back instead while a player stands near `at`: across its region. */
-  away?: Vec2;
+  away: Vec2;
 }
 
 export interface EncounterTable {
@@ -45,7 +48,7 @@ export interface Region extends RegionArea {
   campfires: Vec2[];
   arenaId: string;
   duelArenaId: string;
-  spawns: SpawnDef[];
+  spawns: Spawn[];
   grass?: EncounterTable;
   hasPad: boolean;
 }

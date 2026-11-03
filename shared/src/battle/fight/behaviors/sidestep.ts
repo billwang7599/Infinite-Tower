@@ -1,5 +1,5 @@
 import type { System } from "../../../core/ecs.js";
-import { FIXED_DT } from "../../../core/time.js";
+import { toSteps } from "../../../core/time.js";
 import { releaseTime } from "../../../skills/skill.js";
 import { Body, Enemy, Fighter, Sidestep, Skilled } from "../../components.js";
 import type { FightContext } from "../context.js";
@@ -9,7 +9,6 @@ import { enter, roll } from "./common.js";
 const AIM_MIN_DOT = 0.9;
 const STEP_ACCEL = 60;
 
-const stepsOf = (seconds: number): number => Math.round(seconds / FIXED_DT);
 
 export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
   return (world) => {
@@ -20,7 +19,7 @@ export function sidestepSystem(ctx: Pick<FightContext, "arena">): System {
       for (const [, caster, from, { side: casterSide }] of world.query(Skilled, Body, Fighter)) {
         const skill = caster.casting;
         if (enemy.state !== "approach" || casterSide === ownSide || skill?.segments[0].form !== "bolt") continue;
-        if (stepsOf(caster.castTime) !== stepsOf(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
+        if (toSteps(caster.castTime) !== toSteps(Math.max(def.reactTime, releaseTime(skill) - def.leadTime))) continue;
         const dx = body.pos.x - from.pos.x, dz = body.pos.z - from.pos.z, dist = Math.hypot(dx, dz);
         if (dist === 0 || (dx * caster.aim.x + dz * caster.aim.z) / dist < AIM_MIN_DOT) continue;
         if (roll(enemy) >= def.chance) continue;

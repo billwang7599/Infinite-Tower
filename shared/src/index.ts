@@ -1,6 +1,5 @@
 // Everything but the arena fight, which is its own entry point ("@infinite-tower/shared/fight") so Rapier only loads
 // where it runs.
-export * from "./core/components.js";
 export * from "./core/ecs.js";
 export * from "./core/math.js";
 export * from "./core/time.js";

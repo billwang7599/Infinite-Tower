@@ -32,6 +32,6 @@ export const KOBOLD_SWORDSMAN: Enemy = {
   overworld: () => [
     wander({ speed: 1.2 }),
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),
-    encounterOnTouch({ range: 0.9, enemy: "kobold-swordsman" }),
+    encounterOnTouch({ range: 0.9 }),
   ],
 };

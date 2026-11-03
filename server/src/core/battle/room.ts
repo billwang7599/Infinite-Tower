@@ -5,7 +5,7 @@
  * Won against enemies, it runs on for the winners still in the arena (to walk to the drops) until the last leaves.
  */
 import {
-  HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Entity,
+  FIXED_DT, HASH_EVERY_STEPS, Health, IDLE_INPUT, MAX_INPUT_DELAY_STEPS, Player, sameInput, Stamina, type Entity,
   type PlayerData, type PlayerInputData, type StepInput, type Vitals, type World,
 } from "@infinite-tower/shared";
 import {
@@ -183,7 +183,7 @@ export class BattleRoom {
 
   private ready(): boolean {
     if (this.started) return true;
-    this.waitedTime += Fight.STEP_SECONDS;
+    this.waitedTime += FIXED_DT;
     this.started = this.seats.every((s) => s.gone || s.inputs.started) || this.waitedTime >= MAX_START_WAIT_TIME;
     return this.started;
   }

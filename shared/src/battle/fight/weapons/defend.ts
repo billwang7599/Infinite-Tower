@@ -7,7 +7,8 @@ import { Body, Enemy, Player, Stamina, WeaponAttack, Wielder, type ActiveHitData
 import { FighterStats } from "../../stats.js";
 import { faces, knock, spend, stagger } from "../combat.js";
 import type { FightEvent } from "../context.js";
-import { hurt, modsOf } from "../statuses.js";
+import { modsOf } from "../../statuses.js";
+import { hurt } from "../health.js";
 import { endChain, endSwing } from "./swing.js";
 
 export function facingOf(world: World, e: Entity): Vec2 {

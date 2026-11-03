@@ -1,5 +1,5 @@
 import {
-  bagCounts, carve, coinsFor, itemAt, itemDef, ITEM_IDS, sigilOf, uncarve, type CarvePrice, type Gear,
+  bagCounts, carve, coinsFor, itemAt, itemDef, takeAt, ITEM_IDS, sigilOf, uncarve, type CarvePrice, type Gear,
   type InscriptionId, type ItemId, type UseSpot,
 } from "@infinite-tower/shared";
 import { CARVE_PRICES, CARVING_SHOP, REMOVE_PRICES } from "../content/shops.js";
@@ -46,9 +46,8 @@ export function carveSigil(session: GameSession, at: UseSpot): void {
     const reason = session.core.inscriptions.includes(inscription) ? "carved" : "noSlot";
     return done(session, CARVING_SHOP, { kind: "refused", reason });
   }
-  const items = grid.items.map((s, k) => k === i ? { ...s, count: s.count - 1 } : s).filter((s) => s.count > 0);
   const price = CARVE_PRICES[itemDef(stack.item).rarity];
-  const paid = payPrice({ ...session.gear, [at.in]: { ...grid, items } }, price);
+  const paid = payPrice({ ...session.gear, [at.in]: takeAt(grid, at)! }, price);
   if ("refused" in paid) return done(session, CARVING_SHOP, { kind: "refused", reason: paid.refused });
   session.takeCore(core);
   done(session, CARVING_SHOP, { kind: "carved", inscription, price }, paid.gear);

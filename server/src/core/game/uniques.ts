@@ -1,4 +1,4 @@
-import { itemDef, SLOTS, UNIQUE_ITEMS, type ItemId } from "@infinite-tower/shared";
+import { carriedCounts, itemDef, SLOTS, UNIQUE_ITEMS, type ItemId } from "@infinite-tower/shared";
 import type { PlayerId, PlayerSave, PlayerStore, UniqueHold } from "../ports.js";
 
 export const UNIQUE_HOLD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -63,7 +63,6 @@ export class Uniques {
 }
 
 const carries = (save: PlayerSave, item: ItemId): boolean =>
-  save.bag.items.some((s) => s.item === item) || SLOTS.some((slot) => save.equipment[slot] === item)
-  || save.core.inscriptions.some((id) => itemDef(item).inscription === id);
+  (carriedCounts(save)[item] ?? 0) > 0 || save.core.inscriptions.some((id) => itemDef(item).inscription === id);
 
 const logFailed = (err: unknown) => console.error("[store] saving a unique thing's holder failed", err);

@@ -1,8 +1,9 @@
-import { FIXED_DT, type ChallengeNews } from "@infinite-tower/shared";
+import { toSteps, type ChallengeNews } from "@infinite-tower/shared";
 import { DUEL_STARTS, type FightSetup } from "@infinite-tower/shared/fight";
 import { getArena } from "../world/index.js";
 import { fighterOf, regionHere, sparSeat, startFight } from "./battle.js";
-import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
+import { LAG_SLACK_TILES } from "../overworld/interact.js";
+import { nearestOtherSession, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
 export const CHALLENGE_TIME = 15;
@@ -27,7 +28,7 @@ export class Duels {
     if (!to) tell(from, { kind: "nobodyNear" });
     else if (this.challengeOf(to)) tell(from, { kind: "busy", who: to.name });
     else {
-      this.open.add({ from, to, stepsLeft: Math.round(CHALLENGE_TIME / FIXED_DT) });
+      this.open.add({ from, to, stepsLeft: toSteps(CHALLENGE_TIME) });
       tell(to, { kind: "received", from: from.name });
       tell(from, { kind: "sent", to: to.name });
     }

@@ -36,6 +36,6 @@ export const GOBLIN_WARLOCK: Enemy = {
   overworld: () => [
     wander({ speed: 1.2 }),
     chaseOnSight({ range: 4, noticeTime: 0.6, speed: 3 }),
-    encounterOnTouch({ range: 0.9, enemy: "goblin-warlock" }),
+    encounterOnTouch({ range: 0.9 }),
   ],
 };

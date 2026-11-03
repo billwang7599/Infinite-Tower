@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { Spawner } from "../../../src/core/overworld/spawner.js";
-import type { SpawnDef } from "../../../src/core/world/region.js";
-import { TEST_REGION } from "../../fixtures/world.js";
+import type { Spawn } from "../../../src/core/world/region.js";
+import { TEST_REGION, TEST_WORLD } from "../../fixtures/world.js";
 import { actors, pos, testOverworld } from "./helpers.js";
 
-const DEF: SpawnDef = TEST_REGION.spawns[0]!;
+const DEF: Spawn = TEST_WORLD.spawns[0]!;
 /** Divides respawnTime evenly in binary, so the timing is exact. */
 const DT = DEF.respawnTime / 8;
 
 /** The player far from every spawn point unless told otherwise. */
-function spawner(spawns: SpawnDef[] = [DEF], playerAt = TEST_REGION.spawn) {
+function spawner(spawns: Spawn[] = [DEF], playerAt = TEST_REGION.spawn) {
   const f = testOverworld({ playerAt });
   return { ...f, spawner: new Spawner(f.world, spawns) };
 }
@@ -23,7 +23,7 @@ function defeat(world: ReturnType<typeof testOverworld>["world"]): void {
 
 describe("Spawner", () => {
   test("spawns one actor per spawn point, where the world says", () => {
-    const second: SpawnDef = { ...DEF, at: { x: DEF.at.x, z: -DEF.at.z } };
+    const second: Spawn = { ...DEF, at: { x: DEF.at.x, z: -DEF.at.z } };
     const s = spawner([DEF, second]);
     const spawned = actors(s.world);
     assert.equal(spawned.length, 2);

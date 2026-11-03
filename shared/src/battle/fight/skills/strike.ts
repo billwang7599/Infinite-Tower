@@ -7,8 +7,8 @@ import { FighterStats, skillDamage, stunTime } from "../../stats.js";
 import { HIT_FLASH_TIME, knock } from "../combat.js";
 import type { FightEvent } from "../context.js";
 import { enter } from "../behaviors/common.js";
-import { heal, hurt, lifesteal, modsOf } from "../statuses.js";
-import { applyStatus, endStatus, maxStacksOf, stacksOf, statusOn, timeLeft } from "../../statuses.js";
+import { heal, hurt, lifesteal } from "../health.js";
+import { applyStatus, endStatus, maxStacksOf, modsOf, stacksOf, statusOn, timeLeft } from "../../statuses.js";
 
 const E = SKILL_EFFECTS.elements, R = SKILL_EFFECTS.reactions;
 

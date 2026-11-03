@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  ActiveHit, Health, physicalDamage, wayShape, WEAPONS, Wielder, type EnemyDef, type WeaponId,
+  FIXED_DT, ActiveHit, Health, physicalDamage, wayShape, WEAPONS, Wielder, type EnemyDef, type WeaponId,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, IDLE, player, SWORDSMAN } from "../fixtures.js";
@@ -19,13 +19,13 @@ const holding = (hands: NonNullable<EnemyDef["wielder"]>["hands"], armReachM = A
 
 function firstHit(def: EnemyDef) {
   const fight = newFight(def), e = fight.enemies[0]!, me = fight.world.require(fight.players[0]!, Health);
-  for (let i = 0; i < 3 / Fight.STEP_SECONDS && me.hp === me.max; i++) fight.step([IDLE]);
+  for (let i = 0; i < 3 / FIXED_DT && me.hp === me.max; i++) fight.step([IDLE]);
   return { hitbox: fight.world.get(e, ActiveHit), dealt: me.max - me.hp };
 }
 
 function watch(fight: Fight, seconds = 3) {
   const e = fight.enemies[0]!, out: { hit: boolean; swingStep: number | null }[] = [];
-  for (let i = 0; i < seconds / Fight.STEP_SECONDS; i++) {
+  for (let i = 0; i < seconds / FIXED_DT; i++) {
     fight.step([IDLE]);
     const swing = fight.world.get(e, Wielder)?.swing ?? null;
     out.push({ hit: fight.world.has(e, ActiveHit), swingStep: swing && swing.step - 1 });
@@ -38,7 +38,7 @@ describe("an enemy wielding a weapon", () => {
     const fight = newFight(SWORDSMAN), e = fight.enemies[0]!;
     let hitbox = null;
     const seen = [];
-    for (let i = 0; i < 3 / Fight.STEP_SECONDS; i++) {
+    for (let i = 0; i < 3 / FIXED_DT; i++) {
       fight.step([IDLE]);
       const swing = fight.world.require(e, Wielder).swing;
       hitbox ??= fight.world.get(e, ActiveHit) ?? null;

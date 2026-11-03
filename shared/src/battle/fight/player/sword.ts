@@ -2,7 +2,8 @@ import type { Entity, World } from "../../../core/ecs.js";
 import { FIXED_DT } from "../../../core/time.js";
 import { shotOf } from "../../../skills/effects.js";
 import {
-  CHAIN, chainKind, guardRaiseTime, HYBRID, lastFeintStep, perfectBlockTime, MOMENTUM, momentumDamage, startupTime, strikeCost, type Strike, type Way,
+  CHAIN, chainKind, guardRaiseTime, HYBRID, lastFeintStep, perfectBlockTime, MOMENTUM, momentumDamage, startupTime,
+  strikeCost, type Strike, type Way,
 } from "../../../weapons/hybrid.js";
 import type { Weapon } from "../../../weapons/weapons.js";
 import type { PlayerData, StaminaData, WielderData } from "../../components.js";
@@ -11,8 +12,8 @@ import { PLAYER } from "../../player.js";
 import { FighterStats } from "../../stats.js";
 import type { FightEvent } from "../context.js";
 import { imbueOf } from "../skills/cast.js";
-import { canPay, pay, spend } from "../combat.js";
-import { modsOf } from "../statuses.js";
+import { canPayStamina, payStamina, spend } from "../combat.js";
+import { modsOf } from "../../statuses.js";
 import { endChain, endSwing, startWaySwing } from "../weapons/swing.js";
 import { startAction } from "./controller.js";
 
@@ -97,9 +98,9 @@ export function attackOrBlock(t: SwordTurn): boolean {
   const cost = weapon && player.queued !== null
     ? strikeCost(weapon, player.queued, world.require(e, FighterStats).strength) * modsOf(world, e).attackCostFactor
     : 0;
-  if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && canPay(world, e, stamina, cost)) {
+  if (t.free && weapon && player.attackBuffer > 0 && player.queued !== null && canPayStamina(world, e, stamina, cost)) {
     strike(t, player.queued);
-    pay(world, e, stamina, cost);
+    payStamina(world, e, stamina, cost);
     player.attackBuffer = 0;
     return true;
   }

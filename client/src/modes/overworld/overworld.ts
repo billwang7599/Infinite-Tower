@@ -1,8 +1,9 @@
 import {
-  coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M,
+  coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, inView, INTERACT_RANGE_M,
   maxHpOf, nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState,
   type Gear, type Heading, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
+import { LocalPlayer } from "../components.js";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
 import type { CameraSettings } from "../../settings/camera.js";

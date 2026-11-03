@@ -1,8 +1,9 @@
 import {
-  Body, Enemy, Health, heldIn, LocalPlayer, inView, Player, roundTo, Stamina, STATUS_DEFS, Statuses, Wielder,
+  Body, Enemy, Health, heldIn, inView, Player, roundTo, Stamina, STATUS_DEFS, Statuses, Wielder,
   type Entity, type StatusOn, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../components.js";
 import type { BattleHudState, StatusIcon } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { AFTER_FIGHT_BANNER_TIME, resultShown, type BattleContext } from "./context.js";

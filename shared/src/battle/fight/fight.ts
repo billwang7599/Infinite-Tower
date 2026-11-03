@@ -28,7 +28,9 @@ import { playerControllerSystem } from "./player/controller.js";
 import { useSystem } from "./player/use.js";
 import { skillSystem } from "./skills/cast.js";
 import { windUpSystem } from "./skills/skilled.js";
-import { modsOf, regenSystem, statusSystem } from "./statuses.js";
+import { modsOf } from "../statuses.js";
+import { regenSystem } from "./health.js";
+import { statusSystem } from "./statuses.js";
 import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { weaponSystem } from "./weapons/swing.js";
@@ -66,7 +68,6 @@ function enemyMotorSystem(): System {
 }
 
 export class Fight {
-  static readonly STEP_SECONDS = FIXED_DT;
 
   readonly world = new World();
   readonly physics: ArenaPhysics;
@@ -139,7 +140,7 @@ export class Fight {
       const input = inputs[i];
       if (input) Object.assign(this.world.require(e, PlayerInput), copyInput(input));
     });
-    for (const system of this.systems) system(this.world, Fight.STEP_SECONDS);
+    for (const system of this.systems) system(this.world, FIXED_DT);
     this.world.flush();
     this.steps++;
   }

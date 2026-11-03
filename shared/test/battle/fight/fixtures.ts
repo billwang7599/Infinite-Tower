@@ -1,8 +1,8 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health, LungeAttack,
-  maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject, SlamAttack,
-  Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
+  FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health,
+  LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject,
+  SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
   type Skill, type Stats, type SkillAttackDef, type SlamDef, type Equipment, type Vec3, type WeaponAttackDef,
 } from "@infinite-tower/shared";
@@ -123,7 +123,7 @@ export const input = (over: Partial<PlayerInputData>): PlayerInputData => ({ ...
 
 /** Steps `seconds` of fight, the one player giving `next(step)` each step. */
 export function run(fight: Fight, seconds: number, next: (step: number) => PlayerInputData = () => IDLE): void {
-  const steps = Math.round(seconds / Fight.STEP_SECONDS);
+  const steps = Math.round(seconds / FIXED_DT);
   for (let i = 0; i < steps; i++) fight.step([next(i)]);
 }
 
@@ -135,7 +135,7 @@ export const skill = (...segments: [Segment, ...Segment[]]): Skill => ({ segment
 export function castNow(fight: Fight, cast: Skill, over: Partial<PlayerInputData> = {}): void {
   fight.step([input({ ...over, chant: true })]);
   fight.step([input({ ...over, cast })]);
-  run(fight, releaseTime(cast) - Fight.STEP_SECONDS, () => input({ ...over, cast: null }));
+  run(fight, releaseTime(cast) - FIXED_DT, () => input({ ...over, cast: null }));
 }
 
 export const bodyOf = (fight: Fight, e: Entity) => fight.world.require(e, Body);

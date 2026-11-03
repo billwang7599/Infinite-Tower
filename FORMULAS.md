@@ -357,7 +357,7 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 
 ## Damage taken
 
-`hurt` and `modsOf` in `shared/src/battle/fight/statuses.ts`.
+`hurt` in `shared/src/battle/fight/health.ts` and `modsOf` in `shared/src/battle/statuses.ts`.
 
 - Dealt = damage × the attacker's statuses' damage dealt (Empowered 1.2, Cursed 0.85, Frenzy 1.1 a stack, Bloodrage
   1.35; weapon, body and skill hits alike).

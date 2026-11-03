@@ -1,8 +1,9 @@
 import {
-  Body, copyInput, IDLE_INPUT, LocalPlayer, Player, sameSkill, type ServerMsgOf, type Skill,
+  Body, copyInput, IDLE_INPUT, Player, sameSkill, type ServerMsgOf, type Skill,
   type Vec3, type Word,
 } from "@infinite-tower/shared";
 import { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../components.js";
 import type { Actions } from "../../core/actions.js";
 import type { Net } from "../../net/net.js";
 import type { Settings } from "../../settings/settings.js";

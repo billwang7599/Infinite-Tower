@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, emptyBag, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage, Player, Stamina,
-  strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
+  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage, Player,
+  Stamina, strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -143,7 +143,7 @@ describe("a feint", () => {
     const { fight, me, wielder, stamina } = blockAt("heavy", () => 1);
     assert.equal(wielder.swing, null);
     assert.equal(fight.world.require(me, Player).action, "block");
-    const holdCost = HYBRID.block.holdStaminaPerSec * Fight.STEP_SECONDS;
+    const holdCost = HYBRID.block.holdStaminaPerSec * FIXED_DT;
     assert.ok(Math.abs(fight.world.require(me, Stamina).value - (stamina - HYBRID.feint.cost - holdCost)) < 1e-9);
     assert.ok(fight.events.some((e) => e.type === "feint" && e.by === me));
   });

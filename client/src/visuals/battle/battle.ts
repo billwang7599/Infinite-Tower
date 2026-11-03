@@ -2,10 +2,11 @@ import {
   Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3, type ParticleSystem,
 } from "@babylonjs/core";
 import {
-  Body, clamp, dampFactor, Enemy, Health, LocalPlayer, Player, REACTIONS, Skilled, Statuses, type Entity,
+  Body, clamp, dampFactor, Enemy, Health, Player, REACTIONS, Skilled, Statuses, type Entity,
   type Reaction, type Theme, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../../modes/components.js";
 import { showArena } from "../arenas/index.js";
 import type { Visual } from "../visuals.js";
 import { aimRing } from "./aimRing.js";

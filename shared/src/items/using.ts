@@ -1,14 +1,14 @@
-import { FIXED_DT } from "../core/time.js";
+import { toSteps } from "../core/time.js";
 import { absorb, coreWhole, type CoreState } from "../soul/core.js";
-import { itemAt, takeOne, type Bag } from "./bag.js";
+import { itemAt, takeAt, type Bag } from "./bag.js";
 import type { UseSpot } from "./gear.js";
 import { itemDef, type ItemEffect, type ItemId } from "./items.js";
 
 export interface Using { at: UseSpot; item: ItemId; stepsLeft: number }
 export interface UseTarget { hp: number; max: number; stamina: number; staminaMax: number; core: CoreState }
 
-// Whole FIXED_DT steps, as the fight and the overworld both step by them.
-export const useSteps = (item: ItemId): number => Math.round((itemDef(item).consumable?.useTime ?? 0) / FIXED_DT);
+// Whole steps, as the fight and the overworld both step by them.
+export const useSteps = (item: ItemId): number => toSteps(itemDef(item).consumable?.useTime ?? 0);
 
 // True if any of them did something.
 function applyEffects(effects: readonly ItemEffect[], target: UseTarget): boolean {
@@ -38,7 +38,7 @@ export const stepUse = (using: Using): Using => ({ ...using, stepsLeft: using.st
 
 // Changes `target`; null (nothing used) if the item was moved or is gone.
 export function finishUse(using: Using, grid: Bag, target: UseTarget): Bag | null {
-  const left = grid.items[itemAt(grid, using.at)]?.item === using.item ? takeOne(grid, using.at) : null;
+  const left = grid.items[itemAt(grid, using.at)]?.item === using.item ? takeAt(grid, using.at) : null;
   if (left) applyEffects(itemDef(using.item).consumable?.effects ?? [], target);
   return left;
 }
