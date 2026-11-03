@@ -204,7 +204,7 @@ export class KeyBindings extends Store<KeyMap> {
     this.set(withKeys(this.get(), ref, own.filter((k) => k !== key)));
   }
 
-  reset(): void {
+  override reset(): void {
     this.set(buildMap(defaultKeys));
   }
 

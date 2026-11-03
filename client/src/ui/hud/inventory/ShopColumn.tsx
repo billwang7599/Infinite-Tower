@@ -6,6 +6,7 @@ import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
 import { ItemPicture } from "./BagGrid.js";
+import type { GameRequests } from "../../state.js";
 import { EQUIPMENT_WIDTH_PX } from "./grid.js";
 import { RARITY_TEXT } from "./itemInfo.js";
 
@@ -21,12 +22,10 @@ interface ShopColumnProps {
   shop: ShopView;
   gear: Gear;
   core: CoreState;
-  buy: (item: ItemId) => void;
-  exchange: (from: CoinId, to: CoinId) => void;
-  uncarve: (inscription: InscriptionId) => void;
+  request: GameRequests["request"];
 }
 
-export function ShopColumn({ shop, gear, core, buy, exchange, uncarve }: ShopColumnProps) {
+export function ShopColumn({ shop, gear, core, request }: ShopColumnProps) {
   const money = moneyIn(gear.bag, gear.cloth);
   const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
   const coins = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);
@@ -52,7 +51,7 @@ export function ShopColumn({ shop, gear, core, buy, exchange, uncarve }: ShopCol
               </div>
               <button
                 type="button" {...NO_FOCUS} className={SMALL_BUTTON} disabled={money < price}
-                data-buy={item} onClick={() => buy(item)}
+                data-buy={item} onClick={() => request({ t: "buy", item })}
               >
                 Buy
               </button>
@@ -60,7 +59,11 @@ export function ShopColumn({ shop, gear, core, buy, exchange, uncarve }: ShopCol
           ))}
         </ul>
       )}
-      {shop.carving && <Rings core={core} remove={shop.carving.remove} uncarve={uncarve} />}
+      {shop.carving && (
+        <Rings
+          core={core} remove={shop.carving.remove} uncarve={(inscription) => request({ t: "uncarve", inscription })}
+        />
+      )}
       {discounted && <p className="text-xs text-white/50 italic">Your first purchase here is cheaper.</p>}
       {buys.length > 0 && (
         <p className="text-xs text-white/50">
@@ -78,7 +81,7 @@ export function ShopColumn({ shop, gear, core, buy, exchange, uncarve }: ShopCol
             return (
               <button
                 key={`${from}-${to}`} type="button" {...NO_FOCUS} className={SMALL_BUTTON} disabled={coins(from) < give}
-                data-exchange={`${from}>${to}`} onClick={() => exchange(from, to)}
+                data-exchange={`${from}>${to}`} onClick={() => request({ t: "exchange", from, to })}
               >
                 {give}{COIN_LETTER[from]} → {get}{COIN_LETTER[to]}
               </button>

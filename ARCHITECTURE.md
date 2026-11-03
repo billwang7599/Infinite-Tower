@@ -555,8 +555,10 @@ main.ts
   in the bottom-right corner (loot, a full bag, dying, resting, eating), `"centre"` the big centre banner, kept for
   bigger events (only a fight starting so far; the arena's result banner is the fight's end).
   Writing every frame is fine: `Store.set` skips unchanged values, so a component re-renders only when the value it
-  selected changes (select one primitive per `useStore` call). What the UI asks of the game (sign in, play, return
-  to title) goes through `UiActions`, which `main.ts` provides.
+  selected changes (select one primitive per `useStore` call). What the UI asks of the game goes through
+  `UiActions`: the title's own (sign in, play, return to title) from `main.ts`, the rest the `Game`'s
+  (`GameRequests`), forwarded once it has loaded. A message the server takes as it is goes through `request(msg)`;
+  `OVERWORLD_ONLY` in `game.ts` keeps the ones that only make sense on the overworld from going out anywhere else.
 - **Styling is Tailwind v4** (`@tailwindcss/vite`, no config file). Colours and fonts are `@theme` tokens in
   `client/src/ui/styles.css` (`bg-hp`, `text-victory`, `font-title`, ...), shared pieces are `@utility` classes
   (`bar`, `bar-layer`). Write each class name out in full (`"from-hp to-hp-dark"`, not `` `from-${bar}` ``),
@@ -1404,12 +1406,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        focused, and the log: hearChat keeps the last CHAT_LOG_LINES), `dialogue` (who's talking,
                        their lines and the one shown, the offer: openDialogue, nextLine (past the last line, the offer
                        to take), closeDialogue) and `questbook` (open, the server's quests: toggleQuestbook,
-                       closeQuestbook) (the UI writes them too,
-                       the game watches them;
-                       `whoHasTheKeys`: the layer stack, the top one gets the keys), and UiActions (what the UI asks
-                       of the game: signIn, logOut, play, interact, leaveArena, challenge, answerChallenge, useItem,
-                       moveItem, castSkill, saveSkill, sendChat, takeOffer, saveCharacter, returnToTitle, cheat,
-                       setDayClock, statPoint).
+                       closeQuestbook) (the UI writes them too, and the game watches every one of `keyStores`;
+                       `whoHasTheKeys`: the layer stack, the top one gets the keys; `resetSession` on leaving), and
+                       UiActions (what the UI asks of the game: TitleActions, then GameRequests: request (a
+                       UiRequest: buy, sell, exchange, carve, uncarve, challenge, statPoint, chat, character, cheat),
+                       interact, leaveBattle, answerChallenge, useItem, moveItem, castSkill, saveSkill, takeOffer,
+                       setDayClock).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -1892,8 +1894,9 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   from the `settings` it already has (`ctx.settings` in the arena).
 - **A UI screen or HUD piece.** A component in `client/src/ui/` (`hud/`, or a folder of its own in
   `screens/`; parts used by more than one screen go in `components/`). If the game has to feed it, add fields to a
-  store in `ui/state.ts` and `set` them from game code; if it has to ask the game for something, add a function to
-  `UiActions` (main.ts provides them).
+  store in `ui/state.ts` and `set` them from game code; if it has to ask the game for something, send the message
+  with `actions.request` (add its type to `UiRequest`), or add a function to `GameRequests` when the game has more
+  to do than send it. A store that changes who has the keys goes in `keyStores`.
 - **A cheat** (dev only). A case in `CheatSchema` (`shared/src/net/client-messages.ts`), its branch in `runCheat`
   (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
   and a button in `client/src/ui/screens/admin/AdminPanel.tsx`.

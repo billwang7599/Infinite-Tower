@@ -1,14 +1,12 @@
 /**
  * Everything the game tells the UI: game code writes these stores and React reads them (nothing here imports React).
- * The UI writes `settingsScreen`, `admin`, `creation`, `overworldPanel`, `chant`, `battleBag`, `leaveArena`,
- * `skillbookScreen`, `chat`, `dialogue`, `questbook` and the title's `pickedSocket` too, and the game watches them.
- * `UiActions` is the other direction.
+ * The UI writes the `keyStores` and the title's `pickedSocket` too, and the game watches them. `UiActions` is the
+ * other direction.
  */
 import {
-  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type Cheat, type CoreState, type Credentials,
-  type CoinId, type DayChange, type DialogueOffer, type Faith, type GameServer, type Gear, type InscriptionId,
-  type ItemId, type Look, type QuestView, type ShopView, type ShownStat, type Skill, type Skillbook, type Spot,
-  type Status, type UseSpot, type WeaponId, type Word,
+  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type ClientMsg, type CoreState,
+  type Credentials, type DayChange, type DialogueOffer, type Faith, type GameServer, type Gear, type Look,
+  type QuestView, type ShopView, type Skill, type Skillbook, type Spot, type Status, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -148,32 +146,6 @@ export interface OverworldPanelState {
   widthPx: number;
 }
 
-/**
- * You stand still while the bag is open (in a fight the fight holds you still, and a dodge still goes); the character
- * panel only shows things, so you walk with it open.
- */
-export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
-  if (mode === null || !inWorld(mode, ui.title.get().phase)) return ["title"];
-  const layers: Layer[] = [mode];
-  if (mode === "overworld" && ui.overworldPanel.get().open === "inventory") {
-    layers.push("bag");
-    if (ui.skillbookScreen.get().open) layers.push("skillbook");
-  }
-  if (mode === "battle" && ui.chant.get().open) layers.push("chant");
-  if (mode === "battle" && ui.battleBag.get().open) {
-    layers.push("battleBag");
-    if (ui.skillbookScreen.get().open) layers.push("skillbook");
-  }
-  if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");
-  if (ui.dialogue.get().open) layers.push("dialogue");
-  if (ui.questbook.get().open) layers.push("questbook");
-  if (ui.chat.get().focused) layers.push("chat");
-  if (ui.admin.get().open) layers.push("admin");
-  if (ui.settingsScreen.get().open) layers.push("settings");
-  if (ui.creation.get().open) layers.push("creation");
-  return layers;
-}
-
 /** The game opens it when `welcome` has no character; it closes itself once one is made. There's no leaving it. */
 export interface CreationState {
   open: boolean;
@@ -181,33 +153,31 @@ export interface CreationState {
 
 export type SignInKind = "login" | "register";
 
-export interface UiActions {
-  /** Logs in (or makes the account), then plays. */
-  signIn(kind: SignInKind, credentials: Credentials): void;
-  logOut(): void;
-  play(): void;
+export type UiRequest = Extract<ClientMsg, {
+  t: "buy" | "sell" | "exchange" | "carve" | "uncarve" | "challenge" | "statPoint" | "chat" | "character" | "cheat";
+}>;
+
+export interface GameRequests {
+  request(msg: UiRequest): void;
   interact(): void;
-  leaveArena(): void;
-  challenge(): void;
+  leaveBattle(sure?: boolean): void;
   answerChallenge(accept: boolean): void;
   useItem(at: UseSpot): void;
   moveItem(from: Spot, to: Spot, turned: boolean): void;
-  buy(item: ItemId): void;
-  sell(at: UseSpot, count: number): void;
-  exchange(from: CoinId, to: CoinId): void;
-  carve(at: UseSpot): void;
-  uncarve(inscription: InscriptionId): void;
-  tooWeak(item: WeaponId): void;
   castSkill(skill: Skill): void;
   saveSkill(page: number, skill: Skill): void;
-  sendChat(text: string): void;
   takeOffer(offer: DialogueOffer): void;
-  saveCharacter(character: Character): void;
-  returnToTitle(): void;
-  cheat(cheat: Cheat): void;
   setDayClock(change: DayChange): void;
-  statPoint(stat: ShownStat, add: boolean): void;
 }
+
+export interface TitleActions {
+  signIn(kind: SignInKind, credentials: Credentials): void;
+  logOut(): void;
+  play(): void;
+  returnToTitle(): void;
+}
+
+export type UiActions = TitleActions & GameRequests;
 
 export class UiState {
   readonly title = new Store<TitleState>({
@@ -252,6 +222,20 @@ export class UiState {
   readonly questbook = new Store<QuestbookState>({ open: false, quests: [] });
   readonly shop = new Store<{ view: ShopView | null }>({ view: null });
 
+  /** What `whoHasTheKeys` reads: one left out here leaves the keys stuck when it changes. */
+  readonly keyStores: readonly Store<object>[] = [
+    this.title, this.settingsScreen, this.admin, this.creation, this.overworldPanel, this.chant, this.skillbookScreen,
+    this.battleBag, this.leaveArena, this.chat, this.dialogue, this.questbook,
+  ];
+
+  readonly resetSession = (): void => {
+    for (const store of [
+      this.screen, this.ping, this.settingsScreen, this.admin, this.creation, this.challenge, this.chat,
+      this.questbook, this.shop,
+    ] as const) store.reset();
+    this.notifications.clear();
+  };
+
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
   readonly closeCreation = (): void => this.creation.set({ open: false });
@@ -288,4 +272,30 @@ export class UiState {
     this.overworldPanel.set({ open: null });
     this.skillbookScreen.set({ open: false });
   };
+}
+
+/**
+ * You stand still while the bag is open (in a fight the fight holds you still, and a dodge still goes); the character
+ * panel only shows things, so you walk with it open.
+ */
+export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
+  if (mode === null || !inWorld(mode, ui.title.get().phase)) return ["title"];
+  const layers: Layer[] = [mode];
+  if (mode === "overworld" && ui.overworldPanel.get().open === "inventory") {
+    layers.push("bag");
+    if (ui.skillbookScreen.get().open) layers.push("skillbook");
+  }
+  if (mode === "battle" && ui.chant.get().open) layers.push("chant");
+  if (mode === "battle" && ui.battleBag.get().open) {
+    layers.push("battleBag");
+    if (ui.skillbookScreen.get().open) layers.push("skillbook");
+  }
+  if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");
+  if (ui.dialogue.get().open) layers.push("dialogue");
+  if (ui.questbook.get().open) layers.push("questbook");
+  if (ui.chat.get().focused) layers.push("chat");
+  if (ui.admin.get().open) layers.push("admin");
+  if (ui.settingsScreen.get().open) layers.push("settings");
+  if (ui.creation.get().open) layers.push("creation");
+  return layers;
 }

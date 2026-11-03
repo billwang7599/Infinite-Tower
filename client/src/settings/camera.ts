@@ -41,7 +41,7 @@ export class CameraSettings extends Store<CameraPrefs> {
     this.set({ overworldTurns: (this.get().overworldTurns + by + OVERWORLD_CAMERA_ANGLES) % OVERWORLD_CAMERA_ANGLES });
   }
 
-  reset(): void {
+  override reset(): void {
     this.setSensitivity(SENSITIVITY.default);
   }
 

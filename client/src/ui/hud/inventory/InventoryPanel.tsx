@@ -5,15 +5,15 @@
  */
 import {
   carryLimit, formatPrice, gearBurden, gearWeight, itemDef, SLOTS, type BagItem, type Burden, type CarvePrice,
-  type Cell, type CoinId, type CoreState, type Gear, type GearMove, type GridName, type GridSpot, type InscriptionId,
-  type ItemId, type ShopView, type Slot, type Spot, type Stats, type UseSpot, type WeaponId,
+  type Cell, type CoreState, type Gear, type GearMove, type GridName, type GridSpot, type ShopView, type Slot,
+  type Spot, type Stats, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
-import type { SettingsScreenState } from "../../state.js";
+import type { GameRequests, SettingsScreenState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { INSCRIPTION_TEXT } from "../inscriptions.js";
@@ -47,12 +47,8 @@ interface PanelProps {
 
 export interface Trading {
   shop: ShopView;
-  buy: (item: ItemId) => void;
-  sell: (at: UseSpot, count: number) => void;
-  exchange: (from: CoinId, to: CoinId) => void;
-  carve: (at: UseSpot) => void;
-  uncarve: (inscription: InscriptionId) => void;
   core: CoreState;
+  request: GameRequests["request"];
 }
 
 /** The mouse, and where in its grip cell the dragged item is held (pixels), so its ghost doesn't jump. */
@@ -163,10 +159,7 @@ export function InventoryPanel(props: PanelProps) {
   const hovered = hoveredStack(mouse, gear);
   const side = trade ? (
     <Column title="Trade">
-      <ShopColumn
-        shop={trade.shop} gear={gear} core={trade.core} buy={trade.buy} exchange={trade.exchange}
-        uncarve={trade.uncarve}
-      />
+      <ShopColumn shop={trade.shop} gear={gear} core={trade.core} request={trade.request} />
     </Column>
   ) : (
     <Column title="Equipment">
@@ -318,9 +311,11 @@ function saleOf(selected: Spot | null, trade: Trading): ((stack: BagItem) => Sal
   const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
   return (stack) => {
     const def = itemDef(stack.item), carving = trade.shop.carving;
-    if (carving && def.inscription) return { price: carving.carve[def.rarity], carve: () => trade.carve(at) };
+    if (carving && def.inscription) {
+      return { price: carving.carve[def.rarity], carve: () => trade.request({ t: "carve", at }) };
+    }
     const each = trade.shop.buys[stack.item];
-    return each === undefined ? null : { each, sell: (count) => trade.sell(at, count) };
+    return each === undefined ? null : { each, sell: (count) => trade.request({ t: "sell", at, count }) };
   };
 }
 
