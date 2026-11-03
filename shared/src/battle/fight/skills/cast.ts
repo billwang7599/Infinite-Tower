@@ -1,5 +1,5 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
-import { FIXED_DT } from "../../../core/time.js";
+import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { clamp, nextRandom, wrapAngle, type Vec2, type Vec3 } from "../../../core/math.js";
 import { SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf } from "../../../skills/effects.js";
 import {
@@ -13,14 +13,13 @@ import { PLAYER } from "../../player.js";
 import { FighterStats, skillDamage } from "../../stats.js";
 import type { FightContext } from "../context.js";
 import { cantCast, interrupt } from "./skilled.js";
-import { heal } from "../statuses.js";
+import { heal } from "../health.js";
 import { applyStatus, cleanse } from "../../statuses.js";
 import { foesNear, strike } from "./strike.js";
 
 // Timers are float seconds counted down by FIXED_DT: this keeps 1 / (1/60) steps from becoming 61.
 const EPS = 1e-6;
 
-const stepsOf = (seconds: number): number => Math.round(seconds / FIXED_DT);
 
 export function imbueOf(world: World, caster: Entity): [Entity, SkillObjectData] | undefined {
   for (const row of world.query(SkillObject)) if (row[1].kind === "imbue" && row[1].caster === caster) return row;
@@ -34,7 +33,7 @@ export function skillSystem(ctx: FightContext): System {
     }
     for (const [e, player] of world.query(Player)) {
       const { writing } = player;
-      if (player.action !== "write" || !writing || stepsOf(player.actionTime) < stepsOf(SAVE_IN_FIGHT_TIME)) continue;
+      if (player.action !== "write" || !writing || toSteps(player.actionTime) < toSteps(SAVE_IN_FIGHT_TIME)) continue;
       player.book = player.book.map((page, i) => (i === writing.page ? writing.skill : page));
       const back = world.require(e, PlayerInput).chant ? "chant" : "bag";
       Object.assign(player, { action: back, actionTime: 0, writing: null });
@@ -43,7 +42,7 @@ export function skillSystem(ctx: FightContext): System {
     for (const [e, skilled, body] of world.query(Skilled, Body)) {
       if (cantCast(world, e)) interrupt(skilled);
       const skill = skilled.casting;
-      if (!skill || stepsOf(skilled.castTime) < stepsOf(releaseTime(skill))) continue;
+      if (!skill || toSteps(skilled.castTime) < toSteps(releaseTime(skill))) continue;
       skilled.casting = null;
       const player = world.get(e, Player), stamina = world.get(e, Stamina);
       if (player) player.action = "none";

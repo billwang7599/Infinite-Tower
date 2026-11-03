@@ -1,4 +1,5 @@
-import { LocalPlayer, Player, useSteps, type EnemyId, type ServerMsgOf } from "@infinite-tower/shared";
+import { Player, useSteps, type EnemyId, type ServerMsgOf } from "@infinite-tower/shared";
+import { LocalPlayer } from "../modes/components.js";
 import type { Audio } from "../audio/audio.js";
 import type { Battle } from "../modes/battle/battle.js";
 import type { Actions } from "../core/actions.js";

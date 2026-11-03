@@ -1,5 +1,5 @@
 import {
-  addItem, bagCounts, COIN_VALUE, COINS, coinsFor, exchangeRate, itemAt, takeItems, type CoinId, type Gear,
+  addItem, bagCounts, COIN_VALUE, COINS, coinsFor, exchangeRate, itemAt, takeAt, takeItems, type CoinId, type Gear,
   type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
 } from "@infinite-tower/shared";
 import {
@@ -116,8 +116,7 @@ export function sell(session: GameSession, at: UseSpot, count: number): void {
   const each = viewFor(session, id).buys[stack.item];
   if (each === undefined) return done(session, id, { kind: "refused", reason: "notBought" });
   const sold = Math.min(count, stack.count);
-  const items = grid.items.map((s, k) => k === i ? { ...s, count: s.count - sold } : s).filter((s) => s.count > 0);
-  const got = receive({ ...session.gear, [at.in]: { ...grid, items } }, coinsFor(each * sold));
+  const got = receive({ ...session.gear, [at.in]: takeAt(grid, at, sold)! }, coinsFor(each * sold));
   if (!got) return done(session, id, { kind: "refused", reason: "noRoom" });
   const news = { kind: "sold", item: stack.item, count: sold, price: each * sold, onCloth: got.onCloth } as const;
   done(session, id, news, got.gear);

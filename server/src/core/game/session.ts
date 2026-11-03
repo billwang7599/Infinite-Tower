@@ -3,8 +3,8 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  addFaith, blessingsOf, chunkData, chunkKey, chunksNear, CHUNK_DROP_TILES, CHUNK_SEND_TILES, CHUNK_TILES,
-  CLOSE_CODES, coreStats, distToRect, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
+  addFaith, blessingsOf, chunkData, chunkKey, chunksNear, CHUNK_SEND_TILES, CLOSE_CODES, coreStats, distXZ,
+  emptyCloth, farChunks, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
   hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo,
   skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden,
   type Character, type ChunkData, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear,
@@ -14,6 +14,7 @@ import {
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
+import { LAG_SLACK_TILES } from "../overworld/interact.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { getRegion, wakeRegion } from "../world/index.js";
 import { flowOf, regionOf } from "../world/world.js";
@@ -32,8 +33,6 @@ import type { Uniques } from "./uniques.js";
 
 /** 20 a second. */
 const STATE_EVERY_TICKS = 3;
-/** Leeway on a reach the server checks (a campfire's, a battle's): its copy of you trails the client's. */
-export const LAG_SLACK_TILES = 0.6;
 /** Small changes (settings, the bag) are written at most this often, so a client can't hammer the database. */
 const SAVE_SOON_MS = 1000;
 
@@ -448,14 +447,18 @@ export class GameSession {
     }
     if (!this.inOverworld) return;
     this.followRegion();
-    this.regen();
-    this.tickUse();
-    progressStory(this);
-    if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
+    this.tickStanding();
     if (++this.ticks % STATE_EVERY_TICKS === 0) {
       this.sendChunks(this.overworld.playerPos(this.me));
       this.link.send({ ...stateMsg(this.overworld, this.me, this.introduced), hp: roundTo(this.vitals.hp, 2) });
     }
+  }
+
+  private tickStanding(): void {
+    this.regen();
+    this.tickUse();
+    progressStory(this);
+    if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
   }
 
   private regen(): void {
@@ -475,10 +478,7 @@ export class GameSession {
       this.link.send({ t: "arenaClosed" });
       return;
     }
-    this.regen();
-    this.tickUse();
-    progressStory(this);
-    if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
+    this.tickStanding();
     const piles = arenaPiles(battle.drops, this.overworld);
     if (piles === battle.shownDrops) return;
     battle.shownDrops = piles;
@@ -555,11 +555,7 @@ export class GameSession {
       this.sentChunks.add(key);
       fresh.push(chunkData(map.layout, flowOf(map), rect));
     }
-    for (const key of this.sentChunks) {
-      const [x, z] = key.split(",").map(Number) as [number, number];
-      const rect = { x, z, w: CHUNK_TILES, h: CHUNK_TILES };
-      if (distToRect(rect, at.x, at.z) > CHUNK_DROP_TILES) this.sentChunks.delete(key);
-    }
+    for (const { key } of farChunks(this.sentChunks, at)) this.sentChunks.delete(key);
     if (fresh.length > 0) this.link.send({ t: "chunks", chunks: fresh });
   }
 

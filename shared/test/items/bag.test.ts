@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, STARTER_BAG, takeOne,
+  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, STARTER_BAG, takeAt,
   type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
 
@@ -218,23 +218,29 @@ describe("moveItem", () => {
   });
 });
 
-describe("takeOne", () => {
+describe("takeAt", () => {
   test("takes one from the stack covering the cell", () => {
     const b = bag(2, 1, stack("boar-meat", 1, 0, 3));
-    assert.deepEqual(takeOne(b, { x: 1, y: 0 })?.items, [stack("boar-meat", 1, 0, 2)]);
+    assert.deepEqual(takeAt(b, { x: 1, y: 0 })?.items, [stack("boar-meat", 1, 0, 2)]);
   });
 
   test("the last one leaves the cell empty", () => {
-    assert.deepEqual(takeOne(bag(2, 1, stack("boar-meat", 1, 0, 1)), { x: 1, y: 0 })?.items, []);
+    assert.deepEqual(takeAt(bag(2, 1, stack("boar-meat", 1, 0, 1)), { x: 1, y: 0 })?.items, []);
+  });
+
+  test("takes as many as asked, at most the whole stack", () => {
+    const b = bag(2, 1, stack("boar-meat", 1, 0, 3));
+    assert.deepEqual(takeAt(b, { x: 1, y: 0 }, 2)?.items, [stack("boar-meat", 1, 0, 1)]);
+    assert.deepEqual(takeAt(b, { x: 1, y: 0 }, 9)?.items, []);
   });
 
   test("an empty cell gives null", () => {
-    assert.equal(takeOne(bag(2, 1), { x: 0, y: 0 }), null);
+    assert.equal(takeAt(bag(2, 1), { x: 0, y: 0 }), null);
   });
 
   test("doesn't change its input", () => {
     const b = frozen(bag(2, 1, stack("boar-meat", 0, 0, 2)));
-    takeOne(b, { x: 0, y: 0 });
+    takeAt(b, { x: 0, y: 0 });
     assert.equal(b.items[0]?.count, 2);
   });
 });
@@ -286,7 +292,7 @@ describe("bagProblems", () => {
       const op = rand(3);
       if (op === 0) b = addItem(b, ids[rand(ids.length)] as ItemId, 1 + rand(7)).bag;
       else if (op === 1) b = moveItem(b, cell(), cell(), rand(2) === 1) ?? b;
-      else b = takeOne(b, cell()) ?? b;
+      else b = takeAt(b, cell()) ?? b;
       assert.deepEqual(bagProblems(b), [], `after step ${i}`);
     }
     assert.ok(b.items.length > 0);

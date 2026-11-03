@@ -1,4 +1,5 @@
-import { Body, LocalPlayer, weaponItemIn, Wielder, type Entity, type Vec3, type World } from "@infinite-tower/shared";
+import { Body, weaponItemIn, Wielder, type Entity, type Vec3, type World } from "@infinite-tower/shared";
+import { LocalPlayer } from "../../modes/components.js";
 import type { ArenaScene } from "./scene.js";
 import { WEAPON_LOOKS, wayCut, type Cut } from "./weapons.js";
 

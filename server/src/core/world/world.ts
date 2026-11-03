@@ -1,7 +1,7 @@
 import {
-  CHUNK_TILES, regionAt, waterFlow, type Flow, type Rect, type Vec2, type WorldMap,
+  CHUNK_TILES, distToRect, regionAt, waterFlow, type Flow, type Rect, type Vec2, type WorldMap,
 } from "@infinite-tower/shared";
-import type { Region, RegionDef, SpawnDef } from "./region.js";
+import type { Region, RegionDef, Spawn } from "./region.js";
 
 /** Further than the camera sees, so the world never shows an edge. */
 export const WORLD_MARGIN_TILES = 16;
@@ -15,7 +15,7 @@ export interface WorldDef {
   /** Only this is sent to the client. */
   layout: WorldMap;
   regions: Region[];
-  spawns: SpawnDef[];
+  spawns: Spawn[];
   /** No encounters for this long after a fight. */
   safeTime: number;
 }
@@ -27,9 +27,6 @@ export function areaOf(def: Pick<RegionDef, "id" | "origin" | "tiles">): Rect {
   if (!Number.isInteger(x) || !Number.isInteger(z)) throw new Error(`${def.id} doesn't sit on whole tiles`);
   return { x, z, w, h };
 }
-
-const rectDist = (r: Rect, x: number, z: number) =>
-  Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.z - z, 0, z - r.z - r.h));
 
 const overlap = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.z < b.z + b.h && b.z < a.z + a.h;
 
@@ -58,7 +55,7 @@ export function composeWorld(defs: readonly RegionDef[], patches: readonly Patch
         chars.push(defs[i]!.tiles[Math.floor(a.z + a.h - z)]![Math.floor(x - a.x)]!);
       } else {
         const near = regionAt({ regions: labels }, x, z);
-        chars.push(rectDist(near.area, x, z) > WORLD_MARGIN_TILES ? VOID_TILE : fillOf.get(near.id)!);
+        chars.push(distToRect(near.area, x, z) > WORLD_MARGIN_TILES ? VOID_TILE : fillOf.get(near.id)!);
       }
     }
     rows.push(chars);

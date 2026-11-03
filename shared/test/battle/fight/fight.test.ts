@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Health, PLAYER, type PlayerInputData } from "@infinite-tower/shared";
+import { FIXED_DT, Health, PLAYER, type PlayerInputData } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import { ARENA, BOAR, bodyOf, dumpState, enemy, IDLE, input, player, run, STATUE } from "./fixtures.js";
 
@@ -22,7 +22,7 @@ function brawler(fight: Fight) {
 
 /** Steps until the fight is decided (or `seconds` run out); returns how it ended. */
 function fightOut(fight: Fight, seconds: number, next: (step: number) => PlayerInputData) {
-  for (let step = 0; step < seconds / Fight.STEP_SECONDS && fight.outcome.state === "fighting"; step++) {
+  for (let step = 0; step < seconds / FIXED_DT && fight.outcome.state === "fighting"; step++) {
     fight.step([next(step)]);
   }
   return fight.outcome.state;
@@ -66,7 +66,7 @@ describe("a fight", () => {
     fight.world.require(fight.enemies[0]!, Health).hp = 0;
     run(fight, 0.5);
     assert.equal(fight.outcome.state, "won");
-    assert.ok(Math.abs(fight.outcome.stateTime - 0.5 + Fight.STEP_SECONDS) < 1e-9);
+    assert.ok(Math.abs(fight.outcome.stateTime - 0.5 + FIXED_DT) < 1e-9);
   });
 
   test("with more than one player, each moves by their own input", () => {

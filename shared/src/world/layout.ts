@@ -2,10 +2,8 @@
  * The overworld map the client may see, and the walking rules: shared, so the client predicts its walking and the
  * server replays the same inputs. Units are tiles; +z is up on screen, +x is right.
  */
-import { clamp, distXZ, type Vec2 } from "../core/math.js";
+import { clamp, distToRect, distXZ, type Rect, type Vec2 } from "../core/math.js";
 import { isSolid } from "./tiles.js";
-
-export interface Rect { x: number; z: number; w: number; h: number }
 
 export const CHUNK_TILES = 16;
 
@@ -35,14 +33,11 @@ export interface WorldLayout extends WorldMap {
   pads: Vec2[];
 }
 
-const rectDist = (r: Rect, x: number, z: number) =>
-  Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.z - z, 0, z - r.z - r.h));
-
 /** Else the nearest: the land between regions is the nearest one's. */
 export function regionAt(map: Pick<WorldMap, "regions">, x: number, z: number): RegionArea {
   let best = map.regions[0]!, bestDist = Infinity;
   for (const region of map.regions) {
-    const dist = rectDist(region.area, x, z);
+    const dist = distToRect(region.area, x, z);
     if (dist === 0) return region;
     if (dist < bestDist) { best = region; bestDist = dist; }
   }
@@ -75,10 +70,6 @@ export function nearCampfire(map: Pick<WorldMap, "campfires">, pos: Vec2, slack 
 }
 
 export interface WalkInput { moveX: number; moveZ: number }
-
-export function inRect(r: Rect, x: number, z: number): boolean {
-  return x >= r.x && x <= r.x + r.w && z >= r.z && z <= r.z + r.h;
-}
 
 /** Tiles per second. */
 export interface Velocity2 { vx: number; vz: number }

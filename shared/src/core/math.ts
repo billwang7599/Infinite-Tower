@@ -2,6 +2,14 @@
 
 export interface Vec3 { x: number; y: number; z: number }
 export interface Vec2 { x: number; z: number }
+export interface Rect { x: number; z: number; w: number; h: number }
+
+export function inRect(r: Rect, x: number, z: number): boolean {
+  return x >= r.x && x <= r.x + r.w && z >= r.z && z <= r.z + r.h;
+}
+
+export const distToRect = (r: Rect, x: number, z: number) =>
+  Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.z - z, 0, z - r.z - r.h));
 
 export function approach(current: number, target: number, maxDelta: number): number {
   return current < target ? Math.min(current + maxDelta, target) : Math.max(current - maxDelta, target);

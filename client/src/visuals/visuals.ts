@@ -1,9 +1,10 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, heldIn, LocalPlayer, Player, regionAt, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity,
+  Enemy, heldIn, Player, regionAt, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity,
   type Hand, type Look, type NpcId, type SkillObjectKind, type Theme, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../modes/components.js";
 import type { Mode } from "../game/transition.js";
 import type { BattleContext } from "../modes/battle/context.js";
 import { FiredEffects } from "../modes/battle/fired.js";

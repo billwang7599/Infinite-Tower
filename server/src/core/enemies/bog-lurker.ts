@@ -36,6 +36,6 @@ export const BOG_LURKER: Enemy = {
   overworld: () => [
     wander({ speed: 0.7, maxDist: 3 }),
     chaseOnSight({ range: 3.5, noticeTime: 0.8, speed: 2.2 }),
-    encounterOnTouch({ range: 1, enemy: "bog-lurker" }),
+    encounterOnTouch({ range: 1 }),
   ],
 };

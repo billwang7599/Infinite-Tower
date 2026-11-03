@@ -33,6 +33,6 @@ export const GREY_WOLF: Enemy = {
   overworld: () => [
     wander({ speed: 1.8 }),
     chaseOnSight({ range: 5, noticeTime: 0.4, speed: 4.2 }),
-    encounterOnTouch({ range: 0.9, enemy: "grey-wolf" }),
+    encounterOnTouch({ range: 0.9 }),
   ],
 };

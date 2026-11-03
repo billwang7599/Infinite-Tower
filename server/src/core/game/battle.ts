@@ -1,7 +1,7 @@
 /** Battles, from a player's session: starting one (its fight runs in a BattleRoom), and what its end does to them. */
 import {
-  bagCounts, blessingsOf, Body, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo, SLOTS, type CoreLoss,
-  type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
+  bagCounts, blessingsOf, Body, carriedCounts, coreAfterDeath, emptyEquipment, Enemy, PlayerInput, roundTo,
+  type CoreLoss, type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
   ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type Fight, type FightSetup, type PlayerResult,
@@ -155,12 +155,8 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     // A winner is standing, though a teammate's win may have left them down.
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
-    const { bag } = session, equipment = session.gear.equipment;
-    lost = bagCounts(bag);
-    for (const slot of SLOTS) {
-      const item = equipment[slot];
-      if (item !== null) lost[item] = (lost[item] ?? 0) + 1;
-    }
+    const { bag } = session;
+    lost = carriedCounts({ bag, equipment: session.gear.equipment });
     session.gear = { ...session.gear, bag: { ...bag, items: [] }, equipment: emptyEquipment() };
     dropWhereFell(battle, overworld, lost);
     me = session.wakeOnPad();

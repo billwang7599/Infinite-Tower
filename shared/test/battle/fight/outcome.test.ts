@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { Health } from "@infinite-tower/shared";
+import { FIXED_DT, Health } from "@infinite-tower/shared";
 import {
   Fight, initPhysics, LEAVING_LOSES, MAX_FIGHT_TIME, playerResult, type FightState,
 } from "@infinite-tower/shared/fight";
@@ -18,7 +18,7 @@ describe("the time limit", () => {
     const fight = duel(STATUE, PLAYER_AT, STATUE_AT);
     run(fight, 1);
     // Skipped ahead rather than ten minutes of steps: the outcome's clock is what the limit reads.
-    fight.outcome.stateTime = MAX_FIGHT_TIME - 1.5 * Fight.STEP_SECONDS;
+    fight.outcome.stateTime = MAX_FIGHT_TIME - 1.5 * FIXED_DT;
     fight.step([IDLE]);
     assert.equal(fight.outcome.state, "fighting");
     fight.step([IDLE]);

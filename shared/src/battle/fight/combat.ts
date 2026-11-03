@@ -12,12 +12,12 @@ import {
 } from "../components.js";
 import { PLAYER } from "../player.js";
 import { FighterStats, HP_REGEN_PAUSE_TIME, stunTime } from "../stats.js";
-import { applyStatus } from "../statuses.js";
+import { applyStatus, modsOf } from "../statuses.js";
 import { EMBERS } from "../../soul/inscriptions.js";
 import type { FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
-import { hurt, lifesteal, modsOf } from "./statuses.js";
+import { hurt, lifesteal } from "./health.js";
 import { defend } from "./weapons/defend.js";
 import { parries } from "./weapons/parry.js";
 import { endChain, endSwing } from "./weapons/swing.js";
@@ -109,13 +109,13 @@ const hpShortOf = (world: World, e: Entity, stamina: StaminaData, cost: number):
   Math.max(0, cost - stamina.value) * modsOf(world, e).hpPerStaminaShort;
 
 /** An attack or a dodge: on empty, only if what's short can be paid in HP (Last Breath) without the last of it. */
-export function canPay(world: World, e: Entity, stamina: StaminaData, cost: number): boolean {
+export function canPayStamina(world: World, e: Entity, stamina: StaminaData, cost: number): boolean {
   if (stamina.value > 0) return true;
   const short = hpShortOf(world, e, stamina, cost);
   return short > 0 && world.require(e, Health).hp > short;
 }
 
-export function pay(world: World, e: Entity, stamina: StaminaData, cost: number): void {
+export function payStamina(world: World, e: Entity, stamina: StaminaData, cost: number): void {
   const short = hpShortOf(world, e, stamina, cost);
   spend(stamina, cost);
   if (short <= 0) return;

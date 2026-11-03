@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, timeLeft, wayStepsAfter,
-  WEAPONS, Wielder, type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
+  FIXED_DT, AVERAGE_STAT, Body, CHAIN, Health, SKILL_EFFECTS, MAX_LIVE_SHOTS, shotOf, SkillObject, Statuses, timeLeft,
+  wayStepsAfter, WEAPONS, Wielder, type Modifier, type Form, type SkillElement, type SkillObjectData, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, castNow, enemy, IDLE, input, player, run, segment, skill, STATUE } from "../fixtures.js";
@@ -347,7 +347,7 @@ describe("Follow", () => {
     for (let i = 0; i < 10; i++) {
       fight.step([IDLE]);
       const now = Math.atan2(bolts(fight)[0]!.dir.x, bolts(fight)[0]!.dir.z);
-      assert.ok(Math.abs(now - yaw) <= A.followTurnRadPerSec * Fight.STEP_SECONDS + 1e-9, `${now - yaw}`);
+      assert.ok(Math.abs(now - yaw) <= A.followTurnRadPerSec * FIXED_DT + 1e-9, `${now - yaw}`);
       yaw = now;
     }
   });

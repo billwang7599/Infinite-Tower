@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { LocalPlayer, START_HEADING, waterFlow, World, type WorldLayout } from "@infinite-tower/shared";
+import { START_HEADING, waterFlow, World, type WorldLayout } from "@infinite-tower/shared";
+import { LocalPlayer } from "../../src/modes/components.js";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
 import { testMap } from "../fixtures/map.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";

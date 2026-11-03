@@ -1,3 +1,6 @@
+import type { Entity, World } from "../core/ecs.js";
+import { Statuses } from "./components.js";
+
 export interface StatMods {
   damageDealtFactor: number;
   damageTakenFactor: number;
@@ -62,8 +65,6 @@ export const STATUS_DEFS = {
 } as const satisfies Record<string, StatusDef>;
 
 export type Status = keyof typeof STATUS_DEFS;
-export const STATUSES = Object.keys(STATUS_DEFS) as Status[];
-export const HARMFUL_STATUSES = STATUSES.filter((s) => STATUS_DEFS[s].harmful);
 
 export const statusDef = (status: Status): StatusDef => STATUS_DEFS[status];
 export const maxStacksOf = (status: Status): number => statusDef(status).maxStacks ?? 1;
@@ -126,3 +127,8 @@ export function modsFrom(on: readonly StatusOn[]): StatMods {
   }
   return mods;
 }
+
+export const modsOf = (world: World, e: Entity): StatMods => {
+  const s = world.get(e, Statuses);
+  return s ? modsFrom(s.on) : NO_MODS;
+};

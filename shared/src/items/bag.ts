@@ -107,11 +107,12 @@ export function moveItem(bag: Bag, from: Cell, to: Cell, turned: boolean): Bag |
   return { ...bag, items: bag.items.map((s, k) => k === i ? { ...s, x: to.x, y: to.y, turned } : s) };
 }
 
-/** null if the cell is empty. */
-export function takeOne(bag: Bag, cell: Cell): Bag | null {
+/** null if the cell is empty; takes at most what the stack holds. */
+export function takeAt(bag: Bag, cell: Cell, count = 1): Bag | null {
   const i = itemAt(bag, cell);
   if (i < 0) return null;
-  const items = bag.items.map((s, k) => k === i ? { ...s, count: s.count - 1 } : s).filter((s) => s.count > 0);
+  const items = bag.items.map((s, k) => k === i ? { ...s, count: s.count - Math.min(count, s.count) } : s)
+    .filter((s) => s.count > 0);
   return { ...bag, items };
 }
 

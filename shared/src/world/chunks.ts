@@ -1,4 +1,5 @@
-import { CHUNK_TILES, type Rect, type WorldMap } from "./layout.js";
+import { distToRect, type Rect, type Vec2 } from "../core/math.js";
+import { CHUNK_TILES, type WorldMap } from "./layout.js";
 import { TILES } from "./tiles.js";
 import { flowKey, type Flow } from "./water.js";
 
@@ -15,8 +16,15 @@ export interface ChunkData { x: number; z: number; rows: string[] | null; flow: 
 
 export const chunkKey = (x: number, z: number) => `${x},${z}`;
 
-export const distToRect = (r: Rect, x: number, z: number) =>
-  Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.z - z, 0, z - r.z - r.h));
+/** Held chunks past CHUNK_DROP_TILES: the client drops them, and the server forgets it sent them by the same rule. */
+export function farChunks(keys: Iterable<string>, at: Vec2): { key: string; rect: Rect }[] {
+  const far: { key: string; rect: Rect }[] = [];
+  for (const key of keys) {
+    const [x, z] = key.split(",").map(Number) as [number, number], rect = { x, z, w: CHUNK_TILES, h: CHUNK_TILES };
+    if (distToRect(rect, at.x, at.z) > CHUNK_DROP_TILES) far.push({ key, rect });
+  }
+  return far;
+}
 
 export function chunksNear(bounds: Rect, x: number, z: number, radius: number): Rect[] {
   const near: Rect[] = [];

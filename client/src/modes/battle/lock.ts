@@ -1,5 +1,6 @@
-import { Body, distXZ, Health, LocalPlayer, wrapAngle, type Entity, type Vec3 } from "@infinite-tower/shared";
+import { Body, distXZ, Health, wrapAngle, type Entity, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
+import { LocalPlayer } from "../components.js";
 import type { Polled } from "../../core/actions.js";
 
 export interface Foe { e: Entity; pos: Vec3 }

@@ -51,5 +51,3 @@ export const REMOVE_PRICE_FACTOR = { copper: 3, essence: 2 } as const;
 export const REMOVE_PRICES = Object.fromEntries(Object.entries(CARVE_PRICES).map(([rarity, { copper, essence }]) =>
   [rarity, { copper: copper * REMOVE_PRICE_FACTOR.copper, essence: essence * REMOVE_PRICE_FACTOR.essence }],
 )) as Record<Rarity, CarvePrice>;
-
-export const SHOP_IDS = Object.keys(SHOPS) as ShopId[];

@@ -38,8 +38,6 @@ const KIND_BY_CHAR = new Map<string, TileKind>(
   Object.entries(TILES).map(([kind, rule]) => [rule.char, kind as TileKind]),
 );
 
-export const kindOfChar = (char: string): TileKind | null => KIND_BY_CHAR.get(char) ?? null;
-
 type Tiled = Pick<WorldMap, "bounds" | "tiles">;
 
 /** Null outside the map (or for a character no kind uses). */

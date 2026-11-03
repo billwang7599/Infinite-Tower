@@ -1,7 +1,8 @@
 import { Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, type Scene } from "@babylonjs/core";
 import {
-  Body, Health, LocalPlayer, Player, SCREEN_DIR, Wielder, type SwingData, type SwingDir, type World,
+  Body, Health, Player, SCREEN_DIR, Wielder, type SwingData, type SwingDir, type World,
 } from "@infinite-tower/shared";
+import { LocalPlayer } from "../../modes/components.js";
 import type { ArenaScene } from "./scene.js";
 
 const WEDGES = 8;

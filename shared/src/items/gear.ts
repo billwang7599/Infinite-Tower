@@ -1,6 +1,6 @@
-import { bagWeight, fits, itemAt, moveItem, type Bag, type BagItem } from "./bag.js";
+import { bagCounts, bagWeight, fits, itemAt, moveItem, type Bag, type BagItem } from "./bag.js";
 import { canWield, isWeapon } from "../weapons/weapons.js";
-import { itemDef, ITEMS, type ItemId, type WornOn } from "./items.js";
+import { itemDef, ITEMS, type ItemCounts, type ItemId, type WornOn } from "./items.js";
 
 export const SLOTS = ["rightHand", "leftHand", "head", "body", "legs", "boots"] as const;
 export type Slot = (typeof SLOTS)[number];
@@ -37,6 +37,15 @@ export const fitsSlot = (item: ItemId, slot: Slot): boolean => itemDef(item).wea
 export type Hand = "rightHand" | "leftHand";
 export const heldIn = (equipment: Pick<Equipment, Hand>, item: ItemId): Hand | null =>
   equipment.rightHand === item ? "rightHand" : equipment.leftHand === item ? "leftHand" : null;
+
+export function carriedCounts({ bag, cloth, equipment }: Carried & { cloth?: Bag }): ItemCounts {
+  const counts = bagCounts(cloth ? { ...bag, items: [...bag.items, ...cloth.items] } : bag);
+  for (const slot of SLOTS) {
+    const item = equipment[slot];
+    if (item !== null) counts[item] = (counts[item] ?? 0) + 1;
+  }
+  return counts;
+}
 
 /** The cloth and a pile lie on the ground, so they don't count. */
 export function gearWeight(gear: Gear): number {

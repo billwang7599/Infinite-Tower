@@ -240,7 +240,7 @@ main.ts
   (`Enemy.struck`).
   `Fight.leave` marks a player gone from the arena (`Player.leftArena`, part of the state), downing them only while
   it's fought.
-  Every hit, skill and burn hurts through `hurt` (`fight/statuses.ts`), which spares an invulnerable player
+  Every hit, skill and burn hurts through `hurt` (`fight/health.ts`), which spares an invulnerable player
   (`Player.invulnerable`, a dev cheat from the setup, or set by the server mid-fight), takes defense or special defense
   off by the damage's kind (physical or skill), and pauses HP regen (`Health.regenDelay`, `HP_REGEN_PAUSE_TIME`);
   `regenSystem` there gives it back by the fighter's stats after the step's hits.
@@ -353,12 +353,12 @@ main.ts
   (`spawnPlayer`), so its mods (`STATUS_DEFS`) run through the same rules as a timed buff, the fight's HUD showing it
   as a tile; Grit's stats are the core's (`coreStats`), on the overworld too. The three that need more than a mod are
   in the fight's code: Embers' burn in `combat.ts` (`burnOnHit`) and its immunity in `statusSystem`, Last Breath's HP
-  for stamina in `combat.ts` (`canPay` / `pay`, for attacks and dodges), the First Door in `hurt`. Carving is a shop
-  (`core/game/carving.ts`, the prices in `CARVE_PRICES` / `REMOVE_PRICES`, `content/shops.ts`): the Collegium's carver
-  (`npcs/carver.ts`, the Market Ward) offers `{ shop: "collegium" }`, its `ShopView` has `carving`, and `carve` (a
-  sigil's spot) or `uncarve` (an id) pay coins as a shop does and essences, any kind, cheapest first, off the cloth
-  then the bag. The answer is a `trade` and, through `takeCore`, a `core`. The sphere draws a ring round the glass for
-  each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel's Core tab lists them.
+  for stamina in `combat.ts` (`canPayStamina` / `payStamina`, for attacks and dodges), the First Door in `hurt`. Carving
+  is a shop (`core/game/carving.ts`, the prices in `CARVE_PRICES` / `REMOVE_PRICES`, `content/shops.ts`): the
+  Collegium's carver (`npcs/carver.ts`, the Market Ward) offers `{ shop: "collegium" }`, its `ShopView` has `carving`,
+  and `carve` (a sigil's spot) or `uncarve` (an id) pay coins as a shop does and essences, any kind, cheapest first, off
+  the cloth then the bag. The answer is a `trade` and, through `takeCore`, a `core`. The sphere draws a ring round the
+  glass for each, tinted by its sigil's rarity (`RINGS` in `sphere.ts`), and the character panel's Core tab lists them.
 - **Blessings** (`shared/src/soul/blessings.ts`; [FORMULAS.md](FORMULAS.md#blessings)): the session's `faith`, a
   number per god (`GODS`), saved with the player. A quest step's `reward.faith` adds to it as the story unfolds
   (`unfold`, then `GameSession.gainFaith`), and so does the admin's `faith` cheat; each change sends `faith` (all of it,
@@ -1059,9 +1059,9 @@ with a unit say it in the name (`MAX_BODY_BYTES`).
 ```
 shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig has no DOM lib).
   index.ts         Re-exports everything but the fight (import from "@infinite-tower/shared")
-  core/            ecs.ts (World, components, queries, deferred destroy), components.ts (LocalPlayer),
-                   math.ts (Vec2/3, clamp, smoothstep, approach, damp, distXZ, wrapAngle, turnToward, seededRandom,
-                   nextRandom),
+  core/            ecs.ts (World, components, queries, deferred destroy),
+                   math.ts (Vec2/3, Rect, inRect, distToRect, clamp, smoothstep, approach, damp, distXZ, wrapAngle,
+                   turnToward, seededRandom, nextRandom),
                    time.ts (FIXED_DT, toSteps)
   world/           The world's places. layout.ts (WorldMap: what the client may see of the world, its bounds, tile
                    map, regions (RegionArea: id, name, Theme and area) and campfires; regionAt, the region at a point
@@ -1075,10 +1075,11 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    (INTERACT_RANGE_M and INTERACT_LOOK_RAD, the reach to a pile or an NPC and how far round from the
                    way you face, on the overworld and in an arena alike; inView, the one in view), tiles.ts
                    (TILES: each tile kind's
-                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, kindOfChar), water.ts
+                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass), water.ts
                    (waterFlow: each water and bridge tile's current over the whole map, worked out on the server and
                    sent with the chunks; only water that runs off the map flows), chunks.ts (ChunkData; chunksNear,
-                   chunkData, putChunk, dropChunk, emptyTiles; CHUNK_SEND_TILES, CHUNK_DROP_TILES; tested), arena.ts
+                   farChunks, chunkData, putChunk, dropChunk, emptyTiles; CHUNK_SEND_TILES, CHUNK_DROP_TILES; tested),
+                   arena.ts
                    (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
@@ -1087,7 +1088,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    SkillObject, Enemy, LungeAttack, ChargeAttack, WeaponAttack, SkillAttack),
                    player.ts (PLAYER tuning, Vitals, GRAVITY), statuses.ts (STATUS_DEFS: every status, harmful or
                    not, its stat mods, stack cap and amount; StatMods, NO_MODS; applyStatus, endStatus, cleanse,
-                   timeLeft, stacksOf, modsFrom), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
+                   timeLeft, stacksOf, modsFrom, modsOf: a fighter's), defs.ts (ENEMY_IDS; EnemyDef = body + stats +
                    optional attacks), input.ts (PlayerInput; StepInput, a change of input on the wire,
                    with its step; IDLE_INPUT, copyInput, sameInput, quantizeInput), netcode.ts (what both sides
                    agree on: HASH_EVERY_STEPS, MAX_INPUT_DELAY, MAX_INPUT_LEAD_TIME), stats.ts (Stats: the shown
@@ -1114,7 +1115,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,
                      exactly, out and back in; saveFight, loadFight; hashFight: its fingerprint, numbers rounded
                      to 2 decimals, statuses.ts (statusSystem: statuses run down, burns
-                     and heals over time; modsOf; hurt, by the damage's kind, the target's defenses and shields;
+                     and heals over time), health.ts (hurt, by the damage's kind, the target's defenses and shields;
                      heal, lifesteal, regenSystem)
       physics/         init.ts (initPhysics: load Rapier once), arena-physics.ts (ArenaPhysics: the floor and the
                        ring of wall, a collider per fighter, sweeps with the character controller, contacts, rays),
@@ -1156,12 +1157,12 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    components: consumable, wearable, inscription (a sigil's); each monster's essence, absorbed in
                    ABSORB_TIME; RARITIES, UNIQUE_ITEMS; ItemCounts = item id ->
                    count), bag.ts (Bag: a grid of placed stacks;
-                   fits, addItem, moveItem, takeOne, takeItems, bagWeight, bagProblems: the rules both sides fit
+                   fits, addItem, moveItem, takeAt, takeItems, bagWeight, bagProblems: the rules both sides fit
                    items by),
                    gear.ts (Gear: the bag, the cloth (CLOTH), an open pile (NO_PILE for none) and the Equipment
                    slots; Spot, UseSpot, moveGear between them (nothing onto a pile), gearWeight without the cloth
-                   or pile, heldIn), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and what each does
-                   to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
+                   or pile, heldIn, carriedCounts), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and
+                   what each does to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
                    consumable used from the bag, the same on the overworld and in a fight), coins.ts (COINS,
                    COIN_VALUE in copper, coinsFor: an amount in the fewest coins, formatPrice ("1g 20s 5c"),
                    exchangeRate, moneyIn)
@@ -1215,8 +1216,8 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        overworld; nearestOtherSession, the nearest other player in reach; Others, what a session sees of
                        the rest; the pile they have open, followed every tick; their `story`; the NPCs and traces
                        `placed` as they entered their region; `talk`, `acceptQuest`, `deliver` (talk.ts); in the arena
-                       after a win (`afterFight`): the drops sent as they change, and sent out when it closes;
-                       LAG_SLACK_TILES), cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
+                       after a win (`afterFight`): the drops sent as they change, and sent out when it closes),
+                       cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
                        CHAT_WINDOW_MS), duels.ts (Duels: challenges, their reach, expiry and news; starting a duel;
@@ -1257,7 +1258,7 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        components.ts (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading,
                        character, the pad they're bound to and whether they're fighting; Pile; SummoningPad, its
                        region), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
-                       interact.ts (inViewWithSlack, the shared inView with INTERACT_LAG_SLACK_M and
+                       interact.ts (LAG_SLACK_TILES; inViewWithSlack, the shared inView with INTERACT_LAG_SLACK_M and
                        INTERACT_LOOK_SLACK_RAD: the overworld's piles, NPCs and pads, and an arena's piles),
                        parts.ts (spawnActor from behavior
                        parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay
@@ -1528,7 +1529,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          the white clearing off the world), scene.ts (its steps, a pure reducer), lines.ts (what
                          the System says), LookMaker.tsx (the panel), options.ts (its rows), SystemWindow.tsx,
                          useTyped.ts (text typed out), styles.ts (dark on white)
-    modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
+    modes/           The two game modes: game logic only, no Babylon (visuals/ draws them). components.ts (LocalPlayer:
+                     the player controlled on this machine, in both modes)
       overworld/       The overworld mode: mirrors the server
         overworld.ts     The mode: its state (the world's map, the actors, the camera's turns), the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD, the
@@ -1541,7 +1543,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
         held.ts          Held: the chunks this client has (their tiles in the map, the rest void), their currents and
-                         a revision; hold, dropFar (past CHUNK_DROP_TILES); tested
+                         a revision; hold, dropFar (farChunks); tested
         water.ts         waterMap: each held water tile's current (from the server's waterFlow), depth and banks,
                          for the drawing and the sound alike (WATER_DEPTH_TILES); its tiles split into running and
                          still; tested
