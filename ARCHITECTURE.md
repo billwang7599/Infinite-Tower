@@ -254,14 +254,14 @@ main.ts
   it as soon as it knows every player's input for the next step (`InputTimeline`), holding a step back for a late
   input at most `MAX_INPUT_DELAY` ("A fight on the wire" below has the rules). It's authoritative: hits, damage,
   stamina, deaths and the result. Once it's decided, each player's `onEnd` settles the battle for them
-  (`core/game/battle.ts`, or `core/game/duels.ts` for a duel) and `onOver` runs. A loss or a duel frees the fight
-  then; a win keeps it running for the winners still in the arena (`afterFight`, `inArena`: their inputs, hashes and
-  syncs as before, no result again) until the last of them leaves (`leave`, which after a win is no loss), when it's
-  freed and `onClosed` runs. Whoever leaves, the others get a `battleSync` at once with them gone from the arena
-  (`Fight.leave`), so their drawings fade them out. A decided room can't be joined. A room takes any number of
+  (`core/game/battle.ts`: `settleBattle`, or `sparSeat` for a spar or a duel) and `onOver` runs. A loss or a duel frees
+  the fight then; a win keeps it running for the winners still in the arena (`afterFight`, `inArena`: their inputs,
+  hashes and syncs as before, no result again) until the last of them leaves (`leave`, which after a win is no loss),
+  when it's freed and `onClosed` runs. Whoever leaves, the others get a `battleSync` at once with them gone from the
+  arena (`Fight.leave`), so their drawings fade them out. A decided room can't be joined. A room takes any number of
   players: a battle against enemies starts with one, a duel two. Each player's session ticks it with their seat, and
-  only the first seat still there moves its clock, so it runs one step a tick however many are in it. A player whose
-  own result is in before the fight's (`playerResult`: down while the others fight on) is settled then and out of it.
+  only the first seat still there moves its clock, so it runs one step a tick however many are in it. A player whose own
+  result is in before the fight's (`playerResult`: down while the others fight on) is settled then and out of it.
 - **Joining a battle** (`GameSession.joinBattle`, `joinBattle` in `core/game/battle.ts`): the Interact key or the
   HUD's button sends `joinBattle`; the server picks the nearest player in a battle within `JOIN_RANGE_TILES` (plus
   the same lag slack as resting) and `BattleRoom.join` seats the joiner, unless it's a duel or `MAX_BATTLE_PLAYERS`
@@ -1220,24 +1220,25 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
                        CHAT_WINDOW_MS), duels.ts (Duels: challenges, their reach, expiry and news; starting a duel;
-                       settling a spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME), battle.ts (start a battle in a
-                       BattleRoom with the bag and what's worn, or join one (fighterOf: a player as the fight takes
-                       them; seatInBattle: a session put in a room and sent its `encounter`; both a duel's too), settle
-                       its end for the player: the gear as the fight left it, wins, a loss dropping all they carry where
-                       they fell (dropWhereFell), vitals; the arena after a win: ArenaDrops (shared by the room), the
-                       drops rolled once as the room is won (dropInArena, dropSpot), arenaPiles, arenaPileInView,
-                       landDrops (what's left, as one pile); AFTER_FIGHT_MS, DROP_GAP_M), training.ts (startTraining: a
-                       spar from an NPC's talk, at TRAINING_YIELD_SHARE, nobody joining, nothing lost or gained but the
-                       story), snapshot.ts (the state message: only actors, other players and piles within
-                       VIEW_RADIUS_TILES, each player's character sent once), story.ts (the story engine, for quests and
-                       NPCs: Story, newStory; When and holds; Effect, Seen and unfold; stepOn; questbookOf; keptStory;
-                       progressStory, the session's side), talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf;
-                       the session's side: placeFor, talkTo, takeQuest, handOver, shopInView), shop.ts (shopView: a
-                       shop's stock and prices for a player; openShop, buy, sell, exchange: paying, change and what
-                       doesn't fit going to the cloth), carving.ts (carveSigil, removeInscription: the Collegium's
-                       carving, paid in coins and essences), uniques.ts (Uniques: who holds each unique thing, whether
-                       it's free, taking it out of a save that doesn't hold it; UNIQUE_HOLD_MS), clock.ts (FixedClock:
-                       60 Hz steps, catching up after stalls)
+                       CHALLENGE_RANGE_TILES, CHALLENGE_TIME), battle.ts (startFight: every kind of fight (a battle, a
+                       spar, a duel) started in one BattleRoom; startBattle, or join one (fighterOf: a player as the
+                       fight takes them; foeOf: an enemy with the server's seed; seatInBattle: a session put in a room
+                       and sent its `encounter`), settle its end for the player: the gear as the fight left it, wins, a
+                       loss dropping all they carry where they fell (dropWhereFell), vitals; sparSeat: a spar's or a
+                       duel's end, nothing lost or gained but the story; the arena after a win: ArenaDrops (shared by
+                       the room), the drops rolled once as the room is won (dropInArena, dropSpot), arenaPiles,
+                       arenaPileInView, landDrops (what's left, as one pile); AFTER_FIGHT_MS, DROP_GAP_M), training.ts
+                       (startTraining: a spar from an NPC's talk, at TRAINING_YIELD_SHARE, nobody joining, nothing lost
+                       or gained but the story), snapshot.ts (the state message: only actors, other players and piles
+                       within VIEW_RADIUS_TILES, each player's character sent once), story.ts (the story engine, for
+                       quests and NPCs: Story, newStory; When and holds; Effect, Seen and unfold; stepOn; questbookOf;
+                       keptStory; progressStory, the session's side), talk.ts (NPCs over the engine: stopFor, placedOn,
+                       dialogueOf; the session's side: placeFor, talkTo, takeQuest, handOver, shopInView), shop.ts
+                       (shopView: a shop's stock and prices for a player; openShop, buy, sell, exchange: paying, change
+                       and what doesn't fit going to the cloth), carving.ts (carveSigil, removeInscription: the
+                       Collegium's carving, paid in coins and essences), uniques.ts (Uniques: who holds each unique
+                       thing, whether it's free, taking it out of a save that doesn't hold it; UNIQUE_HOLD_MS), clock.ts
+                       (FixedClock: 60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it (after a win, once the last winner leaves the

@@ -4,14 +4,15 @@ import {
   type EnemyId, type Entity, type ItemCounts, type ServerMsgOf, type Vec2, type Vitals,
 } from "@infinite-tower/shared";
 import {
-  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type Fight, type FightSetup, type PlayerResult, type PlayerSetup,
+  ENEMY_START, ENEMY_START_YAW, PLAYER_START, type EnemySetup, type Fight, type FightSetup, type PlayerResult,
+  type PlayerSetup,
 } from "@infinite-tower/shared/fight";
-import { BattleRoom, type Kept, type Seat } from "../battle/room.js";
+import { BattleRoom, type Kept, type RoomHooks, type Seat } from "../battle/room.js";
 import { fullVitals } from "../content/player.js";
 import { ENEMIES, rollDrops } from "../enemies/index.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { inViewWithSlack } from "../overworld/interact.js";
-import type { SpawnDef } from "../world/region.js";
+import type { Region, SpawnDef } from "../world/region.js";
 import { getArena } from "../world/index.js";
 import { regionOf } from "../world/world.js";
 import type { GameSession } from "./session.js";
@@ -54,26 +55,42 @@ export const DROP_GAP_M = 0.5;
 
 const randomSeed = (rng: () => number): number => Math.floor(rng() * 2 ** 32);
 
+// Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
+export const foeOf = (id: EnemyId, rng: () => number): EnemySetup =>
+  ({ def: ENEMIES[id].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(rng) });
+
+export const regionHere = (session: GameSession): Region =>
+  regionOf(session.overworld.map, session.overworld.playerPos(session.me));
+
+/** `sessions[i]` plays `setup.players[i]`; without shared `drops`, each gets its own. */
+export function startFight(
+  sessions: GameSession[], setup: FightSetup, seat: (session: GameSession) => Seat,
+  from: { source?: Entity | null; drops?: ArenaDrops } = {}, hooks: RoomHooks = {},
+): void {
+  const room = new BattleRoom(setup, sessions.map(seat), hooks);
+  sessions.forEach((s, i) => seatInBattle(s, room, i, {
+    source: from.source ?? null, drops: from.drops ?? newDrops(s.overworld.playerPos(s.me)),
+  }));
+}
+
 /** Held in the arena of the spawn it came from; tall grass has no spawn, so the region's. */
 export function startBattle(
   session: GameSession, source: Entity | null, enemyId: EnemyId, spawn: SpawnDef | undefined,
 ): void {
   const { overworld } = session;
   const setup: FightSetup = {
-    arena: getArena(spawn?.arenaId ?? regionOf(overworld.map, overworld.playerPos(session.me)).arenaId),
+    arena: getArena(spawn?.arenaId ?? regionHere(session).arenaId),
     players: [{ ...fighterOf(session), at: PLAYER_START }],
-    // Seeds (a swordsman's swings, sidesteps, where split Bolts start) are the server's pick, so a client can't choose.
-    enemies: [{ def: ENEMIES[enemyId].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: randomSeed(overworld.rng) }],
+    enemies: [foeOf(enemyId, overworld.rng)],
   };
   const drops = newDrops(overworld.playerPos(session.me));
-  const room: BattleRoom = new BattleRoom(setup, [seatOf(session)], {
-    onOver: () => {
+  startFight([session], setup, seatOf, { source, drops }, {
+    onOver: (fight) => {
       if (source !== null) overworld.fightDecided(source);
-      if (room.fight.outcome.state === "won") dropInArena(room.fight, drops, overworld, session.uniques);
+      if (fight.outcome.state === "won") dropInArena(fight, drops, overworld, session.uniques);
     },
     onClosed: () => landDrops(overworld, drops),
   });
-  seatInBattle(session, room, 0, { source, drops });
 }
 
 export function joinBattle(joiner: GameSession, host: GameSession): void {
@@ -155,6 +172,35 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
   session.link.send({
     t: "battleResult", won, me, wins: session.wins, vitals: session.vitals,
     lost, gear: session.gear, skillbook: session.skillbook, afterFightMs, core: session.core, coreLost,
+  });
+}
+
+export function sparSeat(session: GameSession, against: { spar: string } | { duel: string }): Seat {
+  const before = { ...session.vitals };
+  return { link: session.link, onEnd: (result, _after, kept) => settleSpar(session, result, before, kept, against) };
+}
+
+function settleSpar(
+  session: GameSession, result: PlayerResult, before: Vitals, { book, gear, core }: Kept,
+  against: { spar: string } | { duel: string },
+): void {
+  const battle = session.battle;
+  if (!battle) return;
+  battle.over = true;
+  session.skillbook = book;
+  session.gear = { ...session.gear, ...gear };
+  session.core = core;
+  session.vitals = before;
+  const { world, enemies } = battle.room.fight;
+  if (result === "won" && enemies.length > 0) {
+    progressStory(session, [], enemies.map((e) => world.require(e, Enemy).def.id));
+  }
+  session.save();
+  if (result === "left") return;
+  session.link.send({
+    t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
+    vitals: session.vitals, lost: {}, gear: session.gear, skillbook: session.skillbook, afterFightMs: null,
+    core: session.core, coreLost: null, ...against,
   });
 }
 

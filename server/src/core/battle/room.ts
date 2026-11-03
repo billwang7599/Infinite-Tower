@@ -30,7 +30,7 @@ export interface Seat {
 
 export interface RoomHooks {
   /** Decided, or everyone gone before it was. */
-  onOver?: () => void;
+  onOver?: (fight: Fight) => void;
   onClosed?: () => void;
 }
 
@@ -216,7 +216,7 @@ export class BattleRoom {
     });
     if (this.fight.outcome.state === "fighting") return;
     this.decided = true;
-    this.hooks.onOver?.();
+    this.hooks.onOver?.(this.fight);
     if (this.seats.every((s) => s.gone)) this.close();
   }
 
@@ -235,7 +235,7 @@ export class BattleRoom {
   }
 
   private close(): void {
-    if (!this.decided) this.hooks.onOver?.();
+    if (!this.decided) this.hooks.onOver?.(this.fight);
     this.ended = true;
     this.fight.dispose();
     this.hooks.onClosed?.();
