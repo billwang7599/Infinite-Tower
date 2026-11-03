@@ -1,9 +1,7 @@
-import { FIXED_DT, type ChallengeNews, type Vitals } from "@infinite-tower/shared";
-import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
-import { BattleRoom, type Kept } from "../battle/room.js";
+import { FIXED_DT, type ChallengeNews } from "@infinite-tower/shared";
+import { DUEL_STARTS, type FightSetup } from "@infinite-tower/shared/fight";
 import { getArena } from "../world/index.js";
-import { regionOf } from "../world/world.js";
-import { fighterOf, newDrops, seatInBattle } from "./battle.js";
+import { fighterOf, regionHere, sparSeat, startFight } from "./battle.js";
 import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
 
 export const CHALLENGE_RANGE_TILES = 2;
@@ -76,36 +74,11 @@ export class Duels {
 function startDuel(a: GameSession, b: GameSession): void {
   const duelists = [a, b];
   const setup: FightSetup = {
-    arena: getArena(regionOf(a.overworld.map, a.overworld.playerPos(a.me)).duelArenaId),
+    arena: getArena(regionHere(a).duelArenaId),
     duel: true,
     enemies: [],
     players: duelists.map((s, i) => ({ ...fighterOf(s), at: DUEL_STARTS[i]! })),
   };
-  const room = new BattleRoom(setup, duelists.map((s, i) => {
-    const before = { ...s.vitals }, opponent = duelists[1 - i]!.name;
-    return { link: s.link, onEnd: (result, _after, kept) => settleDuel(s, result, before, opponent, kept) };
-  }));
-  duelists.forEach((s, seat) => {
-    s.overworld.enterFight(s.me);
-    seatInBattle(s, room, seat, { source: null, drops: newDrops(s.overworld.playerPos(s.me)) });
-  });
-}
-
-function settleDuel(
-  session: GameSession, result: PlayerResult, before: Vitals, opponent: string, { book, gear, core }: Kept,
-): void {
-  const battle = session.battle;
-  if (!battle) return;
-  battle.over = true;
-  session.skillbook = book;
-  session.gear = { ...session.gear, ...gear };
-  session.core = core;
-  session.vitals = before;
-  session.save();
-  if (result === "left") return;
-  session.link.send({
-    t: "battleResult", won: result === "won", me: session.overworld.playerPos(session.me), wins: session.wins,
-    vitals: session.vitals, lost: {}, gear: session.gear, skillbook: session.skillbook, afterFightMs: null,
-    core: session.core, coreLost: null, duel: opponent,
-  });
+  for (const s of duelists) s.overworld.enterFight(s.me);
+  startFight(duelists, setup, (s) => sparSeat(s, { duel: (s === a ? b : a).name }));
 }
