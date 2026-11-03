@@ -1,5 +1,5 @@
 import {
-  Color3, Color4, StandardMaterial, Texture, VertexBuffer, type DynamicTexture, type Mesh, type Scene,
+  Color3, StandardMaterial, Texture, VertexBuffer, type DynamicTexture, type Mesh, type Scene,
 } from "@babylonjs/core";
 import { seededRandom, type Theme } from "@infinite-tower/shared";
 import { drawCampfire, REGION_LOOKS } from "../regions/index.js";
@@ -67,8 +67,6 @@ export function terrainArt(scene: Scene): TerrainArt {
       if (!material) materials.set(kind, material = cutoutMaterial(scene, `prop-${kind}`, propTexture(scene, kind, 31)));
       const quad = standingQuad(scene, `prop-${key}`, width, height);
       quad.material = material;
-      quad.registerInstancedBuffer(VertexBuffer.ColorKind, 4);
-      quad.instancedBuffers.color = new Color4(1, 1, 1, 1);
       let card: Mesh | null = null;
       if (isTall(kind)) {
         // Its shadow comes from an upright card turned to the light, never edge-on as the quad turns to the camera.

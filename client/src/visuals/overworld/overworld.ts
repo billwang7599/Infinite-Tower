@@ -2,13 +2,12 @@ import { Vector3 } from "@babylonjs/core";
 import { dampFactor, wrapAngle } from "@infinite-tower/shared";
 import { OverworldPos } from "../../modes/overworld/components.js";
 import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
-import type { OverworldScene } from "./scene.js";
+import { CAMERA, type OverworldScene } from "./scene.js";
 import { worldDrawing, type WorldDrawing } from "./chunks.js";
 import { terrainArt, type TerrainArt } from "./terrainArt.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
-const CAMERA_DISTANCE = 21;
 
 export interface OverworldStage {
   frame(dt: number, fresh: boolean): void;
@@ -46,10 +45,9 @@ export function overworldStage(view: OverworldScene): OverworldStage {
     const share = turn.time / CAMERA_TURN_TIME;
     view.yawRad = turn.fromRad + (turn.toRad - turn.fromRad) * share * share * (3 - 2 * share);
     if (view.yawRad !== facedYaw) world.face(facedYaw = view.yawRad);
-    const flat = Math.cos(state.cameraPitchRad) * CAMERA_DISTANCE;
-    back.set(
-      -Math.sin(view.yawRad) * flat, Math.sin(state.cameraPitchRad) * CAMERA_DISTANCE, -Math.cos(view.yawRad) * flat,
-    );
+    const flat = Math.cos(state.cameraPitchRad) * CAMERA.distanceTiles;
+    const up = Math.sin(state.cameraPitchRad) * CAMERA.distanceTiles;
+    back.set(-Math.sin(view.yawRad) * flat, up, -Math.cos(view.yawRad) * flat);
     const player = state.world.require(state.player, OverworldPos);
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
     target.x += (player.x - target.x) * k;

@@ -1647,9 +1647,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          (GLSL: flow / shell / circle / ring) and its pooled meshes, pooled particles, Lightning's arcs
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
-        scene.ts         OverworldScene: perspective camera, its sky, bloom, colour grade, vignette and the
-                         tilt-shift blur (GLSL); the sprite materials (a pile's sack among them, drawPile, a
-                         trace's bedroll, the arena's too); standingQuad
+        scene.ts         OverworldScene: perspective camera (CAMERA: its field of view and distance), its sky,
+                         bloom, colour grade, vignette and the tilt-shift blur (GLSL); the sprite materials (a pile's
+                         sack among them, drawPile, a trace's bedroll, the arena's too); standingQuad
         walker.ts        WALKERS (chibi, other players', NPCs', enemy, pile and trace billboards: glide, hop,
                          facing, the sky's tint and blob shadows, "!", another player's or an NPC's own chibi and
                          name, a player's crossed swords, a Speech's bubble over the head); a look's pictures and a
@@ -1658,11 +1658,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         overworld.ts     overworldStage (the world's drawing, the camera following the player and easing through its
                          quarter turns, the sky's frame)
         chunks.ts        worldDrawing: the world a chunk (CHUNK_TILES square) at a time, each built once it and its
-                         neighbours are held. Those within SHOWN_TILES of the camera's target are in the scene,
-                         casting shadows; those AHEAD_TILES further are built a little each frame (BUILD_BUDGET_MS),
-                         nearest first, and one needed at once is built whole; past DROPPED_TILES a built one is
-                         thrown away. warm builds ahead while a fight is on. The sky's colours and fog ease to the
-                         region you stand in (SKY_BLEND_RATE)
+                         neighbours are held, and shown only once built. seenGround is how far the camera sees the
+                         ground at its tilt; chunks that near the camera's target and not behind the camera are in
+                         the scene. Those within NEAR_TILES cast shadows and are updated every frame, the far ones
+                         one a frame (levelAt). Those within SHOWN_TILES (as far as it ever sees) and AHEAD_TILES
+                         more are built a little each frame (BUILD_BUDGET_MS), those ahead of where you walk or look
+                         first (buildRank); one needed under you at once is built whole; past DROPPED_TILES a built
+                         one is thrown away. A plain ground lies under it all (SKIRT), and the fog is full at the
+                         farthest ground the camera sees (FOG), so no edge shows. warm builds ahead while a fight is
+                         on. The sky's colours and fog blend between two regions near where one gives way to the next
+                         (skyBlendAt, SKY_BLEND_TILES) and ease there (SKY_BLEND_RATE)
         scenery.ts       Scenery's shapes (ledges, props) and chunkScenery, what stands in a chunk from the tiles round
                          it so neighbours agree: castle walls (taller where thick: the bulk), house blocks (each
                          block's height by its corner), the stalls (a counter ledge with an awning, the forge a hearth
@@ -1671,13 +1676,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          groundY, isTall, hidesWalker, tileBlocks (runs of tiles merged into rectangles); no Babylon:
                          tested
         terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the water's by region
-                         theme, the campfire's frames, and each prop's mesh that instances copy
+                         theme, the campfire's frames, and each prop's mesh that a chunk's thin instances copy
         terrain.ts       buildChunk: one chunk, as a generator a piece at a time, its meshes kept out of the scene
                          until it's shown: its ground (paintGround) with the water carved out, blocks (shadow
-                         casters, the quarry's cut-stone tops and faces),
-                         instanced props (the tiles' and the scenery's, each tinted by the light where it stands; a
-                         tall one's shadows come from upright cards only shadow maps see, one kept turned to the sun or
-                         moon and one turned to each campfire in reach, each cast by its own light), the campfires;
+                         casters, the quarry's cut-stone tops and faces), props as thin instances, one mesh per
+                         picture (the tiles' and the scenery's, each tinted by the light where it stands; a tall one's
+                         shadows come from upright cards only shadow maps see, one kept turned to the sun or moon and
+                         one turned to each campfire in reach, each cast by its own light), the campfires;
                          face turns the props to the camera; a ledge hiding any of the player from the camera turns
                          see-through (hidesWalker, SEE_THROUGH)
         stalls.ts        stallLooks: a market stall's counter and its awning on posts, and the forge's hearth of
@@ -1701,8 +1706,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
-                       colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows;
-                       kept and reused by the next look, since a new light makes every material check its shaders),
+                       colours (SkyLook; Babylon's fog, made full by fogEnd too once a fogStart is set), the map's
+                       flickering point lights (the nearest the camera cast shadows; kept and reused by the next
+                       look, since a new light makes every material check its shaders),
                        tint (a region's colours, the lights kept), dropShadows (a chunk hidden), clearShadows, a
                        sprite's tint, the yaw that turns a shadow card to a light.
                        daylight.ts (the day clock, setDayClock (dev: `?time=`, `window.setTime`); by the sun's height:
@@ -1942,13 +1948,13 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
-| Chunks: how far round you they're sent, held, drawn, built ahead and kept built, the build budget, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SHOWN_TILES`, `AHEAD_TILES`, `DROPPED_TILES`, `BUILD_BUDGET_MS`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
+| Chunks: how far round you they're sent, held, drawn (in detail, and past what's seen), built ahead and kept built, the build budget and which build first, the edge's fog and the plain ground under the world, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SEEN_MARGIN_TILES`, `NEAR_TILES`, `AHEAD_TILES`, `HIDE_MARGIN_TILES`, `DROPPED_TILES`, `AHEAD_BIAS_TILES`, `MUST_BUILD_TILES`, `BUILD_BUDGET_MS`, `FOG_FADE_M`, `SKIRT`, `SKY_BLEND_TILES`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | How far from a walking player monsters stay awake | `AWAKE_TILES` in `server/src/core/overworld/sleep.ts` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's colour grade and camera (its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
+| How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
 | A region theme's daylight sky, fog and light; a campfire's light | `env` in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
