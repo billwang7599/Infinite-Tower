@@ -1,12 +1,6 @@
-import {
-  blankSkillbook, fitsSlot, ITEMS, keptCore, keptFaith, SLOTS, validateSkill, WORDS, type Equipment, type ItemId,
-  type Slot, type Skill, type Skillbook, type Word,
-} from "@infinite-tower/shared";
-import { SkillSchema } from "@infinite-tower/shared/net/client-messages";
+import type { ItemId } from "@infinite-tower/shared";
 import { eq, sql } from "drizzle-orm";
-import { SHOPS, type ShopId } from "../core/content/shops.js";
-import { keptStory } from "../core/game/story.js";
-import type { PlayerId, PlayerSave, PlayerStore, UniqueHold } from "../core/ports.js";
+import type { PlayerId, PlayerSave, PlayerStore, StoredSave, UniqueHold } from "../core/ports.js";
 import type { Db } from "./db.js";
 import { players, uniqueItems } from "./schema.js";
 
@@ -17,7 +11,7 @@ export class PgPlayerStore implements PlayerStore {
 
   constructor(private readonly db: Db) {}
 
-  load(id: PlayerId): Promise<PlayerSave | null> {
+  load(id: PlayerId): Promise<StoredSave | null> {
     return this.inOrder(id, async () => {
       const [row] = await this.db.select().from(players).where(eq(players.id, id));
       return row ? fromRow(row) : null;
@@ -35,8 +29,7 @@ export class PgPlayerStore implements PlayerStore {
   async uniqueHolds(): Promise<UniqueHold[]> {
     const rows = await this.db
       .select({ item: uniqueItems.item, holder: uniqueItems.holderId, seenAt: players.updatedAt }).from(uniqueItems).innerJoin(players, eq(players.id, uniqueItems.holderId));
-    return rows.filter((row) => Object.hasOwn(ITEMS, row.item))
-      .map((row) => ({ item: row.item as ItemId, holder: row.holder, seenAtMs: row.seenAt.getTime() }));
+    return rows.map((row) => ({ item: row.item as ItemId, holder: row.holder, seenAtMs: row.seenAt.getTime() }));
   }
 
   holdUnique(item: ItemId, holder: PlayerId | null): Promise<void> {
@@ -73,32 +66,11 @@ const toRow = (data: PlayerSave): PlayerRow => ({
   shopsBought: data.shopsBought, faith: data.faith,
 });
 
-function fromRow(row: typeof players.$inferSelect): PlayerSave {
-  const knownWords = row.knownWords.filter((word): word is Word => (WORDS as readonly string[]).includes(word));
+function fromRow(row: typeof players.$inferSelect): StoredSave {
   return {
-    vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings,
-    character: row.character, bag: row.bag, equipment: wearable(row.equipment), knownWords,
-    skillbook: readable(row.skillbook, new Set(knownWords)), story: keptStory(row.story), pad: row.pad,
-    core: keptCore({
-      steps: row.coreSteps, fill: row.coreFill, points: row.statPoints, inscriptions: row.inscriptions,
-    }),
-    shopsBought: row.shopsBought.filter((shop): shop is ShopId => Object.hasOwn(SHOPS, shop)),
-    faith: keptFaith(row.faith),
+    vitals: { hp: row.hp, stamina: row.stamina }, wins: row.wins, settings: row.settings, character: row.character,
+    bag: row.bag, equipment: row.equipment, knownWords: row.knownWords, skillbook: row.skillbook, story: row.story,
+    pad: row.pad, shopsBought: row.shopsBought, faith: row.faith,
+    core: { steps: row.coreSteps, fill: row.coreFill, points: row.statPoints, inscriptions: row.inscriptions },
   };
-}
-
-function readable(saved: unknown, known: ReadonlySet<Word>): Skillbook {
-  const pages: readonly unknown[] = Array.isArray(saved) ? saved : [];
-  return blankSkillbook().map((_, i) => {
-    const page = SkillSchema.safeParse(pages[i]);
-    return page.success && validateSkill(page.data, known).length === 0 ? page.data as Skill : null;
-  });
-}
-
-function wearable(saved: Partial<Record<Slot, string | null>>): Equipment {
-  const keep = (slot: Slot) => {
-    const item = saved[slot];
-    return item && Object.hasOwn(ITEMS, item) && fitsSlot(item as ItemId, slot) ? item as ItemId : null;
-  };
-  return Object.fromEntries(SLOTS.map((slot) => [slot, keep(slot)])) as Equipment;
 }

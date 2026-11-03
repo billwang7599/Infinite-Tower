@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, MODIFIERS, CLOSE_CODES, ELEMENTS, emptyEquipment, FIXED_DT, FORMS,
+  bagCounts, MODIFIERS, CLOSE_CODES, ELEMENTS, emptyEquipment, FIXED_DT, FORMS, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -124,6 +124,16 @@ describe("joining", () => {
     release();
     assert.equal(await joining, null);
     assert.deepEqual(link.sent, []);
+  });
+
+  test("an item the game no longer has is dropped from a saved bag, and the rest kept", async () => {
+    const { online, store } = setup({ withCharacter: true });
+    const meat = { item: "boar-meat", count: 2, x: 0, y: 0, turned: false } as const;
+    const gone = { ...meat, item: "an-item-since-removed" as ItemId, x: 1 };
+    const save = store.saved.get(ACCOUNT.id)!;
+    store.saved.set(ACCOUNT.id, { ...save, bag: { ...save.bag, items: [meat, gone] } });
+    const { link } = await joinNew(online);
+    assert.deepEqual(link.last("welcome").gear.bag.items, [meat]);
   });
 });
 

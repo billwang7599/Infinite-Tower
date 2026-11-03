@@ -39,7 +39,6 @@ export interface OverworldPlayerData {
   heading: Heading;
   /** In a battle: still here for the others to see, but out of the overworld's play. */
   fighting: boolean;
-  pad: string;
 }
 export const OverworldPlayer = defineComponent<OverworldPlayerData>("OverworldPlayer");
 

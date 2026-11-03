@@ -39,10 +39,10 @@ export class Overworld implements OverworldContext {
     }
   }
 
-  join(character: Character, pad: string, onEncounter: OnEncounter, at = this.map.regions[0]!.spawn): Entity {
+  join(character: Character, onEncounter: OnEncounter, at = this.map.regions[0]!.spawn): Entity {
     const player = this.world.spawn();
     this.world.add(player, OverworldPos, { x: at.x, z: at.z });
-    this.world.add(player, OverworldPlayer, newWalk(character, pad));
+    this.world.add(player, OverworldPlayer, newWalk(character));
     this.onEncounter.set(player, onEncounter);
     return player;
   }
