@@ -34,8 +34,8 @@ function VolumeRow({ audio, name }: { audio: AudioSettings; name: VolumeName }) 
         <input
           id={id}
           type="range"
-          min={0}
-          max={1}
+          min={VOLUME.min}
+          max={VOLUME.max}
           step={VOLUME.step}
           value={volume}
           onChange={(e) => audio.setVolume(name, e.currentTarget.valueAsNumber)}

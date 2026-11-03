@@ -5,7 +5,7 @@ import type { Cue, Heard } from "./battle.js";
 import { nearestWater, type Hearing } from "./mix.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "./sounds.js";
 
-export const OVERWORLD_HEARING: Hearing = { near: 1.5, far: 16 };
+const OVERWORLD_HEARING: Hearing = { near: 1.5, far: 16 };
 export const STRIDE_TILES = 0.9;
 // Moved further than this in a frame: put there (a respawn, a correction), not walked.
 const JUMPED_TILES = 1.5;

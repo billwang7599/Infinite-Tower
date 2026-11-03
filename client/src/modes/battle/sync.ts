@@ -19,7 +19,7 @@ const RESYNC_RETRY_STEPS = 60;
 /** A hit only the server saw counts as one through a dodge you were shown if the dodge started this recently. */
 const DODGE_LOOKBACK_STEPS = 45;
 
-export interface SyncStats {
+interface SyncStats {
   /** Hashes compared, and how many differed. */
   checks: number;
   mismatches: number;

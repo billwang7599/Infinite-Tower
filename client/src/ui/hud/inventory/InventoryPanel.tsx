@@ -39,7 +39,7 @@ interface PanelProps {
   shownWidth?: (px: number) => void;
 }
 
-export interface Trading {
+interface Trading {
   shop: ShopView;
   core: CoreState;
 }

@@ -1,6 +1,6 @@
 const WAYS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 
-export type CompassLabel = (typeof WAYS)[number];
+type CompassLabel = (typeof WAYS)[number];
 
 export const COMPASS = { widthPx: 240, heightPx: 24, pxPerDeg: 1 } as const;
 

@@ -7,7 +7,7 @@ export interface Choices {
   gender: Gender;
   look: Look;
 }
-export type ChoiceKey = "gender" | LookPart;
+type ChoiceKey = "gender" | LookPart;
 
 export interface Row {
   key: ChoiceKey;

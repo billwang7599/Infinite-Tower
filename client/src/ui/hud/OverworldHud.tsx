@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useGame } from "../context.js";
+import { Confirm } from "../components/Confirm.js";
 import { NO_FOCUS } from "../components/noFocus.js";
-import { BUTTON } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
 import { useStore } from "../useStore.js";
 import { COMPASS } from "./compassMarks.js";
@@ -80,23 +80,10 @@ function ChallengeNotice({ top }: { top: number }) {
   });
   if (from === null) return null;
   return (
-    <div
-      id="challenge-notice" style={{ top }}
-      className={
-        "pointer-events-auto absolute left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
-        + "bg-black/75 px-5 py-3 text-center"
-      }
-    >
-      <div className="mb-2 font-title text-lg tracking-wide">{from} challenges you to a duel</div>
-      <div className="flex justify-center gap-3">
-        <button type="button" {...NO_FOCUS} className={BUTTON.primary} onClick={() => answer(true)}>
-          Accept
-        </button>
-        <button type="button" {...NO_FOCUS} className={BUTTON.plain} onClick={() => answer(false)}>
-          Decline
-        </button>
-      </div>
-    </div>
+    <Confirm
+      id="challenge-notice" title={`${from} challenges you to a duel`} yes="Accept" no="Decline" answer={answer}
+      top={top} className="bg-black/75 px-5 py-3"
+    />
   );
 }
 

@@ -12,7 +12,7 @@ export const NO_CHANT: ChantState = { open: false, words: [], kind: null };
 
 export const KINDS: readonly WordKind[] = ["form", "element", "modifier"];
 
-export interface Choice {
+interface Choice {
   word: Word;
   why: Rejection | null;
 }

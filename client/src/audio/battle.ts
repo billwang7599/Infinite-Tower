@@ -17,7 +17,7 @@ export type FightToHear = Pick<BattleContext, "fight" | "events" | "view" | "out
   sync: Pick<FightSync, "stats"> | null;
 };
 
-export const ARENA_HEARING: Hearing = { near: 3, far: 30 };
+const ARENA_HEARING: Hearing = { near: 3, far: 30 };
 export const STRIDE_M = 1.4;
 const ENEMY_STEP_GAIN = 0.7;
 const LAND_AFTER_AIR_TIME = 0.25;

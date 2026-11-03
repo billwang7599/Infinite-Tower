@@ -1,6 +1,7 @@
 /** The server does each cheat (and ignores them in production); the time of day is only drawn, so it is set here. */
 import { useState, type ReactNode } from "react";
 import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, type Cheat } from "@infinite-tower/shared";
+import { CloseButton } from "../../components/CloseButton.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
@@ -39,8 +40,7 @@ export function AdminPanel() {
     >
       <header className="flex items-center justify-between">
         <h2 className="font-title text-base tracking-[0.08em] text-victory">Admin</h2>
-        <button type="button" aria-label="Close" {...NO_FOCUS} onClick={() => admin.set({ open: false })}
-          className="cursor-pointer px-1 text-white/60 hover:text-white">✕</button>
+        <CloseButton close={() => admin.set({ open: false })} />
       </header>
       <Section title="Time of day">
         {DAY_TIMES.map(({ label, fraction }) => (

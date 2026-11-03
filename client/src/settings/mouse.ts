@@ -1,6 +1,7 @@
 /** Auto lock: the arena captures the mouse by itself as a battle starts, instead of waiting for a click. */
-import { clamp, roundTo, type SavedSettings } from "@infinite-tower/shared";
+import type { SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
+import { savedOnSlider, snapToSlider } from "./slider.js";
 
 type SavedMouse = SavedSettings["mouse"];
 
@@ -19,12 +20,10 @@ export class MouseSettings extends Store<MousePrefs> {
 
   /** Left out (a save from before it existed), unreadable or out of range: the default. */
   restore(saved: SavedMouse): void {
-    const autoLock = saved?.autoLock, sensitivity = saved?.flickSensitivity;
-    const sensitivityOk = typeof sensitivity === "number"
-      && sensitivity >= FLICK_SENSITIVITY.min && sensitivity <= FLICK_SENSITIVITY.max;
+    const autoLock = saved?.autoLock;
     this.set({
       autoLock: typeof autoLock === "boolean" ? autoLock : AUTO_LOCK_DEFAULT,
-      flickSensitivity: sensitivityOk ? sensitivity : FLICK_SENSITIVITY.default,
+      flickSensitivity: savedOnSlider(FLICK_SENSITIVITY, saved?.flickSensitivity, FLICK_SENSITIVITY.default),
     });
   }
 
@@ -41,7 +40,6 @@ export class MouseSettings extends Store<MousePrefs> {
   }
 
   setFlickSensitivity(value: number): void {
-    const snapped = roundTo(Math.round(value / FLICK_SENSITIVITY.step) * FLICK_SENSITIVITY.step, 2);
-    this.set({ flickSensitivity: clamp(snapped, FLICK_SENSITIVITY.min, FLICK_SENSITIVITY.max) });
+    this.set({ flickSensitivity: snapToSlider(FLICK_SENSITIVITY, value) });
   }
 }

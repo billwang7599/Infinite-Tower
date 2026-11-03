@@ -6,7 +6,7 @@ const SAMPLES = 4;
 /** Past this many unanswered pings the oldest is given up on, so a dead link doesn't pile them up. */
 const MAX_WAITING = 8;
 
-export interface Pinging {
+interface Pinging {
   pong(id: number): void;
   stop(): void;
 }

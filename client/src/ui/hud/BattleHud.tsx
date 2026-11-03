@@ -2,8 +2,7 @@ import { NO_PILE, type Gear } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import { useGame } from "../context.js";
 import { Bar } from "../components/Bar.js";
-import { NO_FOCUS } from "../components/noFocus.js";
-import { BUTTON } from "../components/styles.js";
+import { Confirm } from "../components/Confirm.js";
 import { useAction } from "../components/useAction.js";
 import { keyName } from "../keyNames.js";
 import { ChantPopup } from "../skills/ChantPopup.js";
@@ -81,26 +80,14 @@ function LeaveArena() {
   });
   if (!open) return null;
   return (
-    <div
-      id="leave-arena"
-      className={
-        "pointer-events-auto absolute top-1/3 left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
-        + "bg-black/80 px-6 py-4 text-center"
-      }
+    <Confirm
+      id="leave-arena" title="Leave the drops behind?" yes="Leave" no="Stay"
+      answer={(yes) => (yes ? leave() : stay())} className="top-1/3 bg-black/80 px-6 py-4"
     >
-      <div className="mb-1 font-title text-lg tracking-wide">Leave the drops behind?</div>
       <div className="mb-3 text-sm opacity-80">
         Once everyone has left, what's left will lie where the fight began, for anyone to take.
       </div>
-      <div className="flex justify-center gap-3">
-        <button type="button" id="leave-arena-confirm" {...NO_FOCUS} className={BUTTON.primary} onClick={leave}>
-          Leave
-        </button>
-        <button type="button" id="leave-arena-stay" {...NO_FOCUS} className={BUTTON.plain} onClick={stay}>
-          Stay
-        </button>
-      </div>
-    </div>
+    </Confirm>
   );
 }
 

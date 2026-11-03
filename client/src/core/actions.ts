@@ -43,7 +43,7 @@ const AXES = {
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
 // By screen angle in equal steps from moving right, clockwise (y grows down).
-export const FLICKS = ["right", "downRight", "down", "downLeft", "left", "upLeft", "up", "upRight"] as const;
+const FLICKS = ["right", "downRight", "down", "downLeft", "left", "upLeft", "up", "upRight"] as const;
 export type Flick = (typeof FLICKS)[number];
 
 export interface Polled {

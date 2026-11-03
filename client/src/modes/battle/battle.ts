@@ -32,7 +32,7 @@ export interface Battle {
   update(dt: number): void;
 }
 
-export interface BattleOptions {
+interface BattleOptions {
   actions: Actions;
   settings: Settings;
   hud: Store<BattleHudState>;
