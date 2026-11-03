@@ -34,7 +34,7 @@ test("a look opened as its parts is a layer per part, and the layers stacked are
 });
 
 test("the layers are named for their parts, a part drawn on several layers named for each", () => {
-  const names = partsProject(set("portrait"), look, STARTER_CLOTHES).pages[0]!.layers.map((l) => l.name);
+  const names = partsProject(set("chibi"), look, STARTER_CLOTHES).pages[0]!.layers.map((l) => l.name);
   for (const part of ["eyes", "mouth"]) assert.ok(names.includes(part), `${part} in ${names}`);
   for (const part of ["base", "hair", "tunic"]) {
     assert.ok(names.filter((n) => n.startsWith(`${part} (`)).length > 1, `${part} in ${names}`);

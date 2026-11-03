@@ -5,59 +5,27 @@
  * Every body type is athletic: shoulders well wider than the neck, sloping down into rounded deltoids. They
  * differ in how much: skinny is lean, wide is built. None of them is heavy.
  * Portrait: head and shoulders, turned three-quarters to our left like the head, so the near shoulder (right)
- * reaches further from the neck than the far one. The picture cuts off across the chest.
+ * reaches further from the neck than the far one. The picture cuts off across the chest. Each body type's is traced
+ * from a Stable Diffusion picture (base.ts), bodysuit and all.
  * Chibi: 32x32. Facing front it's symmetric around x = 16, and facing back it has the same outline;
  * facing side (to the left) the chest is to the left, the near arm hangs over the torso, and the feet point left.
  * Battle: the whole body from behind and from the front, in each pose (battle.ts).
  */
 import type { Art, BattleFacing, BattleFrame, Draw, Frame, Frames, Piece } from "./art.js";
 import { ink } from "./art.js";
+import { TRACED, TRACED_INKS, type Traced } from "./base.js";
 import { battleFrames, type BattleFrames } from "./battle.js";
 import {
-  BASE, SHADOW, ellipse, farSide, mirror, polygon, rect, symmetric, union, type Point,
+  BASE, SHADOW, ellipse, farSide, gridMask, mirror, polygon, rect, symmetric, union, type Mask, type Point,
 } from "./pixels.js";
 
 const C = 32;
-/** The breastbone's column in the portrait: body types widen out from it. */
-const MIDDLE = 33;
-const COLLAR_Y = 45;
-
-/** The medium build's outline, from the throat round the far shoulder, along the bottom and back up to the nape. */
-const TORSO: readonly Point[] = [
-  [29.5, 44], [27, 45.5], [21, 47.5], [14, 49.5], [9, 52], [6, 55], [4, 60], [3, 64], [64, 64], [62, 58],
-  [60.5, 53], [57.5, 49.5], [53, 47], [46, 44.5], [40.5, 42],
-];
-/** The far and near arms below the round of each shoulder. */
-const ARMS: readonly (readonly Point[])[] = [
-  [[9, 52], [6, 55], [4, 60], [3, 64], [12.5, 64], [12, 59], [13, 54]],
-  [[57.5, 49.5], [60.5, 53], [62, 58], [64, 64], [53, 64], [53, 59], [54, 53]],
-];
-
-/** A portrait body: how much wider than medium its shoulders are, and its neck's front and back columns. */
-interface Build {
-  width: number;
-  neck: readonly [front: number, back: number];
-}
 
 /** A chibi body: half-widths from the middle (x = 16) and the arms' thickness. */
 interface ChibiBuild {
   shoulders: number;
   waist: number;
   arm: number;
-}
-
-function portraitFrame({ width, neck: [front, back] }: Build): Frame {
-  const widen = (points: readonly Point[]) => points.map(([x, y]) => [MIDDLE + (x - MIDDLE) * width, y] as const);
-  const at = (x: number, y: number): Point => [Math.round(MIDDLE + (x - MIDDLE) * width), y];
-  const arms = ARMS.map((arm) => polygon(widen(arm)));
-  return {
-    neck: polygon([[front, 28], [back, 26], [back + 0.5, 43], [front, 48]]),
-    torso: polygon(widen(TORSO)),
-    arms: (x, y) => arms.some((arm) => arm(x, y)),
-    legs: () => false,
-    middle: MIDDLE, collarY: COLLAR_Y, chestY: 60, armpitY: 56, waistY: 90,
-    shoulders: [at(9, 51), at(56, 49)],
-  };
 }
 
 function chibiFrame(b: ChibiBuild): Frame {
@@ -101,20 +69,49 @@ const chibiFrames = (b: ChibiBuild) => ({
   side: chibiSideFrame(b),
 });
 
+const tracedMask = ({ x, y, rows }: Traced, material: string): Mask =>
+  gridMask(x, y, rows.map((row) => [...row].map((c) => (TRACED_INKS[c]?.[0] === material ? c : ".")).join("")));
+
+const columnsOf = (mask: Mask, y: number) => Array.from({ length: 64 }, (_, x) => x).filter((x) => mask(x, y));
+
+// The bodysuit is the torso, the bare skin beside it the arms.
+function portraitFrame(body: Traced): Frame {
+  const cloth = tracedMask(body, "cloth"), skin = tracedMask(body, "skin");
+  let collarY = body.y;
+  while (columnsOf(cloth, collarY).length < 20) collarY++;
+  const chest = columnsOf(cloth, collarY + 10);
+  const middle = Math.round((chest[0]! + chest[chest.length - 1]!) / 2);
+  const arms: Mask = (x, y) => y >= collarY - 2 && skin(x, y);
+  const topMiddle = (side: (x: number) => boolean): Point => {
+    for (let y = collarY - 2; ; y++) {
+      const xs = columnsOf(arms, y).filter(side);
+      if (xs.length) return [Math.round((xs[0]! + xs[xs.length - 1]!) / 2), y];
+    }
+  };
+  return {
+    neck: (x, y) => y < collarY && cloth(x, y),
+    torso: (x, y) => y >= collarY && cloth(x, y),
+    arms,
+    legs: () => false,
+    middle, collarY, chestY: collarY + 14, armpitY: collarY + 7, waistY: 90,
+    shoulders: [topMiddle((x) => x < middle), topMiddle((x) => x > middle)],
+  };
+}
+
 /** Body types. Looks only: they change nothing in play. */
 export const BODY_TYPES = {
   skinny: {
-    portrait: portraitFrame({ width: 0.86, neck: [30.5, 38] }),
+    portrait: portraitFrame(TRACED.body.skinny),
     chibi: chibiFrames({ shoulders: 5, waist: 2.6, arm: 2 }),
     battle: battleFrames({ shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 }),
   },
   medium: {
-    portrait: portraitFrame({ width: 1, neck: [30, 38.5] }),
+    portrait: portraitFrame(TRACED.body.medium),
     chibi: chibiFrames({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
     battle: battleFrames({ shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 }),
   },
   wide: {
-    portrait: portraitFrame({ width: 1.1, neck: [29, 39.5] }),
+    portrait: portraitFrame(TRACED.body.wide),
     chibi: chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
     battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
   },
@@ -142,19 +139,7 @@ const BATTLE_ARMS: Draw<BattleFrame> = (pen, { arms, hands }) => {
 };
 
 /** The skin below the head, in whatever body type's frame it's drawn in. Mostly under clothes. */
-export const BODY: Art = {
-  portrait: {
-    body: (pen, frame) => {
-      pen.fill(frame.neck, skin);
-      pen.shade(farSide(frame.neck, 3), SHADOW); // the back of the neck, turned from the light
-      pen.fill(frame.torso, skin);
-    },
-    arms: (pen, frame) => {
-      pen.fill(frame.arms, skin);
-      pen.blend((_x, y) => y <= frame.armpitY); // the shoulder is one shape with the arm
-      pen.shade(farSide(frame.arms, 3), SHADOW);
-    },
-  },
+const BODY: Art = {
   chibi: {
     front: CHIBI,
     back: {
@@ -184,3 +169,11 @@ export const BODY: Art = {
     },
   },
 };
+
+const portraitBody = (body: Traced): Piece => ({ body: (pen) => pen.traced(body) });
+
+export const BODIES = {
+  skinny: { ...BODY, portrait: portraitBody(TRACED.body.skinny) },
+  medium: { ...BODY, portrait: portraitBody(TRACED.body.medium) },
+  wide: { ...BODY, portrait: portraitBody(TRACED.body.wide) },
+} as const satisfies Record<keyof typeof BODY_TYPES, Art>;

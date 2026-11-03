@@ -1,9 +1,11 @@
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
 import type { Picture } from "@infinite-tower/client/src/gfx/look/art.js";
+import { TRACED_COLORS, TRACED_PICTURES } from "@infinite-tower/client/src/gfx/look/base.js";
 import { POSES, SWORD_POSES, type Pose, type SwordPose } from "@infinite-tower/client/src/gfx/look/battle.js";
 import { LEATHER_JERKIN } from "@infinite-tower/client/src/gfx/look/jerkin.js";
 import {
-  BATTLE_FACINGS, CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type BattleFacing, type ChibiFacing, type Look,
+  BATTLE_FACINGS, CHIBI_FACINGS, colorsOf, drawBattle, drawChibi, drawPortrait, drawTraced, type BattleFacing,
+  type ChibiFacing, type Look,
 } from "@infinite-tower/client/src/gfx/look/look.js";
 import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
 import { Shuffle } from "lucide";
@@ -83,7 +85,7 @@ function render(): void {
     caption(canvas(chibi(look, "front"), 6), "chibi 32x32 at 6x"),
     caption(canvas(chibi(look, "front"), 3), "chibi at 3x (about world size)"),
   );
-  root.append(views);
+  root.append(views, tracedSection());
 
   // The chibi facing each way: front, back, side (walking right mirrors the side).
   const facings = el("div", CARD);
@@ -146,6 +148,41 @@ function render(): void {
   const crowdCard = el("div", CARD);
   crowdCard.append(caption(crowd, "random looks"));
   root.append(crowdCard);
+}
+
+const SD_PICTURES = import.meta.glob<string>("../../client/art/sd/*.png",
+  { eager: true, query: "?url", import: "default" });
+
+function sdPicture(name: string, scale: number): HTMLImageElement {
+  const img = el("img", "pixelated");
+  img.src = SD_PICTURES[`../../client/art/sd/${name}.png`] ?? "";
+  img.style.width = img.style.height = `${64 * scale}px`;
+  return img;
+}
+
+function tracedSection(): HTMLElement {
+  const sources = el("div", CARD);
+  for (const [part, pictures] of Object.entries(TRACED_PICTURES) as [keyof typeof TRACED_PICTURES, object][]) {
+    for (const [option, name] of Object.entries(pictures) as [string, string][]) {
+      const pair = el("div", "flex gap-1");
+      pair.append(sdPicture(name, 3), canvas(drawTraced(part, option, TRACED_COLORS), 3),
+        canvas(drawTraced(part, option, colorsOf(look)), 3));
+      sources.append(caption(pair, `${part} ${option}: Stable Diffusion, traced, in your colors`));
+    }
+  }
+  const parts = el("div", "flex flex-col gap-2 overflow-x-auto rounded-lg border border-line bg-ink-850 p-5");
+  for (const body of OPTIONS.body) {
+    const row = el("div", "flex flex-wrap gap-1");
+    const on = (change: Partial<Look>) => canvas(portrait({ ...look, body, ...change }), 2);
+    for (const hair of OPTIONS.hair) row.append(on({ hair }));
+    for (const eyes of OPTIONS.eyes) row.append(on({ eyes }));
+    for (const mouth of OPTIONS.mouth) row.append(on({ mouth }));
+    for (const face of OPTIONS.face) row.append(on({ face }));
+    parts.append(caption(row, `${body}: every hair style, eye type, mouth and face shape`));
+  }
+  const section = el("div", "flex flex-col gap-3");
+  section.append(el("h2", "m-0 text-body font-semibold", "Stable Diffusion against the traced parts"), sources, parts);
+  return section;
 }
 
 let stableOther: Look | null = null;

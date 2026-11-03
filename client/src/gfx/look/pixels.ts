@@ -3,6 +3,7 @@
  * cloth...), which tone of that material (outline ... shine) and which layer it came from. Colors are only looked
  * up at the end, so a new hair color is a palette swap, and outlines can be found wherever two layers meet.
  */
+import { TRACED_INKS, type Traced } from "./base.js";
 
 /** Tones, darkest to lightest. Every material has one color per tone (palette.ts). */
 export const OUTLINE = 0, DEEP = 1, SHADOW = 2, BASE = 3, LIGHT = 4, SHINE = 5;
@@ -26,6 +27,8 @@ export class Pixels {
   // -1 where nothing has painted.
   readonly painters: Int16Array;
   painter = -1;
+  /** 1 where traced art brought its own outline (Pen.traced): the outline pass leaves it alone. */
+  readonly lined: Uint8Array;
 
   constructor(readonly width: number, readonly height: number) {
     this.materials = new Array<string | null>(width * height).fill(null);
@@ -33,6 +36,7 @@ export class Pixels {
     this.layers = new Int8Array(width * height).fill(-1);
     this.blended = new Uint8Array(width * height);
     this.painters = new Int16Array(width * height).fill(-1);
+    this.lined = new Uint8Array(width * height);
   }
 
   inside(x: number, y: number): boolean {
@@ -47,7 +51,7 @@ export class Pixels {
     return this.inside(x, y) ? this.materials[y * this.width + x]! : null;
   }
 
-  set(x: number, y: number, ink: Ink, layer: number): void {
+  set(x: number, y: number, ink: Ink, layer: number, lined = false): void {
     if (!this.inside(x, y)) return;
     const i = y * this.width + x;
     this.materials[i] = ink[0];
@@ -55,6 +59,15 @@ export class Pixels {
     this.layers[i] = layer;
     this.blended[i] = 0;
     this.painters[i] = this.painter;
+    this.lined[i] = lined ? 1 : 0;
+  }
+
+  clear(x: number, y: number): void {
+    if (!this.inside(x, y)) return;
+    const i = y * this.width + x;
+    this.materials[i] = null;
+    this.layers[i] = -1;
+    this.painters[i] = -1;
   }
 
   retone(x: number, y: number, tone: Tone): void {
@@ -113,6 +126,19 @@ export class Pen {
     });
   }
 
+  erase(mask: Mask): void {
+    this.each(mask, (x, y) => { if (mask(x, y) && this.px.layerAt(x, y) <= this.layer) this.px.clear(x, y); });
+  }
+
+  traced({ x, y, rows }: Traced): void {
+    rows.forEach((row, dy) => {
+      for (let dx = 0; dx < row.length; dx++) {
+        const ink = TRACED_INKS[row[dx]!];
+        if (ink) this.px.set(x + dx, y + dy, ink, this.layer, true);
+      }
+    });
+  }
+
   /** A one-pixel line (Bresenham). */
   line(from: Point, to: Point, ink: Ink): void {
     let [x0, y0] = from.map(Math.round) as [number, number];
@@ -154,7 +180,7 @@ export function outline(px: Pixels, outlined: ReadonlySet<number>): void {
   for (let y = 0; y < px.height; y++) {
     for (let x = 0; x < px.width; x++) {
       const layer = px.layerAt(x, y);
-      if (layer < 0 || !outlined.has(layer)) continue;
+      if (layer < 0 || !outlined.has(layer) || px.lined[y * px.width + x]) continue;
       const lower = ([[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const)
         .filter(([nx, ny]) => px.inside(nx, ny) && px.layerAt(nx, ny) < layer);
       if (!lower.length) continue;
