@@ -1,6 +1,6 @@
 import { Engine, type StandardMaterial } from "@babylonjs/core";
 import {
-  Enemy, heldIn, Player, regionAt, SkillObject, weaponItemIn, Wielder, type EnemyId, type Entity,
+  Enemy, heldIn, Player, regionAt, SkillObject, weaponItemIn, Wielder, type DayChange, type EnemyId, type Entity,
   type Hand, type Look, type NpcId, type SkillObjectKind, type Theme, type World,
 } from "@infinite-tower/shared";
 import type { Fight, FightEvent } from "@infinite-tower/shared/fight";
@@ -23,7 +23,10 @@ import { NPC_LOOKS } from "./npcs/index.js";
 import { overworldStage } from "./overworld/overworld.js";
 import { WALKERS } from "./overworld/walker.js";
 import { createOverworldScene } from "./overworld/scene.js";
+import { setDayClock } from "./sky/daylight.js";
 import { redrawSprite } from "./sprites.js";
+
+export { NPC_LOOKS };
 
 /** `S` is the drawing's own state (meshes, smoothing), never game state. */
 export interface Visual<S, Scene = ArenaScene> {
@@ -120,6 +123,7 @@ export interface DrawnState {
 export interface Drawing {
   show(mode: Mode | null): void;
   frame(dt: number): void;
+  setDayClock(change: DayChange): void;
 }
 
 export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Drawing {
@@ -228,6 +232,7 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
   };
 
   return {
+    setDayClock,
     show(mode) {
       if (mode === "overworld" && shown !== "overworld") fresh = true;
       shown = mode;

@@ -1234,7 +1234,7 @@ The global rules apply; here is how to set one up in this repo.
   tool letters as in Aseprite) and its own key listener, `art-lab/src/editor/keys.ts` and `editor.ts`.
 - **Drawing has one owner, `client/src/visuals/`**: the only code that imports Babylon. It reads the modes' state
   each frame (`VISUALS` by entity kind, `EFFECTS` by fight event); game code never draws or pushes state to drawing
-  code. `npm run typecheck` checks the imports.
+  code. Only `game/` imports it, and only through `visuals/visuals.ts`; `npm run typecheck` checks the imports.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
   `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
   goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.
