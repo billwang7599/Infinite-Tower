@@ -3,29 +3,19 @@
  * keeps running underneath (a fight doesn't pause) but gets no input meanwhile.
  */
 import { useState } from "react";
-import type { Actions } from "../../../core/actions.js";
 import type { HudSettings } from "../../../settings/hud.js";
-import type { Settings } from "../../../settings/settings.js";
 import { BUTTON } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
-import type { SettingsScreenState } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
 import { AudioSection } from "./AudioSection.js";
 import { CameraSection } from "./CameraSection.js";
 import { KeyBindingsList } from "./KeyBindingsList.js";
 import { FOCUS_RING, SECTION_TITLE, SETTING_LABEL, SETTING_ROW } from "./styles.js";
 
-interface SettingsProps {
-  screen: Store<SettingsScreenState>;
-  open: () => void;
-  close: () => void;
-  settings: Settings;
-  input: Actions;
-  returnToTitle: () => void;
-}
-
-export function SettingsScreen({ screen, open, close, settings, input, returnToTitle }: SettingsProps) {
+export function SettingsScreen() {
+  const { ui, settings, input, actions: { returnToTitle } } = useGame();
+  const { settingsScreen: screen, openSettings: open, closeSettings: close } = ui;
   const isOpen = useStore(screen, (s) => s.open);
 
   useAction(input, ["menu"], (_action, repeat) => {

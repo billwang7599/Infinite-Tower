@@ -2,12 +2,9 @@ import { coreName } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
 import { coreLight, REALM_LOOKS } from "../../gfx/core/light.js";
 import { BREAKTHROUGH, CoreSphere, SPHERE_PX } from "../../gfx/core/sphere.js";
-import type { Mode } from "../../game/transition.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
-import type { GameEvent } from "../notifications/say.js";
-import type { BattleHudState, YouState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX } from "./layout.js";
 import { usePaintedSphere } from "./paintSphere.js";
@@ -20,14 +17,10 @@ const BAND =
   + "text-victory uppercase";
 const BREAKTHROUGH_SHOWN_MS = BREAKTHROUGH.endTime * 1000 + 1500;
 
-interface CoreCardProps {
-  mode: Mode | null;
-  you: Store<YouState>;
-  battle: Store<BattleHudState>;
-  said: Store<{ event: GameEvent | null }>;
-}
-
-export function CoreCard({ mode, you, battle, said }: CoreCardProps) {
+export function CoreCard() {
+  const { ui: { screen, you, battle, notifications } } = useGame();
+  const said = notifications.said;
+  const mode = useStore(screen, (s) => s.mode);
   const look = useStore(you, (s) => s.character?.look);
   const name = useStore(you, (s) => s.character?.name);
   const savedCore = useStore(you, (s) => s.core);

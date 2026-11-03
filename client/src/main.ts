@@ -146,4 +146,4 @@ const actions = new Proxy(titleActions, {
     void preparing.then((game) => (game[key as keyof GameRequests] as (...a: unknown[]) => void)(...args)),
 }) as UiActions;
 
-mountUi(document.getElementById("ui")!, ui, settings, input, actions);
+mountUi(document.getElementById("ui")!, { ui, settings, input, actions });

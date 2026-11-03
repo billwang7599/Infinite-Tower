@@ -1,14 +1,13 @@
 import { useMemo } from "react";
 import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
-import type { OverworldHudState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { COMPASS, compassMarks, stripShiftPx, type CompassMark } from "./compassMarks.js";
 
 const EDGE_FADE = "linear-gradient(to right, transparent, black 20%, black 80%, transparent)";
 
-export function Compass({ hud, top }: { hud: Store<OverworldHudState>; top: number }) {
-  const turns = useStore(hud, (s) => s.cameraTurns);
+export function Compass({ top }: { top: number }) {
+  const turns = useStore(useGame().ui.overworld, (s) => s.cameraTurns);
   const marks = useMemo(() => compassMarks(turns), [turns]);
   return (
     <div

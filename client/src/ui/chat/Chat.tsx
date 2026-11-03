@@ -1,24 +1,16 @@
 import { MAX_CHAT_CHARS } from "@infinite-tower/shared";
 import { useEffect, useRef, useState } from "react";
-import type { Actions } from "../../core/actions.js";
-import type { KeyBindings } from "../../settings/bindings.js";
 import { TEXT_INPUT } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
 import { keyName } from "../keyNames.js";
-import type { ChatState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 
 const CLOSED_LINES = 3;
 
-interface ChatProps {
-  chat: Store<ChatState>;
-  input: Actions;
-  bindings: KeyBindings;
-  send: (text: string) => void;
-}
-
-export function Chat({ chat, input, bindings, send }: ChatProps) {
+export function Chat() {
+  const { ui: { chat }, input, settings: { bindings }, actions } = useGame();
+  const send = (text: string) => actions.request({ t: "chat", text });
   const open = useStore(chat, (s) => s.open);
   const focused = useStore(chat, (s) => s.focused);
   const lines = useStore(chat, (s) => s.lines);

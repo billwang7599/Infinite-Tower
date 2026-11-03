@@ -549,7 +549,9 @@ main.ts
 - **The UI is React** (`client/src/ui/`, mounted into `#ui`), the HUD's bars included; the canvas and anything in
   the world (sprites, the boar, the sword trail) is Babylon. The game never touches the DOM: it writes plain values
   into stores (`ui/state.ts`, e.g. `ui.battle.set({ hpFraction })`), and components read them with
-  `useStore(store, s => s.hpFraction)`.
+  `useStore(store, s => s.hpFraction)`. A component gets the stores, the settings, the input and the actions from
+  `useGame()` (`ui/context.ts`), not through props; props are for what its parent decides (a panel's gear, where it
+  goes).
   What the game says to the player goes through one call, `say(ui.notifications, event)` (`ui/notifications/`),
   e.g. `say(ui.notifications, { kind: "rested" })`. Its table, `EVENT_MESSAGES`, has an entry for every kind of
   `GameEvent` (a kind without one doesn't compile) with where it goes and its words: `"corner"` is a small notice
@@ -1397,7 +1399,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the sword; battleBody, a pose's frame for a hand; colorsOf; drawTraced, one option on the bare
                        base, to set beside its picture)
     ui/              React: everything drawn over the canvas
-      mount.tsx        createRoot + <App>; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
+      context.ts       GameContext and useGame(): { ui, settings, input, actions } for any component
+      mount.tsx        createRoot + <App> inside GameContext; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
                        banner, the fade between modes (game/transition.ts sets it), the questbook, Settings, character
                        creation, title
                        screen (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as

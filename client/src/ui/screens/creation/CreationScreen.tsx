@@ -5,12 +5,11 @@
  */
 import { CHARACTER_NAME_RULES, DEFAULT_LOOK, type Character } from "@infinite-tower/shared";
 import { useEffect, useReducer, useState } from "react";
-import type { Actions } from "../../../core/actions.js";
 import type { MenuAction } from "../../../settings/bindings.js";
 import { LookPicture } from "../../components/LookPicture.js";
 import { useAction } from "../../components/useAction.js";
-import type { CreationState, TitleState, YouState } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
+import { inWorld } from "../../state.js";
 import { useStore } from "../../useStore.js";
 import { useReducedMotion } from "../title/useSequence.js";
 import { CONFIRM, CONFIRM_NO, CONFIRM_YES, farewell, GREETING, MAKE_PROMPT } from "./lines.js";
@@ -35,25 +34,17 @@ const PORTRAIT_SIZE = "size-[256px] [@media(min-height:820px)]:size-[320px]";
 const CHIBI_SIZE = "size-[96px] [@media(min-height:820px)]:size-[128px]";
 const FLOOR_LINE = "absolute inset-x-[-8%] -bottom-2 h-px bg-linear-to-r from-transparent via-gilt/50 to-transparent";
 
-interface CreationProps {
-  /** Gets the character once the server has saved it. */
-  you: Store<YouState>;
-  /** The username suggests a name. */
-  title: Store<TitleState>;
-  /** The title has cleared off this screen. */
-  active: boolean;
-  input: Actions;
-  save: (character: Character) => void;
-  /** Done: the white has cleared off the world. */
-  close: () => void;
+export function CreationScreen() {
+  const open = useStore(useGame().ui.creation, (s) => s.open);
+  return open ? <Creation /> : null;
 }
 
-export function CreationScreen({ creation, ...props }: CreationProps & { creation: Store<CreationState> }) {
-  const open = useStore(creation, (s) => s.open);
-  return open ? <Creation {...props} /> : null;
-}
-
-function Creation({ you, title, active, input, save, close }: CreationProps) {
+function Creation() {
+  const { ui, input, actions } = useGame();
+  const { you, title, closeCreation: close } = ui;
+  const save = (character: Character) => actions.request({ t: "character", character });
+  // The title has cleared off this screen.
+  const active = inWorld(useStore(ui.screen, (s) => s.mode), useStore(title, (s) => s.phase));
   const username = useStore(title, (s) => s.username);
   const saved = useStore(you, (s) => s.character);
   const still = useReducedMotion();

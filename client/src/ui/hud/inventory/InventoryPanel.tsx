@@ -9,12 +9,12 @@ import {
   type Spot, type Stats, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import type { Actions } from "../../../core/actions.js";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
-import type { GameRequests, SettingsScreenState } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
+import { say } from "../../notifications/say.js";
+import type { GameRequests } from "../../state.js";
 import { useStore } from "../../useStore.js";
 import { INSCRIPTION_TEXT } from "../inscriptions.js";
 import { stacksGrids, useStageSize } from "../layout.js";
@@ -34,12 +34,6 @@ interface PanelProps {
   stats: Stats | null;
   canHeal: boolean;
   using: UseSpot | null;
-  input: Actions;
-  settingsScreen: Store<SettingsScreenState>;
-  use: (at: UseSpot) => void;
-  move: (from: Spot, to: Spot, turned: boolean) => void;
-  tooWeak: (item: WeaponId) => void;
-  openSkillbook: () => void;
   close: () => void;
   trade?: Trading | null;
   shownWidth?: (px: number) => void;
@@ -48,7 +42,6 @@ interface PanelProps {
 export interface Trading {
   shop: ShopView;
   core: CoreState;
-  request: GameRequests["request"];
 }
 
 /** The mouse, and where in its grip cell the dragged item is held (pixels), so its ghost doesn't jump. */
@@ -66,10 +59,14 @@ const MAIN = { button: 0, bit: 1 };
 const SECONDARY = { button: 2, bit: 2 };
 
 export function InventoryPanel(props: PanelProps) {
-  const { gear, stats, canHeal, using, input, settingsScreen, use, move, tooWeak, openSkillbook, close, trade } = props;
+  const { gear, stats, canHeal, using, close, trade } = props;
+  const { ui, input, actions } = useGame();
+  const { useItem: use, moveItem: move, request } = actions;
+  const openSkillbook = () => ui.skillbookScreen.set({ open: true });
+  const tooWeak = (item: WeaponId) => say(ui.notifications, { kind: "tooWeak", item });
   const stacked = stacksGrids(useStageSize());
   const strength = stats?.strength ?? 0;
-  const settingsOpen = useStore(settingsScreen, (s) => s.open);
+  const settingsOpen = useStore(ui.settingsScreen, (s) => s.open);
   const [view, setView] = useState<View>(START);
   /** The same as `view`, for events that come before the next render (a pointer leaving right after a drop). */
   const latest = useRef<View>(START);
@@ -159,7 +156,7 @@ export function InventoryPanel(props: PanelProps) {
   const hovered = hoveredStack(mouse, gear);
   const side = trade ? (
     <Column title="Trade">
-      <ShopColumn shop={trade.shop} gear={gear} core={trade.core} request={trade.request} />
+      <ShopColumn shop={trade.shop} gear={gear} core={trade.core} />
     </Column>
   ) : (
     <Column title="Equipment">
@@ -229,7 +226,7 @@ export function InventoryPanel(props: PanelProps) {
         <BagDetails
           gear={gear} stack={selectedStack(mouse, gear)} using={using !== null}
           usable={(!using && itemToUse(mouse, gear, !canHeal) !== null) || bookInHand(mouse)}
-          use={() => applyUse(current())} sale={trade ? saleOf(mouse.selected, trade) : null}
+          use={() => applyUse(current())} sale={trade ? saleOf(mouse.selected, trade, request) : null}
         />
         {drag && dragged && pointer && (
           <Placed
@@ -306,16 +303,16 @@ interface Carving {
   carve: () => void;
 }
 
-function saleOf(selected: Spot | null, trade: Trading): ((stack: BagItem) => Sale | Carving | null) | null {
+function saleOf(selected: Spot | null, trade: Trading, request: GameRequests["request"]): ((stack: BagItem) => Sale | Carving | null) | null {
   if (!selected || (selected.in !== "bag" && selected.in !== "cloth")) return null;
   const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
   return (stack) => {
     const def = itemDef(stack.item), carving = trade.shop.carving;
     if (carving && def.inscription) {
-      return { price: carving.carve[def.rarity], carve: () => trade.request({ t: "carve", at }) };
+      return { price: carving.carve[def.rarity], carve: () => request({ t: "carve", at }) };
     }
     const each = trade.shop.buys[stack.item];
-    return each === undefined ? null : { each, sell: (count) => trade.request({ t: "sell", at, count }) };
+    return each === undefined ? null : { each, sell: (count) => request({ t: "sell", at, count }) };
   };
 }
 

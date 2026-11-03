@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { ShownStat } from "@infinite-tower/shared";
-import type { OverworldHudState, YouState } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
 import { PanelFrame } from "../PanelFrame.js";
 import { CoreTab } from "./CoreTab.js";
@@ -11,9 +10,6 @@ import { CHARACTER_TABS, type CharacterTab } from "./panelTabs.js";
 import { Tabs } from "./Tabs.js";
 
 interface PanelProps {
-  hud: Store<OverworldHudState>;
-  you: Store<YouState>;
-  statPoint: (stat: ShownStat, add: boolean) => void;
   close: () => void;
   shownWidth: (px: number) => void;
 }
@@ -21,7 +17,9 @@ interface PanelProps {
 const WIDTH_PX = 680;
 const BODY_HEIGHT_PX = 400;
 
-export function CharacterPanel({ hud, you, statPoint, close, shownWidth }: PanelProps) {
+export function CharacterPanel({ close, shownWidth }: PanelProps) {
+  const { ui: { overworld: hud, you }, actions } = useGame();
+  const statPoint = (stat: ShownStat, add: boolean) => actions.request({ t: "statPoint", stat, add });
   const core = useStore(you, (s) => s.core);
   const byFire = useStore(hud, (s) => s.byFire);
   const character = useStore(you, (s) => s.character);
