@@ -17,7 +17,7 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
   // Rapier loads here, behind the title, so a fight never waits for it.
   const physicsLoaded = initPhysics();
   const battle = createBattle({
-    actions, settings, hud: ui.battle, skills: ui.skills, chant: ui.chant, bag: ui.battleBag,
+    actions, settings, hud: ui.battle, skills: ui.skills, chant: ui.chant, panel: ui.panel,
     onLeave: () => game.leaveBattle(),
   });
   const overworld = createOverworld({

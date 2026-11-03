@@ -407,7 +407,7 @@ main.ts
   what's left at `home` as one pile (`landDrops`), its `PILE_LIFETIME_MS` starting then. The client:
   `battleResult`'s `afterFightMs` keeps `FightSync` sending and checking (only a result without it stops it),
   `ctx.drops` holds the arena's piles (drawn as the same sack), the HUD shows `The arena closes in m:ss` at the top and
-  an "Open the pile" button (`dropInView`: `inView` along the camera's yaw, without the slack), Interact (E) sends
+  an "Open the pile" button (`interaction`: `inView` along the camera's yaw, without the slack), Interact (E) sends
   `openPile` and opens the bag screen on the server's gear (as the overworld's, without the cloth), and Enter with drops
   still there opens the `leaveArena` popup (Enter again leaves, Esc stays).
 - **The browser runs its own copy of the whole fight** (`modes/battle/`), built from the encounter's setup, so the boar
@@ -1408,17 +1408,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       state.ts         UiState: the stores the game writes (title, screen, `you` (your save: character, core, faith,
                        gear, using, wins; the overworld writes it), overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
-                       (notifications/), `settingsScreen`, `creation`, `overworldPanel` (which side panel is open, its width on screen),
-                       `chant`, `battleBag`, `leaveArena`, `skillbookScreen`, `admin`, `challenge`, `chat` (open,
-                       focused, and the log: hearChat keeps the last CHAT_LOG_LINES), `dialogue` (who's talking,
-                       their lines and the one shown, the offer: openDialogue, nextLine (past the last line, the offer
-                       to take), closeDialogue) and `questbook` (open, the server's quests: toggleQuestbook,
-                       closeQuestbook) (the UI writes them too, and the game watches every one of `keyStores`;
-                       `whoHasTheKeys`: the layer stack, the top one gets the keys; `resetSession` on leaving), and
-                       UiActions (what the UI asks of the game: TitleActions, then GameRequests: request (a
-                       UiRequest: buy, sell, exchange, carve, uncarve, challenge, statPoint, chat, character, cheat),
-                       interact, leaveBattle, answerChallenge, useItem, moveItem, castSkill, saveSkill, takeOffer,
-                       setDayClock).
+                       (notifications/), `settingsScreen`, `creation`, `panel` (which side panel is open, the bag
+                       or the character panel, in either mode, and its width on screen), `chant`, `leaveArena`,
+                       `skillbookScreen`, `admin`, `challenge`, `chat` (open, focused, and the log: hearChat keeps the
+                       last CHAT_LOG_LINES), `dialogue` (who's talking, their lines and the one shown, the offer:
+                       openDialogue, nextLine (past the last line, the offer to take), closeDialogue) and `questbook`
+                       (open, the server's quests: toggleQuestbook, closeQuestbook) (the UI writes them too, and the
+                       game watches every one of `keyStores`; `whoHasTheKeys`: the layer stack, the top one gets the
+                       keys; `resetSession` on leaving), and UiActions (what the UI asks of the game: TitleActions, then
+                       GameRequests: request (a UiRequest: buy, sell, exchange, carve, uncarve, challenge, statPoint,
+                       chat, character, cheat), interact, leaveBattle, answerChallenge, useItem, moveItem, castSkill,
+                       saveSkill, takeOffer, setDayClock).
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
@@ -1429,21 +1429,25 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
                        portrait, or the chibi facing front)
-      hud/             OverworldHud.tsx (HP / stamina, wins, region name, ping, the buttons, the panel and Interact
-                       keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
-                       button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
-                       "Join the fight" / "Open the pile" / "Talk" / "Look"), StatusRow.tsx (status tiles: an
+      hud/             Hud.tsx (the shell both modes' HUDs are: your bars and statuses top left, the ping top right,
+                       the Interact button ("Rest by the fire" / "Join the fight" / "Open the pile" / "Talk" /
+                       "Look" / "Bind to this pad"), the panel and Interact keys, and the side panels, one at a time:
+                       the character panel and the bag with the skillbook over it. A mode passes a `HudMode`: its
+                       store, `panels` (the side panels it has: moving one between modes is editing that list),
+                       `useBag` (what its bag shows) and `bagOpens`, plus its own pieces as children and slots),
+                       OverworldHud.tsx (the overworld's mode and extras: your name and wins, region name, the
+                       buttons, the compass, the challenge key and a challenge's Accept / Decline notice; its bag is
+                       your save's, with the cloth and the shop), StatusRow.tsx (status tiles: an
                        icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;
                        statusLooks.ts: each status's name, colour and SVG icon), inscriptions.ts (INSCRIPTION_TEXT:
                        what each does, for the bag, the shop and the character panel), blessings.ts (GOD_NAMES,
                        BLESSING_TEXT),
-                       BattleHud.tsx (your bars and statuses top left, the foe's name, statuses and bar at the
-                       bottom; the bag in a fight:
-                       the fight's gear, no cloth, eating as a fight input;
-                       the book over it; after a win the server's gear with the drops' pile, the arena's countdown, Interact and
-                       the leave popup), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left in both
-                       modes, under the chat: your portrait and name, turned by a click, or on a breakthrough for its
-                       moment, to your core, gfx/core/'s sphere painted while it shows, and
+                       BattleHud.tsx (the battle's mode and extras: the foe's name, statuses and bar at the bottom,
+                       the hotbar, the chant, the result banner, the arena's countdown and the leave popup; its bag
+                       is the fight's gear, no cloth, opened only while fighting or after a win, then the server's
+                       gear with the drops' pile), HudLayer.tsx (the layer both draw in), CoreCard.tsx (bottom left
+                       in both modes, under the chat: your portrait and name, turned by a click, or on a breakthrough
+                       for its moment, to your core, gfx/core/'s sphere painted while it shows, and
                        the realm and step), character/ (CharacterPanel.tsx: the
                        panel and its tabs, from panelTabs.ts's tables, drawn by Tabs.tsx; StatsTab.tsx: the
                        portrait, the core's realm and step, the shown stats as a polygon chart, each one's number
@@ -1904,7 +1908,9 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   `screens/`; parts used by more than one screen go in `components/`). If the game has to feed it, add fields to a
   store in `ui/state.ts` and `set` them from game code; if it has to ask the game for something, send the message
   with `actions.request` (add its type to `UiRequest`), or add a function to `GameRequests` when the game has more
-  to do than send it. A store that changes who has the keys goes in `keyStores`.
+  to do than send it. A store that changes who has the keys goes in `keyStores`. A HUD piece both modes show goes in
+  `hud/Hud.tsx`, one mode's in its `OverworldHud.tsx` / `BattleHud.tsx`; a side panel is added to the `panels` of the
+  modes that have it.
 - **A cheat** (dev only). A case in `CheatSchema` (`shared/src/net/client-messages.ts`), its branch in `runCheat`
   (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
   and a button in `client/src/ui/screens/admin/AdminPanel.tsx`.

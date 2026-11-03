@@ -32,16 +32,10 @@ export function createRequests(
 ): Omit<GameRequests, "leaveBattle" | "setDayClock"> {
   const send = (msg: ClientMsg) => session.net()?.send(msg);
   let bagOpen = false;
-  ui.overworldPanel.subscribe(() => {
+  ui.panel.subscribe(() => {
     const wasOpen = bagOpen;
-    bagOpen = ui.overworldPanel.get().open === "inventory";
+    bagOpen = ui.panel.get().open === "inventory";
     if (wasOpen && !bagOpen) closeBag();
-  });
-  let battleBagOpen = false;
-  ui.battleBag.subscribe(() => {
-    const wasOpen = battleBagOpen;
-    battleBagOpen = ui.battleBag.get().open;
-    if (wasOpen && !battleBagOpen) closeBag();
   });
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
   // breaks the bag off the same way, and the fight's result closes it (after a win it opens again on the server's
@@ -52,7 +46,7 @@ export function createRequests(
     const decided = result !== shownResult && result !== "fighting";
     shownResult = result;
     if (brokenOff && ui.chant.get().open) ui.chant.set(stunned ? NO_CHANT : { open: false });
-    if ((brokenOff || decided) && ui.battleBag.get().open) ui.closeBattleBag();
+    if ((brokenOff || decided) && bagOpen) ui.closePanel();
   });
   const closeBag = () => {
     const { gear, using } = ui.you.get(), shopOpen = ui.shop.get().view !== null;
@@ -82,13 +76,12 @@ export function createRequests(
       if (ui.dialogue.get().open) {
         const offer = ui.nextLine();
         if (offer) takeOffer(offer);
-      } else if (session.mode() === "battle") {
-        if (!ui.battle.get().dropInView) return;
-        send({ t: "openPile" });
-        if (!battleBagOpen) ui.toggleBattleBag();
-      } else if (session.mode() === "overworld" && overworld.interact() === "openPile" && !bagOpen) {
-        ui.toggleOverworldPanel("inventory");
+        return;
       }
+      const mode = session.mode();
+      const what = mode === "overworld" ? overworld.interact() : mode === "battle" ? ui.battle.get().interaction : null;
+      if (mode === "battle" && what) send({ t: "openPile" });
+      if (what === "openPile" && !bagOpen) ui.togglePanel("inventory");
     },
     answerChallenge(accept) {
       ui.challenge.set({ from: null });

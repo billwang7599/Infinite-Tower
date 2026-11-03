@@ -25,8 +25,8 @@ export function App() {
   const mode = useStore(ui.screen, (s) => s.mode);
   const phase = useStore(ui.title, (s) => s.phase);
   const creating = useStore(ui.creation, (s) => s.open);
-  const panel = useStore(ui.overworldPanel, (s) => s.open);
-  const panelWidthPx = useStore(ui.overworldPanel, (s) => s.widthPx);
+  const panel = useStore(ui.panel, (s) => s.open);
+  const panelWidthPx = useStore(ui.panel, (s) => s.widthPx);
   const interaction = useStore(ui.overworld, (s) => s.interaction);
   const playing = inWorld(mode, phase) && !creating;
   const overworldHud = playing && mode === "overworld";

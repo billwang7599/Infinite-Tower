@@ -89,7 +89,7 @@ export interface BattleHudState {
   showResult: boolean;
   afterFight: boolean;
   arenaSecondsLeft: number;
-  dropInView: boolean;
+  interaction: "openPile" | null;
   stunned: boolean;
   skillbookInHand: boolean;
   brokenOff: boolean;
@@ -141,11 +141,11 @@ export interface QuestbookState {
   quests: readonly QuestView[];
 }
 
-/** The overworld's side panels; one is open at a time. Neither pauses the world. */
-export type OverworldPanel = "character" | "inventory";
+/** The side panels; one is open at a time, in whichever mode has it (`Hud`'s mode). Neither pauses the world. */
+export type Panel = "character" | "inventory";
 
-export interface OverworldPanelState {
-  open: OverworldPanel | null;
+export interface PanelState {
+  open: Panel | null;
   widthPx: number;
 }
 
@@ -193,7 +193,7 @@ export class UiState {
   readonly admin = new Store<AdminState>({ open: false, invulnerable: false });
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
-  readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
+  readonly panel = new Store<PanelState>({ open: null, widthPx: 0 });
   readonly you = new Store<YouState>({
     character: null, core: null, faith: {}, using: null, wins: 0,
     gear: {
@@ -207,7 +207,7 @@ export class UiState {
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, hp: 0, hpMax: 0, statuses: [], enemyName: "", enemyHpFraction: 1,
     enemyStatuses: [], enemyAlive: false, result: "fighting", duel: false, spar: false, showResult: false,
-    afterFight: false, arenaSecondsLeft: 0, dropInView: false,
+    afterFight: false, arenaSecondsLeft: 0, interaction: null,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,
     carried: {
       bag: { cols: 0, rows: 0, items: [] },
@@ -217,7 +217,6 @@ export class UiState {
   readonly skills = new Store<SkillsState>({ known: [], book: blankSkillbook() });
   readonly chant = new Store<ChantState>(NO_CHANT);
   readonly skillbookScreen = new Store<{ open: boolean }>({ open: false });
-  readonly battleBag = new Store<{ open: boolean }>({ open: false });
   readonly leaveArena = new Store<{ asking: boolean }>({ asking: false });
   readonly challenge = new Store<{ from: string | null }>({ from: null });
   readonly chat = new Store<ChatState>({ open: false, focused: false, lines: [] });
@@ -229,8 +228,8 @@ export class UiState {
 
   /** What `whoHasTheKeys` reads: one left out here leaves the keys stuck when it changes. */
   readonly keyStores: readonly Store<object>[] = [
-    this.title, this.settingsScreen, this.admin, this.creation, this.overworldPanel, this.chant, this.skillbookScreen,
-    this.battleBag, this.leaveArena, this.chat, this.dialogue, this.questbook,
+    this.title, this.settingsScreen, this.admin, this.creation, this.panel, this.chant, this.skillbookScreen,
+    this.leaveArena, this.chat, this.dialogue, this.questbook,
   ];
 
   readonly resetSession = (): void => {
@@ -244,16 +243,8 @@ export class UiState {
   readonly openSettings = (): void => this.settingsScreen.set({ open: true });
   readonly closeSettings = (): void => this.settingsScreen.set({ open: false });
   readonly closeCreation = (): void => this.creation.set({ open: false });
-  readonly toggleOverworldPanel = (panel: OverworldPanel): void => {
-    this.overworldPanel.set({ open: this.overworldPanel.get().open === panel ? null : panel });
-    this.skillbookScreen.set({ open: false });
-  };
-  readonly toggleBattleBag = (): void => {
-    this.battleBag.set({ open: !this.battleBag.get().open });
-    this.skillbookScreen.set({ open: false });
-  };
-  readonly closeBattleBag = (): void => {
-    this.battleBag.set({ open: false });
+  readonly togglePanel = (panel: Panel): void => {
+    this.panel.set({ open: this.panel.get().open === panel ? null : panel });
     this.skillbookScreen.set({ open: false });
   };
   readonly hearChat = (lines: readonly ChatLine[]): void =>
@@ -273,8 +264,8 @@ export class UiState {
   readonly closeDialogue = (): void => this.dialogue.set({ open: false });
   readonly toggleQuestbook = (): void => this.questbook.set({ open: !this.questbook.get().open });
   readonly closeQuestbook = (): void => this.questbook.set({ open: false });
-  readonly closeOverworldPanel = (): void => {
-    this.overworldPanel.set({ open: null });
+  readonly closePanel = (): void => {
+    this.panel.set({ open: null });
     this.skillbookScreen.set({ open: false });
   };
 }
@@ -286,13 +277,9 @@ export class UiState {
 export function whoHasTheKeys(ui: UiState, mode: Mode | null): Layer[] {
   if (mode === null || !inWorld(mode, ui.title.get().phase)) return ["title"];
   const layers: Layer[] = [mode];
-  if (mode === "overworld" && ui.overworldPanel.get().open === "inventory") {
-    layers.push("bag");
-    if (ui.skillbookScreen.get().open) layers.push("skillbook");
-  }
   if (mode === "battle" && ui.chant.get().open) layers.push("chant");
-  if (mode === "battle" && ui.battleBag.get().open) {
-    layers.push("battleBag");
+  if (ui.panel.get().open === "inventory") {
+    layers.push(mode === "overworld" ? "bag" : "battleBag");
     if (ui.skillbookScreen.get().open) layers.push("skillbook");
   }
   if (mode === "battle" && ui.leaveArena.get().asking) layers.push("leaveArena");

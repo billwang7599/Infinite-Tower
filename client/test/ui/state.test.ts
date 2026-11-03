@@ -39,23 +39,23 @@ describe("UiState sessions", () => {
   });
 });
 
-describe("UiState overworld panels", () => {
+describe("UiState side panels", () => {
   test("one at a time: a panel key opens its panel, again closes it, another switches", () => {
     const ui = new UiState();
-    assert.equal(ui.overworldPanel.get().open, null);
-    ui.toggleOverworldPanel("inventory");
-    assert.equal(ui.overworldPanel.get().open, "inventory");
-    ui.toggleOverworldPanel("character");
-    assert.equal(ui.overworldPanel.get().open, "character");
-    ui.toggleOverworldPanel("character");
-    assert.equal(ui.overworldPanel.get().open, null);
+    assert.equal(ui.panel.get().open, null);
+    ui.togglePanel("inventory");
+    assert.equal(ui.panel.get().open, "inventory");
+    ui.togglePanel("character");
+    assert.equal(ui.panel.get().open, "character");
+    ui.togglePanel("character");
+    assert.equal(ui.panel.get().open, null);
   });
 
   test("closing closes whichever is open", () => {
     const ui = new UiState();
-    ui.toggleOverworldPanel("inventory");
-    ui.closeOverworldPanel();
-    assert.equal(ui.overworldPanel.get().open, null);
+    ui.togglePanel("inventory");
+    ui.closePanel();
+    assert.equal(ui.panel.get().open, null);
   });
 });
 
@@ -152,30 +152,30 @@ describe("whoHasTheKeys", () => {
 
   test("the open bag is over the overworld: you stand still while it's open", () => {
     const { ui, mode } = playing();
-    ui.toggleOverworldPanel("inventory");
+    ui.togglePanel("inventory");
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag"]);
   });
 
   test("the character panel only shows things: the world keeps the keys", () => {
     const { ui, mode } = playing();
-    ui.toggleOverworldPanel("character");
+    ui.togglePanel("character");
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
   });
 
   test("Settings is over the bag and the world, in either mode", () => {
     const { ui } = playing("overworld");
-    ui.toggleOverworldPanel("inventory");
+    ui.togglePanel("inventory");
     ui.openSettings();
     assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["overworld", "bag", "settings"]);
     const battle = playing("battle").ui;
-    battle.toggleOverworldPanel("inventory");
+    battle.togglePanel("inventory");
     battle.openSettings();
-    assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "settings"]);
+    assert.deepEqual(whoHasTheKeys(battle, "battle"), ["battle", "battleBag", "settings"]);
   });
 
   test("the admin panel is over the world and its screens, in either mode; Settings goes over it", () => {
     const { ui } = playing("overworld");
-    ui.toggleOverworldPanel("inventory");
+    ui.togglePanel("inventory");
     ui.admin.set({ open: true });
     assert.deepEqual(whoHasTheKeys(ui, "overworld"), ["overworld", "bag", "admin"]);
     ui.openSettings();
@@ -195,21 +195,21 @@ describe("whoHasTheKeys", () => {
 
   test("in the arena the bag opens over the fight, the skillbook over it, and both go when the bag does", () => {
     const { ui } = playing("battle");
-    ui.toggleBattleBag();
+    ui.togglePanel("inventory");
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag"]);
     ui.skillbookScreen.set({ open: true });
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle", "battleBag", "skillbook"]);
-    ui.toggleBattleBag();
+    ui.togglePanel("inventory");
     assert.deepEqual(whoHasTheKeys(ui, "battle"), ["battle"]);
     assert.equal(ui.skillbookScreen.get().open, false);
   });
 
   test("the skillbook opens over the bag, and goes when the bag does", () => {
     const { ui, mode } = playing();
-    ui.toggleOverworldPanel("inventory");
+    ui.togglePanel("inventory");
     ui.skillbookScreen.set({ open: true });
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld", "bag", "skillbook"]);
-    ui.toggleOverworldPanel("inventory");
+    ui.togglePanel("inventory");
     assert.equal(ui.skillbookScreen.get().open, false);
     assert.deepEqual(whoHasTheKeys(ui, mode), ["overworld"]);
   });

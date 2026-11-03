@@ -1,94 +1,70 @@
-import { coreStats } from "@infinite-tower/shared";
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useGame } from "../context.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
-import { PlayerBars } from "../components/PlayerBars.js";
 import { useAction } from "../components/useAction.js";
-import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import { useStore } from "../useStore.js";
-import { CharacterPanel } from "./character/CharacterPanel.js";
 import { COMPASS } from "./compassMarks.js";
 import { Compass } from "./Compass.js";
-import { HudLayer } from "./HudLayer.js";
+import { Hud, type HudMode } from "./Hud.js";
 import { BagIcon, BookIcon, GearIcon, PersonIcon } from "./icons.js";
-import { InventoryPanel } from "./inventory/InventoryPanel.js";
-import { InteractButton } from "./InteractButton.js";
 import { fitCompass, MARGIN_PX, useStageSize } from "./layout.js";
-import { Ping } from "./Ping.js";
 
-/** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
+const OVERWORLD: HudMode = {
+  hud: (ui) => ui.overworld,
+  panels: ["character", "inventory"],
+  useBag: () => {
+    const { ui } = useGame();
+    const gear = useStore(ui.you, (s) => s.gear);
+    const using = useStore(ui.you, (s) => s.using);
+    const canHeal = useStore(ui.overworld, (s) => s.hpFraction < 1);
+    const shop = useStore(ui.shop, (s) => s.view);
+    return { gear, using, canHeal, shop };
+  },
+};
+
 export function OverworldHud() {
   const { ui, input, actions } = useGame();
-  const { overworld: hud, you, overworldPanel: panels, toggleOverworldPanel: toggle, closeOverworldPanel: close } = ui;
-  const panel = useStore(panels, (s) => s.open);
-  const bookOpen = useStore(ui.skillbookScreen, (s) => s.open);
-  const gear = useStore(you, (s) => s.gear);
-  const core = useStore(you, (s) => s.core);
-  const stats = useMemo(() => core && coreStats(core), [core]);
-  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
-  const using = useStore(you, (s) => s.using);
-  const interaction = useStore(hud, (s) => s.interaction);
-  const shop = useStore(ui.shop, (s) => s.view);
-  const shownWidth = (widthPx: number) => panels.set({ widthPx });
   const compassTop = fitCompass(useStageSize()).top;
-  useAction(input, ["character", "inventory"], (panel, repeat) => {
-    if (!repeat) toggle(panel);
-  });
-  useAction(input, ["interact"], (_action, repeat) => {
-    if (!repeat) actions.interact();
-  });
   useAction(input, ["challenge"], (_action, repeat) => {
     if (!repeat) actions.request({ t: "challenge" });
   });
-
   return (
-    <HudLayer id="overworld-hud">
-      <PlayerStatus />
+    <Hud
+      id="overworld-hud" mode={OVERWORLD} aboveBars={<Name />} belowBars={<Wins />} beforePing={<RegionName />}
+      afterPing={
+        <>
+          <HudButton id="inventory-button" label="Inventory" onClick={() => ui.togglePanel("inventory")}>
+            <BagIcon />
+          </HudButton>
+          <HudButton id="character-button" label="Character" onClick={() => ui.togglePanel("character")}>
+            <PersonIcon />
+          </HudButton>
+          <HudButton id="questbook-button" label="Questbook" onClick={ui.toggleQuestbook}>
+            <BookIcon />
+          </HudButton>
+          <HudButton id="settings-button" label="Settings" onClick={ui.openSettings}>
+            <GearIcon />
+          </HudButton>
+        </>
+      }
+    >
       <Compass top={compassTop} />
-      <div className="absolute top-3 right-4 flex items-center gap-3">
-        <RegionName />
-        <Ping />
-        <HudButton id="inventory-button" label="Inventory" onClick={() => toggle("inventory")}>
-          <BagIcon />
-        </HudButton>
-        <HudButton id="character-button" label="Character" onClick={() => toggle("character")}>
-          <PersonIcon />
-        </HudButton>
-        <HudButton id="questbook-button" label="Questbook" onClick={ui.toggleQuestbook}>
-          <BookIcon />
-        </HudButton>
-        <HudButton id="settings-button" label="Settings" onClick={ui.openSettings}>
-          <GearIcon />
-        </HudButton>
-      </div>
-      <InteractButton interaction={interaction} interact={actions.interact} />
       <ChallengeNotice top={Math.max(CHALLENGE_TOP_PX, compassTop + COMPASS.heightPx + MARGIN_PX)} />
-      {panel === "character" && <CharacterPanel close={close} shownWidth={shownWidth} />}
-      {panel === "inventory" && (
-        <InventoryPanel
-          gear={gear} stats={stats} canHeal={!fullHp} using={using} close={close}
-          trade={shop && core && { shop, core }} shownWidth={shownWidth}
-        />
-      )}
-      {panel === "inventory" && bookOpen && <SkillbookScreen />}
-    </HudLayer>
+    </Hud>
   );
 }
 
-function PlayerStatus() {
-  const { overworld: hud, you } = useGame().ui;
-  const name = useStore(you, (s) => s.character?.name);
-  const hpFraction = useStore(hud, (s) => s.hpFraction);
-  const staminaFraction = useStore(hud, (s) => s.staminaFraction);
-  const wins = useStore(you, (s) => s.wins);
+function Name() {
+  const name = useStore(useGame().ui.you, (s) => s.character?.name);
+  return name ? <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div> : null;
+}
+
+function Wins() {
+  const wins = useStore(useGame().ui.you, (s) => s.wins);
   return (
-    <div className="absolute top-3 left-4">
-      {name && <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div>}
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} />
-      <div id="overworld-wins" className="text-[13px] font-normal">
-        Foes defeated: <span className="font-semibold text-victory">{wins}</span>
-      </div>
+    <div id="overworld-wins" className="text-[13px] font-normal">
+      Foes defeated: <span className="font-semibold text-victory">{wins}</span>
     </div>
   );
 }
