@@ -2,11 +2,12 @@
 
 Infinite Tower is a browser game, single-player for now. You walk an HD-2D overworld (pixel sprites on 3D ground),
 and fights happen in a small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with three
-workspaces:
+workspaces, and a fourth for the art lab:
 
 - `shared/`: code both sides run (simulation, message types)
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
 - `client/`: Vite, Babylon.js, React UI
+- `art-lab/`: a dev tool for drawing the game's art (sprites), never shipped
 
 The user's rules for every project (subagents, comments and code style, test-first, PRs and stacks) are in
 `~/.pi/agent/AGENTS.md`. This file has only what's specific to this repo.
@@ -1067,8 +1068,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 npm install
 npm run dev        # db:up + db:seed, then server :8787 (tsx watch, reloads on save) + client :5173 (Vite, proxies /ws and /api)
 npm run typecheck  # run it from the root (the workspaces have none of their own); also checks the server's layering
-npm test           # unit tests of shared, server and client (Node's test runner through tsx; no database needed)
-npm run build      # client bundle
+npm test           # unit tests of shared, server, client and the art lab (Node's test runner through tsx; no database needed)
+npm run build      # client bundle, and the art lab's (to check it builds)
+npm run art        # the art lab on :5175: the character art, and a pixel editor (no game server needed)
 npm start          # production: builds the client, then the server serves it + /ws + /api on :8787
 npm run db:up      # Postgres 17 in Docker on 127.0.0.1:5433 (db:down stops it, db:reset wipes + reseeds it, db:psql)
 npm run db:seed    # dev accounts test1, test2, test3, user, password = username (dev runs it; safe to repeat)

@@ -1,15 +1,12 @@
-/**
- * Dev-only page (/art.html on the Vite dev server, never built) for judging the character art: every look option in
- * every view, pose and frame, a piece of gear tried on, and a mock dialogue scene.
- */
 import { DEFAULT_LOOK, LOOK_OPTIONS as OPTIONS } from "@infinite-tower/shared";
-import type { Picture } from "../gfx/look/art.js";
-import { POSES, SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
-import { LEATHER_JERKIN } from "../gfx/look/jerkin.js";
+import type { Picture } from "@infinite-tower/client/src/gfx/look/art.js";
+import { POSES, SWORD_POSES, type Pose, type SwordPose } from "@infinite-tower/client/src/gfx/look/battle.js";
+import { LEATHER_JERKIN } from "@infinite-tower/client/src/gfx/look/jerkin.js";
 import {
   BATTLE_FACINGS, CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type BattleFacing, type ChibiFacing, type Look,
-} from "../gfx/look/look.js";
-import { STARTER_CLOTHES } from "../gfx/look/outfit.js";
+} from "@infinite-tower/client/src/gfx/look/look.js";
+import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
+import { caption, el } from "./dom.js";
 
 const LABELS: Record<keyof Look, string> = {
   body: "Body", face: "Face shape", skin: "Skin", hair: "Hair", hairColor: "Hair color", eyes: "Eyes",
@@ -39,15 +36,14 @@ const chibi = (l: Look, facing: ChibiFacing) => drawChibi(l, facing, wear());
 const battle = (pose: Pose | SwordPose, frame: number, facing: BattleFacing) =>
   drawBattle(look, pose, frame, facing, wear(), leftHanded ? "leftHand" : "rightHand");
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, style = "", text = ""): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.style.cssText = style;
-  e.textContent = text;
-  return e;
-}
+export const currentLook = () => look;
 
-const root = el("div", "max-width:1100px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:28px");
-document.body.append(root);
+let root: HTMLElement;
+
+export function renderCharacters(into: HTMLElement): void {
+  root = into;
+  render();
+}
 
 function render(): void {
   root.replaceChildren();
@@ -82,11 +78,6 @@ function render(): void {
 
   // The portrait and the chibi facing front, at a few sizes
   const views = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
-  const caption = (node: HTMLElement, text: string) => {
-    const box = el("div", "display:flex;flex-direction:column;align-items:center;gap:6px");
-    box.append(node, el("span", "font-size:12px;color:#9a9cb0", text));
-    return box;
-  };
   views.append(
     caption(canvas(portrait(look), 6), "portrait 64x64 at 6x"),
     caption(canvas(chibi(look, "front"), 6), "chibi 32x32 at 6x"),
@@ -158,4 +149,3 @@ function randomLookStable(): Look {
 }
 const crowdLooks = Array.from({ length: 8 }, randomLook);
 
-render();

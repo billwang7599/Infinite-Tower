@@ -37,7 +37,7 @@ are the user's; the open questions at the end need the user's say before they're
 - **No hair hiding.** Every hair style draws in full (`hair/index.ts`), so a helmet would have to cover all of it.
 - **Only the starter clothes are worn.** `lookArts` defaults `wear` to `STARTER_CLOTHES` (`look.ts`), and
   `playerFrames` (`visuals/characters.ts`) and `ui/components/LookPicture.tsx` never pass anything else. The jerkin
-  shows only in the art lab (`dev/art-lab.ts`). There's no equip code anywhere.
+  shows only in the art lab (`art-lab/src/characters.ts`). There's no equip code anywhere.
 
 ## Decided
 

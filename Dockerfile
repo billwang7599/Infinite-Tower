@@ -4,10 +4,11 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared/package.json shared/
 COPY server/package.json server/
 COPY client/package.json client/
+COPY art-lab/package.json art-lab/
 RUN npm ci
 COPY shared shared
 COPY client client
-RUN npm run build
+RUN npm run build -w @infinite-tower/client
 
 FROM node:26-slim
 ENV NODE_ENV=production
@@ -16,6 +17,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared/package.json shared/
 COPY server/package.json server/
 COPY client/package.json client/
+COPY art-lab/package.json art-lab/
 RUN npm ci --omit=dev -w @infinite-tower/server -w @infinite-tower/shared && npm cache clean --force
 COPY shared shared
 COPY server server

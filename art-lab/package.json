@@ -1,0 +1,16 @@
+{
+  "name": "@infinite-tower/art-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build"
+  },
+  "dependencies": {
+    "@infinite-tower/client": "*",
+    "@infinite-tower/shared": "*"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  }
+}
