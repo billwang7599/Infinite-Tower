@@ -11,7 +11,7 @@ import { Net, NotLoggedInError, SAVE_RESET } from "./net/net.js";
 import { createSettings } from "./settings/settings.js";
 import { mountUi } from "./ui/mount.js";
 import { LEAVE_COVERED_MS } from "./ui/screens/title/sequence.js";
-import { UiState, type SignInKind } from "./ui/state.js";
+import { UiState, type GameRequests, type SignInKind, type TitleActions, type UiActions } from "./ui/state.js";
 
 // The page frame (#stage) is held to the same widest view as the camera and the server; wider windows get side bars.
 document.getElementById("stage")!.style.setProperty("--view-aspect", String(VIEW.maxAspect));
@@ -134,29 +134,16 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-mountUi(document.getElementById("ui")!, ui, settings, input, {
+const titleActions: TitleActions = {
   signIn: (kind, credentials) => void signIn(kind, credentials),
   logOut: () => void signOut(),
   play: () => void play(),
-  saveCharacter: (character) => void preparing.then((game) => game.saveCharacter(character)),
-  interact: () => void preparing.then((game) => game.interact()),
-  leaveArena: () => void preparing.then((game) => game.leaveBattle(true)),
-  challenge: () => void preparing.then((game) => game.challenge()),
-  answerChallenge: (accept) => void preparing.then((game) => game.answerChallenge(accept)),
-  useItem: (at) => void preparing.then((game) => game.useItem(at)),
-  moveItem: (from, to, turned) => void preparing.then((game) => game.moveItem(from, to, turned)),
-  buy: (item) => void preparing.then((game) => game.buy(item)),
-  sell: (at, count) => void preparing.then((game) => game.sell(at, count)),
-  exchange: (from, to) => void preparing.then((game) => game.exchange(from, to)),
-  carve: (at) => void preparing.then((game) => game.carve(at)),
-  uncarve: (inscription) => void preparing.then((game) => game.uncarve(inscription)),
-  tooWeak: (item) => void preparing.then((game) => game.tooWeak(item)),
-  castSkill: (skill) => void preparing.then((game) => game.castSkill(skill)),
-  saveSkill: (page, skill) => void preparing.then((game) => game.saveSkill(page, skill)),
-  sendChat: (text) => void preparing.then((game) => game.sendChat(text)),
-  takeOffer: (offer) => void preparing.then((game) => game.takeOffer(offer)),
   returnToTitle: () => void backToTitle(),
-  cheat: (cheat) => void preparing.then((game) => game.cheat(cheat)),
-  setDayClock: (change) => void preparing.then((game) => game.setDayClock(change)),
-  statPoint: (stat, add) => void preparing.then((game) => game.statPoint(stat, add)),
-});
+};
+// Anything else is the game's. It loads behind the title, so a request made before it's ready waits for it.
+const actions = new Proxy(titleActions, {
+  get: (title, key: string) => key in title ? title[key as keyof TitleActions] : (...args: unknown[]) =>
+    void preparing.then((game) => (game[key as keyof GameRequests] as (...a: unknown[]) => void)(...args)),
+}) as UiActions;
+
+mountUi(document.getElementById("ui")!, ui, settings, input, actions);

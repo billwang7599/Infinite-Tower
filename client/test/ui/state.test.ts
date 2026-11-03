@@ -21,6 +21,24 @@ describe("UiState screens", () => {
   });
 });
 
+describe("UiState sessions", () => {
+  test("a new session starts with the screens closed, the chat and questbook empty and no notices", () => {
+    const ui = new UiState();
+    ui.openSettings();
+    ui.admin.set({ open: true, invulnerable: true });
+    ui.challenge.set({ from: "Rival" });
+    ui.hearChat([{ from: "Tester", text: "hi" }]);
+    ui.questbook.set({ open: true, quests: [{ id: "q", title: "Q", half: "main", step: null, lore: [] }] });
+    ui.ping.set({ ms: 40 });
+    ui.screen.set({ fadeOpacity: 0.5 });
+    ui.resetSession();
+    const fresh = new UiState();
+    for (const key of ["settingsScreen", "admin", "challenge", "chat", "questbook", "ping", "screen"] as const) {
+      assert.deepEqual(ui[key].get(), fresh[key].get(), key);
+    }
+  });
+});
+
 describe("UiState overworld panels", () => {
   test("one at a time: a panel key opens its panel, again closes it, another switches", () => {
     const ui = new UiState();

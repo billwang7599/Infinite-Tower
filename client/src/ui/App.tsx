@@ -1,3 +1,4 @@
+import type { WeaponId } from "@infinite-tower/shared";
 import { Chat } from "./chat/Chat.js";
 import { Dialogue } from "./dialogue/Dialogue.js";
 import { BattleHud } from "./hud/BattleHud.js";
@@ -5,6 +6,7 @@ import { CoreCard } from "./hud/CoreCard.js";
 import { OverworldHud } from "./hud/OverworldHud.js";
 import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
+import { say } from "./notifications/say.js";
 import { AdminPanel } from "./screens/admin/AdminPanel.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
 import { QuestbookScreen } from "./screens/questbook/QuestbookScreen.js";
@@ -36,6 +38,7 @@ export function App({ ui, settings, input, actions }: AppProps) {
   const panelWidthPx = useStore(ui.overworldPanel, (s) => s.widthPx);
   const interaction = useStore(ui.overworld, (s) => s.interaction);
   const playing = inWorld(mode, phase) && !creating;
+  const tooWeak = (item: WeaponId) => say(ui.notifications, { kind: "tooWeak", item });
   const overworldHud = playing && mode === "overworld";
   return (
     <>
@@ -47,28 +50,29 @@ export function App({ ui, settings, input, actions }: AppProps) {
               settingsScreen={ui.settingsScreen}
               panels={ui.overworldPanel} togglePanel={ui.toggleOverworldPanel} closePanel={ui.closeOverworldPanel}
               openSettings={ui.openSettings} interact={actions.interact} useItem={actions.useItem}
-              moveItem={actions.moveItem} tooWeak={actions.tooWeak}
+              moveItem={actions.moveItem} tooWeak={tooWeak}
               skills={ui.skills} skillbookScreen={ui.skillbookScreen} saveSkill={actions.saveSkill}
-              challenge={ui.challenge} challengeNearest={actions.challenge} answerChallenge={actions.answerChallenge}
-              toggleQuestbook={ui.toggleQuestbook} statPoint={actions.statPoint}
-              shop={ui.shop} buy={actions.buy} sell={actions.sell} exchange={actions.exchange}
-              carve={actions.carve} uncarve={actions.uncarve}
+              challenge={ui.challenge} answerChallenge={actions.answerChallenge}
+              toggleQuestbook={ui.toggleQuestbook} shop={ui.shop} request={actions.request}
             />
           )}
           {mode === "battle" && (
             <BattleHud
               hud={ui.battle} bindings={settings.bindings} ping={ui.ping} hudSettings={settings.hud} skills={ui.skills}
               chant={ui.chant} input={input} castSkill={actions.castSkill} saveSkill={actions.saveSkill}
-              interact={actions.interact} leaving={{ asking: ui.leaveArena, leave: actions.leaveArena }}
+              interact={actions.interact} leaving={{ asking: ui.leaveArena, leave: () => actions.leaveBattle(true) }}
               bag={{
                 open: ui.battleBag, toggle: ui.toggleBattleBag, close: ui.closeBattleBag, overworld: ui.overworld,
                 settingsScreen: ui.settingsScreen, skillbookScreen: ui.skillbookScreen, moveItem: actions.moveItem,
-                tooWeak: actions.tooWeak, useItem: actions.useItem,
+                tooWeak, useItem: actions.useItem,
               }}
             />
           )}
           <CoreCard mode={mode} overworld={ui.overworld} battle={ui.battle} said={ui.notifications.said} />
-          <Chat chat={ui.chat} input={input} bindings={settings.bindings} send={actions.sendChat} />
+          <Chat
+            chat={ui.chat} input={input} bindings={settings.bindings}
+            send={(text) => actions.request({ t: "chat", text })}
+          />
           <Dialogue
             dialogue={ui.dialogue} input={input} bindings={settings.bindings} next={actions.interact}
             take={actions.takeOffer} close={ui.closeDialogue}
@@ -90,7 +94,8 @@ export function App({ ui, settings, input, actions }: AppProps) {
       )}
       {playing && import.meta.env.DEV && (
         <AdminPanel
-          admin={ui.admin} mode={mode} input={input} cheat={actions.cheat} setDayClock={actions.setDayClock}
+          admin={ui.admin} mode={mode} input={input} cheat={(cheat) => actions.request({ t: "cheat", cheat })}
+          setDayClock={actions.setDayClock}
         />
       )}
       {playing && (
@@ -102,7 +107,8 @@ export function App({ ui, settings, input, actions }: AppProps) {
       {mode !== null && (
         <CreationScreen
           creation={ui.creation} overworld={ui.overworld} title={ui.title} active={inWorld(mode, phase)}
-          input={input} save={actions.saveCharacter} close={ui.closeCreation}
+          input={input} save={(character) => actions.request({ t: "character", character })}
+          close={ui.closeCreation}
         />
       )}
       <TitleScreen title={ui.title} input={input} actions={actions} />

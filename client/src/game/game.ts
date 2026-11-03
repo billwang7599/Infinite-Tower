@@ -4,9 +4,8 @@
  * decided fight fades back to the overworld, where the server's result is applied and told.
  */
 import {
-  bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type Cheat, type CoinId,
-  type DayChange, type DialogueOffer, type EnemyId, type InscriptionId, type ItemId, type ServerMsgOf, type ShownStat,
-  type Skill, type Spot, type UseSpot, type WeaponId,
+  bagCounts, coreStats, LocalPlayer, moveGear, NO_PILE, Player, useSteps, type Character, type DialogueOffer,
+  type EnemyId, type ServerMsgOf,
 } from "@infinite-tower/shared";
 import type { Audio } from "../audio/audio.js";
 import { bagSound } from "../audio/sounds.js";
@@ -17,7 +16,7 @@ import type { Joined, Net } from "../net/net.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
-import { whoHasTheKeys, type UiState } from "../ui/state.js";
+import { whoHasTheKeys, type GameRequests, type UiRequest, type UiState } from "../ui/state.js";
 import { NPC_LOOKS } from "../visuals/npcs/index.js";
 import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Drawing } from "../visuals/visuals.js";
@@ -27,33 +26,17 @@ import { startTransition, stepTransition, type Mode, type Transition } from "./t
 /** A stalled tab's first frame back counts as this long at most, so it doesn't make a huge step. */
 const MAX_FRAME_TIME = 0.1;
 
-export interface Game {
+export interface Game extends GameRequests {
   /** null outside a session. */
   mode(): Mode | null;
   /** On a connection the server has welcomed. */
   join(joined: Joined): void;
   leave(): void;
-  leaveBattle(sure?: boolean): void;
-  interact(): void;
-  challenge(): void;
-  answerChallenge(accept: boolean): void;
-  useItem(at: UseSpot): void;
-  moveItem(from: Spot, to: Spot, turned: boolean): void;
-  buy(item: ItemId): void;
-  sell(at: UseSpot, count: number): void;
-  exchange(from: CoinId, to: CoinId): void;
-  carve(at: UseSpot): void;
-  uncarve(inscription: InscriptionId): void;
-  tooWeak(item: WeaponId): void;
-  castSkill(skill: Skill): void;
-  saveSkill(page: number, skill: Skill): void;
-  sendChat(text: string): void;
-  takeOffer(offer: DialogueOffer): void;
-  saveCharacter(character: Character): void;
-  cheat(cheat: Cheat): void;
-  setDayClock(change: DayChange): void;
-  statPoint(stat: ShownStat, add: boolean): void;
 }
+
+const OVERWORLD_ONLY: ReadonlySet<UiRequest["t"]> = new Set([
+  "buy", "sell", "exchange", "carve", "uncarve", "challenge",
+]);
 
 interface GameParts {
   drawing: Drawing;
@@ -82,17 +65,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
    * world, nor the open bag), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
    */
   const updateInput = () => actions.setLayers(whoHasTheKeys(ui, mode));
-  ui.settingsScreen.subscribe(updateInput);
-  ui.admin.subscribe(updateInput);
-  ui.creation.subscribe(updateInput);
-  ui.overworldPanel.subscribe(updateInput);
-  ui.chant.subscribe(updateInput);
-  ui.skillbookScreen.subscribe(updateInput);
-  ui.battleBag.subscribe(updateInput);
-  ui.leaveArena.subscribe(updateInput);
-  ui.chat.subscribe(updateInput);
-  ui.dialogue.subscribe(updateInput);
-  ui.questbook.subscribe(updateInput);
+  for (const store of ui.keyStores) store.subscribe(updateInput);
   // The fight breaks a chant off: a stagger loses its words, a dodge keeps them; a hit that only hurts doesn't. It
   // breaks the bag off the same way, and the fight's result closes it (after a win it opens again on the server's
   // gear, for the drops).
@@ -116,7 +89,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     battleBagOpen = ui.battleBag.get().open;
     if (wasOpen && !battleBagOpen) closeBag();
   });
-  ui.title.subscribe(updateInput);
   updateInput();
 
   const closeBag = () => {
@@ -209,7 +181,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     audio.frame(mode);
   };
 
-  const cheat = (c: Cheat) => net?.send({ t: "cheat", cheat: c });
   const takeOffer = (offer: DialogueOffer) => {
     ui.closeDialogue();
     if (offer.kind === "shop") net?.send({ t: "openShop" });
@@ -221,7 +192,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
 
   return {
     mode: () => mode,
-    cheat,
+    request(msg) {
+      if (!OVERWORLD_ONLY.has(msg.t) || (mode === "overworld" && !transition)) net?.send(msg);
+    },
     setDayClock,
     takeOffer,
     leaveBattle(sure = false) {
@@ -245,9 +218,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         ui.toggleOverworldPanel("inventory");
       }
     },
-    challenge() {
-      if (mode === "overworld" && !transition) net?.send({ t: "challenge" });
-    },
     answerChallenge(accept) {
       ui.challenge.set({ from: null });
       net?.send({ t: "answerChallenge", accept });
@@ -267,24 +237,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       overworld.setGear(moved);
       net.send({ t: "moveItem", from, to, turned });
     },
-    buy(item) {
-      if (mode === "overworld" && !transition) net?.send({ t: "buy", item });
-    },
-    sell(at, count) {
-      if (mode === "overworld" && !transition) net?.send({ t: "sell", at, count });
-    },
-    exchange(from, to) {
-      if (mode === "overworld" && !transition) net?.send({ t: "exchange", from, to });
-    },
-    carve(at) {
-      if (mode === "overworld" && !transition) net?.send({ t: "carve", at });
-    },
-    uncarve(inscription) {
-      if (mode === "overworld" && !transition) net?.send({ t: "uncarve", inscription });
-    },
-    tooWeak(item) {
-      say(ui.notifications, { kind: "tooWeak", item });
-    },
     castSkill(skill) {
       if (mode === "battle" && !transition) battle.ctx.casts.push(skill);
     },
@@ -292,15 +244,6 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       if (mode === "battle" && !afterFight()) {
         if (!transition) battle.ctx.writes.push({ page, skill });
       } else net?.send({ t: "saveSkill", page, skill });
-    },
-    sendChat(text) {
-      net?.send({ t: "chat", text });
-    },
-    statPoint(stat, add) {
-      net?.send({ t: "statPoint", stat, add });
-    },
-    saveCharacter(character) {
-      net?.send({ t: "character", character });
     },
     join(joined) {
       audio.unlock();
@@ -398,14 +341,13 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
         battle, overworld, ui, settings, audio, mode: () => mode,
-        encounter: (enemy: EnemyId = "wild-boar") => cheat({ kind: "encounter", enemy }),
+        encounter: (enemy: EnemyId = "wild-boar") => net?.send({ t: "cheat", cheat: { kind: "encounter", enemy } }),
       });
     },
     leave() {
       if (!net) return;
       stopSync();
       stopSync = () => {};
-      ui.ping.set({ ms: null });
       cancelAnimationFrame(frameRequest);
       audio.frame(null);
       net.close();
@@ -413,15 +355,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       if (mode === "battle") battle.end();
       transition = encounter = result = null;
       overworld.leave();
-      ui.settingsScreen.set({ open: false });
-      ui.admin.set({ open: false, invulnerable: false });
-      ui.creation.set({ open: false });
-      ui.challenge.set({ from: null });
-      ui.chat.set({ open: false, focused: false, lines: [] });
-      ui.questbook.set({ open: false, quests: [] });
-      ui.shop.set({ view: null });
-      ui.notifications.clear();
-      ui.screen.set({ fadeOpacity: 0 });
+      ui.resetSession();
       setMode(null);
     },
   };

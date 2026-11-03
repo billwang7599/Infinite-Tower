@@ -1,7 +1,4 @@
-import {
-  coreStats, type CoinId, type InscriptionId, type ItemId, type ShopView, type ShownStat, type Skill, type Spot,
-  type UseSpot, type WeaponId,
-} from "@infinite-tower/shared";
+import { coreStats, type ShopView, type Skill, type Spot, type UseSpot, type WeaponId } from "@infinite-tower/shared";
 import { useMemo, type ReactNode } from "react";
 import type { Actions } from "../../core/actions.js";
 import type { HudSettings } from "../../settings/hud.js";
@@ -11,7 +8,7 @@ import { PlayerBars } from "../components/PlayerBars.js";
 import { useAction } from "../components/useAction.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import type {
-  OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SkillsState,
+  GameRequests, OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SkillsState,
 } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
@@ -44,16 +41,10 @@ interface OverworldHudProps extends HudProps {
   skillbookScreen: Store<{ open: boolean }>;
   saveSkill: (page: number, skill: Skill) => void;
   challenge: Store<{ from: string | null }>;
-  challengeNearest: () => void;
   answerChallenge: (accept: boolean) => void;
   toggleQuestbook: () => void;
-  statPoint: (stat: ShownStat, add: boolean) => void;
   shop: Store<{ view: ShopView | null }>;
-  buy: (item: ItemId) => void;
-  sell: (at: UseSpot, count: number) => void;
-  exchange: (from: CoinId, to: CoinId) => void;
-  carve: (at: UseSpot) => void;
-  uncarve: (inscription: InscriptionId) => void;
+  request: GameRequests["request"];
 }
 
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
@@ -78,7 +69,7 @@ export function OverworldHud(props: OverworldHudProps) {
     if (!repeat) interact();
   });
   useAction(input, ["challenge"], (_action, repeat) => {
-    if (!repeat) props.challengeNearest();
+    if (!repeat) props.request({ t: "challenge" });
   });
 
   return (
@@ -107,16 +98,16 @@ export function OverworldHud(props: OverworldHudProps) {
         top={Math.max(CHALLENGE_TOP_PX, compassTop + COMPASS.heightPx + MARGIN_PX)}
       />
       {panel === "character" && (
-        <CharacterPanel hud={hud} statPoint={props.statPoint} close={close} shownWidth={shownWidth} />
+        <CharacterPanel
+          hud={hud} statPoint={(stat, add) => props.request({ t: "statPoint", stat, add })} close={close}
+          shownWidth={shownWidth}
+        />
       )}
       {panel === "inventory" && (
         <InventoryPanel
           gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
           use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
-          close={close} trade={shop && core && {
-            shop, buy: props.buy, sell: props.sell, exchange: props.exchange, carve: props.carve,
-            uncarve: props.uncarve, core,
-          }}
+          close={close} trade={shop && core && { shop, core, request: props.request }}
           shownWidth={shownWidth}
         />
       )}

@@ -97,4 +97,14 @@ describe("Store", () => {
     store.set({ hp: 1 });
     assert.equal(calls, 1);
   });
+
+  test("reset goes back to the initial value, telling listeners", () => {
+    const store = new Store({ hp: 1, name: "a" });
+    let calls = 0;
+    store.subscribe(() => calls++);
+    store.set({ hp: 0.5, name: "b" });
+    store.reset();
+    assert.deepEqual(store.get(), { hp: 1, name: "a" });
+    assert.equal(calls, 2);
+  });
 });

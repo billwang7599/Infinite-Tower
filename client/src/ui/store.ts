@@ -3,7 +3,7 @@ export class Store<T extends object> {
   private state: T;
   private readonly listeners = new Set<() => void>();
 
-  constructor(initial: T) {
+  constructor(private readonly initial: T) {
     this.state = initial;
   }
 
@@ -21,6 +21,10 @@ export class Store<T extends object> {
     if (!changed) return;
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();
+  }
+
+  reset(): void {
+    this.set(this.initial);
   }
 
   /** An arrow because useSyncExternalStore calls it unbound. */
