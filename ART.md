@@ -161,6 +161,12 @@ hairBack, body, legwear, footwear, torsowear, weapon, arms, armwear, head, face,
 
 then outlines every layer except `face` (eyes, brows and mouth carry their own lines) and colors it.
 
+A picture is a `Sketch` (`look.ts`: `portraitSketch`, `chibiSketch`, `battleSketch`): its view, the body's frame,
+the colors and each Art's piece named by its part (`base`, the body with its face shape; `hair`, `eyes`, `mouth`;
+each piece of wear by its name in `STARTER_CLOTHES`; `weapon`). `render` draws it, or only some of its parts;
+`renderParts` cuts it into a picture per part per layer it draws on, which stacked are the picture pixel for pixel,
+each keeping what later parts cover. The art lab opens looks in parts with it.
+
 - **One head, a few face shapes, a few body types.** Everyone shares the cranium, the ear and the rows the features
   sit on; face shapes (`head.ts`: soft, sharp, square) only change the jaw, so every hair style and eye fits every
   face. Below the head, each body type (`body.ts`: skinny, medium, wide) is a `Frame`: the same named shapes (neck,
@@ -266,12 +272,24 @@ into the game yet, and nothing is kept in the browser, so save the drawing as a 
 - **Templates**: New from template starts a drawing from the art the game draws today, drawn by the game's own code:
   the portrait in each body type and face shape, the chibi facing each way, the battle sprite in every pose (its
   frames as an animation), the NPCs' portraits, the enemies' overworld sprites, each level's tiles as a tileset, the
-  props and the items; and from any saved drawing, as a copy.
+  props and the items; and from any saved drawing, as a copy. A character comes in parts, a layer each (`renderParts`
+  above): the bare base, the hair, the eyes, the mouth, each piece of clothing and the sword. A part the game draws
+  on several of its layers with others between (the hair behind the head and over it, the tunic under the arms and
+  its sleeves over them) gets a layer for each, named for it: `hair (hairBack)`, `hair (hair)`. Stacked, the layers
+  are the game's picture; hiding one shows what's under it whole.
+- **A part alone**: New part opens one part (the base, a hair style, an eye or mouth type, a piece of wear, the sword)
+  on a clear canvas, in the portrait, the chibi's facings or one battle pose's frames, on the picked body type and
+  face shape, in the Characters tab's colors. Its export is just the part.
+- **Underlay**: a base model under the canvas to draw over: never a layer, never exported, saved with the drawing.
+  It's any of the pictures above that fits the canvas, on a picked body type, face shape and skin, bare or with a
+  hair style and the clothes on; an animation's frames each get their own (the chibi's facings, a swing's frames).
+  "Every body, tinted" draws the three body types at once, each its own color, to check a part fits them all. It
+  has its own opacity, and H shows or hides it. A part opened alone comes with the bare base under it.
 - **Saving**: Save (Ctrl+S) writes the drawing, under the name in the box, into `art-lab/files/` as `name.json` (its
-  mode, every page, every layer's name, whether it shows, its opacity, its pixels) and `name.png` (the picture, or
-  every page as a sheet), and downloads the PNG too. The folder is meant to be committed; `ART_LAB_FILES_DIR` in
-  .env points it elsewhere (a lab run from another copy can save into the main checkout). Open lists what's there.
-  There's no autosave. Without the dev server (a built lab) Save only downloads.
+  mode, every page, every layer's name, whether it shows, its opacity, its pixels, and the underlay) and `name.png`
+  (the picture, or every page as a sheet), and downloads the PNG too. The folder is meant to be committed;
+  `ART_LAB_FILES_DIR` in .env points it elsewhere (a lab run from another copy can save into the main checkout). Open
+  lists what's there. There's no autosave. Without the dev server (a built lab) Save only downloads.
 - **Out**: the whole picture as a PNG, each layer as its own, a sheet, and the project's JSON as a download; Open
   file loads a JSON back, switching to its mode (a dropped .json opens too). Each mode keeps its own project while
   you switch between them.

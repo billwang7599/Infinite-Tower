@@ -13,7 +13,9 @@ the game yet.
 - **Animations**: a duration per frame, and playing them on the canvas, not only in the preview.
 - **Selections**: flip and rotate, and copying between drawings through the system clipboard (the clipboard is the
   lab's own for now). A paste floats over the layer it's pasted on, but not on a layer of its own.
-- **Templates in layers**: a template comes in as one layer; the game's art could be split by part (body, head,
-  hair...) into the lab's part layers. The enemies' 3D battle models, the campfire and the arena's looks need Babylon
-  and aren't templates.
+- **The underlay between layers**: it's drawn under every layer, so hair drawn over the head hides the face
+  under it; it could sit at the base's place in the stack instead. The enemies' 3D battle models, the campfire and
+  the arena's looks need Babylon and aren't templates.
 - **Wiring drawings into the game**: loading exported sheets instead of the code-drawn art (see [art.md](art.md)).
+  Next: a part drawn in the lab (a layer per game layer, as New part makes them) replacing that part's code-drawn
+  piece, so a new hair style or tunic can be drawn instead of coded.

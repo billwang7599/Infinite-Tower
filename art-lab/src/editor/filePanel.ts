@@ -1,3 +1,4 @@
+import { LOOK_OPTIONS } from "@infinite-tower/shared";
 import { drawChibi, drawPortrait, type Look } from "@infinite-tower/client/src/gfx/look/look.js";
 import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
 import { FileJson, FolderOpen, ImageDown, ImageUp, Plus, Save } from "lucide";
@@ -8,6 +9,7 @@ import {
 } from "./fileIo.js";
 import { projectToJson } from "./json.js";
 import { addLayer, composite, MAX_SIDE, newProject } from "./layers.js";
+import { partAloneProject, PART_CHOICES, SHOT_SETS } from "./lookParts.js";
 import { MODE_LOOKS } from "./modes.js";
 import { toSaveName } from "./names.js";
 import { placeImage } from "./resample.js";
@@ -19,6 +21,7 @@ let size = "";
 let custom = { width: 48, height: 48 };
 let opening = "";
 let template = "";
+const alone = { part: "base", shots: "portrait", body: "medium" as Look["body"], face: "soft" as Look["face"] };
 
 export interface Files {
   saved: readonly string[];
@@ -122,6 +125,22 @@ export function filePanel(ed: Editor, look: () => Look, files: Files): HTMLEleme
     }
   }, "A new drawing from art the game draws today, or from a saved one"));
 
+  const part = row();
+  part.append(
+    select(PART_CHOICES.map((c) => [c.name, c.name] as const), alone.part, (v) => { alone.part = v; }),
+    select(SHOT_SETS.map((s) => [s.name, s.name] as const), alone.shots, (v) => { alone.shots = v; }),
+    select(LOOK_OPTIONS.body.map((b) => [b, b] as const), alone.body, (v) => { alone.body = v; }),
+    select(LOOK_OPTIONS.face.map((f) => [f, `${f} face`] as const), alone.face, (v) => { alone.face = v; }),
+    button("New part", () => {
+      const choice = PART_CHOICES.find((c) => c.name === alone.part)!;
+      const set = SHOT_SETS.find((s) => s.name === alone.shots)!;
+      naming.file = toSaveName(`${choice.name} ${set.name}`);
+      ed.open(set.name === "portrait" ? "sprite" : "animation",
+        partAloneProject(choice, set, { ...look(), body: alone.body, face: alone.face }));
+      fitView();
+    }, "One part of a look on its own, in the Characters tab's colors, with the bare base under it (H hides it)"),
+  );
+
   const own = row();
   const cells = row();
   own.append(
@@ -160,7 +179,7 @@ export function filePanel(ed: Editor, look: () => Look, files: Files): HTMLEleme
   );
   box.append(
     section("Drawing", keep, reopen),
-    section("New", make, lookRow, fromTemplate),
+    section("New", make, lookRow, fromTemplate, part),
     section("Upload", own, cells, photo, snap),
     section("Export", out),
   );

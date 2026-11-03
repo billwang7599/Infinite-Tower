@@ -3,6 +3,7 @@ import type { Bitmap } from "./bitmap.js";
 import { composite } from "./layers.js";
 import type { Editor } from "./state.js";
 import { TOOLS } from "./tools.js";
+import { underlayPicture } from "./underlay.js";
 import { WheelZoom, wheelPx } from "./wheel.js";
 
 const ZOOMS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64];
@@ -29,6 +30,7 @@ export class CanvasView {
   private panX = 0;
   private panY = 0;
   private drag: { button: number; x: number; y: number } | null = null;
+  private underlay = { key: "", canvas: null as HTMLCanvasElement | null };
 
   constructor(private readonly ed: Editor, width: number, height: number) {
     this.canvas.width = width;
@@ -91,6 +93,19 @@ export class CanvasView {
       }
     }
     if (this.onion && this.ed.mode === "animation") this.drawOnion(g, x0, y0, z);
+    const u = this.ed.project.underlay;
+    if (u?.shown) {
+      const key = JSON.stringify([u, this.ed.project.page, width, height]);
+      if (key !== this.underlay.key) {
+        const pic = underlayPicture(u, this.ed.project.page, width, height);
+        this.underlay = { key, canvas: pic && toCanvas(pic) };
+      }
+      if (this.underlay.canvas) {
+        g.globalAlpha = u.opacity;
+        g.drawImage(this.underlay.canvas, x0, y0, width * z, height * z);
+        g.globalAlpha = 1;
+      }
+    }
     g.drawImage(toCanvas(composite(this.ed.doc)), x0, y0, width * z, height * z);
     if (this.grid && z >= GRID_FROM_ZOOM) this.drawGrid(g, x0, y0, z);
     g.strokeStyle = token("color-ink-600");

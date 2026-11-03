@@ -233,4 +233,5 @@ const BOOTS: Art = {
   battle: { back: battleBoots, front: battleBoots },
 };
 
-export const STARTER_CLOTHES: readonly Art[] = [TROUSERS, BOOTS, TUNIC];
+export type Wear = Readonly<Record<string, Art>>;
+export const STARTER_CLOTHES: Wear = { trousers: TROUSERS, boots: BOOTS, tunic: TUNIC };
