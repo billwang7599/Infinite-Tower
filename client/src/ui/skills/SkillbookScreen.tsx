@@ -1,24 +1,16 @@
-import { skillOf, wordsOf, type Skill, type Word } from "@infinite-tower/shared";
+import { skillOf, wordsOf, type Word } from "@infinite-tower/shared";
 import { useMemo, useState } from "react";
-import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
-import type { SkillsState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { NO_CHANT, skillText, type ChantState } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
-interface BookProps {
-  skills: Store<SkillsState>;
-  input: Actions;
-  save: (page: number, skill: Skill) => void;
-  close: () => void;
-  writingPage?: number | null;
-}
-
-export function SkillbookScreen({ skills, input, save, close, writingPage = null }: BookProps) {
+export function SkillbookScreen({ writingPage = null }: { writingPage?: number | null }) {
+  const { ui: { skills, skillbookScreen }, input, actions: { saveSkill: save } } = useGame();
+  const close = () => skillbookScreen.set({ open: false });
   const book = useStore(skills, (s) => s.book);
   const knownWords = useStore(skills, (s) => s.known);
   const known = useMemo(() => new Set<Word>(knownWords), [knownWords]);

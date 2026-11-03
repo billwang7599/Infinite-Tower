@@ -1,25 +1,15 @@
-import { SAVE_IN_FIGHT_TIME, skillOf, type Skill, type Word } from "@infinite-tower/shared";
+import { SAVE_IN_FIGHT_TIME, skillOf, type Word } from "@infinite-tower/shared";
 import { useMemo } from "react";
-import type { Actions } from "../../core/actions.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
-import type { BattleHudState, SkillsState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
-import { NO_CHANT, skillText, type ChantState } from "./chant.js";
+import { NO_CHANT, skillText } from "./chant.js";
 import { SkillBuilder } from "./SkillBuilder.js";
 
-interface ChantProps {
-  chant: Store<ChantState>;
-  skills: Store<SkillsState>;
-  hud: Store<BattleHudState>;
-  input: Actions;
-  cast: (skill: Skill) => void;
-  save: (page: number, skill: Skill) => void;
-}
-
-export function ChantPopup({ chant, skills, hud, input, cast, save }: ChantProps) {
+export function ChantPopup() {
+  const { ui: { chant, skills, battle: hud }, input, actions: { castSkill: cast, saveSkill: save } } = useGame();
   const state = useStore(chant, (s) => s);
   const { open, words } = state;
   const writingPage = useStore(hud, (s) => s.writingPage);

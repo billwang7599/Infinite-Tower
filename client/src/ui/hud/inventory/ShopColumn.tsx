@@ -6,7 +6,7 @@ import { NO_FOCUS } from "../../components/noFocus.js";
 import { BUTTON } from "../../components/styles.js";
 import { INSCRIPTION_TEXT, inscriptionName, inscriptionRarity } from "../inscriptions.js";
 import { ItemPicture } from "./BagGrid.js";
-import type { GameRequests } from "../../state.js";
+import { useGame } from "../../context.js";
 import { EQUIPMENT_WIDTH_PX } from "./grid.js";
 import { RARITY_TEXT } from "./itemInfo.js";
 
@@ -22,10 +22,10 @@ interface ShopColumnProps {
   shop: ShopView;
   gear: Gear;
   core: CoreState;
-  request: GameRequests["request"];
 }
 
-export function ShopColumn({ shop, gear, core, request }: ShopColumnProps) {
+export function ShopColumn({ shop, gear, core }: ShopColumnProps) {
+  const { request } = useGame().actions;
   const money = moneyIn(gear.bag, gear.cloth);
   const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
   const coins = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);

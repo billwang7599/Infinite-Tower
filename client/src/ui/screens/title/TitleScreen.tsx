@@ -8,11 +8,10 @@
  * loads the player; then a white flash clears over the world. Return to title plays it backwards.
  */
 import { useEffect } from "react";
-import type { Actions } from "../../../core/actions.js";
 import { keepFocus } from "../../components/noFocus.js";
 import { useAction } from "../../components/useAction.js";
-import type { TitleState, UiActions } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
+import type { TitleState } from "../../state.js";
 import { useStore } from "../../useStore.js";
 import { Backdrop } from "./backdrop/Backdrop.js";
 import { LoginForm } from "./LoginForm.js";
@@ -38,15 +37,8 @@ const WHITE: Partial<Record<Stage, string>> = {
 const PROGRESS_LINE =
   "absolute inset-x-0 bottom-[14%] animate-white-in text-center text-xs tracking-[0.5em] text-white/60 uppercase";
 
-type TitleActions = Pick<UiActions, "play" | "signIn" | "logOut">;
-
-interface TitleProps {
-  title: Store<TitleState>;
-  input: Actions;
-  actions: TitleActions;
-}
-
-export function TitleScreen({ title, input, actions }: TitleProps) {
+export function TitleScreen() {
+  const { ui: { title }, input, actions } = useGame();
   const phase = useStore(title, (s) => s.phase);
   const error = useStore(title, (s) => s.error);
   const username = useStore(title, (s) => s.username);

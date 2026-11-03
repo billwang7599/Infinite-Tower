@@ -1,6 +1,4 @@
-import type { HudSettings } from "../../settings/hud.js";
-import type { PingState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 
 export function pingReadout(ms: number | null): { text: string; color: string } {
@@ -9,7 +7,8 @@ export function pingReadout(ms: number | null): { text: string; color: string } 
 }
 
 /** A dark pill so green reads on the grass; wide enough for four digits, so what's beside it doesn't shift. */
-export function Ping({ ping, hud }: { ping: Store<PingState>; hud: HudSettings }) {
+export function Ping() {
+  const { ui: { ping }, settings: { hud } } = useGame();
   const ms = useStore(ping, (s) => s.ms);
   const shown = useStore(hud, (s) => s.showPing);
   if (!shown) return null;

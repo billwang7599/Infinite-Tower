@@ -1,17 +1,11 @@
-import { coreStats, type ShopView, type Skill, type Spot, type UseSpot, type WeaponId } from "@infinite-tower/shared";
+import { coreStats } from "@infinite-tower/shared";
 import { useMemo, type ReactNode } from "react";
-import type { Actions } from "../../core/actions.js";
-import type { HudSettings } from "../../settings/hud.js";
+import { useGame } from "../context.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { useAction } from "../components/useAction.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
-import type {
-  GameRequests, OverworldPanel, OverworldHudState, OverworldPanelState, PingState, SettingsScreenState, SkillsState,
-  YouState,
-} from "../state.js";
-import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CharacterPanel } from "./character/CharacterPanel.js";
 import { COMPASS } from "./compassMarks.js";
@@ -23,104 +17,67 @@ import { InteractButton } from "./InteractButton.js";
 import { fitCompass, MARGIN_PX, useStageSize } from "./layout.js";
 import { Ping } from "./Ping.js";
 
-type HudProps = { hud: Store<OverworldHudState> };
-type YouProps = { you: Store<YouState> };
-
-interface OverworldHudProps extends HudProps, YouProps {
-  input: Actions;
-  ping: Store<PingState>;
-  hudSettings: HudSettings;
-  settingsScreen: Store<SettingsScreenState>;
-  panels: Store<OverworldPanelState>;
-  togglePanel: (panel: OverworldPanel) => void;
-  closePanel: () => void;
-  openSettings: () => void;
-  interact: () => void;
-  useItem: (at: UseSpot) => void;
-  moveItem: (from: Spot, to: Spot, turned: boolean) => void;
-  tooWeak: (item: WeaponId) => void;
-  skills: Store<SkillsState>;
-  skillbookScreen: Store<{ open: boolean }>;
-  saveSkill: (page: number, skill: Skill) => void;
-  challenge: Store<{ from: string | null }>;
-  answerChallenge: (accept: boolean) => void;
-  toggleQuestbook: () => void;
-  shop: Store<{ view: ShopView | null }>;
-  request: GameRequests["request"];
-}
-
 /** One side panel at a time (character or inventory). The bag stops you walking while it's open; see state.ts. */
-export function OverworldHud(props: OverworldHudProps) {
-  const { hud, you, input, settingsScreen, panels, togglePanel: toggle, closePanel: close, openSettings, interact } = props;
+export function OverworldHud() {
+  const { ui, input, actions } = useGame();
+  const { overworld: hud, you, overworldPanel: panels, toggleOverworldPanel: toggle, closeOverworldPanel: close } = ui;
   const panel = useStore(panels, (s) => s.open);
-  const bookOpen = useStore(props.skillbookScreen, (s) => s.open);
+  const bookOpen = useStore(ui.skillbookScreen, (s) => s.open);
   const gear = useStore(you, (s) => s.gear);
   const core = useStore(you, (s) => s.core);
   const stats = useMemo(() => core && coreStats(core), [core]);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const using = useStore(you, (s) => s.using);
   const interaction = useStore(hud, (s) => s.interaction);
-  const shop = useStore(props.shop, (s) => s.view);
-  const showBook = (open: boolean) => props.skillbookScreen.set({ open });
+  const shop = useStore(ui.shop, (s) => s.view);
   const shownWidth = (widthPx: number) => panels.set({ widthPx });
   const compassTop = fitCompass(useStageSize()).top;
   useAction(input, ["character", "inventory"], (panel, repeat) => {
     if (!repeat) toggle(panel);
   });
   useAction(input, ["interact"], (_action, repeat) => {
-    if (!repeat) interact();
+    if (!repeat) actions.interact();
   });
   useAction(input, ["challenge"], (_action, repeat) => {
-    if (!repeat) props.request({ t: "challenge" });
+    if (!repeat) actions.request({ t: "challenge" });
   });
 
   return (
     <HudLayer id="overworld-hud">
-      <PlayerStatus hud={hud} you={you} />
-      <Compass hud={hud} top={compassTop} />
+      <PlayerStatus />
+      <Compass top={compassTop} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
-        <RegionName hud={hud} />
-        <Ping ping={props.ping} hud={props.hudSettings} />
+        <RegionName />
+        <Ping />
         <HudButton id="inventory-button" label="Inventory" onClick={() => toggle("inventory")}>
           <BagIcon />
         </HudButton>
         <HudButton id="character-button" label="Character" onClick={() => toggle("character")}>
           <PersonIcon />
         </HudButton>
-        <HudButton id="questbook-button" label="Questbook" onClick={props.toggleQuestbook}>
+        <HudButton id="questbook-button" label="Questbook" onClick={ui.toggleQuestbook}>
           <BookIcon />
         </HudButton>
-        <HudButton id="settings-button" label="Settings" onClick={openSettings}>
+        <HudButton id="settings-button" label="Settings" onClick={ui.openSettings}>
           <GearIcon />
         </HudButton>
       </div>
-      <InteractButton interaction={interaction} interact={interact} />
-      <ChallengeNotice
-        challenge={props.challenge} input={input} answer={props.answerChallenge}
-        top={Math.max(CHALLENGE_TOP_PX, compassTop + COMPASS.heightPx + MARGIN_PX)}
-      />
-      {panel === "character" && (
-        <CharacterPanel
-          hud={hud} you={you} statPoint={(stat, add) => props.request({ t: "statPoint", stat, add })} close={close}
-          shownWidth={shownWidth}
-        />
-      )}
+      <InteractButton interaction={interaction} interact={actions.interact} />
+      <ChallengeNotice top={Math.max(CHALLENGE_TOP_PX, compassTop + COMPASS.heightPx + MARGIN_PX)} />
+      {panel === "character" && <CharacterPanel close={close} shownWidth={shownWidth} />}
       {panel === "inventory" && (
         <InventoryPanel
-          gear={gear} stats={stats} canHeal={!fullHp} using={using} input={input} settingsScreen={settingsScreen}
-          use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak} openSkillbook={() => showBook(true)}
-          close={close} trade={shop && core && { shop, core, request: props.request }}
-          shownWidth={shownWidth}
+          gear={gear} stats={stats} canHeal={!fullHp} using={using} close={close}
+          trade={shop && core && { shop, core }} shownWidth={shownWidth}
         />
       )}
-      {panel === "inventory" && bookOpen && (
-        <SkillbookScreen skills={props.skills} input={input} save={props.saveSkill} close={() => showBook(false)} />
-      )}
+      {panel === "inventory" && bookOpen && <SkillbookScreen />}
     </HudLayer>
   );
 }
 
-function PlayerStatus({ hud, you }: HudProps & YouProps) {
+function PlayerStatus() {
+  const { overworld: hud, you } = useGame().ui;
   const name = useStore(you, (s) => s.character?.name);
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
@@ -138,23 +95,17 @@ function PlayerStatus({ hud, you }: HudProps & YouProps) {
 
 const CHALLENGE_TOP_PX = 96;
 
-interface ChallengeNoticeProps {
-  challenge: Store<{ from: string | null }>;
-  input: Actions;
-  answer: (accept: boolean) => void;
-  top: number;
-}
-
-function ChallengeNotice(props: ChallengeNoticeProps) {
-  const from = useStore(props.challenge, (s) => s.from);
-  useAction(props.input, ["acceptChallenge", "declineChallenge"], (action, repeat) => {
+function ChallengeNotice({ top }: { top: number }) {
+  const { ui: { challenge }, input, actions: { answerChallenge: answer } } = useGame();
+  const from = useStore(challenge, (s) => s.from);
+  useAction(input, ["acceptChallenge", "declineChallenge"], (action, repeat) => {
     if (repeat || from === null) return false;
-    props.answer(action === "acceptChallenge");
+    answer(action === "acceptChallenge");
   });
   if (from === null) return null;
   return (
     <div
-      id="challenge-notice" style={{ top: props.top }}
+      id="challenge-notice" style={{ top }}
       className={
         "pointer-events-auto absolute left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 "
         + "bg-black/75 px-5 py-3 text-center"
@@ -162,10 +113,10 @@ function ChallengeNotice(props: ChallengeNoticeProps) {
     >
       <div className="mb-2 font-title text-lg tracking-wide">{from} challenges you to a duel</div>
       <div className="flex justify-center gap-3">
-        <button type="button" {...NO_FOCUS} className={BUTTON.primary} onClick={() => props.answer(true)}>
+        <button type="button" {...NO_FOCUS} className={BUTTON.primary} onClick={() => answer(true)}>
           Accept
         </button>
-        <button type="button" {...NO_FOCUS} className={BUTTON.plain} onClick={() => props.answer(false)}>
+        <button type="button" {...NO_FOCUS} className={BUTTON.plain} onClick={() => answer(false)}>
           Decline
         </button>
       </div>
@@ -173,8 +124,8 @@ function ChallengeNotice(props: ChallengeNoticeProps) {
   );
 }
 
-function RegionName({ hud }: HudProps) {
-  const name = useStore(hud, (s) => s.regionName);
+function RegionName() {
+  const name = useStore(useGame().ui.overworld, (s) => s.regionName);
   return <div id="overworld-region" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
 }
 

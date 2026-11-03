@@ -1,13 +1,10 @@
 import type { DialogueOffer } from "@infinite-tower/shared";
-import type { Actions } from "../../core/actions.js";
-import type { KeyBindings } from "../../settings/bindings.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
 import { describeItems } from "../notifications/battleResult.js";
-import type { DialogueState } from "../state.js";
-import type { Store } from "../store.js";
+import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { withKeys } from "./keys.js";
 
@@ -15,16 +12,9 @@ const OFFER_BUTTON: Record<DialogueOffer["kind"], string> = {
   quest: "Accept", deliver: "Hand over", shop: "Trade", train: "Begin",
 };
 
-interface DialogueProps {
-  dialogue: Store<DialogueState>;
-  input: Actions;
-  bindings: KeyBindings;
-  next: () => void;
-  take: (offer: DialogueOffer) => void;
-  close: () => void;
-}
-
-export function Dialogue({ dialogue, input, bindings, next, take, close }: DialogueProps) {
+export function Dialogue() {
+  const { ui, input, settings: { bindings }, actions } = useGame();
+  const { dialogue, closeDialogue: close } = ui, { interact: next, takeOffer: take } = actions;
   const open = useStore(dialogue, (s) => s.open);
   const name = useStore(dialogue, (s) => s.name);
   const look = useStore(dialogue, (s) => s.look);

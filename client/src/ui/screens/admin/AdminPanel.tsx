@@ -1,30 +1,22 @@
 /** The server does each cheat (and ignores them in production); the time of day is only drawn, so it is set here. */
 import { useState, type ReactNode } from "react";
-import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, type Cheat, type DayChange } from "@infinite-tower/shared";
-import type { Actions } from "../../../core/actions.js";
-import type { Mode } from "../../../game/transition.js";
+import { ENEMY_IDS, GODS, ITEM_IDS, ITEMS, type Cheat } from "@infinite-tower/shared";
 import { NO_FOCUS } from "../../components/noFocus.js";
 import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
-import type { AdminState } from "../../state.js";
-import type { Store } from "../../store.js";
+import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
 import { DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS } from "./admin.js";
-
-interface AdminPanelProps {
-  admin: Store<AdminState>;
-  mode: Mode | null;
-  input: Actions;
-  cheat: (cheat: Cheat) => void;
-  setDayClock: (change: DayChange) => void;
-}
 
 const CHIP =
   "cursor-pointer rounded-sm border border-white/20 px-2 py-0.5 enabled:hover:border-white/50 "
   + "enabled:hover:bg-white/10 disabled:cursor-default disabled:opacity-35";
 const CHIP_ON = "cursor-pointer rounded-sm border border-victory/70 bg-victory/15 px-2 py-0.5 text-victory";
 
-export function AdminPanel({ admin, mode, input, cheat, setDayClock }: AdminPanelProps) {
+export function AdminPanel() {
+  const { ui: { admin, screen }, input, actions: { request, setDayClock } } = useGame();
+  const mode = useStore(screen, (s) => s.mode);
+  const cheat = (cheat: Cheat) => request({ t: "cheat", cheat });
   const open = useStore(admin, (s) => s.open);
   const invulnerable = useStore(admin, (s) => s.invulnerable);
   const [speed, setSpeed] = useState<number>(1);

@@ -1,22 +1,15 @@
-import {
-  coreStats, NO_PILE, type Gear, type Skill, type Spot, type UseSpot, type WeaponId,
-} from "@infinite-tower/shared";
+import { coreStats, NO_PILE, type Gear } from "@infinite-tower/shared";
 import { useMemo } from "react";
-import type { Actions } from "../../core/actions.js";
-import type { KeyBindings } from "../../settings/bindings.js";
-import type { HudSettings } from "../../settings/hud.js";
+import { useGame } from "../context.js";
 import { Bar } from "../components/Bar.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { PlayerBars } from "../components/PlayerBars.js";
 import { BUTTON } from "../components/styles.js";
 import { keyName } from "../keyNames.js";
-import type { ChantState } from "../skills/chant.js";
 import { useAction } from "../components/useAction.js";
 import { ChantPopup } from "../skills/ChantPopup.js";
 import { Hotbar } from "../skills/Hotbar.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
-import type { BattleHudState, PingState, SettingsScreenState, SkillsState, YouState } from "../state.js";
-import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
 import { InteractButton } from "./InteractButton.js";
@@ -24,88 +17,48 @@ import { InventoryPanel } from "./inventory/InventoryPanel.js";
 import { Ping } from "./Ping.js";
 import { StatusRow } from "./StatusRow.js";
 
-type HudProps = { hud: Store<BattleHudState> };
-
 /** The dark band behind the result, fading out above and below. */
 const RESULT_BAND = "bg-[linear-gradient(transparent,#000b_25%,#000b_75%,transparent)]";
 
-interface BattleHudProps extends HudProps {
-  bindings: KeyBindings;
-  ping: Store<PingState>;
-  hudSettings: HudSettings;
-  skills: Store<SkillsState>;
-  chant: Store<ChantState>;
-  input: Actions;
-  castSkill: (skill: Skill) => void;
-  saveSkill: (page: number, skill: Skill) => void;
-  interact: () => void;
-  leaving: LeavingProps;
-  bag: BagProps;
-}
-
-interface LeavingProps {
-  asking: Store<{ asking: boolean }>;
-  leave: () => void;
-}
-
-interface BagProps {
-  open: Store<{ open: boolean }>;
-  toggle: () => void;
-  close: () => void;
-  you: Store<YouState>;
-  settingsScreen: Store<SettingsScreenState>;
-  skillbookScreen: Store<{ open: boolean }>;
-  moveItem: (from: Spot, to: Spot, turned: boolean) => void;
-  tooWeak: (item: WeaponId) => void;
-  useItem: (at: UseSpot) => void;
-}
-
-export function BattleHud(props: BattleHudProps) {
-  const { hud, bindings, ping, hudSettings, skills } = props;
+export function BattleHud() {
+  const { ui: { battle: hud }, input, actions } = useGame();
   const dropInView = useStore(hud, (s) => s.dropInView);
-  useAction(props.input, ["interact"], (_action, repeat) => {
-    if (!repeat) props.interact();
+  useAction(input, ["interact"], (_action, repeat) => {
+    if (!repeat) actions.interact();
   });
   return (
     <HudLayer id="battle-hud">
-      <Vitals hud={hud} />
+      <Vitals />
       <div className="absolute top-3 right-4">
-        <Ping ping={ping} hud={hudSettings} />
+        <Ping />
       </div>
-      <BossBar hud={hud} />
-      <Hotbar skills={skills} bindings={bindings} />
-      <ResultBanner hud={hud} bindings={bindings} />
-      <ArenaTimer hud={hud} bindings={bindings} />
-      <InteractButton interaction={dropInView ? "openPile" : null} interact={props.interact} />
-      <ChantPopup
-        chant={props.chant} skills={skills} hud={hud} input={props.input} cast={props.castSkill} save={props.saveSkill}
-      />
-      <BattleBag {...props.bag} hud={hud} input={props.input} skills={skills} saveSkill={props.saveSkill} />
-      <LeaveArena {...props.leaving} input={props.input} />
+      <BossBar />
+      <Hotbar />
+      <ResultBanner />
+      <ArenaTimer />
+      <InteractButton interaction={dropInView ? "openPile" : null} interact={actions.interact} />
+      <ChantPopup />
+      <BattleBag />
+      <LeaveArena />
     </HudLayer>
   );
 }
 
 const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
 
-type BattleBagProps = BagProps & HudProps & {
-  input: Actions;
-  skills: Store<SkillsState>;
-  saveSkill: (page: number, skill: Skill) => void;
-};
-
-function BattleBag(props: BattleBagProps) {
-  const { hud, input, skillbookScreen } = props;
-  const open = useStore(props.open, (s) => s.open);
-  const bookOpen = useStore(skillbookScreen, (s) => s.open);
+function BattleBag() {
+  const { ui, input } = useGame();
+  const { battle: hud, you } = ui;
+  const open = useStore(ui.battleBag, (s) => s.open);
+  const bookOpen = useStore(ui.skillbookScreen, (s) => s.open);
   const carried = useStore(hud, (s) => s.carried);
   const afterFight = useStore(hud, (s) => s.afterFight);
-  const served = useStore(props.you, (s) => s.gear);
+  const served = useStore(you, (s) => s.gear);
   const writingPage = useStore(hud, (s) => s.writingPage);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const usingInFight = useStore(hud, (s) => s.using);
-  const usingServed = useStore(props.you, (s) => s.using);
-  const core = useStore(props.you, (s) => s.core);
+  const usingServed = useStore(you, (s) => s.using);
+  const core = useStore(you, (s) => s.core);
   const stats = useMemo(() => core && coreStats(core), [core]);
   // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
   const gear = useMemo(
@@ -113,27 +66,22 @@ function BattleBag(props: BattleBagProps) {
     [afterFight, served, carried],
   );
   useAction(input, ["inventory"], (_action, repeat) => {
-    if (!repeat && (open || hud.get().result === "fighting" || hud.get().afterFight)) props.toggle();
+    if (!repeat && (open || hud.get().result === "fighting" || hud.get().afterFight)) ui.toggleBattleBag();
   });
   if (!open) return null;
   return (
     <>
       <InventoryPanel
-        gear={gear} stats={stats} canHeal={!fullHp} using={afterFight ? usingServed : usingInFight} input={input}
-        settingsScreen={props.settingsScreen} use={props.useItem} move={props.moveItem} tooWeak={props.tooWeak}
-        openSkillbook={() => skillbookScreen.set({ open: true })} close={props.close}
+        gear={gear} stats={stats} canHeal={!fullHp} using={afterFight ? usingServed : usingInFight}
+        close={ui.closeBattleBag}
       />
-      {bookOpen && (
-        <SkillbookScreen
-          skills={props.skills} input={input} save={props.saveSkill} writingPage={writingPage}
-          close={() => skillbookScreen.set({ open: false })}
-        />
-      )}
+      {bookOpen && <SkillbookScreen writingPage={writingPage} />}
     </>
   );
 }
 
-function ArenaTimer({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
+function ArenaTimer() {
+  const { ui: { battle: hud }, settings: { bindings } } = useGame();
   const afterFight = useStore(hud, (s) => s.afterFight);
   const secondsLeft = useStore(hud, (s) => s.arenaSecondsLeft);
   const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);
@@ -149,7 +97,9 @@ function ArenaTimer({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
   );
 }
 
-function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions }) {
+function LeaveArena() {
+  const { ui: { leaveArena: asking }, input, actions } = useGame();
+  const leave = () => actions.leaveBattle(true);
   const open = useStore(asking, (s) => s.asking);
   const stay = () => asking.set({ asking: false });
   useAction(input, ["leave", "stayInArena"], (action, repeat) => {
@@ -182,7 +132,8 @@ function LeaveArena({ asking, leave, input }: LeavingProps & { input: Actions })
   );
 }
 
-function Vitals({ hud }: HudProps) {
+function Vitals() {
+  const hud = useGame().ui.battle;
   const hpFraction = useStore(hud, (s) => s.hpFraction);
   const staminaFraction = useStore(hud, (s) => s.staminaFraction);
   const hp = useStore(hud, (s) => s.hp);
@@ -196,7 +147,8 @@ function Vitals({ hud }: HudProps) {
   );
 }
 
-function BossBar({ hud }: HudProps) {
+function BossBar() {
+  const hud = useGame().ui.battle;
   const name = useStore(hud, (s) => s.enemyName);
   const hpFraction = useStore(hud, (s) => s.enemyHpFraction);
   const alive = useStore(hud, (s) => s.enemyAlive);
@@ -219,7 +171,8 @@ function BossBar({ hud }: HudProps) {
   );
 }
 
-function ResultBanner({ hud, bindings }: HudProps & { bindings: KeyBindings }) {
+function ResultBanner() {
+  const { ui: { battle: hud }, settings: { bindings } } = useGame();
   const result = useStore(hud, (s) => s.result);
   const show = useStore(hud, (s) => s.showResult);
   const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);

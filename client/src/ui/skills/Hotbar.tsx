@@ -1,13 +1,12 @@
-import type { KeyBindings } from "../../settings/bindings.js";
+import { useGame } from "../context.js";
 import { keyName } from "../keyNames.js";
-import type { SkillsState } from "../state.js";
-import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { skillText } from "./chant.js";
 
 const PAGE_KEYS = ["skill1", "skill2", "skill3", "skill4"] as const;
 
-export function Hotbar({ skills, bindings }: { skills: Store<SkillsState>; bindings: KeyBindings }) {
+export function Hotbar() {
+  const { ui: { skills }, settings: { bindings } } = useGame();
   const book = useStore(skills, (s) => s.book);
   const keys = useStore(bindings, (s) => s.battle);
   return (
