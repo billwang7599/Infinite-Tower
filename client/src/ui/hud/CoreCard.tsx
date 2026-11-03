@@ -6,7 +6,7 @@ import type { Mode } from "../../game/transition.js";
 import { LookPicture } from "../components/LookPicture.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import type { GameEvent } from "../notifications/say.js";
-import type { BattleHudState, OverworldHudState } from "../state.js";
+import type { BattleHudState, YouState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { CORE_CARD_LEFT_PX, CORE_CARD_WIDTH_PX } from "./layout.js";
@@ -22,17 +22,17 @@ const BREAKTHROUGH_SHOWN_MS = BREAKTHROUGH.endTime * 1000 + 1500;
 
 interface CoreCardProps {
   mode: Mode | null;
-  overworld: Store<OverworldHudState>;
+  you: Store<YouState>;
   battle: Store<BattleHudState>;
   said: Store<{ event: GameEvent | null }>;
 }
 
-export function CoreCard({ mode, overworld, battle, said }: CoreCardProps) {
-  const look = useStore(overworld, (s) => s.character?.look);
-  const name = useStore(overworld, (s) => s.character?.name);
-  const overworldCore = useStore(overworld, (s) => s.core);
+export function CoreCard({ mode, you, battle, said }: CoreCardProps) {
+  const look = useStore(you, (s) => s.character?.look);
+  const name = useStore(you, (s) => s.character?.name);
+  const savedCore = useStore(you, (s) => s.core);
   const battleCore = useStore(battle, (s) => s.core);
-  const core = mode === "battle" ? battleCore ?? overworldCore : overworldCore;
+  const core = mode === "battle" ? battleCore ?? savedCore : savedCore;
   const [sphere] = useState(() => new CoreSphere());
   const [turned, setTurned] = useState(false);
   const [breakthroughAt, setBreakthroughAt] = useState<number | null>(null);

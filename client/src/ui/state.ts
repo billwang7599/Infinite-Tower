@@ -40,20 +40,23 @@ export interface TitleState {
 /** A game is running and the title has cleared off it: only then do the HUDs show and anything take keys. */
 export const inWorld = (mode: Mode | null, phase: TitleState["phase"]): boolean => mode !== null && phase === "playing";
 
-export interface OverworldHudState {
-  regionName: string;
-  wins: number;
-  hpFraction: number;
-  staminaFraction: number;
+export interface YouState {
+  /** null until they've made one. */
+  character: Character | null;
   /** null before `welcome`. */
   core: CoreState | null;
   faith: Faith;
-  byFire: boolean;
-  /** null until they've made one. */
-  character: Character | null;
-  interaction: Interaction | null;
   gear: Gear;
   using: UseSpot | null;
+  wins: number;
+}
+
+export interface OverworldHudState {
+  regionName: string;
+  hpFraction: number;
+  staminaFraction: number;
+  byFire: boolean;
+  interaction: Interaction | null;
   /** The camera's quarter turns right from north, unwrapped. */
   cameraTurns: number;
 }
@@ -191,13 +194,15 @@ export class UiState {
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
-  readonly overworld = new Store<OverworldHudState>({
-    regionName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, core: null, faith: {},
-    byFire: false, character: null, interaction: null, using: null, cameraTurns: 0,
+  readonly you = new Store<YouState>({
+    character: null, core: null, faith: {}, using: null, wins: 0,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
       equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
     },
+  });
+  readonly overworld = new Store<OverworldHudState>({
+    regionName: "…", hpFraction: 1, staminaFraction: 1, byFire: false, interaction: null, cameraTurns: 0,
   });
   readonly battle = new Store<BattleHudState>({
     hpFraction: 1, staminaFraction: 1, hp: 0, hpMax: 0, statuses: [], enemyName: "", enemyHpFraction: 1,

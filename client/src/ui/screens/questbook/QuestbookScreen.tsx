@@ -1,14 +1,14 @@
 import type { Bag, QuestHalf, QuestView } from "@infinite-tower/shared";
 import type { Actions } from "../../../core/actions.js";
 import { useAction } from "../../components/useAction.js";
-import type { OverworldHudState, QuestbookState } from "../../state.js";
+import type { QuestbookState, YouState } from "../../state.js";
 import type { Store } from "../../store.js";
 import { useStore } from "../../useStore.js";
 import { tallyText } from "./tally.js";
 
 interface QuestbookProps {
   questbook: Store<QuestbookState>;
-  overworld: Store<OverworldHudState>;
+  you: Store<YouState>;
   input: Actions;
   toggle: () => void;
   close: () => void;
@@ -19,10 +19,10 @@ const HALVES: readonly { half: QuestHalf; title: string }[] = [
   { half: "side", title: "Side quests" },
 ];
 
-export function QuestbookScreen({ questbook, overworld, input, toggle, close }: QuestbookProps) {
+export function QuestbookScreen({ questbook, you, input, toggle, close }: QuestbookProps) {
   const open = useStore(questbook, (s) => s.open);
   const quests = useStore(questbook, (s) => s.quests);
-  const bag = useStore(overworld, (s) => s.gear.bag);
+  const bag = useStore(you, (s) => s.gear.bag);
   useAction(input, ["questbook", "closeQuestbook"], (action, repeat) => {
     if (repeat) return;
     if (action === "questbook") toggle();

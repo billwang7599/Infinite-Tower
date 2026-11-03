@@ -20,9 +20,11 @@ export async function prepareGame(ui: UiState, settings: Settings, actions: Acti
     actions, settings, hud: ui.battle, skills: ui.skills, chant: ui.chant, bag: ui.battleBag,
     onLeave: () => game.leaveBattle(),
   });
-  const overworld = createOverworld({ world: new World(), actions, hud: ui.overworld, camera: settings.camera });
+  const overworld = createOverworld({
+    world: new World(), actions, hud: ui.overworld, you: ui.you, camera: settings.camera,
+  });
   const drawing = createDrawing(document.getElementById("game") as HTMLCanvasElement, {
-    look: () => ui.overworld.get().character?.look ?? null,
+    look: () => ui.you.get().character?.look ?? null,
     battle: battle.ctx,
     overworld: overworld.state,
   });

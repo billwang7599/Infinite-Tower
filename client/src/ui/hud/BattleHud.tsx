@@ -15,7 +15,7 @@ import { useAction } from "../components/useAction.js";
 import { ChantPopup } from "../skills/ChantPopup.js";
 import { Hotbar } from "../skills/Hotbar.js";
 import { SkillbookScreen } from "../skills/SkillbookScreen.js";
-import type { BattleHudState, OverworldHudState, PingState, SettingsScreenState, SkillsState } from "../state.js";
+import type { BattleHudState, PingState, SettingsScreenState, SkillsState, YouState } from "../state.js";
 import type { Store } from "../store.js";
 import { useStore } from "../useStore.js";
 import { HudLayer } from "./HudLayer.js";
@@ -52,7 +52,7 @@ interface BagProps {
   open: Store<{ open: boolean }>;
   toggle: () => void;
   close: () => void;
-  overworld: Store<OverworldHudState>;
+  you: Store<YouState>;
   settingsScreen: Store<SettingsScreenState>;
   skillbookScreen: Store<{ open: boolean }>;
   moveItem: (from: Spot, to: Spot, turned: boolean) => void;
@@ -100,12 +100,12 @@ function BattleBag(props: BattleBagProps) {
   const bookOpen = useStore(skillbookScreen, (s) => s.open);
   const carried = useStore(hud, (s) => s.carried);
   const afterFight = useStore(hud, (s) => s.afterFight);
-  const served = useStore(props.overworld, (s) => s.gear);
+  const served = useStore(props.you, (s) => s.gear);
   const writingPage = useStore(hud, (s) => s.writingPage);
   const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
   const usingInFight = useStore(hud, (s) => s.using);
-  const usingServed = useStore(props.overworld, (s) => s.using);
-  const core = useStore(props.overworld, (s) => s.core);
+  const usingServed = useStore(props.you, (s) => s.using);
+  const core = useStore(props.you, (s) => s.core);
   const stats = useMemo(() => core && coreStats(core), [core]);
   // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
   const gear = useMemo(
