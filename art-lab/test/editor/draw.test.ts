@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { blank, getPixel, setPixel, type Rgba } from "../../src/editor/bitmap.js";
-import { floodFill, linePoints, rectPoints, wrapShift } from "../../src/editor/draw.js";
+import { floodFill, linePoints, paint, rectPoints, wrapShift } from "../../src/editor/draw.js";
 
 const RED: Rgba = [255, 0, 0, 255];
 const BLUE: Rgba = [0, 0, 255, 255];
@@ -48,4 +48,15 @@ test("shifting wraps what leaves one side round to the other", () => {
   wrapShift(b, 2, 1);
   assert.deepEqual(getPixel(b, 1, 0), RED);
   assert.deepEqual(getPixel(b, 3, 1), [0, 0, 0, 0]);
+});
+
+test("with a selection, painting and filling stay inside it", () => {
+  const clip = { x: 1, y: 1, w: 2, h: 2 };
+  const b = blank(4, 4);
+  paint(b, linePoints(0, 1, 3, 1), RED, clip);
+  assert.deepEqual([0, 1, 2, 3].map((x) => getPixel(b, x, 1)[3]), [0, 255, 255, 0]);
+  const c = blank(4, 4);
+  floodFill(c, 1, 1, BLUE, clip);
+  assert.equal(c.rgba.filter((_, i) => i % 4 === 3 && c.rgba[i] === 255).length, 4);
+  assert.deepEqual(getPixel(c, 0, 0), [0, 0, 0, 0]);
 });

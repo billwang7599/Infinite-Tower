@@ -4,7 +4,8 @@ import { VIEWS, type BattleFacing, type Picture } from "../gfx/look/art.js";
 import { SWORD_POSES, type Pose, type SwordPose } from "../gfx/look/battle.js";
 import { battleBody, CHIBI_FACINGS, drawBattle, drawChibi, type ChibiFacing } from "../gfx/look/look.js";
 import type { Point } from "../gfx/look/pixels.js";
-import { SPRITE_PX, type Px, type SpriteDraw } from "./sprites.js";
+import { SPRITE_PX } from "../gfx/grid.js";
+import type { Px, SpriteDraw } from "./sprites.js";
 
 /** How many frames each of the arena's poses has. */
 export const BATTLE_FRAMES: Record<Pose | SwordPose, number> = { stand: 1, slash: 1, down: 1, ...SWORD_POSES };

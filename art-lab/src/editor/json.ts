@@ -1,10 +1,7 @@
-import { START_FPS, type Doc, type Layer, type Project } from "./layers.js";
+import { MAX_FPS, MAX_SIDE, START_FPS, type Doc, type Layer, type Project } from "./layers.js";
 import { MODES, type Mode } from "./modes.js";
 
-const MAX_SIDE = 512;
-const MAX_FPS = 60;
-
-const toBase64 = (bytes: Uint8ClampedArray) => {
+export const toBase64 = (bytes: Iterable<number>) => {
   let text = "";
   for (const byte of bytes) text += String.fromCharCode(byte);
   return btoa(text);

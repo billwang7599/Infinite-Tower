@@ -1,6 +1,6 @@
 import { Mesh, VertexBuffer, VertexData, type Scene, type TransformNode } from "@babylonjs/core";
 import { mapHalfSize, tileAt, type LevelMap } from "@infinite-tower/shared";
-import { PX_PER_TILE } from "../../gfx/tile.js";
+import { PX_PER_TILE } from "../../gfx/grid.js";
 import { WATER_DEPTH_TILES, waterMap } from "../../modes/overworld/water.js";
 import { setWater, waterMaterial, type WaterLook } from "./water.js";
 

@@ -1,5 +1,5 @@
 import { mapHalfSize, seededRandom, tileAt, type LevelMap, type TileKind } from "@infinite-tower/shared";
-import { PX_PER_TILE } from "../../gfx/tile.js";
+import { PX_PER_TILE } from "../../gfx/grid.js";
 import type { Pen } from "../overworld/props.js";
 import type { Prop, PropKind } from "../overworld/scenery.js";
 

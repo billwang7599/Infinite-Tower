@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getPixel, setPixel } from "../../src/editor/bitmap.js";
+import { blank, getPixel, setPixel } from "../../src/editor/bitmap.js";
 import {
-  PARTS, addLayer, addPage, composite, movePage, moveLayer, newDoc, newProject, removeLayer, removePage, setLayer,
+  PARTS, addLayer, addPage, composite, movePage, moveLayer, newDoc, newProject, projectOf, removeLayer, removePage,
+  setLayer,
 } from "../../src/editor/layers.js";
 
 test("a new drawing has a layer per part, bottom to top", () => {
@@ -75,4 +76,35 @@ test("pages move and are removed, keeping at least one", () => {
   removePage(project, 0);
   removePage(project, 0);
   assert.equal(project.pages.length, 1);
+});
+
+const named = (name: string, width: number, height: number, mark: number) => {
+  const pixels = blank(width, height);
+  setPixel(pixels, width - 1, height - 1, [mark, 0, 0, 255]);
+  return { name, pixels };
+};
+
+test("pictures become the layers of one page, the first at the bottom, each as drawn", () => {
+  const p = projectOf([named("body", 2, 2, 1), named("hair", 2, 2, 2)], "layers");
+  assert.equal(p.pages.length, 1);
+  assert.deepEqual(p.pages[0]!.layers.map((l) => l.name), ["body", "hair"]);
+  assert.deepEqual(getPixel(p.pages[0]!.layers[1]!.pixels, 1, 1), [2, 0, 0, 255]);
+});
+
+test("pictures become pages, one layer each, named after them", () => {
+  const p = projectOf([named("walk 1", 2, 2, 1), named("walk 2", 2, 2, 2)], "pages");
+  assert.deepEqual(p.pages.map((d) => d.name), ["walk 1", "walk 2"]);
+  assert.ok(p.pages.every((d) => d.layers.length === 1));
+  assert.deepEqual(getPixel(p.pages[1]!.layers[0]!.pixels, 1, 1), [2, 0, 0, 255]);
+});
+
+test("pictures of different sizes fit the biggest, each at the top left, unscaled", () => {
+  const p = projectOf([named("small", 1, 1, 1), named("big", 3, 2, 2)], "pages");
+  assert.deepEqual([p.pages[0]!.width, p.pages[0]!.height], [3, 2]);
+  assert.deepEqual(getPixel(p.pages[0]!.layers[0]!.pixels, 0, 0), [1, 0, 0, 255]);
+  assert.deepEqual(getPixel(p.pages[0]!.layers[0]!.pixels, 1, 1), [0, 0, 0, 0]);
+});
+
+test("a picture bigger than a drawing can be is refused", () => {
+  assert.throws(() => projectOf([{ name: "huge", pixels: blank(1024, 8) }], "pages"));
 });

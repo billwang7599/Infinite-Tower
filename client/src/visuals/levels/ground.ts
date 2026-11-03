@@ -1,4 +1,4 @@
-import { PX_PER_TILE } from "../../gfx/tile.js";
+import { PX_PER_TILE } from "../../gfx/grid.js";
 import type { Pen } from "../overworld/props.js";
 import type { GroundPaint } from "./tiles.js";
 

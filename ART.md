@@ -227,24 +227,33 @@ then outlines every layer except `face` (eyes, brows and mouth carry their own l
 
 ## The pixel editor
 
-The art lab (`npm run art`, http://localhost:5175, the Pixel editor tab) draws art by hand, for export only: nothing
-it makes goes into the game yet, and nothing is kept in the browser, so save the drawing as a file.
+The art lab (`npm run art`, http://localhost:5175, the Pixel editor tab) draws art by hand: nothing it makes goes
+into the game yet, and nothing is kept in the browser, so save the drawing as a file.
 
 - **Canvas**: the game's view sizes (portrait 64x64, chibi 32x32, battle 64x64, from `VIEWS`) or any size up to
-  512x512. The mouse wheel zooms, the middle or right button (or the Pan tool) drags it about, and a grid shows from
-  6x, stronger every 8 pixels.
-- **Tools**: pencil, eraser, fill (the touching pixels of one color), eyedropper (from what shows), line, rectangle
-  (filled with Shift or the checkbox), and select, whose box moves what's under it on the layer when dragged from
-  inside; the selection can be cleared, moved to a new layer or cropped to. Undo and redo keep 100 steps. There are no
-  keyboard shortcuts: the game owns the only key listener (`client/src/core/keyboard.ts`).
+  512x512. The mouse wheel zooms a step a notch (a trackpad swipe steps once, then again only as it goes on), as do
+  + and -; the middle or right button, Space held, or the Pan tool drags it about; a grid shows from 6x, stronger
+  every 8 pixels.
+- **Tools**: pencil (B), eraser (E), fill (G: the touching pixels of one color), eyedropper (I: from what shows),
+  line (L), rectangle (U: filled with Shift or the checkbox), and select (M), whose box moves what's under it on the
+  layer when dragged from inside. While there's a selection, drawing stays inside it. Ctrl (or ⌘) + C, X and V copy,
+  cut and paste it; a paste, or a selection being moved, floats over the layer until something else is drawn, so it
+  passes over what's under it. The arrows nudge it (Shift: 8 pixels), Delete clears it, Ctrl+A selects everything,
+  Esc or Ctrl+D drops the selection; it can also be moved to a new layer or cropped to. Ctrl+Z undoes, Ctrl+Shift+Z
+  or Ctrl+Y redoes, 100 steps. These keys are the lab's own and fixed (the game's keys come from its bindings), and
+  they do nothing while typing in a box.
 - **Colors**: every ramp in `palette.ts`, swatch by swatch, and any other color from a picker.
 - **Layers**: body, outfit, head, face and hair to start, plus free ones; each can be shown or hidden, renamed,
   moved up or down, faded, deleted and exported on its own.
-- **Importing** a photo or picture (Import image, or drop it on the canvas): fitted inside the canvas, filling it
-  cropped, or stretched; scaled smoothed or nearest-neighbour; and snapped to the game's ramps (pixels under half
-  opacity dropped) so it reads as this game's art. It lands on a new layer, to trace over or paint into by hand.
+- **Your own sprites**: Open PNG (or PNGs dropped on the canvas) opens them pixel for pixel as a new drawing: no
+  resizing, no blur, no snapping. Given a cell size, a sheet is split into frames (or tiles, in the Tiles mode),
+  left to right then down, leaving out the empty cells it ends with; several PNGs at once become frames or layers,
+  each at the top left of the biggest.
+- **Importing a photo** (Import photo, or another kind of image dropped on the canvas): fitted inside the canvas,
+  filling it cropped, or stretched; scaled smoothed or nearest-neighbour; and snapped to the game's ramps (pixels under
+  half opacity dropped) so it reads as this game's art. It lands on a new layer, to trace over or paint into by hand.
   "Add the look's picture" puts the Characters tab's look on a layer the same way.
-- **Tiles** (the Tiles mode): a tile is the overworld's tile size, 16x16 (`PX_PER_TILE`, `client/src/gfx/tile.ts`),
+- **Tiles** (the Tiles mode): a tile is the overworld's tile size, 16x16 (`PX_PER_TILE`, `client/src/gfx/grid.ts`),
   with a ground and a detail layer to start. The preview repeats it 3x3 so seams show, and "Shift by half" wraps it
   round by half its size to bring the edges into the middle to paint them. A tileset is several tiles, each named,
   sharing their layers (a new tile is blank, Duplicate copies one); Export sheet makes one PNG, 8 tiles a row, and a
@@ -254,6 +263,15 @@ it makes goes into the game yet, and nothing is kept in the browser, so save the
   under the one you're drawing. Play loops the frames in the preview at the set fps (8 to start, 1 to 60), while
   the canvas stays editable. Export sheet makes one PNG, 8 frames a row, and a JSON with the frame size, the fps and
   each frame's name and place (`frames`).
-- **Out**: the whole picture as a PNG, each layer as its own, and the project as a JSON file (its mode, every page,
-  every layer's name, whether it shows, its opacity, its pixels) that Open loads back, switching to its mode. A
-  dropped .json opens too. Each mode keeps its own project while you switch between them.
+- **Templates**: New from template starts a drawing from the art the game draws today, drawn by the game's own code:
+  the portrait in each body type and face shape, the chibi facing each way, the battle sprite in every pose (its
+  frames as an animation), the NPCs' portraits, the enemies' overworld sprites, each level's tiles as a tileset, the
+  props and the items; and from any saved drawing, as a copy.
+- **Saving**: Save (Ctrl+S) writes the drawing, under the name in the box, into `art-lab/files/` as `name.json` (its
+  mode, every page, every layer's name, whether it shows, its opacity, its pixels) and `name.png` (the picture, or
+  every page as a sheet), and downloads the PNG too. The folder is meant to be committed; `ART_LAB_FILES_DIR` in
+  .env points it elsewhere (a lab run from another copy can save into the main checkout). Open lists what's there.
+  There's no autosave. Without the dev server (a built lab) Save only downloads.
+- **Out**: the whole picture as a PNG, each layer as its own, a sheet, and the project's JSON as a download; Open
+  file loads a JSON back, switching to its mode (a dropped .json opens too). Each mode keeps its own project while
+  you switch between them.

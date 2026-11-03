@@ -199,7 +199,7 @@ npm start          # production: build the client; the server serves it + /ws + 
 npm test           # unit tests (shared, server, client, art lab); no database needed. CI runs typecheck, test, build
 npm run typecheck  # shared, server, client, the art lab and their tests, then the server's layering (server/scripts/check-layers.ts)
 npm run build      # the client bundle (and the art lab's, to check it builds)
-npm run art        # the art lab on http://localhost:5175: the character art, and a pixel editor
+npm run art        # the art lab on http://localhost:5175: the character art, and a pixel editor (saves to art-lab/files)
 npm run db:up      # start the database (and wait until it's ready); db:down stops it, data is kept
 npm run db:reset   # delete all its data, then seed it again
 npm run db:seed    # add the dev accounts if they're missing: test1, test2, test3, user (password = username)

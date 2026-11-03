@@ -1,4 +1,5 @@
 import { getPixel, inside, sameColor, setPixel, type Bitmap, type Rgba } from "./bitmap.js";
+import { inRect, type Rect } from "./selection.js";
 
 export type Point = readonly [number, number];
 
@@ -28,18 +29,19 @@ export function rectPoints(x0: number, y0: number, x1: number, y1: number, fille
   return points;
 }
 
-export function paint(b: Bitmap, points: readonly Point[], c: Rgba): void {
-  for (const [x, y] of points) setPixel(b, x, y, c);
+export function paint(b: Bitmap, points: readonly Point[], c: Rgba, clip: Rect | null = null): void {
+  for (const [x, y] of points) if (!clip || inRect(clip, x, y)) setPixel(b, x, y, c);
 }
 
-export function floodFill(b: Bitmap, x: number, y: number, c: Rgba): void {
-  if (!inside(b, x, y)) return;
+export function floodFill(b: Bitmap, x: number, y: number, c: Rgba, clip: Rect | null = null): void {
+  const within = (px: number, py: number) => inside(b, px, py) && (!clip || inRect(clip, px, py));
+  if (!within(x, y)) return;
   const target = getPixel(b, x, y);
   if (sameColor(target, c)) return;
   const stack: Point[] = [[x, y]];
   while (stack.length > 0) {
     const [px, py] = stack.pop()!;
-    if (!inside(b, px, py) || !sameColor(getPixel(b, px, py), target)) continue;
+    if (!within(px, py) || !sameColor(getPixel(b, px, py), target)) continue;
     setPixel(b, px, py, c);
     stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
   }

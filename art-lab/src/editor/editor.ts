@@ -1,8 +1,10 @@
 import type { Look } from "@infinite-tower/client/src/gfx/look/look.js";
 import { BUTTON, caption, el } from "../dom.js";
 import { colors } from "./colors.js";
-import { exportLayer, openFile } from "./fileIo.js";
+import { runCommand } from "./commands.js";
+import { exportLayer, listSaved, openFiles, saveDrawing } from "./fileIo.js";
 import { filePanel } from "./filePanel.js";
+import { commandFor, typingIn } from "./keys.js";
 import { layerList } from "./layerList.js";
 import { composite } from "./layers.js";
 import { MODES, MODE_LOOKS } from "./modes.js";
@@ -26,13 +28,20 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
   const modes = el("div", "display:flex;gap:6px;margin-bottom:12px");
   const tools = el("div");
   const status = el("div", "font-size:12px;color:#9a9cb0;min-height:16px");
-  const error = el("div", "font-size:12px;color:#e07070");
+  const message = el("div", "font-size:12px;min-height:16px");
   const preview = el("div", "display:flex;gap:16px;align-items:end;flex-wrap:wrap");
   const side = el("div", "display:flex;flex-direction:column;gap:12px;min-width:420px;flex:1");
-  const report = (e: unknown) => { error.textContent = e instanceof Error ? e.message : String(e); };
+  const say = (text: string, color = "#9ad6a0") => {
+    message.textContent = text;
+    message.style.color = color;
+  };
+  const report = (e: unknown) => say(e instanceof Error ? e.message : String(e), "#e07070");
+  let saved: string[] = [];
+  const refreshSaved = () => listSaved().then((names) => { saved = names; ed.changed(); });
+  const save = () => saveDrawing(ed).then((text) => { say(text); return refreshSaved(); }).catch(report);
 
   const left = el("div", `display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:${VIEW_PX}px`);
-  left.append(tools, view.canvas, status, error);
+  left.append(tools, view.canvas, status, message);
   const layout = el("div", "display:flex;gap:20px;align-items:start;flex-wrap:wrap");
   layout.append(left, side);
   root.append(modes, layout);
@@ -40,8 +49,8 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
   view.canvas.ondragover = (e) => e.preventDefault();
   view.canvas.ondrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer?.files[0];
-    if (file) openFile(ed, file).then(() => view.fit(), report);
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length > 0) openFiles(ed, files).then(() => view.fit(), report);
   };
 
   const picture = (scale: number, image = composite(ed.doc)) => {
@@ -87,7 +96,6 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
     drawPixels();
     if (!panels) return;
     if (playback.playing && !looping) play();
-    error.textContent = "";
     modes.replaceChildren(...MODES.map((mode) => {
       const b = el("button", BUTTON, MODE_LOOKS[mode].label);
       if (mode === ed.mode) b.style.background = "#8a6d2a";
@@ -101,8 +109,31 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
       ...(ed.mode === "animation" ? [panel("Frames", pageStrip(ed)), panel("Playback", timeline(ed, view, playback))] : []),
       panel("Color", colors(ed)),
       panel("Layers, top first", layerList(ed, (i) => exportLayer(ed, i))),
-      panel("File", filePanel(ed, look, () => view.fit(), report)),
+      panel("File", filePanel(ed, look, { saved, save, fitView: () => view.fit(), report })),
     );
   });
+  const shown = () => root.offsetParent !== null;
+  document.addEventListener("keydown", (e) => {
+    if (e.key === " " && shown() && !typingIn(e.target as HTMLElement)) {
+      e.preventDefault();
+      view.spaceHeld = true;
+      ed.changed(false);
+    }
+    const command = shown() ? commandFor(e) : null;
+    if (!command) return;
+    if (typingIn(e.target as HTMLElement)) {
+      if (command.do !== "save") return;
+      (e.target as HTMLElement).blur();
+    }
+    e.preventDefault();
+    runCommand(command, ed, view, save);
+  });
+  document.addEventListener("keyup", (e) => {
+    if (e.key !== " " || !view.spaceHeld) return;
+    view.spaceHeld = false;
+    ed.changed(false);
+  });
+  window.addEventListener("blur", () => { view.spaceHeld = false; });
   view.fit();
+  refreshSaved();
 }

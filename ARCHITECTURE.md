@@ -1366,8 +1366,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        SPHERE_PX² RGBA pixels)
       items/           items.ts (drawItem: each item's picture for the bag, 16 pixels a cell, in the same pixel
                        kit as look/)
-      tile.ts          PX_PER_TILE: texels per overworld tile (16), for the ground, props and water, and the art
-                       lab's tile size
+      grid.ts          PX_PER_TILE: texels per overworld tile (16), for the ground, props and water, and the art
+                       lab's tile size; SPRITE_PX: the 24x24 grid sprites (enemies, the campfire) are drawn on
       look/            Character art (ART.md is the style guide): a look drawn as a 64x64 portrait (creation, the
                        character panel, dialogue, the HUD's card), a 32x32 chibi facing front, back or side (the
                        world) and a 64x64 battle sprite from behind and the front in each pose (the arena), in
@@ -1583,7 +1583,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
                        scavenger/, herbalist/, burner/, king/, innkeeper/, carver/, each with look.ts
                        (its name and look, drawn as a player's). index.ts (NpcLook; NPC_LOOKS, one line each)
-      sprites.ts       spriteMaterial, redrawSprite; textures.ts (procedural textures; glowTexture and
+      sprites.ts       spriteMaterial, redrawSprite, pixelCanvas; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
@@ -1666,7 +1666,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the stalls' goods
                          and the forge's flames, the yard's dummies, the quarry's rubble, chips, scrub, carts, cranes
                          and plank hut walls), drawn standing up;
-                         Pen
+                         Pen (a 2D canvas pen). No Babylon, so the art lab draws them too
       levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
                        colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
                        and light, campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and
@@ -1714,33 +1714,41 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          rubble, dry scrub, two lanterns, drifting dust
 
 art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never built into the game or shipped. It
-                 imports the client's character art (`@infinite-tower/client/src/gfx/look/`) and the game's
-                 palette, and nothing imports it. What's drawn in it is exported as files; none of it is wired
-                 into the game yet. No localStorage: work is kept by saving a file.
+                 imports the client's art drawn without Babylon (`gfx/`, the enemies' overworld sprites, tiles,
+                 props, NPC looks) and the game's palette, and nothing imports it. What's drawn in it is saved as
+                 files; none of it is wired into the game yet. No localStorage: work is kept by saving a file.
   index.html       The page
-  vite.config.ts   Dev server :5175
-  test/            Unit tests of the editor's pure logic, mirroring src/
+  vite.config.ts   Dev server :5175; saves go to ART_LAB_FILES_DIR (.env, art-lab/files if unset)
+  fileApi.ts       Dev only: /api/files lists, reads and writes saved drawings (name.json and name.png) in that
+                   folder; names are checked (names.ts), bodies capped
+  files/           Saved drawings, committed to git
+  test/            Unit tests of the editor's pure logic and the file API, mirroring the folder
   src/
     main.ts          The tabs: Characters and Pixel editor (#editor opens it)
     characters.ts    Every look option as the portrait, the chibi facing each way and the battle sprite in each
                      pose and frame, from behind and the front, in either hand; a mock dialogue; random looks
     dom.ts           el, button, select, checkbox, caption: the page's small DOM helpers
     editor/          The pixel editor. Pure logic, tested: bitmap.ts (Bitmap = the art's Picture, pixels, hex),
-                     draw.ts (lines, rectangles, flood fill), resample.ts (nearest and smoothed resizing, fitting
-                     an image to the canvas, snapping to a palette), selection.ts (lift and stamp), layers.ts
-                     (Doc: layers bottom to top, by part plus free ones; compositing with opacity), history.ts
-                     (undo / redo, within a step count and a size), json.ts (a project as JSON), sheet.ts (packing
-                     pictures into a sheet and its JSON, tiling one 3x3, which frame plays when). A project is pages of one size sharing one stack of
-                     layers (layers.ts): one page for a sprite, a page per tile for a tileset, a page per frame (and an
-                     fps) for an animation. modes.ts (MODE_LOOKS:
-                     each mode's name, canvas sizes and starting layers; tiles are PX_PER_TILE square). The page:
-                     state.ts (Editor: a project per mode, the tool, the color, the selection, undo), tools.ts (what
-                     each tool does with the pointer), view.ts (the zoomable, pannable canvas with its grid),
-                     toolbar.ts, colors.ts (the game's ramps and a free picker; palette.ts lists them),
-                     layerList.ts, pageStrip.ts (the tiles or frames: pick, add, copy, reorder, name, delete),
-                     timeline.ts (Playback: play / stop, the fps, onion skin),
-                     filePanel.ts (new, import, export, save, open) over fileIo.ts (decoding, downloads), editor.ts
-                     (the modes, the layout, the previews and playing them, drag-and-drop)
+                     draw.ts (lines, rectangles, flood fill, clipped to the selection), resample.ts (nearest and
+                     smoothed resizing, fitting an image to the canvas, snapping to a palette), selection.ts (copy,
+                     lift and stamp), layers.ts (Doc: layers bottom to top, by part plus free ones; compositing with
+                     opacity; projectOf: pictures as layers or pages), history.ts (undo / redo, within a step count
+                     and a size), json.ts (a project as JSON), sheet.ts (packing pictures into a sheet and its JSON,
+                     splitting one into cells, tiling one 3x3, which frame plays when), keys.ts (the editor's fixed
+                     shortcuts: a key press to a Command), commands.ts (what each Command does: undo, the clipboard,
+                     a pasted or moved selection floating over the layer, nudging), wheel.ts (WheelZoom: a notch or a
+                     trackpad gesture to zoom steps), names.ts (save names). A project is pages of one size sharing
+                     one stack of layers (layers.ts): one page for a sprite, a page per tile for a tileset, a page per
+                     frame (and an fps) for an animation. modes.ts (MODE_LOOKS: each mode's name, canvas sizes and
+                     starting layers; tiles are PX_PER_TILE square). templates.ts (TEMPLATES: the art the game draws
+                     today, by its own code, to start a drawing from). The page: state.ts (Editor: a project per mode,
+                     the tool, the color, the selection and what floats in it, undo), tools.ts (what each tool does
+                     with the pointer), view.ts (the zoomable, pannable canvas with its grid), toolbar.ts, colors.ts
+                     (the game's ramps and a free picker; palette.ts lists them), layerList.ts, pageStrip.ts (the
+                     tiles or frames: pick, add, copy, reorder, name, delete), timeline.ts (Playback: play / stop, the
+                     fps, onion skin), filePanel.ts (save, open, new, templates, own PNGs, photos, export) over
+                     fileIo.ts (decoding, saving to /api/files, downloads), editor.ts (the modes, the layout, the
+                     previews and playing them, drag-and-drop, the shortcuts' key listener)
 ```
 
 ## Adding things

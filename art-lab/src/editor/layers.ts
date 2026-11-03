@@ -1,4 +1,5 @@
 import { blank, copyBitmap, type Bitmap } from "./bitmap.js";
+import { stamp } from "./selection.js";
 
 export const PARTS = ["body", "outfit", "head", "face", "hair"] as const;
 
@@ -9,6 +10,8 @@ export interface Doc { name: string; width: number; height: number; layers: Laye
 export interface Project { pages: Doc[]; page: number; fps: number }
 
 export const START_FPS = 8;
+export const MAX_FPS = 60;
+export const MAX_SIDE = 512;
 
 const newLayer = (name: string, width: number, height: number): Layer =>
   ({ name, visible: true, opacity: 1, pixels: blank(width, height) });
@@ -24,6 +27,21 @@ const copyDoc = (doc: Doc): Doc => ({ ...doc, layers: doc.layers.map((l) => ({ .
 export const copyProject = (p: Project): Project => ({ ...p, pages: p.pages.map(copyDoc) });
 
 export const projectBytes = (p: Project) => p.pages.reduce((sum, d) => sum + d.layers.length * d.width * d.height * 4, 0);
+
+export function projectOf(pictures: readonly { name: string; pixels: Bitmap }[], as: "layers" | "pages"): Project {
+  const width = Math.max(...pictures.map((p) => p.pixels.width));
+  const height = Math.max(...pictures.map((p) => p.pixels.height));
+  if (width > MAX_SIDE || height > MAX_SIDE) throw new Error(`Drawings are at most ${MAX_SIDE}x${MAX_SIDE}; give a cell size`);
+  const layer = ({ name, pixels }: { name: string; pixels: Bitmap }): Layer => {
+    const fitted = blank(width, height);
+    stamp(fitted, pixels, 0, 0);
+    return { ...newLayer(name, width, height), pixels: fitted };
+  };
+  const pages = as === "layers"
+    ? [{ name: "", width, height, layers: pictures.map(layer) }]
+    : pictures.map((p) => ({ name: p.name, width, height, layers: [layer({ ...p, name: "picture" })] }));
+  return { pages, page: 0, fps: START_FPS };
+}
 
 export function addPage(p: Project, after: number, copy = false): number {
   const from = p.pages[after]!;

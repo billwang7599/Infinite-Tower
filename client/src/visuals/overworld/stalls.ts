@@ -1,6 +1,7 @@
 import { Color3, MeshBuilder, StandardMaterial, Texture, Vector4, type DynamicTexture, type Mesh, type Scene } from "@babylonjs/core";
 import { seededRandom } from "@infinite-tower/shared";
-import { pixelCanvas, type Pen } from "./props.js";
+import { pixelCanvas } from "../sprites.js";
+import type { Pen } from "./props.js";
 import type { Awning, Ledge } from "./scenery.js";
 
 const POST_TILES = 0.08;

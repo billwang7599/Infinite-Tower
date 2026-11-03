@@ -1,5 +1,7 @@
 /** Pixel-art materials. Sprite frames are drawn in code on a 24x24 "pixel" grid, side views facing right. */
 import { Color3, DynamicTexture, Material, StandardMaterial, Texture, type Scene } from "@babylonjs/core";
+import { SPRITE_PX } from "../gfx/grid.js";
+import { Pen } from "./overworld/props.js";
 
 export type Px = (x: number, y: number, w: number, h: number, color: string) => void;
 export type SpriteDraw = (px: Px) => void;
@@ -24,8 +26,6 @@ export function redrawSprite(material: StandardMaterial, draw: SpriteDraw): void
   paint(material.diffuseTexture as DynamicTexture, draw);
 }
 
-/** A sprite is SPRITE_PX "pixels" square, each drawn as TEXELS_PER_PX texels. */
-export const SPRITE_PX = 24;
 const TEXELS_PER_PX = 8;
 const TEXTURE_SIZE = SPRITE_PX * TEXELS_PER_PX;
 
@@ -45,4 +45,16 @@ function paint(tex: DynamicTexture, draw: SpriteDraw): void {
     ctx.fillRect(x * TEXELS_PER_PX, y * TEXELS_PER_PX, w * TEXELS_PER_PX, h * TEXELS_PER_PX);
   });
   tex.update();
+}
+
+export function pixelCanvas(
+  scene: Scene, name: string, widthPx: number, heightPx: number, draw: (pen: Pen) => void, alpha = true,
+): DynamicTexture {
+  const tex = new DynamicTexture(name, { width: widthPx, height: heightPx }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  ctx.clearRect(0, 0, widthPx, heightPx);
+  draw(new Pen(ctx));
+  tex.update();
+  tex.hasAlpha = alpha;
+  return tex;
 }
