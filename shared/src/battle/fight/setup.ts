@@ -1,5 +1,5 @@
 /** Who's in a fight, where they start, and building them: components plus a collider each. */
-import type { Entity, World } from "../../core/ecs.js";
+import type { ComponentType, Entity, System, World } from "../../core/ecs.js";
 import type { Vec3 } from "../../core/math.js";
 import type { Character } from "../../character/character.js";
 import type { Burden } from "../../items/burden.js";
@@ -12,14 +12,23 @@ import { HYBRID } from "../../weapons/hybrid.js";
 import type { ArenaDef } from "../../world/arena.js";
 import {
   Body, ChargeAttack, Enemy, Fighter, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, Skilled,
-  SlamAttack, Stamina, Statuses, WeaponAttack, Wielder, type HealthData, type WielderData,
+  SlamAttack, Stamina, Statuses, WeaponAttack, Wielder, type EnemyData, type HealthData, type WeaponAttackData,
+  type WielderData,
 } from "../components.js";
-import type { EnemyAttacks, EnemyDef } from "../defs.js";
+import type {
+  ChargeDef, EnemyAttacks, EnemyDef, LungeDef, PounceDef, SkillAttackDef, SlamDef, WeaponAttackDef,
+} from "../defs.js";
 import { copyInput, IDLE_INPUT, PlayerInput } from "../input.js";
 import { PLAYER, type Vitals } from "../player.js";
 import { FighterStats, maxHpOf, staminaMaxOf, type Stats } from "../stats.js";
 import type { Status, StatusOn } from "../statuses.js";
-import { circleAgain } from "./behaviors/pounce.js";
+import { chargeAttackSystem } from "./behaviors/charge.js";
+import { lungeAttackSystem } from "./behaviors/lunge.js";
+import { circleAgain, pounceAttackSystem } from "./behaviors/pounce.js";
+import { skillAttackSystem } from "./behaviors/skill.js";
+import { slamAttackSystem } from "./behaviors/slam.js";
+import { weaponAttackSystem } from "./behaviors/weapon.js";
+import type { FightContext } from "./context.js";
 import { Layer, type ArenaPhysics } from "./physics/arena-physics.js";
 import { newSkilled } from "./skills/skilled.js";
 import { noStatuses } from "./statuses.js";
@@ -97,23 +106,45 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   return e;
 }
 
-type AddAttack<K extends keyof EnemyAttacks> = (world: World, e: Entity, def: NonNullable<EnemyAttacks[K]>) => void;
-const ATTACKS: { [K in keyof EnemyAttacks]-?: AddAttack<K> } = {
-  lunge: (world, e, def) => { world.add(e, LungeAttack, { def, cooldown: def.firstDelay }); },
-  charge: (world, e, def) => { world.add(e, ChargeAttack, { def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }); },
-  pounce: (world, e, def) => {
-    const pounce = { def, cooldown: 0, side: 1, dir: { x: 0, z: 1 } };
-    circleAgain(pounce, world.require(e, Enemy), def.firstDelay);
-    world.add(e, PounceAttack, pounce);
-  },
-  slam: (world, e, def) => { world.add(e, SlamAttack, { def, cooldown: def.firstDelay }); },
-  weapon: (world, e, def) => {
-    world.add(e, WeaponAttack, {
+interface AttackRow<D, T extends { def: D }> {
+  component: ComponentType<T>;
+  start: (def: D, enemy: EnemyData) => NoInfer<T>;
+  system: (ctx: FightContext) => System;
+}
+const row = <D, T extends { def: D }>(r: AttackRow<D, T>) => r;
+
+export type AttackKind = keyof EnemyAttacks;
+/** The fight's state saves each component but its `def`, so the rest must be plain data. Systems run in this order. */
+export const ATTACKS = {
+  charge: row({
+    component: ChargeAttack, system: chargeAttackSystem,
+    start: (def: ChargeDef) => ({ def, cooldown: def.firstDelay, dir: { x: 0, z: 1 } }),
+  }),
+  lunge: row({
+    component: LungeAttack, system: lungeAttackSystem, start: (def: LungeDef) => ({ def, cooldown: def.firstDelay }),
+  }),
+  pounce: row({
+    component: PounceAttack, system: pounceAttackSystem,
+    start: (def: PounceDef, enemy) => {
+      const pounce = { def, cooldown: 0, side: 1, dir: { x: 0, z: 1 } };
+      circleAgain(pounce, enemy, def.firstDelay);
+      return pounce;
+    },
+  }),
+  slam: row({
+    component: SlamAttack, system: slamAttackSystem, start: (def: SlamDef) => ({ def, cooldown: def.firstDelay }),
+  }),
+  weapon: row({
+    component: WeaponAttack, system: (ctx) => weaponAttackSystem(ctx.events),
+    start: (def: WeaponAttackDef): WeaponAttackData => ({
       def, cooldown: def.firstDelay, swingsLeft: 0, perfectBlockRead: false, riposte: false, feint: false, way: "tb",
-    });
-  },
-  skill: (world, e, def) => { world.add(e, SkillAttack, { def, cooldown: def.firstDelay, toSay: [] }); },
-};
+    }),
+  }),
+  skill: row({
+    component: SkillAttack, system: skillAttackSystem,
+    start: (def: SkillAttackDef) => ({ def, cooldown: def.firstDelay, toSay: [] }),
+  }),
+} satisfies { [K in AttackKind]-?: AttackRow<NonNullable<EnemyAttacks[K]>, { def: NonNullable<EnemyAttacks[K]> }> };
 
 export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, seed = 1 }: EnemySetup): Entity {
   const e = world.spawn();
@@ -125,8 +156,10 @@ export function spawnEnemy(world: World, physics: ArenaPhysics, { def, at, yaw, 
     sense: { dist: Infinity, toYaw: yaw, facingDot: 1, targetAlive: false, target: null },
     move: { dirX: 0, dirZ: 0, speed: 0, accel: 0, halt: false }, rng: seed >>> 0, struck: [],
   });
-  for (const [kind, attack] of Object.entries(def.attacks) as [keyof EnemyAttacks, never][]) {
-    if (attack) ATTACKS[kind](world, e, attack);
+  const enemy = world.require(e, Enemy);
+  for (const [kind, attack] of Object.entries(def.attacks) as [AttackKind, never][]) {
+    const { component, start } = ATTACKS[kind] as AttackRow<unknown, { def: unknown }>;
+    if (attack) world.add(e, component, start(attack, enemy));
   }
   if (def.sidestep) world.add(e, Sidestep, { def: def.sidestep, dir: { x: 0, z: 0 } });
   if (def.wielder) {

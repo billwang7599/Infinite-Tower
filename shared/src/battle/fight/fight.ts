@@ -14,13 +14,7 @@ import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
 import type { FightContext, FightEvent, FightOutcome } from "./context.js";
 import { enemyBrainSystem } from "./behaviors/brain.js";
-import { chargeAttackSystem } from "./behaviors/charge.js";
-import { lungeAttackSystem } from "./behaviors/lunge.js";
-import { pounceAttackSystem } from "./behaviors/pounce.js";
 import { sidestepSystem } from "./behaviors/sidestep.js";
-import { skillAttackSystem } from "./behaviors/skill.js";
-import { slamAttackSystem } from "./behaviors/slam.js";
-import { weaponAttackSystem } from "./behaviors/weapon.js";
 import { outcomeSystem } from "./outcome.js";
 import { ArenaPhysics } from "./physics/arena-physics.js";
 import { moveSystem } from "./physics/move.js";
@@ -31,7 +25,7 @@ import { windUpSystem } from "./skills/skilled.js";
 import { modsOf } from "../statuses.js";
 import { regenSystem } from "./health.js";
 import { statusSystem } from "./statuses.js";
-import { spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
+import { ATTACKS, spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
 import { weaponSystem } from "./weapons/swing.js";
 
@@ -102,9 +96,8 @@ export class Fight {
     };
     this.systems = [
       playerControllerSystem(this.targets, this.events),
-      enemyBrainSystem(), chargeAttackSystem(ctx), lungeAttackSystem(), pounceAttackSystem(),
-      slamAttackSystem(ctx), weaponAttackSystem(this.events),
-      skillAttackSystem(),
+      enemyBrainSystem(),
+      ...Object.values(ATTACKS).map((attack) => attack.system(ctx)),
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),

@@ -2,19 +2,18 @@
  * A fight's whole state, out and back in, as exact plain JSON, and its hash. Only what changes during a fight is in
  * it: the setup is the same on both sides, and an enemy's `sense` and `move` are worked out afresh every step.
  */
-import type { Entity } from "../../core/ecs.js";
-import { roundTo, type Vec2, type Vec3 } from "../../core/math.js";
+import type { ComponentType, Entity, World } from "../../core/ecs.js";
+import { roundTo, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, ChargeAttack, Enemy, Health, LungeAttack, Player, PounceAttack, Sidestep, SkillAttack, SkillObject,
-  Skilled, SlamAttack, Stamina, Statuses, WeaponAttack, Wielder,
+  ActiveHit, Body, Enemy, Health, Player, Sidestep, SkillObject, Skilled, Stamina, Statuses, Wielder,
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
-  type StaminaData, type StatusData, type SwingData, type WeaponAttackData, type WielderData,
+  type StaminaData, type StatusData, type SwingData, type WielderData,
 } from "../components.js";
-import type { Word } from "../../skills/skill.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import { FighterStats, type Stats } from "../stats.js";
 import type { FightOutcome } from "./context.js";
 import type { Fight } from "./fight.js";
+import { ATTACKS } from "./setup.js";
 import { handsOf } from "./weapons/swing.js";
 
 interface FighterSnapshot {
@@ -34,15 +33,17 @@ interface PlayerSnapshot extends FighterSnapshot {
   stats: Stats;
 }
 
-interface EnemySnapshot extends FighterSnapshot {
+type Part = keyof typeof ATTACKS | "sidestep";
+type AnyPart = ComponentType<{ def: unknown }>;
+const PARTS = {} as Record<Part, AnyPart>;
+for (const [kind, attack] of Object.entries(ATTACKS)) PARTS[kind as Part] = attack.component;
+PARTS.sidestep = Sidestep;
+const PART_KINDS = Object.keys(PARTS) as Part[];
+type PartOf<K extends Part> = K extends keyof typeof ATTACKS ? (typeof ATTACKS)[K]["component"] : typeof Sidestep;
+type Parts = { [K in Part]: Omit<PartOf<K> extends ComponentType<infer T> ? T : never, "def"> | null };
+
+interface EnemySnapshot extends FighterSnapshot, Parts {
   enemy: Omit<EnemyData, "def" | "sense" | "move">;
-  lunge: { cooldown: number } | null;
-  charge: { cooldown: number; dir: Vec2 } | null;
-  pounce: { cooldown: number; side: number; dir: Vec2 } | null;
-  slam: { cooldown: number } | null;
-  weapon: Omit<WeaponAttackData, "def"> | null;
-  sidestep: { dir: Vec2 } | null;
-  skill: { cooldown: number; toSay: Word[] } | null;
   stamina: Omit<StaminaData, "max"> | null;
 }
 
@@ -79,8 +80,21 @@ function saveWielder(wielder: WielderData | undefined): FighterSnapshot["wielder
   return { swing: copySwing(swing), combo, comboTime, momentum };
 }
 
-function withoutDef({ def: _, ...state }: WeaponAttackData): Omit<WeaponAttackData, "def"> {
-  return state;
+const partOf = (world: World, e: Entity, kind: Part) => world.get(e, PARTS[kind]);
+
+const copyPlain = <T>(value: T): T => {
+  if (Array.isArray(value)) return value.map(copyPlain) as T;
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, copyPlain(v)])) as T;
+};
+
+function saveParts(world: World, e: Entity): Parts {
+  return Object.fromEntries(PART_KINDS.map((kind) => {
+    const part = partOf(world, e, kind);
+    if (!part) return [kind, null];
+    const { def: _, ...state } = part;
+    return [kind, copyPlain(state)];
+  })) as Parts;
 }
 
 export function saveFight(fight: Fight): FightSnapshot {
@@ -107,18 +121,9 @@ export function saveFight(fight: Fight): FightSnapshot {
     }),
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
-      const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack), weapon = world.get(e, WeaponAttack);
-      const sidestep = world.get(e, Sidestep), skill = world.get(e, SkillAttack), stamina = world.get(e, Stamina);
-      const pounce = world.get(e, PounceAttack), slam = world.get(e, SlamAttack);
+      const stamina = world.get(e, Stamina);
       return {
-        ...fighter(e), enemy,
-        lunge: lunge ? { cooldown: lunge.cooldown } : null,
-        charge: charge ? { cooldown: charge.cooldown, dir: { ...charge.dir } } : null,
-        pounce: pounce ? { cooldown: pounce.cooldown, side: pounce.side, dir: { ...pounce.dir } } : null,
-        slam: slam ? { cooldown: slam.cooldown } : null,
-        weapon: weapon ? withoutDef(weapon) : null,
-        sidestep: sidestep ? { dir: { ...sidestep.dir } } : null,
-        skill: skill ? { cooldown: skill.cooldown, toSay: [...skill.toSay] } : null,
+        ...fighter(e), ...saveParts(world, e), enemy,
         stamina: stamina ? { value: stamina.value, regenDelay: stamina.regenDelay } : null,
       };
     }),
@@ -168,19 +173,11 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
     const s = snap.enemies[i]!;
     place(e, s);
     Object.assign(world.require(e, Enemy), s.enemy);
-    const lunge = world.get(e, LungeAttack), charge = world.get(e, ChargeAttack);
-    if (lunge && s.lunge) lunge.cooldown = s.lunge.cooldown;
-    if (charge && s.charge) Object.assign(charge, { cooldown: s.charge.cooldown, dir: { ...s.charge.dir } });
-    const pounce = world.get(e, PounceAttack);
-    if (pounce && s.pounce) Object.assign(pounce, { ...s.pounce, dir: { ...s.pounce.dir } });
-    const slam = world.get(e, SlamAttack);
-    if (slam && s.slam) slam.cooldown = s.slam.cooldown;
-    const weapon = world.get(e, WeaponAttack);
-    if (weapon && s.weapon) Object.assign(weapon, s.weapon);
-    const sidestep = world.get(e, Sidestep);
-    if (sidestep && s.sidestep) sidestep.dir = { ...s.sidestep.dir };
-    const skill = world.get(e, SkillAttack), stamina = world.get(e, Stamina);
-    if (skill && s.skill) Object.assign(skill, { cooldown: s.skill.cooldown, toSay: [...s.skill.toSay] });
+    for (const kind of PART_KINDS) {
+      const part = partOf(world, e, kind), saved = s[kind];
+      if (part && saved) Object.assign(part, copyPlain(saved));
+    }
+    const stamina = world.get(e, Stamina);
     if (stamina && s.stamina) Object.assign(stamina, s.stamina);
   });
   for (const { by, alreadyHit, ...hit } of snap.hits) {
