@@ -1,4 +1,5 @@
-import type { Doc, Layer } from "./layers.js";
+import type { Doc, Layer, Project } from "./layers.js";
+import { MODES, type Mode } from "./modes.js";
 
 const MAX_SIDE = 512;
 
@@ -10,18 +11,33 @@ const toBase64 = (bytes: Uint8ClampedArray) => {
 
 const fromBase64 = (text: string) => Uint8ClampedArray.from(atob(text), (ch) => ch.charCodeAt(0));
 
-export const docToJson = (doc: Doc) => JSON.stringify({
-  width: doc.width, height: doc.height,
-  layers: doc.layers.map((l) => ({ name: l.name, visible: l.visible, opacity: l.opacity, pixels: toBase64(l.pixels.rgba) })),
+export const projectToJson = (mode: Mode, p: Project) => JSON.stringify({
+  mode,
+  pages: p.pages.map((d) => ({
+    name: d.name, width: d.width, height: d.height,
+    layers: d.layers.map((l) => ({ name: l.name, visible: l.visible, opacity: l.opacity, pixels: toBase64(l.pixels.rgba) })),
+  })),
 });
 
-export function docFromJson(text: string): Doc {
-  const raw = JSON.parse(text) as { width?: unknown; height?: unknown; layers?: unknown };
+export function projectFromJson(text: string): { mode: Mode; project: Project } {
+  const raw = JSON.parse(text) as { mode?: unknown; pages?: unknown };
+  if (!MODES.includes(raw.mode as Mode) || !Array.isArray(raw.pages) || raw.pages.length === 0) {
+    throw new Error("Not a drawing saved by the art lab");
+  }
+  const pages = raw.pages.map(docFrom);
+  const { width, height } = pages[0]!;
+  if (pages.some((d) => d.width !== width || d.height !== height || d.layers.length !== pages[0]!.layers.length)) {
+    throw new Error("The pages don't match in size or layers");
+  }
+  return { mode: raw.mode as Mode, project: { pages, page: 0 } };
+}
+
+function docFrom(raw: Record<string, unknown>): Doc {
   const { width, height, layers } = raw;
   if (!isSide(width) || !isSide(height) || !Array.isArray(layers) || layers.length === 0) {
     throw new Error("Not a drawing saved by the art lab");
   }
-  return { width, height, layers: layers.map((l: Record<string, unknown>): Layer => {
+  return { name: String(raw.name ?? ""), width, height, layers: layers.map((l: Record<string, unknown>): Layer => {
     const rgba = typeof l.pixels === "string" ? fromBase64(l.pixels) : null;
     if (!rgba || rgba.length !== width * height * 4) throw new Error("A layer's pixels don't fit the drawing");
     return {

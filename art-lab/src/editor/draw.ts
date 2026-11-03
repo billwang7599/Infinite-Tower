@@ -44,3 +44,14 @@ export function floodFill(b: Bitmap, x: number, y: number, c: Rgba): void {
     stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
   }
 }
+
+export function wrapShift(b: Bitmap, dx: number, dy: number): void {
+  const from = b.rgba.slice();
+  const { width: w, height: h } = b;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const to = ((((y + dy) % h) + h) % h * w + ((((x + dx) % w) + w) % w)) * 4;
+      b.rgba.set(from.subarray((y * w + x) * 4, (y * w + x) * 4 + 4), to);
+    }
+  }
+}

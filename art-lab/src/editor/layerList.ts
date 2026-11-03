@@ -1,5 +1,5 @@
 import { FIELD, button, el } from "../dom.js";
-import { addLayer, moveLayer, removeLayer } from "./layers.js";
+import { addLayer, moveLayer, removeLayer, setLayer } from "./layers.js";
 import type { Editor } from "./state.js";
 
 export function layerList(ed: Editor, exportLayer: (index: number) => void): HTMLElement {
@@ -17,11 +17,11 @@ export function layerList(ed: Editor, exportLayer: (index: number) => void): HTM
     shown.type = "checkbox";
     shown.checked = layer.visible;
     shown.title = "Show";
-    shown.onchange = () => ed.edit(() => { layer.visible = shown.checked; });
+    shown.onchange = () => ed.edit(() => setLayer(ed.project, i, { visible: shown.checked }));
     const name = el("input", `${FIELD};width:90px`);
     name.value = layer.name;
     name.onfocus = () => { if (ed.active !== i) { ed.active = i; ed.changed(); } };
-    name.onchange = () => ed.edit(() => { layer.name = name.value || layer.name; });
+    name.onchange = () => ed.edit(() => setLayer(ed.project, i, { name: name.value || layer.name }));
     const opacity = el("input", "width:64px");
     opacity.type = "range";
     opacity.min = "0";
@@ -31,19 +31,19 @@ export function layerList(ed: Editor, exportLayer: (index: number) => void): HTM
     opacity.onpointerdown = () => ed.record();
     const percent = el("span", "font-size:11px;color:#9a9cb0;width:30px", `${opacity.value}%`);
     opacity.oninput = () => {
-      layer.opacity = Number(opacity.value) / 100;
+      setLayer(ed.project, i, { opacity: Number(opacity.value) / 100 });
       percent.textContent = `${opacity.value}%`;
       ed.changed(false);
     };
     row.append(
       shown, name, opacity, percent,
-      button("↑", () => ed.edit(() => { ed.active = moveLayer(ed.doc, i, 1); }), "Move up"),
-      button("↓", () => ed.edit(() => { ed.active = moveLayer(ed.doc, i, -1); }), "Move down"),
+      button("↑", () => ed.edit(() => { ed.active = moveLayer(ed.project, i, 1); }), "Move up"),
+      button("↓", () => ed.edit(() => { ed.active = moveLayer(ed.project, i, -1); }), "Move down"),
       button("PNG", () => exportLayer(i), "Export this layer as a PNG"),
       button("✕", () => {
         if (ed.doc.layers.length === 1) return;
         ed.edit(() => {
-          removeLayer(ed.doc, i);
+          removeLayer(ed.project, i);
           ed.active = Math.min(ed.active, ed.doc.layers.length - 1);
         });
       }, "Delete"),
@@ -51,7 +51,7 @@ export function layerList(ed: Editor, exportLayer: (index: number) => void): HTM
     box.append(row);
   }
   box.append(button("Add layer", () => ed.edit(() => {
-    ed.active = addLayer(ed.doc, `layer ${ed.doc.layers.length + 1}`, ed.active);
+    ed.active = addLayer(ed.project, `layer ${ed.doc.layers.length + 1}`, ed.active);
   })));
   return box;
 }

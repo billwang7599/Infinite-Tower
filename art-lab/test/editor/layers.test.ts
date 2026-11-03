@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getPixel, setPixel } from "../../src/editor/bitmap.js";
-import { PARTS, addLayer, composite, moveLayer, newDoc, removeLayer } from "../../src/editor/layers.js";
+import {
+  PARTS, addLayer, addPage, composite, movePage, moveLayer, newDoc, newProject, removeLayer, removePage, setLayer,
+} from "../../src/editor/layers.js";
 
 test("a new drawing has a layer per part, bottom to top", () => {
   const doc = newDoc(64, 64);
@@ -37,15 +39,40 @@ test("over nothing, a half-opaque layer stays its own color, half clear", () => 
   assert.ok(Math.abs(a - 128) <= 1);
 });
 
-test("layers move up and down, staying in bounds, and are added and removed", () => {
-  const doc = newDoc(2, 2);
-  moveLayer(doc, 0, 1);
-  assert.deepEqual(doc.layers.slice(0, 2).map((l) => l.name), [PARTS[1], PARTS[0]]);
-  moveLayer(doc, 0, -1);
-  assert.equal(doc.layers[0]!.name, PARTS[1]);
-  const index = addLayer(doc, "sketch", 1);
-  assert.equal(index, 2);
-  assert.equal(doc.layers[2]!.name, "sketch");
-  removeLayer(doc, 2);
-  assert.equal(doc.layers.length, PARTS.length);
+test("layers move, are added and removed, and changed on every page alike", () => {
+  const project = newProject(2, 2, PARTS);
+  addPage(project, 0);
+  moveLayer(project, 0, 1);
+  for (const page of project.pages) assert.deepEqual(page.layers.slice(0, 2).map((l) => l.name), [PARTS[1], PARTS[0]]);
+  assert.equal(moveLayer(project, 0, -1), 0);
+  assert.equal(addLayer(project, "sketch", 1), 2);
+  setLayer(project, 2, { opacity: 0.5, visible: false });
+  for (const page of project.pages) assert.deepEqual([page.layers[2]!.name, page.layers[2]!.opacity], ["sketch", 0.5]);
+  removeLayer(project, 2);
+  assert.ok(project.pages.every((p) => p.layers.length === PARTS.length));
+});
+
+test("a new page has the same layers, empty; a copy has the same pixels, apart", () => {
+  const project = newProject(2, 2, ["ground", "detail"]);
+  setPixel(project.pages[0]!.layers[1]!.pixels, 1, 1, [9, 9, 9, 255]);
+  setLayer(project, 1, { opacity: 0.3 });
+  const blankAt = addPage(project, 0);
+  assert.equal(blankAt, 1);
+  assert.deepEqual(project.pages[1]!.layers.map((l) => [l.name, l.opacity]), [["ground", 1], ["detail", 0.3]]);
+  assert.deepEqual(getPixel(project.pages[1]!.layers[1]!.pixels, 1, 1), [0, 0, 0, 0]);
+  const copyAt = addPage(project, 0, true);
+  setPixel(project.pages[copyAt]!.layers[1]!.pixels, 0, 0, [1, 1, 1, 255]);
+  assert.deepEqual(getPixel(project.pages[copyAt]!.layers[1]!.pixels, 1, 1), [9, 9, 9, 255]);
+  assert.deepEqual(getPixel(project.pages[0]!.layers[1]!.pixels, 0, 0), [0, 0, 0, 0]);
+});
+
+test("pages move and are removed, keeping at least one", () => {
+  const project = newProject(1, 1, ["a"]);
+  addPage(project, 0);
+  project.pages[1]!.name = "second";
+  assert.equal(movePage(project, 1, -1), 0);
+  assert.equal(project.pages[0]!.name, "second");
+  removePage(project, 0);
+  removePage(project, 0);
+  assert.equal(project.pages.length, 1);
 });

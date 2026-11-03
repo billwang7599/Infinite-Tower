@@ -2,11 +2,16 @@ export class History<T> {
   private past: T[] = [];
   private future: T[] = [];
 
-  constructor(private readonly copy: (state: T) => T, private readonly maxSteps: number) {}
+  constructor(
+    private readonly copy: (state: T) => T,
+    private readonly maxSteps: number,
+    private readonly sizeOf: (state: T) => number = () => 0,
+    private readonly maxSize = Infinity,
+  ) {}
 
   record(state: T): void {
     this.past.push(this.copy(state));
-    if (this.past.length > this.maxSteps) this.past.shift();
+    while (this.past.length > this.maxSteps || this.size() > this.maxSize) this.past.shift();
     this.future = [];
   }
 
@@ -22,5 +27,9 @@ export class History<T> {
     if (next === undefined) return null;
     this.past.push(this.copy(current));
     return next;
+  }
+
+  private size(): number {
+    return this.past.reduce((sum, s) => sum + this.sizeOf(s), 0);
   }
 }

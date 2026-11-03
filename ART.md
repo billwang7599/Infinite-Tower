@@ -244,5 +244,11 @@ it makes goes into the game yet, and nothing is kept in the browser, so save the
   cropped, or stretched; scaled smoothed or nearest-neighbour; and snapped to the game's ramps (pixels under half
   opacity dropped) so it reads as this game's art. It lands on a new layer, to trace over or paint into by hand.
   "Add the look's picture" puts the Characters tab's look on a layer the same way.
-- **Out**: the whole picture as a PNG, each layer as its own, and the drawing as a JSON file (every layer, its
-  name, whether it shows, its opacity, its pixels) that Open loads back. A dropped .json opens too.
+- **Tiles** (the Tiles mode): a tile is the overworld's tile size, 16x16 (`PX_PER_TILE`, `client/src/gfx/tile.ts`),
+  with a ground and a detail layer to start. The preview repeats it 3x3 so seams show, and "Shift by half" wraps it
+  round by half its size to bring the edges into the middle to paint them. A tileset is several tiles, each named,
+  sharing their layers (a new tile is blank, Duplicate copies one); it exports as one PNG sheet, 8 tiles a row, and a
+  JSON of the tile size and each tile's name and place on the sheet.
+- **Out**: the whole picture as a PNG, each layer as its own, and the project as a JSON file (its mode, every page,
+  every layer's name, whether it shows, its opacity, its pixels) that Open loads back, switching to its mode. A
+  dropped .json opens too. Each mode keeps its own project while you switch between them.
