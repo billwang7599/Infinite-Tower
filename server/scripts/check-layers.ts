@@ -1,8 +1,8 @@
 /**
  * Checks the server's layering; `npm run typecheck` runs it. core/ imports only core/ and CORE_PACKAGES; an outlet
  * (ws/, api/, db/) imports itself, core/, env.ts and any package, never another outlet; every other file is main.ts or
- * env.ts. In the client, only visuals/ imports Babylon, and only game/ imports visuals/. Prints each broken import and
- * exits 1, or prints nothing.
+ * env.ts. In the client, only visuals/ imports Babylon, and only game/ imports visuals/, through visuals.ts. Prints
+ * each broken import and exits 1, or prints nothing.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -62,9 +62,11 @@ for (const file of sources(CLIENT_SRC)) {
   const folder = relative(CLIENT_SRC, file).split(sep)[0];
   if (folder === "visuals") continue;
   for (const spec of importsOf(file)) {
-    const target = spec.startsWith(".") ? relative(CLIENT_SRC, resolve(dirname(file), spec)).split(sep)[0] : null;
+    const path = spec.startsWith(".") ? relative(CLIENT_SRC, resolve(dirname(file), spec)) : null;
+    const target = path?.split(sep)[0];
     const why = spec.startsWith("@babylonjs/") ? "only client/src/visuals/ draws, so only it imports Babylon"
       : target === "visuals" && folder !== "game" ? "only game/ starts visuals/; it reads the modes, never the reverse"
+      : target === "visuals" && path !== join("visuals", "visuals.js") ? "visuals/ is entered only through visuals.ts"
       : null;
     if (why) problems.push(`${relative(resolve(SRC, "../.."), file)}: imports "${spec}": ${why}`);
   }

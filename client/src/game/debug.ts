@@ -7,7 +7,6 @@ import type { Audio } from "../audio/audio.js";
 import type { Battle } from "../modes/battle/battle.js";
 import * as overworldComponents from "../modes/overworld/components.js";
 import type { Overworld } from "../modes/overworld/overworld.js";
-import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Settings } from "../settings/settings.js";
 import type { UiState } from "../ui/state.js";
 import type { Mode } from "./transition.js";
@@ -19,10 +18,12 @@ interface DebugHandles {
   settings: Settings;
   audio: Audio;
   mode: () => Mode | null;
+  setDayClock: (change: shared.DayChange) => void;
   encounter: (enemy?: shared.EnemyId) => void;
 }
 
 export function exposeDebugHandles(h: DebugHandles): void {
+  const { setDayClock } = h;
   const params = new URLSearchParams(location.search);
   if (import.meta.env.DEV) {
     // `?time=0.75` freezes the time of day there (0 midnight, 0.5 noon).

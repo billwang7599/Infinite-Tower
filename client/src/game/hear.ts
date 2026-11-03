@@ -1,6 +1,6 @@
 import { say } from "../ui/notifications/say.js";
 import type { UiState } from "../ui/state.js";
-import { NPC_LOOKS } from "../visuals/npcs/index.js";
+import { NPC_LOOKS } from "../visuals/visuals.js";
 import type { Joined } from "../net/net.js";
 
 export function hear({ net, welcome }: Joined, ui: UiState): void {

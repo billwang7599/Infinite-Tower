@@ -1022,9 +1022,10 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
   settings) and ⌘ can't be rebound.
 - **Text is escaped by JSX**, so server or player strings can be rendered safely. No `innerHTML` or
   `dangerouslySetInnerHTML`.
-- **Drawing has one owner, `client/src/visuals/`**, the only code that imports Babylon (`npm run typecheck` fails
-  otherwise, and on a mode importing visuals/). It reads the modes' state each frame; game code never draws, and
-  never hands state to drawing code.
+- **Drawing has one owner, `client/src/visuals/`**, the only code that imports Babylon. Only `game/` imports it, and
+  only `visuals/visuals.ts`, its one entry (`createDrawing`, `Drawing`, `NPC_LOOKS`), so what's inside (LOD, scenes)
+  can change freely; `npm run typecheck` fails otherwise (`server/scripts/check-layers.ts`). It reads the modes' state
+  each frame; game code never draws, and never hands state to drawing code.
 - **Sound has one owner, `client/src/audio/`**, built the same way: it hears the modes' state each frame, and game
   code only calls it for what isn't state (a move in the bag). What plays where is plain, tested data (`SOUNDS`,
   `MUSIC`); only `audio/audio.ts` touches Web Audio. Every file is CC0 and listed in SOUNDS.md.
@@ -1602,9 +1603,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      running and still water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files,
                      SOUNDS.md), music/ (a track's .ogg, `<track>.ogg`, a seamless loop)
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
-      visuals.ts       The owner: createDrawing (the engine, both scenes; `show(mode)`, `frame(dt)`; each player's look
-                       painted); Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
-                       kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
+      visuals.ts       The owner and the only entry from outside: createDrawing (the engine, both scenes; `show(mode)`,
+                       `frame(dt)`, `setDayClock`; each player's look painted); NPC_LOOKS re-exported; Visual
+                       ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and kindOf; EFFECTS (each
+                       fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
                        after, or the rest when a fight starts, again when the hand the fight's weapon is in changes
                        (its `Wielder`), the sword left out; a frame from the front only the first time it's shown

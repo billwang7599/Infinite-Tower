@@ -9,7 +9,6 @@ import { restoreSettings, syncSettings, type Settings } from "../settings/settin
 import { say } from "../ui/notifications/say.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
 import { whoHasTheKeys, type GameRequests, type UiState } from "../ui/state.js";
-import { setDayClock } from "../visuals/sky/daylight.js";
 import type { Drawing } from "../visuals/visuals.js";
 import { exposeDebugHandles } from "./debug.js";
 import { hear } from "./hear.js";
@@ -135,7 +134,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
   return {
     ...createRequests(session, { ui, audio, battle, overworld }),
     mode: () => mode,
-    setDayClock,
+    setDayClock: drawing.setDayClock,
     leaveBattle(sure = false) {
       if (mode !== "battle" || transition || !result) return;
       if (!sure && battle.ctx.drops.length > 0) ui.leaveArena.set({ asking: true });
@@ -170,7 +169,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
       lastFrameMs = performance.now();
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({
-        battle, overworld, ui, settings, audio, mode: () => mode,
+        battle, overworld, ui, settings, audio, mode: () => mode, setDayClock: drawing.setDayClock,
         encounter: (enemy: EnemyId = "wild-boar") => net?.send({ t: "cheat", cheat: { kind: "encounter", enemy } }),
       });
     },
