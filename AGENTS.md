@@ -838,14 +838,26 @@ them; treat them as changeable, and still ask before deciding new ones):
   own region. The admin's fight with an enemy uses that enemy's nearest spawn's arena. The cliffs, banks and outer
   woods once drawn round each map are gone (the fill's tiles stand there now); the Castle Ward's keep stays. Lines
   that named the old exits (the herald, Odo, Captain Edda, their quest hints) now point down the South Gate's road.
-  Drawing: chunks of 16 x 16 tiles (`CHUNK_TILES`); those within 30 tiles of you are shown (`SHOWN_TILES`), 16 more
-  built ahead (`AHEAD_TILES`) at 3 ms a frame (`BUILD_BUDGET_MS`); the sky's colours and fog ease to the region you're
-  in (`SKY_BLEND_RATE`, `client/src/visuals/overworld/chunks.ts`); music follows the region's theme.
+  Drawing: chunks of 16 x 16 tiles (`CHUNK_TILES`), built at 3 ms a frame (`BUILD_BUDGET_MS`); the sky's colours and
+  fog blend from one region's to the next's over 12 tiles either side of where one gives way (`SKY_BLEND_TILES`), so
+  walking over a border has no sudden change, and ease there (`SKY_BLEND_RATE`; both in
+  `client/src/visuals/overworld/chunks.ts`); music follows the region's theme.
 - The world sent a chunk at a time (the agent's picks, walked in a headless browser, not hand-played): the server
-  sends every chunk within 64 tiles of you (`CHUNK_SEND_TILES`) with its water's currents, and you drop those past 80
+  sends every chunk within 96 tiles of you (`CHUNK_SEND_TILES`) with its water's currents, and you drop those past 112
   (`CHUNK_DROP_TILES`, `shared/src/world/chunks.ts`), the server forgetting them by the same rule to send them again.
-  A chunk is drawn once it and its eight neighbours are here; built ones past 78 tiles (`DROPPED_TILES`) are thrown
+  A chunk is built once it and its eight neighbours are here; built ones past 95 tiles (`DROPPED_TILES`) are thrown
   away. Dying sends your pad's chunks at once, and they're built while the result shows.
+- The world ahead is always there, Minecraft style (the user: "load like minecraft chunk generation… so i can still
+  see the next section ahead of time"; the numbers are the agent's, walked in a headless browser, not hand-played):
+  everything the camera can see is drawn, as far as it sees at its tilt (about 45 tiles from you tilted all the way
+  up, `seenGround`, plus 2: `SEEN_MARGIN_TILES`), skipping chunks behind the camera; 16 tiles past the farthest it
+  ever sees (`SHOWN_TILES`, 47) are built ahead (`AHEAD_TILES`), those ahead of where you walk (else look) first as
+  if 16 tiles nearer (`AHEAD_BIAS_TILES`), and a chunk is shown only once built (one right under you, 16 tiles,
+  is built at once: `MUST_BUILD_TILES`). Within 32 tiles (`NEAR_TILES`) a chunk casts shadows and is updated every
+  frame; further, it casts none and the far ones are updated one a frame. A fog on top of the region's own fades the
+  farthest ground seen fully into the sky over 16 m (`FOG`, `FOG_FADE_M`), and a plain ground lies under the world
+  (`SKIRT`), so past the world's last filler there's no void. A chunk's props are thin instances, one mesh per
+  picture, so a far view costs little.
 - Sleeping parts of the world (the agent's picks, tested by unit tests only): a monster further than 40 tiles from
   every walking player (`AWAKE_TILES`, twice the view's radius, `server/src/core/overworld/sleep.ts`) stands still:
   no wandering, noticing or chasing, until one comes within reach. A player in a fight doesn't keep anything awake.

@@ -1,7 +1,8 @@
 import {
-  Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, ShadowGenerator,
+  Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, ShaderStore, ShadowGenerator,
   Scene, StandardMaterial, Vector3, type AbstractMesh, type Material,
 } from "@babylonjs/core";
+import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/fogFragmentDeclaration.js";
 import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
 import { createBlobs, type Blobs, type Lighting } from "./blobs.js";
 import { dayFractionAt, daylightAt, directLightAt, MOONLIGHT } from "./daylight.js";
@@ -53,6 +54,12 @@ export interface Sky {
   blobs(material: Material, lengthM: number, widthM: number): Blobs;
   cardYaw(): number;
 }
+
+const EXP2_FOG = "fogCoeff=1.0/pow(E,fogDistance*fogDistance*fogDensity*fogDensity);";
+if (!fogFragmentDeclaration.shader.includes(EXP2_FOG)) throw new Error("Babylon's fog shader changed");
+// Shaders load lazily and keep an include already in the store, so this stands for every material.
+ShaderStore.IncludesShadersStore[fogFragmentDeclaration.name] = fogFragmentDeclaration.shader.replace(EXP2_FOG,
+  `${EXP2_FOG}if (fogStart>0.0) fogCoeff=min(fogCoeff,(fogEnd-fogDistance)/(fogEnd-fogStart));`);
 
 const luminance = (c: Color3) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 

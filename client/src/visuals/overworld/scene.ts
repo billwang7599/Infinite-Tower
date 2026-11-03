@@ -32,6 +32,9 @@ export interface OverworldScene {
   yawRad: number;
 }
 
+/** `fovRad` top to bottom; `distanceTiles` from the walker it looks at. */
+export const CAMERA = { fovRad: 0.55, distanceTiles: 21 } as const;
+
 /** Radians every upright picture leans back from vertical, toward facing the camera. */
 export const SPRITE_TILT_RAD = 0.3;
 
@@ -39,7 +42,7 @@ export function createOverworldScene(engine: AbstractEngine, state: OverworldSta
   const scene = new Scene(engine);
   scene.skipPointerMovePicking = true;
   const camera = new UniversalCamera("overworld-camera", new Vector3(0, 15, -13), scene);
-  camera.fov = 0.55;
+  camera.fov = CAMERA.fovRad;
   camera.minZ = 0.5;
   camera.maxZ = 120;
   camera.inputs.clear();

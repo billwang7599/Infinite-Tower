@@ -3,9 +3,9 @@ import { TILES } from "./tiles.js";
 import { flowKey, type Flow } from "./water.js";
 
 /** The server sends every chunk this near you, so the client can build those it draws before you reach them. */
-export const CHUNK_SEND_TILES = 64;
+export const CHUNK_SEND_TILES = 96;
 /** Past this the client drops a chunk and the server forgets it sent it: further than SEND, so none flickers. */
-export const CHUNK_DROP_TILES = 80;
+export const CHUNK_DROP_TILES = 112;
 const VOID = " ";
 const FLOW_SCALE = 1000;
 

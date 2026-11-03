@@ -1,5 +1,5 @@
 import {
-  Color3, Color4, MeshBuilder, TransformNode, Vector4, VertexBuffer, type AbstractMesh, type InstancedMesh, type Mesh,
+  Color3, Matrix, MeshBuilder, Quaternion, TransformNode, Vector3, Vector4, VertexBuffer, type AbstractMesh, type Mesh,
   type Scene, type StandardMaterial,
 } from "@babylonjs/core";
 import {
@@ -15,7 +15,7 @@ import { pixelCanvas } from "../sprites.js";
 import { Pen } from "./props.js";
 import { standingQuad } from "./scene.js";
 import { chunkScenery, hidesWalker, type Ledge, type Prop } from "./scenery.js";
-import { lit, SHADOW_ONLY_LAYER, type TerrainArt } from "./terrainArt.js";
+import { lit, type PropTemplate, type TerrainArt } from "./terrainArt.js";
 
 /** Every ledge is a block this deep below its top: deeper than any drop, so no gap shows under a cliff. */
 const BLOCK_DEPTH = 8;
@@ -29,6 +29,7 @@ export type Caster = [AbstractMesh, ("direct" | MapLight)?];
 export interface ChunkDrawing {
   meshes: AbstractMesh[];
   casters: Caster[];
+  receivers: Mesh[];
   frame(dt: number, eye: Vec3, feet: Vec3, sky: Sky): void;
   face(yawRad: number): void;
   dispose(): void;
@@ -40,7 +41,7 @@ export function* buildChunk(
 ): Generator<void, ChunkDrawing> {
   const name = `${chunk.x},${chunk.z}`, root = new TransformNode(`chunk-${name}`, scene);
   root.setEnabled(false);
-  const looksAt = tileLooksOf(map), scenery = chunkScenery(map, chunk), casters: Caster[] = [];
+  const looksAt = tileLooksOf(map), scenery = chunkScenery(map, chunk), casters: Caster[] = [], receivers: Mesh[] = [];
   yield;
   const canvas = pixelCanvas(scene, `chunk-${name}`, chunk.w * PX_PER_TILE, chunk.h * PX_PER_TILE, () => {}, false);
   yield* paintGround(new Pen(canvas.getContext() as CanvasRenderingContext2D), map, chunk, looksAt);
@@ -60,6 +61,7 @@ export function* buildChunk(
       m.parent = root;
       m.receiveShadows = true;
       m.freezeWorldMatrix();
+      receivers.push(m);
     }
     casters.push([parts[0]!]);
     if (ground) casters.push([ground]);
@@ -68,13 +70,14 @@ export function* buildChunk(
   }
   const props = yield* placeProps(art, [...scenery.props, ...tileProps(map, chunk, looksAt)], lights, root, casters);
   const campfires = buildCampfires(scene, art.fire, map, chunk, root);
-  const upright = [...props.upright, ...campfires.meshes];
+  const upright = campfires.meshes;
   const meshes = root.getChildMeshes();
   detach(scene, meshes);
   root.setEnabled(true);
   return {
     meshes,
     casters,
+    receivers,
     frame(dt, eye, feet, sky) {
       const k = dampFactor(SEE_THROUGH.rate, dt);
       for (const { ledge, parts } of standing) {
@@ -85,6 +88,7 @@ export function* buildChunk(
       props.light(sky);
     },
     face(yawRad) {
+      props.face(yawRad);
       for (const m of upright) {
         m.rotation.y = yawRad;
         m.freezeWorldMatrix();
@@ -146,64 +150,91 @@ function scaleUVs(mesh: Mesh, u: number, v: number): void {
   mesh.setVerticesData(VertexBuffer.UVKind, uvs);
 }
 
-interface PlacedProps { upright: InstancedMesh[]; light(sky: Sky): void }
+interface PlacedProps { face(yawRad: number): void; light(sky: Sky): void }
 
+interface Batch { mesh: Mesh; props: Prop[]; matrices: Float32Array; yawRad: (p: Prop) => number }
+
+// One mesh of thin instances per picture (and per shadow card's light): a mesh each would cost every frame.
 function* placeProps(
   art: TerrainArt, props: Prop[], lights: readonly MapLight[], root: TransformNode, casters: Caster[],
 ): Generator<void, PlacedProps> {
-  const tinted: { inst: InstancedMesh; at: Vec3 }[] = [], cards: InstancedMesh[] = [];
-  const upright: InstancedMesh[] = [];
+  const byTemplate = new Map<PropTemplate, Prop[]>();
   for (const [i, p] of props.entries()) {
     const tpl = art.prop(p.kind, i % 2 === 1);
-    const inst = tpl.quad.createInstance(`prop-${p.kind}-${i}`);
-    inst.parent = root;
-    inst.position.set(p.x, p.y, p.z);
-    inst.scaling.setAll(p.scale);
-    inst.instancedBuffers.color = new Color4(1, 1, 1, 1);
-    tinted.push({ inst, at: { x: p.x, y: p.y + (tpl.height * p.scale) / 2, z: p.z } });
+    byTemplate.set(tpl, [...byTemplate.get(tpl) ?? [], p]);
+  }
+  const batch = (source: Mesh, name: string, of: Prop[], yawRad: (p: Prop) => number): Batch => {
+    const mesh = source.clone(name, root);
+    // Thin instances' buffers live on the geometry, which a clone shares.
+    mesh.makeGeometryUnique();
+    mesh.rotation.x = 0;
+    mesh.isVisible = true;
+    mesh.layerMask = source.layerMask;
+    const b = { mesh, props: of, matrices: new Float32Array(16 * of.length), yawRad };
+    mesh.thinInstanceSetBuffer("matrix", b.matrices, 16, false);
+    return b;
+  };
+  let cameraYaw = 0, sunYaw = NaN;
+  const tiltOf = new Map<Mesh, number>(), upright: Batch[] = [], suns: Batch[] = [];
+  const tinted: { batch: Batch; colors: Float32Array; at: Vec3[] }[] = [];
+  const place = (b: Batch) => {
+    const tilt = tiltOf.get(b.mesh) ?? 0;
+    b.props.forEach((p, k) => {
+      Quaternion.RotationYawPitchRollToRef(b.yawRad(p), tilt, 0, TURN);
+      Matrix.ComposeToRef(SCALE.setAll(p.scale), TURN, AT.set(p.x, p.y, p.z), PLACED).copyToArray(b.matrices, 16 * k);
+    });
+    b.mesh.thinInstanceBufferUpdated("matrix");
+    b.mesh.thinInstanceRefreshBoundingInfo();
+  };
+  for (const [tpl, of] of byTemplate) {
+    const name = `props-${tpl.quad.name}`, quad = batch(tpl.quad, name, of, () => cameraYaw);
+    tiltOf.set(quad.mesh, tpl.quad.rotation.x);
+    const colors = new Float32Array(4 * of.length).fill(1);
+    quad.mesh.thinInstanceSetBuffer("color", colors, 4, false);
+    tinted.push({ batch: quad, colors, at: of.map((p) => ({ x: p.x, y: p.y + (tpl.height * p.scale) / 2, z: p.z })) });
+    upright.push(quad);
+    place(quad);
+    quad.mesh.freezeWorldMatrix();
     if (tpl.card) {
-      const shadowCard = (cardName: string) => {
-        const card = tpl.card!.createInstance(cardName);
-        card.parent = root;
-        card.layerMask = SHADOW_ONLY_LAYER;
-        card.position.copyFrom(inst.position);
-        card.scaling.copyFrom(inst.scaling);
-        return card;
-      };
-      const card = shadowCard(`prop-card-${p.kind}-${i}`);
-      casters.push([card, "direct"]);
-      cards.push(card);
+      const sun = batch(tpl.card, `${name}-card`, of, () => sunYaw);
+      sun.mesh.freezeWorldMatrix();
+      suns.push(sun);
+      casters.push([sun.mesh, "direct"]);
       lights.forEach((light, k) => {
-        if (Math.hypot(light.at.x - p.x, light.at.z - p.z) >= light.rangeM) return;
-        const lampCard = shadowCard(`prop-card-${p.kind}-${i}-light-${k}`);
-        lampCard.rotation.y = cardYawRad({ x: light.at.x - p.x, y: 0, z: light.at.z - p.z });
-        lampCard.freezeWorldMatrix();
-        casters.push([lampCard, light]);
+        const lit = of.filter((p) => Math.hypot(light.at.x - p.x, light.at.z - p.z) < light.rangeM);
+        if (lit.length === 0) return;
+        const lamp = batch(tpl.card!, `${name}-card-light-${k}`, lit,
+          (p) => cardYawRad({ x: light.at.x - p.x, y: 0, z: light.at.z - p.z }));
+        place(lamp);
+        lamp.mesh.freezeWorldMatrix();
+        casters.push([lamp.mesh, light]);
       });
     }
-    upright.push(inst);
-    if (i % 64 === 63) yield;
+    yield;
   }
   const tint = new Color3();
-  let cardYaw = NaN;
   return {
-    upright,
+    face(yawRad) {
+      cameraYaw = yawRad;
+      for (const b of upright) place(b);
+    },
     light(sky) {
-      for (const { inst, at } of tinted) {
-        sky.tintAt(at, tint);
-        const color = inst.instancedBuffers.color as Color4;
-        color.set(tint.r, tint.g, tint.b, 1);
+      for (const { batch: b, colors, at } of tinted) {
+        at.forEach((spot, k) => {
+          sky.tintAt(spot, tint);
+          colors.set([tint.r, tint.g, tint.b], 4 * k);
+        });
+        b.mesh.thinInstanceBufferUpdated("color");
       }
       const yaw = sky.cardYaw();
-      if (Math.abs(wrapAngle(yaw - cardYaw)) < CARD_TURN_STEP_RAD) return;
-      cardYaw = yaw;
-      for (const card of cards) {
-        card.rotation.y = yaw;
-        card.freezeWorldMatrix();
-      }
+      if (Math.abs(wrapAngle(yaw - sunYaw)) < CARD_TURN_STEP_RAD) return;
+      sunYaw = yaw;
+      for (const b of suns) place(b);
     },
   };
 }
+
+const SCALE = new Vector3(), AT = new Vector3(), TURN = new Quaternion(), PLACED = new Matrix();
 
 function buildCampfires(
   scene: Scene, frames: StandardMaterial[], map: WorldMap, chunk: Rect, root: TransformNode,

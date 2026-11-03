@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Color3, MeshBuilder, NullEngine, PointLight, Scene, ShadowGenerator, StandardMaterial } from "@babylonjs/core";
+import {
+  Color3, MeshBuilder, NullEngine, PointLight, Scene, ShaderStore, ShadowGenerator, StandardMaterial,
+} from "@babylonjs/core";
+import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/fogFragmentDeclaration.js";
 import type { Vec3 } from "@infinite-tower/shared";
 import { directLightAt, setDayClock } from "../../../src/visuals/sky/daylight.js";
 import {
@@ -141,5 +144,13 @@ describe("map lights", () => {
     sky.frame(0, { x: 0, y: 2, z: 0 });
     assert.ok(m.maxSimultaneousLights >= 2 + MAX_MAP_LIGHTS);
     scene.dispose();
+  });
+});
+
+describe("the fog", () => {
+  test("is Babylon's, only also full by the scene's fogEnd when a fogStart is set, so a drawn edge fades out", () => {
+    const fog = ShaderStore.IncludesShadersStore.fogFragmentDeclaration!;
+    assert.notEqual(fog, fogFragmentDeclaration.shader);
+    assert.match(fog, /fogStart>0\.0\)\s*fogCoeff=min\(fogCoeff,\(fogEnd-fogDistance\)\/\(fogEnd-fogStart\)\)/);
   });
 });
