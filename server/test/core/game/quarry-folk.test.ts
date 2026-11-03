@@ -6,12 +6,12 @@ import { LORE } from "../../../src/core/content/lore.js";
 import { QUESTS } from "../../../src/core/content/quests.js";
 import { newStory } from "../../../src/core/game/story.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { getRegion, WORLD } from "../../../src/core/world/index.js";
 import { doStep, goTo, linesFor, offeredQuest, startSession, talkTo } from "./helpers.js";
 
 before(() => initPhysics());
 
-const QUARRY = getLevel("old-quarry");
+const QUARRY = getRegion("old-quarry");
 const QUARRY_FOLK: [NpcId, readonly string[]][] = [
   ["foreman", ["foreman-pit"]],
   ["scavenger", ["scavenger-pelts", "scavenger-chanters"]],
@@ -23,14 +23,14 @@ const rewardsOf = (id: string) => QUESTS[id]!.steps.flatMap((s) => Object.keys(s
 
 describe("the Old Quarry's folk", () => {
   test("each stands in the quarry on open ground, facing open ground, apart from the pad, the fire and the enemies", () => {
-    const [fire] = QUARRY.layout.campfires;
+    const [fire] = QUARRY.campfires;
     for (const [npc] of QUARRY_FOLK) {
       const { stops } = NPCS[npc];
       assert.equal(stops.length, 1, npc);
-      const { level, at, heading } = stops[0]!, way = HEADING_WAY[heading];
-      assert.equal(level, "old-quarry", npc);
-      assert.ok(!isSolid(QUARRY.layout, at.x, at.z), npc);
-      assert.ok(!isSolid(QUARRY.layout, at.x + way.x, at.z + way.z), `${npc} faces open ground`);
+      const { region, at, heading } = stops[0]!, way = HEADING_WAY[heading];
+      assert.equal(region, "old-quarry", npc);
+      assert.ok(!isSolid(WORLD.layout, at.x, at.z), npc);
+      assert.ok(!isSolid(WORLD.layout, at.x + way.x, at.z + way.z), `${npc} faces open ground`);
       assert.ok(distXZ(at, QUARRY.spawn) > MIN_GAP_TILES, npc);
       assert.ok(distXZ({ x: at.x + way.x, z: at.z + way.z }, fire!) > MIN_GAP_TILES, `${npc}'s listener is off the fire`);
       for (const { at: spawn } of QUARRY.spawns) assert.ok(distXZ(at, spawn) > MIN_GAP_TILES, npc);
@@ -61,10 +61,10 @@ describe("the Old Quarry's folk", () => {
 
   test("the foreman sends you down to the pit's pool, where the Kobold Greatsword stands, before it", () => {
     const [reach, kill] = QUESTS["foreman-pit"]!.steps;
-    assert.ok(reach?.task.kind === "reach" && reach.task.level === "old-quarry" && reach.task.area);
+    assert.ok(reach?.task.kind === "reach" && reach.task.region === "old-quarry" && reach.task.area);
     const { area } = reach.task;
     assert.ok(!inRect(area, QUARRY.spawn.x, QUARRY.spawn.z));
-    assert.ok(!isSolid(QUARRY.layout, area.x + area.w / 2, area.z + area.h / 2));
+    assert.ok(!isSolid(WORLD.layout, area.x + area.w / 2, area.z + area.h / 2));
     assert.ok(QUARRY.spawns.some((s) => s.enemy === "kobold-greatsword" && inRect(area, s.at.x, s.at.z)));
     assert.deepEqual(kill?.task, { kind: "kill", enemy: "kobold-greatsword", count: 1 });
   });

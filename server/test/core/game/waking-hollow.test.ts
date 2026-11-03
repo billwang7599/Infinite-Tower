@@ -25,7 +25,7 @@ describe("the Waking Hollow's first quests", () => {
 
   test("the native by its fire offers the first", () => {
     const { session, link } = startSession();
-    assert.equal(session.overworld.level.layout.id, HOLLOW);
+    assert.equal(session.region, HOLLOW);
     assert.deepEqual(offeredQuest(talkTo(session, link, "maren").offer), CHAIN[0]);
   });
 
@@ -48,7 +48,7 @@ describe("the Waking Hollow's first quests", () => {
     session.acceptQuest(offeredQuest(talkTo(session, link, "maren").offer)!);
     assert.equal(session.story.quests["maren-road"]?.step, QUESTS["maren-road"]!.steps[0]!.id);
 
-    const there = startSession({ saved: { ...saves.at(-1)!, pad: stopFor(session.story, NPCS.hollis)!.level } });
+    const there = startSession({ saved: { ...saves.at(-1)!, pad: stopFor(session.story, NPCS.hollis)!.region } });
     const hollis = talkTo(there.session, there.link, "hollis");
     assert.deepEqual(offeredQuest(hollis.offer), "hollis-hides");
     for (const id of CHAIN) assert.equal(there.session.story.quests[id]?.step, null, id);

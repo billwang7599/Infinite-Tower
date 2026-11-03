@@ -5,7 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { sql } from "drizzle-orm";
 import { newStory, type Story } from "../core/game/story.js";
-import { START_LEVEL } from "../core/world/index.js";
+import { START_REGION } from "../core/world/index.js";
 import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /** Logins (account-store.ts). The password is scrypt'd, with its parameters and salt (core/accounts/passwords.ts). */
@@ -44,7 +44,7 @@ export const players = pgTable("players", {
   knownWords: text("known_words").array().notNull().default([]),
   skillbook: jsonb().$type<Skillbook>().notNull().default(blankSkillbook()),
   story: jsonb().$type<Story>().notNull().default(newStory()),
-  pad: text().notNull().default(START_LEVEL),
+  pad: text().notNull().default(START_REGION),
   coreSteps: integer("core_steps").notNull().default(0),
   coreFill: integer("core_fill").notNull().default(0),
   statPoints: jsonb("stat_points").$type<StatPoints>().notNull().default({}),

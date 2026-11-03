@@ -8,7 +8,7 @@ import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
 import { PILE_COLS, PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
-import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
+import { TEST_CHARACTER, TEST_WORLD } from "../../fixtures/world.js";
 
 const LOOT: ItemCounts = { "boar-meat": 2, "boar-hide": 1, "boar-tusk": 1 };
 
@@ -21,7 +21,7 @@ function clock(t: TestContext): (ms: number) => void {
 
 describe("a pile on the overworld", () => {
   test("holds every item dropped, laid out PILE_COLS wide with nothing overlapping", () => {
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const pile = overworld.dropPile({ x: 3, z: 1 }, LOOT)!;
     const items = overworld.pileItems(pile)!;
     assert.deepEqual(bagCounts(items), LOOT);
@@ -30,7 +30,7 @@ describe("a pile on the overworld", () => {
   });
 
   test("grows rows for as much as is dropped", () => {
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const many: ItemCounts = { "boar-hide": 5, greatsword: 1, "boar-meat": ITEMS["boar-meat"].stackSize * 3 + 1 };
     const items = overworld.pileItems(overworld.dropPile({ x: 0, z: 0 }, many)!)!;
     assert.deepEqual(bagCounts(items), many);
@@ -38,13 +38,13 @@ describe("a pile on the overworld", () => {
   });
 
   test("nothing dropped makes no pile", () => {
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     assert.equal(overworld.dropPile({ x: 0, z: 0 }, {}), null);
     assert.equal(lying(overworld), 0);
   });
 
   test("a player sees the one in reach and in front of the way they face, each with the lag slack", () => {
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const me = overworld.join(TEST_CHARACTER, "kingdom", () => {});
     overworld.place(me, { x: 0, z: 0 });
     const ahead = HEADING_WAY[START_HEADING], reachM = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
@@ -61,7 +61,7 @@ describe("a pile on the overworld", () => {
   });
 
   test("taking everything off it makes it vanish", () => {
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const pile = overworld.dropPile({ x: 0, z: 0 }, LOOT)!;
     const items = overworld.pileItems(pile)!;
     overworld.setPileItems(pile, { ...items, items: items.items.slice(1) });
@@ -73,7 +73,7 @@ describe("a pile on the overworld", () => {
 
   test("vanishes PILE_LIFETIME_MS after it lands, not before", (t) => {
     const advance = clock(t);
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const pile = overworld.dropPile({ x: 0, z: 0 }, LOOT)!;
     advance(PILE_LIFETIME_MS - 1);
     overworld.step(FIXED_DT);
@@ -85,7 +85,7 @@ describe("a pile on the overworld", () => {
 
   test("each pile keeps its own time", (t) => {
     const advance = clock(t);
-    const overworld = new Overworld(TEST_LEVEL);
+    const overworld = new Overworld(TEST_WORLD);
     const first = overworld.dropPile({ x: 0, z: 0 }, LOOT)!;
     advance(PILE_LIFETIME_MS / 2);
     const second = overworld.dropPile({ x: 1, z: 0 }, LOOT)!;

@@ -12,8 +12,8 @@ const PLANK = { gap: "#2e1f15", tones: ["#6a4a30", "#5e4129", "#74533a"], light:
 type Lit = (name: string, tex: DynamicTexture) => StandardMaterial;
 
 export interface StallLooks {
-  counter: readonly [StandardMaterial, StandardMaterial, null];
-  hearth: readonly [StandardMaterial, StandardMaterial, null];
+  counter: readonly [StandardMaterial, StandardMaterial];
+  hearth: readonly [StandardMaterial, StandardMaterial];
   awning(ledge: Ledge & { awning: Awning }, i: number): Mesh[];
 }
 
@@ -41,8 +41,8 @@ export function stallLooks(scene: Scene, lit: Lit, stone: StandardMaterial): Sta
   };
 
   return {
-    counter: [counterTop, counterSide, null],
-    hearth: [coals, stone, null],
+    counter: [counterTop, counterSide],
+    hearth: [coals, stone],
     awning({ rect, topY, awning }, i) {
       const along = rect.w >= rect.h, long = Math.max(rect.w, rect.h), short = Math.min(rect.w, rect.h);
       const width = long + OVERHANG_TILES * 2, depth = short + OVERHANG_TILES * 2;

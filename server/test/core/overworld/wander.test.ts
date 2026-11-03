@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { mapHalfSize } from "@infinite-tower/shared";
 import { moveSystem } from "../../../src/core/overworld/behaviors/move.js";
 import { Wander, wander, wanderSystem } from "../../../src/core/overworld/behaviors/wander.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
+import { TEST_HALF } from "../../fixtures/world.js";
 import { pos, testOverworld } from "./helpers.js";
 
 const SPEED = 2;
@@ -57,7 +57,7 @@ describe("wander", () => {
 
   test("never heads for a solid tile or past the map's edge: it idles on and picks again", () => {
     const a = wanderer();
-    const { halfWidth } = mapHalfSize(a.ctx.level.layout);
+    const { halfWidth } = TEST_HALF;
     pos(a.world, a.e).x = halfWidth - 0.5;
     a.step(a.w.idleDuration / DT);
     assert.equal(a.w.state, "idle");

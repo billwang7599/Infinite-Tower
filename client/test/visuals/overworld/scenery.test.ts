@@ -1,54 +1,131 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { inRect, mapHalfSize, type LevelLayout } from "@infinite-tower/shared";
-import { grassFieldScenery } from "../../../src/visuals/levels/grass-field/scenery.js";
-import { groundY, hidesWalker, openExits, SCENERY_REACH_TILES } from "../../../src/visuals/overworld/scenery.js";
+import { tileAt, type Rect, type TileKind } from "@infinite-tower/shared";
+import { chunkScenery, groundY, hidesWalker } from "../../../src/visuals/overworld/scenery.js";
+import { testMap } from "../../fixtures/map.js";
 
-const WIDTH = 40, DEPTH = 26;
-const closed = Array.from({ length: DEPTH }, (_, r) =>
-  r === 0 || r === DEPTH - 1 ? "T".repeat(WIDTH) : `T${".".repeat(WIDTH - 2)}T`);
-const level = (tiles: string[]): LevelLayout => ({
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, tiles,
-  campfires: [], npcs: [], traces: [], pads: [],
-});
-const open = (rows: string[], at: (r: number, c: number) => boolean) =>
-  rows.map((row, r) => [...row].map((ch, c) => (at(r, c) ? ":" : ch)).join(""));
+const TOWN = testMap([
+  "WWWWWWWWWWWWWWWWWWWW",
+  "W;;;;;;;;;;;;;;;;;;W",
+  "W;;FFFF;;;;PPPP;;;;W",
+  "W;;;;;;;;;;;;;;;;;;W",
+  "WHHC;;;;;HHHH;;;;AHW",
+  "WHHC;;;;;HHHH;;;;AHW",
+  "WHHC;;;;;HHHH;;;;AHW",
+  "W;;;;;;;;;;;;;;;;;;W",
+  "W;;;;;;;;;;;;;;;;;;W",
+  "WWWWWWWWWWWWWWWWWWWW",
+], "kingdom");
+const STALLS: TileKind[] = ["foodStall", "potionStall", "changerStall", "forge"];
 
-const CLOSED = level(closed);
-const { halfWidth: L, halfDepth: D } = mapHalfSize(CLOSED);
-// Rows 10-12 open on the east edge: z from D - 13 to D - 10. Columns 5-6 open on the north edge.
-const EAST_GAP = { x: L, z: D - 13, w: SCENERY_REACH_TILES, h: 3 };
-const NORTH_GAP = { x: 5 - L, z: D, w: 2, h: SCENERY_REACH_TILES };
-const OPENED = level(open(closed, (r, c) => (c === WIDTH - 1 && r >= 10 && r <= 12) || (r === 0 && (c === 5 || c === 6))));
+function tilesOf(map: typeof TOWN, kind: TileKind): { x: number; z: number }[] {
+  const { bounds: b } = map, at: { x: number; z: number }[] = [];
+  for (let x = b.x + 0.5; x < b.x + b.w; x++) for (let z = b.z + 0.5; z < b.z + b.h; z++) {
+    if (tileAt(map, x, z) === kind) at.push({ x, z });
+  }
+  return at;
+}
 
-describe("openExits", () => {
-  test("leaves a level with a closed edge as it was", () => {
-    const scenery = grassFieldScenery(CLOSED);
-    assert.deepEqual(openExits(scenery, CLOSED), scenery);
+const inside = (r: Rect, x: number, z: number) => x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.h;
+
+describe("a chunk's scenery", () => {
+  const scenery = chunkScenery(TOWN, TOWN.bounds), standing = scenery.ledges.slice(1);
+  const under = (x: number, z: number) => standing.filter((l) => inside(l.rect, x, z));
+
+  test("its first ledge is its own ground, at height 0, and everything else stands within it", () => {
+    assert.deepEqual(scenery.ledges[0], { rect: TOWN.bounds, topY: 0 });
+    for (const { rect } of standing) {
+      assert.ok(rect.x >= TOWN.bounds.x && rect.x + rect.w <= TOWN.bounds.x + TOWN.bounds.w);
+      assert.ok(rect.z >= TOWN.bounds.z && rect.z + rect.h <= TOWN.bounds.z + TOWN.bounds.h);
+    }
   });
 
-  test("cuts a way out level with the map in front of each open stretch of the edge", () => {
-    const opened = openExits(grassFieldScenery(OPENED), OPENED);
-    for (const gap of [EAST_GAP, NORTH_GAP]) {
-      for (let x = gap.x + 0.25; x < gap.x + gap.w; x += 0.5) {
-        for (let z = gap.z + 0.25; z < gap.z + gap.h; z += 0.5) assert.equal(groundY(opened.ledges, x, z), 0);
+  test("each run of stall tiles is one built stall, so it looks whole from every side", () => {
+    for (const kind of STALLS) {
+      const tiles = tilesOf(TOWN, kind);
+      assert.ok(tiles.length > 1, kind);
+      const runs = new Set(tiles.flatMap(({ x, z }) => under(x, z)));
+      assert.equal(runs.size, 1, kind);
+      const [run] = runs;
+      assert.equal(run!.rect.w * run!.rect.h, tiles.length, kind);
+    }
+  });
+
+  test("the market stalls have an awning over the counter, the forge doesn't", () => {
+    for (const kind of STALLS) {
+      const [run] = under(tilesOf(TOWN, kind)[0]!.x, tilesOf(TOWN, kind)[0]!.z);
+      if (kind === "forge") assert.equal(run!.awning, undefined);
+      else assert.ok(run!.awning!.topY > run!.topY, kind);
+    }
+  });
+
+  test("the stalls' goods stand on top of them", () => {
+    for (const kind of STALLS) {
+      for (const { x, z } of tilesOf(TOWN, kind)) {
+        const goods = scenery.props.filter((p) => Math.floor(p.x) + 0.5 === x && Math.floor(p.z) + 0.5 === z);
+        assert.equal(goods.length, 1, `${kind} at ${x}, ${z}`);
+        assert.equal(goods[0]!.y, groundY(scenery.ledges, x, z));
+        assert.ok(goods[0]!.y > 0);
       }
     }
   });
 
-  test("keeps the ground beside the way out as it was", () => {
-    const scenery = grassFieldScenery(OPENED), opened = openExits(scenery, OPENED);
-    for (const [x, z] of [[L + 5, EAST_GAP.z - 1], [L + 5, EAST_GAP.z + EAST_GAP.h + 1], [-L - 4, 0], [0, -D - 3]]) {
-      assert.equal(groundY(opened.ledges, x!, z!), groundY(scenery.ledges, x!, z!), `${x}, ${z}`);
-    }
-    assert.ok(groundY(opened.ledges, L + 5, EAST_GAP.z - 1) > 0);
+  test("a house cut by a chunk's edge stands as tall on both sides of it", () => {
+    const [west, east] = [{ ...TOWN.bounds, w: 11 }, { ...TOWN.bounds, x: TOWN.bounds.x + 11, w: 9 }];
+    const y = (rect: Rect, x: number) => groundY(chunkScenery(TOWN, rect).ledges, x, 0);
+    assert.equal(y(west, 0.5), y(east, 1.5));
+    assert.ok(y(west, 0.5) > 0);
   });
 
-  test("clears the way out of props", () => {
-    const opened = openExits(grassFieldScenery(OPENED), OPENED);
-    for (const p of opened.props) {
-      for (const gap of [EAST_GAP, NORTH_GAP]) assert.ok(!inRect(gap, p.x, p.z), `${p.kind} at ${p.x}, ${p.z}`);
+  test("castle masonry thick enough is its bulk, standing taller than a wall", () => {
+    const keep = testMap(["WWWW....", "WWWW....", "WWWW....", "W......."], "kingdom");
+    const ledges = chunkScenery(keep, keep.bounds).ledges;
+    assert.ok(groundY(ledges, -3.5, 1.5) > groundY(ledges, -3.5, -1.5));
+  });
+
+  test("the same chunk always gets the same scenery", () => {
+    assert.deepEqual(chunkScenery(TOWN, TOWN.bounds), scenery);
+  });
+});
+
+describe("the quarry's cut stone", () => {
+  const ROWS = [
+    "QQQQQQQQQQQQQQQQ",
+    "QQQQQQQQQQQQQQQQ",
+    "QQQQQ......QQQQQ",
+    "QQQ..........QQQ",
+    "QQ....QQQQ....QQ",
+    "QQ....Q..Q....QQ",
+    "QQ....QQQQ....QQ",
+    "QQ............QQ",
+    "QQQQQQQ..QQQQQQQ",
+    "QQQQQQQ..QQQQQQQ",
+  ];
+  const pit = testMap(ROWS, "quarry");
+  const wider = testMap(["QQQQ".repeat(6), ...ROWS.map((r) => `QQQQ${r}QQQQ`), "QQQQ".repeat(6)], "quarry");
+  wider.regions[0]!.area = pit.bounds;
+  const { ledges } = chunkScenery(wider, wider.bounds), heightAt = (x: number, z: number) => groundY(ledges, x, z);
+  const inset = (x: number, z: number) => Math.min(x + 8, 8 - x, z + 5, 5 - z);
+
+  test("the quarry floor is flat at height 0, and every cut-stone tile stands up out of it", () => {
+    for (let x = -7.5; x < 8; x++) {
+      for (let z = -4.5; z < 5; z++) {
+        if (tileAt(pit, x, z) === "cutStone") assert.ok(heightAt(x, z) > 0, `${x}, ${z}`);
+        else assert.equal(heightAt(x, z), 0, `${x}, ${z}`);
+      }
     }
+  });
+
+  test("it rises in terraces toward the edge, and climbs on past it, higher than its rim", () => {
+    const stone: [number, number][] = [];
+    for (let x = -7.5; x < 8; x++) for (let z = -4.5; z < 5; z++) if (tileAt(pit, x, z) === "cutStone") stone.push([x, z]);
+    for (const [ax, az] of stone) {
+      for (const [bx, bz] of stone) {
+        if (inset(ax, az) < inset(bx, bz)) assert.ok(heightAt(ax, az) >= heightAt(bx, bz), `${ax},${az} vs ${bx},${bz}`);
+      }
+    }
+    assert.ok(new Set(stone.map(([x, z]) => heightAt(x, z))).size >= 3);
+    assert.ok(heightAt(0, 5.5) > heightAt(-7.5, 4.5));
   });
 });
 

@@ -33,6 +33,14 @@ export class FakeLink implements PlayerLink {
     if (!found) throw new Error(`no "${t}" message was sent (sent: ${this.sent.map((m) => m.t).join(", ")})`);
     return found;
   }
+
+  placed(): Pick<ServerMsgOf<"npcs">, "npcs" | "traces"> {
+    for (const m of [...this.sent].reverse()) {
+      if (m.t === "world") return m.world;
+      if (m.t === "npcs") return m;
+    }
+    throw new Error("no world was sent");
+  }
 }
 
 /** Saves kept in a Map. Set `failLoad` to make loads reject; `hold()` to keep the next load pending. */

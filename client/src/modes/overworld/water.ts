@@ -1,4 +1,4 @@
-import { clamp, mapHalfSize, tileAt, TILES, type LevelMap, type TileKind } from "@infinite-tower/shared";
+import { clamp, tileAt, TILES, type TileKind, type WorldMap } from "@infinite-tower/shared";
 
 /** Below the ground beside it: the surface, and the bed below the surface at the bank and at its deepest. */
 export const WATER_DEPTH_TILES = { surface: 0.12, bank: 0.3, deep: 1.1 };
@@ -29,12 +29,11 @@ const AROUND = [...SIDES, [-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
 
 // Worked out in the tile grid (col, row; row 0 the north edge), then turned to the world (x east, z north). Bridges
 // are cells too, so a river cut by one is one river.
-export function waterMap(level: LevelMap): WaterMap {
-  const { halfWidth, halfDepth } = mapHalfSize(level);
-  const cols = halfWidth * 2, rows = halfDepth * 2;
+export function waterMap(map: Pick<WorldMap, "bounds" | "tiles">): WaterMap {
+  const west = map.bounds.x, north = map.bounds.z + map.bounds.h, cols = map.bounds.w, rows = map.bounds.h;
   const kinds: (TileKind | null)[] = [];
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) kinds.push(tileAt(level, c - halfWidth + 0.5, halfDepth - r - 0.5));
+    for (let c = 0; c < cols; c++) kinds.push(tileAt(map, west + c + 0.5, north - r - 0.5));
   }
   const onMap = (c: number, r: number) => c >= 0 && r >= 0 && c < cols && r < rows;
   const kindAt = (c: number, r: number) => (onMap(c, r) ? kinds[r * cols + c] ?? null : null);
@@ -95,9 +94,9 @@ export function waterMap(level: LevelMap): WaterMap {
   }
 
   const waterCells = cells.filter((cell) => cell.water), banks: Bank[] = [];
-  const toWorld = ({ c, r }: Cell): At => ({ x: c - halfWidth, z: halfDepth - r - 1 });
+  const toWorld = ({ c, r }: Cell): At => ({ x: west + c, z: north - r - 1 });
   for (const { c, r } of waterCells) {
-    const x = c - halfWidth, z = halfDepth - r - 1;
+    const x = west + c, z = north - r - 1;
     if (!wet(c, r - 1)) banks.push({ from: { x, z: z + 1 }, to: { x: x + 1, z: z + 1 }, toLand: { x: 0, z: 1 } });
     if (!wet(c, r + 1)) banks.push({ from: { x, z }, to: { x: x + 1, z }, toLand: { x: 0, z: -1 } });
     if (!wet(c - 1, r)) banks.push({ from: { x, z }, to: { x, z: z + 1 }, toLand: { x: -1, z: 0 } });
@@ -110,7 +109,7 @@ export function waterMap(level: LevelMap): WaterMap {
     still: cells.filter((cell, i) => cell.water && !runs[i]).map(toWorld),
     banks,
     at(x, z) {
-      const u = x + halfWidth, v = halfDepth - z, shore = shoreAt(u, v);
+      const u = x - west, v = north - z, shore = shoreAt(u, v);
       const c0 = Math.floor(u - 0.5), r0 = Math.floor(v - 0.5), fu = u - 0.5 - c0, fv = v - 0.5 - r0;
       let sumU = 0, sumV = 0, weight = 0;
       for (const [dc, dr, w] of [[0, 0, (1 - fu) * (1 - fv)], [1, 0, fu * (1 - fv)], [0, 1, (1 - fu) * fv],

@@ -1,28 +1,26 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BURDEN, FIXED_DT, mapHalfSize, WALKER_RADIUS, World, stepWalker, type LevelLayout, type Vec2, type WalkInput,
+  BURDEN, FIXED_DT, WALKER_RADIUS, World, stepWalker, type Vec2, type WalkInput, type WorldLayout,
 } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, type OverworldState } from "../../../src/modes/overworld/components.js";
 import { Prediction } from "../../../src/modes/overworld/prediction.js";
 import { FakeNet } from "../../fixtures/fake-net.js";
+import { testMap } from "../../fixtures/map.js";
 
 /** An open 20 x 10 field: x ∈ [-10, 10], z ∈ [-5, 5]. */
-const LEVEL: LevelLayout = {
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5,
-  tiles: Array.from({ length: 10 }, () => ".".repeat(20)), campfires: [], npcs: [], traces: [], pads: [],
-};
+const LEVEL = testMap(Array.from({ length: 10 }, () => ".".repeat(20)));
 
 const RIGHT: WalkInput = { moveX: 1, moveZ: 0 };
 const UP_LEFT: WalkInput = { moveX: -1, moveZ: 1 };
 const STILL: WalkInput = { moveX: 0, moveZ: 0 };
 
-function setup(level: LevelLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) {
+function setup(map: WorldLayout | null = LEVEL, start: Vec2 = { x: 0, z: 0 }) {
   const world = new World();
   const player = world.spawn();
   const pos = world.add(player, OverworldPos, { ...start });
   const actor = world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: "south", alert: false });
-  const view = { level } as OverworldState;
+  const view = { map } as OverworldState;
   const net = new FakeNet();
   const prediction = new Prediction(world, view, player, net);
   return { prediction, pos, actor, view, net };
@@ -83,12 +81,12 @@ describe("Prediction.step", () => {
     assert.deepEqual(pos, walk({ x: 0, z: 0 }, inputs, BURDEN.overloadedPace));
   });
 
-  test("stops at the level's edge, like the server", () => {
+  test("stops at the map's edge, like the server", () => {
     const { prediction, pos } = setup(LEVEL, { x: 8.99, z: 0 });
     const inputs = Array.from({ length: 30 }, () => RIGHT);
     for (const input of inputs) prediction.step(input);
     assert.deepEqual(pos, walk({ x: 8.99, z: 0 }, inputs));
-    assert.ok(Math.abs(pos.x - (mapHalfSize(LEVEL).halfWidth - WALKER_RADIUS)) < 1e-9);
+    assert.ok(Math.abs(pos.x - (LEVEL.bounds.x + LEVEL.bounds.w - WALKER_RADIUS)) < 1e-9);
   });
 
   test("the heading follows the walk in four ways, and standing still keeps it", () => {
@@ -103,16 +101,16 @@ describe("Prediction.step", () => {
     assert.deepEqual(faced, ["west", "west", "north", "east", "south"]);
   });
 
-  test("with no level yet, nothing moves and nothing is sent", () => {
+  test("with no world yet, nothing moves and nothing is sent", () => {
     const { prediction, pos, net } = setup(null);
     for (const input of [RIGHT, UP_LEFT]) prediction.step(input);
     assert.deepEqual({ pos, sent: net.sent }, { pos: { x: 0, z: 0 }, sent: [] });
   });
 
-  test("once the level arrives: walks, sends from sequence number 1, replays nothing from before", () => {
+  test("once the world arrives: walks, sends from sequence number 1, replays nothing from before", () => {
     const { prediction, pos, view, net } = setup(null);
     prediction.step(UP_LEFT);
-    view.level = LEVEL;
+    view.map = LEVEL;
     prediction.step(RIGHT);
     assert.deepEqual(net.sent, [{ t: "input", seq: 1, moveX: 1, moveZ: 0 }]);
     prediction.reconcile(0, { x: 2, z: 1 });

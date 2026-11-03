@@ -4,7 +4,7 @@ import { ENEMY_IDS, ITEM_IDS, NPC_IDS } from "@infinite-tower/shared";
 import { QUESTS } from "../../../src/core/content/quests.js";
 import type { When } from "../../../src/core/game/story.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { LEVELS } from "../../../src/core/world/index.js";
+import { WORLD } from "../../../src/core/world/index.js";
 
 const IDS = Object.keys(QUESTS);
 const FLAGS = Object.values(QUESTS).flatMap((q) => q.steps.flatMap((s) => s.reward?.flags ?? []));
@@ -43,13 +43,13 @@ describe("QUESTS", () => {
     }
   });
 
-  test("every task names a real item, enemy, NPC or level, and a count of at least one; rewards real items", () => {
+  test("every task names a real item, enemy, NPC or region, and a count of at least one; rewards real items", () => {
     for (const [id, quest] of Object.entries(QUESTS)) {
       for (const { task, reward } of quest.steps) {
         if ("item" in task) assert.ok(ITEM_IDS.includes(task.item), id);
         if ("enemy" in task) assert.ok(ENEMY_IDS.includes(task.enemy), id);
         if ("to" in task) assert.ok(NPC_IDS.includes(task.to), id);
-        if ("level" in task) assert.ok(Object.hasOwn(LEVELS, task.level), id);
+        if ("region" in task) assert.ok(WORLD.regions.some((r) => r.id === task.region), id);
         if ("count" in task) assert.ok(Number.isInteger(task.count) && task.count >= 1, id);
         for (const [item, count] of Object.entries(reward?.items ?? {})) {
           assert.ok(ITEM_IDS.includes(item as never) && Number.isInteger(count) && count >= 1, id);

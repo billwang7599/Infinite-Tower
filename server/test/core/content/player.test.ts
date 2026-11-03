@@ -4,7 +4,7 @@ import {
   BASE_STATS, coreStats, emptyBag, emptyEquipment, maxHpOf, newCore, staminaMaxOf,
 } from "@infinite-tower/shared";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
-import { START_LEVEL } from "../../../src/core/world/index.js";
+import { START_REGION } from "../../../src/core/world/index.js";
 
 describe("player content", () => {
   test("full vitals are the most HP and stamina the stats give", () => {
@@ -21,7 +21,7 @@ describe("player content", () => {
     assert.deepEqual(newPlayer(), {
       vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(), knownWords: [],
       equipment: emptyEquipment(), skillbook: [null, null, null, null], story: { quests: {}, flags: [] },
-      pad: START_LEVEL,
+      pad: START_REGION,
       core: newCore(), shopsBought: [], faith: {},
     });
   });

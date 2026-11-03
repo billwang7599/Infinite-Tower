@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { tileAt, type LevelLayout } from "@infinite-tower/shared";
+import { tileAt } from "@infinite-tower/shared";
 import { WATER_DEPTH_TILES, waterMap, type WaterMap } from "../../../src/modes/overworld/water.js";
+import { testMap } from "../../fixtures/map.js";
 
-const level = (tiles: string[]): LevelLayout => ({
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5,
-  campfires: [], npcs: [], traces: [], pads: [], tiles,
-});
+const level = (tiles: string[]) => testMap(tiles);
 
 // 16 x 16, centred on 0, 0: a river 2 wide (x -1 to 1) in from the map's north edge, under a bridge (z 4 to 5),
 // through a lake with a dead-end nook on its east side (x 5 to 6, z -2 to -1), and out through the trees to the south.
@@ -152,7 +150,7 @@ describe("waterMap", () => {
     assert.deepEqual([pond.running, pond.still], [[], pond.tiles]);
   });
 
-  test("a level with no water has none", () => {
+  test("a map with no water has none", () => {
     const dry = waterMap(level(["....", "...."]));
     assert.deepEqual([dry.tiles, dry.running, dry.still, dry.banks], [[], [], [], []]);
   });

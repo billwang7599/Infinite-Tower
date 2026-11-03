@@ -1,5 +1,5 @@
 import {
-  bagCounts, type Bag, type DialogueOffer, type EnemyId, type LevelLayout, type NpcId,
+  bagCounts, type Bag, type DialogueOffer, type EnemyId, type NpcId, type WorldLayout,
 } from "@infinite-tower/shared";
 import { QUESTS, type Quests } from "../content/quests.js";
 import { SHOPS, type ShopId } from "../content/shops.js";
@@ -16,24 +16,22 @@ export interface Placed {
 export const stopFor = (story: Story, npc: Npc, quests: Quests = QUESTS): Stop | null =>
   npc.stops.find((stop) => holds(stop.when, story, quests)) ?? null;
 
-export function placedOn(
-  level: string, story: Story, npcs: Partial<Record<NpcId, Npc>> = NPCS, quests: Quests = QUESTS,
-): Placed {
+export function placedOn(story: Story, npcs: Partial<Record<NpcId, Npc>> = NPCS, quests: Quests = QUESTS): Placed {
   const placed: Placed = { npcs: [], traces: [] };
   for (const [npc, def] of Object.entries(npcs) as [NpcId, Npc][]) {
     const stop = stopFor(story, def, quests);
     if (!stop) continue;
-    if (stop.level === level) placed.npcs.push({ npc, stop });
+    placed.npcs.push({ npc, stop });
     for (const left of def.stops.slice(def.stops.indexOf(stop) + 1)) {
-      if (left.level === level && left.trace) placed.traces.push({ npc, trace: left.trace });
+      if (left.trace) placed.traces.push({ npc, trace: left.trace });
     }
   }
   return placed;
 }
 
-/** Kept until they next enter a level, so an NPC who moves on mid-visit is still there to say goodbye. */
-export function placeFor(session: GameSession, level: string): Pick<LevelLayout, "npcs" | "traces"> {
-  session.placed = placedOn(level, session.story);
+/** Kept until they next walk into another region, so an NPC who moves on mid-visit is still there to say goodbye. */
+export function placeFor(session: GameSession): Pick<WorldLayout, "npcs" | "traces"> {
+  session.placed = placedOn(session.story);
   return {
     npcs: session.placed.npcs.map(({ npc, stop }) => ({ npc, at: stop.at, heading: stop.heading })),
     traces: session.placed.traces.map(({ trace }) => trace.at),

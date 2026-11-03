@@ -86,7 +86,7 @@ export function OverworldHud(props: OverworldHudProps) {
       <PlayerStatus hud={hud} />
       <Compass hud={hud} top={compassTop} />
       <div className="absolute top-3 right-4 flex items-center gap-3">
-        <LevelName hud={hud} />
+        <RegionName hud={hud} />
         <Ping ping={props.ping} hud={props.hudSettings} />
         <HudButton id="inventory-button" label="Inventory" onClick={() => toggle("inventory")}>
           <BagIcon />
@@ -180,14 +180,9 @@ function ChallengeNotice(props: ChallengeNoticeProps) {
   );
 }
 
-function LevelName({ hud }: HudProps) {
-  const name = useStore(hud, (s) => s.levelName), floor = useStore(hud, (s) => s.levelFloor);
-  return (
-    <div id="overworld-level" className="font-title text-[17px] font-medium tracking-wide">
-      {floor !== null && <span className="mr-2 text-[14px] opacity-70">Floor {floor}</span>}
-      {name}
-    </div>
-  );
+function RegionName({ hud }: HudProps) {
+  const name = useStore(hud, (s) => s.regionName);
+  return <div id="overworld-region" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
 }
 
 interface HudButtonProps {

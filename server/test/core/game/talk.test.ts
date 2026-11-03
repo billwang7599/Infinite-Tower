@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  distXZ, emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, NPC_IDS, type Heading,
+  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, type Heading,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import type { QuestDef, Quests, QuestStep, Task } from "../../../src/core/content/quests.js";
@@ -10,19 +10,14 @@ import { newStory, type Story } from "../../../src/core/game/story.js";
 import { dialogueOf, placedOn, stopFor } from "../../../src/core/game/talk.js";
 import { NPCS, type Npc, type Stop } from "../../../src/core/npcs/index.js";
 import { INTERACT_LAG_SLACK_M, INTERACT_LOOK_SLACK_RAD } from "../../../src/core/overworld/interact.js";
-import { LEVELS } from "../../../src/core/world/index.js";
 import { bagWith, startSession, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
 const NPC = stopFor(newStory(), NPCS.hollis)!;
 const start = (opts: Parameters<typeof startSession>[0] = {}) =>
-  startSession({ ...opts, saved: { pad: NPC.level, ...opts.saved } });
+  startSession({ ...opts, saved: { pad: NPC.region, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
-const NOBODY_THERE = Object.keys(LEVELS).find((id) => id !== NPC.level && NPC_IDS.every((npc) => {
-  const stop = stopFor(newStory(), NPCS[npc])!;
-  return stop.level !== id || distXZ(stop.at, NPC.at) > 2 * REACH_TILES;
-}))!;
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 
 function standBy(session: GameSession, awayTiles: number, heading: Heading = "west", offRad = 0): void {
@@ -40,18 +35,9 @@ const on = (id: string, stepId: string | null): Story =>
   ({ ...newStory(), quests: { [id]: { step: stepId, kills: 0 } } });
 
 describe("talking to an NPC", () => {
-  test("it's sent with the level its stop is on for this player, and not with another", () => {
-    const hollisOn = (level: string) =>
-      start({ saved: { pad: level } }).link.last("level").level.npcs.filter((n) => n.npc === "hollis");
-    assert.deepEqual(hollisOn(NPC.level), [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
-    assert.deepEqual(hollisOn(NOBODY_THERE), []);
-  });
-
-  test("on another level, the same spot says nothing", () => {
-    const { session, link } = start({ saved: { pad: NOBODY_THERE } });
-    standBy(session, 1);
-    session.talk();
-    assert.equal(link.all("dialogue").length, 0);
+  test("it's sent with the world, where its stop is for this player", () => {
+    const shown = start().link.last("world").world.npcs.filter((n) => n.npc === "hollis");
+    assert.deepEqual(shown, [{ npc: "hollis", at: NPC.at, heading: NPC.heading }]);
   });
 
   test("in reach (with the lag slack) and faced, the server sends who it is and what it says", () => {
@@ -118,7 +104,7 @@ describe("where an NPC stands, and what it says", () => {
     ], { title: "Q" }),
   };
   const fire: Stop = {
-    level: "grass-field", at: { x: 0, z: 0 }, heading: "west",
+    region: "grass-field", at: { x: 0, z: 0 }, heading: "west",
     talk: [
       { when: { quest: "q", step: "hides" }, lines: ["hand them over"], offer: { deliver: "q" } },
       { when: { canStart: "q" }, lines: ["will you?"], offer: { start: "q" } },
@@ -127,7 +113,7 @@ describe("where an NPC stands, and what it says", () => {
     trace: { at: { x: 1, z: 0 }, lines: ["a bedroll"] },
   };
   const woods: Stop = {
-    when: { flag: "moved" }, level: "mistwood", at: { x: 1, z: 1 }, heading: "east", talk: [{ lines: ["here"] }],
+    when: { flag: "moved" }, region: "mistwood", at: { x: 1, z: 1 }, heading: "east", talk: [{ lines: ["here"] }],
     trace: { at: { x: 2, z: 1 }, lines: ["a note"] },
   };
   const NPC: Npc = { stops: [woods, fire] };
@@ -140,13 +126,11 @@ describe("where an NPC stands, and what it says", () => {
     assert.equal(stopFor(newStory(), { stops: [woods] }, QUESTS), null);
   });
 
-  test("entering a level: the NPCs whose stop is there, and traces of the stops they've moved on from", () => {
-    const placed = (level: string, story: Story, npc = NPC) => placedOn(level, story, { hollis: npc }, QUESTS);
-    assert.deepEqual(placed("grass-field", newStory()), { npcs: [{ npc: "hollis", stop: fire }], traces: [] });
-    assert.deepEqual(placed("mistwood", newStory()), { npcs: [], traces: [] }, "nothing left where he's yet to go");
-    assert.deepEqual(placed("mistwood", moved), { npcs: [{ npc: "hollis", stop: woods }], traces: [] });
-    assert.deepEqual(placed("grass-field", moved), { npcs: [], traces: [{ npc: "hollis", trace: fire.trace }] });
-    assert.deepEqual(placed("grass-field", newStory(), { stops: [woods] }), { npcs: [], traces: [] }, "nowhere");
+  test("each NPC at its stop for this player, with traces of the stops it has moved on from", () => {
+    const placed = (story: Story, npc = NPC) => placedOn(story, { hollis: npc }, QUESTS);
+    assert.deepEqual(placed(newStory()), { npcs: [{ npc: "hollis", stop: fire }], traces: [] });
+    assert.deepEqual(placed(moved), { npcs: [{ npc: "hollis", stop: woods }], traces: [{ npc: "hollis", trace: fire.trace }] });
+    assert.deepEqual(placed(newStory(), { stops: [woods] }), { npcs: [], traces: [] }, "nowhere");
   });
 
   test("it says the first talk at its stop whose condition holds; with none, nothing", () => {

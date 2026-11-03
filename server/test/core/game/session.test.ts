@@ -7,7 +7,7 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { getRegion, WORLD } from "../../../src/core/world/index.js";
 import { HOLLOW, near, regenOver, startSession, tick } from "./helpers.js";
 import { armed } from "../../fixtures/fight.js";
 
@@ -16,7 +16,7 @@ before(() => initPhysics());
 const FULL = fullVitals(PLAYER_STATS);
 const MEAT_HEAL_HP = ITEMS["boar-meat"].consumable.effects[0].healShare * FULL.hp;
 const campfire = () => {
-  const fire = getLevel(HOLLOW).layout.campfires[0];
+  const fire = getRegion(HOLLOW).campfires[0];
   if (!fire) throw new Error("the start level has no campfire");
   return fire;
 };
@@ -361,7 +361,7 @@ describe("the cloth", () => {
 
 describe("carry weight", () => {
   const LIMIT = carryLimit(PLAYER_STATS);
-  const FULL_STEP = getLevel(HOLLOW).layout.playerSpeed * FIXED_DT;
+  const FULL_STEP = WORLD.layout.playerSpeed * FIXED_DT;
   /** Just over the overloaded line, with a stack of meat on top: eating one drops it back under. */
   const tuskCount = Math.floor((LIMIT * BURDEN.overloadedAt) / ITEMS["boar-tusk"].weight);
   const meat = ITEMS["boar-meat"].stackSize;

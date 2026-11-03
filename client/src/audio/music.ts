@@ -1,7 +1,5 @@
-import type { ArenaLook, LevelLayout } from "@infinite-tower/shared";
+import type { ArenaLook, Theme } from "@infinite-tower/shared";
 import type { Mode } from "../game/transition.js";
-
-type LevelTheme = LevelLayout["theme"];
 
 // Each plays `music/<name>.ogg`, a seamless loop, all evened out to the same loudness.
 export const TRACKS = {
@@ -15,7 +13,7 @@ export const TRACKS = {
 
 export type TrackName = keyof typeof TRACKS;
 
-interface Where { title: TrackName; overworld: Record<LevelTheme, TrackName>; battle: Record<ArenaLook, TrackName> }
+interface Where { title: TrackName; overworld: Record<Theme, TrackName>; battle: Record<ArenaLook, TrackName> }
 
 export const MUSIC: Where = {
   title: "title",
@@ -23,10 +21,10 @@ export const MUSIC: Where = {
   battle: { "forest-clearing": "battle", "stone-ruins": "battle", mire: "battle-mire", quarry: "battle" },
 };
 
-export interface Scene { mode: Mode | null; level: LevelTheme | null; arena: ArenaLook | null; decided: boolean }
+export interface Scene { mode: Mode | null; region: Theme | null; arena: ArenaLook | null; decided: boolean }
 
 // A decided fight goes quiet, so the victory or defeat sound rings out.
-export function musicFor({ mode, level, arena, decided }: Scene): TrackName | null {
+export function musicFor({ mode, region, arena, decided }: Scene): TrackName | null {
   if (mode === "battle") return arena && !decided ? MUSIC.battle[arena] : null;
-  return mode === "overworld" && level ? MUSIC.overworld[level] : MUSIC.title;
+  return mode === "overworld" && region ? MUSIC.overworld[region] : MUSIC.title;
 }

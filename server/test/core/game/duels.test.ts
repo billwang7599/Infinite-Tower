@@ -9,9 +9,9 @@ import { CHALLENGE_RANGE_TILES, CHALLENGE_TIME } from "../../../src/core/game/du
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getArena, getLevel, START_LEVEL } from "../../../src/core/world/index.js";
+import { getArena, getRegion, START_REGION } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT } from "./helpers.js";
 
 before(() => initPhysics());
@@ -20,7 +20,7 @@ const B: Account = { id: "player-2", username: "bee" };
 const C: Account = { id: "player-3", username: "sea" };
 const B_CHARACTER: Character = { ...TEST_CHARACTER, name: "Bee" };
 const C_CHARACTER: Character = { ...TEST_CHARACTER, name: "Sea" };
-const LEVEL = getLevel(START_LEVEL);
+const REGION = getRegion(START_REGION);
 const HURT = { hp: 40, stamina: 70 };
 const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
 
@@ -37,7 +37,7 @@ async function players() {
     return { link, session };
   };
   const a = await join(ACCOUNT), b = await join(B), c = await join(C);
-  place(c.session, { x: LEVEL.spawn.x + 10, z: LEVEL.spawn.z });
+  place(c.session, { x: REGION.spawn.x + 10, z: REGION.spawn.z });
   return { online, store, a, b, c };
 }
 
@@ -72,14 +72,14 @@ describe("challenging another player to a duel", () => {
 
   test("a player just past range still counts, for lag", async () => {
     const { a, b } = await players();
-    place(b.session, { x: LEVEL.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES - 0.05, z: LEVEL.spawn.z });
+    place(b.session, { x: REGION.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES - 0.05, z: REGION.spawn.z });
     a.session.challenge();
     assert.deepEqual(lastNews(b.link), { kind: "received", from: TEST_CHARACTER.name });
   });
 
   test("with nobody within range, nobody is challenged", async () => {
     const { a, b } = await players();
-    place(b.session, { x: LEVEL.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES + 0.2, z: LEVEL.spawn.z });
+    place(b.session, { x: REGION.spawn.x + CHALLENGE_RANGE_TILES + LAG_SLACK_TILES + 0.2, z: REGION.spawn.z });
     a.session.challenge();
     assert.deepEqual(lastNews(a.link), { kind: "nobodyNear" });
     assert.deepEqual(news(b.link), []);
@@ -95,7 +95,7 @@ describe("challenging another player to a duel", () => {
   test("one open challenge per player: neither side of one can be in another", async () => {
     const { a, c } = await players();
     a.session.challenge();
-    place(c.session, LEVEL.spawn);
+    place(c.session, REGION.spawn);
     c.session.challenge();
     assert.equal(lastNews(c.link)?.kind, "busy");
     a.session.challenge();
@@ -144,7 +144,7 @@ describe("a duel", () => {
     assert.equal(ea.setup.duel, true);
     assert.deepEqual(ea.setup.enemies, []);
     assert.equal(ea.setup.players.length, 2);
-    assert.equal(ea.setup.arena.look, getArena(LEVEL.duelArenaId).look);
+    assert.equal(ea.setup.arena.look, getArena(REGION.duelArenaId).look);
     assert.equal(ea.setup.arena.look, "stone-ruins");
     assert.deepEqual(ea.setup.players.map((p) => p.who), [
       { name: TEST_CHARACTER.name, character: TEST_CHARACTER }, { name: B_CHARACTER.name, character: B_CHARACTER },

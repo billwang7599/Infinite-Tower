@@ -60,12 +60,12 @@ enemy stats, drop tables) stays in `server/`.
    questbook). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
-   `character` message (only one: a character is kept for good); then it sends `level`.
+   `character` message (only one: a character is kept for good); then it sends `world`.
 4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
    shared `stepWalker` (at the pace the gear's weight allows; solid tiles stop it). The server replays the inputs,
-   runs the level's actors (walking by the same rule), rolls encounters in tall-grass tiles and sends `state`
-   20 times a second with the actors and other players near your screen. Every player on a level walks the same
-   overworld: they see each other, and an enemy one of them touches leaves it for everyone. The client glides its
+   runs the world's actors (walking by the same rule), rolls encounters in tall-grass tiles and sends `state`
+   20 times a second with the actors and other players near your screen. Every player walks the one overworld: they
+   see each other, and an enemy one of them touches leaves it for everyone. The client glides its
    mirrors toward those positions.
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
    setup (arena, enemy, your HP / stamina, core and its stats, burden, the bag and what's worn (so whether a sword and a
@@ -87,7 +87,7 @@ enemy stats, drop tables) stays in `server/`.
 
 ## Server: core plus outlets
 
-The server is hexagonal. `server/src/core/` is the game: sessions, the overworld, fights, levels, content and the
+The server is hexagonal. `server/src/core/` is the game: sessions, the overworld, fights, the world, content and the
 account rules. It knows nothing about sockets, HTTP, SQL or env; what it needs from outside it asks for through the
 interfaces in `core/ports.ts`. The outlets plug into it, and `main.ts` is the only file that sees everything:
 
@@ -101,7 +101,7 @@ main.ts
  │     ├─ api/  Fastify: /api routes, /api/servers (this server's name and online.count), the built client, the
  │     │        /ws handshake
  │     └─ ws/   gameSockets(): each socket becomes a Connection (the PlayerLink) bound to a GameSession
- └─ timer -> FixedClock (60 steps a second) -> online.tick(dt): each level's overworld steps, then each session
+ └─ timer -> FixedClock (60 steps a second) -> online.tick(dt): the overworld steps, then each session
                                                       sends its state or steps its battle
 ```
 
@@ -158,7 +158,7 @@ main.ts
   no Babylon (`npm run typecheck` checks it); they never call into drawing or hand it state. Each frame, after the
   mode's update, `game.ts` calls `drawing.frame(dt)` (and `drawing.show(mode)` when the mode changes), and the drawing
   reads the shown mode's state itself: `battle.ctx` (the fight, the lock, the camera's view, this frame's events) or
-  `overworld.state` (the level, the actors). Every kind of thing in a fight has one row in `VISUALS`
+  `overworld.state` (the world's map, the actors). Every kind of thing in a fight has one row in `VISUALS`
   (`visuals/visuals.ts`), picked by `kindOf` from the components it already has (`Player`, an `Enemy`'s id, a
   `SkillObject`'s kind); a row is `{ spawn, frame, dispose }`, and `frame` diffs the fight's entities against what it
   has drawn: it spawns the new, frames the rest and disposes the gone. A row's own state holds only its meshes and
@@ -199,14 +199,15 @@ main.ts
   overworld player and the camera's quarter turns). Every sound is one row in `SOUNDS` (`audio/sounds.ts`): its files
   (`<stem>-<n>.ogg` in `audio/sounds/`, loaded with `import.meta.glob`), its volume and rate, how much each play varies
   (`spread`), its bus, whether it loops, how far it carries (`reach`); a play never repeats the variant played last
-  (`take`). The other tables there say which sounds each enemy, element, arena look and level theme has. Outside the
+  (`take`). The other tables there say which sounds each enemy, element, arena look and region theme has. Outside the
   frame there are three ways in: what the game tells the player (`say` sets `notifications.said`, and `EVENT_SOUNDS`
   gives some kinds a sound), a move in the bag (`game.moveItem` plays `bagSound`) and a click on any button (one
   listener on the page). Browsers only start sound after a user gesture: the AudioContext is made on the first pointer
   press or as the game joins (Play), whichever is first. The volumes are settings (`settings/audio.ts`), saved with the
   others.
-  Music comes the same way: each frame `musicFor` (`audio/music.ts`, tested) picks the track from the mode, the level's
-  theme and the arena's look (`MUSIC`: the title's with no mode or before a level comes, then each level's, each
+  Music comes the same way: each frame `musicFor` (`audio/music.ts`, tested) picks the track from the mode, the theme of
+  the region you stand in and the arena's look (`MUSIC`: the title's with no mode or before the world comes, then each
+  region theme's, each
   arena's in a fight, none once it's decided), and when it changes the old track fades out and the new one fades in
   (`MUSIC_FADE_TIME`). A track is fetched and decoded only when it's wanted and dropped when it stops, since a couple
   of minutes of decoded music is tens of MB. It plays through the music bus, the fourth volume. On the title no frame
@@ -271,7 +272,7 @@ main.ts
   `CHALLENGE_RANGE_TILES` (+ `LAG_SLACK_TILES`) who isn't fighting, keeps the challenge open for `CHALLENGE_TIME` (one per player, either
   side) and tells both how it goes (`challengeNews`). On `answerChallenge` with accept, both get one `encounter` (the
   other's seat; each player's name and character are in the setup's `who`) for a `FightSetup` with `duel: true`, no
-  enemies, in the level's `duelArenaId`.
+  enemies, in the challenger's region's `duelArenaId`.
   In a duel each player is on their own `side` (every `Fighter` has one: enemies -1, players 0), so every hit, skill,
   block and perfect block works player against player; every swing's way is named as its swinger sees it, so one from
   the left comes from the other's right (`mirrorWay` in `weapons/hybrid.ts`). `fight.targets` (what an
@@ -280,17 +281,16 @@ main.ts
 - **Piles** (`core/overworld/piles.ts`; [plan/drops.md](plan/drops.md) has what's still open): items lying on the
   overworld, each an entity with an `OverworldPos` and a `Pile` (its items as a grid `PILE_COLS` wide, `packPile`, and
   when it vanishes). `Overworld.dropPile` lays one down, `pileSystem` removes it `PILE_LIFETIME_MS` after (by the
-  wall clock, so a level nobody's on catches up when it next steps), and `setPileItems` with nothing left removes it
-  at once. An arena's drops are piles too, held off the map and untimed (`holdPile`) until they land (`landPile`).
+  wall clock, so an overworld nobody's on catches up when it next steps), and `setPileItems` with nothing left removes
+  it at once. An arena's drops are piles too, held off the map and untimed (`holdPile`) until they land (`landPile`).
   `state` sends every pile within `VIEW_RADIUS_TILES`; the client mirrors each as an actor of kind `"pile"`, drawn as a
   sack. A pile is opened the same way here as in the arena: by looking at it. The rule is the shared `inView`
   (`shared/src/world/interact.ts`: within `INTERACT_RANGE_M` and `INTERACT_LOOK_RAD` either side of the way you face,
   the one nearest that line), which the server runs with its slack as `inViewWithSlack` (`INTERACT_LAG_SLACK_M`,
-  `INTERACT_LOOK_SLACK_RAD`, `core/overworld/interact.ts`), for both places, for talking to an NPC and for binding to
-  a summoning pad. On the
-  overworld the way you face is the walker's heading: the client turns its chibi with `faceToward` on each predicted
-  step, and the server turns its copy (`OverworldPlayer.heading`) with the same `faceToward` on each input it replays,
-  both from `START_HEADING` on entering a level. Interact sends `openPile` when the pile in view is
+  `INTERACT_LOOK_SLACK_RAD`, `core/overworld/interact.ts`), for both places, for talking to an NPC and for binding to a
+  summoning pad. On the overworld the way you face is the walker's heading: the client turns its chibi with `faceToward`
+  on each predicted step, and the server turns its copy (`OverworldPlayer.heading`) with the same `faceToward` on each
+  input it replays, both from `START_HEADING` on entering the world. Interact sends `openPile` when the pile in view is
   the nearest thing in reach (`interactionAt`), and opens the bag screen; the session opens the one in view of its copy
   (`Overworld.pileInView`) and from then on keeps a copy of it in its gear's `pile` (the `Gear`'s fourth grid, `NO_PILE`
   for none, never saved or taken into a fight), followed every tick, so another player's take or its vanishing reaches
@@ -299,19 +299,22 @@ main.ts
   walking and when a fight starts.
 - **NPCs** are kept like enemies, by id (`NpcId`, `shared/src/world/layout.ts`): where one stands and what it says is
   its file on the server (`core/npcs/<id>.ts`, in `NPCS`), its name and look a folder on the client
-  (`visuals/npcs/<id>/`, in `NPC_LOOKS`). An NPC is a list of `stops` (a level, a spot, the way it faces, a condition on
+  (`visuals/npcs/<id>/`, in `NPC_LOOKS`). An NPC is a list of `stops` (a region, a spot in its tiles, the way it faces,
+  a condition on
   the story), each with its `talk` there: lines, each with a condition, and maybe an offer (`{ start: quest }`, `{
   deliver: quest }` or `{ shop }`), and maybe a `trace` (a spot and lines it leaves once it moves on). For each player
   (`core/game/talk.ts`) it stands at its first stop whose condition holds (`stopFor`, so stops are listed latest first
   and the last has none) and says the first talk there that holds (so the last talk has none); the trace of every stop
-  listed after that one lies on its level. Levels don't place NPCs: as a player enters a level the session works out
-  the NPCs whose stop for them is there and the traces there (`placedOn`), keeps them (`session.placed`) and sends them
-  in the `level` message's `npcs` and `traces` (`placeFor`), so two players can see an NPC in different places. They
-  stay put until the player next enters a level, so an NPC who moves on mid-visit (a quest step done) is still there to
-  say goodbye, by its old stop's talk, which follows the story at once; the next visit finds its trace. The lines stay
+  listed after that one lies where it stood. `NPCS` holds every spot in world tiles (`inRegion`). Regions don't place
+  NPCs: as a player enters the world, and each time they walk into another region, the session works out where each
+  NPC stands for them and the traces (`placedOn`), keeps them (`session.placed`) and sends them in the `world`
+  message's `npcs` and `traces`, or an `npcs` message if they changed (`placeFor`), so two players can see an NPC in
+  different places. They stay put until the player next walks into another region, so an NPC who moves on mid-visit
+  (a quest step done) is still there to say goodbye, by its old stop's talk, which follows the story at once; walking
+  off, the player finds its trace. The lines stay
   on the server until someone talks. The client puts each NPC in its world as an actor of kind `"npc"` with an `Npc`
-  holding its id, and each trace as an actor of kind `"trace"` (`ActorMirror.enter`); the walker draws an NPC like
-  another player from its `NPC_LOOKS` entry (the chibi in its look, its name over its head) and every trace as a
+  holding its id, and each trace as an actor of kind `"trace"` (`ActorMirror.enter`, `place`); the walker draws an NPC
+  like another player from its `NPC_LOOKS` entry (the chibi in its look, its name over its head) and every trace as a
   bedroll. Talking is Interact on one in view (`inView`, as a pile; `interactionAt` picks it when it's the nearest thing
   in reach: "talk" for an NPC, "look" for a trace, both sending `talk`); the session finds the NPC or trace of its own
   in view of its copy (`Overworld.inView`, with the slack) and answers `dialogue` with the NPC's id and its lines: an
@@ -368,7 +371,7 @@ main.ts
   `unfold`: it applies the effects (`{ start }`: the first step; `{ advance }`: the step done, a deliver step taking its
   items from the bag or refusing if short; `{ finish }`, the admin's: every step left, a short handover taking
   nothing), then does every gather, reach or kill step the world already meets (`Seen`:
-  the level, where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its
+  the region and where you are, a won fight's enemies); talk and deliver steps wait for an NPC. Each step done gives its
   reward (what doesn't fit is `dropped`) and each change is told (`news`). It's pure over a story, a bag and a quest
   table (as are `holds`, `questbookOf`, `keptStory`, and `stopFor` and `dialogueOf` in `talk.ts`), so tests bring their
   own quests and NPCs. A talk does each talk step to that NPC once, and a fight's kills count only toward the step they
@@ -494,13 +497,13 @@ main.ts
 - **Shops** (`core/game/shop.ts`; their stock, what they buy and every price in `core/content/shops.ts`, server only):
   a keeper's talk offers `{ shop }`, and taking it (Trade, or going on past the last line) sends `openShop`; the session
   opens the shop of the NPC in view (`shopInView` in `talk.ts`), keeps its id in `GameSession.shop` and sends its
-  `ShopView` (prices already worked out: the level's `PRICE_FACTOR`, the first purchase there cheaper until the player's
-  `shopsBought` has it). The client shows it in the bag screen in place of the equipment (`ShopColumn.tsx`). `buy`,
-  `sell` and `exchange` run on the gear: coins (`shared/src/items/coins.ts`, three items, 100 of one make one of the
-  next) are paid off the cloth and then the bag, smallest first, the last coin's change in the fewest coins; what's
+  `ShopView` (prices already worked out: the region's `PRICE_FACTOR`, the first purchase there cheaper until the
+  player's `shopsBought` has it). The client shows it in the bag screen in place of the equipment (`ShopColumn.tsx`).
+  `buy`, `sell` and `exchange` run on the gear: coins (`shared/src/items/coins.ts`, three items, 100 of one make one of
+  the next) are paid off the cloth and then the bag, smallest first, the last coin's change in the fewest coins; what's
   got goes into the bag and what doesn't fit onto the cloth, or nothing happens. Coins are never packed up by
-  themselves: changing them is `exchange`, one tier at a time. Each answer is a `trade` (the news, the gear, the
-  shop). The shop closes with the bag (`closeBag`, walking, a fight starting, a new level).
+  themselves: changing them is `exchange`, one tier at a time. Each answer is a `trade` (the news, the gear, the shop).
+  The shop closes with the bag (`closeBag`, walking, a fight starting).
 - **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`, `useTime`,
   `effects`) and `wearable` (`on`: the slot kind, and the use button's `verb` where it's worn). They aren't ECS
   entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set by
@@ -515,7 +518,7 @@ main.ts
   `Uniques` keeps who holds each (`PlayerStore.uniqueHolds` / `holdUnique`; the `unique_items` table, one row per held
   thing, its holder's latest save as when they were last seen). A player's save that carries one makes them its holder,
   and their save without it lets it go (`saved`, from `OnlinePlayers`' save). It's free (`isFree`) when nobody's held it
-  within `UNIQUE_HOLD_MS` (7 days) and it's nowhere in play: in no pile on any level (arena piles too) and in no online
+  within `UNIQUE_HOLD_MS` (7 days) and it's nowhere in play: in no pile anywhere (arena piles too) and in no online
   player's bag, cloth, hands or core (`OnlinePlayers.inPlay`). A carved unique inscription holds its sigil the same way,
   and a loaded core carved with one its player doesn't hold loses it. So it's free again as soon as the pile it lay in
   vanishes, or the cloth it was left on is cleared, with nothing to tell; and nothing stops it changing hands, since
@@ -600,19 +603,18 @@ Browser                 api/routes/game-socket.ts       ws/sockets.ts           
 
 While playing, each message goes ws (over 16 KB: close 1009) -> `Connection` (Zod check; dropped if invalid, more
 than 20 invalid: close 1008) -> `ws/handlers.ts` (one call on the `GameSession` per message type) ->
-`GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks every
-level's overworld and then every session 60 times a second; on the overworld every 3rd tick sends a `state`, and in
+`GameSession`, which answers with `link.send(...)`. `state` and `battleHash` aren't answers: the clock ticks the
+overworld and then every session 60 times a second; on the overworld every 3rd tick sends a `state`, and in
 a fight every 15th step of the server's fight a `battleHash`. A `ping` never reaches the session: `Connection`
 answers it with a `pong` itself.
 
 In the browser, one `Net` (`client/src/net/net.ts`) owns the socket. `Net.connect(socket)` opens a server's socket
 (from the list: a path on the page's host, or a whole URL) and resolves with it and the `welcome`; `net.send(msg)`
 sends; each part of the game subscribes to the messages it needs with `net.on(type, fn)`, which returns an
-unsubscribe: the overworld to `level`, `state`, `encounter` and `gear`, the battle to `battleHash` and `battleSync`
-from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens
-(the level, while the game still loads) are held and delivered, in order, once the first listeners are in.
-`net.onLost(fn)` hears a dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and
-`net.close()` hangs up quietly.
+unsubscribe: the overworld to `world`, `npcs`, `state`, `encounter` and `gear`, the battle to `battleHash` and
+`battleSync` from its start to its end, and `game.ts` to the rest. Messages that come before anyone listens (the world,
+while the game still loads) are held and delivered, in order, once the first listeners are in. `net.onLost(fn)` hears a
+dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and `net.close()` hangs up quietly.
 
 | Client -> server | When |
 |---|---|
@@ -650,7 +652,8 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 |---|---|
 | `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev`, faith with each god |
 | `character` | your character, as saved |
-| `level` | entering a level: its layout (what the client may see of it, with the NPCs standing there for you), where you are, and `next`, the maps its exits lead to (drawn before you cross) |
+| `world` | entering the world: its map (what the client may see of it, with the NPCs standing there for you), where you are |
+| `npcs` | walking into another region moved an NPC for you: where each stands now, and the traces |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position and HP (it comes back on its own), nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
 | `battleHash` | 4 a second in a fight: the server's fight's hash after `step`, and how late your inputs come |
@@ -672,7 +675,7 @@ from its start to its end, and `game.ts` to the rest. Messages that come before 
 | `healed`, `given`, `invulnerable`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off, no quest left to complete |
 | `gear` | your bag, cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
-| `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if on your level, or null) |
+| `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if in the world, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
 | `shop` | the shop opened (its name, stock and prices, what it buys and for how much), or null: it closed |
 | `trade` | the answer to `buy`, `sell`, `exchange`, `carve` or `uncarve`: what happened (or why not), the gear, and the shop's prices now |
@@ -749,12 +752,13 @@ pile are never saved, and nor are the overworld's piles (a restart loses them, s
 again). Who holds each unique thing is saved apart, in `unique_items` (`0020_unique-items`). The core's inscriptions
 are a column of their own (`inscriptions`, `0021_inscriptions`; unknown ids and doubles dropped on load), and so is
 the faith with each god (`faith`, `0022_faith`; `keptFaith` drops unknown gods on load).
-The pad you're bound to is saved (`pad`, a level id), and you log in on it (`wakeLevel`: a pad that's gone, or a level
-without one, is `START_LEVEL`'s); neither the level you were on nor your position is saved. The core is (`core_steps`,
+The pad you're bound to is saved (`pad`, a region id), and you log in on it (`wakeRegion`: a pad that's gone, or a
+region without one, is `START_REGION`'s); your position isn't saved. The core is (`core_steps`,
 `core_fill`, `stat_points`; `keptCore` makes a saved one right on load), and the stats come from it, so they aren't.
-A new character is bound to `START_LEVEL`, Highmere's Castle Ward (id `kingdom`), and so was every save from before
-pads were bound (`0019_pad-binding` dropped the saved `level`); a death wakes you on your pad (the session's
-`wakeOnPad`; you cross to it as you leave the arena). Saves from before the core start at Early Yan, empty
+A new character is bound to `START_REGION`, Highmere's Castle Ward (id `kingdom`), and so was every save from before
+pads were bound (`0019_pad-binding` dropped the saved `level`); a death wakes you on your pad at once (the session's
+`wakeOnPad`). The regions kept the ids the old levels had, so saved pads still hold. Saves from before the core
+start at Early Yan, empty
 (`0016_core`).
 
 Postgres is reached through Drizzle (`server/src/db/schema.ts`). The server applies new migrations when it starts;
@@ -815,129 +819,118 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   recovery, agility, HP regen and its pause, a burn pausing it). Each fight test file awaits `initPhysics()` first.
   Also the battle inputs' rounding and what counts as a change.
 - **server core**, through its ports: `server/test/fixtures/` has a `FakeLink` (records what a player was sent and
-  how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_LEVEL`, a level whose
-  numbers the tests own. Joining, a second tab, saving, the overworld's input replay and encounters, resting, items
-  (eating taking its `useTime`, stopped by closing the bag, walking or a fight; mid-fight only as the fight's input),
-  accounts and passwords are all tested without a database or a socket, and so are battles: the server deciding a
-  win from the player's inputs alone, a loss emptying the bag, leaving mid-fight (or a second tab) losing it, the
-  time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an in-order wire
-  that can hold messages back): waiting for the first input, each input on its own step hash for hash, never past
-  its clock, waiting for a late input up to `MAX_INPUT_DELAY_STEPS` and running a later one on its next step,
-  keeping early inputs for their own steps and dropping ones too far ahead, a silent client's fight going on (and
-  still lost at the time limit), lateness,
-  `battleSync` on asking and as it's decided; dodging a bite k steps before it lands, on time, 150 ms late and too
-  late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the Kobold's attack the same way;
-  the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and punishes whatever its seed, beating
-  one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`); the wolf beaten by a player who
-  sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most who only run at it swinging,
-  its drops, the forge buying them and its spawns (`enemies/grey-wolf.test.ts`); the bog lurker beaten by a player who
-  dodges and cuts back, more slowly by one who blocks, beating one who only swings, its drops, the forge buying its
-  scales and its spawns (`enemies/bog-lurker.test.ts`); a cast or a page written
-  with a word the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant,
-  chanting without the book; the skillbook (pages written, refused for
-  an unknown word, without the book in hand or mid-battle; a page written in the fight saved with its result, kept
-  through a death); and the input timeline (changes held, late presses and casts kept, a late change and an on-time
-  one in one message, too far ahead dropped, a silent player stopping, lateness, the latest of late chant words
-  kept).
-  The dev cheats: each ignored in production, and invulnerability and a heal mid-fight reaching the fight and the
-  client; completing the current quest (main first, its rewards, clicks walking the main story); resetting the save
-  (a new player's with the character and settings, nothing saved over it, joining again at the start). The core
-  (`soul.test.ts`): in `welcome` and a fight's setup, saved; essence absorbed on the overworld (told,
-  saved, a breakthrough growing the vitals, not into a whole core), in a fight and kept after a win, and in the arena
-  after a win with the fight following; free points (placed while any are left, taken back only by a campfire, not in
-  a battle); HP regen on the overworld and in `state`; a death losing the fill or a step (leaving mid-fight too); the
-  admin's step up and down. Every enemy dropping its own essence, treasure by its tier's band and a unique only while
-  free (`enemies/index.test.ts`); a unique thing's holder, letting go, changing hands, the 7 days, and taking it out
-  of a save that doesn't hold it (`game/uniques.test.ts`); and a spar costing the core
-  nothing (`duels.test.ts`). Duels: a challenge's reach, one per player, declining, expiring and being called off;
+  how the link was closed), a `MemoryPlayerStore` and a `MemoryAccountStore`, plus `TEST_REGION`, a one-region
+  world (`testWorld`) whose numbers the tests own. Joining, a second tab, saving, the overworld's input replay and
+  encounters, resting, items (eating taking its `useTime`, stopped by closing the bag, walking or a fight; mid-fight
+  only as the fight's input), accounts and passwords are all tested without a database or a socket, and so are battles:
+  the server deciding a win from the player's inputs alone, a loss emptying the bag, leaving mid-fight (or a second tab)
+  losing it, the time limit, the room against a client's copy (`server/test/fixtures/fight.ts`: a `FakeClient` and an
+  in-order wire that can hold messages back): waiting for the first input, each input on its own step hash for hash,
+  never past its clock, waiting for a late input up to `MAX_INPUT_DELAY_STEPS` and running a later one on its next step,
+  keeping early inputs for their own steps and dropping ones too far ahead, a silent client's fight going on (and still
+  lost at the time limit), lateness, `battleSync` on asking and as it's decided; dodging a bite k steps before it lands,
+  on time, 150 ms late and too late, with the same hit or miss and HP on both sides; blocking (or perfect-blocking) the
+  Kobold's attack the same way; the Kobold as tuned, its old wind-ups, beaten by a player who perfect-blocks and
+  punishes whatever its seed, beating one who only holds a block or only swings (`enemies/kobold-swordsman.test.ts`);
+  the wolf beaten by a player who sidesteps, dodges or blocks its leap and cuts back whatever its seed, and beating most
+  who only run at it swinging, its drops, the forge buying them and its spawns (`enemies/grey-wolf.test.ts`); the bog
+  lurker beaten by a player who dodges and cuts back, more slowly by one who blocks, beating one who only swings, its
+  drops, the forge buying its scales and its spawns (`enemies/bog-lurker.test.ts`); a cast or a page written with a word
+  the player doesn't know dropped (and chant words), a skill on none of the pages cast only from a chant, chanting
+  without the book; the skillbook (pages written, refused for an unknown word, without the book in hand or mid-battle; a
+  page written in the fight saved with its result, kept through a death); and the input timeline (changes held, late
+  presses and casts kept, a late change and an on-time one in one message, too far ahead dropped, a silent player
+  stopping, lateness, the latest of late chant words kept). The dev cheats: each ignored in production, and
+  invulnerability and a heal mid-fight reaching the fight and the client; completing the current quest (main first, its
+  rewards, clicks walking the main story); resetting the save (a new player's with the character and settings, nothing
+  saved over it, joining again at the start). The core (`soul.test.ts`): in `welcome` and a fight's setup, saved;
+  essence absorbed on the overworld (told, saved, a breakthrough growing the vitals, not into a whole core), in a fight
+  and kept after a win, and in the arena after a win with the fight following; free points (placed while any are left,
+  taken back only by a campfire, not in a battle); HP regen on the overworld and in `state`; a death losing the fill or
+  a step (leaving mid-fight too); the admin's step up and down. Every enemy dropping its own essence, treasure by its
+  tier's band and a unique only while free (`enemies/index.test.ts`); a unique thing's holder, letting go, changing
+  hands, the 7 days, and taking it out of a save that doesn't hold it (`game/uniques.test.ts`); and a spar costing the
+  core nothing (`duels.test.ts`). Duels: a challenge's reach, one per player, declining, expiring and being called off;
   the duel's fight (one step a tick from two sessions, inputs passed on), a spar's result, and forfeiting by leaving.
-  Joining a battle:
-  reach and its slack, duels and full rooms refused, each player's own result (one down settled at once, a win for
-  everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to everyone online
-  (other levels, a fight, a player still making a character), the speaker's name stamped and who they are to each,
-  none from a player without a character, the history kept to its cap, the last lines in `welcome`, the length and
-  rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles: packed with nothing
-  overlapping, the one a player faces found (in reach and round from their heading, each with its slack), sent within
-  the view's radius, vanishing after `PILE_LIFETIME_MS` or once empty; a walker's heading turned by its inputs as the
-  client's is; opening one (in reach and looked at, not one behind or off to the side, the one nearest the way they
-  face, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not
-  opened, closing it (the bag, walking, a fight, its vanishing), and two players at one pile (each seeing the other's
-  take, the same item going to the first). NPCs (`talk.test.ts`, `npcs/index.test.ts`): sent with the level their stop
-  is on for the player and not another, talking to one in reach and looked at (each with its slack, the way they last
-  walked), not on another level, not mid-fight, with no step to it sending only its lines and changing nothing; with
-  NPCs the test owns, the stop it stands at, the traces of the stops it's moved on from (not of one it's yet to reach)
-  and the talk said there, offers only while they stand; each real one always standing somewhere (its last stop
-  unconditional, every stop on a level) with something to say there (its last talk unconditional), its traces with
-  lines and none at its first stop, all clear of solid tiles, and one by the start level's fire for a new player.
-  Carving (`carving.test.ts`): the Collegium's carver and prices, a sigil carved for coins and essence (cheapest
-  first), every refusal changing nothing, removing for more with nothing back, a carved unique held like a carried
-  one. Inscriptions in a fight (`shared/test/battle/fight/inscriptions.test.ts`): permanent statuses from the start,
-  Embers, Red Blade, Last Breath (never your last HP) and the First Door once a fight. Blessings
-  (`shared/test/soul/blessings.test.ts`, `shared/test/battle/fight/blessings.test.ts`, `blessings.test.ts`): the
-  threshold, no cap, saved faith made right, a quest's faith sent and saved, a blessing told once, the admin's faith on
-  dev only, a blessing on in a fight.
-  Shops (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view,
-  Highmere's prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up,
-  change in the fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold
-  and only what a shop deals in bought, coins changed a tier at a time at any shop, and the
-  shop closing with the bag or on walking. Coins (`shared/test/items/coins.test.ts`): their worth, prices written out,
-  the fewest coins, changing rates, the money in some grids.
-  Hollis moving on (`npcs/hollis.test.ts`): at the fire until his chain is done, then in the Mistwood with his trace at
-  the fire; done mid-visit, still at the fire saying goodbye until the player comes back; his trace read with
-  Interact (`trace: true`, no offer, no step to him done); his Mistwood quest, through Ilse and back. The story engine
-  (`story.test.ts`, with quests the tests own): each condition, `start` and `advance` (told, rewards given once each,
-  what doesn't fit dropped, a deliver step's items taken or refused), each kind of step the world meets (gather kept,
-  reach on the level and in its area, kills of that kind counted across fights but not from before the step, one fight
-  doing one step, what's already true the next, talk and deliver waiting), nothing done giving the same objects, the
-  questbook (only taken quests, open first, tallies, lore from done steps), and what a save keeps (`keptStory`).
-  Hollis's quests through the session (`quests.test.ts`, numbers read from `QUESTS`): the offer after his lines,
-  accepting (told and saved; only from him in reach and in view, only what he offers, not mid-fight), gathering on the
-  tick, the handover (the items gone, the reward in, the next quest offered; refused with too few, for another quest or
-  out of reach), a reward that doesn't fit left at your feet, won fights counting kills (told each time), the talk step
-  (his lines for it, flags and lore), the story kept on death, and the questbook in `welcome`. The Waking Hollow's
-  quests (`waking-hollow.test.ts`): its chain is the main quest, each waiting on the one before; the native by the
-  fire offers the first; walked through the session (a boar fight, the meat handed
-  over, then Hollis on the Grass Field, who offers his own first quest), each revealing a lore entry of its own; and
-  after it, both natives offering a side quest. The Grass Field's and the Mistwood's natives (`natives.test.ts`):
-  each past the Hollow, offering a new character a side chain that waits on nothing else, each chain played step by
-  step through the session (gather, hand over, reach, win, talk: each done, its reward and lore told), their lines
-  for each talk step and after, and lore no other quest reveals. Highmere's townsfolk (`townsfolk.test.ts`): each in
-  a ward on open ground, apart from the rest, with a word for a new avatar; their side quests paying in coin and lore of
-  their own, played through the session the same way (across levels where a step leads), the captain's and Odo's
-  waiting on Bram's yard, nobody but the herald in sight of the platform, and the priest's lines following the story.
-  The Old Quarry's folk (`quarry-folk.test.ts`): each in the
-  quarry on open ground, apart from the pad, the fire and the enemies; the foreman's pool step round the Kobold
+  Joining a battle: reach and its slack, duels and full rooms refused, each player's own result (one down settled at
+  once, a win for everyone still in it), a joiner leaving, the enemy kept until the room is over. Chat: every line to
+  everyone online (elsewhere in the world, a fight, a player still making a character), the speaker's name stamped and
+  who they are to each, none from a player without a character, the history kept to its cap, the last lines in
+  `welcome`, the length and rate limits (each player's own) told to the sender only, nothing kept past a restart. Piles:
+  packed with nothing overlapping, the one a player faces found (in reach and round from their heading, each with its
+  slack), sent within the view's radius, vanishing after `PILE_LIFETIME_MS` or once empty; a walker's heading turned by
+  its inputs as the client's is; opening one (in reach and looked at, not one behind or off to the side, the one nearest
+  the way they face, not mid-fight), taking from it into the bag, nothing put onto it or taken from one not opened,
+  closing it (the bag, walking, a fight, its vanishing), and two players at one pile (each seeing the other's take, the
+  same item going to the first). NPCs (`talk.test.ts`, `npcs/index.test.ts`): sent with the world where their stop is
+  for the player, talking to one in reach and looked at (each with its slack, the way they last walked), not mid-fight,
+  with no step to it sending only its lines and changing nothing; with NPCs the test owns, the stop it stands at, the
+  traces of the stops it's moved on from (not of one it's yet to reach) and the talk said there, offers only while they
+  stand; each real one always standing somewhere (its last stop unconditional, every stop in a region) with something to
+  say there (its last talk unconditional), its traces with lines and none at its first stop, all clear of solid tiles,
+  and one by the Waking Hollow's fire for a new player. Carving (`carving.test.ts`): the Collegium's carver and prices,
+  a sigil carved for coins and essence (cheapest first), every refusal changing nothing, removing for more with nothing
+  back, a carved unique held like a carried one. Inscriptions in a fight
+  (`shared/test/battle/fight/inscriptions.test.ts`): permanent statuses from the start, Embers, Red Blade, Last Breath
+  (never your last HP) and the First Door once a fight. Blessings (`shared/test/soul/blessings.test.ts`,
+  `shared/test/battle/fight/blessings.test.ts`, `blessings.test.ts`): the threshold, no cap, saved faith made right, a
+  quest's faith sent and saved, a blessing told once, the admin's faith on dev only, a blessing on in a fight. Shops
+  (`shops.test.ts`): each keeper and the money changer offering trade, opened only with the keeper in view, Highmere's
+  prices with the first purchase cheaper once (saved), coins paid smallest first and never packed up, change in the
+  fewest coins, what doesn't fit on the cloth or nothing bought, too little money, only the stock sold and only what a
+  shop deals in bought, coins changed a tier at a time at any shop, and the shop closing with the bag or on walking.
+  Coins (`shared/test/items/coins.test.ts`): their worth, prices written out, the fewest coins, changing rates, the
+  money in some grids. Hollis moving on (`npcs/hollis.test.ts`): at the fire until his chain is done, then in the
+  Mistwood with his trace at the fire; done mid-visit, still at the fire saying goodbye until the player walks off; his
+  trace read with Interact (`trace: true`, no offer, no step to him done); his Mistwood quest, through Ilse and back.
+  The story engine (`story.test.ts`, with quests the tests own): each condition, `start` and `advance` (told, rewards
+  given once each, what doesn't fit dropped, a deliver step's items taken or refused), each kind of step the world meets
+  (gather kept, reach in the region and in its area, kills of that kind counted across fights but not from before the
+  step, one fight doing one step, what's already true the next, talk and deliver waiting), nothing done giving the same
+  objects, the questbook (only taken quests, open first, tallies, lore from done steps), and what a save keeps
+  (`keptStory`). Hollis's quests through the session (`quests.test.ts`, numbers read from `QUESTS`): the offer after his
+  lines, accepting (told and saved; only from him in reach and in view, only what he offers, not mid-fight), gathering
+  on the tick, the handover (the items gone, the reward in, the next quest offered; refused with too few, for another
+  quest or out of reach), a reward that doesn't fit left at your feet, won fights counting kills (told each time), the
+  talk step (his lines for it, flags and lore), the story kept on death, and the questbook in `welcome`. The Waking
+  Hollow's quests (`waking-hollow.test.ts`): its chain is the main quest, each waiting on the one before; the native by
+  the fire offers the first; walked through the session (a boar fight, the meat handed over, then Hollis on the Grass
+  Field, who offers his own first quest), each revealing a lore entry of its own; and after it, both natives offering a
+  side quest. The Grass Field's and the Mistwood's natives (`natives.test.ts`): each past the Hollow, offering a new
+  character a side chain that waits on nothing else, each chain played step by step through the session (gather, hand
+  over, reach, win, talk: each done, its reward and lore told), their lines for each talk step and after, and lore no
+  other quest reveals. Highmere's townsfolk (`townsfolk.test.ts`): each in a ward on open ground, apart from the rest,
+  with a word for a new avatar; their side quests paying in coin and lore of their own, played through the session the
+  same way (across regions where a step leads), the captain's and Odo's waiting on Bram's yard, nobody but the herald in
+  sight of the platform, and the priest's lines following the story. The Old Quarry's folk (`quarry-folk.test.ts`): each
+  in the quarry on open ground, apart from the pad, the fire and the enemies; the foreman's pool step round the Kobold
   Greatsword; the scavenger's second quest waiting on her first; both chains played through the session, paying in coin
-  with lore of their own. The Mistwood's folk (`mistwood-folk.test.ts`): each in the wood on open ground, apart from
-  the pad, the fire, the other NPCs and every spawn (mirrored too); the herbalist's island step and second quest waiting
-  on her first; the burner's quest waiting on Tamsin's and ending at her; every chain played through the session. The
-  story's data
-  (`content/quests.test.ts`, `content/lore.test.ts`): step ids unique, real items, enemies, NPCs and levels, a quest
-  waiting only on one listed earlier, every condition naming real quests, steps and flags, every quest offered by
-  someone and revealing a lore entry, a talk step's NPC with lines for it and a deliver step's asking for it, every
-  lore entry revealed. The
-  arena after a win
-  (`arena-drops.test.ts`, and the room's and the joined battle's tests): the room running on for the winners (their
-  inputs and hashes, no second result), leaving it no loss, freed when the last leaves, a loss or a duel freed at once,
-  a decided fight not joinable; the drops beside the fallen enemy and not on the overworld, one roll for the fight
-  however many won, `arenaDrops` as they change,
-  opening it in reach of the server's fight and in front of its aim (each with its slack) and not mid-fight, a winner
-  or a disconnecting joiner leaving gone from the others' fight at once, taking from it (saved soon, the last of it
-  making it go), no cloth there but eating (the fight's HP following) and writing a page, leaving with what was
-  taken, the leftovers landing at the fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then),
-  `AFTER_FIGHT_MS` sending them out (`arenaClosed`), and a disconnect there being no loss. Death drops
-  (`death-drops.test.ts`): all from the bag and hands, alone landing at the fight's spot at once
-  (a disconnect and the time limit alike, its `PILE_LIFETIME_MS` from then), with others fighting on lying where you
-  fell, not openable mid-fight, then taken from after the win, the arena's piles landing as one, everyone down landing
-  it all, and a duel dropping nothing. The training yard (`training.test.ts`): the herald sending a new avatar to
-  Bram, the old stick given once (at once when the quest is taken from him), the dummy and spar fights started only
-  from his talk, unjoinable, costing nothing won or lost, and moving the quest only when won. Highmere
-  (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King Osric (naming the Empire, offering
-  nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with no pad, at Highmere's prices, with
-  the keepers
-  and the Gilded Door's keeper (who only talks), between the castle and the Grass Field. Summoning pads
-  (`pads.test.ts`): one on each level whose start is a pad, bound to by Interact in reach and facing it (said once,
-  then "already"), not in a fight; logging in and dying both wake you on yours, and a pad that's gone on Highmere's.
+  with lore of their own. The Mistwood's folk (`mistwood-folk.test.ts`): each in the wood on open ground, apart from the
+  pad, the fire, the other NPCs and every spawn (mirrored too); the herbalist's island step and second quest waiting on
+  her first; the burner's quest waiting on Tamsin's and ending at her; every chain played through the session. The
+  story's data (`content/quests.test.ts`, `content/lore.test.ts`): step ids unique, real items, enemies, NPCs and
+  regions, a quest waiting only on one listed earlier, every condition naming real quests, steps and flags, every quest
+  offered by someone and revealing a lore entry, a talk step's NPC with lines for it and a deliver step's asking for it,
+  every lore entry revealed. The arena after a win (`arena-drops.test.ts`, and the room's and the joined battle's
+  tests): the room running on for the winners (their inputs and hashes, no second result), leaving it no loss, freed
+  when the last leaves, a loss or a duel freed at once, a decided fight not joinable; the drops beside the fallen enemy
+  and not on the overworld, one roll for the fight however many won, `arenaDrops` as they change, opening it in reach of
+  the server's fight and in front of its aim (each with its slack) and not mid-fight, a winner or a disconnecting joiner
+  leaving gone from the others' fight at once, taking from it (saved soon, the last of it making it go), no cloth there
+  but eating (the fight's HP following) and writing a page, leaving with what was taken, the leftovers landing at the
+  fight's spot when the last winner leaves (their `PILE_LIFETIME_MS` from then), `AFTER_FIGHT_MS` sending them out
+  (`arenaClosed`), and a disconnect there being no loss. Death drops (`death-drops.test.ts`): all from the bag and
+  hands, alone landing at the fight's spot at once (a disconnect and the time limit alike, its `PILE_LIFETIME_MS` from
+  then), with others fighting on lying where you fell, not openable mid-fight, then taken from after the win, the
+  arena's piles landing as one, everyone down landing it all, and a duel dropping nothing. The training yard
+  (`training.test.ts`): the herald sending a new avatar to Bram, the old stick given once (at once when the quest is
+  taken from him), the dummy and spar fights started only from his talk, unjoinable, costing nothing won or lost, and
+  moving the quest only when won. Highmere (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King
+  Osric (naming the Empire, offering nothing), its gate only to the Market Ward; the Market Ward bigger, as safe, with
+  no pad, at Highmere's prices, with the keepers and the Gilded Door's keeper (who only talks), between the castle and
+  the road down to the Waking Hollow. Summoning pads (`pads.test.ts`): one on each region whose spawn is a pad, bound to
+  by Interact in reach and facing it (said once, then "already"), not in a fight; logging in and dying both wake you on
+  yours, and a pad that's gone on Highmere's.
 - **server outlets**: `api/` with `buildServer()` and `app.inject()` / `app.injectWS()` (routes, cookies, error
   sentences, the rate limit (per visitor by `CF-Connecting-IP` behind Cloudflare, the header ignored otherwise),
   cache headers, the `/ws` login check and its `?ping=`); `ws/` with a fake WebSocket, the simulated ping included
@@ -955,7 +948,7 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
   Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
-  level's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
+  world's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
   over either mode), the questbook (H in either mode, H and Esc only over it, a saved H keeping it unbound; its step
   tallies), quest news' and a breakthrough's words, what a death's notice says the core lost, the fight's
   sync (only changes sent,
@@ -988,9 +981,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   loop; none for one a reload remade), the result once, a new fight forgetting the last; on the overworld, the ears,
   campfires, the
   nearest water, footsteps for players only, and a jump not taken for a walk; the volume settings saved and read back;
-  the music's files all there and used, and which track plays on the title, each level and each arena, and none once a
-  fight is decided.
-  Rendering, how the fight feels, the React screens and what the sound sounds like are tried in a browser.
+  the music's files all there and used, and which track plays on the title, each region theme and each arena, and none
+  once a fight is decided. Rendering, how the fight feels, the React screens and what the sound sounds like are tried in
+  a browser.
 
 Time and chance are faked with node:test's mocks (`t.mock.timers`, `t.mock.method(Math, "random")`), and tests read
 tuning numbers from the code, so retuning the game doesn't break them.
@@ -1028,11 +1021,11 @@ Node 26 for every pull request into `main` and every push to it. A PR is merged 
 
 **Names.** The map you walk is the **overworld** everywhere (shared `overworld/`, server `core/overworld/`, client
 `modes/overworld/`, `Overworld*` components, mode `"overworld"`); the fight is a **battle** (client folder, mode),
-and the place it happens is the **arena**. The tower's places are the **world** (shared `world/`, server
-`core/world/`, client `visuals/levels/` and `visuals/arenas/`): the tower has floors, a floor has levels, and a level
-names the arena its fights happen in. React components are PascalCase `.tsx` files that export components only
-(so Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers with a unit say it in the
-name (`MAX_BODY_BYTES`).
+and the place it happens is the **arena**. The places are the **world** (shared `world/`, server `core/world/`,
+client `visuals/regions/` and `visuals/arenas/`): one map, its named parts **regions** (a label: name, look, music,
+the arena its fights happen in, its enemies), drawn and sent in **chunks**. React components are PascalCase `.tsx` files
+that export components only (so Vite Fast Refresh works); game code stays `.ts` and imports nothing from React. Numbers
+with a unit say it in the name (`MAX_BODY_BYTES`).
 
 **Top level.**
 
@@ -1058,9 +1051,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    math.ts (Vec2/3, clamp, smoothstep, approach, damp, distXZ, wrapAngle, turnToward, seededRandom,
                    nextRandom),
                    time.ts (FIXED_DT, toSteps)
-  world/           The tower's places. layout.ts (LevelMap: what the client may see of a level, its floor, tile
-                   map and campfires; LevelLayout: a LevelMap as one player is sent it, with the NPCs standing there
-                   for them (PlacedNpc, by NpcId from NPC_IDS), the traces left there and its summoning pads;
+  world/           The world's places. layout.ts (WorldMap: what the client may see of the world, its bounds, tile
+                   map, regions (RegionArea: id, name, Theme and area) and campfires; regionAt, the region at a point
+                   or else the nearest; CHUNK_TILES; WorldLayout: a WorldMap as one player is sent it, with the NPCs
+                   standing there for them (PlacedNpc, by NpcId from NPC_IDS), the traces left and the summoning pads;
                    moveWalker, the one
                    collision rule, and
                    stepWalker on it for
@@ -1069,7 +1063,7 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    (INTERACT_RANGE_M and INTERACT_LOOK_RAD, the reach to a pile or an NPC and how far round from the
                    way you face, on the overworld and in an arena alike; inView, the one in view), tiles.ts
                    (TILES: each tile kind's
-                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, mapHalfSize), arena.ts
+                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, kindOfChar), arena.ts
                    (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
@@ -1178,13 +1172,14 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    settings.ts (MAX_KEYS_PER_ACTION, OVERWORLD_CAMERA_ANGLES)
 shared/test/      Unit tests, mirroring src/ (npm test)
 
-server/          Node. Authoritative: levels, encounters, overworld actors, enemy stats, fight results, saves.
+server/          Node. Authoritative: the world, encounters, overworld actors, enemy stats, fight results, saves.
   drizzle.config.ts  drizzle-kit's settings (where the schema and migrations are)
   scripts/         check-layers.ts (the hexagonal import rules; run by `npm run typecheck`)
   test/            Unit tests, mirroring src/ (core/game/helpers.ts: a started session, an NPC talked to, a fight
                    won at once, a quest's step done through the session,
-                   going to its level first). fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
-                   MemoryAccountStore: core's ports in memory), level.ts (TEST_LEVEL, TEST_CHARACTER), fight.ts
+                   going to its region first; walkable). fixtures/: fakes.ts (FakeLink, MemoryPlayerStore,
+                   MemoryAccountStore: core's ports in memory; FakeLink.placed, who it was last shown where),
+                   world.ts (TEST_REGION, testWorld, TEST_WORLD, TEST_CHARACTER), fight.ts
                    (a BattleRoom against a FakeClient's copy of the fight, over a wire that can hold messages back)
   src/
     main.ts          The only file that sees everything: loads the fight's physics, builds db -> core -> api + ws,
@@ -1197,42 +1192,36 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        AccountStore, PlayerLink
       game/            online.ts (who's playing: one session per account, load on join, save on leave, a second
                        tab takes over, a new player refused past maxPlayers; count; isOn (a left or replaced
-                       session's late messages are dropped); one Overworld per level, made when its first player
+                       session's late messages are dropped); the one Overworld, made when the first player
                        arrives, stepped only while someone's on it), session.ts (GameSession, one player: their
-                       save, their walker in their level's overworld (`me`), the battle they're in; a method per
-                       thing a player can ask; disconnect: mid-fight, leaving it, and leaving the overworld;
-                       nearestOtherSession, the nearest other player in reach; Others, what a session sees of the
-                       rest; the pile they have open, followed every tick; their `story`; the NPCs and traces
-                       `placed` on their level as they entered it; `talk`, `acceptQuest`,
-                       `deliver` (talk.ts); in the arena
-                       after a win (`afterFight`):
-                       the drops sent as they change, and sent out when it closes; LAG_SLACK_TILES),
-                       cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
+                       save, their walker in the overworld (`me`) and the `region` they stand in, the battle they're in;
+                       a method per thing a player can ask; disconnect: mid-fight, leaving it, and leaving the
+                       overworld; nearestOtherSession, the nearest other player in reach; Others, what a session sees of
+                       the rest; the pile they have open, followed every tick; their `story`; the NPCs and traces
+                       `placed` as they entered their region; `talk`, `acceptQuest`, `deliver` (talk.ts); in the arena
+                       after a win (`afterFight`): the drops sent as they change, and sent out when it closes;
+                       LAG_SLACK_TILES), cheats.ts (runCheat: the dev cheats; in a fight they edit the room's fight),
                        chat.ts (Chat: the server's chat, in memory: its history, each player's rate, every line to
                        everyone online; CHAT_HISTORY_LINES, CHAT_LINES_ON_JOIN, MAX_CHAT_LINES_PER_WINDOW,
-                       CHAT_WINDOW_MS),
-                       duels.ts (Duels: challenges, their reach, expiry and news; starting a duel; settling a
-                       spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME),
-                       battle.ts (start a battle in a BattleRoom with the bag and what's worn, or join one (fighterOf:
-                       a player as the fight takes them; seatInBattle: a session put in a room and sent its
-                       `encounter`; both a duel's too), settle its end for the player: the gear as the fight left
-                       it, wins, a loss dropping all they carry where they fell (dropWhereFell), vitals; the arena
-                       after a win: ArenaDrops (shared by the room), the drops rolled once as the room is won
-                       (dropInArena, dropSpot), arenaPiles, arenaPileInView, landDrops (what's left, as one pile);
-                       AFTER_FIGHT_MS, DROP_GAP_M), training.ts (startTraining: a spar from an NPC's talk, at
-                       TRAINING_YIELD_SHARE, nobody joining, nothing lost or gained but the story),
-                       snapshot.ts (the state message: only actors, other players and piles within
-                       VIEW_RADIUS_TILES, each player's character sent once),
-                       story.ts (the story engine, for quests and NPCs: Story, newStory; When and holds; Effect,
-                       Seen and unfold; stepOn; questbookOf; keptStory; progressStory, the session's side),
-                       talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf; the session's side:
-                       placeFor, talkTo, takeQuest, handOver, shopInView),
-                       shop.ts (shopView: a shop's stock and prices for a player; openShop, buy, sell, exchange:
-                       paying, change and what doesn't fit going to the cloth), carving.ts (carveSigil,
-                       removeInscription: the Collegium's carving, paid in coins and essences),
-                       uniques.ts (Uniques: who holds each unique thing, whether it's free, taking it out of a
-                       save that doesn't hold it; UNIQUE_HOLD_MS),
-                       clock.ts (FixedClock: 60 Hz steps, catching up after stalls)
+                       CHAT_WINDOW_MS), duels.ts (Duels: challenges, their reach, expiry and news; starting a duel;
+                       settling a spar; CHALLENGE_RANGE_TILES, CHALLENGE_TIME), battle.ts (start a battle in a
+                       BattleRoom with the bag and what's worn, or join one (fighterOf: a player as the fight takes
+                       them; seatInBattle: a session put in a room and sent its `encounter`; both a duel's too), settle
+                       its end for the player: the gear as the fight left it, wins, a loss dropping all they carry where
+                       they fell (dropWhereFell), vitals; the arena after a win: ArenaDrops (shared by the room), the
+                       drops rolled once as the room is won (dropInArena, dropSpot), arenaPiles, arenaPileInView,
+                       landDrops (what's left, as one pile); AFTER_FIGHT_MS, DROP_GAP_M), training.ts (startTraining: a
+                       spar from an NPC's talk, at TRAINING_YIELD_SHARE, nobody joining, nothing lost or gained but the
+                       story), snapshot.ts (the state message: only actors, other players and piles within
+                       VIEW_RADIUS_TILES, each player's character sent once), story.ts (the story engine, for quests and
+                       NPCs: Story, newStory; When and holds; Effect, Seen and unfold; stepOn; questbookOf; keptStory;
+                       progressStory, the session's side), talk.ts (NPCs over the engine: stopFor, placedOn, dialogueOf;
+                       the session's side: placeFor, talkTo, takeQuest, handOver, shopInView), shop.ts (shopView: a
+                       shop's stock and prices for a player; openShop, buy, sell, exchange: paying, change and what
+                       doesn't fit going to the cloth), carving.ts (carveSigil, removeInscription: the Collegium's
+                       carving, paid in coins and essences), uniques.ts (Uniques: who holds each unique thing, whether
+                       it's free, taking it out of a save that doesn't hold it; UNIQUE_HOLD_MS), clock.ts (FixedClock:
+                       60 Hz steps, catching up after stalls)
       battle/          The fight, run by the server. room.ts (BattleRoom: its clock, waits for everyone's first
                        input, runs each step once it has everyone's input or it's MAX_INPUT_DELAY late, sends
                        battleHash and battleSync, ends and frees it (after a win, once the last winner leaves the
@@ -1243,35 +1232,39 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
                        inputs.ts (InputTimeline: one player's changes of input by step, what's known, late ones
                        on the next step, early ones kept for theirs, too far ahead dropped, a silent player let
                        go; SILENT_STOP_STEPS)
-      overworld/       The overworld simulation. overworld.ts (Overworld: one level's world, shared by its players:
+      overworld/       The overworld simulation. overworld.ts (Overworld: the world's, shared by every player:
                        join / leave, startEncounter (marks them fighting, takes the touched actor), endFight, the
-                       systems and spawner; a SummoningPad entity at the start if it's a pad; dropPile, holdPile /
+                       systems and spawner; a SummoningPad entity on each region's pad; dropPile, holdPile /
                        landPile (an arena's), pileInView, padInView and inView (the one a player faces; inView
                        among the NPCs and traces placed for that player), pads, pileItems, setPileItems),
                        components.ts (OverworldPos, OverworldActor, OverworldPlayer: a player's walk, heading,
                        character, the pad they're bound to and whether they're fighting; Pile; SummoningPad, its
-                       level), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
+                       region), piles.ts (packPile, pileSystem; PILE_LIFETIME_MS, PILE_COLS),
                        interact.ts (inViewWithSlack, the shared inView with INTERACT_LAG_SLACK_M and
                        INTERACT_LOOK_SLACK_RAD: the overworld's piles, NPCs and pads, and an arena's piles),
                        parts.ts (spawnActor from behavior
                        parts), context.ts (OverworldContext, what systems get), player.ts (input queue + replay
-                       turning the heading with faceToward, grass encounters per player, nearestHuntablePlayer),
+                       turning the heading with faceToward, grass encounters per player by the region they're
+                       in, nearestHuntablePlayer),
                        spawner.ts (each spawn an enemy's overworld actor; one taken into a fight comes back
                        respawnTime after it's decided)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
-      world/           The tower: floors, their levels and the arenas fights happen in. level.ts (LevelDef:
-                       layout (a LevelMap: no NPCs), spawn point (its pad's middle, if it has one), spawns (each
-                       may name its own arenaId), encounter
-                       table, arenaId, duelArenaId, exits (ExitDef: edge tiles that take you to another level, and
-                       where you land); hasPad, rollEnemy), index.ts (LEVELS and ARENAS by id, START_LEVEL (the
-                       Castle Ward, the pad new characters are bound to), wakeLevel, getLevel, getArena)
-        highmere/        Highmere's wards, on no floor, a file each: castle-ward.ts (id `kingdom`: the Hall of
-                         Arrival and its platform, the throne room, the barracks and training yard, the courtyard, the
-                         kitchen, the garden and the castle gate), market-ward.ts (the market square and its stalls,
-                         the Gilded Door, the houses, the South Gate to the Grass Field, and the walled-up gaps
-                         where Temple Hill's and the Lower Town's gates will open)
-        floors/1/        Floor 1's levels, a file each: waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
-                         (tile map, campfires, spawns, exits), and arenas.ts (the floor's ArenaDefs)
+      world/           The one world, its regions and the arenas fights happen in. region.ts (RegionDef: a region
+                       written in its own tiles, centred on 0, 0, with its `origin` in the world, its `fill` (the
+                       tile the land round it is filled with), spawn point (its pad's middle, if it has one),
+                       spawns (each may name its own arenaId), encounter table, arenaId, duelArenaId; Region: one
+                       placed in the world, every point in world tiles; rollEnemy), world.ts (composeWorld: lays the
+                       regions on one map, fills the land between them with the nearest one's fill out to
+                       WORLD_MARGIN_TILES and nothing (VOID_TILE) past it, its bounds on whole chunks, then paints
+                       the roads; WorldDef; regionOf; toWorld), roads.ts (ROADS: the patches between regions),
+                       arenas.ts (the ArenaDefs), index.ts (WORLD, ARENAS by id, START_REGION (the Castle Ward,
+                       the pad new characters are bound to), wakeRegion, getRegion, inRegion (a region's own
+                       tiles to the world's), getArena)
+        regions/         A file each: castle-ward.ts (id `kingdom`: the Hall of Arrival and its platform, the throne
+                         room, the barracks and training yard, the courtyard, the kitchen, the garden and the castle
+                         gate), market-ward.ts (the market square and its stalls, the Gilded Door, the houses, the
+                         South Gate, and the walled-up gaps where Temple Hill's and the Lower Town's gates will
+                         open), waking-hollow.ts, grass-field.ts, mistwood.ts, old-quarry.ts
       enemies/         One file per enemy, by its EnemyId: wild-boar.ts, grey-wolf.ts, bog-lurker.ts,
                        kobold-swordsman.ts, kobold-greatsword.ts (the swordsman with a greatsword), goblin-warlock.ts,
                        training-dummy.ts
@@ -1287,7 +1280,7 @@ server/          Node. Authoritative: levels, encounters, overworld actors, enem
       content/         player.ts (PLAYER_STATS: Early Yan's; fullVitals, newPlayer: empty-handed),
                        quests.ts (QUESTS: every quest, by id; QuestDef, QuestStep, Task), lore.ts (LORE: every lore
                        entry, by id; LoreId), shops.ts (SHOPS: what each sells and buys; ITEM_VALUES in copper,
-                       PRICE_FACTOR by level, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
+                       PRICE_FACTOR by region, SELL_SHARE, FIRST_PURCHASE_DISCOUNT; CARVE_PRICES, REMOVE_PRICES)
       accounts/        accounts.ts (Accounts: sign-up, login check, login sessions; tokens hashed before they're
                        stored), passwords.ts (scrypt)
     ws/              Outlet: the game socket. sockets.ts (takes each /ws socket api/ opened, with its account;
@@ -1408,7 +1401,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
                        useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
                        portrait, or the chibi facing front)
-      hud/             OverworldHud.tsx (HP / stamina, wins, level name, ping, the buttons, the panel and Interact
+      hud/             OverworldHud.tsx (HP / stamina, wins, region name, ping, the buttons, the panel and Interact
                        keys, the challenge key and a challenge's Accept / Decline notice), InteractButton.tsx (the
                        button by a campfire, a fight, a pile, an NPC or a trace, in both HUDs: "Rest by the fire" /
                        "Join the fight" / "Open the pile" / "Talk" / "Look"), StatusRow.tsx (status tiles: an
@@ -1500,15 +1493,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          useTyped.ts (text typed out), styles.ts (dark on white)
     modes/           The two game modes: game logic only, no Babylon (visuals/ draws them)
       overworld/       The overworld mode: mirrors the server
-        overworld.ts     The mode: its state (the level, the actors, the camera's turns), level loads, the walk keys
+        overworld.ts     The mode: its state (the world's map, the actors, the camera's turns), the walk keys
                          (turned to the camera) and the camera's turn keys, server state, the overworld HUD;
                          interactionAt: the Interact key rests, joins a fight, or opens the pile, talks to the NPC,
                          looks at the trace or binds to the pad you face (inView along your heading), the nearest
                          in reach; the
-                         heading back to START_HEADING on a `level`;
+                         heading back to START_HEADING on a `world`; the NPCs moved on an `npcs`; the region's
+                         name for the HUD;
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
-        water.ts         waterMap: each water tile's flow, width, depth and banks from the level's tiles, for the
+        water.ts         waterMap: each water tile's flow, width, depth and banks from the world's tiles, for the
                          drawing and the sound alike (WATER_DEPTH_TILES); only water that runs off the map (touches
                          its edge, or the woods joined to it, in two places) flows, bridges joining a river's pieces;
                          its tiles split into running and still; tested
@@ -1517,7 +1511,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          the camera's turn time (CAMERA_TURN_TIME) and its turns unwrapped for the compass
                          (unwrapTurns); the camera's tilt (CAMERA_PITCH, tiltCamera)
         mirror.ts        Mirror the server's actors, each with its kind, other players (peers) and piles, and the
-                         level's NPCs and traces (enter); entityOf
+                         world's NPCs and traces (enter, place); entityOf
         components.ts    OverworldPos, OverworldActor (its kind: the player, a peer, a boar, a Kobold, a goblin, a
                          pile, an NPC, a trace), Peer (another player's character, fighting), Npc (which NPC, by
                          its id),
@@ -1552,10 +1546,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      loading every file; plays each frame's cues and keeps its loops going, placed and mixed; the
                      page's button clicks, the events told and `play` for the bag; MAX_VOICES; the music, a track
                      at a time, crossfaded, MUSIC_FADE_TIME), music.ts (TRACKS: each track's volume; MUSIC: which
-                     plays on the title, each level theme and each arena look; musicFor), sounds.ts (SOUNDS:
+                     plays on the title, each region theme and each arena look; musicFor), sounds.ts (SOUNDS:
                      each sound's files, volume, rate, spread, bus, loop, reach; `take`, a variant other than the
                      last; ENEMY_SOUNDS, ELEMENT_SOUNDS, STEP_SOUNDS (each arena look's ground), ARENA_AMBIENCE,
-                     RUNNING_WATER_SOUND, STILL_WATER_SOUNDS (by level theme), EVENT_SOUNDS (what `say` events
+                     RUNNING_WATER_SOUND, STILL_WATER_SOUNDS (by region theme), EVENT_SOUNDS (what `say` events
                      sound like), bagSound),
                      mix.ts (Ears, Hearing, place: a sound's gain and pan from where it is; mixGain;
                      nearestWater), battle.ts (fightEars: a fight's cues and loops each frame; swingVoice;
@@ -1649,15 +1643,25 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          name, a player's crossed swords, a Speech's bubble over the head); a look's pictures and a
                          name's are kept by the scene for the next walker that has them
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
-        overworld.ts     overworldStage (the level, the camera following the player and easing through its quarter
-                         turns, the sky's frame; the levels next door built a little each frame, WARM_BUDGET_MS)
-        scenery.ts       Scenery's shapes (ledges, props) and the rules every level's keeps: groundY, isTall,
-                         hidesWalker, tileBlocks (runs of tiles merged into rectangles, one block each)
-        terrain.ts       levelDrawings: each level built once, as a generator a piece at a time (whole if you arrive
-                         first), its meshes kept out of the scene while you're elsewhere, the textures every level
-                         shares made once. Entering hands the sky the level's look, campfire lights and shadow casters;
-                         cliff blocks (shadow casters),
-                         grass tops and fringes (the quarry's cut-stone tops and faces), the map's ground (paintGround),
+        overworld.ts     overworldStage (the world's drawing, the camera following the player and easing through its
+                         quarter turns, the sky's frame)
+        chunks.ts        worldDrawing: the world a chunk (CHUNK_TILES square) at a time, chunksOf leaving out the
+                         empty ones. Those within SHOWN_TILES of the camera's target are in the scene, casting
+                         shadows; those AHEAD_TILES further are built a little each frame (BUILD_BUDGET_MS), nearest
+                         first, and one needed at once is built whole. The sky's colours and fog ease to the region
+                         you stand in (SKY_BLEND_RATE)
+        scenery.ts       Scenery's shapes (ledges, props) and chunkScenery, what stands in a chunk from the tiles round
+                         it so neighbours agree: castle walls (taller where thick: the bulk), house blocks (each
+                         block's height by its corner), the stalls (a counter ledge with an awning, the forge a hearth
+                         ledge) with their goods on top, the cut stone as terraces stepping up toward the quarry's
+                         edge and on past it (TERRACE), the Castle Ward's keep (KEEP) and the training yard's dummies;
+                         groundY, isTall, hidesWalker, tileBlocks (runs of tiles merged into rectangles); no Babylon:
+                         tested
+        terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the water's by region
+                         theme, the campfire's frames, and each prop's mesh that instances copy
+        terrain.ts       buildChunk: one chunk, as a generator a piece at a time, its meshes kept out of the scene
+                         until it's shown: its ground (paintGround) with the water carved out, blocks (shadow
+                         casters, the quarry's cut-stone tops and faces),
                          instanced props (the tiles' and the scenery's, each tinted by the light where it stands; a
                          tall one's shadows come from upright cards only shadow maps see, one kept turned to the sun or
                          moon and one turned to each campfire in reach, each cast by its own light), the campfires;
@@ -1669,30 +1673,25 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          and the forge's flames, the yard's dummies, the quarry's rubble, chips, scrub, carts, cranes
                          and plank hut walls), drawn standing up;
                          Pen (a 2D canvas pen). No Babylon, so the art lab draws them too
-      levels/          Each level's drawing, a folder per LevelLayout.theme. index.ts (LEVEL_LOOKS: its env (daylight
-                       colours and fog), tile looks, its WaterLook and the 3D surroundings; the campfire's picture
-                       and light, campfireLights), tiles.ts (paintGround and tileProps: a map's ground picture and
-                       props from its tile looks)
-        ground.ts        groundPainters: the ground painters every level's tiles share, over its GroundPalette (a
+      regions/         Each region theme's look, a folder per Theme. index.ts (REGION_LOOKS: its env (daylight
+                       colours and fog), tile looks and WaterLook; lookAt and tileLooksOf, a tile in the look of the
+                       region it's in; the campfire's picture and light, campfireLights), tiles.ts (paintGround and
+                       tileProps: a chunk's ground picture and props from its tiles' looks)
+        ground.ts        groundPainters: the ground painters every theme's tiles share, over its GroundPalette (a
                          summoning pad's carved rim and ring among them)
-        grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours),
-                         scenery.ts (the 3D cliffs and woods round the map; no Babylon: tested)
-        mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds), scenery.ts (its
-                         surroundings; no Babylon: tested)
+        grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours)
+        mistwood/        tiles.ts (MISTWOOD_TILES: dark pines, dead trees, mushrooms, reeds)
         kingdom/         Highmere's wards. tiles.ts (KINGDOM_TILES: marble, carpet, cobbles, the stalls; TOWN_TILES,
-                         the town's tiles for the other looks to borrow), scenery.ts (castle walls and the keep behind
-                         the hall, house blocks with plaster sides and tiled roofs, the stalls (a counter ledge with an
-                         awning, the forge a hearth ledge) with their goods on top, round the map the castle or the
-                         town's rooftops by ward (WARDS), and the training yard's dummies)
+                         the town's tiles for the other looks to borrow)
         quarry/          tiles.ts (QUARRY_TILES: pale dust with bedrock slabs, rails, dry scrub, rubble, a plank hut;
-                         QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow), scenery.ts
-                         (the cut stone as terraces stepping up toward the edge and on past the map; no Babylon: tested)
+                         QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
                        cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
                        colours (SkyLook), the map's flickering point lights (the nearest the camera cast shadows;
                        kept and reused by the next look, since a new light makes every material check its shaders),
-                       clearShadows (a level left), a sprite's tint, the yaw that turns a shadow card to a light.
+                       tint (a region's colours, the lights kept), dropShadows (a chunk hidden), clearShadows, a
+                       sprite's tint, the yaw that turns a shadow card to a light.
                        daylight.ts (the day clock, setDayClock (dev: `?time=`, `window.setTime`); by the sun's height:
                        the direct light, the sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob
                        shadows, Blobs: a round one from the sky light, and one away from each light that reaches it, as
@@ -1701,8 +1700,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        ripples carried by the current (in place where there's none), waves rising and falling in
                        place, a ring now and then at a random spot on still water (none where there's a current),
                        fresnel sky, sun and moon glints and shore foam, tuned by a WaterLook and RINGS; setWater gives
-                       a mesh its current, shore and depth per vertex), level.ts (levelWater: the
-                       level's ground with the water cut out, its bed, banks and surface, from the water map in
+                       a mesh its current, shore and depth per vertex), chunk.ts (chunkWater: a
+                       chunk's ground with the water cut out, its bed, banks and surface, from the water map in
                        modes/overworld/water.ts)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
                          env (its daylight colours and fog), its map lights and build; showArena, the one call
@@ -1767,22 +1766,21 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   `GameSession` (`server/src/core/game/session.ts`) that does it, and a handler in `server/src/ws/handlers.ts` that
   calls it (TypeScript errors until you do). Server -> client: a case in `ServerMsg` (`server-messages.ts`) and a
   `net.on("<type>", ...)` where it's used (the mode that owns it, or `client/src/game/game.ts`).
-- **A level.** A file in its floor's folder, `server/src/core/world/floors/<n>/<level-id>.ts` (or in `world/highmere/`
-  for one of Highmere's wards, on no floor), exporting its `LevelDef` (its `floor` if any, an encounter table if its
-  grass fights, and its map as rows of tile characters, north first, centred on 0, 0), and its line in `LEVELS`
-  (`server/src/core/world/index.ts`). It names its arena by `arenaId`. The level's test walks the map: the start, the
-  campfires, the NPCs and every spawn (mirrored too, as the spawner may) clear of solid tiles and reachable, and the
-  start (or, with no pad, the start level's) on pads (`@`). A way to another level is an `ExitDef` on each side (an
-  open stretch of the map's edge, and where you land on the other); the scenery cuts a gap in front of it. For a new
-  look, a theme in
-  `LevelLayout["theme"]` (`shared/src/world/layout.ts`), a folder named by it in `client/src/visuals/levels/` (its tile
-  looks and 3D scenery) and its line in `LEVEL_LOOKS`.
+- **A region.** A file in `server/src/core/world/regions/` exporting its `RegionDef` (its map as rows of tile
+  characters, north first, centred on 0, 0, every spot in it written in those tiles; its `origin` in the world, whole
+  tiles; its `fill`; an encounter table if its grass fights), and its line in `DEFS`
+  (`server/src/core/world/index.ts`). Lay it so its edges meet its neighbours' and their paths line up, or join them
+  with a road in `ROADS`; regions may not overlap (`composeWorld` throws). It names its arena by `arenaId`. The
+  regions' test walks the world: the start, the campfires, the NPCs and every spawn (and its `away` spot) in the region,
+  clear of solid tiles and reachable from Highmere's platform, and its spawn (or, with no pad, the start region's) on a
+  pad (`@`). For a new look, a theme in `Theme` (`shared/src/world/layout.ts`), a folder named by it in
+  `client/src/visuals/regions/` (its tile looks) and its line in `REGION_LOOKS`.
 - **A tile kind.** Its line in `TILES` (`shared/src/world/tiles.ts`: a character no other kind uses, solid or not,
-  tall grass or not); walking, encounters and enemies follow from it. Then how it looks in every level look's tile
-  table (`client/src/visuals/levels/<theme>/tiles.ts`: a ground painter, and props if it has any; TypeScript errors
+  tall grass or not); walking, encounters and enemies follow from it. Then how it looks in every region look's tile
+  table (`client/src/visuals/regions/<theme>/tiles.ts`: a ground painter, and props if it has any; TypeScript errors
   until it's there), which the overworld draws. A new prop is its art in `PROP_ART`.
-- **An arena.** An `ArenaDef` (id, radius, look) beside the level that fights in it, and its line in `ARENAS`. The
-  level's `arenaId` is where tall grass and spawns without one fight; a spawn's own `arenaId` takes its fights
+- **An arena.** An `ArenaDef` (id, radius, look) in `server/src/core/world/arenas.ts`, and its line in `ARENAS`. A
+  region's `arenaId` is where tall grass and spawns without one fight; a spawn's own `arenaId` takes its fights
   elsewhere (`startBattle`). Every arena has the same radius for now (tested). The wall's shape is the fight's
   (`arena-physics.ts`), from the radius; a look never changes how a fight plays.
 - **An arena look.** Its name in `ARENA_LOOK_IDS` (`shared/src/world/arena.ts`), a folder named by it in
@@ -1792,27 +1790,28 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
 - **An enemy.** Its id in `EnemyId` (`shared/src/battle/defs.ts`); a file named by it in `server/src/core/enemies/`
   (its `EnemyDef` combining behaviors, its drops, its overworld actor's behavior parts) and its line in `ENEMIES`;
   a folder named by it in `client/src/visuals/enemies/` (model, pose and its test, animation, sprite) and its line
-  in `ENEMY_LOOKS` (TypeScript errors until both are there); and a spawn in a level. A new enemy behavior is a def
+  in `ENEMY_LOOKS` (TypeScript errors until both are there); and a spawn in a region. A new enemy behavior is a def
   shape in `shared/src/battle/defs.ts`, a component and its states in `EnemyState`
   (`shared/src/battle/components.ts`), an entry in `ATTACKS` (`shared/src/battle/fight/setup.ts`) and a system in
   `shared/src/battle/fight/behaviors/`, listed in `fight.ts`, its state in `fight/state.ts`. A new overworld
   behavior: component + factory + system in `server/src/core/overworld/behaviors/`.
 - **An NPC.** Its id in `NPC_IDS` (`shared/src/world/layout.ts`); a file named by it in `server/src/core/npcs/`
-  (its `stops`, the last with no `when`, each `{ level, at, heading, talk }` with its talk there, the last with no
+  (its `stops`, the last with no `when`, each `{ region, at, heading, talk }` with its talk there, the last with no
   `when`) and its line in `NPCS`; a folder named by it in `client/src/visuals/npcs/` (`look.ts`: its name and a look
   from `LOOK_OPTIONS`) and its line in `NPC_LOOKS`. The tests check it always stands somewhere with something to
   say, clear and walkable to; placing, talking and drawing it need nothing more.
 - **An NPC moving on.** A stop above its old one in its file, with a condition (`when: { flag: ... }`, a flag a quest
-  step's reward sets) and its own talk; each player sees it at the first stop whose condition holds, from their next
-  visit to a level. The old stop keeps a talk for that flag (its goodbye, said until they leave) and gets a `trace`
-  (where it lies and its lines, pointing the way), which lies there for anyone who sees the NPC further on.
+  step's reward sets) and its own talk; each player sees it at the first stop whose condition holds, from when they
+  next walk into another region. The old stop keeps a talk for that flag (its goodbye, said until they walk off) and
+  gets a `trace` (where it lies and its lines, pointing the way), which lies there for anyone who sees the NPC further
+  on.
 - **A quest.** A row in `QUESTS` (`server/src/core/content/quests.ts`): its title, half, a `when` to start it (for a
   chain, `{ done: <the one before> }`, listed earlier), and its steps, each with an `id` (saved with players: renaming
   one forgets the quest for anyone on it), a `Task`, the questbook's text and hint (only what the NPC told) and its
   `reward` (`items`, `flags`, `lore` ids). Then, in the NPC's file, at the stop where it's given: a talk `when: {
   canStart: <quest> }` with `offer: { start: <quest> }`; a talk `when: { quest, step }` for each step that needs its
   own words; on a deliver step, one with `offer: { deliver: <quest> }`; and on a talk step, the lines the NPC says as
-  it's done. The data tests check every item, enemy, NPC, level, condition and lore id is real, every quest is
+  it's done. The data tests check every item, enemy, NPC, region, condition and lore id is real, every quest is
   offered, and every talk and deliver step has its NPC's lines. A new kind of task is a member of `Task`, a case in
   `met` (`server/src/core/game/story.ts`, or `false` if an NPC does it) and, if it counts something, a `Tally`.
 - **A lore entry.** A row in `LORE` (`server/src/core/content/lore.ts`), and its id in the `reward.lore` of the step
@@ -1881,7 +1880,7 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   `audio/overworld.ts`; neither plays anything itself, they return cues and loops, so test them there.
 - **Music.** A CC0 track only (its row in SOUNDS.md), a seamless loop saved as stereo Ogg Vorbis at the others'
   loudness, `client/src/audio/music/<track>.ogg`, with its row in `TRACKS` (`client/src/audio/music.ts`). Where it
-  plays is its name in `MUSIC` there: a new level theme or arena look doesn't compile until it has one.
+  plays is its name in `MUSIC` there: a new region theme or arena look doesn't compile until it has one.
 
 ## Where to tune things
 
@@ -1918,8 +1917,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Skills: word costs, how a chain's cost grows, release time; which modifiers fit which Form | `shared/src/skills/skill.ts` (`SKILL`, `MODIFIER_FITS`) |
 | How long writing a page takes in a fight | `shared/src/skills/skill.ts` (`SAVE_IN_FIGHT_TIME`) |
 | Skills in a fight: D, the Forms, each element, the reactions, Self, the modifiers, the object caps | `shared/src/skills/effects.ts` (`SKILL_EFFECTS`) |
-| How water looks (colour, murk, reflection, glints, ripples, foam), per level and in the mire; rings in still water; how fast it runs | `water` in `LEVEL_LOOKS` (`client/src/visuals/levels/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `RIPPLE` (the ripples' scale and cycles), `RINGS` in `client/src/visuals/water/water.ts`; `FLOW`, `WATER_DEPTH_TILES` in `client/src/modes/overworld/water.ts` |
-| Sounds: each one's files, volume, rate, variation, bus, how far it carries; which sounds an enemy, element, arena or level has | `SOUNDS` and the tables below it in `client/src/audio/sounds.ts` |
+| How water looks (colour, murk, reflection, glints, ripples, foam), per region theme and in the mire; rings in still water; how fast it runs | `water` in `REGION_LOOKS` (`client/src/visuals/regions/index.ts`); `POOLS` in `client/src/visuals/arenas/mire/mire.ts`; `RIPPLE` (the ripples' scale and cycles), `RINGS` in `client/src/visuals/water/water.ts`; `FLOW`, `WATER_DEPTH_TILES` in `client/src/modes/overworld/water.ts` |
+| Sounds: each one's files, volume, rate, variation, bus, how far it carries; which sounds an enemy, element, arena or region theme has | `SOUNDS` and the tables below it in `client/src/audio/sounds.ts` |
 | Music: which track plays where, each track's volume, how long a crossfade takes | `MUSIC`, `TRACKS` in `client/src/audio/music.ts`; `MUSIC_FADE_TIME` in `client/src/audio/audio.ts` |
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
@@ -1929,13 +1928,14 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
-| Levels: map, spawns, encounter tables, campfires, arena size, which arena each spawn fights in | `server/src/core/world/floors/` |
+| Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
+| Chunks: how far round you they're drawn and built ahead, the build budget, how fast the sky turns to the next region's | `SHOWN_TILES`, `AHEAD_TILES`, `BUILD_BUDGET_MS`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
-| How each tile looks; the overworld's colour grade and camera (its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/levels/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
-| A level's daylight sky, fog and light; a campfire's light | `env` in `LEVEL_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/levels/index.ts` |
+| How each tile looks; the overworld's colour grade and camera (its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts`, top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
+| A region theme's daylight sky, fog and light; a campfire's light | `env` in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height, moonlight, fades | top of `client/src/visuals/sky/daylight.ts` |

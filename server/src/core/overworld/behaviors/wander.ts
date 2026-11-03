@@ -39,7 +39,7 @@ export function wanderSystem(ctx: OverworldContext): System {
         if (w.stateTime < w.idleDuration) continue;
         const angle = ctx.rng() * Math.PI * 2, walkDist = w.minDist + ctx.rng() * (w.maxDist - w.minDist);
         const targetX = pos.x + Math.cos(angle) * walkDist, targetZ = pos.z + Math.sin(angle) * walkDist;
-        if (isSolid(ctx.level.layout, targetX, targetZ)) { w.stateTime = 0; continue; }
+        if (isSolid(ctx.map.layout, targetX, targetZ)) { w.stateTime = 0; continue; }
         Object.assign(w, { state: "walk", stateTime: 0, targetX, targetZ });
         continue;
       }

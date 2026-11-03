@@ -4,7 +4,7 @@
  */
 import {
   addFaith, blessingsOf, CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals,
-  Health, heldIn, hpRegenPerSec, inRect, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
+  Health, heldIn, hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
   placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
   type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear, type God,
   type InscriptionId, type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot,
@@ -14,7 +14,8 @@ import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
-import { getLevel, wakeLevel } from "../world/index.js";
+import { getRegion, wakeRegion } from "../world/index.js";
+import { regionOf } from "../world/world.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -50,7 +51,7 @@ export function nearestOtherSession(
   const at = from.overworld.playerPos(from.me);
   let best: { session: GameSession; dist: number } | null = null;
   for (const session of sessions) {
-    if (session === from || !session.inLevel || session.overworld !== from.overworld || !wanted(session)) continue;
+    if (session === from || !session.inWorld || session.overworld !== from.overworld || !wanted(session)) continue;
     const dist = distXZ(at, session.overworld.playerPos(session.me));
     if (dist <= rangeTiles && (!best || dist < best.dist)) best = { session, dist };
   }
@@ -81,9 +82,9 @@ export class GameSession {
   private readonly introduced = new Set<Entity>();
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
-  private levelId: string;
-  /** While they walk a level, their walker's `pad` is the one that counts. */
-  private offLevelPad: string;
+  private offWorldPad: string;
+  /** The region they were last in: walking into another places the NPCs again. */
+  private regionId: string | null = null;
   private wasReset = false;
 
   constructor(
@@ -92,7 +93,7 @@ export class GameSession {
     private readonly dev: boolean,
     saved: PlayerSave,
     private readonly persist: (data: PlayerSave) => void,
-    private readonly overworldOf: (levelId: string) => Overworld,
+    private readonly overworldOf: () => Overworld,
     private readonly others: Others,
   ) {
     this.vitals = saved.vitals;
@@ -106,8 +107,7 @@ export class GameSession {
     this.story = saved.story;
     this.shopsBought = saved.shopsBought;
     this.faith = saved.faith;
-    this.offLevelPad = wakeLevel(saved.pad);
-    this.levelId = this.offLevelPad;
+    this.offWorldPad = wakeRegion(saved.pad);
     this.soul = saved.core;
   }
 
@@ -140,7 +140,7 @@ export class GameSession {
       character: this.character, gear: this.gear, knownWords: this.knownWords, skillbook: this.skillbook,
       chat: this.others.chat.recent(), questbook: questbookOf(this.story), dev: this.dev, faith: this.faith,
     });
-    if (this.character) this.enterLevel(this.levelId);
+    if (this.character) this.enterWorld();
   }
 
   input(seq: number, moveX: number, moveZ: number): void {
@@ -179,19 +179,20 @@ export class GameSession {
     battle.room.leave(battle.seat);
     this.closeBag();
     this.battle = null;
-    this.overworld.endFight(this.me, this.overworld.level.safeTime);
-    if (this.levelId !== this.overworld.level.layout.id) this.enterLevel(this.levelId);
+    this.overworld.endFight(this.me, this.overworld.map.safeTime);
   }
 
   get pad(): string {
-    return this.walking ? this.overworld.playerData(this.me).pad : this.offLevelPad;
+    return this.walking ? this.overworld.playerData(this.me).pad : this.offWorldPad;
   }
 
-  /** Dead: back to their pad, at once if they fell on its level, else as they leave the arena. */
+  get region(): string {
+    return regionOf(this.overworld.map, this.overworld.playerPos(this.me)).id;
+  }
+
   wakeOnPad(): Vec2 {
-    this.levelId = this.pad;
-    const { spawn } = getLevel(this.pad);
-    if (this.overworld.level.layout.id === this.pad) this.overworld.place(this.me, spawn);
+    const { spawn } = getRegion(this.pad);
+    this.overworld.place(this.me, spawn);
     return spawn;
   }
 
@@ -199,7 +200,7 @@ export class GameSession {
   disconnect(): void {
     const battle = this.battle;
     if (battle) battle.room.leave(battle.seat);
-    this.offLevelPad = this.pad;
+    this.offWorldPad = this.pad;
     this.walking?.overworld.leave(this.walking.me);
     this.walking = null;
     this.save();
@@ -235,13 +236,13 @@ export class GameSession {
     this.character = character;
     this.save();
     this.link.send({ t: "character", character });
-    if (!this.walking) this.enterLevel(this.levelId);
+    if (!this.walking) this.enterWorld();
   }
 
   /** Refills HP and stamina, if the server's copy of you is standing by a campfire. */
   rest(): void {
     if (!this.inOverworld) return;
-    if (!nearCampfire(this.overworld.level.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES)) return;
+    if (!nearCampfire(this.overworld.map.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES)) return;
     const full = fullVitals(this.stats);
     if (full.hp !== this.vitals.hp || full.stamina !== this.vitals.stamina) {
       this.vitals = full;
@@ -355,7 +356,7 @@ export class GameSession {
 
   statPoint(stat: ShownStat, add: boolean): void {
     if (!this.inOverworld) return;
-    const byFire = nearCampfire(this.overworld.level.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES);
+    const byFire = nearCampfire(this.overworld.map.layout, this.overworld.playerPos(this.me), LAG_SLACK_TILES);
     const core = add ? placePoint(this.core, stat) : byFire ? takeBackPoint(this.core, stat) : null;
     if (core) {
       this.takeCore(core);
@@ -413,7 +414,6 @@ export class GameSession {
     this.saveSoon();
   }
 
-  /** Walking around a level: not in a battle, and not still making a character. */
   get inOverworld(): boolean { return this.battle === null && this.walking !== null; }
 
   get liveBattle(): Battle | null { return this.battle && !this.battle.over ? this.battle : null; }
@@ -425,7 +425,7 @@ export class GameSession {
 
   get name(): string { return this.character?.name ?? this.account.username; }
 
-  get inLevel(): boolean { return this.walking !== null; }
+  get inWorld(): boolean { return this.walking !== null; }
 
   /** Throws while they're still making a character. */
   get overworld(): Overworld { return this.walk.overworld; }
@@ -433,7 +433,7 @@ export class GameSession {
   get me(): Entity { return this.walk.me; }
 
   private get walk(): Walking {
-    if (!this.walking) throw new Error("not in a level yet");
+    if (!this.walking) throw new Error("not in the world yet");
     return this.walking;
   }
 
@@ -444,13 +444,7 @@ export class GameSession {
       return;
     }
     if (!this.inOverworld) return;
-    const at = this.overworld.playerPos(this.me);
-    const exit = this.overworld.level.exits.find((e) => inRect(e.area, at.x, at.z));
-    if (exit) {
-      this.enterLevel(exit.to, exit.at);
-      this.save();
-      return;
-    }
+    this.followRegion();
     this.regen();
     this.tickUse();
     progressStory(this);
@@ -532,23 +526,25 @@ export class GameSession {
     this.saveTimer ??= setTimeout(() => this.save(), SAVE_SOON_MS);
   }
 
-  private enterLevel(id: string, at?: Vec2): void {
-    if (!this.character) return;
-    const { pad } = this;
-    if (this.walking) {
-      this.closeBag();
-      this.walking.overworld.leave(this.walking.me);
-    }
-    const overworld = this.overworldOf(id);
+  private enterWorld(): void {
+    if (!this.character || this.walking) return;
+    const { pad } = this, overworld = this.overworldOf();
     const me = overworld.join(
-      this.character, pad, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), at,
+      this.character, pad, (source, enemy, spawn) => startBattle(this, source, enemy, spawn), getRegion(pad).spawn,
     );
     this.walking = { overworld, me };
-    this.levelId = id;
+    this.regionId = this.region;
     this.introduced.clear();
     this.gear = this.held;
-    const level = { ...overworld.level.layout, ...placeFor(this, id), pads: overworld.pads };
-    const next = [...new Set(overworld.level.exits.map((e) => e.to))].map((to) => getLevel(to).layout);
-    this.link.send({ t: "level", level, me: overworld.playerPos(me), next });
+    const world = { ...overworld.map.layout, ...placeFor(this), pads: overworld.pads };
+    this.link.send({ t: "world", world, me: overworld.playerPos(me) });
+  }
+
+  private followRegion(): void {
+    const { region } = this;
+    if (region === this.regionId) return;
+    this.regionId = region;
+    const was = JSON.stringify(this.placed), placed = placeFor(this);
+    if (JSON.stringify(this.placed) !== was) this.link.send({ t: "npcs", ...placed });
   }
 }

@@ -15,7 +15,7 @@ const quest = (steps: QuestStep[], extra: Partial<QuestDef> = {}): QuestDef =>
 const TALK: Task = { kind: "talk", to: "hollis" };
 const LORE_ID = Object.keys(LORE)[0] as LoreId;
 
-const SEEN: Seen = { level: "grass-field", at: { x: 0, z: 0 } };
+const SEEN: Seen = { region: "grass-field", at: { x: 0, z: 0 } };
 const on = (id: string, stepId: string | null, kills = 0, story = newStory()): Story =>
   ({ ...story, quests: { ...story.quests, [id]: { step: stepId, kills } } });
 function run(quests: Quests, story: Story, effects: Effect[] = [], seen: Partial<Seen> & { bag?: Bag } = {}) {
@@ -123,14 +123,14 @@ describe("steps the world meets", () => {
     assert.equal(bag, two);
   });
 
-  test("reach: done on that level, inside its area if it has one", () => {
-    const QUESTS = only({ kind: "reach", level: "mistwood", area: { x: 2, z: 2, w: 2, h: 2 } });
+  test("reach: done in that region, inside its area if it has one", () => {
+    const QUESTS = only({ kind: "reach", region: "mistwood", area: { x: 2, z: 2, w: 2, h: 2 } });
     const stepAt = (seen: Partial<Seen>) => run(QUESTS, on("q", "s0"), [], seen).story.quests.q?.step;
-    assert.equal(stepAt({ at: { x: 3, z: 3 } }), "s0", "another level");
-    assert.equal(stepAt({ level: "mistwood" }), "s0", "outside the area");
-    assert.equal(stepAt({ level: "mistwood", at: { x: 3, z: 3 } }), null);
-    const anywhere = only({ kind: "reach", level: "mistwood" });
-    assert.equal(run(anywhere, on("q", "s0"), [], { level: "mistwood" }).story.quests.q?.step, null);
+    assert.equal(stepAt({ at: { x: 3, z: 3 } }), "s0", "another region");
+    assert.equal(stepAt({ region: "mistwood" }), "s0", "outside the area");
+    assert.equal(stepAt({ region: "mistwood", at: { x: 3, z: 3 } }), null);
+    const anywhere = only({ kind: "reach", region: "mistwood" });
+    assert.equal(run(anywhere, on("q", "s0"), [], { region: "mistwood" }).story.quests.q?.step, null);
   });
 
   test("kill: that kind counted across fights and told, others not, until there are enough", () => {
@@ -146,7 +146,7 @@ describe("steps the world meets", () => {
   });
 
   test("kills before the step began don't count, and one fight does one step", () => {
-    const QUESTS = only({ kind: "reach", level: SEEN.level }, { kind: "kill", enemy: "wild-boar", count: 1 });
+    const QUESTS = only({ kind: "reach", region: SEEN.region }, { kind: "kill", enemy: "wild-boar", count: 1 });
     const late = run(QUESTS, on("q", "s0"), [], { killed: ["wild-boar"] });
     assert.deepEqual(late.story.quests.q, { step: "s1", kills: 0 });
     const twice = only({ kind: "kill", enemy: "wild-boar", count: 1 }, { kind: "kill", enemy: "wild-boar", count: 1 });
@@ -155,7 +155,7 @@ describe("steps the world meets", () => {
 
   test("what's already true does the next step at once; talk and deliver steps wait for an NPC", () => {
     const QUESTS = only(
-      { kind: "gather", item: "boar-meat", count: 1 }, { kind: "reach", level: "grass-field" },
+      { kind: "gather", item: "boar-meat", count: 1 }, { kind: "reach", region: "grass-field" },
       { kind: "deliver", item: "boar-meat", count: 1, to: "hollis" }, TALK,
     );
     const { story, news } = run(QUESTS, on("q", "s0"), [], { bag: bagWith({ "boar-meat": 1 }) });

@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { faceToward, FIXED_DT, START_HEADING, stepWalker, type Entity } from "@infinite-tower/shared";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
-import type { LevelDef } from "../../../src/core/world/level.js";
-import { TEST_CHARACTER, TEST_LEVEL } from "../../fixtures/level.js";
+import type { WorldDef } from "../../../src/core/world/world.js";
+import { TEST_CHARACTER, TEST_REGION, TEST_WORLD, testWorld } from "../../fixtures/world.js";
 import { actors } from "./helpers.js";
 
 /** No actors, so nothing can start a fight while the player walks. */
-const EMPTY_LEVEL: LevelDef = { ...TEST_LEVEL, spawns: [] };
+const EMPTY_WORLD: WorldDef = testWorld({ spawns: [] });
 
-function overworldIn(level: LevelDef = EMPTY_LEVEL): { overworld: Overworld; me: Entity } {
-  const overworld = new Overworld(level);
+function overworldIn(map: WorldDef = EMPTY_WORLD): { overworld: Overworld; me: Entity } {
+  const overworld = new Overworld(map);
   return { overworld, me: overworld.join(TEST_CHARACTER, "kingdom", () => assert.fail("no encounter expected")) };
 }
 
@@ -25,8 +25,8 @@ function stepTicks(overworld: Overworld, ticks: number): void {
 describe("Overworld walking", () => {
   test("an input moves the player the way the shared walking rules do, and is acked", () => {
     const { overworld, me } = overworldIn();
-    const expected = { ...EMPTY_LEVEL.spawn };
-    stepWalker(EMPTY_LEVEL.layout, expected, { moveX: 1, moveZ: -1 }, FIXED_DT);
+    const expected = { ...TEST_REGION.spawn };
+    stepWalker(EMPTY_WORLD.layout, expected, { moveX: 1, moveZ: -1 }, FIXED_DT);
 
     overworld.input(me, 1, 1, -1);
     overworld.step(FIXED_DT);
@@ -39,8 +39,8 @@ describe("Overworld walking", () => {
     const { overworld, me } = overworldIn();
     overworld.input(me, 1, 1, 0);
     overworld.step(FIXED_DT);
-    const moved = overworld.playerPos(me).x - EMPTY_LEVEL.spawn.x;
-    assert.ok(Math.abs(moved - EMPTY_LEVEL.layout.playerSpeed * FIXED_DT) < 1e-9);
+    const moved = overworld.playerPos(me).x - TEST_REGION.spawn.x;
+    assert.ok(Math.abs(moved - EMPTY_WORLD.layout.playerSpeed * FIXED_DT) < 1e-9);
   });
 
   test("older and repeated seqs are ignored", () => {
@@ -50,8 +50,8 @@ describe("Overworld walking", () => {
     overworld.input(me, 3, 1, 0);
     stepTicks(overworld, 5);
     assert.equal(overworld.playerData(me).ack, 5);
-    const oneStep = EMPTY_LEVEL.layout.playerSpeed * FIXED_DT;
-    assert.ok(Math.abs(overworld.playerPos(me).x - (EMPTY_LEVEL.spawn.x + oneStep)) < 1e-9);
+    const oneStep = EMPTY_WORLD.layout.playerSpeed * FIXED_DT;
+    assert.ok(Math.abs(overworld.playerPos(me).x - (TEST_REGION.spawn.x + oneStep)) < 1e-9);
   });
 
   test("one input is simulated per tick", () => {
@@ -127,11 +127,11 @@ describe("Overworld facing", () => {
 });
 
 describe("Overworld players", () => {
-  test("a player joins at the level's spawn, beside the level's actors", () => {
-    const { overworld, me } = overworldIn(TEST_LEVEL);
-    assert.equal(overworld.level, TEST_LEVEL);
-    assert.deepEqual(overworld.playerPos(me), TEST_LEVEL.spawn);
-    assert.equal(actors(overworld.world).length, TEST_LEVEL.spawns.length);
+  test("a player joins at the region's spawn, beside the world's actors", () => {
+    const { overworld, me } = overworldIn(TEST_WORLD);
+    assert.equal(overworld.map, TEST_WORLD);
+    assert.deepEqual(overworld.playerPos(me), TEST_REGION.spawn);
+    assert.equal(actors(overworld.world).length, TEST_REGION.spawns.length);
   });
 
   test("players walk on their own inputs", () => {
@@ -139,8 +139,8 @@ describe("Overworld players", () => {
     const other = overworld.join(TEST_CHARACTER, "kingdom", () => {});
     overworld.input(other, 1, 0, 1);
     overworld.step(FIXED_DT);
-    assert.deepEqual(overworld.playerPos(me), EMPTY_LEVEL.spawn);
-    assert.ok(overworld.playerPos(other).z > EMPTY_LEVEL.spawn.z);
+    assert.deepEqual(overworld.playerPos(me), TEST_REGION.spawn);
+    assert.ok(overworld.playerPos(other).z > TEST_REGION.spawn.z);
   });
 
   test("a player who leaves is removed", () => {

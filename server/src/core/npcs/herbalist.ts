@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const HERBALIST: Npc = {
   stops: [
     {
-      level: "mistwood",
+      region: "mistwood",
       at: { x: -11.5, z: -8.5 },
       heading: "west",
       talk: [

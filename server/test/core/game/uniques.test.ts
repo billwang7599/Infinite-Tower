@@ -8,7 +8,7 @@ import { UNIQUE_HOLD_MS, Uniques } from "../../../src/core/game/uniques.js";
 import { PILE_LIFETIME_MS } from "../../../src/core/overworld/piles.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT } from "./helpers.js";
 
 before(() => initPhysics());

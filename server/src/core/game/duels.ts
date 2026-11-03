@@ -2,6 +2,7 @@ import { FIXED_DT, type ChallengeNews, type Vitals } from "@infinite-tower/share
 import { DUEL_STARTS, type FightSetup, type PlayerResult } from "@infinite-tower/shared/fight";
 import { BattleRoom, type Kept } from "../battle/room.js";
 import { getArena } from "../world/index.js";
+import { regionOf } from "../world/world.js";
 import { fighterOf, newDrops, seatInBattle } from "./battle.js";
 import { LAG_SLACK_TILES, nearestOtherSession, type GameSession } from "./session.js";
 
@@ -75,7 +76,7 @@ export class Duels {
 function startDuel(a: GameSession, b: GameSession): void {
   const duelists = [a, b];
   const setup: FightSetup = {
-    arena: getArena(a.overworld.level.duelArenaId),
+    arena: getArena(regionOf(a.overworld.map, a.overworld.playerPos(a.me)).duelArenaId),
     duel: true,
     enemies: [],
     players: duelists.map((s, i) => ({ ...fighterOf(s), at: DUEL_STARTS[i]! })),

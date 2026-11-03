@@ -11,14 +11,12 @@ import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { WORLD } from "../../../src/core/world/index.js";
 import { offeredQuest, startSession, talkTo, tick } from "./helpers.js";
 
 before(() => initPhysics());
 
 const QUEST = "bram-yard";
-const KINGDOM = getLevel("kingdom");
-
 const fresh = (saved: Partial<PlayerSave> = {}) =>
   startSession({ saved: { pad: "kingdom", equipment: emptyEquipment(), knownWords: [], bag: emptyBag(), ...saved } });
 
@@ -52,8 +50,8 @@ describe("the training yard", () => {
     session.acceptQuest(QUEST);
     assert.equal(session.story.quests[QUEST]?.step, "bram");
     const stop = stopFor(newStory(), NPCS.bram)!;
-    assert.equal(stop.level, "kingdom");
-    assert.equal(isSolid(KINGDOM.layout, stop.at.x, stop.at.z), false);
+    assert.equal(stop.region, "kingdom");
+    assert.equal(isSolid(WORLD.layout, stop.at.x, stop.at.z), false);
   });
 
   test("Bram hands over the old stick once, on the first talk, and sets up the dummy", () => {
@@ -108,7 +106,7 @@ describe("the training yard", () => {
     assert.deepEqual(result.lost, {});
     assert.equal(result.spar, "Bram");
     session.leaveBattle();
-    assert.equal(session.overworld.level.layout.id, "kingdom");
+    assert.equal(session.region, "kingdom");
     assert.deepEqual(session.vitals, before.vitals);
     assert.deepEqual(carried(session), before.carried);
     assert.deepEqual(session.core, before.core);

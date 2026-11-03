@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const COOK: Npc = {
   stops: [
     {
-      level: "kingdom",
+      region: "kingdom",
       at: { x: 18.5, z: -0.5 },
       heading: "west",
       talk: [

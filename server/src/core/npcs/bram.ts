@@ -5,7 +5,7 @@ const QUEST = "bram-yard";
 export const BRAM: Npc = {
   stops: [
     {
-      level: "kingdom",
+      region: "kingdom",
       at: { x: -21.5, z: 10.5 },
       heading: "east",
       talk: [

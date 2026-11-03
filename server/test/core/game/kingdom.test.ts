@@ -6,35 +6,37 @@ import { initPhysics } from "@infinite-tower/shared/fight";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { getLevel, START_LEVEL } from "../../../src/core/world/index.js";
-import { arriveIn, dieIn, offeredQuest, startIn, startSession, talkTo } from "./helpers.js";
+import { getRegion, START_REGION, WORLD } from "../../../src/core/world/index.js";
+import { arriveIn, dieIn, offeredQuest, startIn, startSession, talkTo, walkable } from "./helpers.js";
 
 before(() => initPhysics());
 
-const KINGDOM = getLevel("kingdom");
-const MARKET = getLevel("market-ward");
+const KINGDOM = getRegion("kingdom");
+const MARKET = getRegion("market-ward");
 const SHOPKEEPERS: NpcId[] = ["grocer", "apothecary", "smith", "changer"];
 const HERALD_REACH_TILES = 5;
 
 
 describe("Highmere's Castle Ward", () => {
   test("is where a new character first wakes, on its summoning platform", () => {
-    assert.equal(START_LEVEL, "kingdom");
-    assert.equal(KINGDOM.layout.name, "Highmere: Castle Ward");
+    assert.equal(START_REGION, "kingdom");
+    assert.equal(KINGDOM.name, "Highmere: Castle Ward");
     const { session, link } = startSession({ saved: { pad: "kingdom" } });
-    assert.equal(link.last("level").level.id, "kingdom");
-    assert.deepEqual(link.last("level").me, KINGDOM.spawn);
-    assert.equal(tileAt(KINGDOM.layout, KINGDOM.spawn.x, KINGDOM.spawn.z), "pad");
-    assert.equal(session.overworld.level.layout.id, "kingdom");
+    assert.deepEqual(link.last("world").me, KINGDOM.spawn);
+    assert.equal(tileAt(WORLD.layout, KINGDOM.spawn.x, KINGDOM.spawn.z), "pad");
+    assert.equal(session.region, "kingdom");
   });
 
-  test("its castle gate leads down to the Market Ward, and only there", () => {
-    assert.deepEqual(KINGDOM.exits.map((e) => e.to), ["market-ward"]);
+  test("its castle gate leads down to the Market Ward, a walk away, and nowhere else", () => {
+    assert.ok(walkable(KINGDOM.spawn, MARKET.spawn));
+    for (const region of WORLD.regions.filter((r) => r.id !== "kingdom" && r.id !== "market-ward")) {
+      assert.equal(walkable(KINGDOM.spawn, region.spawn, ["kingdom", region.id]), false, region.id);
+    }
   });
 
   test("a herald stands by the platform and greets a new avatar, sending them to the training yard", () => {
     const stop = stopFor(newStory(), NPCS.herald)!;
-    assert.equal(stop.level, "kingdom");
+    assert.equal(stop.region, "kingdom");
     assert.ok(distXZ(stop.at, KINGDOM.spawn) <= HERALD_REACH_TILES);
     const { session, link } = startSession({ saved: { pad: "kingdom" } });
     const said = talkTo(session, link, "herald");
@@ -44,7 +46,7 @@ describe("Highmere's Castle Ward", () => {
   });
 
   test("King Osric holds court in its throne room: a welcome to the Empire's Door City, and nothing to take", () => {
-    assert.equal(stopFor(newStory(), NPCS.king)?.level, "kingdom");
+    assert.equal(stopFor(newStory(), NPCS.king)?.region, "kingdom");
     const { session, link } = startSession({ saved: { pad: "kingdom" } });
     const said = talkTo(session, link, "king");
     assert.equal(said.offer, null);
@@ -55,41 +57,30 @@ describe("Highmere's Castle Ward", () => {
 
 describe("Highmere's Market Ward", () => {
   test("is named for its city, and is as safe as the castle: no enemies, no tall-grass fights, no campfire", () => {
-    assert.equal(MARKET.layout.name, "Highmere: Market Ward");
+    assert.equal(MARKET.name, "Highmere: Market Ward");
     for (const ward of [KINGDOM, MARKET]) {
       assert.deepEqual(ward.spawns, []);
       assert.equal(ward.grass, undefined);
-      assert.deepEqual(ward.layout.campfires, []);
-      assert.equal(ward.layout.theme, "kingdom");
+      assert.deepEqual(ward.campfires, []);
+      assert.equal(ward.theme, "kingdom");
     }
   });
 
   test("has no summoning pad: a player saved there wakes on the Castle Ward's platform", () => {
-    assert.ok(MARKET.layout.tiles.every((row, r) => [...row].every((_, c) =>
-      tileAt(MARKET.layout, c - row.length / 2 + 0.5, MARKET.layout.tiles.length / 2 - r - 0.5) !== "pad")));
+    assert.equal(MARKET.hasPad, false);
     const { session, link, saves } = startSession({ saved: { pad: "market-ward" } });
-    assert.equal(link.last("level").level.id, "kingdom");
-    assert.deepEqual(link.last("level").me, KINGDOM.spawn);
+    assert.deepEqual(link.last("world").me, KINGDOM.spawn);
     session.save();
     assert.equal(saves.at(-1)?.pad, "kingdom");
   });
 
-  test("walking in through the castle gate still arrives at the gate", () => {
-    const { session, link } = startSession({ saved: { pad: "kingdom" } });
-    arriveIn(session, "market-ward");
-    assert.equal(link.last("level").level.id, "market-ward");
-    assert.deepEqual(link.last("level").me, KINGDOM.exits.find((e) => e.to === "market-ward")!.at);
-  });
-
-  test("lies between the castle and the wild: its gates lead up to the Castle Ward and out to the Grass Field", () => {
-    assert.deepEqual(MARKET.exits.map((e) => e.to).sort(), ["grass-field", "kingdom"]);
-    assert.ok(getLevel("grass-field").exits.some((e) => e.to === "market-ward"));
-    assert.ok(!getLevel("grass-field").exits.some((e) => e.to === "kingdom"));
+  test("lies between the castle and the wild: its South Gate's road leads down to the Waking Hollow", () => {
+    assert.ok(walkable(MARKET.spawn, getRegion("waking-hollow").spawn, ["market-ward", "waking-hollow"]));
   });
 
   test("is much bigger than the Castle Ward", () => {
-    const area = (rows: string[]) => rows.length * rows[0]!.length;
-    assert.ok(area(MARKET.layout.tiles) > area(KINGDOM.layout.tiles));
+    const size = ({ area }: typeof MARKET) => area.w * area.h;
+    assert.ok(size(MARKET) > size(KINGDOM));
   });
 
   test("charges Highmere's prices", () => {
@@ -99,7 +90,7 @@ describe("Highmere's Market Ward", () => {
   test("the food, potion and blacksmith keepers and the money changer stand there, each with a word and their shop", () => {
     const { session, link } = startIn("market-ward");
     for (const npc of SHOPKEEPERS) {
-      assert.equal(stopFor(newStory(), NPCS[npc])?.level, "market-ward", npc);
+      assert.equal(stopFor(newStory(), NPCS[npc])?.region, "market-ward", npc);
       const said = talkTo(session, link, npc);
       assert.ok(said.lines.length > 0, npc);
       assert.equal(said.offer?.kind, "shop", npc);
@@ -107,7 +98,7 @@ describe("Highmere's Market Ward", () => {
   });
 
   test("the Gilded Door's keeper only talks", () => {
-    assert.equal(stopFor(newStory(), NPCS.innkeeper)?.level, "market-ward");
+    assert.equal(stopFor(newStory(), NPCS.innkeeper)?.region, "market-ward");
     const { session, link } = startIn("market-ward");
     const said = talkTo(session, link, "innkeeper");
     assert.ok(said.lines.length > 0);
@@ -116,16 +107,14 @@ describe("Highmere's Market Ward", () => {
 });
 
 describe("dying", () => {
-  test("anywhere, bound to no other pad, wakes you on the kingdom's platform once you leave the arena", () => {
+  test("anywhere, bound to no other pad, wakes you on the kingdom's platform", () => {
     const { session, link } = startSession({ dev: true, saved: { pad: "kingdom" } });
-    arriveIn(session, "market-ward");
     arriveIn(session, "grass-field");
     dieIn(session);
     assert.equal(link.last("battleResult").won, false);
+    assert.deepEqual(link.last("battleResult").me, KINGDOM.spawn);
     session.leaveBattle();
-    assert.equal(link.last("level").level.id, "kingdom");
-    assert.deepEqual(link.last("level").me, KINGDOM.spawn);
-    assert.equal(session.overworld.level.layout.id, "kingdom");
+    assert.equal(session.region, "kingdom");
   });
 
   test("in the kingdom itself wakes you on its platform", () => {
@@ -134,7 +123,7 @@ describe("dying", () => {
     dieIn(session);
     assert.deepEqual(link.last("battleResult").me, KINGDOM.spawn);
     session.leaveBattle();
-    assert.equal(session.overworld.level.layout.id, "kingdom");
+    assert.equal(session.region, "kingdom");
     assert.deepEqual(session.overworld.playerPos(session.me), KINGDOM.spawn);
   });
 });

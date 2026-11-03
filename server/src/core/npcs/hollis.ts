@@ -4,7 +4,7 @@ export const HOLLIS: Npc = {
   stops: [
     {
       when: { flag: "hollis-to-mistwood" },
-      level: "mistwood",
+      region: "mistwood",
       at: { x: -14.5, z: 1.5 },
       heading: "west",
       talk: [
@@ -45,7 +45,7 @@ export const HOLLIS: Npc = {
       ],
     },
     {
-      level: "grass-field",
+      region: "grass-field",
       at: { x: -6, z: -3.5 },
       heading: "west",
       trace: {

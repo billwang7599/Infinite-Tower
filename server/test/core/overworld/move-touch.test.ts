@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { mapHalfSize, WALKER_RADIUS, type EnemyId } from "@infinite-tower/shared";
+import { WALKER_RADIUS, type EnemyId } from "@infinite-tower/shared";
 import { moveSystem } from "../../../src/core/overworld/behaviors/move.js";
 import { encounterOnTouch, touchSystem } from "../../../src/core/overworld/behaviors/touch.js";
 import { OverworldActor, OverworldPlayer } from "../../../src/core/overworld/components.js";
 import { spawnActor } from "../../../src/core/overworld/parts.js";
+import { TEST_HALF } from "../../fixtures/world.js";
 import { pos, testOverworld } from "./helpers.js";
 
 const ENEMY: EnemyId = "wild-boar";
@@ -21,7 +22,7 @@ describe("move", () => {
 
   test("walks by the player's rule: solid tiles and the map's edge stop it", () => {
     const f = testOverworld();
-    const { halfWidth, halfDepth } = mapHalfSize(f.ctx.level.layout);
+    const { halfWidth, halfDepth } = TEST_HALF;
     const e = spawnActor(f.world, "wild-boar", { x: 0, z: 0 }, []);
     Object.assign(f.world.require(e, OverworldActor), { vx: 1000, vz: -1000 });
     moveSystem(f.ctx)(f.world, 1);

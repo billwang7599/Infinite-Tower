@@ -34,7 +34,7 @@ function packed(grid: Bag, free = 0): Bag {
 describe("shops", () => {
   test("the food, potion and blacksmith keepers and a money changer stand in Highmere's Market Ward, each offering trade", () => {
     for (const npc of ["grocer", "apothecary", "smith", "changer"] as const) {
-      assert.equal(stopFor(newStory(), NPCS[npc])?.level, "market-ward", npc);
+      assert.equal(stopFor(newStory(), NPCS[npc])?.region, "market-ward", npc);
       const { said, link } = atShop(npc, emptyBag());
       assert.equal(said.offer?.kind, "shop", npc);
       assert.ok(link.last("shop").shop, npc);

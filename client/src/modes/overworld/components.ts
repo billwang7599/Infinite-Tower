@@ -1,7 +1,7 @@
 /** Overworld entities: the local player (LocalPlayer) is predicted, everything else is where the server says. */
 import {
-  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type LevelLayout, type LevelMap,
-  type NpcId, type Vec2, type World,
+  defineComponent, type ActorSnap, type Character, type Entity, type Heading, type NpcId, type Vec2, type World,
+  type WorldLayout,
 } from "@infinite-tower/shared";
 
 /** In tiles. */
@@ -30,9 +30,8 @@ export const Speech = defineComponent<{ text: string; remainingTime: number }>("
 export interface OverworldState {
   world: World;
   player: Entity;
-  /** null until the server's first `level`. */
-  level: LevelLayout | null;
-  next: LevelMap[];
+  /** `npcs` swaps its NPCs and traces in place: the drawing is keyed on this object. */
+  map: WorldLayout | null;
   /** Quarter turns right from north. */
   cameraTurns: number;
   cameraPitchRad: number;

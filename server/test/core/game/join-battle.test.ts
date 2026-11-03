@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, bagCounts, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, type Character, type EnemyId,
+  addItem, bagCounts, emptyBag, FIXED_DT, Health, IDLE_INPUT, JOIN_RANGE_TILES, regionAt, type Character, type EnemyId,
+  type Vec2,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newPlayer } from "../../../src/core/content/player.js";
@@ -10,17 +11,17 @@ import { MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { LAG_SLACK_TILES, type GameSession } from "../../../src/core/game/session.js";
 import type { Account } from "../../../src/core/ports.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { getRegion, WORLD } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { OverworldActor, OverworldPos } from "../../../src/core/overworld/components.js";
 import { ACCOUNT, findBoar, pileAt } from "./helpers.js";
 
 before(() => initPhysics());
 
 // The Grass Field: one boar and a Kobold, where these tests count the actors.
-const LEVEL = getLevel("grass-field");
-const BOAR_SPAWN = LEVEL.spawns.find((s) => s.enemy === "wild-boar")!;
+const REGION = getRegion("grass-field");
+const BOAR_SPAWN = REGION.spawns.find((s) => s.enemy === "wild-boar")!;
 const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
 const ACCOUNTS: Account[] = [ACCOUNT, ...[2, 3, 4, 5, 6].map((n) => ({ id: `player-${n}`, username: `p${n}` }))];
 const characterOf = (i: number): Character => ({ ...TEST_CHARACTER, name: `Player ${i + 1}` });
@@ -28,7 +29,7 @@ const characterOf = (i: number): Character => ({ ...TEST_CHARACTER, name: `Playe
 async function players(count = 2) {
   const store = new MemoryPlayerStore();
   ACCOUNTS.slice(0, count).forEach((account, i) => {
-    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG, pad: LEVEL.layout.id });
+    store.saved.set(account.id, { ...newPlayer(), character: characterOf(i), bag: BAG, pad: REGION.id });
   });
   const online = new OnlinePlayers(store, true, 50);
   const all: { link: FakeLink; session: GameSession }[] = [];
@@ -187,7 +188,7 @@ describe("a battle fought together", () => {
     const result = all[1]!.link.last("battleResult");
     assert.equal(result.won, false);
     assert.equal(bagCounts(guest.bag)["boar-meat"], undefined);
-    assert.deepEqual(result.me, LEVEL.spawn);
+    assert.deepEqual(result.me, REGION.spawn);
     assert.equal(host.battle?.over, false);
     assert.equal(all[0]!.link.all("battleResult").length, 0);
   });
@@ -272,12 +273,7 @@ describe("one of a battle's players leaving it", () => {
     fight.world.require(fight.players[0]!, Health).hp = 0;
     play(online, [host, guest], 2);
     host.leaveBattle();
-    for (const to of ["market-ward", LEVEL.layout.id]) {
-      const gate = host.overworld.level.exits.find((e) => e.to === to)!.area;
-      place(host, { x: gate.x + gate.w / 2, z: gate.z + gate.h / 2 });
-      online.tick(FIXED_DT);
-    }
-    assert.equal(host.overworld.level, LEVEL);
+    assert.deepEqual(host.overworld.playerPos(host.me), REGION.spawn);
     host.overworld.playerData(host.me).safeTime = 0;
     place(host, actorAt(host, KOBOLD));
     online.tick(FIXED_DT);
@@ -305,14 +301,17 @@ describe("one of a battle's players leaving it", () => {
 });
 
 const KOBOLD = "kobold-swordsman";
-const KOBOLD_SPAWN = LEVEL.spawns.find((s) => s.enemy === KOBOLD)!;
+const KOBOLD_SPAWN = REGION.spawns.find((s) => s.enemy === KOBOLD)!;
 const stepsFor = (seconds: number) => Math.ceil(seconds / FIXED_DT) + 5;
 
+const inField = ([, , pos]: readonly [unknown, unknown, Vec2]) => regionAt(WORLD.layout, pos.x, pos.z).id === REGION.id;
+
 const actors = (session: GameSession, kind: EnemyId = "wild-boar") =>
-  [...session.overworld.world.query(OverworldActor)].filter(([, a]) => a.kind === kind).length;
+  [...session.overworld.world.query(OverworldActor, OverworldPos)].filter((e) => e[1].kind === kind && inField(e)).length;
 
 function actorAt(session: GameSession, kind: EnemyId) {
-  const found = [...session.overworld.world.query(OverworldActor, OverworldPos)].find(([, a]) => a.kind === kind);
+  const found = [...session.overworld.world.query(OverworldActor, OverworldPos)]
+    .find((e) => e[1].kind === kind && inField(e));
   assert.ok(found, `no ${kind} on the overworld`);
   return { ...found[2] };
 }

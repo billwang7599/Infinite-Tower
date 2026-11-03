@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const CHRONICLER: Npc = {
   stops: [
     {
-      level: "kingdom",
+      region: "kingdom",
       at: { x: -15.5, z: 17.5 },
       heading: "east",
       talk: [
@@ -33,7 +33,7 @@ export const CHRONICLER: Npc = {
         },
         {
           when: { quest: "chronicler-roads", step: "hollow" },
-          lines: ["The Waking Hollow first. The road west off the Grass Field leads down into it."],
+          lines: ["The Waking Hollow first. The road from the South Gate runs straight down into it."],
         },
         {
           when: { canStart: "bram-yard" },

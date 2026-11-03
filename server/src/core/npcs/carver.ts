@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const CARVER: Npc = {
   stops: [
     {
-      level: "market-ward",
+      region: "market-ward",
       at: { x: 31.5, z: -3.5 },
       heading: "west",
       talk: [

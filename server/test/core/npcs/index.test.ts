@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NPC_IDS } from "@infinite-tower/shared";
 import { NPCS } from "../../../src/core/npcs/index.js";
-import { LEVELS } from "../../../src/core/world/index.js";
+import { WORLD } from "../../../src/core/world/index.js";
 
 describe("NPCS", () => {
-  test("each always stands somewhere: every stop is on a level, and the last has no condition", () => {
+  test("each always stands somewhere: every stop is in a region, and the last has no condition", () => {
     for (const id of NPC_IDS) {
       const { stops } = NPCS[id];
       assert.equal(stops.at(-1)?.when, undefined, id);
-      for (const stop of stops) assert.ok(Object.hasOwn(LEVELS, stop.level), `${id}: ${stop.level}`);
+      for (const stop of stops) assert.ok(WORLD.regions.some((r) => r.id === stop.region), `${id}: ${stop.region}`);
     }
   });
 

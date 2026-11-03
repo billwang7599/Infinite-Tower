@@ -1,4 +1,4 @@
-import type { ArenaLook, EnemyId, LevelLayout, SkillElement, Spot } from "@infinite-tower/shared";
+import type { ArenaLook, EnemyId, SkillElement, Spot, Theme } from "@infinite-tower/shared";
 import type { GameEvent } from "../ui/notifications/say.js";
 
 type Bus = "effects" | "ambient";
@@ -126,7 +126,7 @@ export const STEP_SOUNDS: Record<ArenaLook, SoundName> = {
 export const ARENA_AMBIENCE: Partial<Record<ArenaLook, SoundName>> = { mire: "mire" };
 
 export const RUNNING_WATER_SOUND: SoundName = "river";
-export const STILL_WATER_SOUNDS: Partial<Record<LevelLayout["theme"], SoundName>> = { mistwood: "mire" };
+export const STILL_WATER_SOUNDS: Partial<Record<Theme, SoundName>> = { mistwood: "mire" };
 
 export const EVENT_SOUNDS: { readonly [K in GameEvent["kind"]]?: SoundName } = {
   encounter: "encounter",

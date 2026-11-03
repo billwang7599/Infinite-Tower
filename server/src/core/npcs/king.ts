@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const KING: Npc = {
   stops: [
     {
-      level: "kingdom",
+      region: "kingdom",
       at: { x: 17.5, z: 16.5 },
       heading: "south",
       talk: [

@@ -17,7 +17,7 @@ export function faceToward(actor: OverworldActorData, dx: number): void {
 export function moveSystem(ctx: OverworldContext): System {
   return (world, dt) => {
     for (const [, pos, actor] of world.query(OverworldPos, OverworldActor)) {
-      moveWalker(ctx.level.layout, pos, actor.vx * dt, actor.vz * dt);
+      moveWalker(ctx.map.layout, pos, actor.vx * dt, actor.vz * dt);
       faceToward(actor, actor.vx);
     }
   };

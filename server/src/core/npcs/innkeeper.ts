@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const INNKEEPER: Npc = {
   stops: [
     {
-      level: "market-ward",
+      region: "market-ward",
       at: { x: 15.5, z: 19.5 },
       heading: "south",
       talk: [

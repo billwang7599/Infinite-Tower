@@ -5,7 +5,7 @@ import { initPhysics, joinStart, type FightSetup, type PlayerResult } from "@inf
 import { BattleRoom, MAX_BATTLE_PLAYERS } from "../../../src/core/battle/room.js";
 import { FakeLink } from "../../fixtures/fakes.js";
 import { setupWith } from "../../fixtures/fight.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 
 before(() => initPhysics());
 

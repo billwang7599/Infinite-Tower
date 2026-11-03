@@ -277,8 +277,8 @@ The Goblin Warlock's bar works the same (150, 45 a second, paused while it winds
 - **Enemies** (`approachSpeed`): `walkSpeed` × (agility / 10)^¼ × max(0, cos of the angle to the target) ×
   clamp(distance − 2.2, 0, 1) (or − its `keepAway.farM`); inside `keepAway.nearM` it backs off at that speed ×
   clamp(nearM − distance, 0, 1). Rooted slows them too.
-- **Overworld:** the level's `playerSpeed` (5 tiles/s on the Grass Field) × burden pace × (agility / 10)^¼
-  (`overworldPace`).
+- **Overworld:** the world's `playerSpeed` (5 tiles/s, `PLAYER_SPEED` in `server/src/core/world/world.ts`) × burden
+  pace × (agility / 10)^¼ (`overworldPace`).
 
 ## Carry limit and burden
 
@@ -408,7 +408,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 ## Encounters and drops
 
-- **Tall grass** (`grass` in each level's file in `server/src/core/world/floors/1/`, rolled in
+- **Tall grass** (`grass` in each region's file in `server/src/core/world/regions/`, rolled in
   `server/src/core/overworld/player.ts`): every `stepDist` 1 tile walked in it, a `chance` roll (0.12 on the Grass
   Field and in the Mistwood, 0.06 in the Waking Hollow); the enemy by weight (only boars so far). At 0.12, on average
   one every 8.3 tiles (1.7 s at 5 tiles/s), and 0.88^10 = 28% of the time 10 tiles pass without one; at 0.06, one
@@ -447,7 +447,7 @@ Each in `server/src/core/enemies/<id>.ts`.
 
 - **Coins** (`COIN_VALUE`, `shared/src/items/coins.ts`): copper 1, silver 100, gold 10000, in copper. Written out
   largest first, leaving out what's 0: 12 345 copper is "1g 23s 45c".
-- **Buying** (`server/src/core/content/shops.ts`): the item's worth (`ITEM_VALUES`, copper) × the level's
+- **Buying** (`server/src/core/content/shops.ts`): the item's worth (`ITEM_VALUES`, copper) × the region's
   `PRICE_FACTOR` (Highmere 1.5, elsewhere 1), rounded; a player's first purchase at each shop × (1 −
   `FIRST_PURCHASE_DISCOUNT` 0.25), rounded. Bread, worth 4: 6c in Highmere, 5c the first time (4.5 rounds up). A sword,
   worth 300: 4s 50c, 3s 38c the first time.

@@ -36,5 +36,5 @@ const refuse = (to: GameSession, reason: ServerMsgOf<"chatRefused">["reason"]) =
 
 function speakerFor(to: GameSession, from: GameSession): ServerMsgOf<"chat">["speaker"] {
   if (to === from) return "you";
-  return to.inLevel && from.inLevel && to.overworld === from.overworld ? from.me : null;
+  return to.inWorld && from.inWorld && to.overworld === from.overworld ? from.me : null;
 }

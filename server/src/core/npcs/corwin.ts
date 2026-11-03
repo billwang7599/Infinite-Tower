@@ -3,7 +3,7 @@ import type { Npc } from "./index.js";
 export const CORWIN: Npc = {
   stops: [
     {
-      level: "grass-field",
+      region: "grass-field",
       at: { x: 22.5, z: -4.5 },
       heading: "west",
       talk: [

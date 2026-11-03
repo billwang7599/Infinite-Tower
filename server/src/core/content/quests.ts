@@ -1,13 +1,16 @@
 import type { EnemyId, Faith, ItemCounts, ItemId, NpcId, QuestHalf, Rect } from "@infinite-tower/shared";
 import type { When } from "../game/story.js";
+import { inRegion } from "../world/index.js";
 import type { LoreId } from "./lore.js";
 
 export type Task =
   | { kind: "gather"; item: ItemId; count: number }
   | { kind: "deliver"; item: ItemId; count: number; to: NpcId }
-  | { kind: "reach"; level: string; area?: Rect }
+  | { kind: "reach"; region: string; area?: Rect }
   | { kind: "talk"; to: NpcId }
   | { kind: "kill"; enemy: EnemyId; count: number };
+
+const regionRect = (region: string, area: Rect): Rect => ({ ...area, ...inRegion(region, area) });
 
 export interface QuestStep {
   /** Saved with each player: renaming one forgets the quest for anyone on it. */
@@ -196,7 +199,7 @@ export const QUESTS: Quests = {
     steps: [
       {
         id: "mistwood",
-        task: { kind: "reach", level: "mistwood" },
+        task: { kind: "reach", region: "mistwood" },
         text: "Go to the Mistwood.",
         hint: "Maren said it lies past the Grass Field, through the gap at its east edge.",
       },
@@ -281,7 +284,7 @@ export const QUESTS: Quests = {
     steps: [
       {
         id: "ruins",
-        task: { kind: "reach", level: "mistwood", area: { x: 11, z: 12, w: 9, h: 5 } },
+        task: { kind: "reach", region: "mistwood", area: regionRect("mistwood", { x: 11, z: 12, w: 9, h: 5 }) },
         text: "Go to the broken walls north of the lake.",
         hint: "Ilse said they stand in the Mistwood's north-east, up the path from where she sits.",
       },
@@ -309,7 +312,8 @@ export const QUESTS: Quests = {
         id: "boars",
         task: { kind: "kill", enemy: "wild-boar", count: 3 },
         text: "Slay 3 wild boars.",
-        hint: "Captain Edda said they root about in the Grass Field's tall grass, out through Highmere's South Gate.",
+        hint: "Captain Edda said they root about in the Grass Field's tall grass, past the Hollow, down the South Gate's "
+          + "road.",
       },
       {
         id: "back",
@@ -366,13 +370,13 @@ export const QUESTS: Quests = {
     steps: [
       {
         id: "hollow",
-        task: { kind: "reach", level: "waking-hollow" },
+        task: { kind: "reach", region: "waking-hollow" },
         text: "Go to the Waking Hollow.",
-        hint: "Odo said the road west off the Grass Field leads down into it.",
+        hint: "Odo said the road from the South Gate runs straight down into it.",
       },
       {
         id: "mistwood",
-        task: { kind: "reach", level: "mistwood" },
+        task: { kind: "reach", region: "mistwood" },
         text: "Go to the Mistwood.",
         hint: "Odo said it lies past the Grass Field, through the gap at its east edge.",
       },
@@ -391,7 +395,7 @@ export const QUESTS: Quests = {
     steps: [
       {
         id: "pool",
-        task: { kind: "reach", level: "old-quarry", area: { x: -8, z: 2, w: 16, h: 4 } },
+        task: { kind: "reach", region: "old-quarry", area: regionRect("old-quarry", { x: -8, z: 2, w: 16, h: 4 }) },
         text: "Go down to the pool at the bottom of the pit.",
         hint: "Harl said the way in on the pit's south side is straight up the rails from his fire.",
       },
@@ -477,7 +481,7 @@ export const QUESTS: Quests = {
     steps: [
       {
         id: "island",
-        task: { kind: "reach", level: "mistwood", area: { x: -1, z: 2, w: 3, h: 3 } },
+        task: { kind: "reach", region: "mistwood", area: regionRect("mistwood", { x: -1, z: 2, w: 3, h: 3 }) },
         text: "Stand on the island in the Mistwood's lake.",
         hint: "Sorrel said to walk out along the bridge and, where it forks, go north.",
       },

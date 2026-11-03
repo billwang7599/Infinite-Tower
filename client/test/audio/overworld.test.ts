@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { LocalPlayer, START_HEADING, World, type LevelLayout } from "@infinite-tower/shared";
+import { LocalPlayer, START_HEADING, World, type WorldLayout } from "@infinite-tower/shared";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
+import { testMap } from "../fixtures/map.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";
 import { CAMERA_PITCH } from "../../src/modes/overworld/facing.js";
 import {
@@ -10,14 +11,11 @@ import {
 
 // 8 x 4 tiles, centred on 0, 0: x from -4 to 4, z from -2 to 2 (north first). A stream down x 2 to 3, off the map at
 // both ends, and a pond (x -3 to -1, z -1 to 0) against nothing.
-const LEVEL: LevelLayout = {
-  id: "test", name: "Test", floor: 1, theme: "grass-field", playerSpeed: 5, campfires: [{ x: -2, z: 1 }], npcs: [],
-  traces: [], pads: [],
-  tiles: ["......~.", "......~.", ".~~...~.", "......~."],
-};
-const DRY: LevelLayout = { ...LEVEL, theme: "mistwood", tiles: ["........", "........"], campfires: [] };
+const TILES = ["......~.", "......~.", ".~~...~.", "......~."];
+const LEVEL = testMap(TILES, "grass-field", { campfires: [{ x: -2, z: 1 }] });
+const DRY = testMap(["........", "........"], "mistwood");
 
-function overworld(level: LevelLayout | null = LEVEL) {
+function overworld(map: WorldLayout | null = LEVEL) {
   const world = new World();
   const walker = (kind: OverworldActorData["kind"], x: number, z: number) => {
     const e = world.spawn();
@@ -28,7 +26,7 @@ function overworld(level: LevelLayout | null = LEVEL) {
   const player = walker("player", 0, 0);
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
-    world, player, level, next: [], cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
+    world, player, map, cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
   };
   return { state, world, walker, player, hear: overworldEars() };
 }
@@ -53,15 +51,15 @@ describe("the overworld's ears", () => {
     assert.deepEqual(water.map((l) => l.at), [{ x: 2, z: 0 }]);
   });
 
-  test("still water makes no sound unless the level's theme gives it one", () => {
+  test("still water makes no sound unless its region's theme gives it one", () => {
     const { state, hear } = overworld();
     assert.deepEqual([...hear(state)!.loops.values()].map((l) => l.sound).sort(), ["campfire", RUNNING_WATER_SOUND]);
-    const mire = overworld({ ...LEVEL, theme: "mistwood" });
+    const mire = overworld(testMap(TILES, "mistwood", { campfires: LEVEL.campfires }));
     const still = [...mire.hear(mire.state)!.loops.values()].filter((l) => l.sound === STILL_WATER_SOUNDS.mistwood);
     assert.deepEqual(still.map((l) => l.at), [{ x: -1, z: 0 }]);
   });
 
-  test("a level with no water or fire is quiet", () => {
+  test("a map with no water or fire is quiet", () => {
     const { state, hear } = overworld(DRY);
     assert.equal(hear(state)!.loops.size, 0);
   });
@@ -79,14 +77,14 @@ describe("the overworld's ears", () => {
     assert.ok(steps.every((s) => s === "step-grass"));
   });
 
-  test("put somewhere new (a new level, a correction) isn't a walk", () => {
+  test("put somewhere new (a respawn, a correction) isn't a walk", () => {
     const { state, hear, world, player } = overworld();
     hear(state);
     world.require(player, OverworldPos).x += 20;
     assert.deepEqual(hear(state)!.cues, []);
   });
 
-  test("nothing before the level comes", () => {
+  test("nothing before the world comes", () => {
     const { state, hear } = overworld(null);
     assert.equal(hear(state), null);
   });

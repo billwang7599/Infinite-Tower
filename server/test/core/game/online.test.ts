@@ -5,12 +5,12 @@ import {
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
-import { START_LEVEL } from "../../../src/core/world/index.js";
+import { START_REGION } from "../../../src/core/world/index.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { newStory } from "../../../src/core/game/story.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT } from "./helpers.js";
 
 before(() => initPhysics());
@@ -37,7 +37,7 @@ describe("joining", () => {
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
         bag: welcome.gear.bag, equipment: welcome.gear.equipment, knownWords: welcome.knownWords,
-        skillbook: welcome.skillbook, story: newStory(), pad: START_LEVEL, core: welcome.core, shopsBought: [],
+        skillbook: welcome.skillbook, story: newStory(), pad: START_REGION, core: welcome.core, shopsBought: [],
         faith: welcome.faith },
       newPlayer(),
     );
@@ -45,11 +45,11 @@ describe("joining", () => {
     assert.equal(welcome.dev, false);
   });
 
-  test("making a character saves it, then sends character and then the level", async () => {
+  test("making a character saves it, then sends character and then the world", async () => {
     const { online, store } = setup();
     const { link, session } = await joinNew(online);
     session.setCharacter(TEST_CHARACTER);
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "character", "level"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "character", "world"]);
     assert.equal(store.saves.length, 1);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
@@ -58,15 +58,15 @@ describe("joining", () => {
     const { online, store } = setup({ withCharacter: true });
     const { link, session } = await joinNew(online);
     session.setCharacter({ ...TEST_CHARACTER, name: "Renamed" });
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "level"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world"]);
     assert.equal(store.saves.length, 0);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
 
-  test("a player with a saved character gets welcome and then the level", async () => {
+  test("a player with a saved character gets welcome and then the world", async () => {
     const { online } = setup({ withCharacter: true });
     const { link } = await joinNew(online);
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "level"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world"]);
     assert.deepEqual(link.last("welcome").character, TEST_CHARACTER);
   });
 

@@ -6,9 +6,9 @@ import { goblinSprite } from "@infinite-tower/client/src/visuals/enemies/goblin-
 import { koboldGreatswordSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-greatsword/sprite.js";
 import { koboldSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-swordsman/sprite.js";
 import { boarSprite } from "@infinite-tower/client/src/visuals/enemies/wild-boar/sprite.js";
-import { GRASS_FIELD_TILES } from "@infinite-tower/client/src/visuals/levels/grass-field/tiles.js";
-import { MISTWOOD_TILES } from "@infinite-tower/client/src/visuals/levels/mistwood/tiles.js";
-import type { TileLooks } from "@infinite-tower/client/src/visuals/levels/tiles.js";
+import { GRASS_FIELD_TILES } from "@infinite-tower/client/src/visuals/regions/grass-field/tiles.js";
+import { MISTWOOD_TILES } from "@infinite-tower/client/src/visuals/regions/mistwood/tiles.js";
+import type { TileLooks } from "@infinite-tower/client/src/visuals/regions/tiles.js";
 import { NPC_LOOKS } from "@infinite-tower/client/src/visuals/npcs/index.js";
 import { Pen, PROP_ART } from "@infinite-tower/client/src/visuals/overworld/props.js";
 import type { SpriteDraw } from "@infinite-tower/client/src/visuals/sprites.js";

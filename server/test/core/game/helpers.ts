@@ -2,10 +2,10 @@
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, distXZ, WORDS, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag,
+  addItem, distXZ, isSolid, regionAt, WORDS, emptyBag, FIXED_DT, Health, HEADING_WAY, hpRegenPerSec, IDLE_INPUT, type Bag,
   type DialogueOffer, type EnemyId, type Entity, type Heading, type ItemCounts, type ItemId, type NpcId, type Vec2,
 } from "@infinite-tower/shared";
-import { OverworldPos, Pile } from "../../../src/core/overworld/components.js";
+import { OverworldActor, OverworldPos, Pile } from "../../../src/core/overworld/components.js";
 import { EncounterOnTouch } from "../../../src/core/overworld/behaviors/touch.js";
 import { LORE } from "../../../src/core/content/lore.js";
 import { newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -19,10 +19,10 @@ import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { Overworld } from "../../../src/core/overworld/overworld.js";
 import type { Account, PlayerSave } from "../../../src/core/ports.js";
-import { getLevel } from "../../../src/core/world/index.js";
+import { getRegion, WORLD } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
 import { armed } from "../../fixtures/fight.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 
 export const ACCOUNT: Account = { id: "player-1", username: "tester" };
 
@@ -34,11 +34,8 @@ export function startSession(opts: { dev?: boolean; saved?: Partial<PlayerSave> 
   const saved: PlayerSave = {
     ...newPlayer(), character: TEST_CHARACTER, pad: HOLLOW, equipment: armed(), knownWords: [...WORDS], ...opts.saved,
   };
-  const overworlds = new Map<string, Overworld>();
-  const overworldOf = (id: string) => {
-    if (!overworlds.has(id)) overworlds.set(id, new Overworld(getLevel(id)));
-    return overworlds.get(id)!;
-  };
+  let overworld: Overworld | null = null;
+  const overworldOf = () => overworld ??= new Overworld(WORLD);
   const persist = (data: PlayerSave) => saves.push(structuredClone(data));
   const online = () => [session];
   const session = new GameSession(
@@ -64,11 +61,13 @@ export function tick(session: GameSession, times = 1): void {
   }
 }
 
-/** The overworld's touch-to-fight actor (the start level's boar) and where it stands. */
 export function findBoar(session: GameSession) {
-  const found = session.overworld.world.first(EncounterOnTouch, OverworldPos);
+  const at = session.overworld.playerPos(session.me);
+  const [found] = [...session.overworld.world.query(EncounterOnTouch, OverworldActor, OverworldPos)]
+    .filter(([, , actor]) => actor.kind === "wild-boar")
+    .sort(([, , , a], [, , , b]) => distXZ(a, at) - distXZ(b, at));
   if (!found) throw new Error("no boar on the overworld");
-  const [boar, , pos] = found;
+  const [boar, , , pos] = found;
   return { boar, pos };
 }
 
@@ -80,8 +79,8 @@ export function pileAt(overworld: Overworld, at: Vec2, rangeTiles = 0): Entity |
 const BACK_TO: Record<Heading, Heading> = { north: "south", south: "north", east: "west", west: "east" };
 
 export function talkTo(session: GameSession, link: FakeLink, npc: NpcId) {
-  const shown = link.last("level").level.npcs.find((placed) => placed.npc === npc);
-  assert.ok(shown, `${npc} stands on this level`);
+  const shown = link.placed().npcs.find((placed) => placed.npc === npc);
+  assert.ok(shown, `${npc} stands somewhere`);
   const way = HEADING_WAY[shown.heading];
   session.overworld.place(session.me, { x: shown.at.x + way.x, z: shown.at.z + way.z });
   session.overworld.playerData(session.me).heading = BACK_TO[shown.heading];
@@ -116,29 +115,26 @@ export function bagWith(items: ItemCounts): Bag {
 
 export interface Played { session: GameSession; link: FakeLink; saves: PlayerSave[] }
 
-export function arriveIn(session: GameSession, level: string): void {
-  if (session.overworld.level.layout.id === level) return;
-  const exit = session.overworld.level.exits.find((e) => e.to === level);
-  assert.ok(exit, `an exit to ${level}`);
-  session.overworld.place(session.me, { x: exit.area.x + exit.area.w / 2, z: exit.area.z + exit.area.h / 2 });
+/** Put on the region's spawn: walking there would be the same, a step at a time. */
+export function arriveIn(session: GameSession, region: string): void {
+  if (session.region === region) return;
+  session.overworld.place(session.me, getRegion(region).spawn);
   session.tick();
-  assert.equal(session.overworld.level.layout.id, level);
+  assert.equal(session.region, region);
 }
 
-/** A level with no pad wakes you elsewhere: they walk in from there. */
-export function startIn(level: string, opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
-  const started = startSession({ ...opts, saved: { ...opts.saved, pad: level } });
-  arriveIn(started.session, level);
+/** A region with no pad wakes you elsewhere: they walk in from there. */
+export function startIn(region: string, opts: { dev?: boolean; saved?: Partial<PlayerSave> } = {}) {
+  const started = startSession({ ...opts, saved: { ...opts.saved, pad: region } });
+  arriveIn(started.session, region);
   return started;
 }
 
-export function goTo(p: Played, level: string): void {
-  if (p.session.overworld.level.layout.id === level) return;
-  p.session.save();
-  Object.assign(p, startIn(level, { dev: true, saved: p.saves.at(-1)! }));
+export function goTo(p: Played, region: string): void {
+  arriveIn(p.session, region);
 }
 
-export const levelOf = (story: Story, npc: NpcId): string => stopFor(story, NPCS[npc])!.level;
+export const regionOf = (story: Story, npc: NpcId): string => stopFor(story, NPCS[npc])!.region;
 
 export const linesFor = (story: Story, npc: NpcId, when: When) =>
   stopFor(story, NPCS[npc])!.talk.find((t) => isDeepStrictEqual(t.when, when))?.lines;
@@ -154,12 +150,12 @@ export function doStep(p: Played, id: string, step: QuestStep): void {
       tick(p.session);
       break;
     case "deliver":
-      goTo(p, levelOf(p.session.story, task.to));
+      goTo(p, regionOf(p.session.story, task.to));
       assert.equal(talkTo(p.session, p.link, task.to).offer?.kind, "deliver");
       p.session.deliver(id);
       break;
     case "reach":
-      goTo(p, task.level);
+      goTo(p, task.region);
       if (task.area) {
         tick(p.session);
         assert.equal(p.session.story.quests[id]!.step, step.id, "not there yet");
@@ -172,7 +168,7 @@ export function doStep(p: Played, id: string, step: QuestStep): void {
       for (let i = 0; i < task.count; i++) winFight(p.session, task.enemy);
       break;
     case "talk": {
-      goTo(p, levelOf(p.session.story, task.to));
+      goTo(p, regionOf(p.session.story, task.to));
       const lines = linesFor(p.session.story, task.to, { quest: id, step: step.id });
       assert.ok(lines, `${task.to} has lines for it`);
       assert.deepEqual(talkTo(p.session, p.link, task.to).lines, lines);
@@ -197,4 +193,21 @@ export function dieIn(session: GameSession): void {
     tick(session);
   }
   assert.equal(session.battle!.over, true);
+}
+
+export function walkable(from: Vec2, to: Vec2, within?: readonly string[]): boolean {
+  const { layout } = WORLD, cell = (at: Vec2) => `${Math.floor(at.x)},${Math.floor(at.z)}`;
+  const seen = new Set([cell(from)]), todo = [{ x: Math.floor(from.x), z: Math.floor(from.z) }];
+  while (todo.length > 0) {
+    const { x, z } = todo.pop()!;
+    if (`${x},${z}` === cell(to)) return true;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const n = { x: x + dx, z: z + dz }, key = `${n.x},${n.z}`;
+      if (seen.has(key) || isSolid(layout, n.x + 0.5, n.z + 0.5)) continue;
+      if (within && !within.includes(regionAt(layout, n.x + 0.5, n.z + 0.5).id)) continue;
+      seen.add(key);
+      todo.push(n);
+    }
+  }
+  return false;
 }

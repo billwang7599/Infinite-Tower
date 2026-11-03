@@ -11,14 +11,14 @@ import { fullVitals, PLAYER_STATS } from "../../../src/core/content/player.js";
 import type { GameSession } from "../../../src/core/game/session.js";
 import { OverworldActor } from "../../../src/core/overworld/components.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { getArena, getLevel } from "../../../src/core/world/index.js";
+import { getArena, getRegion, WORLD } from "../../../src/core/world/index.js";
 import { findBoar, HOLLOW, startSession, tick } from "./helpers.js";
 import { armed } from "../../fixtures/fight.js";
 
 before(() => initPhysics());
 
 const FULL = fullVitals(PLAYER_STATS);
-const LEVEL = getLevel(HOLLOW);
+const REGION = getRegion(HOLLOW);
 const HURT = { hp: 50, stamina: 40 };
 /** Two meat and a tusk. */
 const CARRIED: Bag = {
@@ -86,25 +86,25 @@ function lose(session: GameSession): void {
 }
 
 describe("starting a battle", () => {
-  const FIELD = getLevel("grass-field");
+  const FIELD = getRegion("grass-field");
   const ARENA_SPAWN = FIELD.spawns.find((s) => s.arenaId !== undefined)!;
 
   test("an actor whose spawn names an arena is fought there", () => {
-    const { session, link } = startSession({ saved: { pad: FIELD.layout.id } });
+    const { session, link } = startSession({ saved: { pad: FIELD.id } });
     const found = [...session.overworld.world.query(OverworldActor)].find(([, a]) => a.kind === ARENA_SPAWN.enemy);
     assert.ok(found);
     session.overworld.startEncounter(session.me, found[0], ARENA_SPAWN.enemy);
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
 
-  test("tall grass, with no actor, is fought in the level's arena", () => {
+  test("tall grass, with no actor, is fought in the region's arena", () => {
     const { session, link } = startSession();
     session.overworld.startEncounter(session.me, null, "wild-boar");
-    assert.deepEqual(link.last("encounter").setup.arena, getArena(LEVEL.arenaId));
+    assert.deepEqual(link.last("encounter").setup.arena, getArena(REGION.arenaId));
   });
 
   test("a dev fight against an enemy is held in the arena of its spawn", () => {
-    const { session, link } = startSession({ dev: true, saved: { pad: FIELD.layout.id } });
+    const { session, link } = startSession({ dev: true, saved: { pad: FIELD.id } });
     session.cheat({ kind: "encounter", enemy: ARENA_SPAWN.enemy });
     assert.deepEqual(link.last("encounter").setup.arena, getArena(ARENA_SPAWN.arenaId!));
   });
@@ -115,7 +115,7 @@ describe("starting a battle", () => {
     const msg = link.last("encounter");
     assert.equal(msg.source, null);
     assert.equal(msg.seat, 0);
-    assert.deepEqual(msg.setup.arena, getArena(LEVEL.arenaId));
+    assert.deepEqual(msg.setup.arena, getArena(REGION.arenaId));
     const seed = msg.setup.enemies[0]?.seed;
     assert.deepEqual(msg.setup.enemies, [{ def: ENEMIES["wild-boar"].def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed }]);
     assert.ok(Number.isInteger(seed) && seed! >= 0 && seed! < 2 ** 32, "a seed for its random numbers");
@@ -222,7 +222,7 @@ describe("the server runs the fight", () => {
     assert.deepEqual(result.gear.bag, { ...CARRIED, items: [] });
     assert.deepEqual(session.bag, result.gear.bag);
     assert.deepEqual(result.vitals, FULL);
-    assert.deepEqual(result.me, getLevel(session.pad).spawn);
+    assert.deepEqual(result.me, getRegion(session.pad).spawn);
     assert.equal(result.wins, 0);
     assert.equal(saves.length, 1);
     assert.deepEqual(saves[0]?.bag, result.gear.bag);
@@ -481,12 +481,12 @@ describe("the overworld after a battle", () => {
     assert.equal(overworld.world.isAlive(lost.boar), false);
   });
 
-  test("the level's safe time blocks a new encounter right away, and only for that long", () => {
+  test("the world's safe time blocks a new encounter right away, and only for that long", () => {
     const { session, link } = touchBoar();
     win(session);
     session.leaveBattle();
 
-    const safeTicks = Math.floor(LEVEL.safeTime / FIXED_DT) - 1;
+    const safeTicks = Math.floor(WORLD.safeTime / FIXED_DT) - 1;
     for (let i = 0; i < safeTicks; i++) {
       session.overworld.place(session.me, findBoar(session).pos);
       tick(session);

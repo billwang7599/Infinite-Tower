@@ -43,9 +43,7 @@ export interface TitleState {
 export const inWorld = (mode: Mode | null, phase: TitleState["phase"]): boolean => mode !== null && phase === "playing";
 
 export interface OverworldHudState {
-  levelName: string;
-  /** The tower floor the level is on; null before a level arrives. */
-  levelFloor: number | null;
+  regionName: string;
   wins: number;
   hpFraction: number;
   staminaFraction: number;
@@ -224,7 +222,7 @@ export class UiState {
   readonly creation = new Store<CreationState>({ open: false });
   readonly overworldPanel = new Store<OverworldPanelState>({ open: null, widthPx: 0 });
   readonly overworld = new Store<OverworldHudState>({
-    levelName: "…", levelFloor: null, wins: 0, hpFraction: 1, staminaFraction: 1, core: null, faith: {},
+    regionName: "…", wins: 0, hpFraction: 1, staminaFraction: 1, core: null, faith: {},
     byFire: false, character: null, interaction: null, using: null, cameraTurns: 0,
     gear: {
       bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,

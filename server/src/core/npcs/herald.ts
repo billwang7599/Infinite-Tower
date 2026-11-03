@@ -19,8 +19,8 @@ const WELCOME = [
     + "sets which way it swings, {battle.block} raises your guard and {battle.dodge} throws you clear.",
   "Fall out there and you'll wake again on this very stone. Most of what you carried stays where you fell.",
   "Down the carpet and out through the courtyard. The castle gate at its south end leads down to the Market "
-    + "Ward: food, potions, the smithy, a money changer and the Gilded Door. The South Gate beyond it leads out "
-    + "to the Grass Field.",
+    + "Ward: food, potions, the smithy, a money changer and the Gilded Door. The road from the South Gate beyond "
+    + "it runs down through the woods to the Waking Hollow, and on east to the Grass Field.",
 ];
 
 const TO_BRAM = "You come with empty hands, as all of you do. Old Bram keeps the training yard by the barracks, "
@@ -29,7 +29,7 @@ const TO_BRAM = "You come with empty hands, as all of you do. Old Bram keeps the
 export const HERALD: Npc = {
   stops: [
     {
-      level: "kingdom",
+      region: "kingdom",
       at: { x: 2.5, z: 12.5 },
       heading: "west",
       talk: [

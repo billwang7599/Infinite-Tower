@@ -5,6 +5,7 @@ import {
 import { BattleRoom, type Kept } from "../battle/room.js";
 import { ENEMIES } from "../enemies/index.js";
 import { getArena } from "../world/index.js";
+import { regionOf } from "../world/world.js";
 import { fighterOf, newDrops, seatInBattle } from "./battle.js";
 import type { GameSession } from "./session.js";
 import { progressStory } from "./story.js";
@@ -16,7 +17,7 @@ export function startTraining(session: GameSession, foe: EnemyId): void {
   if (!session.inOverworld || !overworld.enterFight(session.me)) return;
   const def = ENEMIES[foe].def, before = { ...session.vitals };
   const setup: FightSetup = {
-    arena: getArena(overworld.level.arenaId),
+    arena: getArena(regionOf(overworld.map, overworld.playerPos(session.me)).arenaId),
     yieldAt: TRAINING_YIELD_SHARE,
     players: [{ ...fighterOf(session), at: PLAYER_START }],
     enemies: [{ def, at: ENEMY_START, yaw: ENEMY_START_YAW, seed: Math.floor(overworld.rng() * 2 ** 32) }],

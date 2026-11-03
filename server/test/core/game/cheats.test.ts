@@ -12,9 +12,9 @@ import type { GameSession } from "../../../src/core/game/session.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import { holds, newStory, type Story } from "../../../src/core/game/story.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
-import { START_LEVEL } from "../../../src/core/world/index.js";
+import { getRegion, START_REGION } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
-import { TEST_CHARACTER } from "../../fixtures/level.js";
+import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT, bagWith, startSession } from "./helpers.js";
 
 before(() => initPhysics());
@@ -56,7 +56,7 @@ describe("on a production server", () => {
     assert.deepEqual(session.vitals, HURT);
     assert.deepEqual(session.bag, emptyBag());
     assert.equal(saves.length, 0);
-    assert.deepEqual(link.sent.map((m) => m.t).filter((t) => t !== "welcome" && t !== "level"), []);
+    assert.deepEqual(link.sent.map((m) => m.t).filter((t) => t !== "welcome" && t !== "world"), []);
   });
 });
 
@@ -68,7 +68,7 @@ describe("encounter", () => {
     assert.equal(link.last("encounter").setup.enemies[0]?.def.id, "kobold-swordsman");
   });
 
-  test("does nothing mid-battle, or before the player has a level", () => {
+  test("does nothing mid-battle, or before the player is in the world", () => {
     const inFight = startSession({ dev: true });
     fightBoar(inFight.session);
     fightBoar(inFight.session);
@@ -270,7 +270,7 @@ describe("resetSave", () => {
     const welcome = link.last("welcome");
     assert.deepEqual([welcome.wins, welcome.questbook, welcome.character], [0, [], TEST_CHARACTER]);
     assert.deepEqual(welcome.core, newCore());
-    assert.equal(link.last("level").level.id, START_LEVEL);
+    assert.deepEqual(link.last("world").me, getRegion(START_REGION).spawn);
   });
 
   test("does nothing in a battle", () => {
