@@ -30,6 +30,8 @@ export * from "./world/tiles.js";
 export * from "./world/arena.js";
 export * from "./world/interact.js";
 export * from "./world/day.js";
+export * from "./world/water.js";
+export * from "./world/chunks.js";
 export * from "./overworld/view.js";
 export * from "./net/api.js";
 export * from "./net/handlers.js";

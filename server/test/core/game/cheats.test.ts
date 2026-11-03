@@ -56,7 +56,7 @@ describe("on a production server", () => {
     assert.deepEqual(session.vitals, HURT);
     assert.deepEqual(session.bag, emptyBag());
     assert.equal(saves.length, 0);
-    assert.deepEqual(link.sent.map((m) => m.t).filter((t) => t !== "welcome" && t !== "world"), []);
+    assert.deepEqual(link.sent.map((m) => m.t).filter((t) => t !== "welcome" && t !== "world" && t !== "chunks"), []);
   });
 });
 

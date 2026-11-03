@@ -3,19 +3,20 @@
  * are what a player can ask for, one per message. Not to be confused with a login session (core/accounts).
  */
 import {
-  addFaith, blessingsOf, CLOSE_CODES, coreStats, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals,
-  Health, heldIn, hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace,
-  placePoint, roundTo, skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag,
-  type Burden, type Character, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear, type God,
-  type InscriptionId, type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook, type Spot,
-  type StepInput, type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
+  addFaith, blessingsOf, chunkData, chunkKey, chunksNear, CHUNK_DROP_TILES, CHUNK_SEND_TILES, CHUNK_TILES,
+  CLOSE_CODES, coreStats, distToRect, distXZ, emptyCloth, finishUse, FIXED_DT, gearBurden, grownVitals, Health, heldIn,
+  hpRegenPerSec, JOIN_RANGE_TILES, maxHpOf, moveGear, nearCampfire, NO_PILE, overworldPace, placePoint, roundTo,
+  skillOf, Stamina, staminaMaxOf, startUse, stepUse, takeBackPoint, validateSkill, type Bag, type Burden,
+  type Character, type ChunkData, type Cheat, type CoinId, type CoreState, type Entity, type Faith, type Gear,
+  type God, type InscriptionId, type ItemId, type SavedSettings, type ShownStat, type Skill, type Skillbook,
+  type Spot, type StepInput, type Stats, type UseSpot, type Using, type Vec2, type Vitals, type Word,
 } from "@infinite-tower/shared";
 import { takeCore } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer } from "../content/player.js";
 import type { ShopId } from "../content/shops.js";
 import type { Overworld } from "../overworld/overworld.js";
 import { getRegion, wakeRegion } from "../world/index.js";
-import { regionOf } from "../world/world.js";
+import { flowOf, regionOf } from "../world/world.js";
 import type { Account, PlayerLink, PlayerSave } from "../ports.js";
 import { arenaPileInView, arenaPiles, joinBattle, startBattle, type Battle } from "./battle.js";
 import type { Chat } from "./chat.js";
@@ -83,6 +84,7 @@ export class GameSession {
   private pileOpen: Entity | null = null;
   private using: Using | null = null;
   private offWorldPad: string;
+  private readonly sentChunks = new Set<string>();
   /** The region they were last in: walking into another places the NPCs again. */
   private regionId: string | null = null;
   private wasReset = false;
@@ -193,6 +195,7 @@ export class GameSession {
   wakeOnPad(): Vec2 {
     const { spawn } = getRegion(this.pad);
     this.overworld.place(this.me, spawn);
+    this.sendChunks(spawn);
     return spawn;
   }
 
@@ -450,6 +453,7 @@ export class GameSession {
     progressStory(this);
     if (this.followPile()) this.link.send({ t: "gear", gear: this.gear });
     if (++this.ticks % STATE_EVERY_TICKS === 0) {
+      this.sendChunks(this.overworld.playerPos(this.me));
       this.link.send({ ...stateMsg(this.overworld, this.me, this.introduced), hp: roundTo(this.vitals.hp, 2) });
     }
   }
@@ -536,8 +540,27 @@ export class GameSession {
     this.regionId = this.region;
     this.introduced.clear();
     this.gear = this.held;
-    const world = { ...overworld.map.layout, ...placeFor(this), pads: overworld.pads };
-    this.link.send({ t: "world", world, me: overworld.playerPos(me) });
+    const { tiles: _, ...map } = overworld.map.layout, at = overworld.playerPos(me);
+    this.link.send({ t: "world", world: { ...map, ...placeFor(this), pads: overworld.pads }, me: at });
+    this.sentChunks.clear();
+    this.sendChunks(at);
+  }
+
+  /** Those it has dropped by now are forgotten, to send again. */
+  private sendChunks(at: Vec2): void {
+    const { map } = this.overworld, fresh: ChunkData[] = [];
+    for (const rect of chunksNear(map.layout.bounds, at.x, at.z, CHUNK_SEND_TILES)) {
+      const key = chunkKey(rect.x, rect.z);
+      if (this.sentChunks.has(key)) continue;
+      this.sentChunks.add(key);
+      fresh.push(chunkData(map.layout, flowOf(map), rect));
+    }
+    for (const key of this.sentChunks) {
+      const [x, z] = key.split(",").map(Number) as [number, number];
+      const rect = { x, z, w: CHUNK_TILES, h: CHUNK_TILES };
+      if (distToRect(rect, at.x, at.z) > CHUNK_DROP_TILES) this.sentChunks.delete(key);
+    }
+    if (fresh.length > 0) this.link.send({ t: "chunks", chunks: fresh });
   }
 
   private followRegion(): void {

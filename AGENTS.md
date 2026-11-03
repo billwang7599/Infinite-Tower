@@ -841,6 +841,11 @@ them; treat them as changeable, and still ask before deciding new ones):
   Drawing: chunks of 16 x 16 tiles (`CHUNK_TILES`); those within 30 tiles of you are shown (`SHOWN_TILES`), 16 more
   built ahead (`AHEAD_TILES`) at 3 ms a frame (`BUILD_BUDGET_MS`); the sky's colours and fog ease to the region you're
   in (`SKY_BLEND_RATE`, `client/src/visuals/overworld/chunks.ts`); music follows the region's theme.
+- The world sent a chunk at a time (the agent's picks, walked in a headless browser, not hand-played): the server
+  sends every chunk within 64 tiles of you (`CHUNK_SEND_TILES`) with its water's currents, and you drop those past 80
+  (`CHUNK_DROP_TILES`, `shared/src/world/chunks.ts`), the server forgetting them by the same rule to send them again.
+  A chunk is drawn once it and its eight neighbours are here; built ones past 78 tiles (`DROPPED_TILES`) are thrown
+  away. Dying sends your pad's chunks at once, and they're built while the result shows.
 - Regions: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field, the Mistwood and the Old Quarry,
   on one map (One open world, above; the layout under it, below). Dying wakes you on your pad, at once. Mistwood reuses
   the Grass Field's enemies (boars, the Kobold, the Warlock) and the mire arena.

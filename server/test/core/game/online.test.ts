@@ -49,7 +49,7 @@ describe("joining", () => {
     const { online, store } = setup();
     const { link, session } = await joinNew(online);
     session.setCharacter(TEST_CHARACTER);
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "character", "world"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "character", "world", "chunks"]);
     assert.equal(store.saves.length, 1);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
@@ -58,7 +58,7 @@ describe("joining", () => {
     const { online, store } = setup({ withCharacter: true });
     const { link, session } = await joinNew(online);
     session.setCharacter({ ...TEST_CHARACTER, name: "Renamed" });
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world", "chunks"]);
     assert.equal(store.saves.length, 0);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
@@ -66,7 +66,7 @@ describe("joining", () => {
   test("a player with a saved character gets welcome and then the world", async () => {
     const { online } = setup({ withCharacter: true });
     const { link } = await joinNew(online);
-    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world"]);
+    assert.deepEqual(link.sent.map((m) => m.t), ["welcome", "world", "chunks"]);
     assert.deepEqual(link.last("welcome").character, TEST_CHARACTER);
   });
 

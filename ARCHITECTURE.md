@@ -60,13 +60,17 @@ enemy stats, drop tables) stays in `server/`.
    questbook). With no
    character yet, the white the
    title flashes into holds: character creation (`ui/screens/creation/`) plays on it, and the server waits for a
-   `character` message (only one: a character is kept for good); then it sends `world`.
+   `character` message (only one: a character is kept for good); then it sends `world` (no tiles) and the `chunks`
+   round you.
 4. **Overworld.** While you move, the client sends one `input` per 60 Hz tick and predicts its own walking with the
    shared `stepWalker` (at the pace the gear's weight allows; solid tiles stop it). The server replays the inputs,
    runs the world's actors (walking by the same rule), rolls encounters in tall-grass tiles and sends `state`
    20 times a second with the actors and other players near your screen. Every player walks the one overworld: they
    see each other, and an enemy one of them touches leaves it for everyone. The client glides its
-   mirrors toward those positions.
+   mirrors toward those positions. The world's tiles come a chunk at a time: with each `state` the session sends the
+   chunks within `CHUNK_SEND_TILES` it hasn't sent, and forgets those past `CHUNK_DROP_TILES`, which the client drops
+   by the same rule (`modes/overworld/held.ts`), so it holds only the land round you. Dying sends the chunks round
+   your pad at once, while the result shows, and the drawing builds them meanwhile (`warm`).
 5. **Fight.** The server makes the fight (a `BattleRoom` running the shared `Fight`) and sends `encounter` with its
    setup (arena, enemy, your HP / stamina, core and its stats, burden, the bag and what's worn (so whether a sword and a
    skillbook are in hand), and its pages). The client
@@ -652,7 +656,8 @@ dropped socket (with a sentence for the title), `net.onPing(fn)` the ping, and `
 |---|---|
 | `welcome` | after joining: HP / stamina, the core (the client works the stats out from it), settings, character (or null), wins, gear, known words, skillbook, the last 50 chat lines, the questbook, `dev`, faith with each god |
 | `character` | your character, as saved |
-| `world` | entering the world: its map (what the client may see of it, with the NPCs standing there for you), where you are |
+| `world` | entering the world: its map but its tiles (what the client may see of it, with the NPCs standing there for you), where you are |
+| `chunks` | the world's tiles near you that your client hasn't got, a chunk each (null rows: all void), with the currents of its water |
 | `npcs` | walking into another region moved an NPC for you: where each stands now, and the traces |
 | `state` | 20 a second in the overworld: `ack` (last input replayed), your position and HP (it comes back on its own), nearby actors, other players (a player's character only the first time) and piles |
 | `encounter` | a fight starts: its `setup` (arena, enemy, your HP / stamina, stats, burden, what you wield, your pages) and your `seat` in it; joining a fight under way, `joined` (the host's name and the fight as it was) |
@@ -1063,7 +1068,10 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    (INTERACT_RANGE_M and INTERACT_LOOK_RAD, the reach to a pile or an NPC and how far round from the
                    way you face, on the overworld and in an arena alike; inView, the one in view), tiles.ts
                    (TILES: each tile kind's
-                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, kindOfChar), arena.ts
+                   character and rules, solid or tall grass; tileAt, isSolid, inTallGrass, kindOfChar), water.ts
+                   (waterFlow: each water and bridge tile's current over the whole map, worked out on the server and
+                   sent with the chunks; only water that runs off the map flows), chunks.ts (ChunkData; chunksNear,
+                   chunkData, putChunk, dropChunk, emptyTiles; CHUNK_SEND_TILES, CHUNK_DROP_TILES; tested), arena.ts
                    (ArenaDef: an arena's id, radius and ArenaLook, sent in each encounter's FightSetup), day.ts (the
                    time of day from the wall clock, the same everywhere with no messages: DayClock, dayFraction,
                    retimeDay; sunAt and moonAt, their arcs. Drawing only: nothing in a fight reads it)
@@ -1194,7 +1202,8 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        tab takes over, a new player refused past maxPlayers; count; isOn (a left or replaced
                        session's late messages are dropped); the one Overworld, made when the first player
                        arrives, stepped only while someone's on it), session.ts (GameSession, one player: their
-                       save, their walker in the overworld (`me`) and the `region` they stand in, the battle they're in;
+                       save, their walker in the overworld (`me`) and the `region` they stand in, the chunks sent
+                       them (sendChunks), the battle they're in;
                        a method per thing a player can ask; disconnect: mid-fight, leaving it, and leaving the
                        overworld; nearestOtherSession, the nearest other player in reach; Others, what a session sees of
                        the rest; the pile they have open, followed every tick; their `story`; the NPCs and traces
@@ -1502,10 +1511,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          name for the HUD;
                          a chat line's Speech on its speaker (SPEECH_TIME)
         prediction.ts    Predict your own walking (and heading), reconcile with the server's acks
-        water.ts         waterMap: each water tile's flow, width, depth and banks from the world's tiles, for the
-                         drawing and the sound alike (WATER_DEPTH_TILES); only water that runs off the map (touches
-                         its edge, or the woods joined to it, in two places) flows, bridges joining a river's pieces;
-                         its tiles split into running and still; tested
+        held.ts          Held: the chunks this client has (their tiles in the map, the rest void), their currents and
+                         a revision; hold, dropFar (past CHUNK_DROP_TILES); tested
+        water.ts         waterMap: each held water tile's current (from the server's waterFlow), depth and banks,
+                         for the drawing and the sound alike (WATER_DEPTH_TILES); its tiles split into running and
+                         still; tested
         facing.ts        The shared Heading (north / east / south / west, on the map) and Facing (up / right / down /
                          left, on screen): mapMove (walk keys to a move on the map), facingOnScreen, mirrorFor;
                          the camera's turn time (CAMERA_TURN_TIME) and its turns unwrapped for the compass
@@ -1645,11 +1655,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         bubble.ts        speechBubble: a chat line wrapped into a speech bubble, at most 3 lines
         overworld.ts     overworldStage (the world's drawing, the camera following the player and easing through its
                          quarter turns, the sky's frame)
-        chunks.ts        worldDrawing: the world a chunk (CHUNK_TILES square) at a time, chunksOf leaving out the
-                         empty ones. Those within SHOWN_TILES of the camera's target are in the scene, casting
-                         shadows; those AHEAD_TILES further are built a little each frame (BUILD_BUDGET_MS), nearest
-                         first, and one needed at once is built whole. The sky's colours and fog ease to the region
-                         you stand in (SKY_BLEND_RATE)
+        chunks.ts        worldDrawing: the world a chunk (CHUNK_TILES square) at a time, each built once it and its
+                         neighbours are held. Those within SHOWN_TILES of the camera's target are in the scene,
+                         casting shadows; those AHEAD_TILES further are built a little each frame (BUILD_BUDGET_MS),
+                         nearest first, and one needed at once is built whole; past DROPPED_TILES a built one is
+                         thrown away. warm builds ahead while a fight is on. The sky's colours and fog ease to the
+                         region you stand in (SKY_BLEND_RATE)
         scenery.ts       Scenery's shapes (ledges, props) and chunkScenery, what stands in a chunk from the tiles round
                          it so neighbours agree: castle walls (taller where thick: the bulk), house blocks (each
                          block's height by its corner), the stalls (a counter ledge with an awning, the forge a hearth
@@ -1929,7 +1940,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
-| Chunks: how far round you they're drawn and built ahead, the build budget, how fast the sky turns to the next region's | `SHOWN_TILES`, `AHEAD_TILES`, `BUILD_BUDGET_MS`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
+| Chunks: how far round you they're sent, held, drawn, built ahead and kept built, the build budget, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SHOWN_TILES`, `AHEAD_TILES`, `DROPPED_TILES`, `BUILD_BUDGET_MS`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |

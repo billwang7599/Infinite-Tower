@@ -1,4 +1,6 @@
-import { CHUNK_TILES, regionAt, type Rect, type Vec2, type WorldMap } from "@infinite-tower/shared";
+import {
+  CHUNK_TILES, regionAt, waterFlow, type Flow, type Rect, type Vec2, type WorldMap,
+} from "@infinite-tower/shared";
 import type { Region, RegionDef, SpawnDef } from "./region.js";
 
 /** Further than the camera sees, so the world never shows an edge. */
@@ -87,4 +89,13 @@ export function composeWorld(defs: readonly RegionDef[], patches: readonly Patch
 export function regionOf(world: WorldDef, at: Vec2): Region {
   const label = regionAt(world.layout, at.x, at.z);
   return world.regions.find((r) => r.id === label.id)!;
+}
+
+const flows = new WeakMap<WorldDef, Map<string, Flow>>();
+
+/** Worked out once a world, when first asked: the solve takes a while. */
+export function flowOf(world: WorldDef): Map<string, Flow> {
+  let flow = flows.get(world);
+  if (!flow) flows.set(world, flow = waterFlow(world.layout));
+  return flow;
 }

@@ -66,7 +66,7 @@ describe("game sockets", () => {
     const { store, connect } = setup();
     store.saved.set(ACCOUNT.id, structuredClone(SAVED));
     const socket = await connect();
-    assert.deepEqual(socket.kinds(), ["welcome", "world"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "world", "chunks"]);
     const welcome = socket.messages[0];
     assert.ok(welcome?.t === "welcome");
     assert.deepEqual(welcome.vitals, SAVED.vitals);
@@ -80,7 +80,7 @@ describe("game sockets", () => {
     const { store, connect } = setup();
     const socket = await connect();
     socket.receive({ t: "character", character: TEST_CHARACTER });
-    assert.deepEqual(socket.kinds(), ["welcome", "character", "world"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "character", "world", "chunks"]);
     assert.deepEqual(store.saved.get(ACCOUNT.id)?.character, TEST_CHARACTER);
   });
 
@@ -233,6 +233,6 @@ describe("the simulated ping (dev only)", () => {
     const socket = await connect(ACCOUNT, "200");
     assert.deepEqual(socket.sent, []);
     t.mock.timers.tick(100);
-    assert.deepEqual(socket.kinds(), ["welcome", "world"]);
+    assert.deepEqual(socket.kinds(), ["welcome", "world", "chunks"]);
   });
 });

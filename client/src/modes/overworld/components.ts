@@ -3,6 +3,7 @@ import {
   defineComponent, type ActorSnap, type Character, type Entity, type Heading, type NpcId, type Vec2, type World,
   type WorldLayout,
 } from "@infinite-tower/shared";
+import type { Held } from "./held.js";
 
 /** In tiles. */
 export const OverworldPos = defineComponent<Vec2>("OverworldPos");
@@ -32,6 +33,7 @@ export interface OverworldState {
   player: Entity;
   /** `npcs` swaps its NPCs and traces in place: the drawing is keyed on this object. */
   map: WorldLayout | null;
+  held: Held;
   /** Quarter turns right from north. */
   cameraTurns: number;
   cameraPitchRad: number;

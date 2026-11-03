@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { LocalPlayer, START_HEADING, World, type WorldLayout } from "@infinite-tower/shared";
+import { LocalPlayer, START_HEADING, waterFlow, World, type WorldLayout } from "@infinite-tower/shared";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
 import { testMap } from "../fixtures/map.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";
@@ -26,7 +26,8 @@ function overworld(map: WorldLayout | null = LEVEL) {
   const player = walker("player", 0, 0);
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
-    world, player, map, cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
+    world, player, map, held: { keys: new Set(), flow: map ? waterFlow(map) : new Map(), revision: 0 },
+    cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
   };
   return { state, world, walker, player, hear: overworldEars() };
 }
