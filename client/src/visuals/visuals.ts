@@ -206,13 +206,14 @@ export function createDrawing(canvas: HTMLCanvasElement, from: DrawnState): Draw
       stage.frame(world, dt);
       arena.skills.tick(dt);
     }
+    land.warm();
     arena.scene.render();
   };
 
   const drawOverworld = (dt: number) => {
     const { world } = from.overworld, kinds = new Map<Entity, OverworldActorData["kind"]>();
     for (const [e, actor] of world.query(OverworldActor)) kinds.set(e, actor.kind);
-    land(dt, fresh);
+    land.frame(dt, fresh);
     drawEntities(WALKERS, overworld, world, walkers, kinds, dt);
     fresh = false;
     overworld.scene.render();

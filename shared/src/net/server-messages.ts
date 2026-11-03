@@ -11,6 +11,7 @@ import type { CoinId } from "../items/coins.js";
 import type { ItemCounts, ItemId, Rarity } from "../items/items.js";
 import type { InscriptionId } from "../soul/inscriptions.js";
 import type { BlessingGod, Faith } from "../soul/blessings.js";
+import type { ChunkData } from "../world/chunks.js";
 import type { NpcId, PlacedNpc, WorldLayout } from "../world/layout.js";
 import type { Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
@@ -132,7 +133,9 @@ export type ServerMsg =
     faith: Faith;
   }
   | { t: "character"; character: Character }
-  | { t: "world"; world: WorldLayout; me: Vec2 }
+  /** Its tiles come a chunk at a time, in `chunks`, as you walk. */
+  | { t: "world"; world: Omit<WorldLayout, "tiles">; me: Vec2 }
+  | { t: "chunks"; chunks: ChunkData[] }
   | { t: "npcs"; npcs: PlacedNpc[]; traces: Vec2[] }
   /** 20 times a second, so only what moves (your HP too: it comes back on its own). */
   | { t: "state"; ack: number; me: Vec2; hp: number; actors: ActorSnap[]; players: PlayerSnap[]; piles: PileSnap[] }

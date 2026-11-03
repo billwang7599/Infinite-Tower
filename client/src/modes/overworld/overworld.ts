@@ -1,7 +1,7 @@
 import {
-  coreStats, distXZ, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M, maxHpOf,
-  nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState, type Gear,
-  type Heading, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
+  coreStats, distXZ, emptyTiles, FIXED_DT, HEADING_WAY, JOIN_RANGE_TILES, LocalPlayer, inView, INTERACT_RANGE_M,
+  maxHpOf, nearCampfire, overworldPace, regionAt, REST_RANGE_TILES, staminaMaxOf, START_HEADING, type CoreState,
+  type Gear, type Heading, type ServerMsgOf, type Stats, type Vec2, type Vitals, type World, type WorldLayout,
 } from "@infinite-tower/shared";
 import type { Actions } from "../../core/actions.js";
 import type { Joined, Net } from "../../net/net.js";
@@ -10,6 +10,7 @@ import type { Interaction, OverworldHudState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { OverworldActor, OverworldPos, Peer, Speech, type OverworldState } from "./components.js";
 import { CAMERA_PITCH, mapMove, tiltCamera, unwrapTurns } from "./facing.js";
+import { dropFar, hold, nothingHeld } from "./held.js";
 import { ActorMirror } from "./mirror.js";
 import { Prediction } from "./prediction.js";
 
@@ -68,7 +69,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
   world.add(player, OverworldActor, { kind: "player", vx: 0, vz: 0, heading: START_HEADING, alert: false });
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
-    world, player, map: null, cameraTurns: camera.get().overworldTurns,
+    world, player, map: null, held: nothingHeld(), cameraTurns: camera.get().overworldTurns,
     cameraPitchRad: CAMERA_PITCH.startRad,
   };
   const actors = new ActorMirror(world);
@@ -125,9 +126,13 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       setCore(welcome.core);
       joinedNet.on("world", (msg) => {
         actors.enter(msg.world);
-        state.map = msg.world;
+        state.map = { ...msg.world, tiles: emptyTiles(msg.world.bounds) };
+        state.held = nothingHeld();
         prediction?.reset(msg.me);
         world.require(player, OverworldActor).heading = START_HEADING;
+      });
+      joinedNet.on("chunks", (msg) => {
+        if (state.map) hold(state.map, state.held, msg.chunks);
       });
       joinedNet.on("npcs", (msg) => {
         if (!state.map) return;
@@ -159,6 +164,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       inBattle = false;
       actors.clear();
       state.map = null;
+      state.held = nothingHeld();
     },
     update(dt, frozen) {
       if (frozen || inBattle || !state.map || !prediction) accumulator = 0;
@@ -178,6 +184,7 @@ export function createOverworld({ world, actions, hud, camera }: OverworldOption
       state.cameraTurns = camera.get().overworldTurns;
       const byFire = !inBattle && state.map !== null && nearCampfire(state.map, playerPos());
       const cameraTurns = unwrapTurns(hud.get().cameraTurns, state.cameraTurns);
+      if (state.map && !inBattle) dropFar(state.map, state.held, playerPos());
       const at = playerPos(), regionName = state.map ? regionAt(state.map, at.x, at.z).name : "…";
       hud.set({ interaction: interaction(), byFire, cameraTurns, regionName });
     },

@@ -18,11 +18,15 @@ export function themeHere({ world, player, map }: OverworldState): Theme | null 
 }
 
 export function overworldEars(): (state: OverworldState) => Heard | null {
-  let heardMap: WorldMap | null = null, running: readonly Vec2[] = [], still: readonly Vec2[] = [];
+  let heard: { map: WorldMap; revision: number } | null = null, running: readonly Vec2[] = [];
+  let still: readonly Vec2[] = [];
   const walkers = new Map<Entity, Walked>();
-  return ({ world, player, map, cameraTurns }) => {
+  return ({ world, player, map, held, cameraTurns }) => {
     if (!map) return null;
-    if (map !== heardMap) ({ running, still } = waterMap(heardMap = map));
+    if (map !== heard?.map || held.revision !== heard.revision) {
+      heard = { map, revision: held.revision };
+      ({ running, still } = waterMap(map, held.flow));
+    }
     const me = world.require(player, OverworldPos), cues: Cue[] = [], loops = new Map<string, Cue>();
 
     const seen = new Set<Entity>();

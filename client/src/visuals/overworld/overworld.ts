@@ -10,19 +10,32 @@ import { QUARTER_TURN_RAD } from "./walker.js";
 const CAMERA_FOLLOW_RATE = 10;
 const CAMERA_DISTANCE = 21;
 
-export function overworldStage(view: OverworldScene): (dt: number, fresh: boolean) => void {
+export interface OverworldStage {
+  frame(dt: number, fresh: boolean): void;
+  /** While a fight is on: the chunks round where you'll come back to are built ahead. */
+  warm(): void;
+}
+
+export function overworldStage(view: OverworldScene): OverworldStage {
   let art: TerrainArt | null = null, world: WorldDrawing | null = null;
   const target = new Vector3(), back = new Vector3(), feet = { x: 0, y: 0, z: 0 };
   const turn = { fromRad: 0, toRad: 0, time: CAMERA_TURN_TIME };
   let facedYaw = NaN;
-  return (dt, fresh) => {
+  const follow = () => {
+    if (view.state.map === world?.map) return false;
+    world?.dispose();
+    world = view.state.map && worldDrawing(view, view.state, art ??= terrainArt(view.scene));
+    facedYaw = NaN;
+    return true;
+  };
+  const warm = () => {
+    follow();
+    const at = view.state.world.get(view.state.player, OverworldPos);
+    if (world && at) world.warm({ x: at.x, y: 0, z: at.z });
+  };
+  const frame = (dt: number, fresh: boolean) => {
     const { state, camera } = view;
-    if (state.map !== world?.map) {
-      world?.dispose();
-      world = state.map && worldDrawing(view, state.map, art ??= terrainArt(view.scene));
-      facedYaw = NaN;
-      fresh = true;
-    }
+    if (follow()) fresh = true;
     if (!world) return;
     const wantedRad = state.cameraTurns * QUARTER_TURN_RAD;
     if (fresh) Object.assign(turn, { fromRad: wantedRad, toRad: wantedRad, time: CAMERA_TURN_TIME });
@@ -48,4 +61,5 @@ export function overworldStage(view: OverworldScene): (dt: number, fresh: boolea
     feet.z = target.z;
     world.frame(dt, camera.position, feet);
   };
+  return { frame, warm };
 }
