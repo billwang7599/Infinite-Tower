@@ -247,8 +247,13 @@ it makes goes into the game yet, and nothing is kept in the browser, so save the
 - **Tiles** (the Tiles mode): a tile is the overworld's tile size, 16x16 (`PX_PER_TILE`, `client/src/gfx/tile.ts`),
   with a ground and a detail layer to start. The preview repeats it 3x3 so seams show, and "Shift by half" wraps it
   round by half its size to bring the edges into the middle to paint them. A tileset is several tiles, each named,
-  sharing their layers (a new tile is blank, Duplicate copies one); it exports as one PNG sheet, 8 tiles a row, and a
-  JSON of the tile size and each tile's name and place on the sheet.
+  sharing their layers (a new tile is blank, Duplicate copies one); Export sheet makes one PNG, 8 tiles a row, and a
+  JSON of the tile size (`width`, `height`) and each tile's name and place on the sheet (`tiles`).
+- **Animations** (the Animation mode): frames of one size sharing their layers, in a strip like the tileset's (a new
+  frame is blank, Duplicate copies the one you're on). Onion skin shows the frame before (faint) and after (fainter)
+  under the one you're drawing. Play loops the frames in the preview at the set fps (8 to start, 1 to 60), while
+  the canvas stays editable. Export sheet makes one PNG, 8 frames a row, and a JSON with the frame size, the fps and
+  each frame's name and place (`frames`).
 - **Out**: the whole picture as a PNG, each layer as its own, and the project as a JSON file (its mode, every page,
   every layer's name, whether it shows, its opacity, its pixels) that Open loads back, switching to its mode. A
   dropped .json opens too. Each mode keeps its own project while you switch between them.

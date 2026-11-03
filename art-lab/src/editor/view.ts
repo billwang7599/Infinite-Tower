@@ -7,6 +7,7 @@ import { TOOLS } from "./tools.js";
 const ZOOMS = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64];
 const GRID_FROM_ZOOM = 6;
 const MAJOR_GRID_PIXELS = 8;
+const ONION_ALPHAS = { before: 0.3, after: 0.15 };
 
 export function toCanvas(b: Bitmap): HTMLCanvasElement {
   const c = el("canvas");
@@ -20,6 +21,7 @@ export class CanvasView {
   readonly canvas = el("canvas", "background:#15161e;border:1px solid #2c2e40;cursor:crosshair;touch-action:none");
   zoom = 8;
   grid = true;
+  onion = true;
   hover: [number, number] | null = null;
   private panX = 0;
   private panY = 0;
@@ -69,6 +71,7 @@ export class CanvasView {
         g.fillRect(x0 + x, y0 + y, Math.min(cell, width * z - x), Math.min(cell, height * z - y));
       }
     }
+    if (this.onion && this.ed.mode === "animation") this.drawOnion(g, x0, y0, z);
     g.drawImage(toCanvas(composite(this.ed.doc)), x0, y0, width * z, height * z);
     if (this.grid && z >= GRID_FROM_ZOOM) this.drawGrid(g, x0, y0, z);
     g.strokeStyle = "#4a4e66";
@@ -81,6 +84,17 @@ export class CanvasView {
       g.strokeRect(x0 + sel.x * z + 0.5, y0 + sel.y * z + 0.5, sel.w * z - 1, sel.h * z - 1);
       g.setLineDash([]);
     }
+  }
+
+  private drawOnion(g: CanvasRenderingContext2D, x0: number, y0: number, z: number): void {
+    const { pages, page } = this.ed.project;
+    for (const [at, alpha] of [[page - 1, ONION_ALPHAS.before], [page + 1, ONION_ALPHAS.after]] as const) {
+      const doc = pages[at];
+      if (!doc) continue;
+      g.globalAlpha = alpha;
+      g.drawImage(toCanvas(composite(doc)), x0, y0, doc.width * z, doc.height * z);
+    }
+    g.globalAlpha = 1;
   }
 
   private drawGrid(g: CanvasRenderingContext2D, x0: number, y0: number, z: number): void {

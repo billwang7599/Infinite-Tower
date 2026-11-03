@@ -7,8 +7,9 @@ import { layerList } from "./layerList.js";
 import { composite } from "./layers.js";
 import { MODES, MODE_LOOKS } from "./modes.js";
 import { pageStrip } from "./pageStrip.js";
-import { tiled } from "./sheet.js";
+import { frameAt, tiled } from "./sheet.js";
 import { Editor } from "./state.js";
+import { Playback, timeline } from "./timeline.js";
 import { toolbar } from "./toolbar.js";
 import { CanvasView, toCanvas } from "./view.js";
 
@@ -21,6 +22,7 @@ const PANEL = "display:flex;flex-direction:column;gap:10px;padding:10px;backgrou
 export function mountEditor(root: HTMLElement, look: () => Look): void {
   const ed = new Editor();
   const view = new CanvasView(ed, VIEW_PX, VIEW_PX);
+  const playback = new Playback();
   const modes = el("div", "display:flex;gap:6px;margin-bottom:12px");
   const tools = el("div");
   const status = el("div", "font-size:12px;color:#9a9cb0;min-height:16px");
@@ -49,12 +51,26 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
     return c;
   };
 
-  const drawPixels = () => {
-    view.draw();
-    const image = composite(ed.doc);
+  const drawPreview = () => {
+    const { pages } = ed.project;
+    const playing = playback.playing && ed.mode === "animation";
+    const shown = playing ? pages[frameAt(playback.elapsedSec(performance.now()), ed.project.fps, pages.length)]! : ed.doc;
+    const image = composite(shown);
     preview.replaceChildren(...(ed.mode === "tiles"
       ? TILE_PREVIEW_SCALES.map((scale) => caption(picture(scale, tiled(image, 3, 3)), `3x3 at ${scale}x`))
       : PREVIEW_SCALES.map((scale) => caption(picture(scale, image), `${scale}x`))));
+  };
+  let looping = false;
+  const play = () => {
+    looping = playback.playing;
+    if (!looping) return;
+    drawPreview();
+    requestAnimationFrame(play);
+  };
+
+  const drawPixels = () => {
+    view.draw();
+    drawPreview();
     const [hx, hy] = view.hover ?? [-1, -1];
     const at = hx >= 0 && hy >= 0 && hx < ed.doc.width && hy < ed.doc.height ? `  ·  pixel ${hx}, ${hy}` : "";
     const selected = ed.selection ? `  ·  selected ${ed.selection.w}x${ed.selection.h}` : "";
@@ -70,6 +86,7 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
   ed.onChange((panels) => {
     drawPixels();
     if (!panels) return;
+    if (playback.playing && !looping) play();
     error.textContent = "";
     modes.replaceChildren(...MODES.map((mode) => {
       const b = el("button", BUTTON, MODE_LOOKS[mode].label);
@@ -81,6 +98,7 @@ export function mountEditor(root: HTMLElement, look: () => Look): void {
     side.replaceChildren(
       panel(ed.mode === "tiles" ? "Preview: the tile repeated, to show its seams" : "Preview", preview),
       ...(ed.mode === "tiles" ? [panel("Tileset", pageStrip(ed))] : []),
+      ...(ed.mode === "animation" ? [panel("Frames", pageStrip(ed)), panel("Playback", timeline(ed, view, playback))] : []),
       panel("Color", colors(ed)),
       panel("Layers, top first", layerList(ed, (i) => exportLayer(ed, i))),
       panel("File", filePanel(ed, look, () => view.fit(), report)),

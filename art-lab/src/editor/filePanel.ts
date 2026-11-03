@@ -6,7 +6,7 @@ import { projectToJson } from "./json.js";
 import { addLayer, composite, newProject } from "./layers.js";
 import { MODE_LOOKS } from "./modes.js";
 import { placeImage } from "./resample.js";
-import { packSheet } from "./sheet.js";
+import { packSheet, sheetJson } from "./sheet.js";
 import type { Editor } from "./state.js";
 
 const MAX_SIDE = 512;
@@ -38,7 +38,7 @@ export function filePanel(ed: Editor, look: () => Look, fitView: () => void, rep
     ed.open(ed.mode, newProject(width, height, layers));
     fitView();
   }, "Start a new drawing (Undo brings the old one back)"));
-  if (ed.mode === "sprite") {
+  if (ed.mode !== "tiles") {
     make.append(button("Add the look's picture", () => addLook(ed, look()), "The Characters tab's look, as a layer"));
   }
 
@@ -56,7 +56,7 @@ export function filePanel(ed: Editor, look: () => Look, fitView: () => void, rep
     button("Export PNG", () => exportPng(composite(ed.doc), naming.file)),
     button("Export each layer", () => ed.doc.layers.forEach((_, i) => exportLayer(ed, i))),
   );
-  if (ed.mode === "tiles") keep.append(button("Export tileset", () => exportTileset(ed), "A PNG sheet and its JSON"));
+  if (ed.mode !== "sprite") keep.append(button("Export sheet", () => exportSheet(ed), "A PNG sheet and its JSON"));
   keep.append(
     button("Save…", () => downloadJson(projectToJson(ed.mode, ed.project), naming.file)),
     button("Open…", () => pickFile(".json,application/json", (f) => openFile(ed, f).then(fitView, report))),
@@ -65,14 +65,14 @@ export function filePanel(ed: Editor, look: () => Look, fitView: () => void, rep
   return box;
 }
 
-function exportTileset(ed: Editor): void {
-  const pages = ed.project.pages;
+function exportSheet(ed: Editor): void {
+  const { pages, fps } = ed.project;
+  const what = MODE_LOOKS[ed.mode].page;
+  const name = `${naming.file}-${what}s`;
   const { sheet, cells } = packSheet(pages.map((d) => composite(d)), SHEET_COLUMNS);
-  exportPng(sheet, `${naming.file}-tiles`);
-  downloadJson({
-    image: `${naming.file}-tiles.png`, tileWidth: pages[0]!.width, tileHeight: pages[0]!.height,
-    tiles: pages.map((d, i) => ({ name: d.name || `tile ${i + 1}`, ...cells[i] })),
-  }, `${naming.file}-tiles`);
+  exportPng(sheet, name);
+  downloadJson(sheetJson(`${name}.png`, pages[0]!.width, pages[0]!.height, pages.map((d) => d.name), cells, what,
+    ed.mode === "animation" ? { fps } : {}), name);
 }
 
 function addLook(ed: Editor, look: Look): void {
