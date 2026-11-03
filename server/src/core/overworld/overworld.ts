@@ -14,6 +14,7 @@ import type { OverworldContext } from "./context.js";
 import { inViewWithSlack } from "./interact.js";
 import { packPile, PILE_LIFETIME_MS, pileSystem } from "./piles.js";
 import { newWalk, overworldPlayerSystem, queueInput } from "./player.js";
+import { sleepSystem } from "./sleep.js";
 import { Spawner } from "./spawner.js";
 
 type OnEncounter = (source: Entity | null, enemy: EnemyId, spawn: SpawnDef | undefined) => void;
@@ -27,7 +28,7 @@ export class Overworld implements OverworldContext {
 
   constructor(readonly map: WorldDef) {
     this.systems = [
-      overworldPlayerSystem(this), chaseSystem(), wanderSystem(this), moveSystem(this), touchSystem(this),
+      sleepSystem(), overworldPlayerSystem(this), chaseSystem(), wanderSystem(this), moveSystem(this), touchSystem(this),
       (world, dt) => this.spawner.system(world, dt), pileSystem,
     ];
     this.spawner = new Spawner(this.world, map.spawns);

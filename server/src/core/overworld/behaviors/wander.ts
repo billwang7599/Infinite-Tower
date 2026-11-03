@@ -3,6 +3,7 @@ import { defineComponent, isSolid, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos } from "../components.js";
 import type { OverworldContext } from "../context.js";
 import { part } from "../parts.js";
+import { Asleep } from "../sleep.js";
 import { steerToward } from "./move.js";
 
 export interface WanderData {
@@ -28,7 +29,8 @@ const MAX_WALK_TIME = 8;
 
 export function wanderSystem(ctx: OverworldContext): System {
   return (world, dt) => {
-    for (const [, w, pos, actor] of world.query(Wander, OverworldPos, OverworldActor)) {
+    for (const [e, w, pos, actor] of world.query(Wander, OverworldPos, OverworldActor)) {
+      if (world.has(e, Asleep)) continue;
       if (actor.busy) { w.wasBusy = true; continue; }
       w.stateTime += dt;
       if (w.wasBusy) { // just lost interest: catch its breath first
