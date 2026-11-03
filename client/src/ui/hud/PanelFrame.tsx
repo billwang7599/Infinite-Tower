@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { NO_FOCUS } from "../components/noFocus.js";
+import { CloseButton } from "../components/CloseButton.js";
 import { fitPanel, useStageSize, type Size } from "./layout.js";
 
 interface FrameProps {
@@ -43,15 +43,7 @@ export function PanelFrame({ id, title, titleId, close, width, shownWidth, child
     >
       <header className="mb-3 flex items-center justify-between">
         <h2 id={titleId} className="font-title text-xl tracking-[0.08em] text-victory">{title}</h2>
-        <button
-          type="button" aria-label="Close" {...NO_FOCUS} onClick={close}
-          className={
-            "pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 "
-            + "transition-colors hover:bg-white/10 hover:text-white"
-          }
-        >
-          ✕
-        </button>
+        <CloseButton close={close} />
       </header>
       {children}
     </section>

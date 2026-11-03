@@ -1368,7 +1368,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      skillbook's, the chat's, the dialogue's and the questbook's fixed keys; KeyBindings:
                      the player's keys; keys saved where they used to be,
                      MOVED_FROM, load where they are now; a new default on
-                     a saved key is left unbound), camera.ts (CameraSettings: sensitivity, the
+                     a saved key is left unbound), slider.ts (a slider setting's range: snapping a value to its
+                     step, reading a saved one, for the camera's, the mouse's and the volumes), camera.ts
+                     (CameraSettings: sensitivity, the
                      overworld camera's quarter turns), mouse.ts
                      (MouseSettings: auto lock, on by default, so a save without it reads as on; flick
                      sensitivity, FLICK_SENSITIVITY), hud.ts
@@ -1426,8 +1428,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers),
                        styles.ts (BUTTON,
-                       TEXT_INPUT), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the game),
-                       useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
+                       TEXT_INPUT), Modal.tsx (Settings' and the questbook's frame over the game), CloseButton.tsx
+                       (the ✕ of every panel and screen), Confirm.tsx (a question with two answers: a duel challenge,
+                       leaving the drops), noFocus.ts (buttons a click can't focus, so Space / Enter stay with the
+                       game), useAction.ts (a component listening for actions), LookPicture.tsx (a look on a canvas: the
                        portrait, or the chibi facing front)
       hud/             Hud.tsx (the shell both modes' HUDs are: your bars and statuses top left, the ping top right,
                        the Interact button ("Rest by the fire" / "Join the fight" / "Open the pile" / "Talk" /

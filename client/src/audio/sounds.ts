@@ -3,7 +3,7 @@ import type { GameEvent } from "../ui/notifications/say.js";
 
 type Bus = "effects" | "ambient";
 
-export interface SoundDef {
+interface SoundDef {
   // Files `<stem>-1.ogg` to `<stem>-<variants>.ogg` in sounds/; the stem is the sound's name unless given.
   variants: number;
   stem?: string;

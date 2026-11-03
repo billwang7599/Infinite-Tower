@@ -1,5 +1,6 @@
 import { skillOf, wordsOf, type Word } from "@infinite-tower/shared";
 import { useMemo, useState } from "react";
+import { CloseButton } from "../components/CloseButton.js";
 import { NO_FOCUS } from "../components/noFocus.js";
 import { BUTTON } from "../components/styles.js";
 import { useAction } from "../components/useAction.js";
@@ -38,12 +39,7 @@ export function SkillbookScreen({ writingPage = null }: { writingPage?: number |
     >
       <header className="mb-3 flex items-center justify-between">
         <h2 className="font-title text-2xl tracking-[0.12em] text-victory">Skillbook</h2>
-        <button
-          type="button" aria-label="Close" {...NO_FOCUS} onClick={close}
-          className="flex size-7 cursor-pointer items-center justify-center rounded-full text-white/60 hover:bg-white/10"
-        >
-          ✕
-        </button>
+        <CloseButton close={close} />
       </header>
       <ol className="mb-4 grid grid-cols-4 gap-2">
         {book.map((written, i) => (

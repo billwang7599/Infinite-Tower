@@ -1,4 +1,5 @@
 import type { Bag, QuestHalf, QuestView } from "@infinite-tower/shared";
+import { Modal } from "../../components/Modal.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
@@ -21,39 +22,17 @@ export function QuestbookScreen() {
   });
   if (!open) return null;
   return (
-    <div
-      id="questbook" role="dialog" aria-modal="true" aria-labelledby="questbook-title"
-      className="fixed inset-0 flex items-center justify-center bg-black/55 font-ui text-white select-none"
-    >
-      <section
-        className={
-          "flex max-h-[min(760px,92vh)] w-[min(900px,94vw)] flex-col rounded-sm border border-white/15 bg-night/95 "
-          + "shadow-[0_20px_60px_#000c]"
-        }
-      >
-        <header className="flex items-center justify-between px-7 pt-6 pb-2">
-          <h2 id="questbook-title" className="font-title text-3xl tracking-[0.08em] text-victory">Questbook</h2>
-          <button
-            type="button" aria-label="Close" onClick={close}
-            className={
-              "flex size-8 cursor-pointer items-center justify-center rounded-full text-lg text-white/60 "
-              + "transition-colors hover:bg-white/10 hover:text-white"
-            }
-          >
-            ✕
-          </button>
-        </header>
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-8 overflow-y-auto px-7 pb-7">
-          {HALVES.map(({ half, title }) => (
-            <section key={half} id={`questbook-${half}`} className="mt-4 flex flex-col gap-4">
-              <h3 className="border-b border-white/10 pb-1 text-lg font-semibold">{title}</h3>
-              {quests.filter((q) => q.half === half).map((quest) => <Quest key={quest.id} quest={quest} bag={bag} />)}
-              {!quests.some((q) => q.half === half) && <p className="text-sm text-white/45">Nothing yet.</p>}
-            </section>
-          ))}
-        </div>
-      </section>
-    </div>
+    <Modal id="questbook" title="Questbook" width="w-[min(900px,94vw)]" close={close}>
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-8 overflow-y-auto px-7 pb-7">
+        {HALVES.map(({ half, title }) => (
+          <section key={half} id={`questbook-${half}`} className="mt-4 flex flex-col gap-4">
+            <h3 className="border-b border-white/10 pb-1 text-lg font-semibold">{title}</h3>
+            {quests.filter((q) => q.half === half).map((quest) => <Quest key={quest.id} quest={quest} bag={bag} />)}
+            {!quests.some((q) => q.half === half) && <p className="text-sm text-white/45">Nothing yet.</p>}
+          </section>
+        ))}
+      </div>
+    </Modal>
   );
 }
 

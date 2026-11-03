@@ -1,6 +1,7 @@
 /** The arena camera's sensitivity (one multiplier, for the mouse and keys alike) and the overworld camera's turns. */
-import { clamp, OVERWORLD_CAMERA_ANGLES, roundTo, type SavedSettings } from "@infinite-tower/shared";
+import { OVERWORLD_CAMERA_ANGLES, type SavedSettings } from "@infinite-tower/shared";
 import { Store } from "../ui/store.js";
+import { savedOnSlider, snapToSlider } from "./slider.js";
 
 type SavedCamera = SavedSettings["camera"];
 
@@ -18,10 +19,12 @@ export class CameraSettings extends Store<CameraPrefs> {
 
   /** Anything unreadable or out of range falls back to the default. */
   restore(saved: SavedCamera): void {
-    const value = saved?.sensitivity, turns = saved?.overworldTurns;
-    const ok = typeof value === "number" && value >= SENSITIVITY.min && value <= SENSITIVITY.max;
+    const turns = saved?.overworldTurns;
     const turnsOk = Number.isInteger(turns) && turns! >= 0 && turns! < OVERWORLD_CAMERA_ANGLES;
-    this.set({ sensitivity: ok ? value : SENSITIVITY.default, overworldTurns: turnsOk ? turns! : 0 });
+    this.set({
+      sensitivity: savedOnSlider(SENSITIVITY, saved?.sensitivity, SENSITIVITY.default),
+      overworldTurns: turnsOk ? turns! : 0,
+    });
   }
 
   toSaved(): NonNullable<SavedCamera> {
@@ -32,9 +35,7 @@ export class CameraSettings extends Store<CameraPrefs> {
   }
 
   setSensitivity(value: number): void {
-    // Snapped to the slider's step, so 1.1 doesn't come out as 1.1000000000000003.
-    const snapped = roundTo(Math.round(value / SENSITIVITY.step) * SENSITIVITY.step, 2);
-    this.set({ sensitivity: clamp(snapped, SENSITIVITY.min, SENSITIVITY.max) });
+    this.set({ sensitivity: snapToSlider(SENSITIVITY, value) });
   }
 
   turnOverworld(by: 1 | -1): void {

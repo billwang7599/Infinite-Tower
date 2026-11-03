@@ -37,7 +37,7 @@ const PANEL_ROOMS = [
   { top: STATUS.bottom + MARGIN_PX / 2, left: CORE_CARD_LEFT_PX + CORE_CARD_WIDTH_PX + MARGIN_PX },
 ];
 
-export interface PanelFit {
+interface PanelFit {
   top: number;
   right: number;
   scale: number;

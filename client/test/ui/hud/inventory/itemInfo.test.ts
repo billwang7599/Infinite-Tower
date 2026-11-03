@@ -56,6 +56,7 @@ describe("itemInfo (the tooltip)", () => {
 
   test("a sigil says it's to be carved into the core", () => {
     assert.match(itemInfo(stack("sigil-of-embers")).effect ?? "", /carve it into your core/);
+    assert.doesNotMatch(itemInfo(stack("sigil-of-embers")).effect ?? "", /not yet/);
   });
 
   test("weights show one decimal place at most", () => {

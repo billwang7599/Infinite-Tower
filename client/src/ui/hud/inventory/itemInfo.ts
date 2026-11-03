@@ -18,9 +18,9 @@ export const RARITY_EDGE: Record<Rarity, string> = {
   epic: "border-rarity-epic/70", legendary: "border-rarity-legendary/80", unique: "border-rarity-unique/80",
 };
 
-const SIGIL = "A sigil: the Collegium of Thresholds can carve it into your core (not yet).";
+const SIGIL = "A sigil: Ysolde Thatcher of the Collegium, in the Market Ward, can carve it into your core.";
 
-export interface ItemInfo {
+interface ItemInfo {
   /** With the count, for a stack of more than one. */
   name: string;
   rarity: Rarity;

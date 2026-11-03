@@ -52,7 +52,7 @@ const LIGHT = linear("#fff8ea");
 const FOG_DENSITY = 0.045;
 const HEIGHT_FOG: readonly [number, number] = [4, 15];
 
-export interface Fog {
+interface Fog {
   dark: number;
   light: number;
 }

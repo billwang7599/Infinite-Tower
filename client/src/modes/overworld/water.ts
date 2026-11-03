@@ -10,7 +10,7 @@ export interface WaterPoint { flowX: number; flowZ: number; shore: number; depth
 
 interface At { x: number; z: number }
 
-export interface Bank { from: At; to: At; toLand: At }
+interface Bank { from: At; to: At; toLand: At }
 
 export interface WaterMap {
   tiles: At[];

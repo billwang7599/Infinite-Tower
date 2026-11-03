@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import type { HudSettings } from "../../../settings/hud.js";
+import { Modal } from "../../components/Modal.js";
 import { BUTTON } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
@@ -26,39 +27,15 @@ export function SettingsScreen() {
 
   if (!isOpen) return null;
   return (
-    <div
-      id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title"
-      className="fixed inset-0 flex items-center justify-center bg-black/55 font-ui text-white select-none"
-    >
-      <section
-        className={
-          "flex max-h-[min(760px,92vh)] w-[min(600px,92vw)] flex-col rounded-sm border border-white/15 bg-night/95 "
-          + "shadow-[0_20px_60px_#000c]"
-        }
-      >
-        <header className="flex items-center justify-between px-7 pt-6 pb-2">
-          <h2 id="settings-title" className="font-title text-3xl tracking-[0.08em] text-victory">Settings</h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={close}
-            className={
-              "flex size-8 cursor-pointer items-center justify-center rounded-full text-lg text-white/60 "
-              + "transition-colors hover:bg-white/10 hover:text-white"
-            }
-          >
-            ✕
-          </button>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-7">
-          <CameraSection camera={settings.camera} mouse={settings.mouse} />
-          <HudSection hud={settings.hud} />
-          <AudioSection audio={settings.audio} />
-          <KeyBindingsList bindings={settings.bindings} input={input} />
-        </div>
-        <Footer close={close} returnToTitle={returnToTitle} />
-      </section>
-    </div>
+    <Modal id="settings" title="Settings" width="w-[min(600px,92vw)]" close={close}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-7">
+        <CameraSection camera={settings.camera} mouse={settings.mouse} />
+        <HudSection hud={settings.hud} />
+        <AudioSection audio={settings.audio} />
+        <KeyBindingsList bindings={settings.bindings} input={input} />
+      </div>
+      <Footer close={close} returnToTitle={returnToTitle} />
+    </Modal>
   );
 }
 
