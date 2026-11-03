@@ -1692,9 +1692,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          and plank hut walls), drawn standing up;
                          Pen (a 2D canvas pen). No Babylon, so the art lab draws them too
       regions/         Each region theme's look, a folder per Theme. index.ts (REGION_LOOKS: its env (daylight
-                       colours and fog), tile looks and WaterLook; lookAt and tileLooksOf, a tile in the look of the
-                       region it's in; the campfire's picture and light, campfireLights), tiles.ts (paintGround and
-                       tileProps: a chunk's ground picture and props from its tiles' looks)
+                       colours and fog, and its moon, which lights its fights too), tile looks and WaterLook; lookAt
+                       and tileLooksOf, a tile in the look of the region it's in; the campfire's picture and light,
+                       campfireLights), tiles.ts (paintGround and tileProps: a chunk's ground picture and props from
+                       its tiles' looks)
         ground.ts        groundPainters: the ground painters every theme's tiles share, over its GroundPalette (a
                          summoning pad's carved rim and ring among them)
         grass-field/     tiles.ts (GRASS_FIELD_TILES: each tile kind's ground painter and props, dusky colours)
@@ -1712,9 +1713,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        tint (a region's colours, the lights kept), dropShadows (a chunk hidden), clearShadows, a
                        sprite's tint, the yaw that turns a shadow card to a light.
                        daylight.ts (the day clock, setDayClock (dev: `?time=`, `window.setTime`); by the sun's height:
-                       the direct light, the sky's colours and the discs' fade; moonlight), blobs.ts (a sprite's blob
-                       shadows, Blobs: a round one from the sky light, and one away from each light that reaches it, as
-                       dark as that light's share there; blobShadowsAt, tested)
+                       the direct light, the sky's colours and the discs' fade, how dark it is), blobs.ts (a sprite's
+                       blob shadows, Blobs: a round one from the sky light, and one away from each light that reaches
+                       it, as dark as that light's share there; blobShadowsAt, tested)
       water/           The one water look, overworld and arena alike: water.ts (waterMaterial, a shader with
                        ripples carried by the current (in place where there's none), waves rising and falling in
                        place, a ring now and then at a random spot on still water (none where there's a current),
@@ -1723,7 +1724,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        chunk's ground with the water cut out, its bed, banks and surface, from the water map in
                        modes/overworld/water.ts)
       arenas/          Each arena's look, a folder per ArenaLook. index.ts (ARENA_LOOKS, one line each: a look's
-                         env (its daylight colours and fog), its map lights and build; showArena, the one call
+                         env (its daylight colours and fog), its map lights and build; arenaSky, a look under the
+                         moon of the fight's region; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
                          its meshes and materials), parts.ts (what
                          the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle)
@@ -1955,10 +1957,10 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
-| A region theme's daylight sky, fog and light; a campfire's light | `env` in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
+| A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
-| The time of day's light: colours by sun height, moonlight, fades | top of `client/src/visuals/sky/daylight.ts` |
+| The time of day's light: colours by sun height, fades | top of `client/src/visuals/sky/daylight.ts` |
 | Map-light shadows, sprite tint, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |

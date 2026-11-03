@@ -1,6 +1,7 @@
 import type { TransformNode } from "@babylonjs/core";
-import type { ArenaDef, ArenaLook } from "@infinite-tower/shared";
+import type { ArenaDef, ArenaLook, Theme } from "@infinite-tower/shared";
 import type { ArenaScene } from "../battle/scene.js";
+import { REGION_LOOKS } from "../regions/index.js";
 import type { MapLight, SkyLook } from "../sky/sky.js";
 import { FOREST_CLEARING } from "./forest-clearing/forest-clearing.js";
 import { MIRE } from "./mire/mire.js";
@@ -9,7 +10,7 @@ import { STONE_RUINS } from "./stone-ruins/stone-ruins.js";
 
 /** Only dressing: the floor and the wall you bump into are the fight's physics, the same in every arena. */
 export interface ArenaLookDef {
-  env: SkyLook;
+  env: Omit<SkyLook, "moon">;
   lights?(radius: number): MapLight[];
   build(ctx: ArenaScene, radius: number): TransformNode;
 }
@@ -21,9 +22,12 @@ export const ARENA_LOOKS: Record<ArenaLook, ArenaLookDef> = {
   quarry: QUARRY,
 };
 
+export const arenaSky = (look: ArenaLook, theme: Theme): SkyLook =>
+  ({ ...ARENA_LOOKS[look].env, moon: REGION_LOOKS[theme].env.moon });
+
 /** Disposing the returned root takes the whole look away. */
-export function showArena(ctx: ArenaScene, arena: ArenaDef): TransformNode {
+export function showArena(ctx: ArenaScene, arena: ArenaDef, theme: Theme): TransformNode {
   const look = ARENA_LOOKS[arena.look];
-  ctx.sky.look(look.env, look.lights?.(arena.radius) ?? []);
+  ctx.sky.look(arenaSky(arena.look, theme), look.lights?.(arena.radius) ?? []);
   return look.build(ctx, arena.radius);
 }

@@ -3,7 +3,7 @@ import {
 } from "@babylonjs/core";
 import {
   Body, clamp, dampFactor, Enemy, Health, LocalPlayer, Player, REACTIONS, Skilled, Statuses, type Entity,
-  type Reaction, type Vec3, type World,
+  type Reaction, type Theme, type Vec3, type World,
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import { showArena } from "../arenas/index.js";
@@ -138,9 +138,12 @@ function easeCorrection(offset: Vec3, moved: Vec3): void {
   Object.assign(offset, far ? { x: 0, y: 0, z: 0 } : { x, y, z });
 }
 
-export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; frame(world: World, dt: number): void } {
+export function arenaStage(ctx: ArenaScene): {
+  newFight(fight: Fight, theme: Theme): void;
+  frame(world: World, dt: number): void;
+} {
   const lookAt = new Vector3();
-  let arena: { id: string; root: TransformNode } | null = null;
+  let arena: { id: string; theme: Theme; root: TransformNode } | null = null;
   const marker = MeshBuilder.CreatePolyhedron("lock-marker", { type: 1, size: 0.12 }, ctx.scene);
   marker.scaling.y = 1.8;
   const material = new StandardMaterial("lock-marker", ctx.scene);
@@ -173,10 +176,10 @@ export function arenaStage(ctx: ArenaScene): { newFight(fight: Fight): void; fra
   };
 
   return {
-    newFight(fight) {
-      if (arena?.id !== fight.arena.id) {
+    newFight(fight, theme) {
+      if (arena?.id !== fight.arena.id || arena.theme !== theme) {
         arena?.root.dispose();
-        arena = { id: fight.arena.id, root: showArena(ctx, fight.arena) };
+        arena = { id: fight.arena.id, theme, root: showArena(ctx, fight.arena, theme) };
       }
       ctx.shake = 0;
       ctx.impacts.clear();

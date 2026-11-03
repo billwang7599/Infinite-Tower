@@ -23,6 +23,7 @@ export const REGION_LOOKS: Record<Theme, RegionLook> = {
       ambient: new Color3(0.26, 0.24, 0.3),
       skyLight: { color: new Color3(0.55, 0.58, 0.82), ground: new Color3(0.32, 0.26, 0.22), intensity: 0.5 },
       sun: { color: new Color3(1, 0.68, 0.46), intensity: 1.5 },
+      moon: { color: new Color3(0.62, 0.72, 1), intensity: 1.2, nightFill: 1.8 },
     },
     tiles: GRASS_FIELD_TILES,
     water: {
@@ -43,6 +44,7 @@ export const REGION_LOOKS: Record<Theme, RegionLook> = {
       ambient: new Color3(0.17, 0.2, 0.21),
       skyLight: { color: new Color3(0.45, 0.58, 0.62), ground: new Color3(0.15, 0.16, 0.12), intensity: 0.45 },
       sun: { color: new Color3(0.86, 0.8, 0.7), intensity: 1.05 },
+      moon: { color: new Color3(0.6, 0.7, 1), intensity: 0.6, nightFill: 1 },
     },
     tiles: MISTWOOD_TILES,
     water: {
@@ -63,6 +65,7 @@ export const REGION_LOOKS: Record<Theme, RegionLook> = {
       ambient: new Color3(0.3, 0.27, 0.31),
       skyLight: { color: new Color3(0.6, 0.6, 0.8), ground: new Color3(0.36, 0.3, 0.25), intensity: 0.55 },
       sun: { color: new Color3(1, 0.72, 0.5), intensity: 1.5 },
+      moon: { color: new Color3(0.6, 0.7, 1), intensity: 0.9, nightFill: 1.3 },
     },
     tiles: KINGDOM_TILES,
     water: {
@@ -83,6 +86,7 @@ export const REGION_LOOKS: Record<Theme, RegionLook> = {
       ambient: new Color3(0.33, 0.31, 0.29),
       skyLight: { color: new Color3(0.68, 0.65, 0.66), ground: new Color3(0.46, 0.41, 0.34), intensity: 0.5 },
       sun: { color: new Color3(1, 0.8, 0.6), intensity: 1.35 },
+      moon: { color: new Color3(0.6, 0.7, 1), intensity: 0.9, nightFill: 1.3 },
     },
     tiles: QUARRY_TILES,
     water: {

@@ -5,11 +5,15 @@ import {
 } from "@babylonjs/core";
 import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/fogFragmentDeclaration.js";
 import type { Vec3 } from "@infinite-tower/shared";
-import { directLightAt, setDayClock } from "../../../src/visuals/sky/daylight.js";
+import { daylightAt, directLightAt, setDayClock } from "../../../src/visuals/sky/daylight.js";
 import {
   cardYawRad, createSky, MAX_MAP_LIGHTS, nearestLights, SHADOW_MAP_LIGHTS, SHADOW_SWAP_MARGIN_M, type MapLight,
+  type SkyLook,
 } from "../../../src/visuals/sky/sky.js";
-import { ARENA_LOOKS } from "../../../src/visuals/arenas/index.js";
+import { arenaSky } from "../../../src/visuals/arenas/index.js";
+import { REGION_LOOKS } from "../../../src/visuals/regions/index.js";
+
+const MIRE = arenaSky("mire", "mistwood");
 
 describe("a flat shadow card", () => {
   test("turned by cardYawRad, it faces its light square on, so its whole outline falls", () => {
@@ -19,6 +23,41 @@ describe("a flat shadow card", () => {
       const facing = (Math.sin(yaw) * toLight.x + Math.cos(yaw) * toLight.z) / Math.hypot(toLight.x, toLight.z);
       assert.ok(Math.abs(facing) > 0.9999, JSON.stringify(toLight));
     }
+  });
+});
+
+describe("the moon", () => {
+  const litAt = (look: SkyLook, fraction: number) => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    sky.look(look, []);
+    setDayClock({ fraction, speed: 0 });
+    sky.frame(0, { x: 0, y: 5, z: -5 });
+    const [skyLight, body] = ["sky-light", "sky-body"].map((n) => scene.getLightByName(n)!);
+    const lit = { skyLight: skyLight!.intensity, body: body!.intensity, ambient: scene.ambientColor.b };
+    setDayClock({ speed: 1 });
+    scene.dispose();
+    return lit;
+  };
+
+  test("an open region's night is lit brighter than the Mistwood's, by its moon and the night sky", () => {
+    const wood = litAt(REGION_LOOKS.mistwood.env, 0);
+    for (const theme of ["grass-field", "kingdom", "quarry"] as const) {
+      const open = litAt(REGION_LOOKS[theme].env, 0);
+      assert.ok(open.body > wood.body && open.skyLight > wood.skyLight && open.ambient > wood.ambient, theme);
+    }
+  });
+
+  test("by day the moon's settings change nothing", () => {
+    const { env } = REGION_LOOKS["grass-field"];
+    const lit = litAt(env, 0.5);
+    assert.ok(Math.abs(lit.skyLight - env.skyLight.intensity * daylightAt(0.5).skyLightScale) < 1e-9);
+    assert.ok(Math.abs(lit.body - env.sun.intensity) < 1e-9);
+  });
+
+  test("a fight is lit by the moon of the region it's in", () => {
+    assert.equal(arenaSky("forest-clearing", "grass-field").moon, REGION_LOOKS["grass-field"].env.moon);
+    assert.equal(arenaSky("forest-clearing", "mistwood").moon, REGION_LOOKS.mistwood.env.moon);
   });
 });
 
@@ -37,7 +76,7 @@ describe("map lights", () => {
     const sky = createSky(scene);
     const lights: MapLight[] = spots.map((at) => ({ at, color: new Color3(0.3, 1, 0.8), intensity: 1, rangeM: 6,
       flicker: 0.1 }));
-    sky.look(ARENA_LOOKS.mire.env, lights);
+    sky.look(MIRE, lights);
     sky.frame(0, { x: 21, y: 2, z: 0 });
     const points = scene.lights.filter((l): l is PointLight => l instanceof PointLight);
     assert.equal(points.length, Math.min(spots.length, MAX_MAP_LIGHTS));
@@ -47,7 +86,7 @@ describe("map lights", () => {
     const nearest = [...spots].sort((a, b) => Math.abs(a.x - camera.x) - Math.abs(b.x - camera.x))
       .slice(0, SHADOW_MAP_LIGHTS).map((s) => s.x).sort((a, b) => a - b);
     assert.deepEqual(shadowed, nearest);
-    sky.look(ARENA_LOOKS.mire.env, []);
+    sky.look(MIRE, []);
     assert.equal(scene.lights.filter((l) => l instanceof PointLight && l.isEnabled()).length, 0);
     scene.dispose();
   });
@@ -57,7 +96,7 @@ describe("map lights", () => {
     const sky = createSky(scene);
     const fires: MapLight[] = [0, 10].map((x) => ({ at: { x, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
       rangeM: 8, flicker: 0 }));
-    sky.look(ARENA_LOOKS.mire.env, fires);
+    sky.look(MIRE, fires);
     const [sunCard, fireCard, rock] = ["sun-card", "fire-card", "rock"].map((n) => MeshBuilder.CreateBox(n, {}, scene));
     sky.castShadows(sunCard!, "direct");
     sky.castShadows(fireCard!, fires[1]!);
@@ -76,11 +115,11 @@ describe("map lights", () => {
     const fire = (x: number): MapLight => ({ at: { x, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
       rangeM: 8, flicker: 0 });
     const points = () => scene.lights.filter((l): l is PointLight => l instanceof PointLight);
-    sky.look(ARENA_LOOKS.mire.env, [fire(0), fire(10)]);
+    sky.look(MIRE, [fire(0), fire(10)]);
     const made = points();
-    sky.look(ARENA_LOOKS.mire.env, [fire(5)]);
+    sky.look(MIRE, [fire(5)]);
     assert.deepEqual(points().filter((l) => l.isEnabled()).map((l) => l.position.x), [5]);
-    sky.look(ARENA_LOOKS.mire.env, [fire(1), fire(2)]);
+    sky.look(MIRE, [fire(1), fire(2)]);
     assert.deepEqual(points(), made);
     assert.deepEqual(points().map((l) => [l.position.x, l.isEnabled()]), [[1, true], [2, true]]);
     scene.dispose();
@@ -91,7 +130,7 @@ describe("map lights", () => {
     const sky = createSky(scene);
     const fire: MapLight = { at: { x: 0, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3, rangeM: 8,
       flicker: 0 };
-    sky.look(ARENA_LOOKS.mire.env, [fire]);
+    sky.look(MIRE, [fire]);
     const [rock, card, tree] = ["rock", "card", "tree"].map((n) => MeshBuilder.CreateBox(n, {}, scene));
     sky.castShadows(rock!);
     sky.castShadows(card!, fire);
@@ -101,7 +140,7 @@ describe("map lights", () => {
       .getShadowMap()!.renderList!.map((m) => m.name);
     assert.deepEqual(casting("sky-body"), ["tree"]);
     assert.deepEqual(casting("map-light-0"), ["tree"]);
-    sky.look(ARENA_LOOKS.mire.env, [fire]);
+    sky.look(MIRE, [fire]);
     assert.deepEqual(casting("map-light-0"), ["tree"]);
     scene.dispose();
   });
@@ -109,7 +148,7 @@ describe("map lights", () => {
   test("blob shadows are drawn one per light, and drop when the light goes", () => {
     const scene = new Scene(new NullEngine());
     const sky = createSky(scene);
-    sky.look(ARENA_LOOKS.mire.env, [{ at: { x: 2, y: 1.2, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
+    sky.look(MIRE, [{ at: { x: 2, y: 1.2, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
       rangeM: 8, flicker: 0 }]);
     setDayClock({ fraction: 0.5, speed: 0 });
     sky.frame(0, { x: 0, y: 5, z: -5 });
@@ -129,7 +168,7 @@ describe("map lights", () => {
   test("a sprite's tint stops at its picture's own colours, however much light falls on it", () => {
     const scene = new Scene(new NullEngine());
     const sky = createSky(scene);
-    sky.look(ARENA_LOOKS.mire.env, [{ at: { x: 0, y: 1, z: 0 }, color: new Color3(1, 1, 1), intensity: 50, rangeM: 6,
+    sky.look(MIRE, [{ at: { x: 0, y: 1, z: 0 }, color: new Color3(1, 1, 1), intensity: 50, rangeM: 6,
       flicker: 0 }]);
     sky.frame(0, { x: 0, y: 2, z: 0 });
     const tint = sky.tintAt({ x: 0, y: 1, z: 0 }, new Color3());
