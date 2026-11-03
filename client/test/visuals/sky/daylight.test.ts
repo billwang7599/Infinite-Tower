@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { Color3 } from "@babylonjs/core";
 import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
-import { daylightAt, directLightAt, MOONLIGHT } from "../../../src/visuals/sky/daylight.js";
+import { REGION_LOOKS } from "../../../src/visuals/regions/index.js";
+import { daylightAt, directLightAt } from "../../../src/visuals/sky/daylight.js";
 
 const SAMPLES = 20000;
 const fractions = Array.from({ length: SAMPLES + 1 }, (_, i) => i / SAMPLES);
@@ -32,8 +33,10 @@ describe("the sky's direct light", () => {
   });
 
   test("night is dim blue moonlight with sky light left over, never black", () => {
-    assert.ok(MOONLIGHT.color.b > MOONLIGHT.color.r);
-    assert.ok(MOONLIGHT.intensity > 0.2);
+    for (const { env: { moon } } of Object.values(REGION_LOOKS)) {
+      assert.ok(moon.color.b > moon.color.r);
+      assert.ok(moon.intensity > 0.2 && moon.nightFill >= 1);
+    }
     const night = daylightAt(0);
     assert.ok(night.skyLightScale > 0.3);
     assert.ok(night.skyLight.b > night.skyLight.r);

@@ -5,7 +5,7 @@ import {
 import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/fogFragmentDeclaration.js";
 import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
 import { createBlobs, type Blobs, type Lighting } from "./blobs.js";
-import { dayFractionAt, daylightAt, directLightAt, MOONLIGHT } from "./daylight.js";
+import { dayFractionAt, daylightAt, directLightAt } from "./daylight.js";
 
 export interface SkyLook {
   sky: Color3;
@@ -13,6 +13,8 @@ export interface SkyLook {
   ambient: Color3;
   skyLight: { color: Color3; ground: Color3; intensity: number };
   sun: { color: Color3; intensity: number };
+  /** `nightFill`: × the sky light and ambient once the sun is down. */
+  moon: { color: Color3; intensity: number; nightFill: number };
 }
 
 /** `flicker`: how far its brightness wavers, as a share. */
@@ -183,14 +185,15 @@ export function createSky(scene: Scene): Sky {
         scene.clearColor = new Color4(sky.r, sky.g, sky.b, 1);
         scene.fogColor = sky;
         scene.fogDensity = place.fogDensity;
-        scene.ambientColor = place.ambient.multiply(day.skyLight);
+        const fill = 1 + (place.moon.nightFill - 1) * day.night;
+        scene.ambientColor = place.ambient.multiply(day.skyLight).scaleInPlace(fill);
         skyLight.diffuse = place.skyLight.color.multiply(day.skyLight);
         skyLight.groundColor = place.skyLight.ground.multiply(day.skyLight);
-        skyLight.intensity = place.skyLight.intensity * day.skyLightScale;
+        skyLight.intensity = place.skyLight.intensity * day.skyLightScale * fill;
         const sunLit = direct.body === "sun";
-        body.diffuse = sunLit ? place.sun.color.multiply(day.sunTint) : MOONLIGHT.color.clone();
+        body.diffuse = sunLit ? place.sun.color.multiply(day.sunTint) : place.moon.color.clone();
         body.specular = body.diffuse;
-        body.intensity = direct.strength * (sunLit ? place.sun.intensity : MOONLIGHT.intensity);
+        body.intensity = direct.strength * (sunLit ? place.sun : place.moon).intensity;
       }
 
       const sun = sunAt(fraction), moon = moonAt(fraction);

@@ -239,6 +239,7 @@ function copyLook(look: SkyLook): SkyLook {
     sky: look.sky.clone(), fogDensity: look.fogDensity, ambient: look.ambient.clone(),
     skyLight: { color: look.skyLight.color.clone(), ground: look.skyLight.ground.clone(), intensity: look.skyLight.intensity },
     sun: { color: look.sun.color.clone(), intensity: look.sun.intensity },
+    moon: { color: look.moon.color.clone(), intensity: look.moon.intensity, nightFill: look.moon.nightFill },
   };
 }
 
@@ -250,8 +251,11 @@ function blendLook(look: SkyLook, to: SkyLook, k: number): SkyLook {
   towards(look.skyLight.color, to.skyLight.color);
   towards(look.skyLight.ground, to.skyLight.ground);
   towards(look.sun.color, to.sun.color);
+  towards(look.moon.color, to.moon.color);
   look.fogDensity = by(look.fogDensity, to.fogDensity);
   look.skyLight.intensity = by(look.skyLight.intensity, to.skyLight.intensity);
   look.sun.intensity = by(look.sun.intensity, to.sun.intensity);
+  look.moon.intensity = by(look.moon.intensity, to.moon.intensity);
+  look.moon.nightFill = by(look.moon.nightFill, to.moon.nightFill);
   return look;
 }

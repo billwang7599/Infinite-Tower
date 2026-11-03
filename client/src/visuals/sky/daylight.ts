@@ -5,7 +5,6 @@ import {
 
 interface DirectLight { body: "sun" | "moon"; toLight: Vec3; strength: number }
 
-export const MOONLIGHT = { color: new Color3(0.6, 0.7, 1), intensity: 0.6 };
 const SUN_FADE_DEG = [-1, 5] as const;
 const DUSK_FADE_DEG = [-8, -1] as const;
 const MOON_FADE_DEG = [0, 6] as const;
@@ -48,6 +47,7 @@ export function daylightAt(fraction: number) {
   return {
     sky: mix(a.sky, b.sky), skyLight: mix(a.skyLight, b.skyLight), sunTint: mix(a.sunTint, b.sunTint),
     skyLightScale: a.skyLightScale + (b.skyLightScale - a.skyLightScale) * t,
+    night: 1 - smoothstep(...DUSK_FADE_DEG, alt),
     sunDiscAlpha: smoothstep(...DISC_FADE_DEG, alt),
     moonDiscAlpha: smoothstep(...DISC_FADE_DEG, altitudeDeg(moonAt(fraction)))
       * (1 - 0.6 * smoothstep(...SUN_FADE_DEG, alt)),
