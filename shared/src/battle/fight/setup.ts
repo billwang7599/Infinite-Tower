@@ -82,10 +82,9 @@ export function spawnPlayer(world: World, physics: ArenaPhysics, setup: PlayerSe
   world.add(e, Body, { pos, vel: { x: 0, y: 0, z: 0 }, centerHeight: PLAYER_CENTER_HEIGHT, collider });
   world.add(e, PlayerInput, copyInput(IDLE_INPUT));
   world.add(e, Player, {
-    grounded: false, airTime: 0, jumpBuffer: 0, jumpHeld: false,
-    attackHeld: null, dodgeHeld: false, blockHeld: false, attackBuffer: 0, dodgeBuffer: 0,
+    grounded: false, airTime: 0, jumpBuffer: 0, last: copyInput(IDLE_INPUT), attackBuffer: 0, dodgeBuffer: 0,
     castBuffer: 0, perfectBlockLeft: 0, sinceBlockPress: HYBRID.block.remashTime, queued: null,
-    castQueued: null, writeHeld: false, gearHeld: false, useHeld: false, wordsHeld: false, brokenOff: false,
+    castQueued: null, brokenOff: false,
     writing: null, using: null,
     book: setup.book,
     action: "none", actionTime: 0, actionDir: { x: 0, z: 1 }, way: null, burden: setup.burden,

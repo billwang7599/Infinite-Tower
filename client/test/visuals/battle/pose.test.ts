@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, newCore, SWING_DIRS, WAYS, type AttackKind, type PlayerAction, type PlayerData,
+  emptyBag, IDLE_INPUT, newCore, SWING_DIRS, WAYS, type AttackKind, type PlayerAction, type PlayerData,
   type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
 import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
@@ -12,10 +12,9 @@ import { armed } from "../../fixtures/armed.js";
 
 function playerDoing(action: PlayerAction, t: number, way: SwingDir | null = null): PlayerData {
   return {
-    grounded: true, airTime: 0, jumpHeld: false, attackHeld: null, dodgeHeld: false, blockHeld: false,
-    perfectBlockLeft: 0, sinceBlockPress: 1, way, jumpBuffer: 0, attackBuffer: 0,
-    dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, writeHeld: false, gearHeld: false, useHeld: false,
-    wordsHeld: false, brokenOff: false, writing: null, using: null, book: [], burden: "light",
+    grounded: true, airTime: 0, last: IDLE_INPUT, perfectBlockLeft: 0, sinceBlockPress: 1, way, jumpBuffer: 0,
+    attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, brokenOff: false, writing: null,
+    using: null, book: [], burden: "light",
     gear: { bag: emptyBag(), equipment: armed() }, core: newCore(), action, actionTime: t,
     actionDir: { x: 0, z: 1 }, invulnerable: false, leftArena: false,
   };

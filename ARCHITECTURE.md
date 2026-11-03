@@ -1124,7 +1124,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        move.ts (gravity, moving every body, who shoves whom and who passes through)
       player/          controller.ts (move, jump, the sword, dodge, a cast's
                        wind-up, the chant (held still; a skill on no page cast only from it), the bag (held still;
-                       gear moved; eating started) and writing a page, stamina; controlPlayer; no sword in hand,
+                       gear moved; eating started) and writing a page, stamina; controlPlayer, one step in four
+                       parts: chooseAction, moveByAction, moveGearInBag, refillStamina; a press is what's held now
+                       and wasn't in `Player.last`, the input the last step ran with; no sword in hand,
                        no attacks or block; no skillbook, no quick-casts or pages), sword.ts (SwordTurn; readSword: the
                        aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
                        / heavy / stab

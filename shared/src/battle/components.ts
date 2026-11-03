@@ -14,7 +14,7 @@ import type { Reaction } from "../skills/effects.js";
 import type { StatusOn } from "./statuses.js";
 import type { Skill, Skillbook, Word } from "../skills/skill.js";
 import type { CoreState } from "../soul/core.js";
-import type { PageWrite } from "./input.js";
+import type { PageWrite, PlayerInputData } from "./input.js";
 
 /**
  * "stagger": recoiling from a perfect block, or with a block broken (in hitstun). "write": writing a page, from the chant or the bag.
@@ -27,15 +27,8 @@ export interface PlayerData {
   grounded: boolean;
   /** Seconds since last on the ground (coyote time). */
   airTime: number;
-  jumpHeld: boolean;
-  /** The attack held on the last step: a different one is a new press. */
-  attackHeld: Strike | null;
-  dodgeHeld: boolean;
-  blockHeld: boolean;
-  writeHeld: boolean;
-  gearHeld: boolean;
-  useHeld: boolean;
-  wordsHeld: boolean;
+  /** The input the last step ran with: what's held now and wasn't then is a press (a different attack too). */
+  last: PlayerInputData;
   /** The chant or the bag broken off (a stun, a dodge, a cast) while still held: it reopens only once let go. */
   brokenOff: boolean;
   /** Seconds left on a buffered (early) press of jump / attack / dodge / cast, and the attack or skill pressed. */

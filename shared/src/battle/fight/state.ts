@@ -114,10 +114,11 @@ export function saveFight(fight: Fight): FightSnapshot {
     steps: fight.steps,
     outcome: { ...fight.outcome },
     players: fight.players.map((e) => {
-      const { burden: _, actionDir, ...player } = world.require(e, Player);
+      const { burden: _, actionDir, last, ...player } = world.require(e, Player);
       const stamina = { ...world.require(e, Stamina) }, stats = { ...world.require(e, FighterStats) };
       const input = copyInput(world.require(e, PlayerInput));
-      return { ...fighter(e), player: { ...player, actionDir: { ...actionDir } }, input, stamina, stats };
+      const copied = { ...player, actionDir: { ...actionDir }, last: copyInput(last) };
+      return { ...fighter(e), player: copied, input, stamina, stats };
     }),
     enemies: fight.enemies.map((e) => {
       const { def: _, sense: _sense, move: _move, ...enemy } = world.require(e, Enemy);
@@ -163,7 +164,9 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   fight.players.forEach((e, i) => {
     const s = snap.players[i]!;
     place(e, s);
-    Object.assign(world.require(e, Player), s.player, { actionDir: { ...s.player.actionDir } });
+    Object.assign(world.require(e, Player), s.player, {
+      actionDir: { ...s.player.actionDir }, last: copyInput(s.player.last),
+    });
     world.require(e, Wielder).hands = handsOf(s.player.gear.equipment);
     Object.assign(world.require(e, PlayerInput), copyInput(s.input));
     Object.assign(world.require(e, Stamina), s.stamina);
