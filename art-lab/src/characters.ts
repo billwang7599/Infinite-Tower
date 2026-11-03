@@ -6,7 +6,8 @@ import {
   BATTLE_FACINGS, CHIBI_FACINGS, drawBattle, drawChibi, drawPortrait, type BattleFacing, type ChibiFacing, type Look,
 } from "@infinite-tower/client/src/gfx/look/look.js";
 import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
-import { caption, el } from "./dom.js";
+import { Shuffle } from "lucide";
+import { caption, checkbox, el, withIcon } from "./dom.js";
 
 const LABELS: Record<keyof Look, string> = {
   body: "Body", face: "Face shape", skin: "Skin", hair: "Hair", hairColor: "Hair color", eyes: "Eyes",
@@ -21,12 +22,14 @@ const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.
 const randomLook = (): Look =>
   Object.fromEntries(Object.entries(OPTIONS).map(([k, list]) => [k, pick(list)])) as unknown as Look;
 
-function canvas(pic: Picture, scale: number, style = ""): HTMLCanvasElement {
+function canvas(pic: Picture, scale: number, className = ""): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = pic.width;
   c.height = pic.height;
   c.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(pic.rgba), pic.width, pic.height), 0, 0);
-  c.style.cssText = `width:${pic.width * scale}px;height:${pic.height * scale}px;image-rendering:pixelated;${style}`;
+  c.className = `pixelated ${className}`;
+  c.style.width = `${pic.width * scale}px`;
+  c.style.height = `${pic.height * scale}px`;
   return c;
 }
 
@@ -38,6 +41,8 @@ const battle = (pose: Pose | SwordPose, frame: number, facing: BattleFacing) =>
 
 export const currentLook = () => look;
 
+const CARD = "flex flex-wrap items-end gap-8 overflow-x-auto rounded-lg border border-line bg-ink-850 p-5";
+
 let root: HTMLElement;
 
 export function renderCharacters(into: HTMLElement): void {
@@ -47,37 +52,32 @@ export function renderCharacters(into: HTMLElement): void {
 
 function render(): void {
   root.replaceChildren();
-  root.append(el("h1", "margin:0;font-size:20px", "Character art sample"));
+  const heading = el("div", "flex flex-col gap-1");
+  heading.append(el("h1", "m-0 text-lg font-semibold", "Character art"),
+    el("p", "m-0 text-body text-fg-muted", "Every look drawn by the game's own code, in each view and pose."));
+  root.append(heading);
 
-  // Controls
-  const controls = el("div", "display:flex;flex-wrap:wrap;gap:12px;align-items:end");
+  const controls = el("div", "flex flex-wrap items-end gap-3 rounded-lg border border-line bg-ink-850 p-4");
   for (const key of Object.keys(OPTIONS) as (keyof Look)[]) {
-    const label = el("label", "display:flex;flex-direction:column;gap:4px;font-size:12px;color:#9a9cb0", LABELS[key]);
-    const select = el("select", "background:#2a2c3a;color:#e6e6f0;border:1px solid #444;padding:4px 6px");
+    const label = el("label", "flex flex-col gap-1 text-label text-fg-muted", LABELS[key]);
+    const select = el("select", "field");
     for (const option of OPTIONS[key]) select.append(new Option(option, option, false, look[key] === option));
     select.onchange = () => { look = { ...look, [key]: select.value }; render(); };
     label.append(select);
     controls.append(label);
   }
-  const random = el("button", "padding:6px 12px;background:#3a3d52;color:#fff;border:0;cursor:pointer", "Random");
+  const random = withIcon(el("button", "btn", "Random"), Shuffle);
   random.onclick = () => { look = randomLook(); render(); };
-  const gear = el("label", "display:flex;gap:6px;align-items:center");
-  const box = el("input");
-  box.type = "checkbox";
-  box.checked = jerkin;
-  box.onchange = () => { jerkin = box.checked; render(); };
-  gear.append(box, "Try on: leather jerkin");
-  const hand = el("label", "display:flex;gap:6px;align-items:center");
-  const handBox = el("input");
-  handBox.type = "checkbox";
-  handBox.checked = leftHanded;
-  handBox.onchange = () => { leftHanded = handBox.checked; render(); };
-  hand.append(handBox, "Sword in the left hand");
-  controls.append(random, gear, hand);
+  const toggles = el("div", "flex h-7 items-center gap-4");
+  toggles.append(
+    checkbox("Try on: leather jerkin", jerkin, (on) => { jerkin = on; render(); }),
+    checkbox("Sword in the left hand", leftHanded, (on) => { leftHanded = on; render(); }),
+  );
+  controls.append(random, toggles);
   root.append(controls);
 
   // The portrait and the chibi facing front, at a few sizes
-  const views = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  const views = el("div", CARD);
   views.append(
     caption(canvas(portrait(look), 6), "portrait 64x64 at 6x"),
     caption(canvas(chibi(look, "front"), 6), "chibi 32x32 at 6x"),
@@ -86,18 +86,18 @@ function render(): void {
   root.append(views);
 
   // The chibi facing each way: front, back, side (walking right mirrors the side).
-  const facings = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  const facings = el("div", CARD);
   for (const facing of CHIBI_FACINGS) facings.append(caption(canvas(chibi(look, facing), 6), `chibi facing ${facing}`));
   facings.append(
-    caption(canvas(chibi(look, "side"), 6, "transform:scaleX(-1)"), "chibi facing side, walking right"),
+    caption(canvas(chibi(look, "side"), 6, "-scale-x-100"), "chibi facing side, walking right"),
   );
   for (const facing of CHIBI_FACINGS) facings.append(caption(canvas(chibi(look, facing), 3), "3x"));
   root.append(facings);
 
   // The battle sprite in each pose, from behind and from the front, and at about arena size.
-  const poses = el("div", "display:flex;gap:32px;align-items:end;flex-wrap:wrap");
+  const poses = el("div", CARD);
   for (const pose of POSES) {
-    const sides = el("div", "display:flex;gap:4px");
+    const sides = el("div", "flex gap-1");
     for (const facing of BATTLE_FACINGS) sides.append(canvas(battle(pose, 0, facing), 4));
     poses.append(caption(sides, `battle: ${pose}, back and front, at 4x`));
   }
@@ -105,41 +105,47 @@ function render(): void {
   root.append(poses);
 
   // The sword fight's poses: every frame in order, from behind over from the front, at 3x.
-  const moves = el("div", "display:flex;gap:20px 28px;flex-wrap:wrap");
+  const moves = el("div", "flex flex-wrap gap-x-7 gap-y-5");
   for (const [pose, count] of Object.entries(SWORD_POSES) as [SwordPose, number][]) {
-    const sides = el("div", "display:flex;flex-direction:column;gap:2px");
+    const sides = el("div", "flex flex-col gap-0.5");
     for (const facing of BATTLE_FACINGS) {
-      const frames = el("div", "display:flex;gap:2px");
+      const frames = el("div", "flex gap-0.5");
       for (let frame = 0; frame < count; frame++) frames.append(canvas(battle(pose, frame, facing), 3));
       sides.append(frames);
     }
     moves.append(caption(sides, `${pose}: ${count} frames, back over front`));
   }
-  root.append(caption(moves, "battle: the sword fight's poses, frame by frame"));
+  const movesCard = el("div", CARD);
+  movesCard.append(caption(moves, "battle: the sword fight's poses, frame by frame"));
+  root.append(movesCard);
 
   // Mock dialogue, FGO style: speaker lit, the other dimmed, no portrait backgrounds. Portraits face our left, so
   // the one on the left is flipped to face the other.
-  const scene = el("div", "position:relative;width:1050px;height:420px;overflow:hidden;border-radius:6px;" +
-    "background:radial-gradient(ellipse at 50% 35%, #2a2433, #0a090d 70%)");
+  const scene = el("div", "relative h-[420px] w-[1050px] overflow-hidden rounded-md " +
+    "bg-[radial-gradient(ellipse_at_50%_35%,#2a2433,#0a090d_70%)]");
   const other = randomLookStable();
   scene.append(
-    canvas(portrait(other), 4, "position:absolute;bottom:60px;right:140px;filter:brightness(0.45)"),
-    canvas(portrait(look), 4, "position:absolute;bottom:60px;left:140px;transform:scaleX(-1)"),
+    canvas(portrait(other), 4, "absolute right-[140px] bottom-[60px] brightness-45"),
+    canvas(portrait(look), 4, "absolute bottom-[60px] left-[140px] -scale-x-100"),
   );
-  const box2 = el("div", "position:absolute;left:24px;right:24px;bottom:16px;height:110px;" +
-    "background:linear-gradient(#0d0c11e6,#050507f2);border:1px solid #c9a24a88;border-radius:4px;padding:28px 20px 0");
+  const box2 = el("div", "absolute right-6 bottom-4 left-6 h-[110px] rounded px-5 pt-7 " +
+    "border border-[#c9a24a88] bg-linear-to-b from-[#0d0c11e6] to-[#050507f2]");
   box2.append(
-    el("div", "position:absolute;top:-16px;left:12px;padding:4px 18px;background:#14121a;border:1px solid #c9a24a88",
+    el("div", "absolute -top-4 left-3 border border-[#c9a24a88] bg-[#14121a] px-[18px] py-1",
       "You"),
-    el("div", "font-size:17px;line-height:1.5", "So this is the tower... It just keeps going up."),
+    el("div", "text-[17px] leading-normal", "So this is the tower... It just keeps going up."),
   );
   scene.append(box2);
-  root.append(caption(scene, "mock dialogue: speaker lit, listener dimmed, portraits have no background"));
+  const sceneCard = el("div", CARD);
+  sceneCard.append(caption(scene, "mock dialogue: speaker lit, listener dimmed, portraits have no background"));
+  root.append(sceneCard);
 
   // A crowd of random looks
-  const crowd = el("div", "display:flex;flex-wrap:wrap;gap:12px");
+  const crowd = el("div", "flex flex-wrap gap-3");
   for (const l of crowdLooks) crowd.append(canvas(portrait(l), 2), canvas(chibi(l, "front"), 3));
-  root.append(caption(crowd, "random looks"));
+  const crowdCard = el("div", CARD);
+  crowdCard.append(caption(crowd, "random looks"));
+  root.append(crowdCard);
 }
 
 let stableOther: Look | null = null;

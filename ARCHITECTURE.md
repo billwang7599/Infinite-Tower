@@ -1718,16 +1718,19 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
                  props, NPC looks) and the game's palette, and nothing imports it. What's drawn in it is saved as
                  files; none of it is wired into the game yet. No localStorage: work is kept by saving a file.
   index.html       The page
-  vite.config.ts   Dev server :5175; saves go to ART_LAB_FILES_DIR (.env, art-lab/files if unset)
+  vite.config.ts   Dev server :5175 with Tailwind; saves go to ART_LAB_FILES_DIR (.env, art-lab/files if unset)
   fileApi.ts       Dev only: /api/files lists, reads and writes saved drawings (name.json and name.png) in that
                    folder; names are checked (names.ts), bodies capped
   files/           Saved drawings, committed to git
   test/            Unit tests of the editor's pure logic and the file API, mirroring the folder
   src/
-    main.ts          The tabs: Characters and Pixel editor (#editor opens it)
+    main.ts          The top bar and its tabs: Characters and Pixel editor (#editor opens it)
+    styles.css       The look: Tailwind v4, its tokens (`@theme`: greys, one accent, type scale, radii) and the
+                     controls' classes (btn, field, check, range, color-well, checker, tooltip)
     characters.ts    Every look option as the portrait, the chibi facing each way and the battle sprite in each
                      pose and frame, from behind and the front, in either hand; a mock dialogue; random looks
-    dom.ts           el, button, select, checkbox, caption: the page's small DOM helpers
+    dom.ts           el, button, iconButton (lucide icons), select, checkbox, caption, the tooltips (data-tip and
+                     data-key) and token (a style token's value, for canvas drawing): the page's small DOM helpers
     editor/          The pixel editor. Pure logic, tested: bitmap.ts (Bitmap = the art's Picture, pixels, hex),
                      draw.ts (lines, rectangles, flood fill, clipped to the selection), resample.ts (nearest and
                      smoothed resizing, fitting an image to the canvas, snapping to a palette), selection.ts (copy,
@@ -1743,11 +1746,12 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
                      starting layers; tiles are PX_PER_TILE square). templates.ts (TEMPLATES: the art the game draws
                      today, by its own code, to start a drawing from). The page: state.ts (Editor: a project per mode,
                      the tool, the color, the selection and what floats in it, undo), tools.ts (what each tool does
-                     with the pointer), view.ts (the zoomable, pannable canvas with its grid), toolbar.ts, colors.ts
+                     with the pointer), view.ts (the zoomable, pannable canvas with its grid), toolbar.ts (the tool rail and the options bar), colors.ts
                      (the game's ramps and a free picker; palette.ts lists them), layerList.ts, pageStrip.ts (the
                      tiles or frames: pick, add, copy, reorder, name, delete), timeline.ts (Playback: play / stop, the
                      fps, onion skin), filePanel.ts (save, open, new, templates, own PNGs, photos, export) over
-                     fileIo.ts (decoding, saving to /api/files, downloads), editor.ts (the modes, the layout, the
+                     fileIo.ts (decoding, saving to /api/files, downloads), editor.ts (the layout: the top bar's modes
+                     and actions, the tool rail, the canvas, the sidebar's collapsible panels and the status bar; the
                      previews and playing them, drag-and-drop, the shortcuts' key listener)
 ```
 

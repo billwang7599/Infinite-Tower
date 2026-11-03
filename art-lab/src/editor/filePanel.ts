@@ -1,6 +1,7 @@
 import { drawChibi, drawPortrait, type Look } from "@infinite-tower/client/src/gfx/look/look.js";
 import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
-import { FIELD, button, checkbox, el, select } from "../dom.js";
+import { FileJson, FolderOpen, ImageDown, ImageUp, Plus, Save } from "lucide";
+import { button, checkbox, el, select, withIcon } from "../dom.js";
 import {
   downloadJson, exportLayer, exportPng, importPhoto, importing, naming, openFiles, openPictures, pickFiles, readSaved,
   uploading,
@@ -26,10 +27,17 @@ export interface Files {
   report: (e: unknown) => void;
 }
 
-const row = () => el("div", "display:flex;flex-wrap:wrap;gap:6px;align-items:center");
+const row = () => el("div", "flex flex-wrap items-center gap-1.5 text-fg-muted");
+const WIDE = "field min-w-0 flex-1";
 
-function numberField(value: number, min: number, onchange: (v: number) => void, width = 46): HTMLInputElement {
-  const input = el("input", `${FIELD};width:${width}px`);
+function section(title: string, ...rows: HTMLElement[]): HTMLElement {
+  const box = el("div", "flex flex-col gap-1.5");
+  box.append(el("span", "text-label text-fg-muted", title), ...rows.filter((r) => r.hasChildNodes()));
+  return box;
+}
+
+function numberField(value: number, min: number, onchange: (v: number) => void): HTMLInputElement {
+  const input = el("input", "field w-12 text-right");
   input.type = "number";
   input.min = String(min);
   input.max = String(MAX_SIDE);
@@ -40,19 +48,21 @@ function numberField(value: number, min: number, onchange: (v: number) => void, 
 
 export function filePanel(ed: Editor, look: () => Look, files: Files): HTMLElement {
   const { fitView, report } = files;
-  const box = el("div", "display:flex;flex-direction:column;gap:8px");
+  const box = el("div", "flex flex-col gap-4");
   const opened = (then: Promise<void>) => then.then(fitView, report);
 
   const keep = row();
-  const name = el("input", `${FIELD};width:150px`);
+  const name = el("input", WIDE);
   name.value = naming.file;
-  name.title = "Letters, digits, - and _";
+  name.dataset.tip = "Letters, digits, - and _";
   name.onchange = () => { naming.file = toSaveName(name.value); name.value = naming.file; };
-  keep.append(name, button("Save", files.save, "Ctrl+S: into the repo's art-lab/files, and the PNG to Downloads"));
+  keep.append(name,
+    withIcon(button("Save", files.save, "Ctrl+S: into the repo's art-lab/files, and the PNG to Downloads"), Save));
+  const reopen = row();
   if (files.saved.length > 0) {
     if (!files.saved.includes(opening)) opening = files.saved[0]!;
-    keep.append(
-      select(files.saved.map((n) => [n, n] as const), opening, (v) => { opening = v; }),
+    reopen.append(
+      select(files.saved.map((n) => [n, n] as const), opening, (v) => { opening = v; }, WIDE),
       button("Open", () => opened(readSaved(opening).then(({ mode, project }) => {
         naming.file = opening;
         ed.open(mode, project);
@@ -64,23 +74,25 @@ export function filePanel(ed: Editor, look: () => Look, files: Files): HTMLEleme
   if (!(size in sizes) && size !== "custom") size = Object.keys(sizes)[0]!;
   const make = row();
   const options = [...Object.entries(sizes).map(([n, s]) => [n, `${n} ${s.width}x${s.height}`] as const), ["custom", "custom"] as const];
-  make.append(select(options, size, (v) => { size = v; ed.changed(); }));
+  make.append(select(options, size, (v) => { size = v; ed.changed(); }, WIDE));
   if (size === "custom") {
     make.append(numberField(custom.width, 1, (width) => { custom = { ...custom, width }; }), "x",
       numberField(custom.height, 1, (height) => { custom = { ...custom, height }; }));
   }
-  make.append(button("New", () => {
+  make.append(withIcon(button("New", () => {
     const { width, height } = size === "custom" ? custom : sizes[size]!;
     naming.file = "drawing";
     ed.open(ed.mode, newProject(width, height, layers));
     fitView();
-  }, "Start a new drawing (Undo brings the old one back)"));
+  }, "Start a new drawing (Undo brings the old one back)"), Plus));
+  const lookRow = row();
   if (ed.mode !== "tiles") {
-    make.append(button("Add the look's picture", () => addLook(ed, look()), "The Characters tab's look, as a layer"));
+    lookRow.append(button("Add the look's picture", () => addLook(ed, look()), "The Characters tab's look, as a layer",
+      "btn w-full"));
   }
 
   const fromTemplate = row();
-  const list = el("select", FIELD);
+  const list = el("select", WIDE);
   for (const group of new Set(TEMPLATES.map((t) => t.group))) {
     const g = el("optgroup");
     g.label = group;
@@ -111,36 +123,47 @@ export function filePanel(ed: Editor, look: () => Look, files: Files): HTMLEleme
   }, "A new drawing from art the game draws today, or from a saved one"));
 
   const own = row();
+  const cells = row();
   own.append(
-    button("Open PNG…", () => pickFiles("image/png,image/gif", (f) => opened(openPictures(ed, f)), true),
-      "Pixel for pixel, as a new drawing (or drop them on the canvas)"),
-    "cells", numberField(uploading.cellWidth, 0, (v) => { uploading.cellWidth = v; }, 40), "x",
-    numberField(uploading.cellHeight, 0, (v) => { uploading.cellHeight = v; }, 40),
-    el("span", "font-size:11px;color:#9a9cb0", "(0: the whole picture)"),
-    "several as", select([["pages", "frames / tiles"], ["layers", "layers"]], uploading.many, (v) => { uploading.many = v; }),
+    withIcon(button("Open PNG…", () => pickFiles("image/png,image/gif", (f) => opened(openPictures(ed, f)), true),
+      "Pixel for pixel, as a new drawing (or drop them on the canvas)"), ImageUp),
+    "several as", select([["pages", "frames / tiles"], ["layers", "layers"]], uploading.many, (v) => { uploading.many = v; },
+      WIDE),
+  );
+  cells.append(
+    "cells", numberField(uploading.cellWidth, 0, (v) => { uploading.cellWidth = v; }), "×",
+    numberField(uploading.cellHeight, 0, (v) => { uploading.cellHeight = v; }),
+    el("span", "text-label text-fg-faint", "0: the whole picture"),
   );
 
   const photo = row();
   photo.append(
-    button("Import photo…", () => pickFiles("image/*", ([f]) => importPhoto(ed, f!).catch(report)),
-      "Fitted onto a new layer"),
-    select([["smooth", "smoothed"], ["nearest", "nearest neighbour"]], importing.scaling, (v) => { importing.scaling = v; }),
+    withIcon(button("Import photo…", () => pickFiles("image/*", ([f]) => importPhoto(ed, f!).catch(report)),
+      "Fitted onto a new layer"), ImageUp),
+    select([["smooth", "smoothed"], ["nearest", "nearest neighbour"]], importing.scaling, (v) => { importing.scaling = v; },
+      WIDE),
     select([["contain", "fit inside"], ["cover", "fill, cropped"], ["stretch", "stretch"]], importing.fit,
-      (v) => { importing.fit = v; }),
-    checkbox("snap to the game's colors", importing.snap, (on) => { importing.snap = on; }),
+      (v) => { importing.fit = v; }, WIDE),
   );
+  const snap = row();
+  snap.append(checkbox("Snap to the game's colors", importing.snap, (on) => { importing.snap = on; }));
 
   const out = row();
   out.append(
-    button("Export PNG", () => exportPng(composite(ed.doc), naming.file)),
+    withIcon(button("Export PNG", () => exportPng(composite(ed.doc), naming.file)), ImageDown),
     button("Export each layer", () => ed.doc.layers.forEach((_, i) => exportLayer(ed, i))),
   );
   if (ed.mode !== "sprite") out.append(button("Export sheet", () => exportSheet(ed), "A PNG sheet and its JSON"));
   out.append(
-    button("Download JSON", () => downloadJson(projectToJson(ed.mode, ed.project), naming.file)),
-    button("Open file…", () => pickFiles(".json,application/json", (f) => opened(openFiles(ed, f)))),
+    withIcon(button("Download JSON", () => downloadJson(projectToJson(ed.mode, ed.project), naming.file)), FileJson),
+    withIcon(button("Open file…", () => pickFiles(".json,application/json", (f) => opened(openFiles(ed, f)))), FolderOpen),
   );
-  box.append(keep, make, fromTemplate, own, photo, out);
+  box.append(
+    section("Drawing", keep, reopen),
+    section("New", make, lookRow, fromTemplate),
+    section("Upload", own, cells, photo, snap),
+    section("Export", out),
+  );
   return box;
 }
 
