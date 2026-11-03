@@ -58,9 +58,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
 
   const setMode = (next: Mode | null) => {
     mode = next;
-    // Panels are the overworld's: a fight, or leaving, closes them.
-    if (next !== "overworld") ui.closeOverworldPanel();
-    ui.closeBattleBag();
+    ui.closePanel();
     ui.leaveArena.set({ asking: false });
     ui.closeDialogue();
     ui.closeQuestbook();

@@ -7,7 +7,7 @@ import type { Actions } from "../../core/actions.js";
 import type { Net } from "../../net/net.js";
 import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
-import type { BattleHudState, SkillsState } from "../../ui/state.js";
+import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
 import { arenaCamera } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
@@ -38,7 +38,7 @@ export interface BattleOptions {
   hud: Store<BattleHudState>;
   skills: Store<SkillsState>;
   chant: Store<ChantState>;
-  bag: Store<{ open: boolean }>;
+  panel: Store<PanelState>;
   onLeave: () => void;
 }
 
@@ -103,7 +103,7 @@ export function createBattle(opts: BattleOptions): Battle {
     if (words !== sentWords) wordsDue = sentWords = words;
     input.chantWords = input.chantWords ? null : wordsDue;
     if (input.chantWords) wordsDue = null;
-    input.bag = opts.bag.get().open;
+    input.bag = opts.panel.get().open === "inventory";
     input.gear = input.gear ? null : ctx.gearMoves.shift() ?? null;
     input.use = input.use ? null : ctx.uses.shift() ?? null;
     for (let i = 0; i < steps; i++) sync.advance(input);

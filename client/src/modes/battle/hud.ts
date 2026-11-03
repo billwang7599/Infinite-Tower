@@ -17,7 +17,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       showResult: resultShown(outcome) && !(afterFight && outcome.stateTime > AFTER_FIGHT_BANNER_TIME),
       afterFight,
       arenaSecondsLeft: afterFight ? Math.max(0, Math.ceil(afterFightMs / 1000 - outcome.stateTime)) : 0,
-      dropInView: false,
+      interaction: null,
     };
 
     const me = world.first(LocalPlayer, Health, Stamina, Player, Wielder, Body);
@@ -35,7 +35,7 @@ export function hudSystem(ctx: BattleContext, hud: Store<BattleHudState>): (figh
       patch.using = me[4].using?.at ?? null;
       patch.core = me[4].core;
       const facing = { x: Math.sin(ctx.view.yaw), z: Math.cos(ctx.view.yaw) };
-      patch.dropInView = afterFight && inView(me[6].pos, facing, ctx.drops) !== null;
+      patch.interaction = afterFight && inView(me[6].pos, facing, ctx.drops) !== null ? "openPile" : null;
     }
 
     const enemy = world.first(Enemy, Health);

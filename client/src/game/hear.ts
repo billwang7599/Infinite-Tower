@@ -30,7 +30,7 @@ export function hear({ net, welcome }: Joined, ui: UiState): void {
   });
   net.on("shop", ({ shop }) => {
     ui.shop.set({ view: shop });
-    if (shop && ui.overworldPanel.get().open !== "inventory") ui.toggleOverworldPanel("inventory");
+    if (shop && ui.panel.get().open !== "inventory") ui.togglePanel("inventory");
   });
   net.on("trade", (msg) => {
     ui.shop.set({ view: msg.shop });

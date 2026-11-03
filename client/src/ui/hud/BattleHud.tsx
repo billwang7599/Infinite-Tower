@@ -1,82 +1,54 @@
-import { coreStats, NO_PILE, type Gear } from "@infinite-tower/shared";
+import { NO_PILE, type Gear } from "@infinite-tower/shared";
 import { useMemo } from "react";
 import { useGame } from "../context.js";
 import { Bar } from "../components/Bar.js";
 import { NO_FOCUS } from "../components/noFocus.js";
-import { PlayerBars } from "../components/PlayerBars.js";
 import { BUTTON } from "../components/styles.js";
-import { keyName } from "../keyNames.js";
 import { useAction } from "../components/useAction.js";
+import { keyName } from "../keyNames.js";
 import { ChantPopup } from "../skills/ChantPopup.js";
 import { Hotbar } from "../skills/Hotbar.js";
-import { SkillbookScreen } from "../skills/SkillbookScreen.js";
 import { useStore } from "../useStore.js";
-import { HudLayer } from "./HudLayer.js";
-import { InteractButton } from "./InteractButton.js";
-import { InventoryPanel } from "./inventory/InventoryPanel.js";
-import { Ping } from "./Ping.js";
+import { Hud, type HudMode } from "./Hud.js";
 import { StatusRow } from "./StatusRow.js";
 
 /** The dark band behind the result, fading out above and below. */
 const RESULT_BAND = "bg-[linear-gradient(transparent,#000b_25%,#000b_75%,transparent)]";
 
+const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
+
+const BATTLE: HudMode = {
+  hud: (ui) => ui.battle,
+  panels: ["inventory"],
+  useBag: () => {
+    const { battle: hud, you } = useGame().ui;
+    const carried = useStore(hud, (s) => s.carried);
+    const afterFight = useStore(hud, (s) => s.afterFight);
+    const served = useStore(you, (s) => s.gear);
+    const writingPage = useStore(hud, (s) => s.writingPage);
+    const canHeal = useStore(hud, (s) => s.hpFraction < 1);
+    const usingInFight = useStore(hud, (s) => s.using);
+    const usingServed = useStore(you, (s) => s.using);
+    // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
+    const gear = useMemo(
+      () => (afterFight ? { ...served, cloth: NO_CLOTH } : { ...carried, cloth: NO_CLOTH, pile: NO_PILE }),
+      [afterFight, served, carried],
+    );
+    return { gear, using: afterFight ? usingServed : usingInFight, canHeal, writingPage };
+  },
+  bagOpens: (ui) => ui.battle.get().result === "fighting" || ui.battle.get().afterFight,
+};
+
 export function BattleHud() {
-  const { ui: { battle: hud }, input, actions } = useGame();
-  const dropInView = useStore(hud, (s) => s.dropInView);
-  useAction(input, ["interact"], (_action, repeat) => {
-    if (!repeat) actions.interact();
-  });
   return (
-    <HudLayer id="battle-hud">
-      <Vitals />
-      <div className="absolute top-3 right-4">
-        <Ping />
-      </div>
+    <Hud id="battle-hud" mode={BATTLE}>
       <BossBar />
       <Hotbar />
       <ResultBanner />
       <ArenaTimer />
-      <InteractButton interaction={dropInView ? "openPile" : null} interact={actions.interact} />
       <ChantPopup />
-      <BattleBag />
       <LeaveArena />
-    </HudLayer>
-  );
-}
-
-const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
-
-function BattleBag() {
-  const { ui, input } = useGame();
-  const { battle: hud, you } = ui;
-  const open = useStore(ui.battleBag, (s) => s.open);
-  const bookOpen = useStore(ui.skillbookScreen, (s) => s.open);
-  const carried = useStore(hud, (s) => s.carried);
-  const afterFight = useStore(hud, (s) => s.afterFight);
-  const served = useStore(you, (s) => s.gear);
-  const writingPage = useStore(hud, (s) => s.writingPage);
-  const fullHp = useStore(hud, (s) => s.hpFraction >= 1);
-  const usingInFight = useStore(hud, (s) => s.using);
-  const usingServed = useStore(you, (s) => s.using);
-  const core = useStore(you, (s) => s.core);
-  const stats = useMemo(() => core && coreStats(core), [core]);
-  // After a win the bag is the server's, as on the overworld, with the drops opened beside it.
-  const gear = useMemo(
-    () => (afterFight ? { ...served, cloth: NO_CLOTH } : { ...carried, cloth: NO_CLOTH, pile: NO_PILE }),
-    [afterFight, served, carried],
-  );
-  useAction(input, ["inventory"], (_action, repeat) => {
-    if (!repeat && (open || hud.get().result === "fighting" || hud.get().afterFight)) ui.toggleBattleBag();
-  });
-  if (!open) return null;
-  return (
-    <>
-      <InventoryPanel
-        gear={gear} stats={stats} canHeal={!fullHp} using={afterFight ? usingServed : usingInFight}
-        close={ui.closeBattleBag}
-      />
-      {bookOpen && <SkillbookScreen writingPage={writingPage} />}
-    </>
+    </Hud>
   );
 }
 
@@ -128,21 +100,6 @@ function LeaveArena() {
           Stay
         </button>
       </div>
-    </div>
-  );
-}
-
-function Vitals() {
-  const hud = useGame().ui.battle;
-  const hpFraction = useStore(hud, (s) => s.hpFraction);
-  const staminaFraction = useStore(hud, (s) => s.staminaFraction);
-  const hp = useStore(hud, (s) => s.hp);
-  const hpMax = useStore(hud, (s) => s.hpMax);
-  const statuses = useStore(hud, (s) => s.statuses);
-  return (
-    <div className="absolute top-3 left-4">
-      <PlayerBars hpFraction={hpFraction} staminaFraction={staminaFraction} hp={hp} hpMax={hpMax} />
-      <StatusRow id="my-statuses" icons={statuses} className="mt-1 w-75" />
     </div>
   );
 }
