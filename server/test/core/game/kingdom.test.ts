@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { distXZ, tileAt, type NpcId } from "@infinite-tower/shared";
-import { PRICE_FACTOR } from "../../../src/core/content/shops.js";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
@@ -84,7 +83,7 @@ describe("Highmere's Market Ward", () => {
   });
 
   test("charges Highmere's prices", () => {
-    assert.equal(PRICE_FACTOR["market-ward"], PRICE_FACTOR.kingdom);
+    assert.equal(getRegion("market-ward").priceFactor, getRegion("kingdom").priceFactor);
   });
 
   test("the food, potion and blacksmith keepers and the money changer stand there, each with a word and their shop", () => {

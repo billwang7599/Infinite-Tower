@@ -3,16 +3,17 @@ import {
   type ItemCounts, type ItemId, type ShopView, type TradeNews, type UseSpot,
 } from "@infinite-tower/shared";
 import {
-  CARVE_PRICES, CARVING_SHOP, FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, REMOVE_PRICES, SELL_SHARE, SHOPS,
+  CARVE_PRICES, CARVING_SHOP, FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, REMOVE_PRICES, SELL_SHARE, SHOPS,
   type ShopId,
 } from "../content/shops.js";
+import { getRegion } from "../world/index.js";
 import type { GameSession } from "./session.js";
 import { shopInView } from "./talk.js";
 
 export interface Trade { gear: Gear; onCloth: boolean }
 
 const fullPrice = (item: ItemId, region: string) =>
-  Math.round((ITEM_VALUES[item] ?? 0) * (PRICE_FACTOR[region] ?? 1));
+  Math.round((ITEM_VALUES[item] ?? 0) * getRegion(region).priceFactor);
 const paidFor = (item: ItemId) => Math.floor((ITEM_VALUES[item] ?? 0) * SELL_SHARE);
 
 export function shopView(id: ShopId, region: string, boughtThere: boolean): ShopView {

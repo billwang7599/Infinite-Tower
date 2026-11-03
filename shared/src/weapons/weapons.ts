@@ -1,6 +1,6 @@
 import { AVERAGE_STAT } from "../battle/stats.js";
 import type { Hand } from "../items/gear.js";
-import type { ItemId } from "../items/items.js";
+import { ITEM_IDS, itemDef, ITEMS, type ItemId } from "../items/items.js";
 
 export type AttackKind = "light" | "heavy";
 
@@ -16,15 +16,12 @@ export interface Weapon {
   minStrength: number;
 }
 
-export const WEAPONS = {
-  "old-stick": { kind: "sword", length: 1, damage: 5, heft: 1, minStrength: 0 },
-  sword: { kind: "sword", length: 1.1, damage: 9, heft: 1, minStrength: 0 },
-  "kobold-blade": { kind: "sword", length: 1.1, damage: 14, heft: 1, minStrength: 0 },
-  longsword: { kind: "sword", length: 1.4, damage: 11, heft: 1.2, minStrength: 6 },
-  greatsword: { kind: "sword", length: 1.9, damage: 16, heft: 1.6, minStrength: 9 },
-  "kobold-greatsword": { kind: "sword", length: 1.9, damage: 14, heft: 1.6, minStrength: 9 },
-} as const satisfies Partial<Record<ItemId, Weapon>>;
-export type WeaponId = keyof typeof WEAPONS;
+type WeaponItems = { [K in ItemId as (typeof ITEMS)[K] extends { weapon: Weapon } ? K : never]: Weapon };
+export type WeaponId = keyof WeaponItems;
+export const WEAPONS = Object.fromEntries(ITEM_IDS.flatMap((id) => {
+  const { weapon } = itemDef(id);
+  return weapon ? [[id, weapon]] : [];
+})) as WeaponItems;
 
 export const isWeapon = (item: ItemId | null): item is WeaponId => item !== null && Object.hasOwn(WEAPONS, item);
 export const canWield = (item: WeaponId, strength: number): boolean => strength >= WEAPONS[item].minStrength;

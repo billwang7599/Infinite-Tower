@@ -1,4 +1,5 @@
 import type { EnemyId, Heading, NpcId, Vec2 } from "@infinite-tower/shared";
+import type { Quests } from "../content/quests.js";
 import type { ShopId } from "../content/shops.js";
 import type { When } from "../game/story.js";
 import { inRegion } from "../world/index.js";
@@ -53,10 +54,12 @@ export interface Stop {
  * stops are listed latest first.
  */
 export interface Npc {
+  quests?: Quests;
   stops: readonly Stop[];
 }
 
 const inWorld = (npc: Npc): Npc => ({
+  ...npc,
   stops: npc.stops.map((stop) => ({
     ...stop,
     at: inRegion(stop.region, stop.at),

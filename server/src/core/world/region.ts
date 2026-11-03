@@ -41,6 +41,8 @@ export interface RegionDef {
   spawns: SpawnDef[];
   /** None: its tall grass, if any, starts no fights. */
   grass?: EncounterTable;
+  /** × what things are worth in its shops; 1 if left out. */
+  priceFactor?: number;
 }
 
 export interface Region extends RegionArea {
@@ -50,6 +52,7 @@ export interface Region extends RegionArea {
   duelArenaId: string;
   spawns: Spawn[];
   grass?: EncounterTable;
+  priceFactor: number;
   hasPad: boolean;
 }
 

@@ -1,6 +1,68 @@
 import type { Npc } from "./index.js";
 
 export const MAREN: Npc = {
+  quests: {
+    "maren-waking": {
+      title: "Woken",
+      half: "main",
+      steps: [
+        {
+          id: "boar",
+          task: { kind: "kill", enemy: "wild-boar", count: 1 },
+          text: "Slay a wild boar.",
+          hint: "Maren said the boars root about in the tall grass across the brook, south of the camp.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "maren" },
+          text: "Go back to Maren.",
+          hint: "She said she'd tell you what you are. She keeps the pad in the Hollow, by the fire.",
+          reward: { lore: ["the-seed"] },
+        },
+      ],
+    },
+    "maren-road": {
+      title: "The Road East",
+      half: "main",
+      when: { done: "tobin-smoke" },
+      steps: [
+        {
+          id: "hollis",
+          task: { kind: "talk", to: "hollis" },
+          text: "Find Hollis in the Grass Field.",
+          hint: "Maren said the road east out of the Hollow runs into the Grass Field, and Hollis keeps a fire a good "
+            + "walk along it.",
+          reward: { items: { "boar-meat": 2 }, lore: ["natives"] },
+        },
+      ],
+    },
+    "maren-tongue": {
+      title: "The Old Tongue",
+      half: "side",
+      when: { done: "maren-road" },
+      steps: [
+        {
+          id: "mistwood",
+          task: { kind: "reach", region: "mistwood" },
+          text: "Go to the Mistwood.",
+          hint: "Maren said it lies past the Grass Field, through the gap at its east edge.",
+        },
+        {
+          id: "warlock",
+          task: { kind: "kill", enemy: "goblin-warlock", count: 1 },
+          text: "Hear a Goblin Warlock chant, then slay it.",
+          hint: "Maren said the Mistwood's goblins chant among the broken walls in its south-east, past the water.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "maren" },
+          text: "Tell Maren what you heard.",
+          hint: "She keeps the pad in the Hollow, by the fire.",
+          reward: { items: { "boar-meat": 3 }, lore: ["old-tongue"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "waking-hollow",

@@ -1,6 +1,49 @@
 import type { Npc } from "./index.js";
 
 export const TOBIN: Npc = {
+  quests: {
+    "tobin-smoke": {
+      title: "Meat for the Rack",
+      half: "main",
+      when: { done: "maren-waking" },
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "boar-meat", count: 2 },
+          text: "Gather 2 boar meat.",
+          hint: "Tobin said a beaten boar leaves meat more often than not, and the Hollow's tall grass is full of "
+            + "them.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "boar-meat", count: 2, to: "tobin" },
+          text: "Bring the 2 boar meat to Tobin.",
+          hint: "Tobin keeps watch by the footbridge over the Hollow's brook.",
+          reward: { items: { "boar-hide": 1 }, lore: ["the-hollow"] },
+        },
+      ],
+    },
+    "tobin-kobold": {
+      title: "How a Kobold Fights",
+      half: "side",
+      when: { done: "tobin-smoke" },
+      steps: [
+        {
+          id: "kobold",
+          task: { kind: "kill", enemy: "kobold-swordsman", count: 1 },
+          text: "Slay a Kobold Swordsman.",
+          hint: "Tobin said the Kobolds hold the Grass Field east of its river, and swing in twos and threes.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "tobin" },
+          text: "Tell Tobin how it fought.",
+          hint: "He keeps watch by the footbridge in the Hollow.",
+          reward: { items: { "boar-meat": 3 }, lore: ["kobolds"], faith: { kaelith: 20 } },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "waking-hollow",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { ENEMY_IDS, ITEM_IDS, NPC_IDS } from "@infinite-tower/shared";
-import { QUESTS } from "../../../src/core/content/quests.js";
+import { QUEST_ORDER, QUESTS } from "../../../src/core/content/quests.js";
 import type { When } from "../../../src/core/game/story.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import { WORLD } from "../../../src/core/world/index.js";
@@ -21,6 +21,11 @@ function isReal(when: When | undefined): boolean {
 const TALKS = NPC_IDS.flatMap((npc) => NPCS[npc].stops.flatMap((stop) => stop.talk.map((talk) => ({ npc, talk }))));
 
 describe("QUESTS", () => {
+  test("every quest an NPC gives is in QUEST_ORDER, once", () => {
+    const given = NPC_IDS.flatMap((npc) => Object.keys(NPCS[npc].quests ?? {}));
+    assert.deepEqual([...given].sort(), [...QUEST_ORDER].sort());
+  });
+
   test("each has a title and steps, each with an id of its own, what to do and a hint", () => {
     for (const [id, quest] of Object.entries(QUESTS)) {
       assert.ok(quest.title.trim() && quest.steps.length > 0, id);

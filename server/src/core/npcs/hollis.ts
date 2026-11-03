@@ -1,6 +1,68 @@
 import type { Npc } from "./index.js";
 
 export const HOLLIS: Npc = {
+  quests: {
+    "hollis-hides": {
+      title: "Hides for the Fire",
+      half: "main",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "boar-hide", count: 2 },
+          text: "Gather 2 boar hides.",
+          hint: "Hollis said the boars roam the Grass Field and hide in its tall grass, and not every one has a hide "
+            + "worth keeping.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "boar-hide", count: 2, to: "hollis" },
+          text: "Bring the 2 boar hides to Hollis.",
+          hint: "Hollis keeps the campfire in the Grass Field, a good walk along the road from the Hollow.",
+          reward: { items: { "boar-meat": 2 }, lore: ["avatars"] },
+        },
+      ],
+    },
+    "hollis-pads": {
+      title: "Where You Woke",
+      half: "main",
+      when: { done: "hollis-hides" },
+      steps: [
+        {
+          id: "boars",
+          task: { kind: "kill", enemy: "wild-boar", count: 3 },
+          text: "Slay 3 wild boars.",
+          hint: "Hollis said they come thickest in the tall grass, and one roams east of his fire.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "hollis" },
+          text: "Go back to Hollis.",
+          hint: "He said he has something to tell you about where you woke. He's by his fire in the Grass Field.",
+          reward: { items: { "boar-meat": 3 }, flags: ["hollis-to-mistwood"], lore: ["summoning-pads"] },
+        },
+      ],
+    },
+    "hollis-loom": {
+      title: "The Pad and the Loom",
+      half: "main",
+      when: { done: "hollis-pads" },
+      steps: [
+        {
+          id: "ilse",
+          task: { kind: "talk", to: "ilse" },
+          text: "Ask Ilse what her loom makes of the pad.",
+          hint: "Hollis said she sits on the Mistwood lake's east shore, where the bridge comes in.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "hollis" },
+          text: "Go back to Hollis.",
+          hint: "He's by the Mistwood's pad, where you come in from the Grass Field.",
+          reward: { items: { "boar-meat": 3 }, lore: ["threadless-pads"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       when: { flag: "hollis-to-mistwood" },

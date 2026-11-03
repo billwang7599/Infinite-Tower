@@ -1,6 +1,48 @@
 import type { Npc } from "./index.js";
 
 export const CORWIN: Npc = {
+  quests: {
+    "corwin-blind": {
+      title: "A Blind on the East Road",
+      half: "side",
+      steps: [
+        {
+          id: "gather",
+          task: { kind: "gather", item: "boar-hide", count: 2 },
+          text: "Gather 2 boar hides.",
+          hint: "Corwin said the Grass Field's boars root about in its tall grass, and not every one gives a hide.",
+        },
+        {
+          id: "bring",
+          task: { kind: "deliver", item: "boar-hide", count: 2, to: "corwin" },
+          text: "Bring the 2 boar hides to Corwin.",
+          hint: "Corwin keeps the Grass Field's east road, just south of it, near the gap to the Mistwood.",
+          reward: { items: { "boar-meat": 2 }, lore: ["the-oath"] },
+        },
+      ],
+    },
+    "corwin-count": {
+      title: "The Count",
+      half: "side",
+      when: { done: "corwin-blind" },
+      steps: [
+        {
+          id: "kobolds",
+          task: { kind: "kill", enemy: "kobold-swordsman", count: 2 },
+          text: "Slay 2 Kobold Swordsmen.",
+          hint: "Corwin said they come up out of the Grass Field's south-east corner, south-west of where he keeps "
+            + "watch.",
+        },
+        {
+          id: "back",
+          task: { kind: "talk", to: "corwin" },
+          text: "Go back to Corwin.",
+          hint: "He keeps the Grass Field's east road, near the gap to the Mistwood.",
+          reward: { items: { "boar-meat": 3 }, lore: ["pooled-soul"] },
+        },
+      ],
+    },
+  },
   stops: [
     {
       region: "grass-field",

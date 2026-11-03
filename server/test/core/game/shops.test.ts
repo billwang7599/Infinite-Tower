@@ -4,16 +4,17 @@ import {
   addItem, bagCounts, COIN_VALUE, emptyBag, emptyCloth, type Bag, type ItemCounts, type ItemId, type NpcId,
 } from "@infinite-tower/shared";
 import {
-  FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, PRICE_FACTOR, SELL_SHARE, SHOPS,
+  FIRST_PURCHASE_DISCOUNT, ITEM_VALUES, SELL_SHARE, SHOPS,
 } from "../../../src/core/content/shops.js";
 import { newStory } from "../../../src/core/game/story.js";
 import { stopFor } from "../../../src/core/game/talk.js";
 import { NPCS } from "../../../src/core/npcs/index.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
+import { getRegion } from "../../../src/core/world/index.js";
 import { bagWith, startIn, talkTo } from "./helpers.js";
 
 const SILVER = COIN_VALUE["silver-coin"], GOLD = COIN_VALUE["gold-coin"];
-const price = (item: ItemId) => Math.round(ITEM_VALUES[item]! * PRICE_FACTOR["market-ward"]!);
+const price = (item: ItemId) => Math.round(ITEM_VALUES[item]! * getRegion("market-ward").priceFactor);
 const firstPrice = (item: ItemId) => Math.round(price(item) * (1 - FIRST_PURCHASE_DISCOUNT));
 const sellPrice = (item: ItemId) => Math.floor(ITEM_VALUES[item]! * SELL_SHARE);
 

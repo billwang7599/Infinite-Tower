@@ -131,7 +131,7 @@ Decided by the user:
 - Combat is two parts: gear (weapons, physical combat) and skills. Skills are the grammar (a Form, elements,
   modifiers), for making magic, enhancing yourself or anything else; nothing about them is magic-specific (they were
   called spells). The skillbook only stores built skills.
-- Weapons are an arsenal: every weapon is an item with a row in `WEAPONS` (its kind of moveset and its stats), and a
+- Weapons are an arsenal: every weapon is an item with a `weapon` component (its kind of moveset and its stats), and a
   fighter cares only which weapon it holds; its animations play off that (the look by weapon, the motion by kind). A
   weapon's reach is the wielder's own arm reach plus the weapon's length. Weapons built from parts (hilts, blades) are
   planned ([plan/weapons.md](plan/weapons.md)).
@@ -465,14 +465,15 @@ Decided by the user:
   deliver: Zod-checked) and draws.
 - The story is data run by one engine (the user: "a dialogue api, so what they say is just from the character data,
   and also a quest thing, where it helps build the lore and quest"; "it might be simpler and more reasonable for the
-  npc to display dialogue based off of where they are + quest"). Quests are one table on the server
-  (`server/src/core/content/quests.ts`): named steps (saved by name) and what each gives (items, flags, lore ids), no
-  lines. Lore entries are one table by id (`server/src/core/content/lore.ts`). An NPC's own file
-  (`server/src/core/npcs/<id>.ts`) holds where it stands and what it says: its stops (a region and a spot in its tiles,
-  with a condition on the story), each with its lines by the story (a quest's step, a quest that can start or is done, a
-  flag) and what they offer. The server places each NPC per player at its first stop that holds (two players may see it
-  in different places), and it says the first lines there that hold. One engine (`server/src/core/game/story.ts`) checks
-  the conditions and applies the effects for quests and NPCs alike.
+  npc to display dialogue based off of where they are + quest"). Quests are written in their giver's NPC file
+  (`quests`, gathered into `QUESTS` in `server/src/core/content/quests.ts` in `QUEST_ORDER`): named steps (saved by
+  name) and what each gives (items, flags, lore ids), no lines. Lore entries are one table by id
+  (`server/src/core/content/lore.ts`). An NPC's own file (`server/src/core/npcs/<id>.ts`) holds where it stands and what
+  it says: its stops (a region and a spot in its tiles, with a condition on the story), each with its lines by the story
+  (a quest's step, a quest that can start or is done, a flag) and what they offer. The server places each NPC per player
+  at its first stop that holds (two players may see it in different places), and it says the first lines there that
+  hold. One engine (`server/src/core/game/story.ts`) checks the conditions and applies the effects for quests and NPCs
+  alike.
 - The questbook is always yours (not a bag item, never lost), its own screen on H (a general key, so it opens in
   the arena too; the agent's pick: it was J, journal, until the sword's aim grid took J). It has two halves:
   the main quest
@@ -764,7 +765,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   stops it, nothing eaten. Of damage, only a hit stops it: a burn's damage over time doesn't.
 - Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
   8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
-  the Kobold blade's 14 damage. Numbers: `WEAPONS` in `shared/src/weapons/weapons.ts`.
+  the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS` (`shared/src/items/items.ts`).
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight
@@ -1089,13 +1090,13 @@ them; treat them as changeable, and still ask before deciding new ones):
   (gather 2 boar hides, then hand them to him: 2 boar meat and the lore entry "Avatars") and then "Where You Woke"
   (slay 3 wild boars, then go back to him: he tells you about the summoning pads, gives 3 boar meat and the lore entry
   "The summoning pads", sets the flag `hollis-to-mistwood`, and says "meet me in the Mistwood"; then he moves on,
-  below). Numbers and words are in `server/src/core/content/quests.ts`, `content/lore.ts` and
-  `npcs/hollis.ts`, for the user to edit. A won fight counts every enemy in it, for each winner; a kill step counts
-  only kills after it began, and a talk, a fight or a handover does one step at most. A reward that doesn't fit in the
-  bag is left in a pile at your feet. An NPC offers one thing at most, the offer of the lines it says (the order in
-  its file decides). Going on past the last line (Enter, E or a click) takes the offer, as Accept does; Esc or Not now
-  leaves it. Quests can't be abandoned. The questbook opens over the world like Settings: you stand still while it's
-  open (the world, a fight too, goes on), and J, Esc or its × close it; a change of mode closes it.
+  below). Numbers and words are in `server/src/core/npcs/hollis.ts` and `content/lore.ts`, for the user to edit. A won
+  fight counts every enemy in it, for each winner; a kill step counts only kills after it began, and a talk, a fight or
+  a handover does one step at most. A reward that doesn't fit in the bag is left in a pile at your feet. An NPC offers
+  one thing at most, the offer of the lines it says (the order in its file decides). Going on past the last line (Enter,
+  E or a click) takes the offer, as Accept does; Esc or Not now leaves it. Quests can't be abandoned. The questbook
+  opens over the world like Settings: you stand still while it's open (the world, a fight too, goes on), and J, Esc or
+  its × close it; a change of mode closes it.
 - The admin panel's Complete current quest (the user: "a complete current quest button so i can speedrun"; overworld
   only): it finishes every step left of the first main quest in progress, else the first side quest in progress, as
   if done (rewards and flags given; a handover takes the items if you have them, else nothing). With none in

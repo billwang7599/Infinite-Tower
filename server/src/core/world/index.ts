@@ -1,4 +1,4 @@
-import type { ArenaDef, Vec2 } from "@infinite-tower/shared";
+import type { ArenaDef, Rect, Vec2 } from "@infinite-tower/shared";
 import { GRASS_FIELD_ARENA, KOBOLD_RUINS_ARENA, QUARRY_ARENA, WARLOCK_MIRE_ARENA } from "./arenas.js";
 import type { Region } from "./region.js";
 import { CASTLE_WARD } from "./regions/castle-ward.js";
@@ -36,6 +36,8 @@ export function inRegion(id: string, at: Vec2): Vec2 {
   if (!def) throw new Error(`Unknown region "${id}"`);
   return toWorld(def.origin, at);
 }
+
+export const regionRect = (id: string, area: Rect): Rect => ({ ...area, ...inRegion(id, area) });
 
 export function getArena(id: string): ArenaDef {
   const arena = ARENAS[id];
