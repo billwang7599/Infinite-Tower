@@ -36,13 +36,13 @@ const UNAIMED = "tb";
 export function readSword(t: SwordTurn): void {
   const { player, input, wielder, weapon, dt } = t, swing = wielder.swing;
   const locked = swing !== null && swing.step < swing.liveUntil;
-  const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.attackHeld;
+  const attackPressed = weapon !== null && input.attack !== null && input.attack !== player.last.attack;
   player.way = weapon ? input.way : null;
   if (attackPressed) {
     player.queued = input.attack;
     player.attackBuffer = PLAYER.inputBuffer;
   } else if (!locked) player.attackBuffer = Math.max(0, player.attackBuffer - dt);
-  const blockPressed = input.block && !player.blockHeld;
+  const blockPressed = input.block && !player.last.block;
   const feint = blockPressed && !t.stunned && player.action === "attack" && swing?.attack === "heavy"
     && swing.step <= lastFeintStep(swing.liveAt) && t.stamina.value > 0;
   if (blockPressed) {
@@ -54,8 +54,6 @@ export function readSword(t: SwordTurn): void {
     player.perfectBlockLeft = Math.max(0, player.perfectBlockLeft - dt);
     player.sinceBlockPress += dt;
   }
-  player.attackHeld = input.attack;
-  player.blockHeld = input.block;
   if (wielder.combo !== null) {
     wielder.comboTime -= dt;
     if (wielder.comboTime <= 0) endChain(wielder);

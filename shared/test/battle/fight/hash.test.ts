@@ -80,7 +80,7 @@ describe("a fight's hash", () => {
       ["a buffered press", (f) => { f.world.require(f.players[0]!, Player).dodgeBuffer += 0.05; }],
       ["a held block", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.blockHeld = !p.blockHeld;
+        p.last = { ...p.last, block: !p.last.block };
       }],
       ["a swing's way", (f) => { f.world.require(f.players[0]!, Wielder).swing = { ...SWING, way: "brtl" }; }],
       ["the chain's last swing", (f) => { f.world.require(f.players[0]!, Wielder).combo = "lr"; }],
@@ -96,7 +96,7 @@ describe("a fight's hash", () => {
       }],
       ["a held button", (f) => {
         const p = f.world.require(f.players[0]!, Player);
-        p.attackHeld = p.attackHeld ? null : "heavy";
+        p.last = { ...p.last, attack: p.last.attack ? null : "heavy" };
       }],
       ["a held block key", (f) => {
         const i = f.world.require(f.players[0]!, PlayerInput);
