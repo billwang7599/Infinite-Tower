@@ -846,6 +846,10 @@ them; treat them as changeable, and still ask before deciding new ones):
   (`CHUNK_DROP_TILES`, `shared/src/world/chunks.ts`), the server forgetting them by the same rule to send them again.
   A chunk is drawn once it and its eight neighbours are here; built ones past 78 tiles (`DROPPED_TILES`) are thrown
   away. Dying sends your pad's chunks at once, and they're built while the result shows.
+- Sleeping parts of the world (the agent's picks, tested by unit tests only): a monster further than 40 tiles from
+  every walking player (`AWAKE_TILES`, twice the view's radius, `server/src/core/overworld/sleep.ts`) stands still:
+  no wandering, noticing or chasing, until one comes within reach. A player in a fight doesn't keep anything awake.
+  Respawn timers still run while asleep. Checked 4 times a second.
 - Regions: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field, the Mistwood and the Old Quarry,
   on one map (One open world, above; the layout under it, below). Dying wakes you on your pad, at once. Mistwood reuses
   the Grass Field's enemies (boars, the Kobold, the Warlock) and the mire arena.

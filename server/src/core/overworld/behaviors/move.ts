@@ -2,6 +2,7 @@
 import { moveWalker, type System } from "@infinite-tower/shared";
 import { OverworldActor, OverworldPos, type OverworldActorData } from "../components.js";
 import type { OverworldContext } from "../context.js";
+import { Asleep } from "../sleep.js";
 
 /** Set the actor walking along (dx, dz), `dist` long, at `speed` tiles/s. */
 export function steerToward(actor: OverworldActorData, dx: number, dz: number, dist: number, speed: number): void {
@@ -16,7 +17,8 @@ export function faceToward(actor: OverworldActorData, dx: number): void {
 
 export function moveSystem(ctx: OverworldContext): System {
   return (world, dt) => {
-    for (const [, pos, actor] of world.query(OverworldPos, OverworldActor)) {
+    for (const [e, pos, actor] of world.query(OverworldPos, OverworldActor)) {
+      if (world.has(e, Asleep)) continue;
       moveWalker(ctx.map.layout, pos, actor.vx * dt, actor.vz * dt);
       faceToward(actor, actor.vx);
     }

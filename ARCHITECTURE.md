@@ -1256,7 +1256,9 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                        turning the heading with faceToward, grass encounters per player by the region they're
                        in, nearestHuntablePlayer),
                        spawner.ts (each spawn an enemy's overworld actor; one taken into a fight comes back
-                       respawnTime after it's decided)
+                       respawnTime after it's decided), sleep.ts (sleepSystem, run first: an actor further than
+                       AWAKE_TILES from every walking player is Asleep, and wander, chase and move skip it, so the
+                       overworld's cost goes with its players, not the world's size; worked out 4 times a second)
         behaviors/       wander, chase (notice -> "!" -> chase), touch (encounter on touch), move (moveWalker)
       world/           The one world, its regions and the arenas fights happen in. region.ts (RegionDef: a region
                        written in its own tiles, centred on 0, 0, with its `origin` in the world, its `fill` (the
@@ -1941,6 +1943,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |
 | Regions: map, where each lies, spawns, encounter tables, campfires, arena size, which arena each spawn fights in; the roads between; the margin round the world | `server/src/core/world/regions/`, `ROADS` in `roads.ts`, `WORLD_MARGIN_TILES` in `world.ts` |
 | Chunks: how far round you they're sent, held, drawn, built ahead and kept built, the build budget, how fast the sky turns to the next region's | `CHUNK_SEND_TILES`, `CHUNK_DROP_TILES` in `shared/src/world/chunks.ts`; `SHOWN_TILES`, `AHEAD_TILES`, `DROPPED_TILES`, `BUILD_BUDGET_MS`, `SKY_BLEND_RATE` in `client/src/visuals/overworld/chunks.ts`; `CHUNK_TILES` in `shared/src/world/layout.ts` |
+| How far from a walking player monsters stay awake | `AWAKE_TILES` in `server/src/core/overworld/sleep.ts` |
 | Where an NPC stands and what it says, by the story, and what it leaves where it moved on from; its name and look | `server/src/core/npcs/<id>.ts`; `client/src/visuals/npcs/<id>/look.ts` |
 | Quests: what each step asks (counts), what it gives (items, lore ids, flags), its questbook text and hint; lore entries | `server/src/core/content/quests.ts` (`QUESTS`), `server/src/core/content/lore.ts` (`LORE`) |
 | Which tiles block walking or roll encounters | `shared/src/world/tiles.ts` (`TILES`) |
