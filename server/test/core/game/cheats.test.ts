@@ -55,6 +55,7 @@ describe("on a production server", () => {
     const { session, link, saves } = startSession({ dev: false, saved: { vitals: { ...HURT } } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
     session.cheat({ kind: "invulnerable", on: true });
+    session.cheat({ kind: "keepInventory", on: true });
     session.cheat({ kind: "give", item: "boar-meat", count: 3 });
     session.cheat({ kind: "heal" });
     session.cheat({ kind: "completeQuest" });
@@ -124,6 +125,18 @@ describe("invulnerable", () => {
     const hp = myHp(session);
     standStill(session, IDLE_TIME);
     assert.equal(myHp(session), hp);
+  });
+});
+
+describe("keepInventory", () => {
+  test("is said back and isn't saved, in the overworld or a fight", () => {
+    const { session, link, saves } = startSession({ dev: true });
+    session.cheat({ kind: "keepInventory", on: true });
+    assert.equal(link.last("keepInventory").on, true);
+    assert.equal(saves.length, 0);
+    fightBoar(session);
+    session.cheat({ kind: "keepInventory", on: false });
+    assert.equal(link.last("keepInventory").on, false);
   });
 });
 

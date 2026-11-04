@@ -107,10 +107,10 @@ export interface SettingsScreenState {
   open: boolean;
 }
 
-/** `invulnerable` is the server's say. */
 export interface AdminState {
   open: boolean;
   invulnerable: boolean;
+  keepInventory: boolean;
 }
 
 export interface PingState {
@@ -189,7 +189,7 @@ export class UiState {
   /** The notices in the corner; game code reaches them through `say`. */
   readonly notifications = new Notifications();
   readonly settingsScreen = new Store<SettingsScreenState>({ open: false });
-  readonly admin = new Store<AdminState>({ open: false, invulnerable: false });
+  readonly admin = new Store<AdminState>({ open: false, invulnerable: false, keepInventory: false });
   readonly ping = new Store<PingState>({ ms: null });
   readonly creation = new Store<CreationState>({ open: false });
   readonly panel = new Store<PanelState>({ open: null, widthPx: 0 });

@@ -128,7 +128,8 @@ Decided by the user:
 - Login is username + password for now (email / OAuth maybe later). No guest play: you log in to play. The dev
   database is seeded with the accounts test1, test2, test3 and user (password = username).
 - Settings (key bindings, camera, volumes) live on the server with the player's save and come down in `welcome`; the
-  client keeps them in memory and sends each change back. Nothing is kept in localStorage.
+  client keeps them in memory and sends each change back. Nothing is kept in localStorage but the dev admin panel's
+  own settings (below).
 - Combat is two parts: gear (weapons, physical combat) and skills. Skills are the grammar (a Form, elements,
   modifiers), for making magic, enhancing yourself or anything else; nothing about them is magic-specific (they were
   called spells). The skillbook only stores built skills.
@@ -332,7 +333,8 @@ Decided by the user:
 - Dying is hardcore: all you carry drops where you fell (above), for anyone to take. The skillbook's pages are kept
   (the user: the saved spells survive death). The core loses the fill inside its step, or with none, a whole step
   (the core, below); the words and the story are kept. The starter kit (every word and weapon, kept on death) is gone:
-  players saved with it keep what they carry until they lose it.
+  players saved with it keep what they carry until they lose it. On a dev server the admin panel's Keep inventory, on
+  by default, keeps what you carry (below).
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, the three coins, and one
   thing for each new slot (a canvas backpack, a wool cap, a leather belt, a copper ring, a braided bracelet and a
@@ -480,7 +482,14 @@ Decided by the user:
   the session's, as in the overworld. Kill enemy (the user: "an insta kill the enemy button"; also F2, dev only, in
   the arena's keys) drops every enemy in the fight to its least HP at once (0, or a spar's yield), so it's won the
   usual way: the result, the win counted, the drops, the quests' kills. It does nothing in a duel. The fights, faith,
-  completing a quest and resetting the save are overworld only (the panel greys them out in a fight).
+  completing a quest and resetting the save are overworld only (the panel greys them out in a fight). Keep inventory
+  (the user: "cheat mode have keep inventory on"), on by default: a death, a mid-fight disconnect too, drops nothing
+  (the bag, every slot and the backpack with all in it stay on you, no pile); the rest of dying is as ever. Like
+  invulnerability it lasts the connection on the server and works mid-fight. The panel's settings are kept in the
+  browser (the user: "save cheats to localhost so i dont have to do the settings everytime"): invulnerability, keep
+  inventory, the day's speed and the give count, under one localStorage key, and on every join (a reconnect too) the
+  client sends the toggles again and sets the day's speed, so they hold without opening F1. One-shots (a time of day,
+  give, heal, a core step, kill, a fight, a quest, faith, reset) aren't kept. Production builds never send them.
 - Dev servers simulate a network ping on the game socket, half each way and in order, so the netcode can be felt
   locally: `DEV_PING_MS` in `.env` (any whole number of ms, 50 if left out), or `?ping=N` on the page for one tab.
   Production never delays.
@@ -1265,10 +1274,11 @@ npm run db:generate -- --name <what-changed>  # after editing server/src/db/sche
 docker compose -f compose.prod.yaml up -d --build  # hosting: the server + Postgres, on 127.0.0.1:8787 (README "Hosting")
 ```
 
-In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, heal, a core
-step up or down, completing the current quest, resetting your save, a fight with any enemy, killing the enemy you're
-fighting (F2 too), items into the bag, faith with a god. Mid-fight all but the fights, the quest, the reset and faith
-work.
+In the game on a dev server, F1 opens the admin panel: the time of day and its speed, invulnerability, keep inventory
+(on by default), heal, a core step up or down, completing the current quest, resetting your save, a fight with any
+enemy, killing the enemy you're fighting (F2 too), items into the bag, faith with a god. Mid-fight all but the fights,
+the quest, the reset and faith work. Its settings (the toggles, the day's speed, the give count) are kept in the
+browser and sent again on every join.
 
 Ports, the database's user and password, and `DATABASE_URL` come from `.env` (git-ignored; `npm run db:up` copies
 it from `.env.example` when it's missing). A new setting goes in `.env.example` with a working dev value and a
@@ -1323,8 +1333,9 @@ tests say what was agreed. Where tests go and how they're written:
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the
   last sounds played and the music track playing (nobody can hear a headless browser). F1 opens the admin panel
-  (`#admin-panel`; `#admin-invulnerable`, `#admin-heal`, `#admin-step-up`, `#admin-step-down`,
-  `#admin-complete-quest`, `#admin-reset-save`, `#admin-kill`). The HUD's card is `#core-card` (a click turns it;
+  (`#admin-panel`; `#admin-invulnerable`, `#admin-keep-inventory`, `#admin-heal`, `#admin-step-up`,
+  `#admin-step-down`, `#admin-complete-quest`, `#admin-reset-save`, `#admin-kill`). Keep inventory is on by default in
+  dev: turn it off to see a death drop. The HUD's card is `#core-card` (a click turns it;
   `data-face` is `portrait` or `core`), its sphere the canvas `#core-sphere`. A new account has no character: make one
   first. Skip this when the user says it isn't needed.
 - The docs above match what you changed.

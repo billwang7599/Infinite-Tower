@@ -46,6 +46,7 @@ export function hear({ net, welcome }: Joined, ui: UiState): void {
   net.on("healed", () => say(ui.notifications, { kind: "healed" }));
   net.on("given", ({ item, count, left }) => say(ui.notifications, { kind: "given", item, count, left }));
   net.on("invulnerable", (msg) => ui.admin.set({ invulnerable: msg.on }));
+  net.on("keepInventory", (msg) => ui.admin.set({ keepInventory: msg.on }));
   net.on("noQuest", () => say(ui.notifications, { kind: "noQuest" }));
   net.on("skillbook", (msg) => ui.skills.set({ book: msg.skillbook }));
 }

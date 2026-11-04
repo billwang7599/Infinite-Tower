@@ -7,6 +7,7 @@ import type { Overworld } from "../modes/overworld/overworld.js";
 import type { Joined, Net } from "../net/net.js";
 import { restoreSettings, syncSettings, type Settings } from "../settings/settings.js";
 import { say } from "../ui/notifications/say.js";
+import { applySavedCheats } from "../ui/screens/admin/admin.js";
 import { NO_CHANT } from "../ui/skills/chant.js";
 import { whoHasTheKeys, type GameRequests, type UiState } from "../ui/state.js";
 import type { Drawing } from "../visuals/visuals.js";
@@ -162,6 +163,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
         if (mode === "battle" && !transition) transition = startTransition("overworld");
       });
       setMode("overworld");
+      if (import.meta.env.DEV && joined.welcome.dev) {
+        applySavedCheats(localStorage, (cheat) => joined.net.send({ t: "cheat", cheat }), drawing.setDayClock);
+      }
       lastFrameMs = performance.now();
       frameRequest = requestAnimationFrame(loop);
       exposeDebugHandles({

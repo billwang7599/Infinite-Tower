@@ -72,8 +72,8 @@ export class GameSession {
   shopsBought: ShopId[];
   pad: string;
   faith: Faith;
-  /** A dev cheat for this connection: not saved. */
   invulnerable = false;
+  keepInventory = false;
   private held: Gear;
   private soul: CoreState;
   private readonly knownWords: Word[];

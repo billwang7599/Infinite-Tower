@@ -407,7 +407,8 @@ main.ts
   beside where it fell, toward the arena's middle (`dropSpot`), and the arena closes `AFTER_FIGHT_MS` after the win (by
   the wall clock). A player's loss (down, leaving mid-fight or the time limit) puts all they lose into a pile where the
   server's fight has them (`dropWhereFell`), seen and opened only once the fight is won, as the enemy's; a room closed
-  on a loss lands it at once. While a session is in it (`afterFight`), its tick follows its open pile, sends
+  on a loss lands it at once. With the dev cheat `keepInventory` on (`GameSession.keepInventory`) nothing is lost.
+  While a session is in it (`afterFight`), its tick follows its open pile, sends
   `arenaDrops` whenever the piles change (`arenaPiles` drops the emptied ones), and once the time is up leaves the arena
   for the player and sends `arenaClosed`. `openPile` there opens the pile the player is looking at
   (`arenaPileInView`: `inViewWithSlack` from where the server's fight has them, along the aim of the last input it
@@ -677,7 +678,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `joinBattle` | Interact or the HUD's "Join the fight" by a player in a battle |
 | `chat {text}` | Enter in the chat: a line said (trimmed, not empty; the server stamps the name) |
 | `statPoint {stat, add}` | the character panel's + / −: place a free point in a shown stat (outside fights), or take one back (by a campfire too); answered with `core` either way |
-| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `give` an item and count, `heal`, `coreStep` up or down (these three in a fight too), `kill` every enemy in the fight (fight only; F2 too), `completeQuest` (overworld only), `faith` with a god (overworld only), `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
+| `cheat {cheat}` | dev server only (production ignores it), from the admin panel (F1): `encounter` a fight against an enemy, `invulnerable` on / off, `keepInventory` on / off (a death or a mid-fight disconnect drops nothing; also sent again on every join from the browser's saved panel settings), `give` an item and count, `heal`, `coreStep` up or down (these three in a fight too), `kill` every enemy in the fight (fight only; F2 too), `completeQuest` (overworld only), `faith` with a god (overworld only), `resetSave` (overworld only; the socket is then closed with `saveReset` and the client joins again) |
 
 | Server -> client | When |
 |---|---|
@@ -704,7 +705,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `core` | the core changed outside a fight (essence absorbed, a point placed or taken back, the admin's step), or a point was refused: the core, HP / stamina, and whether it broke through |
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
-| `healed`, `given`, `invulnerable`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability now on or off, no quest left to complete |
+| `healed`, `given`, `invulnerable`, `keepInventory`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability or keep inventory now on or off, no quest left to complete |
 | `gear` | your bag, backpack grid (`pack`), cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if in the world, or null) |
@@ -887,7 +888,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   page written in the fight saved with its result, kept through a death); and the input timeline (changes held, late
   presses and casts kept, a late change and an on-time one in one message, too far ahead dropped, a silent player
   stopping, lateness, the latest of late chant words kept). The dev cheats: each ignored in production, and
-  invulnerability, a heal and a give mid-fight reaching the fight and the client (a give kept by the win); a heal and a
+  keep inventory said back and not saved, invulnerability, a heal and a give mid-fight reaching the fight and the
+  client (a give kept by the win); a heal and a
   give in the arena after a win; kill winning the fight as any win (the result, the win, the drops); completing the
   current quest (main first, its
   rewards, clicks walking the main story); resetting the save (a new player's with the character and settings, nothing
@@ -971,7 +973,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`arenaClosed`), and a disconnect there being no loss. Death drops (`death-drops.test.ts`): all from the bag and
   hands, alone landing at the fight's spot at once (a disconnect and the time limit alike, its `PILE_LIFETIME_MS` from
   then), with others fighting on lying where you fell, not openable mid-fight, then taken from after the win, the
-  arena's piles landing as one, everyone down landing it all, and a duel dropping nothing. The training yard
+  arena's piles landing as one, everyone down landing it all, and a duel dropping nothing; with keep inventory on,
+  nothing dropped by a death, alone or with others, or a disconnect, the backpack and its contents kept, and refused
+  in production. The training yard
   (`training.test.ts`): the herald sending a new avatar to Bram, the old stick given once (at once when the quest is
   taken from him), the dummy and spar fights started only from his talk, unjoinable, costing nothing won or lost, and
   moving the quest only when won. Highmere (`kingdom.test.ts`): the Castle Ward the start, its pad, its herald and King
@@ -1013,7 +1017,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   server; after a win that keeps the arena open, still sending and checking), the leave popup's keys (the leave key
   again leaves, Esc stays) and pace (real time's steps, catching up after a stall, a backlog dropped, ahead when late
   and back when early, lateness it caused itself not made up twice, a stall's silence not taken for lateness, old news
-  ignored), the title's sequence timing, the ping (its average, stale
+  ignored), the admin panel's saved settings (`ui/screens/admin/admin.test.ts`: keep inventory on by default, bad JSON
+  or another version giving the defaults, the toggles kept but no one-shot, all sent again on joining), the title's
+  sequence timing, the ping (its average, stale
   pongs) and its readout, character creation's steps and rows, the chant's carousel (what the next square takes, known
   words only, why one doesn't fit, the search, a kind then its word by number (a shut kind's number and a word that
   doesn't fit doing nothing), Backspace out of a kind or off the last word, words into a skill and
@@ -1583,8 +1589,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          close it), tally.ts (tallyText: a step's "1 / 3", items counted in the bag)
         admin/           AdminPanel.tsx (dev only, F1 toggles, Esc closes: the cheats, a core step up or down among
                          them, those that can't work mid-fight greyed out; F2 kills the enemy; the time of day and its
-                         speed set through `setDayClock`), admin.ts (its times, speeds and
-                         counts)
+                         speed set through `setDayClock`), admin.ts (its times, speeds and counts; its settings kept
+                         in localStorage under one versioned key, CHEATS_KEY: the toggles, the day's speed and the give
+                         count, loadCheats tolerating bad JSON, rememberCheat keeping only the toggles, and
+                         applySavedCheats, which game.ts runs on every join to a dev server in a dev build)
         settings/        SettingsScreen.tsx (Esc toggles, Show ping, Return to title), CameraSection.tsx
                          (camera and flick sensitivity, Auto mouse lock), AudioSection.tsx (the four volume
                          sliders), KeyBindingsList.tsx (rebinding), styles.ts (a setting's row)
@@ -2098,7 +2106,8 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   modes that have it.
 - **A cheat** (dev only). A case in `CheatSchema` (`shared/src/net/client-messages.ts`), its branch in `runCheat`
   (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
-  and a button in `client/src/ui/screens/admin/AdminPanel.tsx`.
+  and a button in `client/src/ui/screens/admin/AdminPanel.tsx`. A setting rather than a one-shot also goes in
+  `admin.ts`'s `TOGGLES` and `SavedCheats`, so it's kept in the browser and sent again on every join.
 - **Something the game says to the player.** A case in `GameEvent` (`client/src/ui/notifications/say.ts`) and its
   entry in `EVENT_MESSAGES` (TypeScript errors until you add it), its lines, each a corner notice; long wording gets
   its own file there, like battleResult.ts. Game code calls `say(ui.notifications, { kind: ... })`. Test the words in

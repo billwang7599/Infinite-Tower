@@ -177,6 +177,7 @@ export type ServerMsg =
   | { t: "healed"; vitals: Vitals }
   | { t: "given"; item: ItemId; count: number; left: number; gear: Gear }
   | { t: "invulnerable"; on: boolean }
+  | { t: "keepInventory"; on: boolean }
   | { t: "noQuest" }
   | { t: "skillbook"; skillbook: Skillbook }
   /** Sent while you're still in the arena. `lost`: what a death dropped. `afterFightMs`: how long the arena

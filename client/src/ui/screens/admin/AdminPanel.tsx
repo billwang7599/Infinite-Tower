@@ -7,7 +7,7 @@ import { GOD_NAMES } from "../../hud/blessings.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
 import { useStore } from "../../useStore.js";
-import { DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS } from "./admin.js";
+import { DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS, loadCheats, rememberCheat, saveCheats } from "./admin.js";
 
 const CHIP =
   "cursor-pointer rounded-sm border border-bone/20 px-2 py-0.5 enabled:hover:border-bone/50 "
@@ -18,11 +18,15 @@ export function AdminPanel() {
   const { ui: { admin, screen, battle }, input, actions: { request, setDayClock } } = useGame();
   const mode = useStore(screen, (s) => s.mode);
   const againstEnemies = useStore(battle, (s) => s.result === "fighting" && !s.duel);
-  const cheat = (cheat: Cheat) => request({ t: "cheat", cheat });
+  const cheat = (cheat: Cheat) => {
+    rememberCheat(localStorage, cheat);
+    request({ t: "cheat", cheat });
+  };
   const open = useStore(admin, (s) => s.open);
   const invulnerable = useStore(admin, (s) => s.invulnerable);
-  const [speed, setSpeed] = useState<number>(1);
-  const [count, setCount] = useState<number>(1);
+  const keepInventory = useStore(admin, (s) => s.keepInventory);
+  const [speed, setSpeed] = useState(() => loadCheats(localStorage).daySpeed);
+  const [count, setCount] = useState(() => loadCheats(localStorage).giveCount);
 
   useAction(input, ["adminPanel", "closeAdmin"], (action, repeat) => {
     if (repeat) return false;
@@ -57,7 +61,7 @@ export function AdminPanel() {
       <Section title="Day speed">
         {DAY_SPEEDS.map((s) => (
           <button key={s} type="button" {...NO_FOCUS} className={s === speed ? CHIP_ON : CHIP}
-            onClick={() => { setSpeed(s); setDayClock({ speed: s }); }}>
+            onClick={() => { setSpeed(s); saveCheats(localStorage, { daySpeed: s }); setDayClock({ speed: s }); }}>
             {s}×
           </button>
         ))}
@@ -66,6 +70,10 @@ export function AdminPanel() {
         <button type="button" id="admin-invulnerable" {...NO_FOCUS} className={invulnerable ? CHIP_ON : CHIP}
           onClick={() => cheat({ kind: "invulnerable", on: !invulnerable })}>
           Invulnerable {invulnerable ? "on" : "off"}
+        </button>
+        <button type="button" id="admin-keep-inventory" {...NO_FOCUS} className={keepInventory ? CHIP_ON : CHIP}
+          onClick={() => cheat({ kind: "keepInventory", on: !keepInventory })}>
+          Keep inventory {keepInventory ? "on" : "off"}
         </button>
         <button type="button" id="admin-heal" {...NO_FOCUS} className={CHIP} onClick={() => cheat({ kind: "heal" })}>
           Heal
@@ -115,7 +123,7 @@ export function AdminPanel() {
       <Section title="Give">
         {GIVE_COUNTS.map((c) => (
           <button key={c} type="button" {...NO_FOCUS} className={c === count ? CHIP_ON : CHIP}
-            onClick={() => setCount(c)}>
+            onClick={() => { setCount(c); saveCheats(localStorage, { giveCount: c }); }}>
             ×{c}
           </button>
         ))}
