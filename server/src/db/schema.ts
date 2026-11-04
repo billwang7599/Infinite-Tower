@@ -42,6 +42,7 @@ export const players = pgTable("players", {
   bag: jsonb("inventory").$type<Bag>().notNull(),
   /** The worn backpack's grid; none (no cells) for saves from before it. */
   pack: jsonb().$type<Bag>().notNull().default(packFor(null)),
+  quiver: jsonb().$type<Bag>().notNull().default(packFor(null)),
   equipment: jsonb().$type<Equipment>().notNull().default(emptyEquipment()),
   knownWords: text("known_words").array().notNull().default([]),
   skillbook: jsonb().$type<Skillbook>().notNull().default(blankSkillbook()),

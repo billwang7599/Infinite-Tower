@@ -1,5 +1,5 @@
 import {
-  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, WEAPONS, type BlessingGod,
+  coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, twoHanded, WEAPONS, type BlessingGod,
   type ChallengeNews, type CoinId, type CoreState, type Faith, type God, type ItemCounts, type ItemId,
   type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
 } from "@infinite-tower/shared";
@@ -16,6 +16,7 @@ export type GameEvent =
   | { kind: "padBound"; already: boolean }
   | { kind: "itemUsed"; item: ItemId }
   | { kind: "tooWeak"; item: WeaponId }
+  | { kind: "noHands"; item: ItemId; displaced: ItemId }
   | { kind: "leftOnCloth"; items: ItemCounts }
   | { kind: "given"; item: ItemId; count: number; left: number }
   | { kind: "healed" }
@@ -43,6 +44,7 @@ export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K
   padBound:     ({ already }) => [already ? PAD_ALREADY : PAD_BOUND],
   itemUsed:     ({ item }) => [itemUsedLine(item)],
   tooWeak:      ({ item }) => [tooWeakLine(item)],
+  noHands:      noHandsLines,
   leftOnCloth:  ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`],
   given:        givenLines,
   healed:       () => ["HP and stamina are restored."],
@@ -97,6 +99,13 @@ function itemUsedLine(item: ItemId): string {
 function tooWeakLine(item: WeaponId): string {
   const name = itemDef(item).name.toLowerCase();
   return `You aren't strong enough to wield the ${name}: it needs ${WEAPONS[item].minStrength} strength.`;
+}
+
+function noHandsLines({ item, displaced }: EventOf<"noHands">): string[] {
+  const bow = itemDef(twoHanded(item) ? item : displaced).name.toLowerCase();
+  const other = twoHanded(item) && displaced !== item;
+  const away = other ? `for the ${itemDef(displaced).name.toLowerCase()}` : "to put it away";
+  return [`The ${bow} takes both hands, and there's no room in the bag ${away}.`];
 }
 
 function givenLines({ item, count, left }: EventOf<"given">): string[] {

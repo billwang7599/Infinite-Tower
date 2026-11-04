@@ -123,18 +123,21 @@ describe("starting a battle", () => {
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, core: session.core, burden: "light",
-      gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: blankSkillbook(), seed: playerSeed,
+      gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: armed() }, book: blankSkillbook(),
+      seed: playerSeed,
       invulnerable: false, who: { name: session.name, character: session.character! }, blessings: [],
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
 
-  test("gives the fight the player's bag, backpack and what they wear (no sword in hand, no swinging)", () => {
-    const bookOnly: Equipment = { ...armed(), rightHand: null, back: "canvas-backpack" };
+  test("gives the fight the player's grids and what they wear (no sword in hand, no swinging)", () => {
+    const bookOnly: Equipment = { ...armed(), rightHand: null, back: "canvas-backpack", hip: "training-quiver" };
     const pack = addItem(packFor("canvas-backpack"), "wolf-fang", 3).bag;
-    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED, pack } });
+    const quiver = addItem(packFor("training-quiver"), "arrow", 7).bag;
+    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED, pack, quiver } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, pack, equipment: bookOnly });
+    const gear = { bag: CARRIED, pack, quiver, equipment: bookOnly };
+    assert.deepEqual(link.last("encounter").setup.players[0]!.gear, gear);
   });
 
   test("says how weighed down the player comes in (the fight applies it)", () => {

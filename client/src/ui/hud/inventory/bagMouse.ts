@@ -4,8 +4,8 @@
  * says what to ask the server for.
  */
 import {
-  canWield, fitsSlot, footprint, isWeapon, itemDef, moveGear, moveItem, stackIn, type BagItem, type Cell, type Gear,
-  type GearMove, type GridSpot, type ItemId, type Spot, type UseSpot, type WeaponId,
+  canWield, displacedBy, fitsSlot, footprint, isWeapon, itemDef, moveGear, moveItem, stackIn, type BagItem, type Cell,
+  type Gear, type GearMove, type GridSpot, type ItemId, type Spot, type UseSpot, type WeaponId,
 } from "@infinite-tower/shared";
 
 /** How far a press on an item moves before it's a drag rather than a click. */
@@ -104,7 +104,7 @@ export function pointerDown(m: BagMouse, gear: Gear, p: Pointer): BagMouse {
  */
 export function pointerUp(
   m: BagMouse, gear: Gear, p: Pointer, nowMs: number, strength: number,
-): { mouse: BagMouse; move: GearMove | null; tooWeak: WeaponId | null } {
+): { mouse: BagMouse; move: GearMove | null; tooWeak: WeaponId | null; noHands: NoHands | null } {
   const at = { ...m, pointer: p, press: null, drag: null };
   if (m.drag) {
     const to = landing({ ...m, pointer: p }, gear), item = m.drag.item;
@@ -114,11 +114,22 @@ export function pointerUp(
     const tooWeak = to?.in === "slot" && fitsSlot(item, to.slot) && isWeapon(item) && !canWield(item, strength);
     return {
       mouse: point({ ...at, selected: move?.to ?? m.drag.from }, after, p, nowMs), move, tooWeak: tooWeak ? item : null,
+      noHands: !move && to ? noHandsFor(gear, m.drag, to, strength) : null,
     };
   }
   const clicked = m.press && (same(m.press.stack, m.selected) ? null : m.press.stack);
   const mouse = point({ ...at, selected: m.press ? clicked : m.selected }, gear, p, nowMs);
-  return { mouse, move: null, tooWeak: null };
+  return { mouse, move: null, tooWeak: null, noHands: null };
+}
+
+export interface NoHands { item: ItemId; displaced: ItemId }
+
+function noHandsFor(gear: Gear, drag: Drag, to: Spot, strength: number): NoHands | null {
+  if (to.in !== "slot" || (to.slot !== "rightHand" && to.slot !== "leftHand")) return null;
+  const other = to.slot === "rightHand" ? "leftHand" : "rightHand";
+  const displaced = displacedBy(gear.equipment, drag.item, to.slot);
+  const freed = { ...gear, equipment: { ...gear.equipment, [other]: null } };
+  return displaced && moveGear(freed, drag.from, to, drag.turned, strength) ? { item: drag.item, displaced } : null;
 }
 
 /** Where the dragged item would land: its top-left kept inside the grid under it, or the slot. null over neither. */
@@ -184,11 +195,11 @@ function canUse(stack: BagItem, fullHp: boolean): boolean {
   return !!use && !(fullHp && use.effects.every((effect) => "healShare" in effect));
 }
 
-/** Not what's worn, nor what's on a pile: that's taken into the bag first. */
 export function itemToUse(m: BagMouse, gear: Gear, fullHp: boolean): UseSpot | null {
   const spot = m.drag ? null : m.selected;
   const s = stackAt(gear, spot);
-  if (!s || !spot || spot.in === "slot" || spot.in === "pile" || !canUse(s, fullHp)) return null;
+  if (!s || !spot || spot.in === "slot" || spot.in === "pile" || spot.in === "quiver") return null;
+  if (!canUse(s, fullHp)) return null;
   return { in: spot.in, x: spot.x, y: spot.y };
 }
 

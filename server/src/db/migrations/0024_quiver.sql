@@ -1,0 +1,2 @@
+ALTER TABLE "players" ALTER COLUMN "equipment" SET DEFAULT '{"rightHand":null,"leftHand":null,"cap":null,"head":null,"body":null,"legs":null,"boots":null,"belt":null,"back":null,"hip":null,"leftWrist":null,"rightWrist":null,"ring1":null,"ring2":null,"ring3":null,"ring4":null,"ring5":null,"capCosmetic":null,"headCosmetic":null,"bodyCosmetic":null,"legsCosmetic":null,"bootsCosmetic":null}'::jsonb;--> statement-breakpoint
+ALTER TABLE "players" ADD COLUMN "quiver" jsonb DEFAULT '{"cols":0,"rows":0,"items":[]}'::jsonb NOT NULL;

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, BASE_BAG, takeAt,
-  type Bag, type BagItem, type ItemId,
+  addItem, bagCounts, bagProblems, bagWeight, emptyBag, fits, footprint, itemAt, ITEMS, moveItem, BASE_BAG,
+  stackSizeIn, takeAt, type Bag, type BagItem, type ItemId,
 } from "@infinite-tower/shared";
 
 const MEAT_STACK = ITEMS["boar-meat"].stackSize;
@@ -265,6 +265,33 @@ describe("bagCounts", () => {
 
   test("an empty bag holds nothing", () => {
     assert.deepEqual(bagCounts(emptyBag()), {});
+  });
+});
+
+describe("a grid that holds one thing (a quiver's)", () => {
+  const holds = { item: "arrow", stackSize: 3 * ITEMS.arrow.stackSize } as const;
+  const quiver = (...items: BagItem[]): Bag => ({ cols: 1, rows: 1, items, holds });
+
+  test("only that thing fits in it", () => {
+    assert.equal(fits(quiver(), "arrow", { x: 0, y: 0 }, false), true);
+    assert.equal(fits(quiver(), "boar-meat", { x: 0, y: 0 }, false), false);
+    assert.deepEqual(addItem(frozen(quiver()), "boar-meat", 1), { bag: quiver(), left: 1 });
+  });
+
+  test("it stacks to the grid's own size, not the item's", () => {
+    assert.equal(stackSizeIn(quiver(), "arrow"), holds.stackSize);
+    assert.equal(stackSizeIn(emptyBag(), "arrow"), ITEMS.arrow.stackSize);
+    assert.deepEqual(addItem(frozen(quiver()), "arrow", holds.stackSize + 1), {
+      bag: quiver(stack("arrow", 0, 0, holds.stackSize)), left: 1,
+    });
+  });
+
+  test("its stack is topped up to its own size, and a bigger one is a problem only outside it", () => {
+    const full = holds.stackSize;
+    assert.deepEqual(bagProblems(quiver(stack("arrow", 0, 0, full))), []);
+    assert.equal(bagProblems(quiver(stack("arrow", 0, 0, full + 1))).length, 1);
+    assert.equal(bagProblems(quiver(stack("boar-meat", 0, 0))).length, 1);
+    assert.equal(bagProblems(bag(1, 1, stack("arrow", 0, 0, full))).length, 1);
   });
 });
 

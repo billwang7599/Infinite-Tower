@@ -23,9 +23,9 @@ import { PanelFrame } from "../PanelFrame.js";
 import { BagGrid, ItemPicture, ItemTooltip, Placed } from "./BagGrid.js";
 import {
   cancel, canDrop, doubleClick, hoveredStack, itemToUse, keepUp, NO_MOUSE, pointerDown, pointerMove, pointerUp,
-  rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type Pointer,
+  rightPress, selectedStack, tick, TOOLTIP_DELAY_MS, turnKey, type BagMouse, type NoHands, type Pointer,
 } from "./bagMouse.js";
-import { EquipmentSlots } from "./EquipmentSlots.js";
+import { EquipmentSlots, QuiverSlot } from "./EquipmentSlots.js";
 import { ShopColumn } from "./ShopColumn.js";
 import { CELL, INVENTORY_GAP_PX } from "./grid.js";
 import { effectsText, formatWeight, itemInfo, RARITY_TEXT } from "./itemInfo.js";
@@ -65,6 +65,7 @@ export function InventoryPanel(props: PanelProps) {
   const { useItem: use, moveItem: move, request } = actions;
   const openSkillbook = () => ui.skillbookScreen.set({ open: true });
   const tooWeak = (item: WeaponId) => say(ui.notifications, { kind: "tooWeak", item });
+  const noHands = (refused: NoHands) => say(ui.notifications, { kind: "noHands", ...refused });
   const stacked = stacksGrids(useStageSize());
   const strength = stats?.strength ?? 0;
   const settingsOpen = useStore(ui.settingsScreen, (s) => s.open);
@@ -144,10 +145,12 @@ export function InventoryPanel(props: PanelProps) {
   });
 
   const up = (p: Pointer) => {
-    const { mouse: next, move: moved, tooWeak: refused } = pointerUp(current(), gear, p, performance.now(), strength);
+    const { mouse: next, move: moved, tooWeak: weak, noHands: full } =
+      pointerUp(current(), gear, p, performance.now(), strength);
     set(next);
     send(moved);
-    if (refused) tooWeak(refused);
+    if (weak) tooWeak(weak);
+    else if (full) noHands(full);
   };
   const fits = canDrop(mouse, gear, strength);
   const { drag, pointer } = mouse;
@@ -188,6 +191,14 @@ export function InventoryPanel(props: PanelProps) {
               None on. Wear one on your back for more room.
             </p>
           )}
+        </Column>
+        <Column title="Quiver">
+          <div className="flex items-start gap-2">
+            <QuiverSlot gear={gear} mouse={mouse} fits={fits} area={area} />
+            {gear.quiver.cols > 0 && (
+              <BagGrid name="quiver" gear={gear} mouse={mouse} fits={fits} area={area("quiver")} />
+            )}
+          </div>
         </Column>
       </Row>
       {stats && <Weight gear={gear} stats={stats} />}
@@ -315,7 +326,7 @@ interface Carving {
 }
 
 function saleOf(selected: Spot | null, trade: Trading, request: GameRequests["request"]): ((stack: BagItem) => Sale | Carving | null) | null {
-  if (!selected || selected.in === "slot" || selected.in === "pile") return null;
+  if (!selected || selected.in === "slot" || selected.in === "pile" || selected.in === "quiver") return null;
   const at: UseSpot = { in: selected.in, x: selected.x, y: selected.y };
   return (stack) => {
     const def = itemDef(stack.item), carving = trade.shop.carving;
@@ -341,7 +352,7 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   if (!stack) {
     return (
       <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-bone/45 italic`}>
-        {gear.bag.items.length + gear.pack.items.length === 0
+        {gear.bag.items.length + gear.pack.items.length + gear.quiver.items.length === 0
           ? "Nothing in the bag yet. Boars sometimes drop things." : ""}
       </p>
     );

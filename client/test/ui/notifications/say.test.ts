@@ -83,6 +83,16 @@ describe("say", () => {
     assert.ok(line.includes(`${WEAPONS.greatsword.minStrength} strength`), line);
   });
 
+  test("a bow with no room to put the other hand's away is a notice naming both, or the bow alone", () => {
+    const to = new Notifications();
+    say(to, { kind: "noHands", item: "training-bow", displaced: "skillbook" });
+    say(to, { kind: "noHands", item: "sword", displaced: "training-bow" });
+    const [first = "", second = ""] = notices(to);
+    for (const line of [first, second]) assert.match(line, /Training bow takes both hands/i);
+    assert.match(first, /room in the bag for the skillbook/);
+    assert.match(second, /room in the bag to put it away/);
+  });
+
   test("a breakthrough is a notice naming the step the core reached", () => {
     const to = new Notifications(), core = { ...newCore(), steps: 1 };
     say(to, { kind: "breakthrough", core });

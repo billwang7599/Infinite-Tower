@@ -22,7 +22,7 @@ function run(
   quests: Quests, story: Story, effects: Effect[] = [], seen: Partial<Seen> & { bag?: Bag; pack?: Bag } = {},
 ) {
   const { bag = emptyBag(), pack = packFor(null), ...rest } = seen;
-  return unfold({ story, bag, pack }, effects, { ...SEEN, ...rest }, quests);
+  return unfold({ story, bag, pack, quiver: packFor(null) }, effects, { ...SEEN, ...rest }, quests);
 }
 
 describe("conditions", () => {
@@ -183,7 +183,8 @@ describe("steps the world meets", () => {
 
   test("with nothing done or counted, the story and the bag are the same objects", () => {
     const QUESTS = only({ kind: "kill", enemy: "wild-boar", count: 1 }), story = on("q", "s0"), bag = emptyBag();
-    const after = unfold({ story, bag, pack: packFor(null) }, [], { ...SEEN, killed: ["kobold-swordsman"] }, QUESTS);
+    const grids = { bag, pack: packFor(null), quiver: packFor(null) };
+    const after = unfold({ story, ...grids }, [], { ...SEEN, killed: ["kobold-swordsman"] }, QUESTS);
     assert.equal(after.story, story);
     assert.equal(after.bag, bag);
     assert.deepEqual(after.news, []);

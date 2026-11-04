@@ -189,7 +189,8 @@ main.ts
   crumbles over `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena
   (`Player.leftArena`) fades over `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are
   alpha-tested, and its shadow with it). What reads as HUD is drawn over the pixel art at full resolution, on a 2D
-  canvas of its own (`visuals/battle/overlay.ts`): your aim ring at the bottom centre and, while you aim, a crosshair
+  canvas of its own (`visuals/battle/overlay.ts`): your aim ring (or, with a bow in hand, its draw meter) at the bottom
+  centre and, while you aim, a crosshair
   at the centre; where the camera puts them each frame, the lock-on diamond and, over anyone but you, a chanter's
   words as a row of squares in front of it (`chantWords.ts`). The
   player's look is read from `ui.you`'s character and painted once
@@ -477,10 +478,13 @@ main.ts
   the same way, raising its hitbox exactly while it's live. Ending an action or an enemy state (`enter`) ends its swing
   (`endSwing`). The visuals draw the blade from the swing's steps and its way. What a kind does is data, `MOVES` in
   `shared/src/weapons/kinds.ts`: a melee kind (the sword) carries its hit shapes and timings, a ranged kind (the bow,
-  a placeholder: AGENTS.md's "Bows, a prep") its ammo, draw and projectile (`BOW` in `weapons/bow.ts`). The fight asks
-  `meleeOf` / `rangedOf`, never a kind's name: only a melee weapon swings or aims a way, and a ranged one in hand
-  turns the light attack into a draw while the input's `attackHeld` stays true (`fight/player/bow.ts`), loosing a
-  `Projectile` entity. `projectileSystem` (`fight/weapons/projectile.ts`, after the combat system) moves each by its
+  a placeholder: AGENTS.md's "Bows") its ammo, draw, nock times and projectile (`BOW` in `weapons/bow.ts`); a bow's
+  power is its item's (`powerMps`), and a kind in `TWO_HANDED` (`weapons.ts`) leaves the other hand empty (`moveGear`
+  sends it to the bag). The fight asks `meleeOf` / `rangedOf`, never a kind's name: only a melee weapon swings or aims
+  a way, and a ranged one in hand turns the light attack into a draw while the input's `attackHeld` stays true
+  (`fight/player/bow.ts`), loosing a `Projectile` entity at the draw's speed (`loosedSpeed`), at the lock-on target or,
+  with none, along the input's aim and `aimPitchRad`, the quiver's arrows first. `projectileSystem`
+  (`fight/weapons/projectile.ts`, after the combat system) moves each by its
   velocity and gravity and sweeps the step against every foe's upright cylinder (`Fighter.radius`, `heightM`), the
   floor and the wall, with plain math; one that meets a foe goes through `defend` with a `Shot` (where it came from,
   for the guard's facing) and else `land`s like a blade, and one in the floor or wall lies `stuckTime`. Projectiles
@@ -522,7 +526,8 @@ main.ts
   The bag works the same way: the bag screen open in a fight is the held input `bag` and the "bag" action (held
   still, broken off by a stun or a dodge; a page can be written from it with the book in hand), and a move in it is
   the pressed input `gear` (a `GearMove`), run with the shared `moveGear` on the fight's `gear` (the bag, the
-  backpack's grid and the equipment; no cloth). The `Wielder`'s hands follow the equipment, and the server settles the
+  backpack's and the quiver's grids and the equipment; no cloth). The `Wielder`'s hands follow the equipment, and the
+  server settles the
   battle with the fight's gear (and its HP).
 - **Shops** (`core/game/shop.ts`; their stock, what they buy and every price in `core/content/shops.ts`, server only):
   a keeper's talk offers `{ shop }`, and taking it (Trade, or going on past the last line) sends `openShop`; the session
@@ -537,7 +542,8 @@ main.ts
   The shop closes with the bag (`closeBag`, walking, a fight starting).
 - **An item kind is data made of components** (`ITEMS`, `shared/src/items/items.ts`): `consumable` (`verb`, `useTime`,
   `effects`), `wearable` (`on`: the slot kind, the use button's `verb` where it's worn, and `cosmetic` for a look worn
-  in the cosmetic slot over that piece) and `pack` (a backpack's own grid, cols × rows). They aren't ECS
+  in the cosmetic slot over that piece) and `pack` (a backpack's or a quiver's own grid, cols × rows; a quiver's
+  `holds` names the one item it takes and how many to a cell, kept on the grid as `Bag.holds`). They aren't ECS
   entities: a bag holds counts of item ids per cell. Every kind has a `rarity` (`RARITIES`, common to unique), set by
   hand, the same for every one of that kind; a sigil also names the `inscription` it carves. The bag screen draws a
   stack's name in its rarity's colour (tooltip, the selected item, the shop) and its cells with a tinted edge above
@@ -662,7 +668,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `rest` | Interact by a campfire (the server checks you're there) |
 | `bindPad` | Interact facing a summoning pad: bind to it (the server checks it's in reach and in view) |
 | `useItem {at}` | use the consumable in a bag, backpack or cloth cell `at` (`{in, x, y}`; not a pile's), on the overworld or in the arena after a win (mid-fight it's a `use` fight input); refused when it would do nothing (healing at full HP), while already using one, or for what isn't consumable |
-| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, backpack, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, the bag, the backpack and slots only) |
+| `moveItem {from, to, turned}` | moved what's at spot `from` (a bag, backpack, quiver, cloth or open pile's cell, or an equipment slot) to `to`: on a grid, its top-left there (overworld, or the arena after a win but for the cloth; shown at once; mid-fight it's a `gear` fight input, the bag, the backpack and slots only) |
 | `closeBag` | the bag screen closed: what's on the cloth is lost, an open pile and an open shop close |
 | `openShop` | Trade on a keeper's offer: open the shop of the NPC in view beside the bag |
 | `buy {item}` | buy one of what the open shop sells, paid in coins from the cloth, the bag and the backpack |
@@ -713,7 +719,7 @@ in. `net.onLost(fn)` hears a dropped socket (with a sentence for the title), `ne
 | `dialogue` | after a `talk`: the NPC's id, what it says, and an offer (a quest to take, or a handover) or null; `trace` if it's what the NPC left behind |
 | `questbook` | whenever the story changes: the questbook (`QuestView`s) and the news (a quest taken, a kill counted, a step done with what it gave) |
 | `healed`, `given`, `invulnerable`, `keepInventory`, `noQuest` | what a cheat did (dev): vitals refilled, items packed (and how many didn't fit), invulnerability or keep inventory now on or off, no quest left to complete |
-| `gear` | your bag, backpack grid (`pack`), cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
+| `gear` | your bag, backpack grid (`pack`), quiver grid (`quiver`), cloth, open pile and equipment after a `moveItem` (allowed or not), `openPile`, when the cloth is left behind, or when the open pile changes (another player took from it) or goes |
 | `skillbook` | the skillbook's pages after a `saveSkill` (written or not) |
 | `chat` | a line said by anyone online: `line` (the speaker's name, the text) and `speaker` (`"you"`, their id among `state`'s players if in the world, or null) |
 | `chatRefused` | your `chat` was dropped: `tooFast` or `tooLong` |
@@ -780,8 +786,9 @@ round trips to `net.onPing`, which puts it in `ui.ping`; `ui/hud/Ping.tsx` shows
 ## Saving
 
 What's kept between connections is a `PlayerSave` (`core/ports.ts`): HP / stamina, wins, settings, character, bag,
-the backpack's grid (`pack`, `0023_backpack`), equipment (items gone from the game, or in the wrong slot, are dropped
-on load, from the bag too; a bag or backpack grid of a size the game no longer has is laid out again on load,
+the backpack's grid (`pack`, `0023_backpack`), the quiver's (`quiver`, `0024_quiver`), equipment (items gone from the
+game, or in the wrong slot, are dropped on load, from the bag too, and the left hand's beside a two-handed weapon goes
+into the bag; a bag, backpack or quiver grid unlike the game's now is laid out again on load,
 `refitted`, a bag from before the backpack getting the starter one, and what fits in neither is dropped as a pile at
 the player's feet by `OnlinePlayers` and saved at once), the skill words they
 know (`knownWords`), the skillbook's 4 pages (`skillbook`, each a skill or null) and the story (`story`, one `jsonb`:
@@ -819,8 +826,9 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   (`soul/core.test.ts`: the ladder and its names, each step's fill, absorbing with breakthroughs and the rest carried,
   a whole core, each step's gains and points, placing and taking back, what a death takes, a saved core made right;
   `soul/inscriptions.test.ts`: the slots by step, carving with no doubles, Grit's stats, death keeping them),
-  essence absorbed (`items/using.test.ts`), the bag and the backpack (`items/gear.test.ts`: two grids apart, a
-  backpack on and off, stowing into and out of both, each slot and the cosmetics), and the arena fight run headless with
+  essence absorbed (`items/using.test.ts`), the bag, the backpack and the quiver (`items/gear.test.ts`: grids apart, a
+  backpack or a quiver on and off, only arrows in a quiver, stowing into and out of each, a bow taking both hands, each
+  slot and the cosmetics), and the arena fight run headless with
   enemies whose numbers the tests own (`shared/test/battle/fight/fixtures.ts`): the same inputs give the same fight
   byte for byte, gravity and the floor, the wall, shoving and passing through (a dead enemy by anyone), knockback,
   each way's reach and
@@ -855,9 +863,10 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   the four reactions, their order and cooldowns; Self per element (sword hits included); an invulnerable player
   taking no damage, its flag in the state and hash. A duel (`duel.test.ts`, and the sword's defences above): hits and
   Bolts player against player, the lock, and how it ends. `weapons/hybrid.test.ts` for the ways' rules;
-  `weapons/kinds.test.ts` for what each kind does and the bow's draw damage and heft. The bow (`player/bow.test.ts`:
-  held to draw, let go to loose one arrow from the bag, its cost, none without arrows, the least draw, damage by the
-  draw, no block while drawing, a dodge keeping the arrow, level unlocked and an arc to a locked target) and its
+  `weapons/kinds.test.ts` for what each kind does and the bow's draw damage, speed, nocking and heft. The bow
+  (`player/bow.test.ts`: held to draw, let go to loose one arrow, its cost, none without arrows, the least draw,
+  damage and speed by the draw, the nock from the quiver or the bag, the quiver's arrows first, no block while
+  drawing, a dodge keeping the arrow, aimed level, up and down unlocked and an arc to a locked target) and its
   arrows (`weapons/projectile.test.ts`: velocity and gravity step by step, the lifetime, stuck in the floor and the
   wall, the first foe hit once even at speed, over a short one, never its own side, a held block from in front and
   not behind, a perfect block, a dodge; exact through a save, and in the hash). Eating in a
@@ -1186,8 +1195,9 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                        aimed way, presses buffered, the perfect block's window, a heavy's feint; attackOrBlock: light
                        / heavy / stab
                        on the old momentum chains, the held block; a ranged weapon hands off to bow.ts), bow.ts
-                       (drawBow: the light attack held draws, let go looses an arrow from the bag, at the lock-on
-                       target or where you face; no block while drawing), use.ts (useSystem: a consumable used
+                       (drawBow: the light attack held draws, let go looses an arrow (the quiver's first) at the
+                       draw's speed, at the lock-on target or along the aim and its pitch; no block while drawing),
+                       use.ts (useSystem: a consumable used
                        once its useTime is up, stopped by a hit; takeCore: a new core's gains into the fighter at once)
       skills/          cast.ts (skillSystem: casts released and paid for, segments fired in turn and their modifiers,
                        the skill objects (Bolts, Beams, clouds, Imbues, Delays) stepped, a page written once
@@ -1218,16 +1228,21 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    drawn by client/src/gfx/look/; GENDERS (boy / girl: how the game refers to you, nothing else);
                    name rules)
   items/           items.ts (ITEMS: name, rarity, description, size in cells, stack size, weight, and its
-                   components: consumable, wearable, inscription (a sigil's), pack (a backpack's grid); each
+                   components: consumable, wearable, inscription (a sigil's), pack (a backpack's or a quiver's
+                   grid, a quiver's `holds` naming its AmmoId); each
                    monster's essence, absorbed in ABSORB_TIME; RARITIES, UNIQUE_ITEMS; ItemCounts = item id ->
-                   count), bag.ts (Bag: a grid of placed stacks; BASE_BAG, everyone's own bag's size;
+                   count), bag.ts (Bag: a grid of placed stacks, `holds` for one that takes only one item;
+                   BASE_BAG, everyone's own bag's size; stackSizeIn,
                    fits, addItem, moveItem, takeAt, takeItems, bagWeight, bagProblems: the rules both sides fit
                    items by),
-                   gear.ts (Gear: the bag, the worn backpack's grid (`pack`, packFor), the cloth (CLOTH), an open
+                   gear.ts (Gear: the bag, the worn backpack's grid (`pack`) and quiver's (`quiver`, both
+                   packFor), the cloth (CLOTH), an open
                    pile (NO_PILE for none) and the Equipment slots (SLOTS, what each takes, the cosmetic ones);
-                   Spot, UseSpot, moveGear between them (nothing onto a pile; a backpack off only empty), stow and
-                   unstow (into / out of the bag, then the backpack), gearWeight without the cloth or pile, heldIn,
-                   stowedCounts, carriedCounts), burden.ts (BURDEN, gearBurden: light / heavy / overloaded, and
+                   Spot, UseSpot, moveGear between them (nothing onto a pile; a backpack or quiver off only empty;
+                   into a hand, displacedBy: what a two-handed weapon sends from the other hand to the bag), stow
+                   and unstow (into / out of the quiver, the bag, then the backpack), gearWeight without the cloth
+                   or pile, heldIn, stowedCounts, carriedCounts), burden.ts (BURDEN, gearBurden: light / heavy /
+                   overloaded, and
                    what each does to walking and dodging), using.ts (startUse, stepUse, finishUse, applyEffects: a
                    consumable used from the bag, the same on the overworld and in a fight), coins.ts (COINS,
                    COIN_VALUE in copper, coinsFor: an amount in the fewest coins, formatPrice ("1g 20s 5c"),
@@ -1240,10 +1255,12 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    do in a fight, every number, Self's statuses and fusions; REACTIONS; shotOf: a segment's modifiers
                    applied in order)
   weapons/         weapons.ts (WEAPONS, the items' `weapon` components by item id, each of a WEAPON_KINDS kind, with its
-                   heft and minStrength; feltHeft, canWield, weaponIn, weaponItemIn; AttackKind, AttackSteps, HitShape),
+                   heft and minStrength, a bow's powerMps; feltHeft, canWield, twoHanded, weaponIn, weaponItemIn;
+                   AttackKind, AttackSteps, HitShape),
                    kinds.ts (MOVES: what each kind does, melee (its hit shapes and timings) or ranged; movesOf,
                    meleeOf, rangedOf, meleeIn: what the fight branches on), bow.ts (BOW: the bow's placeholder draw,
-                   ammo and projectile numbers; drawTime, drawCost, drawnShare, loosedDamage),
+                   nock, ammo and projectile numbers; drawTime, drawCost, drawnShare, loosedDamage, loosedSpeed,
+                   nockTime),
                    hybrid.ts (the sword's: SWING_DIRS and WAYS (the stab), STRIKES, mirrorWay, SCREEN_DIR; chainKind,
                    CHAIN, MOMENTUM; HYBRID (light, heavy, stab, the block and perfect block, the lunge); wayShape,
                    wayStepsAfter, strikeCost, strikeDamage, guardRaiseTime, perfectBlockTime)
@@ -1543,14 +1560,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        at most 30 times a second, for the card and the Core tab), inventory/ (the bag screen:
                        InventoryPanel.tsx lays out the equipment (or an open shop: ShopColumn.tsx, its stock, your
                        coins and changing them; at the Collegium your rings and Unmake), an open pile over the
-                       cloth, and the bag and the backpack side by side, in a row (in a window taller than it's wide,
+                       cloth, and the bag, the backpack and the quiver (its hip slot and its cell) side by side, in a
+                       row (in a window taller than it's wide,
                        the pile and the cloth below the other two), wires the mouse and the bag keys, and shows the
                        selected item (with Sell when a shop buys it, Carve for a sigil at the Collegium), the
                        dragged ghost and the tooltip;
                        BagGrid.tsx draws a grid (the bag, the backpack, the cloth or a pile) and its
                        hovered / selected / landing states, EquipmentSlots.tsx the slots (the worn ones 3 by 3, the
-                       wrists and rings, the cosmetics); bagMouse.ts holds those
-                       states as plain data, itemInfo.ts the tooltip's lines and the rarity colours' classes,
+                       wrists and rings, the cosmetics; QuiverSlot, the hip's, for the quiver's column); bagMouse.ts
+                       holds those states as plain data (and why a drop into a hand was refused: tooWeak, noHands),
+                       itemInfo.ts the tooltip's lines and the rarity colours' classes,
                        grid.ts the cell and slot sizes),
                        PanelFrame.tsx (the side panels'
                        box: it measures itself and shrinks to fit the view), layout.ts (fitPanel: where a side panel
@@ -1777,9 +1796,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
                          after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
-                         centre while you fight with a sword and a crosshair at the centre while you aim (aimHud,
-                         aimLayout, wedgeOf and ringLights: what shows where, the aimed way's wedge and a stab's
-                         mark; tested); where the camera puts them (onScreen: a world point's spot and pixels a
+                         centre while you fight with a sword, a bow's draw meter there instead (filling with the
+                         draw, marked at the least and the full draw), and a crosshair at the centre while you aim
+                         (aimHud, aimLayout, meterSpan, wedgeOf and ringLights: what shows where, the aimed way's
+                         wedge, a stab's mark and the share drawn; tested); where the camera puts them (onScreen: a
+                         world point's spot and pixels a
                          metre; tested), the lock-on's diamond (an octahedron's facets, turning) and other fighters'
                          chant words
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
@@ -2075,7 +2096,10 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   the player, its sprite poses). A ranged weapon's look adds `bow` (brace and draw) to its `WEAPON_LOOKS` row.
 - **A wearable or a backpack.** An item in `ITEMS` with `wearable: { on }` (the kind of slot; `cosmetic: true` for a
   look worn over that piece) and its bag picture (`client/src/gfx/items/items.ts`); a backpack also has `pack: { cols,
-  rows }`, the grid it brings. A new kind of slot is a name in `SLOTS` and its `SLOT_TAKES` (`shared/src/items/gear.ts`),
+  rows }`, the grid it brings, and a quiver `pack` with `holds: { item, stackSize }` (an `AmmoId`), worn at the hip.
+  A new worn grid is a `Gear` field, a `WORN_GRID` row and a place in `STOWED`'s order (`gear.ts`), a `GridName`, a
+  save column and a column in `InventoryPanel.tsx`. A new kind of slot is a name in `SLOTS` and its `SLOT_TAKES`
+  (`shared/src/items/gear.ts`),
   a `WornOn` (`items.ts`, with its words in `WORN_ON`, `itemInfo.ts`) and a place in `EquipmentSlots.tsx`'s layout;
   the save needs nothing (a missing slot loads empty).
 - **An enemy that wields a weapon.** `wielder` on its `EnemyDef` (`{ hands: { rightHand: "kobold-blade" },

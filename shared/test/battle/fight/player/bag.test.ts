@@ -82,7 +82,9 @@ describe("the bag in a fight", () => {
 
   test("things move between the bag and the backpack, and a full backpack stays on", () => {
     const pack = addItem(packFor("canvas-backpack"), "boar-meat", 1).bag;
-    const fight = alone({ bag: emptyBag(), pack, equipment: { ...armed(), back: "canvas-backpack" } });
+    const fight = alone({
+      bag: emptyBag(), pack, quiver: packFor(null), equipment: { ...armed(), back: "canvas-backpack" },
+    });
     run(fight, 0.3);
     moveInBag(fight, { from: { in: "slot", slot: "back" }, to: { in: "bag", x: 0, y: 0 }, turned: false });
     assert.equal(playerOf(fight).gear.equipment.back, "canvas-backpack");
@@ -101,7 +103,7 @@ describe("the bag in a fight", () => {
       players: [player(at(0, -4), {
         stats: { ...STATS, strength },
         gear: { bag: { ...emptyBag(), items: [{ item: "greatsword", count: 1, x: 0, y: 0, turned: false }] },
-          pack: packFor(null), equipment: { ...armed(), rightHand: null } },
+          pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: null } },
       })],
     });
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
@@ -151,7 +153,7 @@ describe("the bag in a fight", () => {
 
   test("the fight starts with the gear the player brings", () => {
     const bag: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 1, y: 1, turned: false }] };
-    const gear = { bag, pack: packFor(null), equipment: { ...armed(), rightHand: null } };
+    const gear = { bag, pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: null } };
     const fight = alone(gear);
     assert.deepEqual(playerOf(fight).gear, gear);
     assert.equal(handsOf(fight).rightHand, null);
@@ -198,11 +200,36 @@ describe("the bag in a fight", () => {
   });
 
   test("without the book in hand, no page is written from the bag", () => {
-    const fight = alone({ bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), leftHand: null } });
+    const fight = alone({
+      bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), leftHand: null },
+    });
     run(fight, 0.3);
     fight.step([BAG]);
     fight.step([input({ bag: true, write: { page: 1, skill: NOVA } })]);
     assert.equal(playerOf(fight).action, "bag");
+  });
+
+  test("a bow put in a hand sends the other hand's into the bag, and the hands hold only the bow", () => {
+    const bag = addItem(emptyBag(), "training-bow", 1).bag;
+    const fight = alone({
+      bag, pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: null },
+    });
+    run(fight, 0.3);
+    moveInBag(fight, { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false });
+    assert.deepEqual(handsOf(fight), { rightHand: "training-bow", leftHand: null });
+    assert.deepEqual(playerOf(fight).gear.bag.items.map((s) => s.item), ["skillbook"]);
+  });
+
+  test("arrows move from the bag into a worn quiver", () => {
+    const quiver = "training-quiver";
+    const fight = alone({
+      bag: addItem(emptyBag(), "arrow", 5).bag, pack: packFor(null), quiver: packFor(quiver),
+      equipment: { ...armed(), hip: quiver },
+    });
+    run(fight, 0.3);
+    moveInBag(fight, { from: { in: "bag", x: 0, y: 0 }, to: { in: "quiver", x: 0, y: 0 }, turned: false });
+    assert.deepEqual(playerOf(fight).gear.quiver.items, [{ item: "arrow", count: 5, x: 0, y: 0, turned: false }]);
+    assert.deepEqual(playerOf(fight).gear.bag.items, []);
   });
 
   test("the gear moved is part of the fight's state: saved, loaded and hashed", () => {

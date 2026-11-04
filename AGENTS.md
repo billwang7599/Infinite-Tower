@@ -249,8 +249,14 @@ Decided by the user:
   each major armor piece should also get a cosmetic slot too so that we can have cosmetics over it"): left and right
   hand, cap, head, body, legs, boots, belt, back (the backpack), two wrists (a bracelet each), five rings (one a finger
   of one hand), and a cosmetic slot over the cap, head, body, legs and boots. A cosmetic changes only how you look,
-  never stats. Weapons beyond the sword (bows) are a later change ("maybe prep for that"); the prep is built, as
-  placeholders only ("Bows, a prep" under Decided by the agent).
+  never stats. Bows (below) added a hip slot for a quiver.
+- Bows (the user: "when using bow and arrow, hold left click to drag arrow back. we should also show a draw string
+  meter instead of the ring when bow is equipped... (bow must be two handed weapon). we should also have a quiver
+  item. the quiver would help with capacity (arrow stacking), and reload speed... the arrow physics should be
+  influenced by bow power + aim + draw back."): the light attack held draws the string back and let go looses; with a
+  bow in hand a draw meter stands where the aim ring is; a bow takes both hands; a quiver holds arrows stacked far
+  higher than a bag cell and nocks them quicker; the arrow's flight comes from the bow's power, the aim and how far
+  it was drawn. How each works and every number are the agent's placeholders ("Bows" under Decided by the agent).
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -344,7 +350,8 @@ Decided by the user:
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, the three coins, and one
   thing for each new slot (a canvas backpack, a wool cap, a leather belt, a copper ring, a braided bracelet and a
-  feathered hat, a cosmetic). A training bow and arrows are placeholders, from the admin panel only ("Bows, a prep").
+  feathered hat, a cosmetic). A training bow, arrows and a training quiver are placeholders, from the admin panel only
+  ("Bows" under Decided by the agent).
 - Rarity and unique things (the user: "give items rarity"; "unique items must have user activity within 7 days";
   "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
   only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
@@ -720,7 +727,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
   - The aim ring: 7 faint wedges 48 px (the HUD's CSS pixels) round a point 176 px above the screen's bottom middle,
     clear of the foe's bar and its statuses, the aimed one cinnabar, and a cinnabar diamond in its middle while a stab
-    winds up; hidden with no sword in hand, once you're down and once the fight is decided. The crosshair is a small
+    winds up; hidden with no sword in hand (a bow's draw meter stands there instead: "Bows", below), once you're down
+    and once the fight is decided. The crosshair is a small
     bone cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any
     Form) or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`).
     A drawn bow's aim is the way from you to the first foe, the floor or the wall on the screen's centre line, on the
@@ -886,24 +894,47 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
   8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS` (`shared/src/items/items.ts`).
-- Bows, a prep (the user: "prep for future weapons (bows)", "make any assumptions you want as to not block me"):
-  **placeholder prep, not a rule.** How bows play is the user's to decide later; all of this is the agent's stand-in,
-  tried by tests and a headless browser, never hand-played, and every number is `BOW` in `shared/src/weapons/bow.ts`.
-  A weapon kind says what it does (`MOVES` in `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit
-  shapes and timings) or ranged (the bow: a draw, a loose, a projectile), and the fight branches on that, not on the
-  kind's name. The Training bow (1 x 3, length 1.2, 12 damage, heft 1, no least strength; two-handed in its look
-  only: the other hand isn't locked out) and the Arrow (1 x 1, stacks of 20, weight 0.05) come only from the admin
-  panel's give: no shop, drop or quest has them. With a bow in hand the light attack, held, draws it (8 stamina as it
-  starts, walking at half speed, no block; a dodge breaks it off and keeps the arrow), and let go looses one arrow
-  from the bag at the lock-on target, in the low arc that reaches it, or level the crosshair's way; a release before
-  0.25 s looses at 0.25 s. The damage grows with the draw, from 30% at once to the bow's whole damage at 1 s, and heft
-  stretches the draw and its cost as it does a swing's. The heavy and the stab do nothing with a bow. An arrow flies
-  at 30 m/s, falling at 9.8 m/s², for at most 3 s, and lands on the first foe in its way (poise 10) unless it's
-  dodging or in hurt invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina)
-  and a perfect block whole, the shooter far off not recoiling. In the floor or the wall it lies 2 s, then is gone.
-  The 3D person holds a bow in the left hand whichever hand's slot it's in, and carries and draws it held out to the
-  side, near upright, so the locked camera over the left shoulder sees all of it past the body and head; the arrow
-  is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only).
+- Bows (the user's rules above, building on the agent's earlier prep: "prep for future weapons (bows)", "make any
+  assumptions you want as to not block me"): **placeholders, every rule below the user's and every number.** All of it
+  is the agent's, tried by tests and a headless browser, never hand-played; the numbers are `BOW` in
+  `shared/src/weapons/bow.ts` and the items' data (`ITEMS`). A weapon kind says what it does (`MOVES` in
+  `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit shapes and timings) or ranged (the bow: a draw, a
+  loose, a projectile), and the fight branches on that, not on the kind's name. The Training bow (1 x 3, length 1.2,
+  12 damage, power 40 m/s, heft 1, no least strength), the Arrow (1 x 1, stacks of 20 in a bag cell, weight 0.05) and
+  the Training quiver (1 x 2, weight 0.5) come only from the admin panel's give: no shop, drop or quest has them.
+  - Two hands: a bow (the kinds in `TWO_HANDED`, `weapons/weapons.ts`) and anything else are never held together.
+    Whatever goes into a hand, if it or what the other hand holds is two-handed, sends the other hand's into the bag
+    (then the backpack); with no room there the move is refused, and a corner notice says what didn't fit. With a
+    bow in hand, then, there's no skillbook and no quick-casting. A save from before this with a bow beside something has the
+    left hand's laid out in the bag on load (at their feet if it fits nowhere).
+  - The quiver is worn at the hip, a slot of its own (`hip`), not the belt: the belt is a slot of the user's own, and
+    this way a belt and a quiver can both be worn. Its grid (`pack` with `holds`) is one cell that takes only arrows,
+    60 of them against 20 in a bag cell. Arrows given (the admin's give now; a shop, a pile or a reward later) go into
+    it first, then the bag and the backpack, and they're dragged in and out as in any grid; arrows are shot from it
+    first. It comes off only empty, never into its own grid, as the backpack; dying drops it and its arrows with the
+    rest. The bag screen has a Quiver column beside the backpack: the hip slot and, with one on, its cell and count.
+    Saved in a column of its own (`quiver`).
+  - Drawing: the light attack held draws (8 stamina as it starts, walking at half speed, no block; a dodge breaks it
+    off and keeps the arrow), let go looses one arrow; a release before 0.25 s looses at 0.25 s. Heft stretches the
+    draw and its cost as it does a swing's. The heavy and the stab do nothing with a bow.
+  - Nocking: after a loose the next draw can start 0.3 s later if the next arrow is in the quiver, 0.8 s if it comes
+    from the bag (`BOW.nock`); you can dodge out of it, not block.
+  - The arrow: it leaves at the bow's power × (0.4 + 0.6 × the share drawn) (`minSpeedShare`), so the Training bow's
+    22 m/s at the least draw and 40 m/s full; its damage goes from 30% at once to the bow's whole damage at 1 s. It
+    falls at 9.8 m/s² for at most 3 s. Locked on, it's loosed in the low arc that reaches the target (level if it
+    can't); with no lock-on in the input, along the aim's way and its pitch (`aimPitchRad`, up or down), the arc
+    from gravity alone, so a short draw drops short and a shot can go up or down. It lands on the first foe in its
+    way (poise 10) unless it's dodging or in hurt invulnerability; from in front a held block stops it as a blade (a
+    chip, its damage in stamina) and a perfect block whole, the shooter far off not recoiling. In the floor or the
+    wall it lies 2 s, then is gone. The server decides all of it, as for any fight input.
+  - The draw meter: with a bow in hand it stands in the aim ring's place, a level carved bar with pointed ends 120 px
+    wide (the HUD's CSS pixels), faint bone, filling in bone with the share drawn and cinnabar once full; a bone mark
+    where a release looses at once (25%) and a cinnabar one at full. Empty while nocking, hidden once you're down or
+    the fight is decided (`AIM_HUD`, `aimHud` in `client/src/visuals/battle/overlay.ts`).
+  - The 3D person holds a bow in the left hand whichever hand's slot it's in, and carries and draws it held out to the
+    side, near upright, so the locked camera over the left shoulder sees all of it past the body and head; the arrow
+    is drawn leaving from the bow's string and eased onto the fight's path in 0.12 s (looks only). The quiver isn't
+    drawn on the 3D people yet.
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight

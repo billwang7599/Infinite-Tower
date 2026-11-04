@@ -120,10 +120,10 @@ export function seatInBattle(
 /** Closes their bag: it isn't taken into a fight. */
 export function fighterOf(session: GameSession): Omit<PlayerSetup, "at"> {
   session.closeBag();
-  const { bag, pack, equipment } = session.gear;
+  const { bag, pack, quiver, equipment } = session.gear;
   return {
     vitals: session.vitals, stats: session.stats, core: session.core, burden: session.burden,
-    gear: { bag, pack, equipment },
+    gear: { bag, pack, quiver, equipment },
     book: session.skillbook, seed: randomSeed(session.overworld.rng), invulnerable: session.invulnerable,
     who: { name: session.name, character: session.character! }, blessings: blessingsOf(session.faith),
   };
@@ -157,9 +157,10 @@ function settleBattle(session: GameSession, result: PlayerResult, after: Vitals,
     session.vitals = { hp: Math.max(1, after.hp), stamina: after.stamina };
   } else {
     if (!session.keepInventory) {
-      const { bag, pack, equipment } = session.gear;
-      lost = carriedCounts({ bag, pack, equipment });
-      session.gear = { ...session.gear, bag: { ...bag, items: [] }, pack: packFor(null), equipment: emptyEquipment() };
+      const { bag, pack, quiver, equipment } = session.gear;
+      lost = carriedCounts({ bag, pack, quiver, equipment });
+      const emptied = { bag: { ...bag, items: [] }, pack: packFor(null), quiver: packFor(null) };
+      session.gear = { ...session.gear, ...emptied, equipment: emptyEquipment() };
       dropWhereFell(battle, overworld, lost);
     }
     me = session.wakeOnPad();

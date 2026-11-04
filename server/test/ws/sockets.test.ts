@@ -24,6 +24,7 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
   bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, pack: packFor(null),
+  quiver: packFor(null),
   knownWords: [],
   equipment: armed(), skillbook: blankSkillbook(), story: newStory(), pad: START_REGION, shopsBought: [],
   core: newCore(), faith: {},

@@ -106,7 +106,8 @@ export const armed = (): Equipment => ({ ...emptyEquipment(), rightHand: "sword"
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: FULL_HP, stamina: FULL_STAMINA }, stats: STATS, core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: blankSkillbook(), ...over });
+    gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: armed() }, book: blankSkillbook(),
+    ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */

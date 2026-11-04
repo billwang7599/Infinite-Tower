@@ -24,7 +24,8 @@ describe("player content", () => {
   test("a new player is rested and at Early Yan, and starts with only a backpack on: empty hands and grids", () => {
     assert.deepEqual(newPlayer(), {
       vitals: fullVitals(PLAYER_STATS), wins: 0, settings: {}, character: null, bag: emptyBag(),
-      pack: packFor(STARTER_BACKPACK), knownWords: [], equipment: { ...emptyEquipment(), back: STARTER_BACKPACK },
+      pack: packFor(STARTER_BACKPACK), quiver: packFor(null), knownWords: [],
+      equipment: { ...emptyEquipment(), back: STARTER_BACKPACK },
       skillbook: [null, null, null, null], story: { quests: {}, flags: [] }, pad: START_REGION, core: newCore(),
       shopsBought: [], faith: {},
     });
@@ -44,7 +45,7 @@ describe("loading a save", () => {
   const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
     ({ item, count, x, y, turned });
   const stored = (bag: Bag, over: Partial<StoredSave> = {}): StoredSave =>
-    ({ ...newPlayer(), bag, pack: packFor(null), equipment: emptyEquipment(), ...over });
+    ({ ...newPlayer(), bag, pack: packFor(null), quiver: packFor(null), equipment: emptyEquipment(), ...over });
   const cellsOf = (grid: { cols: number; rows: number }) => grid.cols * grid.rows;
   const sizeOf = (grid: { cols: number; rows: number }) => [grid.cols, grid.rows];
 
@@ -87,5 +88,29 @@ describe("loading a save", () => {
     assert.deepEqual(sizeOf(save.pack), sizeOf(ITEMS[STARTER_BACKPACK].pack));
     assert.deepEqual(stowedCounts(save), { "boar-tusk": 1, greatsword: 1 });
     assert.deepEqual([...bagProblems(save.bag), ...bagProblems(save.pack)], []);
+  });
+
+  const QUIVER = "training-quiver" satisfies ItemId;
+  const quivered = (arrows: number): Bag => ({ ...packFor(QUIVER), items: [stack("arrow", 0, 0, arrows)] });
+
+  test("a worn quiver keeps its arrows", () => {
+    const quiver = quivered(ITEMS[QUIVER].pack.holds.stackSize);
+    const { save } = keptSave(stored(emptyBag(), { quiver, equipment: { ...emptyEquipment(), hip: QUIVER } }));
+    assert.deepEqual(save.quiver, quiver);
+  });
+
+  test("a quiver's grid unlike its quiver's now is laid out again, what doesn't fit going into the bag", () => {
+    const old = { cols: 1, rows: 1, items: [stack("arrow", 0, 0, 100)] };
+    const { save } = keptSave(stored(emptyBag(), { quiver: old, equipment: { ...emptyEquipment(), hip: QUIVER } }));
+    assert.deepEqual(save.quiver, quivered(ITEMS[QUIVER].pack.holds.stackSize));
+    assert.equal(stowedCounts(save).arrow, 100);
+    assert.deepEqual([...bagProblems(save.bag), ...bagProblems(save.quiver)], []);
+  });
+
+  test("one from before bows took both hands: what the left hand held beside a bow goes into the bag", () => {
+    const equipment = { ...emptyEquipment(), rightHand: "training-bow", leftHand: "skillbook" } as const;
+    const { save } = keptSave(stored(emptyBag(), { equipment }));
+    assert.deepEqual([save.equipment.rightHand, save.equipment.leftHand], ["training-bow", null]);
+    assert.equal(stowedCounts(save).skillbook, 1);
   });
 });

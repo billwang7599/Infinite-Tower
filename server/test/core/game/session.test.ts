@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, Player,
+  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, packFor, Player,
   REST_RANGE_TILES,
   useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
@@ -294,6 +294,30 @@ describe("equipment", () => {
       assert.equal(session.gear.equipment.rightHand, held, `${strength}`);
       assert.deepEqual(link.last("gear")?.gear, session.gear);
     }
+  });
+
+  test("arrows moved into a worn quiver are saved there", (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const quiver = "training-quiver";
+    const { session, saves } = startSession({
+      saved: { bag: bagOf(["arrow", 12, 0, 0]), quiver: packFor(quiver), equipment: { ...armed(), hip: quiver } },
+    });
+    session.moveItem(bagSpot(0, 0), { in: "quiver", x: 0, y: 0 }, false);
+    t.mock.timers.tick(5000);
+    assert.deepEqual(saves.at(-1)?.quiver.items, [{ item: "arrow", count: 12, x: 0, y: 0, turned: false }]);
+    assert.deepEqual(saves.at(-1)?.bag.items, []);
+  });
+
+  test("a bow put in a hand sends what the other holds into the bag, and the save has it so", (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const { session, saves } = startSession({
+      saved: { bag: bagOf(["training-bow", 1, 0, 0]), equipment: { ...armed(), rightHand: null } },
+    });
+    session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);
+    t.mock.timers.tick(5000);
+    const saved = saves.at(-1)!;
+    assert.deepEqual([saved.equipment.rightHand, saved.equipment.leftHand], ["training-bow", null]);
+    assert.equal(saved.bag.items[0]?.item, "skillbook");
   });
 
   test("what's worn weighs on you: a bag at the limit with the sword in hand is heavy", () => {

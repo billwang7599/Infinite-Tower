@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  addItem, BOW, drawCost, drawTime, emptyBag, emptyEquipment, FIXED_DT, Health, loosedDamage, packFor, Player,
-  Projectile, Stamina, stowedCounts, toSteps, WEAPONS, type PlayerInputData,
+  addItem, bagCounts, BOW, drawCost, drawTime, emptyBag, emptyEquipment, FIXED_DT, Health, loosedDamage, loosedSpeed,
+  packFor, Player, Projectile, Stamina, stowedCounts, toSteps, WEAPONS, type PlayerInputData,
 } from "@infinite-tower/shared";
 import { blocking, Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, FULL_STAMINA, input, player, STATS, STATUE } from "../fixtures.js";
@@ -14,13 +14,16 @@ const MIN_STEPS = toSteps(drawTime(BOW, BOW_ITEM, STATS.strength, "minTime"));
 const FULL_STEPS = toSteps(drawTime(BOW, BOW_ITEM, STATS.strength, "fullTime"));
 const TARGET = { ...STATUE, maxHp: 10_000 };
 
-function archer(arrows: number, foeAt = 8) {
+const QUIVER = "training-quiver";
+
+function archer(arrows: number, foeAt = 8, quivered: number | null = null) {
   const fight = new Fight({
     arena: { ...ARENA, radius: 40 },
     players: [player({ x: 0, y: 0.05, z: 0 }, {
       gear: {
         bag: addItem(emptyBag(), BOW.ammo, arrows).bag, pack: packFor(null),
-        equipment: { ...emptyEquipment(), rightHand: "training-bow" },
+        quiver: quivered === null ? packFor(null) : addItem(packFor(QUIVER), BOW.ammo, quivered).bag,
+        equipment: { ...emptyEquipment(), rightHand: "training-bow", hip: quivered === null ? null : QUIVER },
       },
     })],
     enemies: [enemy(TARGET, { x: 0, y: 0.05, z: foeAt })],
@@ -29,6 +32,7 @@ function archer(arrows: number, foeAt = 8) {
   return {
     fight, me, player: fight.world.require(me, Player),
     arrowsLeft: () => stowedCounts(fight.world.require(me, Player).gear)[BOW.ammo] ?? 0,
+    inQuiver: () => bagCounts(fight.world.require(me, Player).gear.quiver)[BOW.ammo] ?? 0,
     flying: () => [...fight.world.query(Projectile)].map(([, a]) => a),
   };
 }
@@ -59,8 +63,6 @@ describe("drawing a bow", () => {
     assert.equal(a.player.action, "loose");
     assert.equal(a.flying().length, 1);
     assert.equal(a.arrowsLeft(), 4);
-    play(a.fight, toSteps(BOW.looseRecoverTime));
-    assert.equal(a.player.action, "none");
   });
 
   test("costs its stamina as the draw starts", () => {
@@ -101,7 +103,7 @@ describe("drawing a bow", () => {
     play(a.fight, 20, (s) => ({ ...drawn(20)(s), block: s > 5 }));
     assert.equal(a.player.action, "draw");
     assert.equal(blocking(a.fight.world, a.me), false);
-    play(a.fight, toSteps(BOW.looseRecoverTime) + 10, () => ({ block: true }));
+    play(a.fight, toSteps(BOW.nock.bagTime) + 10, () => ({ block: true }));
     assert.equal(a.player.action, "block");
   });
 
@@ -124,16 +126,92 @@ describe("drawing a bow", () => {
   });
 });
 
+describe("nocking the next arrow", () => {
+  const loosed = (a: ReturnType<typeof archer>) => {
+    play(a.fight, FULL_STEPS + 1, drawn(FULL_STEPS));
+    assert.equal(a.player.action, "loose");
+  };
+  const nockedAfter = (a: ReturnType<typeof archer>, steps: number) => {
+    play(a.fight, steps - 1);
+    assert.equal(a.player.action, "loose");
+    play(a.fight, 1);
+    assert.equal(a.player.action, "none");
+  };
+
+  test("from the bag, the next draw waits the bag's nock time", () => {
+    const a = archer(5);
+    loosed(a);
+    nockedAfter(a, toSteps(BOW.nock.bagTime));
+  });
+
+  test("with arrows in a quiver, they're shot first and nocked quicker", () => {
+    const a = archer(5, 8, 3);
+    loosed(a);
+    assert.deepEqual([a.inQuiver(), a.arrowsLeft()], [2, 7]);
+    nockedAfter(a, toSteps(BOW.nock.quiverTime));
+    assert.ok(BOW.nock.quiverTime < BOW.nock.bagTime);
+  });
+
+  test("a quiver shot empty nocks the next from the bag", () => {
+    const a = archer(5, 8, 1);
+    loosed(a);
+    assert.equal(a.inQuiver(), 0);
+    nockedAfter(a, toSteps(BOW.nock.bagTime));
+  });
+});
+
+describe("how fast the arrow leaves", () => {
+  const speedOf = (heldTo: number) => {
+    const a = archer(5, 30);
+    play(a.fight, Math.max(heldTo, MIN_STEPS) + 1, drawn(heldTo));
+    const [arrow] = a.flying();
+    return Math.hypot(arrow!.vel.x, arrow!.vel.z);
+  };
+
+  test("fully drawn, at the bow's power; less drawn, slower, by the draw", () => {
+    const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+    assert.ok(near(speedOf(FULL_STEPS), BOW_ITEM.powerMps!));
+    assert.ok(near(speedOf(3 * FULL_STEPS), BOW_ITEM.powerMps!));
+    const quick = loosedSpeed(BOW, BOW_ITEM, STATS.strength, MIN_STEPS * FIXED_DT);
+    assert.ok(near(speedOf(1), quick));
+    assert.ok(quick < BOW_ITEM.powerMps!);
+  });
+});
+
 describe("where the arrow goes", () => {
   const FAR = 16;
-
-  test("unlocked, it flies level where you face and drops short of a far foe", () => {
-    const a = archer(5, FAR);
-    const events = play(a.fight, 120, drawn(FULL_STEPS));
-    assert.deepEqual(damageOf(events), []);
+  const untouched = (a: ReturnType<typeof archer>) =>
     assert.equal(a.fight.world.require(a.fight.enemies[0]!, Health).hp, TARGET.maxHp);
-    const [arrow] = a.flying();
+
+  test("unlocked and aimed level, fully drawn it reaches a far foe; a short draw drops short of it", () => {
+    const full = archer(5, FAR);
+    assert.equal(damageOf(play(full.fight, 120, drawn(FULL_STEPS))).length, 1);
+    const quick = archer(5, FAR);
+    assert.deepEqual(damageOf(play(quick.fight, 120, drawn(1))), []);
+    untouched(quick);
+    const [arrow] = quick.flying();
     assert.ok(arrow?.stuck && arrow.pos.y === 0 && arrow.pos.z < FAR - TARGET.radius && arrow.pos.x === 0);
+  });
+
+  test("aimed up, it rises and flies over a foe a level shot hits", () => {
+    const a = archer(5);
+    play(a.fight, FULL_STEPS + 1, drawn(FULL_STEPS, { aimPitchRad: 0.5 }));
+    assert.ok(a.flying()[0]!.vel.y > 0);
+    assert.deepEqual(damageOf(play(a.fight, 120)), []);
+    untouched(a);
+  });
+
+  test("aimed down, it sticks in the floor short of the foe", () => {
+    const a = archer(5);
+    assert.deepEqual(damageOf(play(a.fight, 120, drawn(FULL_STEPS, { aimPitchRad: -0.3 }))), []);
+    untouched(a);
+    const [arrow] = a.flying();
+    assert.ok(arrow?.stuck && arrow.pos.y === 0 && arrow.pos.z < 8 - TARGET.radius);
+  });
+
+  test("locked on, it arcs onto the target whatever the aim's pitch", () => {
+    const a = archer(5);
+    assert.equal(damageOf(play(a.fight, 120, drawn(FULL_STEPS, { locked: 0, aimPitchRad: 0.5 }))).length, 1);
   });
 
   test("locked on, it's loosed in an arc that lands on the target", () => {

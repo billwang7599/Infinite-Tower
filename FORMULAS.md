@@ -159,19 +159,23 @@ Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35,
 
 ## Bows (placeholder)
 
-A stand-in until the user decides how bows play (AGENTS.md, "Bows, a prep"). `BOW`, `drawTime`, `drawCost` and
-`loosedDamage` in `shared/src/weapons/bow.ts`; the draw in `fight/player/bow.ts`, the flight in
-`fight/weapons/projectile.ts`.
+Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `loosedDamage`, `loosedSpeed` and
+`nockTime` in `shared/src/weapons/bow.ts`, a bow's `powerMps` and a quiver's `pack.holds` in `ITEMS`; the draw in
+`fight/player/bow.ts`, the flight in `fight/weapons/projectile.ts`.
 
 - **Draw:** costs `draw.cost` 8 stamina × felt heft as it starts; full after `draw.fullTime` 1 s × felt heft, and
-  a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%; after loosing,
-  `looseRecoverTime` 0.2 s before anything else.
+  a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%.
+- **Nocking:** after loosing, `nock.quiverTime` 0.3 s before the next draw if the quiver holds an arrow, else
+  `nock.bagTime` 0.8 s. A quiver's one cell holds 60 arrows (`holds.stackSize`; a bag cell 20); they're shot first.
 - **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
-- **Flight:** `projectile.speedMps` 30 m/s, gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and
-  0.15 m above your middle. Locked on, it's aimed in the low arc that meets the target's middle (level if it can't
-  reach); unlocked, level. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
+- **Speed** = the bow's `powerMps` × (`minSpeedShare` 0.4 + 0.6 × the share drawn, at most 1).
+- **Flight:** gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle. Locked on,
+  it's aimed in the low arc at that speed that meets the target's middle (level if it can't reach); with no lock-on,
+  along the aim's way tilted up by its `aimPitchRad`. Poise 10 on an enemy; blocked like a light (below). Stuck, it
+  lies `stuckTime` 2 s.
 
-Example: the Training bow (12) let go at once deals 12 × (0.3 + 0.7 × 0.25) = 5.7, held 1 s or more 12.
+Example: the Training bow (12 damage, 40 m/s) let go at once (a share of 0.25) deals 12 × (0.3 + 0.7 × 0.25) = 5.7 at
+40 × (0.4 + 0.6 × 0.25) = 22 m/s; held 1 s or more, 12 at 40 m/s.
 
 ## Body blows
 

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, ITEMS, loosedDamage, meleeIn, meleeOf, MOVES,
-  physicalDamage, rangedOf, WEAPON_KINDS, WEAPONS, wayShape, wayStepsAfter, type Weapon,
+  addItem, AVERAGE_STAT, BASE_STATS, BOW, drawCost, drawnShare, drawTime, ITEM_IDS, itemDef, ITEMS, loosedDamage,
+  loosedSpeed, meleeIn, meleeOf, MOVES, nockTime, packFor, physicalDamage, rangedOf, WEAPON_KINDS, WEAPONS, wayShape,
+  wayStepsAfter, type Weapon,
 } from "@infinite-tower/shared";
 
 const TRAINING_BOW = WEAPONS["training-bow"];
@@ -45,6 +46,31 @@ describe("the bow's draw", () => {
     const half = loosedDamage(BOW, TRAINING_BOW, full / 2, BASE_STATS);
     assert.ok(half > loosedDamage(BOW, TRAINING_BOW, 0, BASE_STATS) && half < TRAINING_BOW.damage);
     assert.equal(drawnShare(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), 0.5);
+  });
+
+  test("the arrow leaves at the bow's power fully drawn, and slower the less it's drawn", () => {
+    const full = drawTime(BOW, TRAINING_BOW, AVERAGE_STAT, "fullTime"), power = TRAINING_BOW.powerMps!;
+    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full), power);
+    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full * 3), power);
+    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, 0), power * BOW.draw.minSpeedShare);
+    const half = power * (BOW.draw.minSpeedShare + (1 - BOW.draw.minSpeedShare) / 2);
+    assert.equal(loosedSpeed(BOW, TRAINING_BOW, AVERAGE_STAT, full / 2), half);
+    assert.equal(loosedSpeed(BOW, { ...TRAINING_BOW, powerMps: 2 * power }, AVERAGE_STAT, full), 2 * power);
+  });
+
+  test("every bow has a power", () => {
+    for (const id of ITEM_IDS) {
+      const { weapon } = itemDef(id);
+      if (weapon && rangedOf(weapon)) assert.ok((weapon.powerMps ?? 0) > 0, id);
+    }
+  });
+
+  test("the next arrow is nocked quicker out of a quiver than out of the bag", () => {
+    const quiver = packFor("training-quiver");
+    assert.equal(nockTime(BOW, addItem(quiver, BOW.ammo, 1).bag), BOW.nock.quiverTime);
+    assert.equal(nockTime(BOW, quiver), BOW.nock.bagTime);
+    assert.equal(nockTime(BOW, packFor(null)), BOW.nock.bagTime);
+    assert.ok(BOW.nock.quiverTime < BOW.nock.bagTime);
   });
 
   test("heft stretches its times and its cost, as it does a swing's", () => {

@@ -16,7 +16,7 @@ import { bagWith, offeredQuest, pileAt, startSession, tick, winFight } from "./h
 before(() => initPhysics());
 
 const STOP = stopFor(newStory(), NPCS.hollis)!;
-const OPENING = dialogueOf(STOP.talk, newStory(), { bag: emptyBag(), pack: packFor(null) })!;
+const OPENING = dialogueOf(STOP.talk, newStory(), { bag: emptyBag(), pack: packFor(null), quiver: packFor(null) })!;
 assert.ok(OPENING.offer?.kind === "quest", "Hollis offers a quest the first time");
 const FIRST = OPENING.offer.quest;
 const SECOND = Object.keys(QUESTS).find((id) => {

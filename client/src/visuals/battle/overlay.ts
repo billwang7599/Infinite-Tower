@@ -1,7 +1,8 @@
 import { Vector3, type Camera } from "@babylonjs/core";
 import {
-  Body, clamp, Health, Player, SCREEN_DIR, Skilled, Wielder, type PlayerAction, type PlayerData, type SwingData,
-  type SwingDir, type Vec3, type World,
+  AVERAGE_STAT, Body, clamp, drawnShare, drawTime, FighterStats, Health, Player, rangedOf, SCREEN_DIR, Skilled,
+  weaponIn, Wielder, type PlayerAction, type PlayerData, type SwingData, type SwingDir, type Vec3, type Weapon,
+  type World,
 } from "@infinite-tower/shared";
 import { LocalPlayer } from "../../modes/components.js";
 import { drawChantWords } from "./chantWords.js";
@@ -13,7 +14,8 @@ const SHOWN_WEDGES = [0, 1, 2, 3, 4, 5, 7];
 // In the HUD's CSS pixels. The ring's centre sits clear above the foe's bar and its statuses (BossBar, ~110 px up).
 export const AIM_HUD = {
   ringAboveBottomPx: 176, ringRadiusPx: 48, wedgeLengthPx: 18, wedgeThickPx: 5, ringEdgePx: 1.6, stabPx: 6.4,
-  crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1,
+  crossGapPx: 3, crossArmPx: 5, crossThickPx: 1.5, crossEdgePx: 1, meterLengthPx: 120, meterThickPx: 7,
+  markLengthPx: 15, markThickPx: 2,
 };
 const AIMING: readonly PlayerAction[] = ["draw", "loose", "chant", "cast", "beam"];
 const DIM = "rgba(232, 223, 200, 0.3)";
@@ -39,20 +41,42 @@ export function ringLights(way: SwingDir, swing: SwingData | null): RingLights {
   return { lit: wedgeOf(way), stab: swing !== null && swing.way === "stab" && swing.step < swing.liveAt };
 }
 
-export interface AimHud { ring: RingLights | null; crosshair: boolean }
+export interface DrawMeter { share: number; minShare: number }
+
+export interface AimHud { ring: RingLights | null; crosshair: boolean; meter: DrawMeter | null }
+
+function drawMeterOf(player: PlayerData, weapon: Weapon | null, strength: number): DrawMeter | null {
+  const bow = rangedOf(weapon);
+  if (!bow || !weapon) return null;
+  return {
+    share: player.action === "draw" ? drawnShare(bow, weapon, strength, player.actionTime) : 0,
+    minShare: drawTime(bow, weapon, strength, "minTime") / drawTime(bow, weapon, strength, "fullTime"),
+  };
+}
 
 export function aimHud(
   player: PlayerData, hp: number, swing: SwingData | null, way: SwingDir, fighting: boolean,
+  weapon: Weapon | null = null, strength = AVERAGE_STAT,
 ): AimHud {
-  if (hp <= 0 || !fighting) return { ring: null, crosshair: false };
-  return { ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action) };
+  if (hp <= 0 || !fighting) return { ring: null, crosshair: false, meter: null };
+  return {
+    ring: player.way === null ? null : ringLights(way, swing), crosshair: AIMING.includes(player.action),
+    meter: drawMeterOf(player, weapon, strength),
+  };
 }
+
+type AimLayout = ReturnType<typeof aimLayout>;
 
 export const aimLayout = (widthPx: number, heightPx: number, scale: number) => ({
   ring: { x: widthPx / 2, y: heightPx - AIM_HUD.ringAboveBottomPx * scale },
   crosshair: { x: widthPx / 2, y: heightPx / 2 },
   scale,
 });
+
+export function meterSpan({ ring, scale }: AimLayout): { left: number; right: number; y: number } {
+  const half = (AIM_HUD.meterLengthPx * scale) / 2;
+  return { left: ring.x - half, right: ring.x + half, y: ring.y };
+}
 
 export interface ScreenPoint { x: number; y: number; pxPerM: number }
 
@@ -104,10 +128,14 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   const me = world.first(LocalPlayer, Player, Wielder, Health);
   if (!me) return;
   const fighting = ctx.battle.outcome.state === "fighting";
-  const { ring, crosshair } = aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting);
-  const { ring: { x, y }, crosshair: centre, scale: s } = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
+  const strength = world.get(me[0], FighterStats)?.strength;
+  const { ring, crosshair, meter } =
+    aimHud(me[2], me[4].hp, me[3].swing, ctx.battle.way, fighting, weaponIn(me[3].hands), strength);
+  const layout = aimLayout(widthPx, heightPx, devicePixelRatio), H = AIM_HUD;
+  const { ring: { x, y }, crosshair: centre, scale: s } = layout;
   g.strokeStyle = EDGE;
   g.lineWidth = H.ringEdgePx * s;
+  if (meter) drawMeter(g, meter, layout);
   if (ring) {
     for (const i of SHOWN_WEDGES) {
       const a = (i * 2 * Math.PI) / WEDGES;
@@ -145,6 +173,31 @@ function drawAim(g: CanvasRenderingContext2D, ctx: ArenaScene, world: World, wid
   g.rect(centre.x - thick / 2, centre.y - thick / 2, thick, thick);
   g.fill();
   g.stroke();
+}
+
+function drawMeter(g: CanvasRenderingContext2D, meter: DrawMeter, layout: AimLayout): void {
+  const { left, right, y } = meterSpan(layout), s = layout.scale, tip = (AIM_HUD.meterThickPx * s) / 2;
+  const bar = new Path2D();
+  for (const [px, py] of [[left, y], [left + tip, y - tip], [right - tip, y - tip], [right, y], [right - tip, y + tip],
+    [left + tip, y + tip]] as const) bar.lineTo(px, py);
+  bar.closePath();
+  const at = (share: number) => left + tip + (right - left - 2 * tip) * share;
+  g.fillStyle = DIM;
+  g.fill(bar);
+  if (meter.share > 0) {
+    g.save();
+    g.clip(bar);
+    g.fillStyle = meter.share >= 1 ? LIT : CROSS;
+    g.fillRect(left, y - tip, (meter.share >= 1 ? right : at(meter.share)) - left, 2 * tip);
+    g.restore();
+  }
+  g.stroke(bar);
+  const w = AIM_HUD.markThickPx * s, h = AIM_HUD.markLengthPx * s;
+  for (const [share, colour] of [[meter.minShare, CROSS], [1, LIT]] as const) {
+    g.fillStyle = colour;
+    g.fillRect(at(share) - w / 2, y - h / 2, w, h);
+    g.strokeRect(at(share) - w / 2, y - h / 2, w, h);
+  }
 }
 
 function drawMarker(

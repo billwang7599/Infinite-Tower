@@ -1,19 +1,22 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import {
-  footprint, isWeapon, itemDef, MOVES, movesOf, WEAPONS, type BagItem, type ItemDef, type ItemEffect, type ItemId,
-  type Rarity, type WeaponId, type WeaponStyle, type WornOn,
+  footprint, isWeapon, itemDef, MOVES, movesOf, twoHanded, WEAPONS, type BagItem, type ItemDef, type ItemEffect,
+  type ItemId, type RangedMoves, type Rarity, type WeaponId, type WeaponStyle, type WornOn,
 } from "@infinite-tower/shared";
 
 const WIELDED: Record<WeaponStyle, string> = {
-  melee: "In a hand: light and heavy attacks, and a guard.",
-  ranged: "In a hand: drawn and loosed, the longer drawn the harder it hits, and a guard. It shoots arrows from your bag.",
+  melee: "light and heavy attacks, and a guard.",
+  ranged: "drawn and loosed, the longer drawn the harder and faster it shoots, and a guard. It shoots arrows from "
+    + "your quiver, else your bag.",
 };
 const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
-const AMMO = "Shot from a bow, one at a time, out of your bag.";
-const isAmmo = (item: ItemId) => Object.values(MOVES).some((moves) => moves.style === "ranged" && moves.ammo === item);
+const AMMO = "Shot from a bow, one at a time: out of your quiver first, then your bag.";
+const shotWith = (item: ItemId): RangedMoves | undefined =>
+  Object.values(MOVES).find((moves): moves is RangedMoves => moves.style === "ranged" && moves.ammo === item);
 const WORN_ON: Record<WornOn, string> = {
   hand: "in a hand", cap: "on your head", head: "on your head", body: "on your body", legs: "on your legs",
-  boots: "on your feet", belt: "round your waist", back: "on your back", finger: "on a finger", wrist: "on a wrist",
+  boots: "on your feet", belt: "round your waist", back: "on your back", hip: "at your hip", finger: "on a finger",
+  wrist: "on a wrist",
 };
 
 export const RARITY_NAME: Record<Rarity, string> = {
@@ -53,12 +56,18 @@ export const formatWeight = (weight: number): string => String(Math.round(weight
 function wornText({ wearable, pack }: ItemDef): string | null {
   if (!wearable || wearable.on === "hand") return null;
   if (wearable.cosmetic) return `Worn over your ${wearable.on}: it changes only how you look.`;
-  return pack ? `Worn ${WORN_ON[wearable.on]}: a grid of ${pack.cols} × ${pack.rows} of its own.`
-    : `Worn ${WORN_ON[wearable.on]}.`;
+  const worn = `Worn ${WORN_ON[wearable.on]}`, nock = pack?.holds && shotWith(pack.holds.item)?.nock;
+  if (pack?.holds && nock) {
+    const what = `${itemDef(pack.holds.item).name.toLowerCase()}s`;
+    return `${worn}: holds ${pack.holds.stackSize} ${what} in its one cell, shot before the bag's, and nocked in `
+      + `${nock.quiverTime} s rather than ${nock.bagTime} s.`;
+  }
+  return pack ? `${worn}: a grid of ${pack.cols} × ${pack.rows} of its own.` : `${worn}.`;
 }
 
 function wieldedText(item: WeaponId): string {
-  const need = WEAPONS[item].minStrength, wielded = WIELDED[movesOf(WEAPONS[item]).style];
+  const { minStrength: need, powerMps } = WEAPONS[item], hands = twoHanded(item) ? "Takes both hands" : "In a hand";
+  const wielded = `${hands}: ${WIELDED[movesOf(WEAPONS[item]).style]}${powerMps ? ` Up to ${powerMps} m/s.` : ""}`;
   return need > 0 ? `${wielded} Needs ${need} strength.` : wielded;
 }
 
@@ -73,7 +82,7 @@ export function itemInfo(stack: BagItem): ItemInfo {
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`
-      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL : isAmmo(stack.item) ? AMMO
+      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL : shotWith(stack.item) ? AMMO
       : HELD[stack.item] ?? wornText(def),
   };
 }

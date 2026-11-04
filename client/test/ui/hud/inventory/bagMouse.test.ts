@@ -14,7 +14,10 @@ import { armed } from "../../../fixtures/armed.js";
 const STRENGTH = AVERAGE_STAT;
 const NOTHING_WORN: Equipment = emptyEquipment();
 const bag = (cols: number, rows: number, ...items: BagItem[]): Gear =>
-  ({ bag: { cols, rows, items }, pack: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: NOTHING_WORN });
+  ({
+    bag: { cols, rows, items }, pack: packFor(null), quiver: packFor(null), cloth: emptyCloth(), pile: NO_PILE,
+    equipment: NOTHING_WORN,
+  });
 const stack = (item: ItemId, x: number, y: number, count = 1, turned = false): BagItem =>
   ({ item, count, x, y, turned });
 const at = (x: number, y: number): Spot => ({ in: "bag", x, y });
@@ -351,6 +354,29 @@ describe("the cloth and the equipment", () => {
     const strong = pointerUp(m, g, overSpot(slot("rightHand")), 0, need);
     assert.equal(strong.tooWeak, null);
     assert.deepEqual(strong.move, { from: at(0, 0), to: slot("rightHand"), turned: false });
+  });
+
+  test("a bow onto a hand with no room in the bag for what the other holds: no move, and it says what", () => {
+    const meat = [0, 1, 2].map((x) => stack("boar-meat", x, 1));
+    const full: Gear = {
+      ...bag(3, 2, stack("training-bow", 0, 0, 1, true), ...meat),
+      equipment: { ...NOTHING_WORN, leftHand: "skillbook" },
+    };
+    const m = pointerMove(fromBag(0, 0, full), full, overSpot(slot("rightHand")), 0);
+    assert.equal(canDrop(m, full, STRENGTH), false);
+    const refused = pointerUp(m, full, overSpot(slot("rightHand")), 0, STRENGTH);
+    assert.equal(refused.move, null);
+    assert.deepEqual(refused.noHands, { item: "training-bow", displaced: "skillbook" });
+    const roomy: Gear = { ...full, bag: { ...full.bag, cols: 3, rows: 4 } };
+    const moved = pointerUp(pointerMove(fromBag(0, 0, roomy), roomy, overSpot(slot("rightHand")), 0), roomy,
+      overSpot(slot("rightHand")), 0, STRENGTH);
+    assert.deepEqual([moved.move?.to, moved.noHands], [slot("rightHand"), null]);
+  });
+
+  test("a hand already full from the bag isn't a matter of hands", () => {
+    const g: Gear = { ...bag(3, 2, stack("training-bow", 0, 0, 1, true)), equipment: armed() };
+    const m = pointerMove(fromBag(0, 0, g), g, overSpot(slot("rightHand")), 0);
+    assert.equal(pointerUp(m, g, overSpot(slot("rightHand")), 0, STRENGTH).noHands, null);
   });
 
   test("not onto a slot that doesn't take it, nor meat into a hand", () => {

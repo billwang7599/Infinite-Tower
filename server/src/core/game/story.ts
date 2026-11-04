@@ -75,7 +75,7 @@ function advance(out: Unfolding, id: string, quests: Quests, forced = false): bo
   if (task.kind === "deliver") {
     const taken = unstow(out, task.item, task.count);
     if (!taken && !forced) return false;
-    if (taken) Object.assign(out, { bag: taken.bag, pack: taken.pack });
+    if (taken) Object.assign(out, { bag: taken.bag, pack: taken.pack, quiver: taken.quiver });
   }
   const next = quest.steps[quest.steps.indexOf(step) + 1] ?? null;
   out.story = withStep(out.story, id, next?.id ?? null);
@@ -84,7 +84,7 @@ function advance(out: Unfolding, id: string, quests: Quests, forced = false): bo
   const gained: ItemCounts = {}, dropped: ItemCounts = {};
   for (const [item, count] of Object.entries(items) as [ItemId, number][]) {
     const packed = stow(out, item, count);
-    Object.assign(out, { bag: packed.gear.bag, pack: packed.gear.pack });
+    Object.assign(out, { bag: packed.gear.bag, pack: packed.gear.pack, quiver: packed.gear.quiver });
     if (packed.left < count) gained[item] = count - packed.left;
     if (packed.left > 0) {
       dropped[item] = packed.left;
@@ -157,14 +157,15 @@ export function progressStory(
   session: GameSession, effects: readonly Effect[] = [], killed: readonly EnemyId[] = [],
 ): void {
   const { overworld, me } = session, at = overworld.playerPos(me), was = session.gear;
-  const { story, bag, pack, dropped, news, faith } = unfold(
-    { story: session.story, bag: was.bag, pack: was.pack }, effects, { region: session.region, at, killed },
+  const { story, bag, pack, quiver, dropped, news, faith } = unfold(
+    { story: session.story, bag: was.bag, pack: was.pack, quiver: was.quiver }, effects,
+    { region: session.region, at, killed },
   );
   if (news.length === 0) return;
   session.story = story;
   if (Object.keys(dropped).length > 0) overworld.dropPile(at, dropped);
-  if (bag !== was.bag || pack !== was.pack) {
-    session.gear = { ...session.gear, bag, pack };
+  if (bag !== was.bag || pack !== was.pack || quiver !== was.quiver) {
+    session.gear = { ...session.gear, bag, pack, quiver };
     session.link.send({ t: "gear", gear: session.gear });
   }
   if (Object.keys(faith).length > 0) session.gainFaith(faith);

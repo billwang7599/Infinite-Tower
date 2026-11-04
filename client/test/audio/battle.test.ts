@@ -32,7 +32,7 @@ const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER)
   arena: { id: "test", radius: 16, look },
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: 100, stamina: 100 }, stats: STATS, core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: [FIRE_BOLT],
+    gear: { bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: armed() }, book: [FIRE_BOLT],
   }],
   enemies: [{ def, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
 });

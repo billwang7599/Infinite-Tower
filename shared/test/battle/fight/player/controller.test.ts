@@ -125,9 +125,10 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
 });
 
 describe("what the player holds", () => {
+  const NO_GRIDS = { bag: emptyBag(), pack: packFor(null), quiver: packFor(null) };
   const unarmed = ({ sword, skillbook }: Record<"sword" | "skillbook", Hand | null>) => new Fight({
     arena: ARENA,
-    players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), pack: packFor(null), equipment: {
+    players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { ...NO_GRIDS, equipment: {
       ...armed(), rightHand: null, leftHand: null,
       ...(sword && { [sword]: "sword" }), ...(skillbook && { [skillbook]: "skillbook" }),
     } } })],

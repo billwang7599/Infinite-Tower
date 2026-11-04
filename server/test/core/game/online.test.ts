@@ -36,7 +36,7 @@ describe("joining", () => {
     const welcome = link.last("welcome");
     assert.deepEqual(
       { vitals: welcome.vitals, wins: welcome.wins, settings: welcome.settings, character: welcome.character,
-        bag: welcome.gear.bag, pack: welcome.gear.pack, equipment: welcome.gear.equipment,
+        bag: welcome.gear.bag, pack: welcome.gear.pack, quiver: welcome.gear.quiver, equipment: welcome.gear.equipment,
         knownWords: welcome.knownWords,
         skillbook: welcome.skillbook, story: newStory(), pad: START_REGION, core: welcome.core, shopsBought: [],
         faith: welcome.faith },
@@ -146,7 +146,9 @@ describe("a save from before the backpack", () => {
     const items = Array.from({ length: old.cols * old.rows }, (_, i) =>
       ({ item: "boar-meat", count: meat, x: i % old.cols, y: Math.floor(i / old.cols), turned: false }) as const);
     const save = store.saved.get(ACCOUNT.id)!;
-    store.saved.set(ACCOUNT.id, { ...save, bag: { ...old, items }, pack: packFor(null), equipment: emptyEquipment() });
+    store.saved.set(ACCOUNT.id, {
+      ...save, bag: { ...old, items }, pack: packFor(null), quiver: packFor(null), equipment: emptyEquipment(),
+    });
     const { spilled } = keptSave(store.saved.get(ACCOUNT.id)!);
     assert.ok((spilled["boar-meat"] ?? 0) > 0);
     const { session } = await joinNew(online);

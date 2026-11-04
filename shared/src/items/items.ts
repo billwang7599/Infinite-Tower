@@ -2,7 +2,10 @@
 import type { InscriptionId } from "../soul/inscriptions.js";
 import type { Weapon } from "../weapons/weapons.js";
 
-export type WornOn = "hand" | "cap" | "head" | "body" | "legs" | "boots" | "belt" | "back" | "finger" | "wrist";
+export type WornOn = "hand" | "cap" | "head" | "body" | "legs" | "boots" | "belt" | "back" | "hip" | "finger" | "wrist";
+
+/** What a quiver holds: named here, since an item's data can't name items. */
+export type AmmoId = "arrow";
 
 export type ItemEffect = { healShare: number } | { staminaShare: number } | { essence: number };
 
@@ -36,8 +39,8 @@ export interface ItemDef {
   wearable?: Wearable;
   inscription?: InscriptionId;
   weapon?: Weapon;
-  /** A backpack: the grid of its own it brings, worn. */
-  pack?: { cols: number; rows: number };
+  /** A backpack's or a quiver's: the grid of its own it brings, worn; `holds`, the one thing that goes in it. */
+  pack?: { cols: number; rows: number; holds?: { item: AmmoId; stackSize: number } };
 }
 
 const ABSORB_TIME = 2;
@@ -148,7 +151,13 @@ export const ITEMS = {
     name: "Training bow", rarity: "common",
     description: "A plain ash bow strung for the butts, light to draw. It's no use without arrows.", cols: 1, rows: 3,
     stackSize: 1, weight: 1, wearable: { on: "hand" },
-    weapon: { kind: "bow", length: 1.2, damage: 12, heft: 1, minStrength: 0 },
+    weapon: { kind: "bow", length: 1.2, damage: 12, heft: 1, minStrength: 0, powerMps: 40 },
+  },
+  "training-quiver": {
+    name: "Training quiver", rarity: "common",
+    description: "A stiff leather tube worn at the hip. Arrows packed in it come quicker to the string.", cols: 1,
+    rows: 2, stackSize: 1, weight: 0.5, wearable: { on: "hip" },
+    pack: { cols: 1, rows: 1, holds: { item: "arrow", stackSize: 60 } },
   },
   arrow: {
     name: "Arrow", rarity: "common", description: "A birch shaft with an iron head and grey goose fletching.", cols: 1,

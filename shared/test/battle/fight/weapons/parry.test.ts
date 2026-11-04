@@ -16,7 +16,9 @@ const pvp = (blade: ItemId = "sword") => new Fight({
     player({ x: 0, y: 0.05, z: 0 }),
     player({ x: 0, y: 0.05, z: 1.6 }, {
       vitals: { hp: FULL_HP, stamina: FULL_STAMINA },
-      gear: { bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), rightHand: blade } },
+      gear: {
+        bag: emptyBag(), pack: packFor(null), quiver: packFor(null), equipment: { ...armed(), rightHand: blade },
+      },
     }),
   ],
 });

@@ -18,6 +18,7 @@ const ABSORB = input({ bag: true, use: AT });
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const withEssence = (count = 2): Carried => ({
   bag: { ...emptyBag(), items: [{ item: "boar-essence", count, x: 0, y: 0, turned: false }] }, pack: packFor(null),
+  quiver: packFor(null),
   equipment: armed(),
 });
 

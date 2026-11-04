@@ -24,6 +24,7 @@ export interface PlayerSave {
   bag: Bag;
   /** The worn backpack's own grid. */
   pack: Bag;
+  quiver: Bag;
   equipment: Equipment;
   knownWords: Word[];
   skillbook: Skillbook;
