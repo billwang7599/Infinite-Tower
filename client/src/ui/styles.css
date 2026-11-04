@@ -65,6 +65,7 @@
 
 @layer base {
   html, body { @apply m-0 h-full overflow-hidden bg-stone; }
+  #game { cursor: url("./cursor.svg") 2 2, auto; }
 
   input[type="range"] {
     @apply h-3.5 appearance-none bg-transparent;

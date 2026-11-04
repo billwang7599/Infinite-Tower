@@ -136,16 +136,19 @@ main.ts
   pressed since (in order), and the axes `move.x`, `move.z`, `turn` and `look` (-1, 0 or 1, from `AXES` there),
   only while their layer is on top (the chant's, and the arena's bag's, let through only the dodge and the walk keys,
   for the dodge's way; the arena's bag takes its R and Enter from the overworld's keys, first, then the arena's);
-  the arena camera reads the fight's last poll. Actions also owns the mouse: the
-  pointer may lock only while the arena is on top (`setLayers`, with Auto mouse lock); in the overworld it isn't
-  captured and counts on the canvas as it is. Both cameras read its movement each frame with `actions.lookDelta()`:
-  only a drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held, counts, and the poll's
-  `dragged` says one turned it (which unlocks). A drag button that's another action's too (the right one: the
-  arena's heavy attack, the overworld's item turn) does that action as it's let go, and only if it never dragged that
-  far; no mode sees `Mouse`. Mouse movement in the arena is also read as flicks there: a
-  quick move one of 8 ways (`FLICK`, scaled by the flick sensitivity) comes in the poll's `flicks` (`right`,
-  `upLeft`, ...), which the arena's input turns into the swing's way (straight down into none); not while a drag
-  button is held.
+  the arena camera reads the fight's last poll. Actions also owns the mouse: the pointer may lock while the arena is
+  on top (`setLayers`, with Auto mouse lock); in the overworld it counts on the canvas as it is, captured only while
+  a drag turns the camera (`lockWhileHeld`, below). Both cameras read its movement each frame with
+  `actions.lookDelta()`: only a drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held,
+  counts, and the poll's `dragged` says one turned it (which unlocks). A drag past `DRAG.startPx` where the pointer
+  isn't captured already (the overworld) asks `Mouse.lockWhileHeld` to lock it, with raw movement where the browser
+  has it, until the drag button comes up; refused, the drag goes on with the pointer free. The first move after that
+  lock is dropped (a browser may report its jump into the lock there), and Esc or leaving the tab ends the drag. A
+  drag button that's another action's too (the right one: the arena's heavy attack, the overworld's item turn) does
+  that action as it's let go, and only if it never dragged that far; no mode sees `Mouse`. Mouse movement in the
+  arena is also read as flicks there: a quick move one of 8 ways (`FLICK`, scaled by the flick sensitivity) comes in
+  the poll's `flicks` (`right`, `upLeft`, ...), which the arena's input turns into the swing's way (straight down
+  into none); not while a drag button is held.
   The scroll wheel is no action: the poll's `zoom` is the notches turned since the last poll (+ out), each event
   its pixels' share of one (`WHEEL`, a notch at most; the first after a rest is a whole one), for both cameras'
   zoom. In a text field only the
@@ -1001,8 +1004,8 @@ of its own (Node's types), checked by `npm run typecheck`. New work is written t
   notches), the player's pose and blade (ways, aim, block), sword trail and
   cut, the
   boar's and the Kobold's poses, effects fired once per step and event,
-  camera, mouse, HUD and combat settings, settings sync, when the mouse is captured, overworld prediction, what
-  Interact does
+  camera, mouse, HUD and combat settings, settings sync, when the mouse is captured (a camera drag's lock too),
+  overworld prediction, what Interact does
   where you stand (the nearest in reach, a pile or an NPC only if you face it), the mirror (other players, piles, the
   world's NPCs), the dialogue (a line at a time, closing after the last, an offer taken by going past it; its keys
   over either mode), the questbook (H in either mode, H and Esc only over it, a saved H keeping it unbound; its step
@@ -1419,7 +1422,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      text fields keep their keys but the arrows, Esc, the digits and Backspace, and Enter where
                      it sends; captureKey for rebinding), mouse.ts (optional,
                      pointer lock: on a click in the arena, or by itself as the arena starts wanting the mouse when
-                     auto lock is on; shouldAutoLock is that rule; buttons as "Mouse0"…, read from pointer events
+                     auto lock is on; shouldAutoLock is that rule; lockWhileHeld, a camera drag's lock while its
+                     button is held; buttons as "Mouse0"…, read from pointer events
                      since Babylon's scene cancels pointerdown, which stops mousedown; the wheel's notches,
                      `WHEEL`), buttons.ts (held +
                      latched presses, counted in order), actions.ts (Actions: the bindings turned around, key ->
@@ -1491,7 +1495,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        No React.
       store.ts         Store<T> (set skips unchanged values); useStore.ts reads one value in a component
       keyNames.ts      KeyboardEvent.code / mouse button -> printable name
-      styles.css       Tailwind v4 entry + @theme tokens, the Inscribed utilities (carved bars, cut-corner frames)
+      styles.css       Tailwind v4 entry + @theme tokens, the Inscribed utilities (carved bars, cut-corner frames),
+                       the game canvas's pointer (cursor.svg)
                        and the range and checkbox inputs
       components/      Used by more than one screen: Bar.tsx (HUD bar + souls-style damage chip),
                        PlayerBars.tsx (HP + stamina, in the same corner on both HUDs; the battle's with HP numbers

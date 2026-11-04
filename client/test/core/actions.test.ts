@@ -8,34 +8,23 @@ import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse, WHEEL } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
 import { MouseSettings } from "../../src/settings/mouse.js";
+import { fakePointerLock, settle, type LockAnswer } from "../fixtures/pointer-lock.js";
 
 /** The real Keyboard and Mouse on stand-ins for window, document and canvas, fed plain Events; the mouse captured. */
 function setup(...layers: Layer[]) {
   return setupWith({ autoLock: true, locked: true }, ...layers);
 }
 
-function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean }, ...layers: Layer[]) {
-  const win = new EventTarget();
-  const doc = Object.assign(new EventTarget(), {
-    exits: 0,
-    exitPointerLock() {
-      doc.exits++;
-    },
-  });
-  const canvas = Object.assign(new EventTarget(), {
-    requests: 0,
-    requestPointerLock(): Promise<void> {
-      canvas.requests++;
-      return Promise.resolve();
-    },
-  });
+function setupWith(
+  { autoLock, locked, answer }: { autoLock: boolean; locked: boolean; answer?: LockAnswer }, ...layers: Layer[]
+) {
+  const { win, doc, canvas, grant, escape } = fakePointerLock(answer);
   const bindings = new KeyBindings();
   const mouseSettings = new MouseSettings();
   mouseSettings.setAutoLock(autoLock);
-  const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document,
-    win as unknown as Window);
+  const mouse = new Mouse(canvas as unknown as HTMLCanvasElement, doc as unknown as Document, win);
   mouse.locked = locked;
-  const actions = new Actions(bindings, new Keyboard(win as unknown as Window), mouse, mouseSettings);
+  const actions = new Actions(bindings, new Keyboard(win), mouse, mouseSettings);
   actions.setLayers(layers.length > 0 ? layers : ["battle"]);
   const send = (target: EventTarget, type: string, fields: object, timeStamp?: number) => {
     const event = Object.assign(new Event(type, { cancelable: true }), fields);
@@ -69,7 +58,7 @@ function setupWith({ autoLock, locked }: { autoLock: boolean; locked: boolean },
     return send(buttons === 0 ? win : doc, buttons === 0 ? "pointerup" : "pointermove", { button: b, buttons });
   };
   return {
-    bindings, actions, mouseSettings, listen, read, attack, aim, aims, canvas, doc,
+    bindings, actions, mouseSettings, listen, read, attack, aim, aims, canvas, doc, mouse, grant, escape,
     move: (movementX: number, movementY: number, afterMs = 10) =>
       send(doc, "pointermove", { button: -1, buttons, movementX, movementY }, clockMs += afterMs),
     press: (code: string, repeat = false) => send(win, "keydown", { code, repeat }),
@@ -702,7 +691,9 @@ describe("Actions: the mouse", () => {
   test("a drag past DRAG.startPx with the middle or right button held turns the camera; short of it, nothing", () => {
     for (const layer of ["battle", "overworld"] as const) {
       for (const b of [1, 2]) {
-        const { actions, move, click, unclick } = setup(layer);
+        const { actions, move, click, unclick } = setupWith(
+          { autoLock: true, locked: layer === "battle", answer: "later" }, layer,
+        );
         click(b);
         move(DRAG.startPx - 1, 0);
         assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, `${layer} ${b}: short`);
@@ -762,9 +753,9 @@ describe("Actions: the mouse", () => {
     assert.deepEqual(actions.poll().pressed, []);
   });
 
-  test("the overworld never captures the mouse; there, a right click turns an item and a right drag the camera", () => {
+  test("the overworld doesn't capture the mouse by itself; there, a right click turns an item, a right drag the camera", () => {
     const { actions, move, click, unclick, canvas } = setupWith({ autoLock: true, locked: false }, "overworld");
-    assert.equal(canvas.requests, 0);
+    assert.equal(canvas.requests.length, 0);
     click(2);
     move(DRAG.startPx + 4, 0);
     assert.deepEqual(actions.lookDelta(), { dx: DRAG.startPx + 4, dy: 0 });
@@ -785,24 +776,163 @@ describe("Actions: the mouse", () => {
 
   test("the arena coming on top captures the mouse when Auto mouse lock is on", () => {
     const { actions, canvas } = setupWith({ autoLock: true, locked: false }, "overworld");
-    assert.equal(canvas.requests, 0);
+    assert.equal(canvas.requests.length, 0);
     actions.setLayers(["battle"]);
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
   });
 
   test("with Auto mouse lock off, only a click in the arena captures it", () => {
     const { actions, canvas } = setupWith({ autoLock: false, locked: false }, "overworld");
     canvas.dispatchEvent(new Event("click"));
     actions.setLayers(["battle"]);
-    assert.equal(canvas.requests, 0);
+    assert.equal(canvas.requests.length, 0);
     canvas.dispatchEvent(new Event("click"));
-    assert.equal(canvas.requests, 1);
+    assert.equal(canvas.requests.length, 1);
   });
 
   test("a screen over the arena lets go of the mouse", () => {
     const { actions, doc } = setup("battle");
     actions.setLayers(["battle", "settings"]);
     assert.equal(doc.exits, 1);
+  });
+});
+
+describe("Actions: a camera drag captures the pointer", () => {
+  const overworld = (answer?: LockAnswer) => setupWith({ autoLock: true, locked: false, answer }, "overworld");
+
+  test("past DRAG.startPx the pointer locks, asking for raw movement; a click or a shorter drag doesn't", () => {
+    for (const b of [1, 2]) {
+      const { actions, move, click, unclick, canvas, mouse } = overworld();
+      click(b);
+      move(DRAG.startPx - 1, 0);
+      unclick(b);
+      actions.poll();
+      assert.equal(canvas.requests.length, 0, `${b}: a click`);
+      click(b);
+      move(DRAG.startPx - 1, 0);
+      assert.equal(canvas.requests.length, 0, `${b}: short`);
+      move(1, 0);
+      assert.deepEqual(canvas.requests, [{ unadjustedMovement: true }], `${b}: dragged`);
+      assert.equal(mouse.locked, true);
+      move(20, 0);
+      assert.equal(canvas.requests.length, 1, `${b}: asked once`);
+    }
+  });
+
+  test("locked, the movement turns the camera px for px as before, but the jump a browser may report as it locks", () => {
+    const { actions, move, click } = overworld();
+    click(2);
+    move(DRAG.startPx, 0);
+    assert.deepEqual(actions.lookDelta(), { dx: DRAG.startPx, dy: 0 });
+    move(500, -300);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, "the first move after the lock");
+    move(3, -2);
+    move(4, 1);
+    assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 });
+    assert.equal(actions.poll().dragged, true);
+  });
+
+  test("letting go of the button lets go of the lock, with no item turned", () => {
+    const { actions, move, click, unclick, doc, mouse } = overworld();
+    click(2);
+    move(DRAG.startPx, 0);
+    actions.lookDelta();
+    unclick(2);
+    assert.equal(doc.exits, 1);
+    assert.equal(mouse.locked, false);
+    move(5, 5);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    assert.deepEqual(actions.poll().pressed, []);
+  });
+
+  test("refused, the drag turns the camera as it did, with the pointer free", async () => {
+    const { actions, move, click, unclick, canvas, doc, mouse } = overworld("refuse");
+    click(2);
+    move(DRAG.startPx, 0);
+    await settle();
+    move(5, 0);
+    assert.equal(mouse.locked, false);
+    assert.equal(canvas.requests.length, 1, "not asked again on every move");
+    assert.deepEqual(actions.lookDelta(), { dx: DRAG.startPx + 5, dy: 0 });
+    unclick(2);
+    assert.equal(doc.exits, 0);
+    assert.deepEqual(actions.poll().pressed, []);
+  });
+
+  test("where raw movement isn't supported, the plain lock", async () => {
+    const { move, click, canvas, mouse } = overworld("noRaw");
+    click(2);
+    move(DRAG.startPx, 0);
+    await settle();
+    assert.equal(canvas.requests.length, 2);
+    assert.notEqual(canvas.requests[1]?.unadjustedMovement, true);
+    assert.equal(mouse.locked, true);
+  });
+
+  test("Esc or leaving the tab mid-drag ends the drag, nothing fires as the button comes up, the next drag locks again", () => {
+    const { actions, move, click, unclick, escape, canvas, mouse } = overworld();
+    click(2);
+    move(DRAG.startPx, 0);
+    actions.lookDelta();
+    escape();
+    assert.equal(mouse.locked, false);
+    move(5, 0);
+    move(5, 0);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    unclick(2);
+    assert.deepEqual(actions.poll().pressed, []);
+    click(2);
+    move(DRAG.startPx, 0);
+    assert.equal(canvas.requests.length, 2);
+    assert.equal(mouse.locked, true);
+  });
+
+  test("a lock granted after the button came up, or a screen opened, is let go at once", () => {
+    const { actions, move, click, unclick, grant, doc, mouse } = overworld("later");
+    click(2);
+    move(DRAG.startPx, 0);
+    unclick(2);
+    grant();
+    assert.equal(doc.exits, 1);
+    assert.equal(mouse.locked, false);
+    assert.deepEqual(actions.poll().pressed, []);
+    click(2);
+    move(DRAG.startPx, 0);
+    actions.setLayers(["overworld", "bag"]);
+    grant();
+    assert.equal(doc.exits, 2);
+    assert.equal(mouse.locked, false);
+  });
+
+  test("in the arena, captured already, a drag neither asks for the lock nor lets go of it", () => {
+    const { actions, move, click, unclick, canvas, doc } = setup("battle");
+    click(2);
+    move(DRAG.startPx + 1, 0);
+    unclick(2);
+    assert.equal(canvas.requests.length, 0);
+    assert.equal(doc.exits, 0);
+    assert.deepEqual(actions.poll().pressed, []);
+  });
+
+  test("a drag still held as a fight starts leaves the lock to the arena", () => {
+    const { actions, move, click, unclick, canvas, doc, mouse } = overworld();
+    click(2);
+    move(DRAG.startPx, 0);
+    actions.setLayers(["battle"]);
+    unclick(2);
+    assert.equal(canvas.requests.length, 1);
+    assert.equal(doc.exits, 0);
+    assert.equal(mouse.locked, true);
+  });
+
+  test("a right drag let go, the mouse moving on before the next poll, is still no heavy attack", () => {
+    const { actions, move, click, unclick } = setup("battle");
+    click(2);
+    move(DRAG.startPx, 0);
+    actions.poll();
+    unclick(2);
+    move(3, 0);
+    assert.deepEqual(actions.poll().pressed, []);
   });
 });
 

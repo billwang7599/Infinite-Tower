@@ -504,10 +504,13 @@ Decided by the user:
   steady rate, any way, not in quarter turns (the user: "arrow keys should be continuous, not discrete, with no
   limitations"), at the arena's rates and sensitivity; so does holding the right (or middle) button and moving the
   mouse, past about 6 px as in the arena, turning and tilting it (the user: "so overworld also control camera with
-  right click hold"); a right click without a drag still turns an item, as it's let go. The mouse isn't captured
-  there. Walking is relative to the camera (W away from it, A / D to its left and right), and sprites and the chibi's
-  pictures follow it, by the nearest quarter turn. The way it looks is saved with the settings (north for a new
-  player).
+  right click hold"); a right click without a drag still turns an item, as it's let go. Past those 6 px the pointer
+  is captured, hidden and still, until the button is let go, and comes back where it was (the user: "when right click
+  drag to move mouse around, the mouse should dissapear/be focused onto the game. i dont want the actual mouse
+  pointer to be moving"); a browser that refuses drags with the pointer free, as before. Otherwise the mouse isn't
+  captured there. Walking is relative to the camera (W away from it, A / D to its left and right), and sprites and
+  the chibi's pictures follow it, by the nearest quarter turn. The way it looks is saved with the settings (north for
+  a new player).
 - The overworld camera tilts (the user: it "stays where it is", not saved): held, Up / Down (`lookUp` / `lookDown`,
   rebindable) or a drag tilt it within the arena's caps (35° under the pivot to 80° over it; the user's "overworld
   camera up and down should be allowed to go 360" was undone by "make the up and down arrow capped"), and it stays
@@ -743,7 +746,9 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The HUD's and the menus' look is "Inscribed" (the user picked it from the HUD lab's mockups: "inscribed is pretty
   good… enemy health should be red though still"): carved bars with pointed ends and a notch every tenth, cut-corner
   frames, Gill Sans capitals, bone text and a cinnabar seal on names, the foe's bar red (ART.md's "HUD and menus").
-  It replaced the gilt look outright, with no setting to switch back.
+  It replaced the gilt look outright, with no setting to switch back. Over the game the pointer is its own (the user:
+  "custom mouse pointer for when the mouse is in game?"): a small carved arrowhead, bone and cinnabar halves in a dark
+  outline (`client/src/ui/cursor.svg`, the agent's design); menus, panels and buttons keep the usual ones.
 - Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the
