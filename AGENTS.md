@@ -256,32 +256,38 @@ Decided by the user:
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
   by the shared Zod schemas through fastify-type-provider-zod. Game messages stay on plain `ws` (`ws/`); Fastify
   only does the `/ws` handshake.
-- Fights lock on: a fight starts locked onto the closest enemy, Q toggles the lock, Right Shift locks the closest,
-  and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
-  off), and the camera keeps it in view on its own. Unlocked, Q locks the enemy nearest where the camera points (the
-  screen's middle), not the nearest to you. The arrows (held, at a steady rate) or a drag with the middle or right
-  button (past about 6 px) turn the camera, and turning it by hand lets go of the lock (the user: "on right click
-  drag it would unlock the camera. once i press q again, it locks onto the closest enemy camera is pointing at";
-  "arrow keys should be continuous, not discrete, with no limitations"); the arrows no longer retarget. A right click
-  is the heavy attack, fired as the button is let go, and only if it never dragged that far: a drag is no attack (the
-  user: "heavy attacks should fire if its a click. a drag should unlock the camera + pan"). Unlocked, attacks go
-  where the camera faces; the mouse alone doesn't turn it. Up and down are capped (the user: "make the up and down
-  arrow capped at some point so i cant spin forever, but still give a decent amount of freedom"; the numbers are the
-  main chat's): the eye goes from 35° under the pivot to 80° over it, arrows and drag alike, and the floor pulls it
-  in rather than letting it through; in first person you look 80° up or down at most (`PITCH` in
-  `client/src/modes/orbit.ts`, the overworld's too). Skills may home (the Follow modifier). The camera has three
-  views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"): over your left
-  shoulder (5.5 m back), For Honor style, so the target's swings aren't hidden behind your own body, close (3 m) and
-  first person (your head and body hidden, your arms, hands and what they hold shown with their swings, block, bow
-  draw and chant; the trail and aim ring too). The scroll wheel zooms between them, locked or not (the user: "mouse
+- Fights are always locked on (the user: "no more free camera in battle mode. you can hold right click to pan the
+  camera around, but as soon as you let go it'll snap back to the closest enemy the camera is facing and within the
+  camera view"): a fight starts locked onto the closest enemy, and while any enemy lives one is the target. Locked,
+  you face the target (A / D circle it, W / S close in and back off), and the camera keeps it in view on its own. Q
+  switches to the enemy nearest the screen's middle other than the target (with one enemy it stays), Right Shift to
+  the closest; nothing lets go. A drag with the middle or right button (past about 6 px) or the held arrows pan the
+  camera by hand, the target kept; let go, it eases to the enemy in view nearest the screen's middle, or back to the
+  old target if none is in view (the main chat's picks; Q skipping the target, the arrows panning like the drag and
+  a dead target's rule are the agent's). A target that dies passes the lock the same way, to the closest enemy if
+  none is in view. A right click is the heavy attack, fired as
+  the button is let go, and only if it never dragged that far: a drag is no attack (the user: "heavy attacks should
+  fire if its a click. a drag should unlock the camera + pan"). A drawn bow frees the camera to aim (the user: "when
+  holding left to draw [the bow] back, it should free the camera to aim"): from the draw until the loose's recovery
+  ends, every mouse move turns it (the pointer captured, the crosshair showing), you walk by the camera, the arrow
+  goes the crosshair's way (the input's aim and `aimPitchRad`) and the fight isn't told of the lock; then it eases
+  back by the same rule as a pan. With no enemy left, the camera turns only by hand. Up and down are capped (the
+  user: "make the up and down arrow capped at some point so i cant spin forever, but still give a decent amount of
+  freedom"; the numbers are the main chat's): the eye goes from 35° under the pivot to 80° over it, arrows and drag
+  alike, and the floor pulls it in rather than letting it through; in first person you look 80° up or down at most
+  (`PITCH` in `client/src/modes/orbit.ts`, the overworld's too). Skills may home (the Follow modifier). The camera
+  has three views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"):
+  over your left shoulder (5.5 m back), For Honor style, so the target's swings aren't hidden behind your own body,
+  close (3 m) and first person (your head and body hidden, your arms, hands and what they hold shown with their
+  swings, block, bow draw and chant; the trail and aim ring too). Every fight starts in first person for now (the user: "for now make
+  first person the default view"). The scroll wheel zooms between them, locked or not (the user: "mouse
   scroll should also be able to zoom in and out (capped at some point). main mode of playing now will be keyboard +
   mouse"): a notch takes the camera 1.2 times as far out or in (`ZOOM_PER_NOTCH`), from close out to 8 m
   (`ZOOM.maxM`), the shoulder view's framing at any distance; zooming in stops at close, and a notch more is first
   person (one out of it, close again). V (`cycleView`, rebindable) steps in to the next of shoulder, close and first
-  person, then round to the shoulder, and the zoom with it. Unlocked, only its direction is free. A dodge sends it
+  person, then round to the shoulder, and the zoom with it. Panned, only its direction is free. A dodge sends it
   back to the shoulder's distance if it was nearer (the user: "maybe on rolls it zooms back out so i dont have to stay
-  in first person"); zoomed out further, it stays. Every change eases; the zoom is kept for the session only, not
-  saved. In first person your arms are always in view (the user: "first person i should be able to see my arms at
+  in first person"); zoomed out further, it stays. Every change eases; the zoom lasts the fight, not saved. In first person your arms are always in view (the user: "first person i should be able to see my arms at
   all times i think, so the sword is in view a bit more"): both hands sit low on the screen, the sword lower and
   nearer the middle than the pose's own, and the arms go with the camera wherever it looks (ART.md, "first
   person"). The camera's numbers (`CAMERA_VIEWS` and `ZOOM` at the top of `client/src/modes/battle/camera.ts`, the
@@ -295,8 +301,8 @@ Decided by the user:
   spammed. The numbers (`followTurnRadPerSec` in `SKILL_EFFECTS`, the Kobold's `sidestep` in
   `server/src/core/enemies/kobold-swordsman.ts`) are the agent's picks, to tune.
 - A small crosshair at the screen's centre while you aim (the user: "there should be a small crosshair on the screen
-  when aiming (whether it be spells or bow and arrow)"): a bow drawn, a skill chanted, cast or streamed. Unlocked,
-  arrows and skills go the crosshair's way; locked on, they go at the target.
+  when aiming (whether it be spells or bow and arrow)"): a bow drawn, a skill chanted, cast or streamed. Arrows go the
+  crosshair's way (a drawn bow frees the camera, above); skills go at the target.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). Everyone
   has a very small base bag, and a backpack adds a grid of its own (the user: "the player has some base inventory
@@ -660,8 +666,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   - Keys, in the arena's group: K and the mouse's back side button stab (the scroll wheel did until it became the
     zoom; a saved stab key still loads), left Shift blocks (a tap shorter than a step counts). A flick of the
     mouse aims (`FLICK`, below): right swings from the right, up from the top, down-left from below on the left, and
-    so on; straight down aims nothing. The aim stays between attacks; a fight starts aimed from the top; unlocked,
-    attacks still go the aimed way. The old aim keys and the kick are dropped from saved keys; the questbook stays
+    so on; straight down aims nothing. The aim stays between attacks; a fight starts aimed from the top. The old aim keys and the kick are dropped from saved keys; the questbook stays
     on H.
   - Attacks: a light winds up as the user set (above), is live 0.1 s and recovers 0.08 s, poise 12. A heavy: 0.35 s
     more wind-up, live 0.12 s, recovering 0.2 s, twice the damage, poise 24. The stab: 0.3 s (the agent's pick, so it
@@ -718,9 +723,10 @@ them; treat them as changeable, and still ask before deciding new ones):
     winds up; hidden with no sword in hand, once you're down and once the fight is decided. The crosshair is a small
     bone cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any
     Form) or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`).
-    Unlocked, the aim is the level way from you to the first foe, the floor or the wall on the screen's centre line
-    (`crosshairAim` in `client/src/modes/battle/input.ts`), so with a camera off to the side a shot still crosses the
-    centre line at what the crosshair shows (a foe under it is hit); nearer than 1 m ahead, it's the camera's way.
+    A drawn bow's aim is the way from you to the first foe, the floor or the wall on the screen's centre line, on the
+    ground and up or down (`crosshairAim` in `client/src/modes/battle/input.ts`, the input's `aimPitchRad`), so with a
+    camera off to the side a shot still crosses the centre line at what the crosshair shows (a foe under it is hit);
+    nearer than 1 m ahead, it's the camera's way, level.
     Both, the lock-on diamond and other fighters' chant words are HUD: drawn sharp at full resolution over the pixel
     art, not pixelated (the user: "the indication should be part of the hud (shouldnt be pixelated)"); the diamond and
     the words stay over who they mark.

@@ -3,6 +3,7 @@ import type { Fight, FightOutcome, PlayerSetup } from "@infinite-tower/shared/fi
 import type { Actions, Polled } from "../../core/actions.js";
 import type { Settings } from "../../settings/settings.js";
 import type { ArenaView } from "./camera.js";
+import type { FreeCamera } from "./lock.js";
 import type { FightSync, StepEvent } from "./sync.js";
 
 /** Seconds a decided fight waits before showing the result and taking the leave key. */
@@ -19,9 +20,9 @@ export interface BattleContext {
   polled: Polled;
   actions: Actions;
   settings: Settings;
-  /** The camera's orbit. Unlocked, movement is camera-relative and the aim goes where the screen's centre shows. */
   view: ArenaView;
   lock: Entity | null;
+  freeCamera: FreeCamera;
   zoomM: number;
   way: SwingDir;
   who: PlayerSetup["who"][];

@@ -3,7 +3,6 @@ import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, type SwingDir } from "@infinite-tower/shared";
 import { Actions, DRAG, FLICK, type ActionName, type Layer } from "../../src/core/actions.js";
 import { pickedWay, readPlayerInput } from "../../src/modes/battle/input.js";
-import { steerLock } from "../../src/modes/battle/lock.js";
 import { Keyboard } from "../../src/core/keyboard.js";
 import { Mouse, WHEEL } from "../../src/core/mouse.js";
 import { KeyBindings, type ActionRef } from "../../src/settings/bindings.js";
@@ -423,7 +422,7 @@ describe("Actions: the layers", () => {
       press("KeyW");
       press("KeyF");
       assert.deepEqual(actions.poll(), {
-        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, zoom: 0,
+        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragging: false, zoom: 0,
       }, top);
     }
   });
@@ -661,7 +660,7 @@ describe("Actions: chat", () => {
       click(0);
       move(FLICK.distancePx * 2, 0);
       assert.deepEqual(actions.poll(), {
-        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, zoom: 0,
+        held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragging: false, zoom: 0,
       }, mode);
       assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, mode);
     }
@@ -697,14 +696,15 @@ describe("Actions: the mouse", () => {
         click(b);
         move(DRAG.startPx - 1, 0);
         assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, `${layer} ${b}: short`);
-        assert.equal(actions.poll().dragged, false, `${layer} ${b}: not dragged`);
+        assert.equal(actions.poll().dragging, false, `${layer} ${b}: not dragged`);
         move(3, -2);
         move(4, 1);
         assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 }, `${layer} ${b}: turning`);
         assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
-        assert.equal(actions.poll().dragged, true, `${layer} ${b}: dragged`);
-        assert.equal(actions.poll().dragged, false, "once per poll");
+        assert.equal(actions.poll().dragging, true, `${layer} ${b}: dragging`);
+        assert.equal(actions.poll().dragging, true, "still, while held");
         unclick(b);
+        assert.equal(actions.poll().dragging, false, `${layer} ${b}: let go`);
         move(10, 10);
         assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, `${layer} ${b}: let go`);
       }
@@ -716,11 +716,11 @@ describe("Actions: the mouse", () => {
       const { actions, move } = setup(layer);
       move(30, -20);
       assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, layer);
-      assert.equal(actions.poll().dragged, false, layer);
+      assert.equal(actions.poll().dragging, false, layer);
     }
   });
 
-  test("a right click is a heavy attack as it's let go; a right drag is none, lets go of the lock and turns", () => {
+  test("a right click is a heavy attack as it's let go; a right drag is none, and turns", () => {
     const clicked = setup("battle");
     clicked.click(2);
     clicked.move(DRAG.startPx - 1, 0);
@@ -738,10 +738,9 @@ describe("Actions: the mouse", () => {
     const polled = actions.poll();
     assert.deepEqual(polled.pressed, []);
     assert.deepEqual(polled.flicks, []);
-    assert.equal(polled.dragged, true);
+    assert.equal(polled.dragging, true, "turned since the last poll");
     assert.deepEqual(turned, { dx: 2 * FLICK.distancePx, dy: 0 });
-    const foes = [{ e: 7, pos: { x: 0, y: 0, z: 5 } }], aim = { eye: { x: 0, y: 1, z: -3 }, at: { x: 0, y: 1, z: 0 } };
-    assert.equal(steerLock(7, polled, foes, aim, { x: 0, y: 0, z: 0 }), null, "the lock let go");
+    assert.equal(actions.poll().dragging, false);
     assert.deepEqual(actions.poll().pressed, [], "no heavy later either");
   });
 
@@ -829,7 +828,7 @@ describe("Actions: a camera drag captures the pointer", () => {
     move(3, -2);
     move(4, 1);
     assert.deepEqual(actions.lookDelta(), { dx: 7, dy: -1 });
-    assert.equal(actions.poll().dragged, true);
+    assert.equal(actions.poll().dragging, true);
   });
 
   test("letting go of the button lets go of the lock, with no item turned", () => {
@@ -933,6 +932,36 @@ describe("Actions: a camera drag captures the pointer", () => {
     unclick(2);
     move(3, 0);
     assert.deepEqual(actions.poll().pressed, []);
+  });
+});
+
+describe("Actions: a drawn bow aims with the mouse", () => {
+  test("free look on, every mouse move in the arena turns the camera, with no button and no flick", () => {
+    const { actions, move } = setup("battle");
+    actions.setFreeLook(true);
+    move(3, -2);
+    move(FLICK.distancePx, 0);
+    assert.deepEqual(actions.lookDelta(), { dx: 3 + FLICK.distancePx, dy: -2 });
+    assert.deepEqual(actions.poll().flicks, []);
+    actions.setFreeLook(false);
+    move(FLICK.distancePx, 0);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    assert.deepEqual(actions.poll().flicks, ["right"]);
+  });
+
+  test("it stays in the arena: the overworld and a screen over the arena don't turn by it, and a new layer ends it", () => {
+    const { actions, move } = setup("battle");
+    actions.setFreeLook(true);
+    actions.setLayers(["battle", "settings"]);
+    move(5, 5);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
+    actions.setLayers(["battle"]);
+    move(5, 5);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 }, "ended by the layer change");
+    actions.setFreeLook(true);
+    actions.setLayers(["overworld"]);
+    move(5, 5);
+    assert.deepEqual(actions.lookDelta(), { dx: 0, dy: 0 });
   });
 });
 

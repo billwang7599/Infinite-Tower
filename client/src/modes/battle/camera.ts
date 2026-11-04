@@ -143,8 +143,8 @@ export function arenaCamera(
     if (!row) return;
     const p = row[2].pos;
 
-    // Follow a smoothed point on the player; unlocked, rotation itself is not smoothed (aiming must feel direct).
-    const target = ctx.lock === null ? null : world.get(ctx.lock, Body)?.pos ?? null;
+    // Follow a smoothed point on the player; freed, rotation itself is not smoothed (aiming must feel direct).
+    const target = ctx.lock === null || ctx.freeCamera !== null ? null : world.get(ctx.lock, Body)?.pos ?? null;
     const fresh = fight !== followed;
     if (fresh) {
       Object.assign(focus, p);

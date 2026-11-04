@@ -29,10 +29,10 @@ function arena(me: Vec3, foe: Vec3 | null, radiusM = 20) {
   };
   const drag = { dx: 0, dy: 0 };
   const ctx = {
-    view, lock, zoomM: SHOULDER.distanceM,
+    view, lock, freeCamera: null, zoomM: SHOULDER.distanceM,
     actions: { lookDelta: () => ({ ...drag }) },
     polled: {
-      held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, zoom: 0,
+      held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragging: false, zoom: 0,
     },
     settings: { camera: { get: () => ({ sensitivity: 1 }) } },
   } as unknown as BattleContext;
@@ -142,6 +142,31 @@ describe("the views apply locked or not", () => {
     ctx.lock = lock;
     assert.ok(run(240) < 0.5, "locking jumped");
     assert.equal(insideSelf(view.eye, me), true, "locked in first person");
+  });
+
+  test("freed (a pan or a drawn bow), it turns by hand off the target; held again, it eases back, with no jump", () => {
+    for (const free of ["pan", "aim"] as const) {
+      const me = { x: 0, y: 0.7, z: 0 }, { ctx, fight, view, drag } = arena(me, { x: 0, y: 0.7, z: 10 });
+      const camera = arenaCamera(ctx, CAMERA_VIEWS);
+      for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+      const locked = view.yaw;
+      ctx.freeCamera = free;
+      drag.dx = 200;
+      camera(fight, FRAME_TIME);
+      near(view.yaw - locked, 200 * TURN.mouseRadPerPx, `${free}: turned by the drag`, 1e-9);
+      drag.dx = 0;
+      for (let i = 0; i < 60; i++) camera(fight, FRAME_TIME);
+      near(view.yaw - locked, 200 * TURN.mouseRadPerPx, `${free}: stays where it was turned`, 1e-9);
+      ctx.freeCamera = null;
+      let biggestStepM = 0;
+      for (let i = 0; i < 240; i++) {
+        const before = { ...view.eye };
+        camera(fight, FRAME_TIME);
+        biggestStepM = Math.max(biggestStepM, Math.hypot(view.eye.x - before.x, view.eye.z - before.z));
+      }
+      near(view.yaw, locked, `${free}: back on the target`);
+      assert.ok(biggestStepM < 0.5, `${free}: jumped ${biggestStepM} m`);
+    }
   });
 
   test("with a side offset the wall still pulls the camera inside the arena", () => {

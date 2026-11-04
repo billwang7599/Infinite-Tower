@@ -140,7 +140,8 @@ main.ts
   on top (`setLayers`, with Auto mouse lock); in the overworld it counts on the canvas as it is, captured only while
   a drag turns the camera (`lockWhileHeld`, below). Both cameras read its movement each frame with
   `actions.lookDelta()`: only a drag, past `DRAG.startPx` with the place's `dragCamera` middle or right button held,
-  counts, and the poll's `dragged` says one turned it (which unlocks). A drag past `DRAG.startPx` where the pointer
+  counts, and the poll's `dragging` says one is turning it (the arena's pan). While a drawn bow aims, the arena sets
+  `setFreeLook`, and every move counts with no button and no flicks. A drag past `DRAG.startPx` where the pointer
   isn't captured already (the overworld) asks `Mouse.lockWhileHeld` to lock it, with raw movement where the browser
   has it, until the drag button comes up; refused, the drag goes on with the pointer free. The first move after that
   lock is dropped (a browser may report its jump into the lock there), and Esc or leaving the tab ends the drag. A
@@ -431,9 +432,12 @@ main.ts
   replays included, are `sync.events`). (Babylon's own lockstep isn't used: it would catch up stalls a second time.)
   HP and hits show at once from the client's copy, but the result is only ever the server's: the banner waits for
   `battleResult`. After its steps the mode moves the camera's orbit (`modes/battle/camera.ts`: plain numbers, since
-  its yaw is also the aim) and fills the HUD's store. The lock-on is the client's alone (`ctx.lock`, steered by
-  `modes/battle/lock.ts` each step): it only changes the move and aim the input carries (toward the target), so the
-  fight and the server don't know about it.
+  its yaw is also the aim) and fills the HUD's store. The lock-on is the client's (`ctx.lock`, steered by
+  `modes/battle/lock.ts` each step), always on while an enemy lives: it changes the move and aim the input carries
+  (toward the target) and names the target in `locked`. `freeCamera` says when the camera turns by hand instead
+  (`ctx.freeCamera`: "pan" for a drag or held arrows, the target kept; "aim" from a bow's draw until its loose
+  recovers, the input then walking by the camera, aiming at the crosshair with `aimPitchRad`, and naming no target);
+  as it ends, the lock goes to the enemy in view nearest the screen's middle (`inViewFoe`), else stays.
 - **Fighters are moved by code, not by forces.** Systems set a body's velocity (`Body.vel`); the physics step
   (`fight/physics/move.ts`) adds gravity and moves each collider with Rapier's character controller, so the floor
   and the arena's ring of wall stop it and take the speed out. Bodies bumping into each other follow the fight's own
@@ -1653,25 +1657,29 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
-                         time and drops, the lock and the camera's distance (zoomM), its orbit, this frame's events and
+                         time and drops, the lock, whether the camera is free (freeCamera) and its distance (zoomM,
+                         first person as each fight starts), its orbit, this frame's events and
                          corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
                          yaw is the aim. Its distance (steerZoom): the wheel from close out to ZOOM.maxM, a notch in
                          from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in; a dodge back to
                          the shoulder's from nearer. Nearer than close it's the fp view, else the shoulder view at that
-                         distance; unlocked only its direction is free, turned by the held arrows or a drag, its tilt
+                         distance; freed (ctx.freeCamera) only its direction is free, turned by the held arrows, a
+                         drag or a drawn bow's mouse, its tilt
                          capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in;
                          every change eases, the field of view and the tilt's caps too. insideSelf hides
                          your body but its arms in first person. Dev-only flags try others in place of the shoulder
                          view (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,
                          .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and blocksView says when your
                          fighter hides the target (cam.fade)
-        lock.ts          The lock-on: steerLock (Q locks the enemy nearest where the camera points, pointedFoe, or
-                         lets go; lock closest; turning the camera by hand lets go; off when the target dies),
-                         lockYaw (the way to face it), no Babylon: tested
+        lock.ts          The lock-on, always on: steerLock (Q switches to the enemy nearest where the camera points
+                         but the target, pointedFoe; lock closest; the camera freed keeps the target, and as it ends,
+                         or the target dies, the lock goes to inViewFoe, in the picture nearest its middle, else the
+                         old target, else the closest), freeCamera (a pan or a bow's aim), lockYaw (the way to face
+                         it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
-                         straight down; a block pressed or held); crosshairAim: unlocked, the aim through the first
-                         foe, floor or wall on the screen's centre line (tested)
+                         straight down; a block pressed or held); crosshairAim: a drawn bow's aim through the first
+                         foe, floor or wall on the screen's centre line, its way and pitch (tested)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
                          included; statusIcons: your and the foe's statuses as the HUD shows them (buffs first, the
                          share of time left), the last list kept while nothing shown changes
