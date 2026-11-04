@@ -176,11 +176,13 @@ main.ts
   fight runs on, the two fighters' drawings hold still for the weapon's `hitStopMs` and then ease after their bodies.
   The overworld's actors are drawn the same way, from `WALKERS` by their `kind`. `fighter()`
   (`visuals/battle/battle.ts`) wraps every fighter's row, so what any `Skilled` fighter is doing is drawn the same: the
-  circle at its feet while it chants or winds up, and, over anyone but you, its chant's words as a row of squares in
-  front of it (`chantWords.ts`), and its going: a dead enemy lies `DISSOLVE_DELAY_TIME`, then crumbles over
-  `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena (`Player.leftArena`) fades over
-  `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are alpha-tested, and its shadow with
-  it). The player's look is read from `ui.you`'s character and painted once
+  circle at its feet while it chants or winds up, and its going: a dead enemy lies `DISSOLVE_DELAY_TIME`, then
+  crumbles over `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena
+  (`Player.leftArena`) fades over `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are
+  alpha-tested, and its shadow with it). What reads as HUD is drawn over the pixel art at full resolution, on a 2D
+  canvas of its own, where the camera puts it each frame (`visuals/battle/overlay.ts`): your aim ring, the lock-on
+  diamond and, over anyone but you, a chanter's words as a row of squares in front of it (`chantWords.ts`). The
+  player's look is read from `ui.you`'s character and painted once
   (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
   every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
   turned by the same blade poses as a Kobold's (`playerBlade`, `visuals/battle/pose.ts`). Every other player in the
@@ -1328,7 +1330,7 @@ server/          Node. Authoritative: the world, encounters, overworld actors, e
                      password = username; refuses to run in production)
 
 client/          Browser game: the two modes, their drawing (Babylon), input, React UI.
-  index.html       The page: the 16:9 stage frame, the canvas, #ui
+  index.html       The page: the 16:9 stage frame, the canvas, the arena's overlay canvas over it, #ui
   vite.config.ts   Dev server :5173, proxies /ws and /api to the game server
   art/sd/          The Stable Diffusion pictures the portrait is traced from (64x64; the base, each body type, face
                    shape, hair style, eye type and mouth repainted on it, and the masks they were repainted in). Dev
@@ -1607,10 +1609,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                      running and still water; OVERWORLD_HEARING, STRIDE_TILES), sounds/ (the .ogg files,
                      SOUNDS.md), music/ (a track's .ogg, `<track>.ogg`, a seamless loop)
     visuals/         All the drawing: the only code that imports Babylon. Reads the modes' state; nothing hands it any
-      visuals.ts       The owner and the only entry from outside: createDrawing (the engine, both scenes; `show(mode)`,
-                       `frame(dt)`, `setDayClock`; each player's look painted); NPC_LOOKS re-exported; Visual
-                       ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and kindOf; EFFECTS (each
-                       fight event's one-shot effect) and FiredEffects (once per step and event)
+      visuals.ts       The owner and the only entry from outside: createDrawing (the engine, both scenes, the arena's
+                       overlay; `show(mode)`, `frame(dt)`, `setDayClock`; each player's look painted); NPC_LOOKS
+                       re-exported; Visual ({ spawn, frame, dispose }); VISUALS (each kind of thing in a fight) and
+                       kindOf; EFFECTS (each fight event's one-shot effect) and FiredEffects (once per step and event)
       characters.ts    PlayerLook: paints a look's chibi at once and its battle frames from behind one per slice
                        after, or the rest when a fight starts, again when the hand the fight's weapon is in changes
                        (its `Wielder`), the sword left out; a frame from the front only the first time it's shown
@@ -1637,10 +1639,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          materials, the skill kit, each fighter's node, each player's look in their frames, the shake,
                          each fighter's impact
         pixel.ts         The arena's pixel-art render, on by default (DEFAULT_PIXEL_SCALE, outlined); in dev the URL
-                         changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands]): pixelFlags,
-                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes (what
-                         keepSharp marks, the blades, glints and trails, stays out of the outline); also the 3D
-                         person's flags (&player3d=0 for the sprite, &steps=<fps>)
+                         changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands], &aa=0 for no
+                         anti-aliasing): pixelFlags, pixelScale (the engine's hardware scaling in a fight), the outline
+                         and palette passes (what keepSharp marks, the blades, glints and trails, stays out of the
+                         outline); also the 3D person's flags (&player3d=0 for the sprite, &steps=<fps>). scene.ts
+                         anti-aliases it with 4x MSAA at its small size (FXAA would smear the textures' pixels)
         person/          The arena's people as 3D models (sprite only with &player3d=0), built in code from the look:
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
                          offsets in metres, shoulders and hips widened per body type; attach joints grip.R / grip.L,
@@ -1659,12 +1662,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); impactPose and
                          joltOf (no Babylon: tested)
         battle.ts        fighter() (a fighter's node following its body, eased over corrections, held by a hit-stop and
-                         pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle and chant
-                         words, a dead enemy crumbling to ash and a player who left the arena fading; DISSOLVE_TIME,
-                         LEAVE_FADE_TIME), arenaStage (the scenery per arena, the camera on the mode's view plus
-                         shake, the lock-on's diamond, your aim ring, the drops' sacks after a win)
-        aimRing.ts       Your own aim ring, always shown while you fight: wedgeOf and ringLights (the aimed way's
-                         wedge, a stab's mark; tested) and aimRing, drawn by arenaStage
+                         pushed by a jolt, its reactions' bursts, any skilled fighter's chant circle, a dead enemy
+                         crumbling to ash and a player who left the arena fading; DISSOLVE_TIME, LEAVE_FADE_TIME),
+                         arenaStage (the scenery per arena, the camera on the mode's view plus shake, the drops'
+                         sacks after a win)
+        overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
+                         after the scene renders, each frame where the camera puts it (onScreen: a world point's spot
+                         and pixels a metre; tested): your own aim ring, always shown while you fight (wedgeOf and
+                         ringLights, the aimed way's wedge and a stab's mark; tested), the lock-on's diamond (an
+                         octahedron's facets, turning) and other fighters' chant words
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -1680,7 +1686,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          trail); its tip's glint just before it goes live (cueBlade, showCue
                          by glintOf); a flat sprite's held blade (holdBlade, placeBlade: at the
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
-        chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
+        chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it, on the
+                         overlay
         pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered
                          included; a way takes the nearest drawn swing, an aim the nearest guard pose);
                          playerBlade (their 3D blade, from the same, by the weapon's MOTIONS
@@ -2011,7 +2018,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
-| The aim ring (wedge size, radius, height, the stab's mark) | top of `client/src/visuals/battle/aimRing.ts` |
+| The aim ring (wedge size, radius, height, colours, the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |

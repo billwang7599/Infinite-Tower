@@ -6,9 +6,9 @@ import {
 } from "../../../src/visuals/battle/pixel.js";
 
 describe("the pixel-art render's flags", () => {
-  test("by default the arena is pixel art with outlines, its people 3D", () => {
+  test("by default the arena is pixel art with outlines, anti-aliased, its people 3D", () => {
     assert.deepEqual(pixelFlags(""), {
-      scale: DEFAULT_PIXEL_SCALE, outline: true, palette: null, player3d: true, steps: null,
+      scale: DEFAULT_PIXEL_SCALE, outline: true, palette: null, player3d: true, steps: null, aa: true,
     });
     assert.equal(pixelScale(pixelFlags(""), 768), DEFAULT_PIXEL_SCALE);
   });
@@ -21,11 +21,12 @@ describe("the pixel-art render's flags", () => {
     assert.deepEqual(pixelFlags("?palette=bands"), { ...byDefault, palette: "bands" });
     assert.deepEqual(pixelFlags("?player3d=0"), { ...byDefault, player3d: false });
     assert.deepEqual(pixelFlags("?steps=12"), { ...byDefault, steps: 12 });
+    assert.deepEqual(pixelFlags("?aa=0"), { ...byDefault, aa: false });
   });
 
   test("the old look is still a URL away", () => {
     assert.deepEqual(pixelFlags("?pixel=1&outline=0&player3d=0"), {
-      scale: null, outline: false, palette: null, player3d: false, steps: null,
+      scale: null, outline: false, palette: null, player3d: false, steps: null, aa: true,
     });
   });
 
@@ -40,10 +41,12 @@ describe("the pixel-art render's flags", () => {
     assert.equal(pixelScale(pixelFlags("?pixel=1"), 768), 1);
   });
 
-  test("outline and player3d are on unless set to 0", () => {
+  test("outline, player3d and aa are on unless set to 0", () => {
     assert.equal(pixelFlags("?outline").outline, true);
     assert.equal(pixelFlags("?outline=1").outline, true);
     assert.equal(pixelFlags("?player3d").player3d, true);
+    assert.equal(pixelFlags("?aa").aa, true);
+    assert.equal(pixelFlags("?aa=1").aa, true);
   });
 
   test("steps needs a rate above zero", () => {

@@ -646,7 +646,9 @@ them; treat them as changeable, and still ask before deciding new ones):
     old parry (a clash, a longer hold, a shower of sparks); a broken guard crashes.
   - The aim ring: 7 faint wedges 0.8 m round the chest, the aimed one gold, over everything, and a gold diamond on the
     chest while a stab winds up; hidden with no sword in hand, once you're down and once the fight is decided
-    (`client/src/visuals/battle/aimRing.ts`).
+    (`client/src/visuals/battle/overlay.ts`). It, the lock-on diamond and other fighters' chant words are HUD: drawn
+    sharp at full resolution over the pixel art, not pixelated (the user: "the indication should be part of the hud
+    (shouldnt be pixelated)").
 - Skills' numbers (D = 10, the Bolt's speed and range, the Nova's radius, ...), what Self does per element, how the
   Beam is held and paid, what Imbue does to sword hits, how strong each modifier is, lingering clouds of 8 s, and the
   smaller rules the user's design left open are in [plan/skills.md](plan/skills.md) under "Decided by the agent".

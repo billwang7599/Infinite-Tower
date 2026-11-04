@@ -52,7 +52,9 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
 
 function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags): void {
   const pipeline = new DefaultRenderingPipeline("post", true, scene, [camera]);
-  pipeline.fxaaEnabled = pixel.scale === null;
+  // Pixel art takes MSAA, at its low resolution: FXAA would smear the textures' pixels too.
+  pipeline.samples = pixel.aa && pixel.scale !== null ? 4 : 1;
+  pipeline.fxaaEnabled = pixel.aa && pixel.scale === null;
   pipeline.bloomEnabled = true;
   pipeline.bloomThreshold = 0.9;
   pipeline.bloomWeight = 0.45;

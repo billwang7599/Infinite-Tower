@@ -10,6 +10,7 @@
     <!-- No wider than VIEW.maxAspect (shared/src/overworld/view.ts); main.ts sets --view-aspect from it. -->
     <div id="stage" class="relative mx-auto h-dvh max-w-[calc(100dvh*var(--view-aspect))]">
       <canvas id="game" class="block size-full outline-none"></canvas>
+      <canvas id="overlay" class="pointer-events-none absolute inset-0 size-full"></canvas>
       <div id="ui"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
