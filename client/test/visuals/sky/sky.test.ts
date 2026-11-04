@@ -109,6 +109,30 @@ describe("map lights", () => {
     scene.dispose();
   });
 
+  test("a caster that can't move casts for a map light only within its reach; one that can, for every light", () => {
+    const scene = new Scene(new NullEngine());
+    const sky = createSky(scene);
+    const fires: MapLight[] = [0, 40].map((x) => ({ at: { x, y: 1, z: 0 }, color: new Color3(1, 0.5, 0.2), intensity: 3,
+      rangeM: 6, flicker: 0 }));
+    const box = (name: string, x: number, still: boolean) => {
+      const m = MeshBuilder.CreateBox(name, { width: 2 }, scene);
+      m.position.x = x;
+      if (still) m.freezeWorldMatrix();
+      return m;
+    };
+    sky.castShadows(box("wall-near", fires[0]!.rangeM + 0.9, true));
+    sky.castShadows(box("wall-between", 20, true));
+    sky.look(MIRE, fires);
+    sky.castShadows(box("wall-by-the-far-fire", 37, true));
+    sky.castShadows(box("walker", 20, false));
+    const casting = (light: string) => (scene.getLightByName(light)!.getShadowGenerator() as ShadowGenerator)
+      .getShadowMap()!.renderList!.map((m) => m.name).sort();
+    assert.deepEqual(casting("map-light-0"), ["walker", "wall-near"]);
+    assert.deepEqual(casting("map-light-1"), ["walker", "wall-by-the-far-fire"]);
+    assert.deepEqual(casting("sky-body"), ["walker", "wall-between", "wall-by-the-far-fire", "wall-near"]);
+    scene.dispose();
+  });
+
   test("a new look reuses the lights already made, so the scene's materials needn't check their shaders again", () => {
     const scene = new Scene(new NullEngine());
     const sky = createSky(scene);

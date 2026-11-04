@@ -407,6 +407,8 @@ function buildFountain(g: Geo, water: Geo, ledge: Ledge): void {
 
 export interface TownArt {
   build(map: WorldMap, ledge: Ledge, name: string): Mesh[] | null;
+  /** A chunk's lamp posts never fade, so they're one mesh. */
+  lamps(ledges: readonly Ledge[], name: string): Mesh | null;
 }
 
 export function townArt(scene: Scene): TownArt {
@@ -430,7 +432,6 @@ export function townArt(scene: Scene): TownArt {
       else if (ledge.look === "castle") buildWall(g, map, ledge);
       else if (ledge.look === "column") buildColumn(g, ledge);
       else if (ledge.look === "plinth") buildPlinth(g, ledge);
-      else if (ledge.look === "lamp") buildLamp(g, ledge);
       else if (ledge.look === "gate") buildGate(g, ledge);
       else if (ledge.look === "fountain") {
         const water = new Geo();
@@ -438,6 +439,12 @@ export function townArt(scene: Scene): TownArt {
         return [g.mesh(`fountain-${name}`, scene, material), water.mesh(`fountain-water-${name}`, scene, waterMat)];
       } else return null;
       return [g.mesh(`building-${name}`, scene, material)];
+    },
+    lamps(ledges, name) {
+      if (ledges.length === 0) return null;
+      const g = new Geo();
+      for (const ledge of ledges) buildLamp(g, ledge);
+      return g.mesh(`lamps-${name}`, scene, material);
     },
   };
 }

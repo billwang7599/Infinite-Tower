@@ -1701,7 +1701,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, the string
                          hand back by the draw; LANDING, the knees giving; no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
-                         a planted one stays put; legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
+                         a planted one stays put, a walk easing into a run (STRIDE.run) past STRIDE.walkSpeed;
+                         legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
                          tested), animation.ts (framePerson: the gait from the ground speed, the pose on the
                          joints, both arms bent to the pose's hand targets by reachWith, the 3D blade or bow on grip.R
                          or grip.L, a bow's string pulled to the off hand, the hair swung by the head's motion; with
@@ -1808,7 +1809,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          one cut by a chunk's edge isn't built twice; crenelsOf (a castle wall's edge tiles facing
                          the open air, not a hall); tileBlocks (runs of tiles merged into rectangles); tested
         buildings.ts     townArt: Highmere's buildings as 3D volumes, one mesh each (so each turns see-through on its
-                         own) and one material, a code-drawn atlas (CELL) with a glow map for windows and lanterns:
+                         own; a chunk's lamp posts, which never do, one mesh together) and one material, a
+                         code-drawn atlas (CELL) with a glow map for windows and lanterns:
                          houses (plinth, walls, gables, a roof slab with eaves, fascia and ridge, chimney, door
                          with frame, step and hood, windows with lintel, sill, shutters and flower boxes, sign,
                          lantern), castle walls (plinth, string course, crenellated parapet, banners, arrow
@@ -1852,7 +1854,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        so the shadow side isn't black), the sun's glow (Sky.glow, for the dome, haze and rays), the
                        sky light, sky colour and fog over a look's
                        colours (SkyLook; Babylon's fog, made full by fogEnd too once a fogStart is set), the map's
-                       flickering point lights (the nearest the camera cast shadows; kept and reused by the next
+                       flickering point lights (the nearest the camera cast shadows, from the casters in their
+                       reach only when a caster can't move: its world matrix frozen; kept and reused by the next
                        look, since a new light makes every material check its shaders),
                        tint (a region's colours, the lights kept), dropShadows (a chunk hidden), clearShadows, a
                        sprite's tint, the yaw that turns a shadow card to a light.
@@ -1876,7 +1879,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          moon of the fight's region; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
                          its meshes and materials), parts.ts (what
-                         the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle; patches, flat
+                         the looks share: lookRoot, speckled, floor, scatter (a template's copies as thin
+                         instances, one mesh), ringSpots, settle; patches, flat
                          blotches varying the ground, soft-edged by textures.ts' blotTexture; hazedRings, far
                          props in rings hazier with distance, HAZE_SHARES; tuft, a clump of blades; boulder; tested)
         forest-clearing/ the boar's and tall grass's: moss, a dirt floor with leaf litter, standing stones, pines and
@@ -2129,7 +2133,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL`, `ENEMY_SHADE_TINT` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
-| The 3D person's stride (how far a foot lands ahead, time down, lift, bob) and its landing | `STRIDE` in `client/src/visuals/battle/person/motion.ts`; `LANDING` in `person/pose.ts` |
+| The 3D person's stride (how far a foot lands ahead, time down, lift, bob; the run's strides a second) and its landing | `STRIDE` (`STRIDE.run`) in `client/src/visuals/battle/person/motion.ts`; `LANDING` in `person/pose.ts` |
 | How hazy each ring of an arena's far props is | `HAZE_SHARES` in `client/src/visuals/arenas/parts.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |

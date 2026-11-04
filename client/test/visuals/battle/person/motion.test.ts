@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { Matrix, Vector3 } from "@babylonjs/core";
 import { PLAYER } from "@infinite-tower/shared";
 import {
-  footOnStride, HAIR_SWAY, legAngles, STILL_HAIR, STRIDE, strideOf, swayHair, type Sway,
+  footOnStride, HAIR_SWAY, legAngles, plantLegs, STILL_HAIR, STRIDE, strideOf, swayHair, type Stride, type Sway,
 } from "../../../../src/visuals/battle/person/motion.js";
 
 const DOWN = { x: 0, y: -1, z: 0 }, STILL = { x: 0, y: 0, z: 0 };
@@ -70,11 +70,47 @@ describe("the stride", () => {
     }
   });
 
-  test("faster is longer and quicker strides with less time down; sideways steps are shorter", () => {
+  test("faster covers more ground a stride with less time down; sideways steps are shorter", () => {
     const walk = strideOf(1.5, 0), run = strideOf(PLAYER.moveSpeed, 0);
-    assert.ok(run.halfM > walk.halfM && run.cyclesPerSec > walk.cyclesPerSec && run.duty < walk.duty);
+    assert.ok(PLAYER.moveSpeed / run.cyclesPerSec > 1.5 / walk.cyclesPerSec && run.duty < walk.duty);
     assert.ok(run.halfM <= STRIDE.halfM + 1e-9);
     assert.ok(strideOf(PLAYER.moveSpeed, 1).halfM < run.halfM);
     assert.equal(strideOf(0, 0).cyclesPerSec, 0);
+  });
+
+  test("a full run is calm: under 3 strides a second, no quicker than a walk's top speed", () => {
+    const run = strideOf(PLAYER.moveSpeed, 0).cyclesPerSec;
+    assert.ok(run >= 2.6 && run <= 3, `${run} strides a second`);
+    assert.ok(run <= strideOf(STRIDE.walkSpeed, 0).cyclesPerSec);
+  });
+
+  const knees = (s: Stride) => {
+    let down = 0, most = 0;
+    for (let share = 0; share < 1; share += 0.005) {
+      const joints = {
+        root: { x: 0, y: 0, z: 0 }, hips: { x: 0, y: 0, z: 0 },
+        ...Object.fromEntries(["thigh", "shin", "foot"].flatMap((j) => ["R", "L"].map((side) =>
+          [`${j}.${side}`, { x: 0, y: 0, z: 0 }]))),
+      } as Parameters<typeof plantLegs>[0];
+      plantLegs(joints, share, s, { x: 0, z: 1 }, "medium");
+      most = Math.max(most, joints["shin.L"].x);
+      if (share < s.duty) down = Math.max(down, joints["shin.L"].x);
+    }
+    return { down, most };
+  };
+
+  test("a run bends the knees less than a walk, on the ground and swinging through", () => {
+    const walk = knees(strideOf(STRIDE.walkSpeed, 0)), run = knees(strideOf(PLAYER.moveSpeed, 0));
+    assert.ok(run.down < walk.down - 0.2, `planted: ${run.down} against ${walk.down}`);
+    assert.ok(run.most < walk.most - 0.3, `swinging: ${run.most} against ${walk.most}`);
+  });
+
+  test("running, the swinging foot trails further behind and reaches further ahead than it's planted", () => {
+    const s = strideOf(PLAYER.moveSpeed, 0), along: number[] = [];
+    for (let share = s.duty; share < 1; share += 0.005) along.push(footOnStride(share, s).along);
+    assert.ok(Math.min(...along) < -s.halfM - 0.03 && Math.max(...along) > s.halfM + 0.03);
+    const walk = strideOf(1.5, 0), walking: number[] = [];
+    for (let share = walk.duty; share < 1; share += 0.005) walking.push(footOnStride(share, walk).along);
+    assert.ok(Math.min(...walking) >= -walk.halfM - 1e-9 && Math.max(...walking) <= walk.halfM + 1e-9, "not walking");
   });
 });

@@ -104,7 +104,6 @@ function build(ctx: ArenaScene, radius: number) {
   const tower = MeshBuilder.CreateBox("ruins-tower", { width: 3, height: 12, depth: 3 }, scene);
   tower.material = stone;
   const top = MeshBuilder.CreateBox("ruins-tower-top", { width: 1.2, height: 2, depth: 3 }, scene);
-  top.position.x = 0.9;
   top.material = stone;
   scatter(ctx, root, [[tower, 6], [top, 13]], ringSpots(rand, 3, radius + 22, radius + 30, 0.9, 1.2));
 

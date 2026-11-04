@@ -6,7 +6,7 @@ import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
 import { restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
 import {
-  CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose,
+  CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
 import { MOTIONS, WEAPON_LOOKS } from "../../../../src/visuals/battle/weapons.js";
 import { playerDoing } from "../../../fixtures/players.js";
@@ -143,19 +143,22 @@ describe("the 3D player's other actions", () => {
     pose(undefined, null, { walk: { phase: share * 2 * Math.PI, speed, way } });
   const held = (key: number) => WALK.at[key]! + 0.9 / WALK.at.length;
 
-  const footAt = (p: PersonPose, leg: "R" | "L") => {
+  const jointAt = (p: PersonPose, chain: readonly PosedJoint[]) => {
     let m = Matrix.Identity();
-    for (const j of [`foot.${leg}`, `shin.${leg}`, `thigh.${leg}`, "hips", "root"] as const) {
+    for (const j of chain) {
       const r = p.joints[j], at = j === "root" ? { x: 0, y: p.rootY, z: 0 } : restAt(j, BUILD.look.body);
       m = m.multiply(Matrix.RotationYawPitchRoll(r.y, r.x, r.z).multiply(Matrix.Translation(at.x, at.y, at.z)));
     }
     return Vector3.TransformCoordinates(Vector3.Zero(), m);
   };
+  const footAt = (p: PersonPose, leg: "R" | "L") =>
+    jointAt(p, [`foot.${leg}`, `shin.${leg}`, `thigh.${leg}`, "hips", "root"]);
 
   test("a stride: the legs take turns, the body bobs, the hips and shoulders turn against each other", () => {
     const { duty } = strideOf(PLAYER.moveSpeed, 0);
     const contact = stride(0), other = stride(0.5), passing = stride(duty / 2);
-    assert.ok(footAt(contact, "L").z > 0.1 && footAt(contact, "R").z < 0, "left foot ahead, right behind");
+    const hipsZ = jointAt(contact, ["hips", "root"]).z;
+    assert.ok(footAt(contact, "L").z > hipsZ + 0.1 && footAt(contact, "R").z < hipsZ, "left foot ahead, right behind");
     assert.ok(Math.abs(footAt(other, "R").z - footAt(contact, "L").z) < 0.01, "half a stride later, the right");
     assert.ok(passing.joints["shin.R"].x > 0.5, "the passing leg's knee lifts");
     assert.ok(stride(duty / 2 + 0.25).rootY > passing.rootY, "up between steps, down over the planted foot");
