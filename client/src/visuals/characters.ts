@@ -33,6 +33,10 @@ export class PlayerLook<Sprite> {
     private readonly redraw: (sprite: Sprite, draw: SpriteDraw) => void,
   ) {}
 
+  get current(): Look | null {
+    return this.look;
+  }
+
   wear(look: Look): void {
     const key = JSON.stringify(look);
     if (key === this.worn) return;

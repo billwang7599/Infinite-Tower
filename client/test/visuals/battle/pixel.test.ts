@@ -5,15 +5,18 @@ import { LOW_RES_LINES, pixelFlags, pixelScale, rampTones } from "../../../src/v
 
 describe("the pixel-art render's flags", () => {
   test("no flag leaves today's look", () => {
-    assert.deepEqual(pixelFlags(""), { scale: null, outline: false, palette: null });
+    assert.deepEqual(pixelFlags(""), { scale: null, outline: false, palette: null, player3d: false, steps: null });
     assert.equal(pixelScale(pixelFlags(""), 768), 1);
   });
 
   test("each layer turns on by itself", () => {
-    assert.deepEqual(pixelFlags("?pixel=4"), { scale: 4, outline: false, palette: null });
-    assert.deepEqual(pixelFlags("?outline"), { scale: null, outline: true, palette: null });
-    assert.deepEqual(pixelFlags("?palette"), { scale: null, outline: false, palette: "ramps" });
-    assert.deepEqual(pixelFlags("?palette=bands"), { scale: null, outline: false, palette: "bands" });
+    const none = pixelFlags("");
+    assert.deepEqual(pixelFlags("?pixel=4"), { ...none, scale: 4 });
+    assert.deepEqual(pixelFlags("?outline"), { ...none, outline: true });
+    assert.deepEqual(pixelFlags("?palette"), { ...none, palette: "ramps" });
+    assert.deepEqual(pixelFlags("?palette=bands"), { ...none, palette: "bands" });
+    assert.deepEqual(pixelFlags("?player3d"), { ...none, player3d: true });
+    assert.deepEqual(pixelFlags("?steps=12"), { ...none, steps: 12 });
   });
 
   test("a bare pixel flag picks the scale from the canvas height, a number is taken as it is", () => {
@@ -22,6 +25,12 @@ describe("the pixel-art render's flags", () => {
     assert.equal(pixelScale(pixelFlags("?pixel"), LOW_RES_LINES / 2), 1);
     assert.equal(pixelScale(pixelFlags("?pixel=5&outline"), 768), 5);
     assert.equal(pixelFlags("?pixel=0").scale, "auto");
+  });
+
+  test("steps needs a rate above zero", () => {
+    assert.equal(pixelFlags("?steps").steps, null);
+    assert.equal(pixelFlags("?steps=0").steps, null);
+    assert.equal(pixelFlags("?steps=8&player3d").steps, 8);
   });
 });
 

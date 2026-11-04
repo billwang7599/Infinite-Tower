@@ -14,7 +14,7 @@
 import type { Art, BattleFacing, BattleFrame, Draw, Frame, Frames, Piece } from "./art.js";
 import { ink } from "./art.js";
 import { TRACED, TRACED_INKS, type Traced } from "./base.js";
-import { battleFrames, type BattleFrames } from "./battle.js";
+import { battleFrames, type BattleBuild, type BattleFrames } from "./battle.js";
 import {
   BASE, SHADOW, ellipse, farSide, gridMask, mirror, polygon, rect, symmetric, union, type Mask, type Point,
 } from "./pixels.js";
@@ -98,22 +98,28 @@ function portraitFrame(body: Traced): Frame {
   };
 }
 
+export const BATTLE_BUILDS = {
+  skinny: { shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 },
+  medium: { shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 },
+  wide: { shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 },
+} as const satisfies Record<string, BattleBuild>;
+
 /** Body types. Looks only: they change nothing in play. */
 export const BODY_TYPES = {
   skinny: {
     portrait: portraitFrame(TRACED.body.skinny),
     chibi: chibiFrames({ shoulders: 5, waist: 2.6, arm: 2 }),
-    battle: battleFrames({ shoulder: 7, waist: 4.9, hip: 5.5, arm: 3.4, neck: 1.6 }),
+    battle: battleFrames(BATTLE_BUILDS.skinny),
   },
   medium: {
     portrait: portraitFrame(TRACED.body.medium),
     chibi: chibiFrames({ shoulders: 5.6, waist: 2.6, arm: 2.4 }),
-    battle: battleFrames({ shoulder: 7.9, waist: 5.4, hip: 6, arm: 3.9, neck: 2.6 }),
+    battle: battleFrames(BATTLE_BUILDS.medium),
   },
   wide: {
     portrait: portraitFrame(TRACED.body.wide),
     chibi: chibiFrames({ shoulders: 6.4, waist: 3, arm: 3 }),
-    battle: battleFrames({ shoulder: 9, waist: 6.2, hip: 6.6, arm: 4.6, neck: 2.6 }),
+    battle: battleFrames(BATTLE_BUILDS.wide),
   },
 } as const satisfies Record<string, Omit<Frames, "battle"> & { battle: Record<BattleFacing, BattleFrames> }>;
 

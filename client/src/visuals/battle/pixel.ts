@@ -7,6 +7,9 @@ export interface PixelFlags {
   scale: number | "auto" | null;
   outline: boolean;
   palette: "ramps" | "bands" | null;
+  player3d: boolean;
+  /** The 3D player's pose changes only this many times a second, as a drawn animation's frames. */
+  steps: number | null;
 }
 
 // 2 × 8 m (the camera to the player, measured) × tan(fov / 2) × 64 texels / 1.8 m: a sprite texel per low-res line.
@@ -15,11 +18,13 @@ export const LOW_RES_LINES = 275;
 export function pixelFlags(search: string): PixelFlags {
   const params = new URLSearchParams(search);
   const n = Math.round(Number(params.get("pixel")));
-  const palette = params.get("palette");
+  const palette = params.get("palette"), steps = Math.round(Number(params.get("steps")));
   return {
     scale: !params.has("pixel") ? null : n >= 1 ? n : "auto",
     outline: params.has("outline"),
     palette: palette === null ? null : palette === "bands" ? "bands" : "ramps",
+    player3d: params.has("player3d"),
+    steps: steps >= 1 ? steps : null,
   };
 }
 

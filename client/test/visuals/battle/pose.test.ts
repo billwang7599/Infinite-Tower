@@ -1,24 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, IDLE_INPUT, newCore, SWING_DIRS, WAYS, type AttackKind, type PlayerAction, type PlayerData,
-  type SwingData, type SwingDir,
+  SWING_DIRS, WAYS, type AttackKind, type PlayerData, type SwingData, type SwingDir,
 } from "@infinite-tower/shared";
 import { facingSeen, playerBlade, spritePose, TURN_MARGIN_RAD } from "../../../src/visuals/battle/pose.js";
 import { MOTIONS, REELING_BLADE, REST_BLADE } from "../../../src/visuals/battle/weapons.js";
 import { BATTLE_FRAMES } from "../../../src/visuals/characters.js";
 import { swingAt, swingSteps, waySwingAt } from "../../fixtures/swings.js";
-import { armed } from "../../fixtures/armed.js";
+import { playerDoing } from "../../fixtures/players.js";
 
-function playerDoing(action: PlayerAction, t: number, way: SwingDir | null = null): PlayerData {
-  return {
-    grounded: true, airTime: 0, last: IDLE_INPUT, perfectBlockLeft: 0, sinceBlockPress: 1, way, jumpBuffer: 0,
-    attackBuffer: 0, dodgeBuffer: 0, castBuffer: 0, queued: null, castQueued: null, brokenOff: false, writing: null,
-    using: null, book: [], burden: "light",
-    gear: { bag: emptyBag(), equipment: armed() }, core: newCore(), action, actionTime: t,
-    actionDir: { x: 0, z: 1 }, invulnerable: false, leftArena: false,
-  };
-}
 const ATTACKING = playerDoing("attack", 0);
 const holding = (swing: SwingData | null) => ({ swing });
 const KINDS: readonly AttackKind[] = ["light", "heavy"];
