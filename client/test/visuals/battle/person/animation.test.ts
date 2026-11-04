@@ -2,9 +2,19 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Quaternion, Scene, TransformNode, Vector3, type AbstractMesh } from "@babylonjs/core";
 import { DEFAULT_LOOK } from "@infinite-tower/shared";
-import { reachWith } from "../../../../src/visuals/battle/person/animation.js";
+import { handSide, reachWith } from "../../../../src/visuals/battle/person/animation.js";
 import { buildPerson, personBuild } from "../../../../src/visuals/battle/person/model.js";
 import type { Sky } from "../../../../src/visuals/sky/sky.js";
+
+describe("the hand a 3D person holds its weapon in", () => {
+  test("a sword is in the hand it's equipped in; a bow always in the left, on the shoulder camera's side", () => {
+    assert.equal(handSide({ rightHand: "sword", leftHand: null }, "sword"), 1);
+    assert.equal(handSide({ rightHand: null, leftHand: "sword" }, "sword"), -1);
+    assert.equal(handSide({ rightHand: "training-bow", leftHand: null }, "training-bow"), -1);
+    assert.equal(handSide({ rightHand: "skillbook", leftHand: "training-bow" }, "training-bow"), -1);
+    assert.equal(handSide({ rightHand: null, leftHand: null }, null), 1);
+  });
+});
 
 describe("the 3D person's arms", () => {
   test("bend so the hand lands on the pose's target and holds the blade its way, however the body is turned", () => {

@@ -1,13 +1,14 @@
 import { Color3, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Health, heldIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
-  type PlayerData, type Vec2, type Vec3, type WeaponId, type World,
+  Body, damp, dampFactor, Health, heldIn, Player, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity,
+  type Equipment, type Look, type PlayerData, type Vec2, type Vec3, type WeaponId, type WielderData, type World,
 } from "@infinite-tower/shared";
 import { reachArm } from "../arm.js";
 import { dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
 import { bowDrawOf, pullString } from "../bow.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
+import { shownGear, wearOf, type ShownGear } from "./body.js";
 import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
 import { STILL_HAIR, strideOf, swayHair, type Sway } from "./motion.js";
 import { LANDING, personPose, POSED_JOINTS } from "./pose.js";
@@ -23,6 +24,8 @@ const LEGS = new Set<string>(["thigh.R", "thigh.L", "shin.R", "shin.L", "foot.R"
 
 export interface PersonDrawing {
   look: Look | null;
+  equipment: Equipment | null;
+  shown: ShownGear;
   build: PersonBuild | null;
   model: PersonModel | null;
   blade: HeldBlade | null;
@@ -45,8 +48,8 @@ export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir
 };
 
 export const newPerson = (): PersonDrawing => ({
-  look: null, build: null, model: null, blade: null, bladeSide: 1, handAt: null, bladeTurn: null, yaw: 0, gait: 0,
-  time: 0, deadTime: 0, sinceStep: 0, sinceLanding: LANDING.durationTime,
+  look: null, equipment: null, shown: {}, build: null, model: null, blade: null, bladeSide: 1, handAt: null,
+  bladeTurn: null, yaw: 0, gait: 0, time: 0, deadTime: 0, sinceStep: 0, sinceLanding: LANDING.durationTime,
   hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() },
 });
 
@@ -92,6 +95,10 @@ export function reachWith(joints: Joints, side: "R" | "L", target: Vec3, holding
   turnInParent(hand, want);
 }
 
+// A bow is always in the left hand: the locked camera looks over the left shoulder.
+export const handSide = (hands: WielderData["hands"], weapon: WeaponId | null): 1 | -1 =>
+  weapon && (WEAPON_LOOKS[weapon].bow || heldIn(hands, weapon) === "leftHand") ? -1 : 1;
+
 const bladeDir = new Vector3(), bladeTurn = new Quaternion(), target = new Vector3(), offTarget = new Vector3();
 const up = Vector3.Up(), UNTURNED = Quaternion.Identity();
 
@@ -99,18 +106,21 @@ export function framePerson(
   p: PersonDrawing, ctx: ArenaScene, node: TransformNode, world: World, e: Entity, dt: number, stance: PersonStance,
   stagger: { left: number; of: number },
 ): void {
-  const look = ctx.looks.get(e)?.current ?? null;
-  if (look !== p.look) {
+  const look = ctx.looks.get(e)?.current ?? null, equipment = world.get(e, Player)?.gear.equipment ?? null;
+  const shown = equipment === p.equipment ? p.shown : equipment ? shownGear(equipment) : {};
+  p.equipment = equipment;
+  if (look !== p.look || (shown !== p.shown && JSON.stringify(shown) !== JSON.stringify(p.shown))) {
     dropPerson(p);
     p.look = look;
+    p.shown = shown;
     p.build = look && personBuild(look);
-    p.model = p.build && buildPerson(ctx, e, node, p.build);
+    p.model = p.build && buildPerson(ctx, e, node, p.build, wearOf(shown));
   }
   const { model, build } = p;
   if (!model || !build) return;
   const body = world.require(e, Body), health = world.require(e, Health), wielder = world.require(e, Wielder);
   const alive = health.hp > health.floor, weapon = weaponItemIn(wielder.hands);
-  const side = weapon && heldIn(wielder.hands, weapon) === "leftHand" ? -1 : 1;
+  const side = handSide(wielder.hands, weapon);
   const speed = Math.hypot(body.vel.x, body.vel.z);
   p.time += dt;
   p.sinceLanding = stance.grounded ? (p.sinceLanding ?? 0) + dt : null;

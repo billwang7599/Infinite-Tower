@@ -1692,20 +1692,24 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
                          offsets in metres, shoulders and hips widened per body type; attach joints grip.R / grip.L,
                          crown, back, and hair for the hair that swings; buildSkeleton), body.ts (SHAPES, the bare
-                         body's parts as sections after the battle sprite, a deltoid on each shoulder; STARTER_WEAR, the clothes as a table of the parts they colour and the trims
-                         they add), model.ts (personBuild; buildPerson: every mesh rigid on one joint, real shadows,
+                         body's parts as sections after the battle sprite, a deltoid on each shoulder; STARTER_WEAR,
+                         the clothes as a table of the parts they colour and the trims they add, keyed by slot; WORN,
+                         each worn item's look the same way (pieces on a part, one wrist, the crown or the back);
+                         shownGear, what's drawn per slot, a cosmetic over what it covers; wearOf, the starter clothes
+                         with those over them), model.ts (personBuild; buildPerson: every mesh rigid on one joint, real shadows,
                          a fill light so dark looks keep their colour), head.ts (faceTexels: the chibi's eyes and mouth,
                          a nose and blush, painted on the head's front; hairTexels; HAIR_STYLES, each a shell cut round
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
                          each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
-                         into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, the string
-                         hand back by the draw; LANDING, the knees giving; no Babylon: tested), motion.ts (WALK,
+                         into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, held out and
+                         canted clear of the head (BOW_DRAWN), the string hand back by the draw; LANDING, the knees giving; no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
                          a planted one stays put, a walk easing into a run (STRIDE.run) past STRIDE.walkSpeed;
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
-                         tested), animation.ts (framePerson: the gait from the ground speed, the pose on the
-                         joints, both arms bent to the pose's hand targets by reachWith, the 3D blade or bow on grip.R
-                         or grip.L, a bow's string pulled to the off hand, the hair swung by the head's motion; with
+                         tested), animation.ts (framePerson: the model built again when the look or what's worn
+                         changes, the gait from the ground speed, the pose on the joints, both arms bent to the pose's
+                         hand targets by reachWith, the 3D blade on grip.R or grip.L (handSide: a bow always in the
+                         left), a bow's string pulled to the off hand, the hair swung by the head's motion; with
                          &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
@@ -2118,7 +2122,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | The aim ring (wedge size, radius, height, colours, the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
-| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours and how deep it sinks stuck; a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist and the carry (`DRAW_TWIST`, `BOW_CARRY` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
+| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours and how deep it sinks stuck; a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, the carry and how far out and canted it's drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |

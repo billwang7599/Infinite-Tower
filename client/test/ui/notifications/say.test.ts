@@ -95,10 +95,13 @@ describe("say", () => {
     assert.deepEqual(notices(to), ["You get 3 boar meat."]);
     const full = new Notifications();
     say(full, { kind: "given", item: "boar-hide", count: 1, left: 2 });
-    assert.deepEqual(notices(full), ["You get boar hide.", "The bag is full: 2 boar hide didn't fit."]);
+    assert.deepEqual(notices(full), ["You get boar hide.", "The bag is full: 2 boar hides didn't fit."]);
     const none = new Notifications();
     say(none, { kind: "given", item: "boar-hide", count: 0, left: 2 });
-    assert.deepEqual(notices(none), ["The bag is full: 2 boar hide didn't fit."]);
+    assert.deepEqual(notices(none), ["The bag is full: 2 boar hides didn't fit."]);
+    const arrows = new Notifications();
+    say(arrows, { kind: "given", item: "arrow", count: 20, left: 0 });
+    assert.deepEqual(notices(arrows), ["You get 20 arrows."]);
   });
 
   test("a dev cheat's heal is a notice", () => {

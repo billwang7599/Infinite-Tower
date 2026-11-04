@@ -715,8 +715,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   - A cosmetic slot takes only cosmetics (an item marked `cosmetic`), and a cosmetic goes only in the cosmetic slot
     over its piece; a real cap can't be worn as a look. The rings are by finger: thumb, index, middle, ring, little.
   - The new items have no stats (stats on rings or belts would be a mechanic to ask about) and none is sold or
-    dropped yet; the admin's give has them. Nothing worn is drawn on the person yet but the sword: cosmetics and the
-    new slots show in the bag screen only.
+    dropped yet; the admin's give has them. The arena's 3D people wear them (the user: worn gear "should show on the
+    3D people"; the looks are the agent's, ART.md): the cap, or the cosmetic over it instead, the belt, the backpack
+    and each bracelet on its own wrist; rings are too small to show. The overworld's chibi draws none of them yet.
   - Saves from before: a bag of another size than the base bag's is from before the backpack, so on load the player
     gets a Canvas backpack on (if their back is empty) and everything is laid out again, biggest first, in the bag
     then the backpack; what fits in neither (an old bag fuller than 22 cells) lies in a pile at their feet on that
@@ -832,6 +833,8 @@ them; treat them as changeable, and still ask before deciding new ones):
   at 30 m/s, falling at 9.8 m/s², for at most 3 s, and lands on the first foe in its way (poise 10) unless it's
   dodging or in hurt invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina)
   and a perfect block whole, the shooter far off not recoiling. In the floor or the wall it lies 2 s, then is gone.
+  The 3D person holds a bow in the left hand whichever hand's slot it's in, and draws it held out to the side and
+  canted, so the locked camera over the left shoulder sees it past the head (looks only).
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight

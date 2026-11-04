@@ -4,7 +4,8 @@ import { Matrix, Vector3 } from "@babylonjs/core";
 import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData } from "@infinite-tower/shared";
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
-import { restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
+import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
+import { HEAD } from "../../../../src/visuals/battle/person/head.js";
 import {
   CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
@@ -245,7 +246,7 @@ describe("the 3D player's bow", () => {
     for (const p of [begun, half, full]) {
       assert.ok(p.hand.z > BUILD.reachM * 0.8, "out ahead");
       assert.ok(Math.abs(p.hand.y - BUILD.shoulderY) < 0.1, "at the shoulders");
-      assert.ok(p.blade.y > 0.9, "upright");
+      assert.ok(p.blade.y > 0.8, "upright, canted a little");
       close(p.offHand.x, p.hand.x, "on the string");
     }
     close(begun.offHand.z, begun.hand.z - BOW.braceM, "on the string at rest");
@@ -254,6 +255,15 @@ describe("the 3D player's bow", () => {
     assert.ok(twist(full) < 0, "turned side-on, the bow arm ahead");
     assert.ok(full.joints["thigh.R"].x < 0 && full.joints["thigh.R"].z > 0 && full.joints["thigh.L"].z < 0,
       "feet planted apart, the bow side's ahead");
+  });
+
+  test("drawn, it's held out to its side, the top limb leaning out clear of the big head, seen from behind", () => {
+    const headHalfM = HEAD.x * M_PER_PX, halfM = WEAPON_LOOKS["training-bow"].blade.lengthM / 2;
+    for (const drawn of [0, 1]) {
+      const p = bowPose(playerDoing("draw", drawn), drawn);
+      assert.ok(p.hand.x > BUILD.shoulderM * 0.6, "out to the side");
+      assert.ok(p.hand.x + p.blade.x * halfM > 1.5 * headHalfM, "the top limb past the head");
+    }
   });
 
   test("loosing, the body rocks back with the string's kick and settles", () => {

@@ -15,7 +15,7 @@ import {
 export const ITEM_PX = 16;
 
 /** Item materials: greyed like the clothes (palette.ts), the meat the one rich color. */
-const RAMPS = {
+export const ITEM_RAMPS = {
   meat: ["#2b0c10", "#4f151b", "#782129", "#a1343a", "#c25651", "#e48e80"],
   fat: ["#4a3a33", "#7d675a", "#b29b87", "#d6c3ad", "#ebdfcd", "#faf4ea"],
   bone: ["#3a3429", "#6c6352", "#9f947e", "#cbc2aa", "#e5dfca", "#faf7ec"],
@@ -48,8 +48,8 @@ const RAMPS = {
   canvas: ["#24211b", "#433d33", "#675e4f", "#8c8270", "#afa692", "#d3ccb8"],
 } as const satisfies Record<string, Ramp>;
 
-type Material = keyof typeof RAMPS;
-const ink = (material: Material, tone: Tone) => [material, tone] as const;
+export type ItemMaterial = keyof typeof ITEM_RAMPS;
+const ink = (material: ItemMaterial, tone: Tone) => [material, tone] as const;
 
 /** A round-ended stroke from `a` to `b`, `r` from its middle line: a bone, a leg. */
 function bar(a: Point, b: Point, r: number): Mask {
@@ -288,7 +288,7 @@ function skillbook(px: Pixels): void {
   cover.fill(rect(27, 14, 28, 16), ink("brass", BASE));
 }
 
-const essence = (material: Material) => (px: Pixels): void => {
+const essence = (material: ItemMaterial) => (px: Pixels): void => {
   const pen = new Pen(px, 0), bead = ellipse(8, 8.5, 5.2, 5.2);
   pen.fill(bead, ink(material, BASE));
   pen.shade(darkEdge(bead, 1), SHADOW);
@@ -305,7 +305,7 @@ function bread(px: Pixels): void {
   pen.shade(both(loaf, ellipse(6, 7, 1.6, 1)), SHINE);
 }
 
-const bottle = (liquid: Material) => (px: Pixels): void => {
+const bottle = (liquid: ItemMaterial) => (px: Pixels): void => {
   const glass = new Pen(px, 0), body = union(ellipse(8, 10.5, 4.6, 4.4), rect(6, 3, 9, 7));
   glass.fill(body, ink("glass", LIGHT));
   const fill = both(ellipse(8, 10.5, 3.6, 3.4), (_x, y) => y >= 8);
@@ -317,7 +317,7 @@ const bottle = (liquid: Material) => (px: Pixels): void => {
   cork.shade(rect(6, 1, 9, 1), LIGHT);
 };
 
-const coin = (metal: Material) => (px: Pixels): void => {
+const coin = (metal: ItemMaterial) => (px: Pixels): void => {
   const pen = new Pen(px, 0), face = ellipse(8, 8.5, 5, 5);
   pen.fill(face, ink(metal, BASE));
   pen.shade(litEdge(face, 1), LIGHT);
@@ -335,7 +335,7 @@ function pearl(px: Pixels): void {
   pen.fill(ellipse(6.6, 7, 1.4, 1.4), ink("pearl", SHINE));
 }
 
-const sigil = (glow: Material) => (px: Pixels): void => {
+const sigil = (glow: ItemMaterial) => (px: Pixels): void => {
   const stone = new Pen(px, 0), disc = ellipse(8, 8.5, 6.5, 6.5);
   stone.fill(disc, ink("stone", BASE));
   stone.shade(litEdge(disc, 1), LIGHT);
@@ -467,7 +467,7 @@ export function drawItem(id: ItemId): Picture {
     const px = new Pixels(cols * ITEM_PX, rows * ITEM_PX);
     DRAW[id](px);
     outline(px, new Set([0, 1]));
-    pic = toPicture(px, RAMPS);
+    pic = toPicture(px, ITEM_RAMPS);
     drawn.set(id, pic);
   }
   return pic;

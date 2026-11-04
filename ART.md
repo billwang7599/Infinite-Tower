@@ -139,9 +139,9 @@ Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, a w
 old stick, the swords, the skillbook, each monster's essence (one bead, in six colours), a bog pearl, the sigils
 (one stone disc with a rune ring, glowing in its tier's colour), a canvas backpack, a wool cap, a leather belt, a
 copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left) and a
-sheaf of three arrows (a placeholder pair, admin give only). Of what's worn, only the
-sword shows on the character, in the
-arena: a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the arena's frames are painted without it.
+sheaf of three arrows (a placeholder pair, admin give only). The sprites draw nothing worn (the arena's 3D people wear
+it, below); the sword shows in the arena as a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the
+arena's frames are painted without it.
 The blade's faces are `SWORD`'s blade drawn to the blade's length with square pixels, its dark outline shaded instead
 (`bladeArt`); the art lab draws the whole `SWORD`. In the left hand the body is the right-handed frame flipped (a swing
 uses its mirror image's), so it needs no drawings of its own. A bow (`visuals/battle/bow.ts`) is built in code,
@@ -287,6 +287,11 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     head where it covers, fringe locks and maybe a tail, textured with strands in the hair's own ramp; each piece of
     clothing (`STARTER_WEAR`) is a table entry naming the body parts it colours and the trims it adds (belt, collar,
     hem, cuffs), in the look's ramps.
+  - **What's worn is drawn on them** (`WORN` in `body.ts`), entries of the same kind in the ramps of the item's bag
+    picture (the look's own leather and steel win): a wool cap and its bobble, or a wide red hat with a plume, on the
+    `crown`; a canvas backpack with its flap and straps on the `back`, its straps over the chest; a broad leather belt
+    and a steel buckle; a tan bracelet on its own wrist. A cosmetic shows instead of what it's worn over, a worn body,
+    legs or boots piece would replace the starter one, and rings are too small to show.
   - **Lit like the sprite**: every part takes a fill light of its own colour, so dark skin, hair and clothes keep
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
   - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
@@ -303,10 +308,11 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     against each other, the arms swinging), the body bobs and leans into a run (back, backing off). Elsewhere the
     hips drop so the lower foot stays on the ground. Touching down the knees give a moment (`LANDING`).
     Hair swings on a spring toward where gravity, less the head's acceleration, pulls it (`swayHair`).
-    A bow is carried low at the side, top limb forward, and drawn side-on (the body turned, the head looking down the
-    arrow), feet planted apart, the bow hand ahead at the shoulders and the string hand pulled back with the draw
-    (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These are
-    placeholders, like the bow (AGENTS.md's "Bows, a prep").
+    A bow is always in the left hand (the locked camera looks over the left shoulder), held out to the side and canted
+    out as it's drawn so the big head doesn't hide it from behind (`BOW_DRAWN`). It's carried low at the side, top
+    limb forward, and drawn side-on (the body turned, the head looking down the arrow), feet planted apart, the bow
+    hand ahead at the shoulders and the string hand pulled back with the draw (`drawPose`), the body rocking back as
+    the string kicks (`CLIPS.loose`). These are placeholders, like the bow (AGENTS.md's "Bows, a prep").
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

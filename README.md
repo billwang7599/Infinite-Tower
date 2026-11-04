@@ -129,8 +129,8 @@ What's built so far:
   limit a dodge costs more stamina; 20% over it, you can't dodge and walk at half speed. Every monster drops its
   essence, boars sometimes meat (heals), a hide or a tusk, and wolves a pelt or a fang (the forge buys both). Dying
   drops all you carry, the backpack and all in it too. Slots for both hands, a cap, head, body, legs, boots, a belt,
-  the back, two wrists and five rings, and cosmetic slots (looks only) over the cap, head, body, legs and boots. The
-  bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and both grids, worked
+  the back, two wrists and five rings, and cosmetic slots (looks only) over the cap, head, body, legs and boots; in the
+  arena you wear them (all but the rings). The bag screen (B) shows what you wear, a cloth to sort things on (lost when the screen closes) and both grids, worked
   with the mouse (you stand still while it's open): hover for an item's tooltip, click to select, drag to move, R
   or a right click to turn, Enter or a double click to eat or absorb. Eating takes a second, on the overworld or
   mid-fight, and a hit stops it.
