@@ -1,8 +1,8 @@
 # AGENTS.md
 
 Infinite Tower is a browser game, single-player for now. You walk an HD-2D overworld (pixel sprites on 3D ground),
-and fights happen in a small 2.5D arena (3D enemy, 2D sprite player). It's a TypeScript monorepo with three
-workspaces, and a fourth for the art lab:
+and fights happen in a small 3D arena (enemies and people as simple 3D models, drawn as pixel art). It's a TypeScript
+monorepo with three workspaces, and a fourth for the art lab:
 
 - `shared/`: code both sides run (simulation, message types)
 - `server/`: Node, authoritative; hexagonal (`core/` is the game, `ws/`, `api/`, `db/` plug into it)
