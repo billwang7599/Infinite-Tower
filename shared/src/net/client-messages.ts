@@ -191,6 +191,7 @@ const CheatSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("completeQuest") }),
   z.object({ kind: z.literal("resetSave") }),
   z.object({ kind: z.literal("faith"), god: z.enum(GODS) }),
+  z.object({ kind: z.literal("kill") }),
 ]);
 export type Cheat = z.infer<typeof CheatSchema>;
 

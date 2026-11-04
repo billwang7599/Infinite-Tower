@@ -368,6 +368,16 @@ export class GameSession {
     this.link.send({ t: "core", core, vitals: this.vitals, brokeThrough });
   }
 
+  // In the arena after a win the fight follows, so its HUD shows it.
+  showInArena(): void {
+    const battle = this.afterFight;
+    battle?.room.edit(battle.seat, (world, me) => {
+      takeCore(world, me, this.core);
+      world.require(me, Health).hp = this.vitals.hp;
+      world.require(me, Stamina).value = this.vitals.stamina;
+    });
+  }
+
   gainFaith(gained: Faith): void {
     const before = blessingsOf(this.faith);
     for (const [god, amount] of Object.entries(gained) as [God, number][]) {
@@ -495,13 +505,7 @@ export class GameSession {
     this.gear = { ...this.gear, [using.at.in]: grid };
     this.vitals = { hp: target.hp, stamina: target.stamina };
     if (target.core !== this.core) this.takeCore(target.core, target.core.steps > this.core.steps);
-    const battle = this.afterFight;
-    // In the arena after a win the fight follows, so its HUD shows it.
-    battle?.room.edit(battle.seat, (world, me) => {
-      takeCore(world, me, this.core);
-      world.require(me, Health).hp = this.vitals.hp;
-      world.require(me, Stamina).value = this.vitals.stamina;
-    });
+    this.showInArena();
     this.save();
     this.link.send({ t: "itemUsed", item: using.item, vitals: this.vitals, gear: this.gear });
   }

@@ -231,13 +231,35 @@ describe("the admin's core steps", () => {
     assert.deepEqual(session.core, at(0));
   });
 
-  test("ignored in production and mid-fight", () => {
+  test("ignored in production", () => {
     const prod = startSession({ saved: { core: at(1) } });
     prod.session.cheat({ kind: "coreStep", add: true });
     assert.deepEqual(prod.session.core, at(1));
-    const { session } = startSession({ dev: true, saved: { core: at(1) } });
+  });
+
+  test("mid-fight the fight's core takes it, its stats with it; the client gets the fight, and a win keeps it", () => {
+    const { session, link } = startSession({ dev: true, saved: { core: at(1) } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
+    play(session, () => IDLE_INPUT, 2);
     session.cheat({ kind: "coreStep", add: true });
-    assert.deepEqual(session.core, at(1));
+    assert.deepEqual(session.core, at(1), "the fight has the core until it ends");
+    const fight = fightOf(session), me = fight.players[0]!;
+    assert.deepEqual(fight.world.require(me, Player).core, at(2));
+    assert.equal(fight.world.require(me, Health).max, maxHpOf(coreStats(at(2))));
+    assert.deepEqual(link.last("battleSync").fight.players[0]!.player.core, at(2));
+    endFight(session, true);
+    assert.deepEqual(session.core, at(2));
+  });
+
+  test("in the arena after a win, as on the overworld, and the fight's core follows", () => {
+    const { session, link } = startSession({ dev: true, saved: { core: at(1) } });
+    session.cheat({ kind: "encounter", enemy: "wild-boar" });
+    endFight(session, true);
+    assert.ok(session.afterFight);
+    session.cheat({ kind: "coreStep", add: true });
+    assert.deepEqual(session.core, at(2));
+    assert.deepEqual(link.last("core").core, at(2));
+    const fight = fightOf(session);
+    assert.deepEqual(fight.world.require(fight.players[0]!, Player).core, at(2));
   });
 });

@@ -57,6 +57,7 @@ describe("parseClientMsg", () => {
       { t: "cheat", cheat: { kind: "give", item: "boar-meat", count: 5 } },
       { t: "cheat", cheat: { kind: "heal" } },
       { t: "cheat", cheat: { kind: "coreStep", add: false } },
+      { t: "cheat", cheat: { kind: "kill" } },
       { t: "statPoint", stat: "specialDefense", add: true },
       { t: "ping", id: 0 },
       { t: "chat", text: "hello there" },

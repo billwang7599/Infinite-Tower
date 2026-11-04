@@ -15,8 +15,9 @@ const CHIP =
 const CHIP_ON = "cursor-pointer rounded-sm border border-victory/70 bg-victory/15 px-2 py-0.5 text-victory";
 
 export function AdminPanel() {
-  const { ui: { admin, screen }, input, actions: { request, setDayClock } } = useGame();
+  const { ui: { admin, screen, battle }, input, actions: { request, setDayClock } } = useGame();
   const mode = useStore(screen, (s) => s.mode);
+  const againstEnemies = useStore(battle, (s) => s.result === "fighting" && !s.duel);
   const cheat = (cheat: Cheat) => request({ t: "cheat", cheat });
   const open = useStore(admin, (s) => s.open);
   const invulnerable = useStore(admin, (s) => s.invulnerable);
@@ -27,9 +28,13 @@ export function AdminPanel() {
     if (repeat) return false;
     admin.set({ open: action === "adminPanel" && !open });
   });
+  useAction(input, ["killEnemy"], (_action, repeat) => {
+    if (!repeat) cheat({ kind: "kill" });
+  });
 
   if (!open) return null;
   const inOverworld = mode === "overworld";
+  const canKill = mode === "battle" && againstEnemies;
   return (
     <aside
       id="admin-panel"
@@ -70,12 +75,25 @@ export function AdminPanel() {
           Reset my save
         </button>
       </Section>
-      <Section title="Core (overworld)">
-        <button type="button" id="admin-step-down" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+      <Section title="Fight">
+        <button type="button" id="admin-kill" {...NO_FOCUS} className={CHIP} disabled={!canKill}
+          onClick={() => cheat({ kind: "kill" })}>
+          Kill enemy
+        </button>
+        <span className="basis-full" />
+        {ENEMY_IDS.map((enemy) => (
+          <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+            onClick={() => { admin.set({ open: false }); cheat({ kind: "encounter", enemy }); }}>
+            {enemy}
+          </button>
+        ))}
+      </Section>
+      <Section title="Core">
+        <button type="button" id="admin-step-down" {...NO_FOCUS} className={CHIP}
           onClick={() => cheat({ kind: "coreStep", add: false })}>
           − step
         </button>
-        <button type="button" id="admin-step-up" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+        <button type="button" id="admin-step-up" {...NO_FOCUS} className={CHIP}
           onClick={() => cheat({ kind: "coreStep", add: true })}>
           + step
         </button>
@@ -94,15 +112,7 @@ export function AdminPanel() {
           </button>
         ))}
       </Section>
-      <Section title="Fight">
-        {ENEMY_IDS.map((enemy) => (
-          <button key={enemy} type="button" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
-            onClick={() => { admin.set({ open: false }); cheat({ kind: "encounter", enemy }); }}>
-            {enemy}
-          </button>
-        ))}
-      </Section>
-      <Section title="Give (overworld)">
+      <Section title="Give">
         {GIVE_COUNTS.map((c) => (
           <button key={c} type="button" {...NO_FOCUS} className={c === count ? CHIP_ON : CHIP}
             onClick={() => setCount(c)}>
@@ -111,7 +121,7 @@ export function AdminPanel() {
         ))}
         <span className="basis-full" />
         {ITEM_IDS.map((item) => (
-          <button key={item} type="button" {...NO_FOCUS} className={CHIP} disabled={!inOverworld}
+          <button key={item} type="button" {...NO_FOCUS} className={CHIP}
             onClick={() => cheat({ kind: "give", item, count })}>
             {ITEMS[item].name}
           </button>
