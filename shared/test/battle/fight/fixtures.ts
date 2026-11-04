@@ -116,7 +116,7 @@ export function duel(def: EnemyDef, playerAt: Vec3, enemyAt: Vec3, enemyYaw = Ma
 }
 
 export const IDLE: PlayerInputData = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, aimPitchRad: 0, jump: false, attack: null, attackHeld: false,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, aimAt: { x: 0, y: 0, z: 0 }, jump: false, attack: null, attackHeld: false,
   dodge: false, way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false,
   gear: null, use: null,
 };

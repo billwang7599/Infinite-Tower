@@ -276,7 +276,7 @@ Decided by the user:
   fire if its a click. a drag should unlock the camera + pan"). A drawn bow frees the camera to aim (the user: "when
   holding left to draw [the bow] back, it should free the camera to aim"): from the draw until the loose's recovery
   ends, every mouse move turns it (the pointer captured, the crosshair showing), you walk by the camera, the arrow
-  goes the crosshair's way (the input's aim and `aimPitchRad`) and the fight isn't told of the lock; then it eases
+  goes for the spot under the crosshair (the input's `aimAt`) and the fight isn't told of the lock; then it eases
   back by the same rule as a pan. A chant, a cast's wind-up and a Beam free it the same way (the user: "make sure we
   consolidate the aim to api or something, cause magic casting also needs this"; the main chat's pick), so a skill
   goes the crosshair's way too; the chant's popup holds the pointer, so the camera only turns once the cast winds
@@ -317,9 +317,10 @@ Decided by the user:
   skills go the crosshair's way (aiming frees the camera, above).
 - One aim for the bow and skills (the user: "make sure we consolidate the aim to api or something, cause magic
   casting also needs this"; the rest the main chat's picks): skills aim exactly as the bow does, locked on at the
-  target and unlocked along the crosshair, through the one `aimOf` (`shared/src/battle/fight/aim.ts`). An arrow takes
-  the aim's pitch; Bolts and Beams still fly flat (their hits are on the ground plane at any height, so a pitch would
-  need 3D hits), taking only its way. Sword swings keep their flat aim.
+  target and unlocked at the crosshair's spot, through the one `aimOf` (`shared/src/battle/fight/aim.ts`). An arrow
+  lands on the aim's spot (the user: "its not pointing where im aiming (kinda too low)"; "Bows", below); Bolts and
+  Beams still fly flat (their hits are on the ground plane at any height, so a pitch would need 3D hits), taking only
+  its way. Sword swings keep their flat aim.
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). Everyone
   has a very small base bag, and a backpack adds a grid of its own (the user: "the player has some base inventory
@@ -742,10 +743,10 @@ them; treat them as changeable, and still ask before deciding new ones):
     and once the fight is decided. The crosshair is a small
     bone cross with a dot at the screen's centre while a bow is drawn or just loosed, or a skill chanted, cast (any
     Form) or streamed, hidden by the same last two rules (`AIM_HUD` in `client/src/visuals/battle/overlay.ts`; when,
-    `AIMING` in `client/src/modes/battle/aim.ts`). Then the aim is the way from you to the first foe, the floor or the
-    wall on the screen's centre line, on the ground and up or down (`crosshairAim` in that file, the input's
-    `aimPitchRad`), so with a camera off to the side a shot still crosses the centre line at what the crosshair shows
-    (a foe under it is hit); nearer than 1 m ahead, it's the camera's way, level.
+    `AIMING` in `client/src/modes/battle/aim.ts`). Then the aim is the spot where the screen's centre line first meets
+    a foe, the floor or the wall, and the way from you to it (`crosshairAim` in that file, the input's `aimAt`), so
+    with a camera off to the side an arrow still lands on what the crosshair shows (a foe under it is hit) and a skill
+    goes its way; nearer than 1 m ahead, it's the camera's way, level, at the wall.
     Both, the lock-on diamond and other fighters' chant words are HUD: drawn sharp at full resolution over the pixel
     art, not pixelated (the user: "the indication should be part of the hud (shouldnt be pixelated)"); the diamond and
     the words stay over who they mark.
@@ -932,9 +933,11 @@ them; treat them as changeable, and still ask before deciding new ones):
     from the bag (`BOW.nock`); you can dodge out of it, not block.
   - The arrow: it leaves at the bow's power × (0.4 + 0.6 × the share drawn) (`minSpeedShare`), so the Training bow's
     22 m/s at the least draw and 40 m/s full; its damage goes from 30% at once to the bow's whole damage at 1 s. It
-    falls at 9.8 m/s² for at most 3 s. Locked on, it's loosed in the low arc that reaches the target (straight at its
-    middle if it can't); with no lock-on in the input, along the aim's way and its pitch (`aimPitchRad`), the arc
-    from gravity alone, so a short draw drops short and a shot can go up or down. It lands on the first foe in its
+    falls at 9.8 m/s² for at most 3 s. It's loosed in the low arc at its speed that lands on where it's aimed: locked
+    on, the target's middle; with no lock-on in the input, the spot under the crosshair (`aimAt`; the fight keeps it
+    inside the wall and over the floor), so it lands there up or down, near or far (the main chat's pick, for the
+    user's "its not pointing where im aiming (kinda too low)"). A spot out of the draw's reach gets a shot straight at
+    it, which drops short. It lands on the first foe in its
     way (poise 10) unless it's dodging or in hurt invulnerability; from in front a held block stops it as a blade (a
     chip, its damage in stamina) and a perfect block whole, the shooter far off not recoiling. In the floor or the
     wall it lies 2 s, then is gone. The server decides all of it, as for any fight input.

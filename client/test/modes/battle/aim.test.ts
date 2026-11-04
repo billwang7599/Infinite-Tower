@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
-import type { PlayerAction, Vec2, Vec3 } from "@infinite-tower/shared";
+import { before, describe, test } from "node:test";
+import {
+  addItem, BASE_STATS, Body, BOW, copyInput, drawTime, emptyBag, emptyEquipment, IDLE_INPUT, maxHpOf, newCore,
+  packFor, Projectile, quantizeInput, staminaMaxOf, toSteps, WEAPONS, type EnemyDef, type PlayerAction, type Vec2,
+  type Vec3,
+} from "@infinite-tower/shared";
+import { Fight, initPhysics } from "@infinite-tower/shared/fight";
 import type { Polled } from "../../../src/core/actions.js";
 import {
   CROSSHAIR_MIN_M, crosshairAim, freeCamera, playerAim, type Aimed,
 } from "../../../src/modes/battle/aim.js";
+import { readPlayerInput } from "../../../src/modes/battle/input.js";
 
 const polled = (over: Partial<Polled>): Polled =>
   ({
@@ -15,6 +21,8 @@ const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 const way = (x: number, z: number): Vec2 => ({ x: x / Math.hypot(x, z), z: z / Math.hypot(x, z) });
 const nearWay = (got: Vec2 | null, want: Vec2) =>
   assert.ok(got && near(got.x, want.x) && near(got.z, want.z), `${JSON.stringify(got)} vs ${JSON.stringify(want)}`);
+const nearSpot = (got: Vec3, want: Vec3) =>
+  assert.ok(near(got.x, want.x) && near(got.y, want.y) && near(got.z, want.z), `${JSON.stringify(got)}`);
 
 const me: Vec3 = { x: 0, y: 0.9, z: 0 };
 const foeAt = (x: number, z: number, heightM = 1.8, e = 1): Aimed => ({
@@ -43,19 +51,63 @@ describe("aiming where the crosshair is (the screen's centre)", () => {
     nearWay(crosshairAim(eye, at, me, [foeAt(-1, -2, 3)], 20), way(-1, 8));
   });
 
-  test("its pitch goes from the player up or down to the spot the crosshair shows", () => {
-    const floor = crosshairAim(eye, at, me, [], 20)!.pitchRad;
-    const foe = crosshairAim(eye, at, me, [foeAt(-1, 6)], 20)!.pitchRad;
-    assert.ok(near(floor, Math.atan2(-me.y, Math.hypot(1, 8))), `the floor: ${floor}`);
-    assert.ok(near(foe, Math.atan2(0.6 - me.y, Math.hypot(1, 5.6))), `the foe: ${foe}`);
-    const up = { x: -1, y: 3.5, z: 0 }, wall = crosshairAim(eye, up, me, [], 10)!;
-    assert.ok(wall.pitchRad > 0, `looking up at the wall: ${wall.pitchRad}`);
+  test("its spot is where the centre line meets the floor, the foe or the wall, up or down", () => {
+    nearSpot(crosshairAim(eye, at, me, [], 20)!.at, { x: -1, y: 0, z: 8 });
+    nearSpot(crosshairAim(eye, at, me, [foeAt(-1, 6)], 20)!.at, { x: -1, y: 0.6, z: 5.6 });
+    const up = { x: -1, y: 3.5, z: 0 }, wallZ = Math.sqrt(100 - 1);
+    nearSpot(crosshairAim(eye, up, me, [], 10)!.at, { x: -1, y: 3 + (wallZ + 4) / 8, z: wallZ });
   });
 
   test("none when what it shows is beside or behind the player", () => {
     const down = { x: 0, y: 6, z: -CROSSHAIR_MIN_M }, feet = { x: 0, y: 0, z: CROSSHAIR_MIN_M / 2 };
     assert.equal(crosshairAim(down, feet, me, [], 20), null);
   });
+});
+
+describe("an arrow loosed at the crosshair", () => {
+  before(() => initPhysics());
+  const FULL_STEPS = toSteps(drawTime(BOW, WEAPONS["training-bow"], BASE_STATS.strength, "fullTime"));
+  const STATUE: EnemyDef = {
+    id: "wild-boar", name: "Statue", maxHp: 100, stats: BASE_STATS, radius: 0.85, walkSpeed: 0, turnRate: 0,
+    poise: 1000, poiseRegen: 0, staggerTime: 1, attacks: {},
+  };
+
+  function stuckAt(spot: Vec3, wallM: number): Vec3 {
+    const fight = new Fight({
+      arena: { id: "test", radius: wallM, look: "forest-clearing" },
+      players: [{
+        at: { x: 0, y: 0.05, z: 0 }, vitals: { hp: maxHpOf(BASE_STATS), stamina: staminaMaxOf(BASE_STATS) },
+        stats: BASE_STATS, core: newCore(), burden: "light", book: [],
+        gear: {
+          bag: addItem(emptyBag(), BOW.ammo, 5).bag, pack: packFor(null), quiver: packFor(null),
+          equipment: { ...emptyEquipment(), rightHand: "training-bow" },
+        },
+      }],
+      enemies: [{ def: STATUE, at: { x: 0, y: 0.05, z: 2 - wallM }, yaw: 0 }],
+    });
+    for (let s = 0; s < 10; s++) fight.step([copyInput(IDLE_INPUT)]);
+    const me = { ...fight.world.require(fight.players[0]!, Body).pos };
+    const view = { yaw: 0, pitch: 0, fovRad: 1, eye: { x: me.x - 0.8, y: me.y + 1.5, z: me.z - 4 }, at: spot };
+    const aiming = copyInput(IDLE_INPUT);
+    readPlayerInput(polled({}), 0, "tb", aiming, playerAim({ lock: null, freeCamera: "aim", view }, [], me, wallM).aim);
+    const aimed = quantizeInput(aiming);
+    for (let s = 1; s < FULL_STEPS + 240; s++) {
+      fight.step([{ ...aimed, attack: s === 1 ? "light" : null, attackHeld: s <= FULL_STEPS }]);
+      const stuck = [...fight.world.query(Projectile)].find(([, arrow]) => arrow.stuck);
+      if (stuck) return stuck[1].pos;
+    }
+    throw new Error("the arrow never landed");
+  }
+
+  const lands = (spot: Vec3, wallM: number) => {
+    const got = stuckAt(spot, wallM), offM = Math.hypot(got.x - spot.x, got.y - spot.y, got.z - spot.z);
+    assert.ok(offM < BOW.projectile.radiusM, `${offM.toFixed(2)} m off: ${JSON.stringify(got)}`);
+  };
+
+  test("near, down on the floor", () => lands({ x: 0.5, y: 0, z: 6 }, 8));
+  test("near, up on the wall", () => lands({ x: 1, y: 2.5, z: Math.sqrt(63) }, 8));
+  test("25 m off, down on the floor", () => lands({ x: 0, y: 0, z: 25 }, 30));
+  test("25 m off, up on the wall", () => lands({ x: -2, y: 4, z: Math.sqrt(621) }, 25));
 });
 
 describe("freeCamera", () => {
@@ -84,22 +136,24 @@ describe("the player's aim", () => {
       const got = playerAim({ lock: 7, freeCamera: freed, view }, [target], me, 20);
       assert.ok(near(got.walkYaw, Math.PI / 2), `${got.walkYaw}`);
       nearWay(got.aim, way(1, 0));
-      assert.deepEqual([got.aim.pitchRad, got.locked], [0, 7]);
+      nearSpot(got.aim.at, { x: Math.sqrt(400 - me.z * me.z), y: me.y, z: me.z });
+      assert.equal(got.locked, 7);
     }
   });
 
-  test("aiming, the crosshair's way and pitch with the lock kept from the fight; walking by the camera", () => {
+  test("aiming, the crosshair's way and spot with the lock kept from the fight; walking by the camera", () => {
     const got = playerAim({ lock: 7, freeCamera: "aim", view }, [target], me, 20);
     assert.equal(got.walkYaw, view.yaw);
     assert.deepEqual(got.aim, crosshairAim(eye, at, me, [target], 20));
     assert.equal(got.locked, null);
   });
 
-  test("with no target, the crosshair; where it shows nothing ahead, the camera's way, level", () => {
+  test("with no target, the crosshair; where it shows nothing ahead, the camera's way, level to the wall", () => {
     const unlocked = playerAim({ lock: null, freeCamera: null, view }, [], me, 20);
     assert.deepEqual(unlocked.aim, crosshairAim(eye, at, me, [], 20));
     const down = { ...view, eye: { x: 0, y: 6, z: -CROSSHAIR_MIN_M }, at: { x: 0, y: 0, z: CROSSHAIR_MIN_M / 2 } };
     const got = playerAim({ lock: null, freeCamera: "aim", view: down }, [], me, 20);
-    assert.deepEqual(got.aim, { x: Math.sin(view.yaw), z: Math.cos(view.yaw), pitchRad: 0 });
+    nearWay(got.aim, { x: Math.sin(view.yaw), z: Math.cos(view.yaw) });
+    nearSpot(got.aim.at, { x: 20 * Math.sin(view.yaw), y: me.y, z: 20 * Math.cos(view.yaw) });
   });
 });

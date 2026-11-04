@@ -74,10 +74,10 @@ function shuffle(input: PlayerInputData, v: Vec3, dt: number, speed: number): vo
  * Moves and actions. Only ever writes velocity (the physics moves the body). Attacks go where the player aims (the
  * camera's facing, or the locked enemy); a dodge goes where they move, or backwards standing still.
  */
-export function playerControllerSystem(targets: readonly Entity[], events: FightEvent[]): System {
+export function playerControllerSystem(targets: readonly Entity[], events: FightEvent[], wallM: number): System {
   return (world, dt) => {
     for (const [e] of world.query(Player, PlayerInput, Body, Health, Stamina, FighterStats, Wielder, Skilled)) {
-      controlPlayer(world, e, dt, targets, events);
+      controlPlayer(world, e, dt, targets, events, wallM);
     }
   };
 }
@@ -92,7 +92,9 @@ interface Turn extends SwordTurn {
   skillbook: boolean;
 }
 
-function controlPlayer(world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[]): void {
+function controlPlayer(
+  world: World, e: Entity, dt: number, targets: readonly Entity[], events: FightEvent[], wallM: number,
+): void {
   const player = world.require(e, Player), input = world.require(e, PlayerInput), last = player.last;
   const health = world.require(e, Health), skilled = world.require(e, Skilled), wielder = world.require(e, Wielder);
   const swing = wielder.swing;
@@ -112,7 +114,8 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   if (input.chantWords !== null && last.chantWords === null) skilled.words = [...input.chantWords];
   skilled.held = input.cast !== null || input.castHeld;
   skilled.aim = { x: input.aimX, z: input.aimZ };
-  skilled.aimPitchRad = input.aimPitchRad;
+  const { x, y, z } = input.aimAt, inside = Math.min(1, wallM / Math.hypot(x, z));
+  skilled.aimAt = { x: x * inside, y: Math.max(0, y), z: z * inside };
   const lockedOn = input.locked === null ? null : targets[input.locked] ?? null;
   skilled.target = lockedOn === e ? null : lockedOn;
   if (!input.chant && !input.bag) player.brokenOff = false;

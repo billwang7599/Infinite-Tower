@@ -22,7 +22,7 @@ export function readPlayerInput(polled: Polled, yaw: number, way: SwingDir, inpu
   input.moveZ = -right * sin + forward * cos;
   input.aimX = aim.x;
   input.aimZ = aim.z;
-  input.aimPitchRad = aim.pitchRad;
+  input.aimAt = aim.at;
   input.jump = polled.held.has("jump");
   input.attack = polled.pressed.flatMap((action) => ATTACKS[action] ?? []).at(-1) ?? null;
   input.attackHeld = polled.held.has("lightAttack");

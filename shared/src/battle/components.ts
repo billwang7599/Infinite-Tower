@@ -69,7 +69,7 @@ export interface SkilledData {
   beaming: boolean;
   held: boolean;
   aim: Vec2;
-  aimPitchRad: number;
+  aimAt: Vec3;
   /** The lock-on: the aim goes at it while it's up, and a Follow homes onto it (else the nearest). */
   target: Entity | null;
   /** Its random numbers' seed (where its split Bolts start), kept in the fight so both sides roll the same. */
