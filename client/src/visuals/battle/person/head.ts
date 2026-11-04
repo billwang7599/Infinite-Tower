@@ -7,7 +7,7 @@ import { BASE, DEEP, LIGHT, SHADOW } from "../../../gfx/look/pixels.js";
 import { placeBetween } from "../arm.js";
 import { loft, type Section } from "./loft.js";
 import type { Kit } from "./model.js";
-import { M_PER_PX } from "./skeleton.js";
+import { M_PER_PX, restAt } from "./skeleton.js";
 
 /** The chibi's face (32x32, facing front) is painted on: its middle column, the head's middle row, half-sizes. */
 export const FACE = { size: 32, middleX: 16, middleY: 11.4, halfWidth: 8.2, halfHeight: 8 } as const;
@@ -83,7 +83,8 @@ function headMesh(kit: Kit, face: Look["face"]): Mesh {
   return meshOf(kit, "person-head", positions, [...sphere.indices!], uvs);
 }
 
-interface Lock { from: Vec3; to: Vec3; width: number }
+/** `sways`: hangs from the hair joint, so it swings. */
+interface Lock { from: Vec3; to: Vec3; width: number; sways?: boolean }
 interface HairStyle {
   /** Where on the unit head the hair lies (+z the face, +y the crown). */
   covers: (x: number, y: number, z: number) => boolean;
@@ -100,11 +101,12 @@ const FRINGE: readonly Lock[] = [-0.6, -0.25, 0.1, 0.45].map((x, i) => ({
   from: { x, y: 0.62, z: 0.85 }, to: { x: x + (i - 1.5) * 0.08, y: -0.02 + (i % 2) * 0.12, z: 1.08 }, width: 0.5,
 }));
 const sideLocks = (y: number): Lock[] => [-1, 1].map((s) => ({
-  from: { x: s * 0.95, y: 0.3, z: 0.35 }, to: { x: s * 1.0, y, z: 0.45 }, width: 0.45,
+  from: { x: s * 0.95, y: 0.3, z: 0.35 }, to: { x: s * 1.0, y, z: 0.45 }, width: 0.45, sways: true,
 }));
 
 const BACK_LOCKS: readonly Lock[] = [-0.75, -0.38, 0, 0.38, 0.75].map((x, i) => ({
   from: { x: x * 0.9, y: -0.1, z: -0.92 }, to: { x: x * 1.1, y: -2.5 + Math.abs(i - 2) * 0.35, z: -1 }, width: 0.8,
+  sways: true,
 }));
 
 export const HAIR_STYLES: Record<Look["hair"], HairStyle> = {
@@ -153,7 +155,10 @@ function hairShell(kit: Kit, style: HairStyle): Mesh {
   return meshOf(kit, "person-hair", positions, indices, uvs);
 }
 
-export function buildHead(kit: Kit, head: TransformNode, look: Look): void {
+const PIVOT = restAt("hair", "medium");
+const offPivot = (at: Vec3): Vec3 => ({ x: at.x - PIVOT.x, y: at.y - PIVOT.y, z: at.z - PIVOT.z });
+
+export function buildHead(kit: Kit, head: TransformNode, hair: TransformNode, look: Look): void {
   const { scene, part, mat } = kit, style = HAIR_STYLES[look.hair];
   part(headMesh(kit, look.face), head, mat("face"));
   for (const s of [-1, 1]) {
@@ -164,23 +169,23 @@ export function buildHead(kit: Kit, head: TransformNode, look: Look): void {
   }
   part(hairShell(kit, style), head, mat("hair"));
   for (const lock of style.locks) {
-    const from = inHead(lock.from), to = inHead(lock.to);
+    const on = lock.sways ? offPivot : (at: Vec3) => at, from = on(inHead(lock.from)), to = on(inHead(lock.to));
     const m = part(MeshBuilder.CreateCylinder("person-lock", {
       height: Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z),
       diameterTop: 0, diameterBottom: lock.width * R.x, tessellation: 4,
-    }, scene), head, mat("hair"));
+    }, scene), lock.sways ? hair : head, mat("hair"));
     placeBetween(m, from, to);
     m.scaling.z = 0.45;
   }
   if (style.tail) {
     const sections = style.tail.map((s) => ({
-      y: MIDDLE_M + s.y * R.y, x: s.x * R.x, z: s.z * R.z, dz: (s.dz ?? 0) * R.z,
+      y: MIDDLE_M + s.y * R.y - PIVOT.y, x: s.x * R.x, z: s.z * R.z, dz: (s.dz ?? 0) * R.z - PIVOT.z,
     }));
-    part(loft(scene, "person-tail", sections, undefined, TAIL_STRANDS), head, mat("hair"));
+    part(loft(scene, "person-tail", sections, undefined, TAIL_STRANDS), hair, mat("hair"));
   }
   if (style.tie) {
-    const tie = part(MeshBuilder.CreateSphere("person-tie", { diameter: 2, segments: 6 }, scene), head, mat("accent"));
-    const at = inHead(style.tie);
+    const tie = part(MeshBuilder.CreateSphere("person-tie", { diameter: 2, segments: 6 }, scene), hair, mat("accent"));
+    const at = offPivot(inHead(style.tie));
     tie.position.set(at.x, at.y, at.z);
     tie.scaling.set(R.x * 0.2, R.y * 0.2, R.z * 0.16);
   }

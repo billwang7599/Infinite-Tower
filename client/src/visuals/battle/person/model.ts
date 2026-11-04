@@ -15,7 +15,7 @@ import { loft, sectionAt, type Section } from "./loft.js";
 import { buildSkeleton, M_PER_PX, restInModel, type JointName, type Joints } from "./skeleton.js";
 
 /** Light every part gets even facing away from the sun, × its colour, so dark looks don't turn to silhouettes. */
-export const FILL_LIGHT = 0.42;
+export const FILL_LIGHT = 0.5;
 /** Lit full on, a part is its base tone × this; less than 1 so light hair and cloth keep their shape. */
 const DIFFUSE_SHARE = 0.78;
 /** linkEmissiveWithDiffuse multiplies it by the diffuse colour, already × DIFFUSE_SHARE. */
@@ -138,7 +138,7 @@ export function buildPerson(
       part(loft(scene, `person-${extra.on}-trim`, sections.map(toMetres), shape.roundness), joints[j], mat(extra.ramp));
     }
   }
-  buildHead({ scene, part, mat }, joints.head, look);
+  buildHead({ scene, part, mat }, joints.head, joints.hair, look);
 
   for (const m of meshes) sky.castShadows(m);
   return { holder, joints, materials: [...materials.values()] };

@@ -1688,17 +1688,19 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         person/          The arena's people as 3D models (sprite only with &player3d=0), built in code from the look:
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
                          offsets in metres, shoulders and hips widened per body type; attach joints grip.R / grip.L,
-                         crown and back; buildSkeleton), body.ts (SHAPES, the bare body's parts as sections after the
-                         battle sprite; STARTER_WEAR, the clothes as a table of the parts they colour and the trims
+                         crown, back, and hair for the hair that swings; buildSkeleton), body.ts (SHAPES, the bare
+                         body's parts as sections after the battle sprite, a deltoid on each shoulder; STARTER_WEAR, the clothes as a table of the parts they colour and the trims
                          they add), model.ts (personBuild; buildPerson: every mesh rigid on one joint, real shadows,
                          a fill light so dark looks keep their colour), head.ts (faceTexels: the chibi's eyes and mouth,
                          a nose and blush, painted on the head's front; hairTexels; HAIR_STYLES, each a shell cut round
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
                          each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
                          into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, the string
-                         hand back by the draw; no Babylon: tested), animation.ts (framePerson: the pose on the
+                         hand back by the draw; no Babylon: tested), motion.ts (WALK, the stride's keys; BREATH;
+                         swayHair, the hair's spring; tested), animation.ts (framePerson: the pose on the
                          joints, both arms bent to the pose's hand targets by reachWith, the 3D blade or bow on grip.R
-                         or grip.L, a bow's string pulled to the off hand; with &steps only that many times a second)
+                         or grip.L, a bow's string pulled to the off hand, the hair swung by the head's motion; with
+                         &steps only that many times a second)
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); an arrow's hit jolts only

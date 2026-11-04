@@ -1,6 +1,6 @@
 import { Color3, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Health, heldIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
+  Body, damp, dampFactor, Health, heldIn, PLAYER, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
   type PlayerData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
 import { reachArm } from "../arm.js";
@@ -9,6 +9,7 @@ import { bowDrawOf, pullString } from "../bow.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
 import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
+import { STILL_HAIR, swayHair, type Sway } from "./motion.js";
 import { personPose, POSED_JOINTS } from "./pose.js";
 import { restAt, type Joints } from "./skeleton.js";
 
@@ -30,8 +31,10 @@ export interface PersonDrawing {
   bladeTurn: Quaternion | null;
   yaw: number;
   gait: number;
+  time: number;
   deadTime: number;
   sinceStep: number;
+  hair: { sway: Sway; at: Vector3 | null; vel: Vector3 };
 }
 
 export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir" | "way" | "grounded"> & {
@@ -40,7 +43,7 @@ export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir
 
 export const newPerson = (): PersonDrawing => ({
   look: null, build: null, model: null, blade: null, bladeSide: 1, handAt: null, bladeTurn: null, yaw: 0, gait: 0,
-  deadTime: 0, sinceStep: 0,
+  time: 0, deadTime: 0, sinceStep: 0, hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() },
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -106,6 +109,7 @@ export function framePerson(
   const side = weapon && heldIn(wielder.hands, weapon) === "leftHand" ? -1 : 1;
   const speed = Math.hypot(body.vel.x, body.vel.z);
   p.gait += dt * speed * 2.6;
+  p.time += dt;
   p.deadTime = alive ? 0 : p.deadTime + dt;
 
   model.holder.setEnabled(!(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1));
@@ -126,8 +130,8 @@ export function framePerson(
   const held = weapon && WEAPON_LOOKS[weapon], drawing = bowDrawOf(world, e);
   const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
-    stagger, deadTime: p.deadTime,
-    walk: { phase: p.gait, amp: Math.min(0.7, speed * 0.12) },
+    stagger, deadTime: p.deadTime, time: p.time,
+    walk: { phase: p.gait, amp: Math.min(1, speed / PLAYER.moveSpeed) },
     ...(held?.bow && drawing && { bow: { ...held.bow, drawn: drawing.drawn } }),
   });
 
@@ -156,6 +160,33 @@ export function framePerson(
     offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z);
     reachWith(joints, offSide, offTarget, UNTURNED, { x: -side * 0.5, y: -0.8, z: -0.45 });
   }
+  swing(p, joints, shownDt);
+}
+
+const headAt = new Vector3(), headVel = new Vector3(), headTurn = new Quaternion();
+const localDown = new Vector3(), localAccel = new Vector3();
+/** A longer gap than this (s) is a pause or a jump in place: the hair starts again from still. */
+const HAIR_GAP_TIME = 0.1;
+
+function swing(p: PersonDrawing, joints: Joints, dt: number): void {
+  joints.neck.computeWorldMatrix(true);
+  joints.head.computeWorldMatrix(true);
+  headAt.copyFrom(joints.head.getAbsolutePosition());
+  const hair = p.hair;
+  if (!hair.at || dt <= 0 || dt > HAIR_GAP_TIME) {
+    hair.at = headAt.clone();
+    hair.vel.setAll(0);
+    return;
+  }
+  headAt.subtractToRef(hair.at, headVel).scaleInPlace(1 / dt);
+  headVel.subtractToRef(hair.vel, localAccel).scaleInPlace(1 / dt);
+  hair.at.copyFrom(headAt);
+  hair.vel.copyFrom(headVel);
+  Quaternion.InverseToRef(joints.head.absoluteRotationQuaternion, headTurn);
+  down.applyRotationQuaternionToRef(headTurn, localDown);
+  localAccel.applyRotationQuaternionToRef(headTurn, localAccel);
+  hair.sway = swayHair(hair.sway, localDown, localAccel, dt);
+  joints.hair.rotation.set(hair.sway.x, 0, hair.sway.z);
 }
 
 function placeBladeIn(

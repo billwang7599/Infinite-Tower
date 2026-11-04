@@ -102,6 +102,28 @@ describe("the 3D person's model", () => {
     assert.ok(low.long < low.ponytail && low.ponytail < low.bob && low.bob < low.short, JSON.stringify(low));
   });
 
+  test("long hair's locks and a ponytail hang from the hair joint, so they swing; the fringe doesn't", () => {
+    for (const hair of ["long", "ponytail"] as const) {
+      const { scene, model, meshes } = built({ ...DEFAULT_LOOK, hair });
+      const swinging = meshes.filter((m) => m.parent === model.joints.hair).map((m) => m.name);
+      assert.ok(swinging.length > 0, hair);
+      if (hair === "ponytail") assert.deepEqual(swinging.sort(), ["person-tail", "person-tie"]);
+      assert.ok(meshes.some((m) => m.name === "person-lock" && m.parent === model.joints.head), "the fringe");
+      scene.dispose();
+    }
+  });
+
+  test("the chest is narrower than the shoulders, so the arms hang clear of it", () => {
+    const { scene, model, meshes } = built(DEFAULT_LOOK);
+    const ribs = meshes.find((m) => m.name === "person-ribs")!;
+    ribs.computeWorldMatrix(true);
+    ribs.refreshBoundingInfo();
+    model.joints["upper_arm.R"].computeWorldMatrix(true);
+    assert.ok(ribs.getBoundingInfo().boundingBox.maximumWorld.x < model.joints["upper_arm.R"].getAbsolutePosition().x);
+    assert.ok(meshes.some((m) => m.name === "person-shoulder" && m.parent === model.joints["upper_arm.L"]));
+    scene.dispose();
+  });
+
   test("a sword, a hat or something slung on the back has a joint to hang from", () => {
     const { scene, model } = built(DEFAULT_LOOK);
     const { joints } = model;

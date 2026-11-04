@@ -266,8 +266,11 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     joint's parent and its rest offset in metres (feet at 0, +y up, +z ahead, +x the body's right). Body types move
     only the shoulders and hips out. Things worn or held hang from attach joints: `grip.R` / `grip.L` (a weapon, its
     +y along the blade), `crown` (a hat) and `back` (something slung). Every mesh is rigid on exactly one joint.
+    Hair that swings (long hair's back and side locks, a ponytail) hangs from `hair`, high on the back of the head.
   - **One body, the sprite's proportions**: each part (`SHAPES` in `body.ts`) is a loft through cross-sections
-    measured in the battle sprite's pixels from its joint, so the 3D body matches the 64x64 sprite's stand.
+    measured in the battle sprite's pixels from its joint, so the 3D body matches the 64x64 sprite's stand. The chest
+    tapers to the waist and is narrower than the shoulders, so the arms hang clear of it; a rounded deltoid caps each
+    shoulder; arms and legs taper at the elbow, wrist, knee and ankle with a bicep, forearm, thigh and calf.
   - **The face is the creator's**: the chibi's front eyes and mouth (with a nose and blush) are painted on the head's
     front as a 32x32 texture, sampled nearest, so every eye type, mouth and colour carries over (`faceTexels`).
   - **Hair and clothes are swappable parts**: each hair style (`HAIR_STYLES` in `head.ts`) is a shell cut round the
@@ -278,8 +281,15 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
   - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
     keyframe editor or an export to read; the swing's arm comes from the sword's motions, the arms bent to reach.
+    Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on
+    one leg, and the chest breathes (`BREATH`); a swing sits back on the back leg winding up, steps the front foot in
+    as it strikes and leans on through (`CLIPS.swing`, keyed at the swing's own steps); the walk is a four-key stride
+    (`WALK` in `motion.ts`: contact, passing, contact, passing), the hips and shoulders turning against each other,
+    the arms swinging, the body bobbing and leaning into a run. The hips drop so the lower foot stays on the ground.
+    Hair swings on a spring toward where gravity, less the head's acceleration, pulls it (`swayHair`).
     A bow is carried low at the side, top limb forward, and drawn side-on (the body turned, the head looking down the
-    arrow), the bow hand ahead at the shoulders and the string hand pulled back with the draw (`drawPose`). These are
+    arrow), feet planted apart, the bow hand ahead at the shoulders and the string hand pulled back with the draw
+    (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These are
     placeholders, like the bow (AGENTS.md's "Bows, a prep").
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top

@@ -3,9 +3,9 @@ import { Mesh, VertexData, type Scene } from "@babylonjs/core";
 /** A cross-section: its height, half-width and half-depth, and how far its middle sits off the axis. */
 export interface Section { y: number; x: number; z: number; dz?: number; dx?: number }
 
-export const RING_POINTS = 12;
+export const RING_POINTS = 16;
 /** Above 2 the ring squares off: a torso, not a pipe. */
-const ROUNDNESS = 2.6;
+const ROUNDNESS = 2.3;
 
 const signedPow = (v: number, p: number) => Math.sign(v) * Math.abs(v) ** p;
 
