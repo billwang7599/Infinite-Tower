@@ -62,6 +62,21 @@ describe("casting", () => {
     assert.equal(lostHp(fight, 0), 0);
   });
 
+  test("locked on, a Bolt flies at the target whichever way the input aims", () => {
+    const fight = fightWith([at(4, 0)]);
+    castNow(fight, BOLT_FIRE, { locked: 0 });
+    untilLanded(fight);
+    assert.equal(lostHp(fight, 0), SKILL_EFFECTS.elements.fire.damage * D);
+  });
+
+  test("locked on a target that's down, a Bolt flies the input's way", () => {
+    const fight = fightWith([at(4, 0), at(0, 4)]);
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    castNow(fight, BOLT_FIRE, { locked: 0 });
+    untilLanded(fight);
+    assert.equal(lostHp(fight, 1), SKILL_EFFECTS.elements.fire.damage * D);
+  });
+
   test("short of the stamina, the cast doesn't start", () => {
     const fight = fightWith([at(0, 4)]);
     fight.world.require(me(fight), Stamina).value = skillCost(BOLT_FIRE) - 1;

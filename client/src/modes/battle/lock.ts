@@ -1,4 +1,4 @@
-import { Body, distXZ, Health, VIEW, type Entity, type PlayerAction, type Vec3 } from "@infinite-tower/shared";
+import { Body, distXZ, Health, VIEW, type Entity, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../components.js";
 import type { Polled } from "../../core/actions.js";
@@ -6,7 +6,6 @@ import type { Polled } from "../../core/actions.js";
 export interface Foe { e: Entity; pos: Vec3 }
 export interface Aim { eye: Vec3; at: Vec3 }
 export interface View extends Aim { fovRad: number }
-export type FreeCamera = "aim" | "pan" | null;
 
 export const livingFoes = ({ targets, world }: Fight): Foe[] =>
   targets.flatMap((e) =>
@@ -28,13 +27,6 @@ export function pointedFoe(foes: readonly Foe[], { eye, at }: Aim): Entity | nul
     if (!best || cos > best.cos) best = { e, cos };
   }
   return best?.e ?? null;
-}
-
-export function freeCamera(
-  { dragging, turn, look }: Pick<Polled, "dragging" | "turn" | "look">, action: PlayerAction,
-): FreeCamera {
-  if (action === "draw" || action === "loose") return "aim";
-  return dragging || turn !== 0 || look !== 0 ? "pan" : null;
 }
 
 // The picture is never wider than VIEW.maxAspect, so that's as far to the sides as it shows.

@@ -225,4 +225,12 @@ describe("where the arrow goes", () => {
     const events = play(a.fight, 120, drawn(FULL_STEPS, { locked: 0, aimX: 1, aimZ: 0 }));
     assert.equal(damageOf(events).length, 1);
   });
+
+  test("locked on a target that's down, it goes the input's way and pitch", () => {
+    const a = archer(5);
+    a.fight.world.require(a.fight.enemies[0]!, Health).hp = 0;
+    play(a.fight, FULL_STEPS + 1, drawn(FULL_STEPS, { locked: 0, aimX: 1, aimZ: 0, aimPitchRad: 0.2 }));
+    const [arrow] = a.flying();
+    assert.ok(arrow && arrow.vel.x > 0 && Math.abs(arrow.vel.z) < 1e-9 && arrow.vel.y > 0, JSON.stringify(arrow?.vel));
+  });
 });

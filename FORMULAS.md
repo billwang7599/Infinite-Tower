@@ -170,7 +170,7 @@ Placeholders, every number (AGENTS.md, "Bows"). `BOW`, `drawTime`, `drawCost`, `
 - **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
 - **Speed** = the bow's `powerMps` × (`minSpeedShare` 0.4 + 0.6 × the share drawn, at most 1).
 - **Flight:** gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and 0.15 m above your middle. Locked on,
-  it's aimed in the low arc at that speed that meets the target's middle (level if it can't reach); with no lock-on,
+  it's aimed in the low arc at that speed that meets the target's middle (straight at it if it can't); with no lock-on,
   along the aim's way tilted up by its `aimPitchRad`. Poise 10 on an enemy; blocked like a light (below). Stuck, it
   lies `stuckTime` 2 s.
 

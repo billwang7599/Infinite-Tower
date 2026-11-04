@@ -11,6 +11,7 @@ import {
 import { PlayerInput } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, skillDamage } from "../../stats.js";
+import { aimOf } from "../aim.js";
 import type { FightContext } from "../context.js";
 import { cantCast, interrupt } from "./skilled.js";
 import { heal } from "../health.js";
@@ -101,9 +102,9 @@ function release(
   const segment = skill.segments[index];
   const { world, events } = ctx;
   if (!segment || world.require(caster, Health).hp <= 0) return;
-  const skilled = world.require(caster, Skilled);
+  const skilled = world.require(caster, Skilled), aimed = aimOf(world, caster, from);
   // A zero direction is a directionless segment's, kept through a Delay: the caster's aim as it fires.
-  const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : { ...skilled.aim };
+  const aim = dir && (dir.x !== 0 || dir.z !== 0) ? dir : aimed.dir;
   const shot = shotOf(segment);
   const base = { caster, skill, segment: index, pos: from, dir: aim, ignore };
   if (segment.form === "bolt" || segment.form === "beam") {
@@ -112,9 +113,9 @@ function release(
   switch (segment.form) {
     case "bolt": {
       const count = Math.min(shot.bolts, MAX_LIVE_SHOTS - liveShots(world));
-      const lock = skilled.target;
+      const lock = aimed.target;
       const target = shot.followTurnRadPerSec === 0 ? null
-        : lock !== null && lock !== ignore && world.require(lock, Health).hp > 0 ? lock
+        : lock !== null && lock !== ignore ? lock
         : foesNear(world, caster, from, Infinity, ignore ?? undefined)[0] ?? null;
       if (count === 1) {
         spawn(ctx, { ...base, kind: "bolt", target, hitsLeft: shot.pierceTargets, reachM: shot.boltRadiusM });
@@ -278,7 +279,7 @@ function stream(ctx: FightContext, e: Entity, o: SkillObjectData, dt: number): v
     }
     const stamina = world.get(o.caster, Stamina);
     Object.assign(o.pos, world.require(o.caster, Body).pos);
-    o.dir = { ...skilled.aim };
+    o.dir = aimOf(world, o.caster, o.pos).dir;
     if (o.held && (!skilled.held || (stamina && stamina.value <= 0))) o.held = false;
     if (o.held && stamina) {
       const words = SKILL.cost.form + segment.elements.length * SKILL.cost.element

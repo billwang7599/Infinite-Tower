@@ -41,7 +41,7 @@ function setupWith(
   };
   const read = () => {
     const input = copyInput(IDLE_INPUT);
-    readPlayerInput(actions.poll(), 0, "lr", input);
+    readPlayerInput(actions.poll(), 0, "lr", input, { x: 0, z: 1, pitchRad: 0 });
     return input;
   };
   const attack = () => read().attack;

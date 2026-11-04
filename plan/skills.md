@@ -53,10 +53,11 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
   You move slower while winding up; a dodge cancels the wind-up at no cost, and so does a hit that stuns or
   staggers you (a sword hit only hurts, so the cast still goes off). A cast pressed mid-swing waits for the swing to let
   go, like a dodge. Your own skills never hurt you. A Beam is held and paid per second.
-- **Aim:** Bolt and Beam aim at the locked enemy, or where the camera faces when unlocked; Follow homes onto the locked
-  enemy, or the nearest when unlocked. Lock-on is close to auto-aim, so it's balanced by the defender: a Bolt aims at
-  where the target is, never leads, so a step aside makes it miss; Follow turns slowly, so a late dodge shakes it; the
-  Kobold (not the boar) sometimes steps aside from a Bolt winding up at it (`sidestep` in
+- **Aim:** Bolt and Beam aim as an arrow does (`aimOf`), flat: at the locked enemy, or along the crosshair unlocked
+  (a chant, a cast or a Beam frees the camera to aim and keeps the lock from the fight, as a drawn bow does); Follow
+  homes onto the locked enemy, or the nearest when unlocked. Lock-on is close to auto-aim, so it's balanced by the
+  defender: a Bolt aims at where the target is, never leads, so a step aside makes it miss; Follow turns slowly, so a
+  late dodge shakes it; the Kobold (not the boar) sometimes steps aside from a Bolt winding up at it (`sidestep` in
   `server/src/core/enemies/kobold-swordsman.ts`: a chance per cast, a reaction time, stepping `leadTime` before it
   leaves).
 - **Hand-off:** each projectile hands off once, when it ends (a Bolt on its hit, or at its range on a miss; two
@@ -147,7 +148,7 @@ the agent's picks, to tune; they all live in `SKILL_EFFECTS` (`shared/src/skills
 - **No element:** a plain hit of 0.6D with no status (Imbue adds it to sword hits); Self with none does nothing.
 - **Beam:** a line 10 m long and 0.35 m wide that strikes the first enemy on it as it starts and every 0.5 s, each
   tick 50% of a hit, for 1 s. As a skill's first segment it streams from the caster along their aim (the locked
-  enemy, or the camera's facing) and is held while the cast key is (a page's key; a chanted Beam is a tap): held, it
+  enemy, or the crosshair's way) and is held while the cast key is (a page's key; a chanted Beam is a tap): held, it
   costs its own words' cost ×2 a second (no chain growth), and its 1 s runs from the release. While it lasts you
   walk at 40% and can't swing; a dodge or a stun ends it at once with no hand-off; running out of stamina ends the
   hold. A later Beam starts where the segment before it ended and keeps its direction. It hands off where it ends:

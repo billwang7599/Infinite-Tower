@@ -112,6 +112,7 @@ function controlPlayer(world: World, e: Entity, dt: number, targets: readonly En
   if (input.chantWords !== null && last.chantWords === null) skilled.words = [...input.chantWords];
   skilled.held = input.cast !== null || input.castHeld;
   skilled.aim = { x: input.aimX, z: input.aimZ };
+  skilled.aimPitchRad = input.aimPitchRad;
   const lockedOn = input.locked === null ? null : targets[input.locked] ?? null;
   skilled.target = lockedOn === e ? null : lockedOn;
   if (!input.chant && !input.bag) player.brokenOff = false;
