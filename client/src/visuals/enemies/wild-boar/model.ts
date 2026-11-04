@@ -1,11 +1,11 @@
 /**
- * The boar's 3D model, built from primitives (no asset files). 3D so its wind-ups read clearly from
+ * The boar's 3D model, built in code (no asset files). 3D so its wind-ups read clearly from
  * any angle. Faces +z locally.
  */
-import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
+import { Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
-import { colorMaterial } from "../../materials.js";
 import type { ArenaScene } from "../../battle/scene.js";
+import { enemyMaterial, lengthwise, limb } from "../shape.js";
 
 /** The charge telegraph: a stripe this long on the ground, starting just in front of the snout. */
 const TELEGRAPH_LENGTH = 14;
@@ -15,7 +15,10 @@ export interface BoarModel {
   root: TransformNode;
   /** Child of root: lean, tremble, fall over. */
   model: TransformNode;
+  trunk: Mesh;
   head: TransformNode;
+  ears: TransformNode[];
+  tail: TransformNode;
   /** Hip pivots: front-left, front-right, back-left, back-right. */
   legs: [TransformNode, TransformNode, TransformNode, TransformNode];
   stars: TransformNode;
@@ -39,14 +42,14 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
   const { scene, sky } = ctx;
   const materials: StandardMaterial[] = [];
   const mat = (name: string, hex: string): StandardMaterial => {
-    const m = colorMaterial(scene, name, Color3.FromHexString(hex), new Color3(0.05, 0.05, 0.05));
+    const m = enemyMaterial(scene, name, hex);
     materials.push(m);
     return m;
   };
-  const hide = mat("boar-hide", "#5e4030");
-  const dark = mat("boar-dark", "#2e211a");
-  const snoutM = mat("boar-snout", "#8a5a4a");
-  const nose = mat("boar-nose", "#b77a6a");
+  const hide = mat("boar-hide", "#74513b");
+  const dark = mat("boar-dark", "#3e2c21");
+  const snoutM = mat("boar-snout", "#9a6a56");
+  const nose = mat("boar-nose", "#c08672");
   const ivory = mat("boar-tusk", "#efe6cf");
   const eyes = mat("boar-eyes", "#1a0a08");
 
@@ -58,60 +61,79 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
     parts.push(m);
     return m;
   };
+  const node = (name: string, under: TransformNode, x: number, y: number, z: number): TransformNode => {
+    const n = new TransformNode(name, scene);
+    n.parent = under;
+    n.position.set(x, y, z);
+    return n;
+  };
 
   const root = new TransformNode(`boar-root-${e}`, scene);
   root.parent = parent;
   root.position.y = -def.radius; // feet on the ground
-  const model = new TransformNode(`boar-model-${e}`, scene);
-  model.parent = root;
+  const model = node(`boar-model-${e}`, root, 0, 0, 0);
 
-  const body = part(MeshBuilder.CreateSphere("b-body", { diameter: 1, segments: 12 }, scene), model, hide);
-  body.scaling.set(1.15, 1.0, 1.9);
-  body.position.set(0, 0.95, -0.05);
-  const mane = part(MeshBuilder.CreateBox("b-mane", { width: 0.28, height: 0.3, depth: 1.5 }, scene), model, dark);
-  mane.position.set(0, 1.42, 0.1);
-  mane.rotation.x = 0.12;
-  const tail = part(MeshBuilder.CreateCylinder("b-tail", { height: 0.4, diameter: 0.07 }, scene), model, dark);
-  tail.position.set(0, 1.05, -1.0);
-  tail.rotation.x = -0.6;
+  const trunk = part(lengthwise(scene, "b-body", [
+    { z: -1.02, w: 0.16, h: 0.16, dy: -0.02 }, { z: -0.88, w: 0.42, h: 0.38, dy: -0.03 },
+    { z: -0.5, w: 0.54, h: 0.46, dy: -0.02 }, { z: -0.05, w: 0.58, h: 0.5, dy: 0.02 },
+    { z: 0.35, w: 0.56, h: 0.56, dy: 0.08 }, { z: 0.72, w: 0.44, h: 0.46, dy: 0.06 },
+    { z: 0.92, w: 0.28, h: 0.3, dy: 0.03 },
+  ]), model, hide);
+  trunk.position.y = 0.95;
+  const belly = part(lengthwise(scene, "b-belly", [
+    { z: -0.6, w: 0.3, h: 0.12 }, { z: 0, w: 0.4, h: 0.16 }, { z: 0.55, w: 0.34, h: 0.14 },
+  ]), trunk, snoutM);
+  belly.position.y = -0.4;
+  part(Mesh.MergeMeshes(Array.from({ length: 9 }, (_, i) => {
+    const z = -0.45 + i * 0.15, h = 0.2 + 0.12 * Math.sin((Math.PI * (i + 1)) / 10);
+    const y = 0.42 + 0.1 * Math.sin((Math.PI * (i + 2)) / 11);
+    return limb(scene, "b-bristle", { x: 0, y, z }, { x: 0, y: y + h, z: z - 0.14 }, 0.16, 0, 4);
+  }), true)!, trunk, dark);
+  const tail = node("b-tail", model, 0, 1.02, -1.0);
+  part(limb(scene, "b-tail", { x: 0, y: 0, z: 0 }, { x: 0, y: -0.32, z: -0.12 }, 0.07, 0.04, 5), tail, dark);
+  const tuft = part(MeshBuilder.CreateSphere("b-tuft", { diameter: 0.12, segments: 4 }, scene), tail, dark);
+  tuft.position.set(0, -0.34, -0.13);
 
   // Head pivots at the neck so it can be raised / lowered for the attack tells.
-  const head = new TransformNode("b-head", scene);
-  head.parent = model;
-  head.position.set(0, 1.05, 0.8);
-  const skull = part(MeshBuilder.CreateSphere("b-skull", { diameter: 1, segments: 10 }, scene), head, hide);
-  skull.scaling.set(0.75, 0.7, 0.85);
-  skull.position.set(0, -0.05, 0.3);
-  const snoutShape = { height: 0.5, diameterTop: 0.36, diameterBottom: 0.46 };
-  const snout = part(MeshBuilder.CreateCylinder("b-snout", snoutShape, scene), head, snoutM);
-  snout.rotation.x = Math.PI / 2;
-  snout.position.set(0, -0.15, 0.75);
-  const disc = part(MeshBuilder.CreateCylinder("b-nose", { height: 0.05, diameter: 0.38 }, scene), head, nose);
+  const head = node("b-head", model, 0, 1.05, 0.8);
+  part(lengthwise(scene, "b-skull", [
+    { z: -0.12, w: 0.3, h: 0.32, dy: 0.02 }, { z: 0.15, w: 0.34, h: 0.34 }, { z: 0.45, w: 0.27, h: 0.26, dy: -0.08 },
+    { z: 0.62, w: 0.22, h: 0.2, dy: -0.13 },
+  ]), head, hide);
+  part(lengthwise(scene, "b-snout", [
+    { z: 0.55, w: 0.2, h: 0.18, dy: -0.14 }, { z: 0.85, w: 0.18, h: 0.17, dy: -0.15 },
+    { z: 0.99, w: 0.19, h: 0.18, dy: -0.15 },
+  ]), head, snoutM);
+  const disc = part(MeshBuilder.CreateCylinder("b-nose", { height: 0.05, diameter: 0.34 }, scene), head, nose);
   disc.rotation.x = Math.PI / 2;
   disc.position.set(0, -0.15, 1.0);
+  const ears: TransformNode[] = [];
   for (const s of [-1, 1]) {
-    const tuskShape = { height: 0.4, diameterTop: 0, diameterBottom: 0.1, tessellation: 8 };
-    const tusk = part(MeshBuilder.CreateCylinder("b-tusk", tuskShape, scene), head, ivory);
-    tusk.position.set(s * 0.2, -0.18, 0.8);
-    tusk.rotation.set(0.5, 0, -s * 0.35); // up, forward and outward
-    const ear = part(MeshBuilder.CreateBox("b-ear", { width: 0.12, height: 0.28, depth: 0.2 }, scene), head, dark);
-    ear.position.set(s * 0.27, 0.3, 0.12);
-    ear.rotation.set(-0.3, 0, -s * 0.45);
+    const tuskAt = { x: s * 0.17, y: -0.2, z: 0.82 }, bend = { x: s * 0.27, y: -0.08, z: 0.9 };
+    part(limb(scene, "b-tusk", tuskAt, bend, 0.09, 0.06, 6), head, ivory);
+    part(limb(scene, "b-tusk", bend, { x: s * 0.3, y: 0.08, z: 0.84 }, 0.06, 0, 6), head, ivory);
+    const ear = node("b-ear", head, s * 0.2, 0.28, 0.1);
+    const flap = part(limb(scene, "b-ear", { x: 0, y: 0, z: 0 }, { x: s * 0.12, y: 0.24, z: -0.1 }, 0.2, 0.02, 4),
+      ear, dark);
+    flap.scaling.z = 0.5;
+    ears.push(ear);
     const eye = part(MeshBuilder.CreateSphere("b-eye", { diameter: 0.1, segments: 6 }, scene), head, eyes);
-    eye.position.set(s * 0.24, 0.07, 0.55);
+    eye.position.set(s * 0.24, 0.07, 0.5);
   }
 
-  const hip = (x: number, z: number): TransformNode => {
-    const pivot = new TransformNode("b-hip", scene);
-    pivot.parent = model;
-    pivot.position.set(x, 0.75, z);
-    const leg = part(MeshBuilder.CreateBox("b-leg", { width: 0.22, height: 0.7, depth: 0.24 }, scene), pivot, hide);
-    leg.position.y = -0.35;
-    const hoof = part(MeshBuilder.CreateBox("b-hoof", { width: 0.24, height: 0.1, depth: 0.28 }, scene), pivot, dark);
-    hoof.position.set(0, -0.7, 0.02);
+  const hip = (x: number, z: number, front: boolean): TransformNode => {
+    const pivot = node("b-hip", model, x, 0.75, z);
+    part(limb(scene, "b-thigh", { x: 0, y: 0.12, z: 0 }, { x: 0, y: -0.36, z: front ? 0.02 : -0.04 },
+      front ? 0.34 : 0.4, 0.2), pivot, hide);
+    part(limb(scene, "b-shin", { x: 0, y: -0.36, z: front ? 0.02 : -0.04 }, { x: 0, y: -0.64, z: 0.02 }, 0.19, 0.15),
+      pivot, hide);
+    const hoof = part(limb(scene, "b-hoof", { x: 0, y: -0.62, z: 0.02 }, { x: 0, y: -0.71, z: 0.04 }, 0.16, 0.21, 6),
+      pivot, dark);
+    hoof.scaling.z = 1.2;
     return pivot;
   };
-  const legs: BoarModel["legs"] = [hip(-0.38, 0.55), hip(0.38, 0.55), hip(-0.38, -0.6), hip(0.38, -0.6)];
+  const legs: BoarModel["legs"] = [hip(-0.32, 0.55, true), hip(0.32, 0.55, true), hip(-0.32, -0.6, false),
+    hip(0.32, -0.6, false)];
 
   // Dizzy stars, shown while stunned.
   const stars = new TransformNode("b-stars", scene);
@@ -140,6 +162,7 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
   root.rotation.y = yaw;
   const baseEmissive = materials.map((m) => m.emissiveColor.clone());
   return {
-    root, model, head, legs, stars, telegraph, materials, baseEmissive, eyes, gait: 0, visualYaw: yaw, clock: 0,
+    root, model, trunk, head, ears, tail, legs, stars, telegraph, materials, baseEmissive, eyes, gait: 0,
+    visualYaw: yaw, clock: 0,
   };
 }

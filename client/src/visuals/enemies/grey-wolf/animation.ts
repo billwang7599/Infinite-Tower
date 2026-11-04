@@ -3,9 +3,11 @@ import { Body, damp, dampFactor, Enemy, Health, PounceAttack, wrapAngle } from "
 import { fighter } from "../../battle/battle.js";
 import { buildWolf, disposeWolf, type WolfModel } from "./model.js";
 import { wolfPose } from "./pose.js";
+import { breathOf, flickOf } from "../shape.js";
 
 const LEG_PHASE = [0, Math.PI, Math.PI * 0.5, Math.PI * 1.5] as const;
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
+const IDLE = { breathTime: 1.4, breathScale: 0.035, earEveryTime: 2.6, earRad: 0.45 };
 
 export const wolfVisual = fighter<WolfModel>("enemy", {
   spawn(ctx, world, e, node) {
@@ -31,6 +33,11 @@ export const wolfVisual = fighter<WolfModel>("enemy", {
     }
     const bob = Math.abs(Math.sin(nodes.gait)) * 0.04 * Math.min(1, speed / 3);
 
+    const breath = breathOf(nodes.clock, IDLE.breathTime) * IDLE.breathScale;
+    nodes.trunk.scaling.set(1 + breath, 1 + breath, 1);
+    nodes.ears.forEach((ear, i) => {
+      ear.rotation.x = -IDLE.earRad * flickOf(nodes.clock + i * 1.1, IDLE.earEveryTime);
+    });
     nodes.head.rotation.x = damp(nodes.head.rotation.x, pose.headPitch, 14, dt);
     nodes.jaw.rotation.x = damp(nodes.jaw.rotation.x, pose.jaw, 20, dt);
     nodes.tail.rotation.x = damp(nodes.tail.rotation.x, pose.tail + Math.sin(nodes.clock * 3) * 0.08, 8, dt);

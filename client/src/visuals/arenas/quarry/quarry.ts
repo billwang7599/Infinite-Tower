@@ -8,7 +8,7 @@ import { colorMaterial } from "../../materials.js";
 import type { MapLight } from "../../sky/sky.js";
 import { puffTexture } from "../../textures.js";
 import type { ArenaLookDef } from "../index.js";
-import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.js";
+import { floor, lookRoot, patches, ringSpots, scatter, settle, speckled } from "../parts.js";
 
 const SLAB_TILES = 6;
 const EDGE_STACKS = 30;
@@ -182,6 +182,15 @@ function build(ctx: ArenaScene, radius: number) {
   const posts = lights(radius).map((l) => ({ x: l.at.x, z: l.at.z, scale: 1, yaw: 0 }));
   scatter(ctx, root, [[post, 1], [flame, 2.1]], posts);
 
+  const barrel = MeshBuilder.CreateCylinder("quarry-barrel", { height: 0.8, diameter: 0.6, tessellation: 9 }, scene);
+  barrel.material = wood;
+  const hoop = MeshBuilder.CreateTorus("quarry-hoop", { diameter: 0.62, thickness: 0.04, tessellation: 9 }, scene);
+  hoop.material = iron;
+  scatter(ctx, root, [[barrel, 0.4], [hoop, 0.55]], ringSpots(rand, 6, radius + 1.6, radius + 3.2, 0.9, 1.1));
+  patches(ctx, root, own, "quarry-chips", { base: "#9a9080", specks: ["#aaa08e", "#8a8070", "#b4aa98"] },
+    ringSpots(rand, 12, 2, radius - 1, 0.3, 0.9));
+  patches(ctx, root, own, "quarry-dirt", { base: "#6e6454", specks: ["#7a705e", "#62584a", "#857a66"] },
+    ringSpots(rand, 18, radius + 1.2, radius + 6, 0.8, 2));
   dust(scene, root, radius);
   return settle(ctx, root, casters);
 }

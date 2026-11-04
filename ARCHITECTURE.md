@@ -1659,15 +1659,17 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        (battleSprite); where the sword hand is in a frame (handAt); BATTLE_FRAMES; chibiDraw; the "!"
                        alert and the crossed swords over a player in a battle
       enemies/         One folder per enemy, by its EnemyId: wild-boar/, grey-wolf/, bog-lurker/, kobold-swordsman/,
-                       goblin-warlock/, each with model.ts (built from primitives), pose.ts (where its parts head, from
-                       its state; no Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk)
-                       and sprite.ts
+                       goblin-warlock/, each with model.ts (lofted parts and limbs), pose.ts (where its parts head, from
+                       its state; no Babylon: tested), animation.ts (its fight visual: the pose eased into, the walk,
+                       idle breathing and ear and tail flicks on top) and sprite.ts
                        (its overworld picture and size); kobold-greatsword/ has only its sprite.ts and animation.ts:
                        the swordsman's lizard model, bulkier and plated (KoboldBuild; its blade comes from
                        WEAPON_LOOKS); training-dummy/ (animation.ts with its model: a straw dummy on a post, a mark
                        lit for each kind of strike landed; sprite.ts); bram/ (only sprite.ts: in a fight he's drawn
                        as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
-                       one line each; byEnemy)
+                       one line each; byEnemy); shape.ts (what the models share: enemyMaterial, a part's colour
+                       with a fill of it, ENEMY_FILL, so the shade side isn't black; lengthwise, person/loft.ts's loft
+                       laid along +z for trunks, heads and tails; limb; breathOf and flickOf for idle life; tested)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
                        apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
                        scavenger/, herbalist/, burner/, king/, innkeeper/, carver/, each with look.ts
@@ -1867,12 +1869,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          moon of the fight's region; showArena, the one call
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
                          its meshes and materials), parts.ts (what
-                         the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle)
-        forest-clearing/ the boar's and tall grass's: moss, a dirt floor, standing stones, pines, ferns, logs
-        stone-ruins/     the Kobolds': flagstones, broken columns and walls, two arches, far ruins, cypresses
-        mire/            the Goblin Warlock's: peat, stumps, glowing mushrooms, pools, reeds, dead trees
-        quarry/          the Old Quarry's: pale cut slabs, stacked blocks, terraced faces, a crane, a cart on rails,
-                         rubble, dry scrub, two lanterns, drifting dust
+                         the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle; patches, flat
+                         blotches varying the ground; tuft, a clump of blades; boulder)
+        forest-clearing/ the boar's and tall grass's: moss, a dirt floor with leaf litter, standing stones, pines and
+                         oaks before a far treeline, ferns, logs, boulders, grass tufts, mushrooms
+        stone-ruins/     the Kobolds': flagstones with moss, broken columns and walls, two arches, far ruins and
+                         broken towers, cypresses in two layers, rubble, grass tufts
+        mire/            the Goblin Warlock's: peat with moss, stumps, glowing mushrooms, pools with lily pads,
+                         reeds, cattails, logs, stones, dead trees before a far line of taller ones
+        quarry/          the Old Quarry's: pale cut slabs with chips, stacked blocks, terraced faces, a crane, a cart
+                         on rails, rubble, dry scrub, barrels, two lanterns, drifting dust
 
 art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never built into the game or shipped. It
                  imports the client's art drawn without Babylon (`gfx/`, the enemies' overworld sprites, tiles,
@@ -2114,6 +2120,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
+| How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height (the sky overhead, the sun's glow, a low sun's brightness), fades | top of `client/src/visuals/sky/daylight.ts` |

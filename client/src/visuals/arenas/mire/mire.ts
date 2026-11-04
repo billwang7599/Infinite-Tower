@@ -5,7 +5,7 @@ import { colorMaterial } from "../../materials.js";
 import type { MapLight } from "../../sky/sky.js";
 import { setWater, waterMaterial, type WaterLook } from "../../water/water.js";
 import type { ArenaLookDef } from "../index.js";
-import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.js";
+import { boulder, floor, lookRoot, patches, ringSpots, scatter, settle, speckled } from "../parts.js";
 
 const STUMPS = 34;
 /** Above 1 so the bloom catches the mushrooms' glow. */
@@ -70,7 +70,16 @@ function build(ctx: ArenaScene, radius: number) {
   });
   pool.material = water;
   pool.receiveShadows = true;
-  scatter(ctx, root, [[pool, 0.02]], ringSpots(rand, 16, radius + 3, radius + 16, 1.5, 4), false);
+  const pools = ringSpots(rand, 16, radius + 3, radius + 16, 1.5, 4);
+  scatter(ctx, root, [[pool, 0.02]], pools, false);
+  const pad = MeshBuilder.CreateDisc("mire-pad", { radius: 0.22, tessellation: 7, arc: 0.85 }, scene);
+  pad.rotation.x = Math.PI / 2;
+  pad.bakeCurrentTransformIntoVertices();
+  pad.material = own(colorMaterial(scene, "mire-pad", new Color3(0.26, 0.36, 0.18)));
+  scatter(ctx, root, [[pad, 0.05]], pools.flatMap(({ x, z, scale }) => [0, 1, 2].map(() => {
+    const a = rand() * Math.PI * 2, r = rand() * scale * 0.6;
+    return { x: x + Math.sin(a) * r, z: z + Math.cos(a) * r, scale: 0.7 + rand() * 0.8, yaw: rand() * Math.PI * 2 };
+  })), false);
 
   const branch = (h: number, d: number, tilt: number, yaw: number, y: number) => {
     const shape = { height: h, diameterTop: 0.05, diameterBottom: d, tessellation: 5 };
@@ -111,6 +120,28 @@ function build(ctx: ArenaScene, radius: number) {
     return { x: at.x + Math.sin(a) * r, z: at.z + Math.cos(a) * r, scale: 0.9 + rand() * 0.8, yaw: rand() * Math.PI };
   }));
   scatter(ctx, root, [[cap, 0.1]], [...ringSpots(rand, 60, radius + 0.4, radius + 3, 0.6, 1.5), ...clumps], false);
+
+  const farTree = Mesh.MergeMeshes([branch(11, 0.9, 0.04, 0, 0), branch(4, 0.3, 0.8, 1.2, 2.5),
+    branch(3.4, 0.25, -0.9, 3.9, 1.8)], true)!;
+  farTree.name = "mire-far-tree";
+  farTree.material = own(colorMaterial(scene, "mire-far-wood", new Color3(0.14, 0.14, 0.12)));
+  scatter(ctx, root, [[farTree, 5.5]], ringSpots(rand, 40, radius + 32, radius + 46, 0.9, 1.4), false);
+  const log = MeshBuilder.CreateCylinder("mire-log", { height: 3.2, diameterTop: 0.35, diameterBottom: 0.5,
+    tessellation: 7 }, scene);
+  log.rotation.z = Math.PI / 2;
+  log.bakeCurrentTransformIntoVertices();
+  log.material = wood;
+  scatter(ctx, root, [[log, 0.2]], ringSpots(rand, 7, radius + 2.5, radius + 9, 0.8, 1.2));
+  const stone = boulder(scene, "mire-stone");
+  stone.material = own(colorMaterial(scene, "mire-stone", new Color3(0.3, 0.33, 0.27)));
+  scatter(ctx, root, [[stone, 0.1]], ringSpots(rand, 12, radius + 1.5, radius + 6, 0.5, 1.3), false);
+  const cattail = MeshBuilder.CreateCylinder("mire-cattail", { height: 0.22, diameter: 0.08, tessellation: 5 }, scene);
+  cattail.material = own(colorMaterial(scene, "mire-cattail", new Color3(0.36, 0.24, 0.14)));
+  scatter(ctx, root, [[cattail, 1.55]], ringSpots(rand, 30, radius + 1.6, radius + 12, 0.8, 1.1), false);
+  patches(ctx, root, own, "mire-moss", { base: "#444a30", specks: ["#4e5538", "#3a3f29", "#565e3e"] },
+    ringSpots(rand, 14, 2, radius - 1, 0.4, 1.1));
+  patches(ctx, root, own, "mire-algae", { base: "#3e4a28", specks: ["#4a5830", "#323c20", "#56663a"] },
+    ringSpots(rand, 20, radius + 1.2, radius + 10, 0.8, 2.2));
 
   return settle(ctx, root, stumps);
 }

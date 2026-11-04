@@ -3,7 +3,7 @@ import { seededRandom } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaLookDef } from "../index.js";
-import { floor, lookRoot, ringSpots, scatter, settle, speckled } from "../parts.js";
+import { boulder, floor, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft } from "../parts.js";
 
 const WALL_PIECES = 26;
 /** Angles (radians) of the two arches standing in the wall. */
@@ -93,6 +93,28 @@ function build(ctx: ArenaScene, radius: number) {
   const cypress = MeshBuilder.CreateCylinder("ruins-cypress", cypressShape, scene);
   cypress.material = own(colorMaterial(scene, "ruins-cypress", new Color3(0.1, 0.2, 0.15)));
   scatter(ctx, root, [[cypress, 3]], ringSpots(rand, 30, radius + 5, radius + 30, 0.8, 1.6));
+
+  const far = MeshBuilder.CreateCylinder("ruins-far-cypress", { height: 10, diameterTop: 0, diameterBottom: 2.2,
+    tessellation: 6 }, scene);
+  far.material = own(colorMaterial(scene, "ruins-far-cypress", new Color3(0.09, 0.16, 0.13)));
+  scatter(ctx, root, [[far, 5]], ringSpots(rand, 50, radius + 32, radius + 46, 0.9, 1.5), false);
+  const tower = MeshBuilder.CreateBox("ruins-tower", { width: 3, height: 12, depth: 3 }, scene);
+  tower.material = stone;
+  const top = MeshBuilder.CreateBox("ruins-tower-top", { width: 1.2, height: 2, depth: 3 }, scene);
+  top.position.x = 0.9;
+  top.material = stone;
+  scatter(ctx, root, [[tower, 6], [top, 13]], ringSpots(rand, 3, radius + 22, radius + 30, 0.9, 1.2));
+
+  const rubble = boulder(scene, "ruins-rubble");
+  rubble.material = stone;
+  scatter(ctx, root, [[rubble, 0.08]], ringSpots(rand, 50, radius + 0.5, radius + 6, 0.25, 0.8), false);
+  const blades = tuft(scene, "ruins-tuft", 0.4);
+  blades.material = own(colorMaterial(scene, "ruins-tuft", new Color3(0.36, 0.38, 0.22)));
+  scatter(ctx, root, [[blades, 0]], ringSpots(rand, 80, radius - 0.5, radius + 7, 0.6, 1.2), false);
+  patches(ctx, root, own, "ruins-moss", { base: "#3c4630", specks: ["#46523a", "#323a28", "#525e3e"] },
+    ringSpots(rand, 10, 3, radius, 0.4, 0.9));
+  patches(ctx, root, own, "ruins-earth", { base: "#4a4334", specks: ["#554d3c", "#3f392c", "#5e5644"] },
+    ringSpots(rand, 20, radius + 1.5, radius + 9, 0.8, 2));
 
   return settle(ctx, root, pieces);
 }
