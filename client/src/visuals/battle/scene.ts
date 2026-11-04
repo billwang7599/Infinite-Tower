@@ -8,6 +8,7 @@ import type { PlayerLook } from "../characters.js";
 import { createSky, type Sky } from "../sky/sky.js";
 import type { Impact } from "./impact.js";
 import { createMaterials, type Materials } from "./materials.js";
+import { pixelFlags, pixelPost, type PixelFlags } from "./pixel.js";
 import { createSkillKit, type SkillKit } from "./skills.js";
 
 export interface ArenaScene {
@@ -22,6 +23,7 @@ export interface ArenaScene {
   shake: number;
   impacts: Map<Entity, Impact>;
   battle: BattleContext;
+  pixel: PixelFlags;
 }
 
 const FLOOR_REACH_M = 30;
@@ -35,23 +37,24 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
   camera.inputs.clear(); // it follows the battle mode's view
 
   const sky = createSky(scene);
-  postProcess(scene, camera);
+  const pixel = pixelFlags(import.meta.env.DEV ? location.search : "");
+  postProcess(scene, camera, pixel);
   const materials = createMaterials(scene);
   const floorY = (at: Vec3) =>
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
     scene, camera, sky, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
-    nodes: new Map(), looks: new Map(), shake: 0, impacts: new Map(), battle,
+    nodes: new Map(), looks: new Map(), shake: 0, impacts: new Map(), battle, pixel,
   };
 }
 
-function postProcess(scene: Scene, camera: Camera): void {
+function postProcess(scene: Scene, camera: Camera, pixel: PixelFlags): void {
   const pipeline = new DefaultRenderingPipeline("post", true, scene, [camera]);
-  pipeline.fxaaEnabled = true;
+  pipeline.fxaaEnabled = pixel.scale === null;
   pipeline.bloomEnabled = true;
   pipeline.bloomThreshold = 0.9;
   pipeline.bloomWeight = 0.45;
-  pipeline.bloomKernel = 48;
+  pipeline.bloomKernel = pixel.scale === null ? 48 : 16;
   pipeline.imageProcessingEnabled = true;
   pipeline.imageProcessing.toneMappingEnabled = true;
   pipeline.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
@@ -60,4 +63,5 @@ function postProcess(scene: Scene, camera: Camera): void {
   pipeline.imageProcessing.vignetteEnabled = true;
   pipeline.imageProcessing.vignetteWeight = 2;
   pipeline.imageProcessing.vignetteColor = new Color4(0, 0, 0.05, 0);
+  pixelPost(scene, camera, pixel);
 }

@@ -1631,6 +1631,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
                          skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
                          impact
+        pixel.ts         A dev-only pixel-art render to try (?pixel=<n>, &outline, &palette[=bands]): pixelFlags,
+                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes
         impact.ts        Weapon impacts, drawing only: a hit's hit-stop and the target's jolt the blade's way, a blocked
                          blade's bounce and sparks (strike, clash), a perfect block's longer hold, bounce and shower of
                          sparks (parried), and a broken guard's jolt and flash (guardBroken); impactPose and
