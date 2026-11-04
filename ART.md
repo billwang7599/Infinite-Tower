@@ -264,12 +264,17 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   (one mesh for a chunk's) and gate arches are 3D too; statues are standing sprites like trees.
 - **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld; in the arena, simple 3D models for
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
-  pose to pose (`visuals/battle/person/`), no drawing needed. The arena is drawn small and blown up into outlined
-  pixel art, its edges anti-aliased at the small size (the user: "also enable anti aliasing"; 4x MSAA, so a
-  silhouette's steps get in-between pixels and textures keep theirs). What reads as HUD (your aim ring at the bottom
-  centre, the crosshair, the lock-on diamond, other fighters' chant words) is drawn sharp over it. In dev,
-  `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render), and `&aa=0` turns the
-  anti-aliasing off.
+  pose to pose (`visuals/battle/person/`), no drawing needed. The arena is outlined pixel art whose pixels shrink
+  with depth (the user: a model walking away should keep "the same # of pixels but just smaller", not shrink into a
+  few black ones): 3 screen pixels up to about 9.6 m away in the shoulder view, 2 to 16 m, 1 past that, nearer in
+  first person's wider view. A block's size goes by the depth at its centre and its colour is the average over it, so
+  a silhouette's steps get in-between colours (the user: "also enable anti aliasing"; 4x MSAA does the rest), and the
+  outline is a block wide at every depth, drawn over the opaque scene only: the blade, the swing's trail and glint,
+  skills, particles and see-through things go on after it, so nothing behind them outlines through them. What reads
+  as HUD (your aim ring at the bottom centre, the crosshair, the lock-on diamond, other fighters' chant words) is
+  drawn sharp over it. In dev, `?pixel=fixed` draws every pixel the same size (the arena drawn small and blown up,
+  as before), `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render), and `&aa=0`
+  turns the anti-aliasing off.
   The enemies are lofted like the people below (`visuals/enemies/shape.ts`): a trunk, head or tail is a loft laid
   along the body through cross-sections, so the boar is a wedge with a bristled shoulder, the wolf deep-chested with
   a tucked waist, the lurker a squat toad-croc; limbs taper. Each keeps a fill of its own colour in shade

@@ -17,7 +17,7 @@ import { arrowVisual } from "./battle/bow.js";
 import { arrowStopped, clash, guardBroken, parried, strike } from "./battle/impact.js";
 import { playerFrames } from "./battle/materials.js";
 import { arenaOverlay } from "./battle/overlay.js";
-import { pixelScale } from "./battle/pixel.js";
+import { renderScale } from "./battle/pixel.js";
 import { playerVisual } from "./battle/player.js";
 import { createBattleScene, type ArenaScene } from "./battle/scene.js";
 import { beamVisual, boltVisual, cloudVisual, imbueVisual, waitVisual } from "./battle/skills.js";
@@ -249,7 +249,7 @@ export function createDrawing(canvas: HTMLCanvasElement, overlayCanvas: HTMLCanv
       shown = mode;
     },
     frame(dt) {
-      const scalingLevel = shown === "battle" ? pixelScale(arena.pixel, canvas.clientHeight) : 1;
+      const scalingLevel = shown === "battle" ? renderScale(arena.pixel, canvas.clientHeight) : 1;
       if (engine.getHardwareScalingLevel() !== scalingLevel) {
         engine.setHardwareScalingLevel(scalingLevel);
         canvas.style.imageRendering = scalingLevel > 1 ? "pixelated" : "";

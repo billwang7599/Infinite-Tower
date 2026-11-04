@@ -1731,12 +1731,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          materials, the skill kit, each fighter's node, each player's look in their frames, the shake,
                          each fighter's impact
         pixel.ts         The arena's pixel-art render, on by default (DEFAULT_PIXEL_SCALE, outlined); in dev the URL
-                         changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands], &aa=0 for no
-                         anti-aliasing): pixelFlags, pixelScale (the engine's hardware scaling in a fight), the outline
-                         and palette passes (what keepSharp marks, the blades, glints and trails, stays out of the
-                         outline; the sky, with no depth, stays out too, and the sun's rays come after it); also the
-                         3D person's flags (&player3d=0 for the sprite, &steps=<fps>). scene.ts
-                         anti-aliases it with 4x MSAA at its small size (FXAA would smear the textures' pixels)
+                         changes it (?pixel=<n>|auto, 1 for off, fixed for every pixel the same size, &outline=0,
+                         &palette[=bands], &aa=0 for no anti-aliasing): pixelFlags, pixelScale (the nearest pixels'
+                         size), renderScale (the engine's hardware scaling in a fight: full size, or that small with
+                         fixed); pixelBands (the depths where the pixels shrink, so a model keeps about its pixel
+                         count; tested); the outline, drawn into the scene over the opaque meshes before particles and
+                         see-through ones (drawOverOpaque), keepSharp (the blade: drawn after it, in its depth) and
+                         drawOnTop (the trail and glint: after it, over everything, out of its depth); the pixelate
+                         pass (a block's size by the depth at its centre, its colour averaged), after the sun's rays,
+                         and the palette pass; also the 3D person's flags (&player3d=0 for the sprite,
+                         &steps=<fps>). scene.ts anti-aliases it with 4x MSAA (FXAA would smear the textures' pixels)
         person/          The arena's people as 3D models (sprite only with &player3d=0), built in code from the look:
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
                          offsets in metres, shoulders and hips widened per body type; attach joints grip.R / grip.L,
@@ -2207,6 +2211,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | Map-light shadows, sprite tint, sun and moon discs, the shadow side's fill light | top of `client/src/visuals/sky/sky.ts` (`FILL`) |
 | The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts` (the haze too), `RAYS` in `client/src/visuals/sky/rays.ts`; `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
+| The arena's pixels: their size, how far they stay full size, the outline's thresholds and darkness | `DEFAULT_PIXEL_SCALE`, `PIXEL_DEPTH` and `OUTLINE` at the top of `client/src/visuals/battle/pixel.ts` |
 | Arena camera feel, locked and not; how far out the wheel zooms | `CAMERA_VIEWS` (shoulder, close, first person) and `ZOOM` at the top of `client/src/modes/battle/camera.ts` |
 | Camera turn rates (keys and drag, arena and overworld); how far up and down it tilts; a wheel notch's zoom; how far a drag goes before it turns; a wheel notch in pixels | `TURN`, `PITCH`, `ZOOM_PER_NOTCH` in `client/src/modes/orbit.ts`; `DRAG` in `client/src/core/actions.ts`; `WHEEL` in `client/src/core/mouse.ts` |
 | Where your hands and blade sit in first person | `FP_ARMS` in `client/src/visuals/battle/firstPerson.ts` |
