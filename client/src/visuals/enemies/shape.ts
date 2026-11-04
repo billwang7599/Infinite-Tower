@@ -7,13 +7,14 @@ import { colorMaterial } from "../materials.js";
 /** A cross-section across a body lying along z: half-width w, half-height h, its middle dy up and dx aside. */
 export interface Rib { z: number; w: number; h: number; dy?: number; dx?: number }
 
-/** Light every part keeps facing away from the sun, × its own colour, as the people's fill. */
-export const ENEMY_FILL = 0.32;
+/** Light every part keeps facing away from the sun, × its own colour, cooled as if from the sky. */
+export const ENEMY_FILL = 0.22;
+export const ENEMY_SHADE_TINT = new Color3(0.85, 0.95, 1.2);
 
 export function enemyMaterial(scene: Scene, name: string, hex: string, specular = 0.05): StandardMaterial {
   const color = Color3.FromHexString(hex);
   const m = colorMaterial(scene, name, color, new Color3(specular, specular, specular));
-  m.emissiveColor = color.scale(ENEMY_FILL);
+  m.emissiveColor = color.multiply(ENEMY_SHADE_TINT).scale(ENEMY_FILL);
   return m;
 }
 

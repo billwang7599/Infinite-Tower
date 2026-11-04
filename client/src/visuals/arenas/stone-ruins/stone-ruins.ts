@@ -3,9 +3,12 @@ import { seededRandom } from "@infinite-tower/shared";
 import type { ArenaScene } from "../../battle/scene.js";
 import { colorMaterial } from "../../materials.js";
 import type { ArenaLookDef } from "../index.js";
-import { boulder, floor, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft } from "../parts.js";
+import {
+  boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled, tuft,
+} from "../parts.js";
 
 const WALL_PIECES = 26;
+const SKY = new Color3(0.32, 0.3, 0.36);
 /** Angles (radians) of the two arches standing in the wall. */
 const ARCHES_RAD = [0.9, 3.6];
 const FLAGSTONE_TILES = 8;
@@ -96,8 +99,8 @@ function build(ctx: ArenaScene, radius: number) {
 
   const far = MeshBuilder.CreateCylinder("ruins-far-cypress", { height: 10, diameterTop: 0, diameterBottom: 2.2,
     tessellation: 6 }, scene);
-  far.material = own(colorMaterial(scene, "ruins-far-cypress", new Color3(0.09, 0.16, 0.13)));
-  scatter(ctx, root, [[far, 5]], ringSpots(rand, 50, radius + 32, radius + 46, 0.9, 1.5), false);
+  hazedRings(ctx, root, own, far, 5, { color: new Color3(0.09, 0.16, 0.13), sky: SKY },
+    { rand, count: 51, near: radius + 30, far: radius + 48 });
   const tower = MeshBuilder.CreateBox("ruins-tower", { width: 3, height: 12, depth: 3 }, scene);
   tower.material = stone;
   const top = MeshBuilder.CreateBox("ruins-tower-top", { width: 1.2, height: 2, depth: 3 }, scene);
@@ -121,7 +124,7 @@ function build(ctx: ArenaScene, radius: number) {
 
 export const STONE_RUINS: ArenaLookDef = {
   env: {
-    sky: new Color3(0.32, 0.3, 0.36),
+    sky: SKY,
     fogDensity: 0.026,
     ambient: new Color3(0.2, 0.19, 0.22),
     skyLight: { color: new Color3(0.6, 0.62, 0.8), ground: new Color3(0.2, 0.18, 0.16), intensity: 0.5 },

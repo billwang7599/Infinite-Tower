@@ -1,6 +1,6 @@
 import { Color3, Quaternion, Vector3, type TransformNode } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Health, heldIn, PLAYER, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
+  Body, damp, dampFactor, Health, heldIn, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Entity, type Look,
   type PlayerData, type Vec2, type Vec3, type WeaponId, type World,
 } from "@infinite-tower/shared";
 import { reachArm } from "../arm.js";
@@ -9,8 +9,8 @@ import { bowDrawOf, pullString } from "../bow.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
 import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
-import { STILL_HAIR, swayHair, type Sway } from "./motion.js";
-import { personPose, POSED_JOINTS } from "./pose.js";
+import { STILL_HAIR, strideOf, swayHair, type Sway } from "./motion.js";
+import { LANDING, personPose, POSED_JOINTS } from "./pose.js";
 import { restAt, type Joints } from "./skeleton.js";
 
 const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
@@ -19,6 +19,7 @@ const YAW_RATE = 15;
 /** A two-handed grip's off hand, this far (m) down the grip from the sword hand. */
 const OFF_GRIP_M = 0.18;
 const UPPER_ARM_M = -restAt("forearm.R", "medium").y, FOREARM_M = -restAt("hand.R", "medium").y;
+const LEGS = new Set<string>(["thigh.R", "thigh.L", "shin.R", "shin.L", "foot.R", "foot.L"]);
 
 export interface PersonDrawing {
   look: Look | null;
@@ -34,6 +35,8 @@ export interface PersonDrawing {
   time: number;
   deadTime: number;
   sinceStep: number;
+  /** Seconds since it last touched down; null in the air. */
+  sinceLanding: number | null;
   hair: { sway: Sway; at: Vector3 | null; vel: Vector3 };
 }
 
@@ -43,7 +46,8 @@ export type PersonStance = Pick<PlayerData, "action" | "actionTime" | "actionDir
 
 export const newPerson = (): PersonDrawing => ({
   look: null, build: null, model: null, blade: null, bladeSide: 1, handAt: null, bladeTurn: null, yaw: 0, gait: 0,
-  time: 0, deadTime: 0, sinceStep: 0, hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() },
+  time: 0, deadTime: 0, sinceStep: 0, sinceLanding: LANDING.durationTime,
+  hair: { sway: STILL_HAIR, at: null, vel: Vector3.Zero() },
 });
 
 export function dropPerson(p: PersonDrawing): void {
@@ -108,8 +112,8 @@ export function framePerson(
   const alive = health.hp > health.floor, weapon = weaponItemIn(wielder.hands);
   const side = weapon && heldIn(wielder.hands, weapon) === "leftHand" ? -1 : 1;
   const speed = Math.hypot(body.vel.x, body.vel.z);
-  p.gait += dt * speed * 2.6;
   p.time += dt;
+  p.sinceLanding = stance.grounded ? (p.sinceLanding ?? 0) + dt : null;
   p.deadTime = alive ? 0 : p.deadTime + dt;
 
   model.holder.setEnabled(!(alive && health.invuln > 0 && Math.floor(health.invuln * 16) % 2 === 1));
@@ -126,21 +130,26 @@ export function framePerson(
   const facing = wielder.swing?.dir ?? stance.aim;
   p.yaw += wrapAngle(Math.atan2(facing.x, facing.z) - p.yaw) * dampFactor(YAW_RATE, shownDt);
   model.holder.rotation.y = p.yaw;
-  const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw), d = stance.actionDir;
+  const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw), d = stance.actionDir, v = body.vel;
+  const way = speed > 0 ? { x: (v.x * cos - v.z * sin) / speed, z: (v.x * sin + v.z * cos) / speed } : { x: 0, z: 1 };
+  p.gait += shownDt * 2 * Math.PI * strideOf(speed, Math.abs(way.x)).cyclesPerSec;
   const held = weapon && WEAPON_LOOKS[weapon], drawing = bowDrawOf(world, e);
   const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
     stagger, deadTime: p.deadTime, time: p.time,
-    walk: { phase: p.gait, amp: Math.min(1, speed / PLAYER.moveSpeed) },
+    walk: { phase: p.gait, speed, way },
+    landing: p.sinceLanding === null ? 0 : Math.max(0, 1 - p.sinceLanding / LANDING.durationTime),
     ...(held?.bow && drawing && { bow: { ...held.bow, drawn: drawing.drawn } }),
   });
 
-  const { joints } = model, ease = (current: number, to: number) => damp(current, to, JOINT_RATE, shownDt);
+  const { joints } = model;
   for (const name of POSED_JOINTS) {
+    const exact = pose.legsExact && LEGS.has(name);
+    const ease = (current: number, to: number) => exact ? to : damp(current, to, JOINT_RATE, shownDt);
     const r = joints[name].rotation, to = pose.joints[name];
     r.set(ease(r.x, to.x), ease(r.y, to.y), ease(r.z, to.z));
   }
-  joints.root.position.y = ease(joints.root.position.y, pose.rootY);
+  joints.root.position.y = pose.legsExact ? pose.rootY : damp(joints.root.position.y, pose.rootY, JOINT_RATE, shownDt);
 
   const swordSide = side === 1 ? "R" : "L", offSide = side === 1 ? "L" : "R";
   const snap = pose.bladeExact ? 1 : dampFactor(JOINT_RATE, shownDt);

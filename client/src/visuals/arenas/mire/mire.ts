@@ -5,9 +5,10 @@ import { colorMaterial } from "../../materials.js";
 import type { MapLight } from "../../sky/sky.js";
 import { setWater, waterMaterial, type WaterLook } from "../../water/water.js";
 import type { ArenaLookDef } from "../index.js";
-import { boulder, floor, lookRoot, patches, ringSpots, scatter, settle, speckled } from "../parts.js";
+import { boulder, floor, hazedRings, lookRoot, patches, ringSpots, scatter, settle, speckled } from "../parts.js";
 
 const STUMPS = 34;
+const SKY = new Color3(0.25, 0.27, 0.26);
 /** Above 1 so the bloom catches the mushrooms' glow. */
 const GLOW = new Color3(0.45, 1.5, 1.15);
 const CLUMPS_RAD = [0.5, 2.1, 3.6, 5.2];
@@ -124,8 +125,8 @@ function build(ctx: ArenaScene, radius: number) {
   const farTree = Mesh.MergeMeshes([branch(11, 0.9, 0.04, 0, 0), branch(4, 0.3, 0.8, 1.2, 2.5),
     branch(3.4, 0.25, -0.9, 3.9, 1.8)], true)!;
   farTree.name = "mire-far-tree";
-  farTree.material = own(colorMaterial(scene, "mire-far-wood", new Color3(0.14, 0.14, 0.12)));
-  scatter(ctx, root, [[farTree, 5.5]], ringSpots(rand, 40, radius + 32, radius + 46, 0.9, 1.4), false);
+  hazedRings(ctx, root, own, farTree, 5.5, { color: new Color3(0.14, 0.14, 0.12), sky: SKY },
+    { rand, count: 42, near: radius + 30, far: radius + 48 });
   const log = MeshBuilder.CreateCylinder("mire-log", { height: 3.2, diameterTop: 0.35, diameterBottom: 0.5,
     tessellation: 7 }, scene);
   log.rotation.z = Math.PI / 2;
@@ -148,7 +149,7 @@ function build(ctx: ArenaScene, radius: number) {
 
 export const MIRE: ArenaLookDef = {
   env: {
-    sky: new Color3(0.25, 0.27, 0.26),
+    sky: SKY,
     fogDensity: 0.036,
     ambient: new Color3(0.17, 0.19, 0.18),
     skyLight: { color: new Color3(0.55, 0.65, 0.65), ground: new Color3(0.16, 0.15, 0.1), intensity: 0.45 },

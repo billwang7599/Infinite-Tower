@@ -1668,7 +1668,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        lit for each kind of strike landed; sprite.ts); bram/ (only sprite.ts: in a fight he's drawn
                        as a person, `npc` in ENEMY_LOOKS, visuals.ts painting his NPC look). index.ts (ENEMY_LOOKS,
                        one line each; byEnemy); shape.ts (what the models share: enemyMaterial, a part's colour
-                       with a fill of it, ENEMY_FILL, so the shade side isn't black; lengthwise, person/loft.ts's loft
+                       with a cooled fill of it, ENEMY_FILL and ENEMY_SHADE_TINT, so the shade side isn't black;
+                       lengthwise, person/loft.ts's loft
                        laid along +z for trunks, heads and tails; limb; breathOf and flickOf for idle life; tested)
       npcs/            One folder per NPC, by its NpcId: hollis/, maren/, tobin/, corwin/, ilse/, herald/, grocer/,
                        apothecary/, smith/, changer/, bram/, captain/, cook/, tamsin/, chronicler/, priest/, foreman/,
@@ -1698,8 +1699,10 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
                          each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
                          into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, the string
-                         hand back by the draw; no Babylon: tested), motion.ts (WALK, the stride's keys; BREATH;
-                         swayHair, the hair's spring; tested), animation.ts (framePerson: the pose on the
+                         hand back by the draw; LANDING, the knees giving; no Babylon: tested), motion.ts (WALK,
+                         the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
+                         a planted one stays put; legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
+                         tested), animation.ts (framePerson: the gait from the ground speed, the pose on the
                          joints, both arms bent to the pose's hand targets by reachWith, the 3D blade or bow on grip.R
                          or grip.L, a bow's string pulled to the off hand, the hair swung by the head's motion; with
                          &steps only that many times a second)
@@ -1870,7 +1873,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          battle.ts makes: hands the sky its look and returns the look's root, whose disposal takes
                          its meshes and materials), parts.ts (what
                          the looks share: lookRoot, speckled, floor, scatter, ringSpots, settle; patches, flat
-                         blotches varying the ground; tuft, a clump of blades; boulder)
+                         blotches varying the ground, soft-edged by textures.ts' blotTexture; hazedRings, far
+                         props in rings hazier with distance, HAZE_SHARES; tuft, a clump of blades; boulder; tested)
         forest-clearing/ the boar's and tall grass's: moss, a dirt floor with leaf litter, standing stones, pines and
                          oaks before a far treeline, ferns, logs, boulders, grass tufts, mushrooms
         stone-ruins/     the Kobolds': flagstones with moss, broken columns and walls, two arches, far ruins and
@@ -2120,7 +2124,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How big a walker is against solid tiles | `shared/src/world/layout.ts` (`WALKER_RADIUS`) |
 | How each tile looks; the overworld's colour grade and camera (its field of view and distance; its turn time; its tilt's range and speed), a walker's blob size | `client/src/visuals/regions/` (`tiles.ts` per look), `client/src/visuals/overworld/scene.ts` (`CAMERA`), top of `client/src/visuals/overworld/overworld.ts` and `walker.ts`; `CAMERA_TURN_TIME` and `CAMERA_PITCH` in `client/src/modes/overworld/facing.ts` |
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
-| How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
+| How much of its own colour an enemy keeps in shade; each enemy's idle breath, ear flick and tail swing | `ENEMY_FILL`, `ENEMY_SHADE_TINT` in `client/src/visuals/enemies/shape.ts`; `IDLE` atop each enemy's `animation.ts` |
+| The 3D person's stride (how far a foot lands ahead, time down, lift, bob) and its landing | `STRIDE` in `client/src/visuals/battle/person/motion.ts`; `LANDING` in `person/pose.ts` |
+| How hazy each ring of an arena's far props is | `HAZE_SHARES` in `client/src/visuals/arenas/parts.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height (the sky overhead, the sun's glow, a low sun's brightness), fades | top of `client/src/visuals/sky/daylight.ts` |

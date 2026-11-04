@@ -37,9 +37,9 @@ export function buildWolf(ctx: ArenaScene, e: Entity, parent: TransformNode, def
     materials.push(m);
     return m;
   };
-  const fur = mat("wolf-fur", "#73767d");
-  const dark = mat("wolf-dark", "#4a4c53");
-  const pale = mat("wolf-pale", "#aea89c");
+  const fur = mat("wolf-fur", "#5d5f66");
+  const dark = mat("wolf-dark", "#37383e");
+  const pale = mat("wolf-pale", "#8f8678");
   const nose = mat("wolf-nose", "#202024");
   const teeth = mat("wolf-teeth", "#ece6d6");
   const eyes = mat("wolf-eyes", "#d9a83a");

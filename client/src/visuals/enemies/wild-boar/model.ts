@@ -46,10 +46,10 @@ export function buildBoar(ctx: ArenaScene, e: Entity, parent: TransformNode, def
     materials.push(m);
     return m;
   };
-  const hide = mat("boar-hide", "#74513b");
-  const dark = mat("boar-dark", "#3e2c21");
-  const snoutM = mat("boar-snout", "#9a6a56");
-  const nose = mat("boar-nose", "#c08672");
+  const hide = mat("boar-hide", "#5b4434");
+  const dark = mat("boar-dark", "#2e241d");
+  const snoutM = mat("boar-snout", "#7a584a");
+  const nose = mat("boar-nose", "#9a6a5c");
   const ivory = mat("boar-tusk", "#efe6cf");
   const eyes = mat("boar-eyes", "#1a0a08");
 
