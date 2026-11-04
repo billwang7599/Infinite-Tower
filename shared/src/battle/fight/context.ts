@@ -15,12 +15,15 @@ export interface FightOutcome {
   stateTime: number;
 }
 
-/** Something that happened this step that the client shows (the screen shakes) but the fight doesn't need again. */
+/**
+ * Something that happened this step that the client shows (the screen shakes) but the fight doesn't need again. `at`:
+ * where a projectile struck.
+ */
 export type FightEvent =
-  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean }
+  | { type: "hit"; by: Entity; target: Entity; team: TeamId; damage: number; weapon: boolean; at?: Vec3 }
   /** A charging enemy slammed into the wall, or a slam came down. */
   | { type: "slam"; enemy: Entity }
-  | { type: "block"; by: Entity; target: Entity; broken?: boolean; perfect?: boolean }
+  | { type: "block"; by: Entity; target: Entity; broken?: boolean; perfect?: boolean; at?: Vec3 }
   | { type: "feint"; by: Entity }
   | { type: "parry"; by: Entity; target: Entity; clash: boolean }
   | { type: "skill"; form: Form; elements: readonly SkillElement[]; at: Vec3; radiusM?: number }

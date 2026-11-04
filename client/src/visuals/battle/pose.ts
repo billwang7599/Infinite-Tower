@@ -70,7 +70,7 @@ export function playerBlade(
 ): { blade: Vec3; exact: boolean; handZ: number } {
   if (!alive) return { blade: DROPPED_BLADE, exact: false, handZ: REST_BLADE.handZ };
   if (STAGGERED.includes(player.action)) return { blade: REELING_BLADE, exact: false, handZ: REST_BLADE.handZ };
-  const stance = stanceCut(player), held = stance ? motion.held(stance) : REST_BLADE;
+  const stance = stanceCut(player), held = stance ? motion.held(stance) : motion.rest;
   if (!swing || swing.step >= swing.endAt) return { blade: held.blade, exact: false, handZ: held.handZ };
   const cut = wayCut(swing.way, true), stroke = strokeAt(swing);
   const { blade, handZ } = stroke.set < 1 ? motion.windup(cut, stroke.set, held) : motion.stroke(cut, stroke.turn);

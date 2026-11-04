@@ -2,7 +2,7 @@ import {
   FIXED_DT, PLAYER, smoothstep, type PlayerData, type SwingData, type Vec2, type Vec3, type WielderData,
 } from "@infinite-tower/shared";
 import { playerBlade } from "../pose.js";
-import { pullOf, type WeaponMotion } from "../weapons.js";
+import { pullOf, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
 import { restAt, type JointName } from "./skeleton.js";
 
@@ -78,6 +78,11 @@ const BEND_RAD = 0.15;
 const PULL_LEAN_RAD = 0.2;
 const STRIKE_LEAN_RAD = 0.15;
 const KNEE_LIFT = 0.6;
+const BOW_UPRIGHT = { x: 0.12, y: 0.99, z: 0 };
+/** How far the body turns side-on drawing, hips to chest; the neck turns back to look down the arrow. */
+const DRAW_TWIST = { hips: -0.25, spine: -0.25, chest: -0.3, neck: 0.7 } as const;
+const LOOSED_FLICK_M = 0.06;
+const BOW_CARRY = { outM: 0.05, drop: 0.9, aheadM: 0.08 } as const;
 const THIGH_M = -restAt("shin.R", "medium").y, SHIN_M = -restAt("foot.R", "medium").y;
 
 /** In the model's frame, feet at 0 and +z ahead. */
@@ -101,6 +106,8 @@ export interface PersonMoment {
   stagger: { left: number; of: number };
   deadTime: number;
   walk: { phase: number; amp: number };
+  /** A bow in hand: how far it's drawn, 0..1. */
+  bow?: BowLook & { drawn: number };
 }
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
@@ -179,6 +186,17 @@ export function personPose(
       case "bag":
         towardOff({ x: -side * 0.1, y: b.waistY, z: reach * 0.5 });
         break;
+      case "none":
+        if (o.bow) {
+          p.hand = {
+            x: side * (b.shoulderM + BOW_CARRY.outM), y: b.shoulderY - reach * BOW_CARRY.drop, z: BOW_CARRY.aheadM,
+          };
+        }
+        break;
+      case "draw":
+      case "loose":
+        if (o.bow) drawPose(p, o.bow, b, side, player.action === "loose");
+        break;
     }
   }
   if (alive && !player.grounded) play(joints, CLIPS.airborne, 0);
@@ -195,4 +213,15 @@ export function personPose(
   p.rootY = -(THIGH_M * (1 - Math.cos(thigh)) + SHIN_M * (1 - Math.cos(knee)))
     + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
   return p;
+}
+
+function drawPose(p: PersonPose, bow: BowLook & { drawn: number }, b: PersonBuild, side: 1 | -1, loosed: boolean): void {
+  const y = b.shoulderY + 0.04, z = b.reachM + 0.05;
+  p.blade = { ...BOW_UPRIGHT, x: side * BOW_UPRIGHT.x };
+  p.bladeExact = false;
+  p.hand = { x: side * 0.02, y, z };
+  const back = bow.braceM + bow.drawM * (loosed ? 1 : bow.drawn);
+  p.offHand = { x: p.hand.x - (loosed ? side * LOOSED_FLICK_M : 0), y, z: z - back };
+  for (const [j, turn] of Object.entries(DRAW_TWIST)) p.joints[j as PosedJoint].y = side * turn;
+  p.joints.spine.x = p.joints.chest.x = 0;
 }

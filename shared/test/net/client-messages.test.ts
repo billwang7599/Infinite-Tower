@@ -12,8 +12,8 @@ const character = (name: string, look: object = DEFAULT_LOOK, gender: unknown = 
 
 /** One step's input: walking forward-right, aiming ahead, nothing pressed. */
 const STEP: StepInput = {
-  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null,
-  block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
+  step: 1, moveX: 0.707, moveZ: 0.707, aimX: 0, aimZ: 1, jump: false, attack: null, attackHeld: false, dodge: false,
+  way: null, block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null,
   bag: false, gear: null, use: null,
 };
 const segment = (form: string, elements: string[] = [], modifiers: string[] = []) => ({ form, elements, modifiers });
@@ -119,6 +119,7 @@ describe("parseClientMsg", () => {
     }
     assert.equal(battleInput({ ...STEP, attack: "yes" }), null);
     assert.equal(battleInput({ ...STEP, attack: true }), null, "the old single attack");
+    assert.equal(battleInput({ ...STEP, attackHeld: "yes" }), null, "held is a yes or a no");
     assert.equal(battleInput({ ...STEP, dodge: 1 }), null);
     assert.equal(battleInput({ ...STEP, moveX: "1" }), null);
     assert.equal(battleInput({ ...STEP, aimZ: null }), null);

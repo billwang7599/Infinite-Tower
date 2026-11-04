@@ -1,5 +1,6 @@
 import type { Entity, System, World } from "../../../core/ecs.js";
 import { approach, type Vec3 } from "../../../core/math.js";
+import { toSteps } from "../../../core/time.js";
 import { dodgeCost, walkPace } from "../../../items/burden.js";
 import { emptyCloth, heldIn, moveGear, NO_PILE, type Spot } from "../../../items/gear.js";
 import { startUse } from "../../../items/using.js";
@@ -13,6 +14,7 @@ import { copyInput, PlayerInput, type PlayerInputData } from "../../input.js";
 import { PLAYER } from "../../player.js";
 import { FighterStats, moveSpeed, staminaRegenPerSec, type Stats } from "../../stats.js";
 import { HYBRID } from "../../../weapons/hybrid.js";
+import { rangedOf } from "../../../weapons/kinds.js";
 import { weaponIn } from "../../../weapons/weapons.js";
 import { breakOff, canPayStamina, payStamina, spend } from "../combat.js";
 import type { FightEvent } from "../context.js";
@@ -158,7 +160,7 @@ function chooseAction(t: Turn): void {
   const write = input.write;
   // A dodge cancels a cast's wind-up, which costs nothing until it's released, and ends a Beam.
   const dodgeable = free || chanting || inBag || usingNow || player.action === "cast"
-    || player.action === "beam";
+    || player.action === "beam" || player.action === "draw" || player.action === "loose";
   if (dodgeable && player.dodgeBuffer > 0 && dodgeStamina !== null && player.grounded
     && canPayStamina(world, e, stamina, dodgeStamina)) {
     let dx = input.moveX, dz = input.moveZ;
@@ -230,6 +232,14 @@ function moveByAction({ world, e, dt, player, input, wielder, stamina, stats, mo
       shuffle(input, v, dt, walkSpeed * HYBRID.block.moveFactor);
       spend(stamina, HYBRID.block.holdStaminaPerSec * dt);
       break;
+    case "draw":
+    case "loose": {
+      const bow = rangedOf(weaponIn(wielder.hands));
+      if (player.action === "draw") player.actionDir = { x: input.aimX, z: input.aimZ };
+      shuffle(input, v, dt, walkSpeed * (bow?.draw.moveFactor ?? 1));
+      if (!bow || (player.action === "loose" && toSteps(t) >= toSteps(bow.looseRecoverTime))) player.action = "none";
+      break;
+    }
     case "chant":
     case "write":
     case "bag":

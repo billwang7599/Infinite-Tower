@@ -245,7 +245,8 @@ Decided by the user:
   each major armor piece should also get a cosmetic slot too so that we can have cosmetics over it"): left and right
   hand, cap, head, body, legs, boots, belt, back (the backpack), two wrists (a bracelet each), five rings (one a finger
   of one hand), and a cosmetic slot over the cap, head, body, legs and boots. A cosmetic changes only how you look,
-  never stats. Weapons beyond the sword (bows) are a later change ("maybe prep for that").
+  never stats. Weapons beyond the sword (bows) are a later change ("maybe prep for that"); the prep is built, as
+  placeholders only ("Bows, a prep" under Decided by the agent).
 - The server is hexagonal: `core/` is the game mechanics, and `ws/` (the game socket), `api/` (HTTP) and `db/`
   (Postgres) are outlets plugged into it.
 - `api/` uses Fastify and its official plugins (cookie, static, websocket, rate-limit), with request bodies checked
@@ -312,7 +313,7 @@ Decided by the user:
 - Items so far: boar meat (heals), boar hide (2 x 2, light for its size), boar tusk (1 x 2, heavy for its size), the
   swords and the skillbook, each monster's essence, bread, a health potion, a stamina tonic, the three coins, and one
   thing for each new slot (a canvas backpack, a wool cap, a leather belt, a copper ring, a braided bracelet and a
-  feathered hat, a cosmetic).
+  feathered hat, a cosmetic). A training bow and arrows are placeholders, from the admin panel only ("Bows, a prep").
 - Rarity and unique things (the user: "give items rarity"; "unique items must have user activity within 7 days";
   "unique items can be traded"; the numbers "you can make up"): every item has a rarity, and some things are unique,
   only one in the whole world, so only one player holds it at a time. A unique thing whose holder hasn't logged in
@@ -816,6 +817,21 @@ them; treat them as changeable, and still ask before deciding new ones):
 - Heavier swords: the Longsword is 1 x 3, 1.4 m, weight 4.5, heft 1.2, 11 damage; the Greatsword 1 x 4, 1.9 m, weight
   8, heft 1.6, 16 damage (about the sword's damage per second); the Kobold Greatsword's blade is the greatsword with
   the Kobold blade's 14 damage. Numbers: each item's `weapon` in `ITEMS` (`shared/src/items/items.ts`).
+- Bows, a prep (the user: "prep for future weapons (bows)", "make any assumptions you want as to not block me"):
+  **placeholder prep, not a rule.** How bows play is the user's to decide later; all of this is the agent's stand-in,
+  tried by tests and a headless browser, never hand-played, and every number is `BOW` in `shared/src/weapons/bow.ts`.
+  A weapon kind says what it does (`MOVES` in `shared/src/weapons/kinds.ts`): melee (the sword: the Hybrid's hit
+  shapes and timings) or ranged (the bow: a draw, a loose, a projectile), and the fight branches on that, not on the
+  kind's name. The Training bow (1 x 3, length 1.2, 12 damage, heft 1, no least strength; two-handed in its look
+  only: the other hand isn't locked out) and the Arrow (1 x 1, stacks of 20, weight 0.05) come only from the admin
+  panel's give: no shop, drop or quest has them. With a bow in hand the light attack, held, draws it (8 stamina as it
+  starts, walking at half speed, no block; a dodge breaks it off and keeps the arrow), and let go looses one arrow
+  from the bag at the lock-on target, in the low arc that reaches it, or level where you face; a release before 0.25 s
+  looses at 0.25 s. The damage grows with the draw, from 30% at once to the bow's whole damage at 1 s, and heft
+  stretches the draw and its cost as it does a swing's. The heavy and the stab do nothing with a bow. An arrow flies
+  at 30 m/s, falling at 9.8 m/s², for at most 3 s, and lands on the first foe in its way (poise 10) unless it's
+  dodging or in hurt invulnerability; from in front a held block stops it as a blade (a chip, its damage in stamina)
+  and a perfect block whole, the shooter far off not recoiling. In the floor or the wall it lies 2 s, then is gone.
 - The Grey Wolf (the user: "continue to add content... based off of your best judgement"; the design, quick and frail,
   circling, a telegraphed lunge-bite and a hop back, was OptChat's brief; every number is the agent's, tried by bots
   and a headless browser, not hand-played): 70 HP, walks 4.6 m/s, poise 30 (12 a second, 0.7 s stagger). In a fight

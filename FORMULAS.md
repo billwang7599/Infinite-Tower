@@ -14,6 +14,7 @@ Keep it current: a PR that changes a calculation or its numbers changes it here 
 - [Inscriptions](#inscriptions)
 - [Blessings](#blessings)
 - [Weapon attacks](#weapon-attacks)
+- [Bows (placeholder)](#bows-placeholder)
 - [Body blows](#body-blows)
 - [Blocks](#blocks)
 - [Swing parries](#swing-parries)
@@ -155,6 +156,22 @@ chain and waits its 1.2 s cooldown.
 
 Example: a sword light, then the reverse, then the reverse again: wind-ups 0.35, 0.25 and 0.25 s (the reverse's
 0.25 can't go lower); damage 9, 11.25 and 13.5; momentum 2. A stab next deals 9 × 1.25 × 2 = 22.5 and spends it.
+
+## Bows (placeholder)
+
+A stand-in until the user decides how bows play (AGENTS.md, "Bows, a prep"). `BOW`, `drawTime`, `drawCost` and
+`loosedDamage` in `shared/src/weapons/bow.ts`; the draw in `fight/player/bow.ts`, the flight in
+`fight/weapons/projectile.ts`.
+
+- **Draw:** costs `draw.cost` 8 stamina × felt heft as it starts; full after `draw.fullTime` 1 s × felt heft, and
+  a release before `draw.minTime` 0.25 s × felt heft looses then. You walk at `draw.moveFactor` 50%; after loosing,
+  `looseRecoverTime` 0.2 s before anything else.
+- **Damage** = the bow's damage × (`minDamageShare` 0.3 + 0.7 × the share drawn, at most 1) × √(strength / 10).
+- **Flight:** `projectile.speedMps` 30 m/s, gravity 9.8 m/s², at most `lifeTime` 3 s; it leaves 0.6 m ahead and
+  0.15 m above your middle. Locked on, it's aimed in the low arc that meets the target's middle (level if it can't
+  reach); unlocked, level. Poise 10 on an enemy; blocked like a light (below). Stuck, it lies `stuckTime` 2 s.
+
+Example: the Training bow (12) let go at once deals 12 × (0.3 + 0.7 × 0.25) = 5.7, held 1 s or more 12.
 
 ## Body blows
 

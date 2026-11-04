@@ -8,7 +8,7 @@ import { World, type Entity, type System } from "../../core/ecs.js";
 import { approach } from "../../core/math.js";
 import { FIXED_DT } from "../../core/time.js";
 import type { ArenaDef } from "../../world/arena.js";
-import { Body, Enemy, Health, Player, SkillObject } from "../components.js";
+import { Body, Enemy, Health, Player, Projectile, SkillObject } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import { PLAYER } from "../player.js";
 import { combatSystem } from "./combat.js";
@@ -27,6 +27,7 @@ import { regenSystem } from "./health.js";
 import { statusSystem } from "./statuses.js";
 import { ATTACKS, spawnEnemy, spawnPlayer, type FightSetup, type PlayerSetup } from "./setup.js";
 import { hashFight, loadFight, saveFight, type FightSnapshot } from "./state.js";
+import { projectileSystem } from "./weapons/projectile.js";
 import { weaponSystem } from "./weapons/swing.js";
 
 /** How far below the feet a ray still finds the floor. */
@@ -101,7 +102,7 @@ export class Fight {
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events),
+      playerGroundSystem(this.physics), combatSystem(this.events), projectileSystem(ctx),
       statusSystem(),
       regenSystem(),
       skillSystem(ctx), useSystem(ctx),
@@ -161,7 +162,7 @@ export class Fight {
   /** Destroys the entities (their remove hooks run) and frees the physics world. */
   dispose(): void {
     for (const e of [...this.players, ...this.enemies]) this.world.destroy(e);
-    for (const [e] of this.world.query(SkillObject)) this.world.destroy(e);
+    for (const type of [SkillObject, Projectile]) for (const [e] of this.world.query(type)) this.world.destroy(e);
     this.world.flush();
     this.physics.free();
   }

@@ -115,26 +115,36 @@ export function glintOf(swing: SwingData | null): number {
 }
 
 export interface WeaponMotion {
+  /** Held with no way aimed. */
+  rest: BladePose;
   trail(swing: SwingData | null): number | null;
   held(cut: Cut): BladePose;
   windup(cut: Cut, k: number, from: BladePose): BladePose;
   stroke(cut: Cut, turn: number): BladePose;
 }
 
+// A bow's "blade" is its stave; it never swings.
+const BOW_REST: BladePose = { blade: norm({ x: 0.2, y: 0.8, z: 0.55 }), handZ: 0.1 };
+const BOW_GUARD: BladePose = { blade: norm({ x: -0.85, y: 0.45, z: 0.25 }), handZ: REST_BLADE.handZ };
+
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
-  sword: { trail: trailOf, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
+  sword: { rest: REST_BLADE, trail: trailOf, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
+  bow: { rest: BOW_REST, trail: () => null, held: () => BOW_GUARD, windup: () => BOW_GUARD, stroke: () => BOW_GUARD },
 };
 
 /**
- * `blade`: from the guard up; `art`: painted on its faces, else plain `color`; `twoHanded`: a 3D model holds it with
- * its off hand too.
+ * `blade`: from the guard up, or a bow's stave, tip to tip; `art`: painted on its faces, else plain `color`;
+ * `twoHanded`: a 3D model holds it with its off hand too (a bow's on the string). `bow`: its string `braceM` behind the
+ * grip, pulled `drawM` further fully drawn.
  */
 export interface WeaponLook {
   blade: { lengthM: number; widthM: number; color: string };
   art: Art | null;
   twoHanded: boolean;
   hitStopMs: number;
+  bow?: BowLook;
 }
+export interface BowLook { braceM: number; drawM: number; string: string }
 
 // Lengths are the sword's own share: the sword is drawn 1 long.
 const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.length;
@@ -159,5 +169,9 @@ export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
   "kobold-greatsword": {
     blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.16, color: "#8f9196" }, art: SWORD, twoHanded: true,
     hitStopMs: 130,
+  },
+  "training-bow": {
+    blade: { lengthM: lengthOf("training-bow"), widthM: 0.04, color: "#9a7448" }, art: null, twoHanded: true,
+    hitStopMs: 40, bow: { braceM: 0.14, drawM: 0.3, string: "#e6dcc0" },
   },
 };

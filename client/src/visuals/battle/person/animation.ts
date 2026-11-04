@@ -5,6 +5,7 @@ import {
 } from "@infinite-tower/shared";
 import { reachArm } from "../arm.js";
 import { dropBlade, holdBlade, showCue, type HeldBlade } from "../blade.js";
+import { bowDrawOf, pullString } from "../bow.js";
 import type { ArenaScene } from "../scene.js";
 import { MOTIONS, WEAPON_LOOKS } from "../weapons.js";
 import { buildPerson, disposePerson, FILL_EMISSIVE, personBuild, type PersonBuild, type PersonModel } from "./model.js";
@@ -122,10 +123,12 @@ export function framePerson(
   p.yaw += wrapAngle(Math.atan2(facing.x, facing.z) - p.yaw) * dampFactor(YAW_RATE, shownDt);
   model.holder.rotation.y = p.yaw;
   const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw), d = stance.actionDir;
+  const held = weapon && WEAPON_LOOKS[weapon], drawing = bowDrawOf(world, e);
   const pose = personPose(stance, wielder, MOTIONS[weapon ? WEAPONS[weapon].kind : "sword"], {
     build, side, alive, dodge: { x: d.x * cos - d.z * sin, z: d.x * sin + d.z * cos },
     stagger, deadTime: p.deadTime,
     walk: { phase: p.gait, amp: Math.min(0.7, speed * 0.12) },
+    ...(held?.bow && drawing && { bow: { ...held.bow, drawn: drawing.drawn } }),
   });
 
   const { joints } = model, ease = (current: number, to: number) => damp(current, to, JOINT_RATE, shownDt);
@@ -144,7 +147,8 @@ export function framePerson(
   p.handAt ??= target.clone();
   Vector3.LerpToRef(p.handAt, target, snap, p.handAt);
   reachWith(joints, swordSide, p.handAt, p.bladeTurn, { x: side * 0.5, y: -0.8, z: -0.45 });
-  if (weapon && WEAPON_LOOKS[weapon].twoHanded && alive) {
+  if (p.blade?.bow) pullString(p.blade.bow, drawing?.drawn ?? 0, alive && (drawing?.nocked ?? false));
+  if (held && held.twoHanded && !held.bow && alive) {
     up.applyRotationQuaternionToRef(p.bladeTurn, bladeDir);
     p.handAt.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
     reachWith(joints, offSide, offTarget, p.bladeTurn, { x: -side * 0.5, y: -0.8, z: -0.45 });

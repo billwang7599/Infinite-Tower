@@ -141,6 +141,8 @@ export interface EnemyDef {
   stats: Stats;
   /** Its body is a ball this big. It shoves players aside however heavy it is; players never push it. */
   radius: number;
+  /** How tall it stands, for what flies at it (an arrow); the ball's height if not given. */
+  heightM?: number;
   /** At agility 10. */
   walkSpeed: number;
   turnRate: number;

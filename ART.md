@@ -130,7 +130,7 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | Piece of gear | Drawings |
 | --- | --- |
 | on the head (a helmet) | 6: portrait, chibi front, back and side, battle from behind and from the front (one for every pose); the same on every body |
-| held (a weapon) | none: the arena puts a 3D blade (`WEAPON_LOOKS`, painted with its art) at the frame's sword hand |
+| held (a weapon) | none: the arena puts a 3D blade (`WEAPON_LOOKS`, painted with its art), or a bow built in code, at the frame's sword hand |
 | rigid on the body (a pair of shoulder guards) | 6: a view each, for both shoulders, placed at each body type's landmark |
 | wrap-around top (a chest piece) | 150: 3 body types x 50 |
 | wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
@@ -138,12 +138,16 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, a wolf pelt and fang, a lurker scale, the
 old stick, the swords, the skillbook, each monster's essence (one bead, in six colours), a bog pearl, the sigils
 (one stone disc with a rune ring, glowing in its tier's colour), a canvas backpack, a wool cap, a leather belt, a
-copper ring, a braided bracelet and a feathered hat. Of what's worn, only the
+copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left) and a
+sheaf of three arrows (a placeholder pair, admin give only). Of what's worn, only the
 sword shows on the character, in the
 arena: a 3D blade at the hand that holds it (`visuals/battle/blade.ts`), so the arena's frames are painted without it.
 The blade's faces are `SWORD`'s blade drawn to the blade's length with square pixels, its dark outline shaded instead
 (`bladeArt`); the art lab draws the whole `SWORD`. In the left hand the body is the right-handed frame flipped (a swing
-uses its mirror image's), so it needs no drawings of its own.
+uses its mirror image's), so it needs no drawings of its own. A bow (`visuals/battle/bow.ts`) is built in code,
+no drawing: a curved tube of a stave in `WEAPON_LOOKS`' colour on the grip joint, a leather wrap, a pale string in
+two straight runs to its middle, and a nocked arrow there while it's drawn; an arrow in flight is boxes (a shaft
+thicker than life so it shows a pixel wide, a steel head, crossed white fletching), its head sunk in where it sticks.
 
 Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and
@@ -274,6 +278,9 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
   - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
     keyframe editor or an export to read; the swing's arm comes from the sword's motions, the arms bent to reach.
+    A bow is carried low at the side, top limb forward, and drawn side-on (the body turned, the head looking down the
+    arrow), the bow hand ahead at the shoulders and the string hand pulled back with the draw (`drawPose`). These are
+    placeholders, like the bow (AGENTS.md's "Bows, a prep").
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

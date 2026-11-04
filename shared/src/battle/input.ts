@@ -15,6 +15,8 @@ export interface PlayerInputData {
   /** Held this step. A different attack from the last step's is a new press of it. */
   jump: boolean;
   attack: Strike | null;
+  /** The light attack's key still down after its press: a bow draws while it is. */
+  attackHeld: boolean;
   dodge: boolean;
   way: SwingDir | null;
   block: boolean;
@@ -43,21 +45,21 @@ export interface StepInput extends PlayerInputData { step: number }
 export const MAX_INPUTS_PER_MESSAGE = 16;
 
 export const IDLE_INPUT: Readonly<PlayerInputData> = {
-  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, dodge: false, way: null, block: false,
-  cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false, gear: null,
-  use: null,
+  moveX: 0, moveZ: 0, aimX: 0, aimZ: 1, jump: false, attack: null, attackHeld: false, dodge: false, way: null,
+  block: false, cast: null, castHeld: false, chant: false, chantWords: null, write: null, locked: null, bag: false,
+  gear: null, use: null,
 };
 
 /** Only the input's own fields (not a StepInput's `step`), copied. */
 export const copyInput = (i: PlayerInputData): PlayerInputData => ({
-  moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack, dodge: i.dodge,
-  way: i.way, block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant,
+  moveX: i.moveX, moveZ: i.moveZ, aimX: i.aimX, aimZ: i.aimZ, jump: i.jump, attack: i.attack,
+  attackHeld: i.attackHeld, dodge: i.dodge, way: i.way, block: i.block, cast: i.cast, castHeld: i.castHeld, chant: i.chant,
   chantWords: i.chantWords, write: i.write, locked: i.locked, bag: i.bag, gear: i.gear, use: i.use,
 });
 
 export const sameInput = (a: PlayerInputData, b: PlayerInputData): boolean =>
   a.moveX === b.moveX && a.moveZ === b.moveZ && a.aimX === b.aimX && a.aimZ === b.aimZ && a.jump === b.jump
-  && a.attack === b.attack && a.dodge === b.dodge && a.way === b.way && a.block === b.block
+  && a.attack === b.attack && a.attackHeld === b.attackHeld && a.dodge === b.dodge && a.way === b.way && a.block === b.block
   && a.cast === b.cast && a.castHeld === b.castHeld && a.chant === b.chant && a.chantWords === b.chantWords
   && a.write === b.write && a.locked === b.locked && a.bag === b.bag && a.gear === b.gear && a.use === b.use;
 

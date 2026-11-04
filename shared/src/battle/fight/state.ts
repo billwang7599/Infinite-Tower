@@ -5,9 +5,9 @@
 import type { ComponentType, Entity, World } from "../../core/ecs.js";
 import { roundTo, type Vec3 } from "../../core/math.js";
 import {
-  ActiveHit, Body, Enemy, Health, Player, Sidestep, SkillObject, Skilled, Stamina, Statuses, Wielder,
-  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkillObjectData, type SkilledData,
-  type StaminaData, type StatusData, type SwingData, type WielderData,
+  ActiveHit, Body, Enemy, Health, Player, Projectile, Sidestep, SkillObject, Skilled, Stamina, Statuses, Wielder,
+  type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type ProjectileData, type SkillObjectData,
+  type SkilledData, type StaminaData, type StatusData, type SwingData, type WielderData,
 } from "../components.js";
 import { copyInput, PlayerInput, type PlayerInputData } from "../input.js";
 import { FighterStats, type Stats } from "../stats.js";
@@ -57,6 +57,8 @@ interface ObjectSnapshot extends Omit<SkillObjectData, "caster" | "target" | "ig
   ignore: number;
 }
 
+interface ProjectileSnapshot extends Omit<ProjectileData, "shooter"> { shooter: number }
+
 export interface FightSnapshot {
   /** Steps run: the fight is as it was after this one. */
   steps: number;
@@ -66,6 +68,7 @@ export interface FightSnapshot {
   /** In the order the fight checks them. */
   hits: HitSnapshot[];
   skills: ObjectSnapshot[];
+  projectiles: ProjectileSnapshot[];
 }
 
 const copyStatuses = (s: StatusData): StatusData => ({ on: s.on.map((o) => ({ ...o })), cooldown: { ...s.cooldown } });
@@ -135,6 +138,9 @@ export function saveFight(fight: Fight): FightSnapshot {
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters.indexOf(caster),
       target: indexIn(fighters, target), ignore: indexIn(fighters, ignore),
     })),
+    projectiles: [...world.query(Projectile)].map(([, { shooter, pos, vel, ...o }]) => ({
+      ...o, pos: { ...pos }, vel: { ...vel }, shooter: fighters.indexOf(shooter),
+    })),
   };
 }
 
@@ -186,13 +192,16 @@ export function loadFight(fight: Fight, snap: FightSnapshot): void {
   for (const { by, alreadyHit, ...hit } of snap.hits) {
     world.add(fighters[by]!, ActiveHit, { ...hit, alreadyHit: new Set(alreadyHit.map((i) => fighters[i]!)) });
   }
-  for (const [e] of world.query(SkillObject)) world.destroy(e);
+  for (const type of [SkillObject, Projectile]) for (const [e] of world.query(type)) world.destroy(e);
   world.flush();
   for (const { caster, target, ignore, pos, dir, ...o } of snap.skills) {
     world.add(world.spawn(), SkillObject, {
       ...o, pos: { ...pos }, dir: { ...dir }, caster: fighters[caster]!, target: fighterAt(target),
       ignore: fighterAt(ignore),
     });
+  }
+  for (const { shooter, pos, vel, ...o } of snap.projectiles) {
+    world.add(world.spawn(), Projectile, { ...o, pos: { ...pos }, vel: { ...vel }, shooter: fighters[shooter]! });
   }
   Object.assign(fight.outcome, snap.outcome);
   fight.steps = snap.steps;

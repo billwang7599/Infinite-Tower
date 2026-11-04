@@ -1,11 +1,16 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import {
-  footprint, isWeapon, itemDef, WEAPONS, type BagItem, type ItemDef, type ItemEffect, type ItemId, type Rarity,
-  type WeaponId, type WornOn,
+  footprint, isWeapon, itemDef, MOVES, movesOf, WEAPONS, type BagItem, type ItemDef, type ItemEffect, type ItemId,
+  type Rarity, type WeaponId, type WeaponStyle, type WornOn,
 } from "@infinite-tower/shared";
 
-const WIELDED = "In a hand: light and heavy attacks, and a guard.";
+const WIELDED: Record<WeaponStyle, string> = {
+  melee: "In a hand: light and heavy attacks, and a guard.",
+  ranged: "In a hand: drawn and loosed, the longer drawn the harder it hits, and a guard. It shoots arrows from your bag.",
+};
 const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
+const AMMO = "Shot from a bow, one at a time, out of your bag.";
+const isAmmo = (item: ItemId) => Object.values(MOVES).some((moves) => moves.style === "ranged" && moves.ammo === item);
 const WORN_ON: Record<WornOn, string> = {
   hand: "in a hand", cap: "on your head", head: "on your head", body: "on your body", legs: "on your legs",
   boots: "on your feet", belt: "round your waist", back: "on your back", finger: "on a finger", wrist: "on a wrist",
@@ -53,8 +58,8 @@ function wornText({ wearable, pack }: ItemDef): string | null {
 }
 
 function wieldedText(item: WeaponId): string {
-  const need = WEAPONS[item].minStrength;
-  return need > 0 ? `${WIELDED} Needs ${need} strength.` : WIELDED;
+  const need = WEAPONS[item].minStrength, wielded = WIELDED[movesOf(WEAPONS[item]).style];
+  return need > 0 ? `${wielded} Needs ${need} strength.` : wielded;
 }
 
 export function itemInfo(stack: BagItem): ItemInfo {
@@ -68,7 +73,7 @@ export function itemInfo(stack: BagItem): ItemInfo {
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`
-      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL
+      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL : isAmmo(stack.item) ? AMMO
       : HELD[stack.item] ?? wornText(def),
   };
 }

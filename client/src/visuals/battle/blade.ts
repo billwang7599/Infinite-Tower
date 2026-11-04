@@ -8,6 +8,7 @@ import { FIXED } from "../../gfx/look/palette.js";
 import { OUTLINE, outline, Pen, Pixels, SHADOW } from "../../gfx/look/pixels.js";
 import { BLADE_FROM, BLADE_HALF, POINT } from "../../gfx/look/sword.js";
 import { colorMaterial } from "../materials.js";
+import { buildBow, type HeldBow } from "./bow.js";
 import { keepSharp } from "./pixel.js";
 import type { ArenaScene } from "./scene.js";
 import { glintOf, WEAPON_LOOKS, type WeaponLook } from "./weapons.js";
@@ -198,6 +199,7 @@ export interface HeldBlade {
   at: { x: number; y: number } | null;
   yaw: number;
   cue: BladeCue;
+  bow: HeldBow | null;
 }
 
 export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapon: WeaponId, yaw: number): HeldBlade {
@@ -211,9 +213,12 @@ export function holdBlade(ctx: ArenaScene, e: Entity, node: TransformNode, weapo
     guard: colorMaterial(scene, "blade-guard", Color3.FromHexString("#b8913a")),
     steel: colorMaterial(scene, "blade-steel", steel, new Color3(0.3, 0.3, 0.3)),
   };
-  for (const mesh of buildBlade(scene, hand, look, materials)) ctx.sky.castShadows(mesh);
+  const bow = look.bow ? buildBow(scene, hand, { ...look, bow: look.bow }, materials.steel, materials.grip) : null;
+  if (bow) materials.steel.emissiveColor = materials.steel.diffuseColor.scale(STEEL_GLOW);
+  for (const mesh of bow?.meshes ?? buildBlade(scene, hand, look, materials)) ctx.sky.castShadows(mesh);
   return {
-    weapon, root, hand, materials: Object.values(materials), at: null, yaw, cue: cueBlade(scene, hand, look),
+    weapon, root, hand, materials: [...Object.values(materials), ...(bow?.materials ?? [])], at: null, yaw,
+    cue: cueBlade(scene, hand, look), bow: bow?.held ?? null,
   };
 }
 

@@ -60,6 +60,7 @@ const StepInputSchema = z.object({
   aimZ: z.number(),
   jump: z.boolean(),
   attack: z.enum(STRIKES).nullable(),
+  attackHeld: z.boolean(),
   dodge: z.boolean(),
   way: z.enum(SWING_DIRS).nullable(),
   block: z.boolean(),

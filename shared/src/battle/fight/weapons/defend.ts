@@ -1,5 +1,5 @@
 import type { Entity, World } from "../../../core/ecs.js";
-import type { Vec2 } from "../../../core/math.js";
+import type { Vec2, Vec3 } from "../../../core/math.js";
 import { FIXED_DT, toSteps } from "../../../core/time.js";
 import { guardRaiseTime, HYBRID } from "../../../weapons/hybrid.js";
 import { weaponIn } from "../../../weapons/weapons.js";
@@ -42,32 +42,42 @@ function blocksPerfectly(world: World, target: Entity): boolean {
   return (world.get(target, WeaponAttack)?.perfectBlockRead ?? false) && world.get(target, Enemy)?.state === "approach";
 }
 
+/** A projectile's hit: where it came from (for the guard's facing) and where it struck. */
+export interface Shot { from: Vec3; at: Vec3 }
+
 export function defend(
-  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity,
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null = null,
 ): boolean {
-  const from = world.require(attacker, Body).pos, at = world.require(target, Body).pos;
+  const from = shot?.from ?? world.require(attacker, Body).pos, at = world.require(target, Body).pos;
   if (!faces(at, facingOf(world, target), from, HYBRID.block.minDot)) return false;
   if (hit.attack !== null && blocksPerfectly(world, target)) {
-    blockedPerfectly(world, events, attacker, target);
+    blockedPerfectly(world, events, attacker, target, shot);
     return true;
   }
   if (!blocking(world, target)) return false;
-  blocked(world, events, attacker, hit, target);
+  blocked(world, events, attacker, hit, target, shot);
   return true;
 }
 
-function blockedPerfectly(world: World, events: FightEvent[], attacker: Entity, target: Entity): void {
+// A shooter far off doesn't recoil from a perfect block.
+function blockedPerfectly(
+  world: World, events: FightEvent[], attacker: Entity, target: Entity, shot: Shot | null,
+): void {
   const player = world.get(target, Player), attack = world.get(target, WeaponAttack);
   if (player) player.perfectBlockLeft = 0;
   if (attack) Object.assign(attack, { perfectBlockRead: false, riposte: true });
-  const wielder = world.get(attacker, Wielder), stamina = world.get(attacker, Stamina);
-  if (wielder) endChain(wielder);
-  if (stamina) spend(stamina, HYBRID.block.perfectDrain);
-  stagger(world, attacker, HYBRID.block.perfectRecoilTime);
-  events.push({ type: "block", by: attacker, target, perfect: true });
+  if (!shot) {
+    const wielder = world.get(attacker, Wielder), stamina = world.get(attacker, Stamina);
+    if (wielder) endChain(wielder);
+    if (stamina) spend(stamina, HYBRID.block.perfectDrain);
+    stagger(world, attacker, HYBRID.block.perfectRecoilTime);
+  }
+  events.push({ type: "block", by: attacker, target, perfect: true, ...(shot && { at: shot.at }) });
 }
 
-function blocked(world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity): void {
+function blocked(
+  world: World, events: FightEvent[], attacker: Entity, hit: ActiveHitData, target: Entity, shot: Shot | null,
+): void {
   const block = HYBRID.block, damage = hit.damage * modsOf(world, attacker).damageDealtFactor;
   let broken: boolean;
   if (world.has(target, Player)) {
@@ -86,8 +96,8 @@ function blocked(world: World, events: FightEvent[], attacker: Entity, hit: Acti
     knock(body.pos, from, body.vel, hit.knockback * block.pushbackFactor, 0, { x: hit.dirX, z: hit.dirZ });
   } else {
     hurt(world, target, damage * block.chipFraction, "physical");
-    endSwing(world, attacker);
+    if (!shot) endSwing(world, attacker);
   }
   if (broken && world.has(target, Player)) stagger(world, target, block.brokenTime);
-  events.push({ type: "block", by: attacker, target, broken });
+  events.push({ type: "block", by: attacker, target, broken, ...(shot && { at: shot.at }) });
 }
