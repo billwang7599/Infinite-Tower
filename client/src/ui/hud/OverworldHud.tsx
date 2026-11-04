@@ -31,7 +31,7 @@ export function OverworldHud() {
   });
   return (
     <Hud
-      id="overworld-hud" mode={OVERWORLD} aboveBars={<Name />} belowBars={<Wins />} beforePing={<RegionName />}
+      id="overworld-hud" mode={OVERWORLD} aboveBars={<Name />} beforePing={<RegionName />}
       afterPing={
         <>
           <HudButton id="inventory-button" label="Inventory" onClick={() => ui.togglePanel("inventory")}>
@@ -58,15 +58,6 @@ export function OverworldHud() {
 function Name() {
   const name = useStore(useGame().ui.you, (s) => s.character?.name);
   return name ? <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div> : null;
-}
-
-function Wins() {
-  const wins = useStore(useGame().ui.you, (s) => s.wins);
-  return (
-    <div id="overworld-wins" className="text-[13px] font-normal">
-      Foes defeated: <span className="font-semibold text-victory">{wins}</span>
-    </div>
-  );
 }
 
 const CHALLENGE_TOP_PX = 96;

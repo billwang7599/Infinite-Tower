@@ -163,7 +163,7 @@ What's built so far:
   drops what you wear with the rest. Without a weapon in hand you can't attack or block; without the skillbook you can't
   quick-cast. Worn things count toward the weight. A heavier weapon swings slower and costs more stamina, less so the
   stronger you are, and too heavy for your strength it can't be wielded.
-- **HUD:** HP and stamina bars, your portrait (turned over, your core), foes beaten, the region's name, the ping, and
+- **HUD:** HP and stamina bars, your portrait (turned over, your core), the region's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the
   top shows which way the camera faces. Small notices (loot, a full bag, dying, resting, eating, a breakthrough, quests)
   stack in the bottom-right corner and fade; only a fight starting gets the big banner in the middle.

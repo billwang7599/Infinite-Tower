@@ -156,7 +156,7 @@ main.ts
   (`modes/overworld/`, mode `"overworld"`) and the fight (`modes/battle/`, mode `"battle"`). Overworld mirrors
   (`OverworldPos`, `OverworldActor`) live in the game's world; only the active mode updates. The fighters live in the
   fight's own world (below), made on encounter and dropped when you return. The fight's result comes while you're
-  still in the arena; the overworld applies its gear, core, vitals and wins to your save (`ui.you`) at once, and
+  still in the arena; the overworld applies its gear, core and vitals to your save (`ui.you`) at once, and
   game.ts holds it for where you come back and what you're told as you do.
 - **Drawing has one owner: `client/src/visuals/`.** It owns the engine, both Babylon scenes and everything in them
   (meshes, sprites and their painted frames, animation, the camera, effects). The modes do game logic only and import
@@ -1415,7 +1415,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        screen (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as
                        a game runs without a character, under the title)
       state.ts         UiState: the stores the game writes (title, screen, `you` (your save: character, core, faith,
-                       gear, using, wins; the overworld writes it), overworld HUD, battle HUD, ping, skills:
+                       gear, using; the overworld writes it), overworld HUD, battle HUD, ping, skills:
                        the known words and the book's pages; bars are `...Fraction`, 0..1), `notifications`
                        (notifications/), `settingsScreen`, `creation`, `panel` (which side panel is open, the bag
                        or the character panel, in either mode, and its width on screen), `chant`, `leaveArena`,
@@ -1446,7 +1446,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        the character panel and the bag with the skillbook over it. A mode passes a `HudMode`: its
                        store, `panels` (the side panels it has: moving one between modes is editing that list),
                        `useBag` (what its bag shows) and `bagOpens`, plus its own pieces as children and slots),
-                       OverworldHud.tsx (the overworld's mode and extras: your name and wins, region name, the
+                       OverworldHud.tsx (the overworld's mode and extras: your name, region name, the
                        buttons, the compass, the challenge key and a challenge's Accept / Decline notice; its bag is
                        your save's, with the cloth and the shop), StatusRow.tsx (status tiles: an
                        icon, a dark sweep for the time gone, seconds left, stacks; gold for a buff, red for a debuff;

@@ -44,13 +44,12 @@ interface HudProps {
   id: string;
   mode: HudMode;
   aboveBars?: ReactNode;
-  belowBars?: ReactNode;
   beforePing?: ReactNode;
   afterPing?: ReactNode;
   children?: ReactNode;
 }
 
-export function Hud({ id, mode, aboveBars, belowBars, beforePing, afterPing, children }: HudProps) {
+export function Hud({ id, mode, aboveBars, beforePing, afterPing, children }: HudProps) {
   const { ui, input, actions } = useGame();
   const hud = mode.hud(ui);
   const open = useStore(ui.panel, (s) => s.open);
@@ -68,7 +67,6 @@ export function Hud({ id, mode, aboveBars, belowBars, beforePing, afterPing, chi
       <div className="absolute top-3 left-4">
         {aboveBars}
         <Vitals hud={hud} />
-        {belowBars}
       </div>
       <div className="absolute top-3 right-4 flex items-center gap-3">
         {beforePing}
