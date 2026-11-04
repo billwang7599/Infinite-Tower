@@ -1633,8 +1633,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          impact
         pixel.ts         The arena's pixel-art render, on by default (DEFAULT_PIXEL_SCALE, outlined); in dev the URL
                          changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands]): pixelFlags,
-                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes; also
-                         the 3D person's flags (&player3d=0 for the sprite, &steps=<fps>)
+                         pixelScale (the engine's hardware scaling in a fight), the outline and palette passes (what
+                         keepSharp marks, the blades, glints and trails, stays out of the outline); also the 3D
+                         person's flags (&player3d=0 for the sprite, &steps=<fps>)
         person/          The arena's people as 3D models (the sprite only with &player3d=0): model.ts (personBuild: a
                          look's colours and the sprite's proportions in metres, tested; buildPerson from primitives,
                          casting real shadows), pose.ts (personPose: pose to pose, each key eased into over
@@ -1658,10 +1659,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          trail (in an Imbue's colour); a leaving player's sprite in a blended copy of its frame, to
                          fade; personEnemyVisual, the same drawing for an NPC fought as an enemy (its stance from its
                          state); unless &player3d=0, every one of them (you, a duel's rival, Bram) a 3D person (person/)
-        slash.ts         A swing's crescent trail across the swinger's view (buildSlash, placeSlash from the motion's
-                         TrailPose): every player's and the Kobolds'
-        blade.ts         The 3D sword: buildBlade (grip, guard and blade along a hand's +y, from WEAPON_LOOKS: the
-                         Kobolds' and every player's); its tip's glint just before it goes live (cueBlade, showCue
+        slash.ts         A swing's trail: a ribbon between where its blade's guard and tip were over the last
+                         TRAIL_TIME, fading (buildSlash, placeSlash while the motion's trail shows; sampleTrail,
+                         trailAlpha tested): every player's and the Kobolds'
+        blade.ts         The 3D sword: buildBlade (grip, guard and a slab in the blade's outline along a hand's +y,
+                         from WEAPON_LOOKS, its art painted on both faces by bladeArt, its edges in the steel's light
+                         tone: the Kobolds' and every player's); bladeEdge (where it runs in the world, for the
+                         trail); its tip's glint just before it goes live (cueBlade, showCue
                          by glintOf); a flat sprite's held blade (holdBlade, placeBlade: at the
                          sprite's hand on its plane, turned the way the player faces, eased but for mid-swing)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it
@@ -1676,11 +1680,11 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         weapons.ts       Any wielder's weapon, from its swing: wayCut (a swing's line across the screen, along its way;
                          a stab's straight ahead),
                          strokeOf (where its blade is on a step), the frame (wind-up, live, follow-through);
-                         MOTIONS, by weapon kind: the trail's line, a 3D blade held aimed and its way through a
+                         MOTIONS, by weapon kind: when the trail shows, a 3D blade held aimed and its way through a
                          wind-up and a swing, from a cut at any angle; the draw-back before it drives (DRAWBACK,
                          pullOf, drawnBack) and the blade at rest and reeling (every wielder's: the
-                         Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade and its hit-stop. No
-                         Babylon: tested
+                         Kobolds' and the players'); WEAPON_LOOKS, by weapon: its 3D blade (size, colour, art) and
+                         its hit-stop. No Babylon: tested
         skills.ts        The skills' effects, built in code, pooled: the kit (bursts: Nova, Self, Imbue's cast, a
                          Bolt's impact, the reactions, Earth's shards, a clash's sparks, a perfect block's, a broken guard's
                          flash), the chant's and wind-up's
@@ -1996,7 +2000,8 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | The aim ring (wedge size, radius, height, the stab's mark) | top of `client/src/visuals/battle/aimRing.ts` |
-| How fast a player's 3D blade turns and follows the sprite's hand, how much it glows; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
+| How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
+| How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |
 | Hit-stop by weapon; the hit's jolt and a blocked blade's bounce; a perfect block's hold and bounce, a broken guard's jolt | `hitStopMs` in `WEAPON_LOOKS` (`client/src/visuals/battle/weapons.ts`); top of `client/src/visuals/battle/impact.ts` |

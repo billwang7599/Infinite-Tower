@@ -7,13 +7,13 @@ import { blocking } from "@infinite-tower/shared/fight";
 import { VIEWS, type BattleFacing } from "../../gfx/look/art.js";
 import type { Blobs } from "../sky/blobs.js";
 import { fighter } from "./battle.js";
-import { dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
+import { bladeEdge, dropBlade, holdBlade, placeBlade, showCue, type HeldBlade } from "./blade.js";
 import { facingSeen, playerBlade, SPRITE_SIZE, spritePose, STAGGERED } from "./pose.js";
 import type { ArenaScene } from "./scene.js";
 import { dropPerson, framePerson, newPerson, type PersonDrawing } from "./person/animation.js";
 import { lookOf } from "./skillLooks.js";
 import { buildSlash, placeSlash, type Slash } from "./slash.js";
-import { MOTIONS } from "./weapons.js";
+import { MOTIONS, WEAPON_LOOKS } from "./weapons.js";
 
 /** The blob shadow looks this far down for the floor. */
 const SHADOW_REACH = 30;
@@ -107,20 +107,22 @@ function fadingCopy(sprite: PlayerSprite, picture: StandardMaterial): StandardMa
 function dispose(sprite: PlayerSprite): void {
   sprite.shadows.dispose();
   sprite.fading?.dispose();
-  sprite.slash.root.dispose();
+  sprite.slash.mesh.dispose();
   dropBlade(sprite.blade);
   if (sprite.person) dropPerson(sprite.person);
 }
 
 function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player: Stance): void {
   const { ctx } = sprite, health = world.require(e, Health), { swing, hands } = world.require(e, Wielder);
-  const weapon = weaponItemIn(hands), motion = weapon && MOTIONS[WEAPONS[weapon].kind], p = sprite.node.position;
+  const weapon = weaponItemIn(hands), motion = weapon && MOTIONS[WEAPONS[weapon].kind];
   sprite.staggerTime = STAGGERED.includes(player.action) ? Math.max(sprite.staggerTime, health.hitstun) : 0;
   const stagger = { left: health.hitstun, of: sprite.staggerTime };
   if (sprite.person) framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
   else drawSprite(sprite, world, e, dt, player, stagger);
 
-  placeSlash(sprite.slash, motion?.trail(swing) ?? null, { x: p.x, y: p.y + 0.35, z: p.z }, player.actionDir);
+  const blade = sprite.person?.blade ?? sprite.blade;
+  const edge = blade?.root.isEnabled() ? bladeEdge(blade.hand, WEAPON_LOOKS[blade.weapon]) : null;
+  placeSlash(sprite.slash, motion?.trail(swing) ?? null, edge, dt);
 
   let imbued = null;
   for (const [, o] of world.query(SkillObject)) {

@@ -2,11 +2,12 @@ import {
   clamp, FIXED_DT, isSwing, mirrorWay, SCREEN_DIR, WEAPONS, type SwingData, type Vec3, type Way, type WeaponId,
   type WeaponKind,
 } from "@infinite-tower/shared";
+import type { Art } from "../../gfx/look/art.js";
+import { SWORD } from "../../gfx/look/sword.js";
 
 const LIVE_FRAME_TURN = 0.25;
 const FOLLOW_FRAME_TURN = 0.75;
 const TRAIL_FROM_TURN = 0.2;
-const TRAIL_GROW_TURN = 0.45;
 
 export interface Cut { x: number; y: number }
 
@@ -35,32 +36,11 @@ export function swingFrame(swing: SwingData): 0 | 1 | 2 {
   return turn < LIVE_FRAME_TURN ? 0 : turn < FOLLOW_FRAME_TURN ? 1 : 2;
 }
 
-export interface TrailPose {
-  /** The cut's line on screen, turned from flat (across): positive tips its right end up. */
-  rollRad: number;
-  /** The end of the line it grows from: 1 its right end, -1 its left. */
-  from: 1 | -1;
-  /** How far it has grown toward the other end, 0..1. */
-  reach: number;
-  visibility: number;
-}
-
-function trailLine({ x, y }: Cut): { rollRad: number; from: 1 | -1 } {
-  const angle = Math.atan2(y, x);
-  // Fold the angle into (-90°, 90°]: the line's right end; a cut going leftward starts from that end.
-  if (angle > Math.PI / 2 + 1e-9) return { rollRad: angle - Math.PI, from: 1 };
-  if (angle <= -Math.PI / 2 + 1e-9) return { rollRad: angle + Math.PI, from: 1 };
-  return { rollRad: angle, from: -1 };
-}
-
-function trailPose(swing: SwingData | null): TrailPose | null {
+/** The trail left behind the blade, 0..1, fading over the follow-through; null when there's none. */
+function trailOf(swing: SwingData | null): number | null {
   if (!swing || swing.way === "stab") return null;
   const { turn, follow } = strokeOf(swing);
-  if (turn < TRAIL_FROM_TURN || follow >= 1) return null;
-  return {
-    ...trailLine(wayCut(swing.way)), reach: Math.min(1, (turn - TRAIL_FROM_TURN) / TRAIL_GROW_TURN),
-    visibility: 1 - follow * follow,
-  };
+  return turn < TRAIL_FROM_TURN || follow >= 1 ? null : 1 - follow * follow;
 }
 
 const norm = ({ x, y, z }: Vec3): Vec3 => {
@@ -135,19 +115,23 @@ export function glintOf(swing: SwingData | null): number {
 }
 
 export interface WeaponMotion {
-  trail(swing: SwingData | null): TrailPose | null;
+  trail(swing: SwingData | null): number | null;
   held(cut: Cut): BladePose;
   windup(cut: Cut, k: number, from: BladePose): BladePose;
   stroke(cut: Cut, turn: number): BladePose;
 }
 
 export const MOTIONS: Record<WeaponKind, WeaponMotion> = {
-  sword: { trail: trailPose, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
+  sword: { trail: trailOf, held: heldBlade, windup: windupBlade, stroke: strokeBlade },
 };
 
-/** `blade`: from the guard up; `twoHanded`: a 3D model holds it with its off hand too. */
+/**
+ * `blade`: from the guard up; `art`: painted on its faces, else plain `color`; `twoHanded`: a 3D model holds it with
+ * its off hand too.
+ */
 export interface WeaponLook {
   blade: { lengthM: number; widthM: number; color: string };
+  art: Art | null;
   twoHanded: boolean;
   hitStopMs: number;
 }
@@ -157,18 +141,23 @@ const lengthOf = (id: WeaponId): number => WEAPONS[id].length / WEAPONS.sword.le
 
 export const WEAPON_LOOKS: Record<WeaponId, WeaponLook> = {
   "old-stick": {
-    blade: { lengthM: lengthOf("old-stick"), widthM: 0.06, color: "#7a5a3a" }, twoHanded: false, hitStopMs: 50,
+    blade: { lengthM: lengthOf("old-stick"), widthM: 0.07, color: "#7a5a3a" }, art: null, twoHanded: false,
+    hitStopMs: 50,
   },
-  sword: { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
-  "kobold-blade": { blade: { lengthM: 1, widthM: 0.07, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 60 },
+  sword: { blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false, hitStopMs: 60 },
+  "kobold-blade": {
+    blade: { lengthM: 1, widthM: 0.1, color: "#c9d1d8" }, art: SWORD, twoHanded: false, hitStopMs: 60,
+  },
   longsword: {
-    blade: { lengthM: lengthOf("longsword"), widthM: 0.075, color: "#c9d1d8" }, twoHanded: false, hitStopMs: 90,
+    blade: { lengthM: lengthOf("longsword"), widthM: 0.105, color: "#c9d1d8" }, art: SWORD, twoHanded: false,
+    hitStopMs: 90,
   },
   greatsword: {
-    blade: { lengthM: lengthOf("greatsword"), widthM: 0.12, color: "#b4bcc4" }, twoHanded: true, hitStopMs: 130,
+    blade: { lengthM: lengthOf("greatsword"), widthM: 0.15, color: "#b4bcc4" }, art: SWORD, twoHanded: true,
+    hitStopMs: 130,
   },
   "kobold-greatsword": {
-    blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.13, color: "#8f9196" }, twoHanded: true,
+    blade: { lengthM: lengthOf("kobold-greatsword"), widthM: 0.16, color: "#8f9196" }, art: SWORD, twoHanded: true,
     hitStopMs: 130,
   },
 };
