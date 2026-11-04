@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { isSolid, tileAt, TILES } from "@infinite-tower/shared";
 import { GRASS_FIELD_TILES } from "../../../src/visuals/regions/grass-field/tiles.js";
-import { tileProps } from "../../../src/visuals/regions/tiles.js";
+import { groundKind, tileProps } from "../../../src/visuals/regions/tiles.js";
 import { isTall } from "../../../src/visuals/overworld/scenery.js";
 import { testMap } from "../../fixtures/map.js";
 
@@ -43,5 +43,14 @@ describe("tileProps", () => {
 
   test("every tile kind has a look", () => {
     for (const kind of Object.keys(TILES)) assert.ok(kind in GRASS_FIELD_TILES, kind);
+  });
+});
+
+describe("groundKind", () => {
+  test("a lamp's tile is painted as the street round it, not a patch of its own", () => {
+    const street = testMap([",,,", ",L,", ";,;"], "kingdom");
+    assert.equal(tileAt(street, 0, 0), "lamp");
+    assert.equal(groundKind(street, -0.5, -0.5), "paving");
+    assert.equal(groundKind(street, -1.5, -1.5), "cobbles");
   });
 });

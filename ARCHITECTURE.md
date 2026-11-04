@@ -1770,9 +1770,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
         scene.ts         OverworldScene: perspective camera (CAMERA: its field of view and distance), its sky,
-                         bloom, colour grade, vignette and the tilt-shift blur with the sun's haze (GLSL: HAZE, warm
-                         toward the sun over the far ground, the distance guessed from the camera's height); the
-                         sprite materials (a pile's
+                         bloom, colour grade, vignette and the tilt-shift blur (the sun's haze is the dome's,
+                         sky/dome.ts, so it never tints near walls); the sprite materials (a pile's
                          sack among them, drawPile, a trace's bedroll, the arena's too); standingQuad
         walker.ts        WALKERS (chibi, other players', NPCs', enemy, pile and trace billboards: glide, hop,
                          facing, the sky's tint and blob shadows, "!", another player's or an NPC's own chibi and
@@ -1795,13 +1794,16 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         scenery.ts       Scenery's shapes (ledges, props) and chunkScenery, what stands in a chunk from the tiles round
                          it so neighbours agree: castle walls (taller where thick: the bulk; a lone one a column),
                          the houses, fountains and statues' plinths (town.ts), the stalls (a counter ledge with an
-                         awning, the forge a hearth ledge) with their goods on top, lamps and statues as props, the
+                         awning, the forge a hearth ledge) with their goods on top, lamp posts and gate arches as
+                         ledges, statues as props, the
                          cut stone as terraces stepping up toward the quarry's edge and on past it (TERRACE), the
                          Castle Ward's keep (KEEP) and the training yard's dummies; groundY, isTall, hidesWalker; no
                          Babylon: tested
         town.ts          The town's layout rules, no Babylon: houseLedges (a block of house tiles cut into houses,
                          LOT_TILES, each a House picked by its corner: walls, roof, ridge, height, the door on the
-                         side facing the street, chimney, sign, flowers, lantern; one tile thick, a roofless wall),
+                         side facing the street, chimney, sign, flowers, lantern; one tile thick, a roofless wall;
+                         the castle's CASTLE_HALLS, the barracks and kitchen, whole with their own looks),
+                         gateMouths (each mouth of a way through castle wall, GATE),
                          wholeRuns (a fountain or plinth whole), each built by the chunk holding its middle so
                          one cut by a chunk's edge isn't built twice; crenelsOf (a castle wall's edge tiles facing
                          the open air, not a hall); tileBlocks (runs of tiles merged into rectangles); tested
@@ -1810,7 +1812,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          houses (plinth, walls, gables, a roof slab with eaves, fascia and ridge, chimney, door
                          with frame, step and hood, windows with lintel, sill, shutters and flower boxes, sign,
                          lantern), castle walls (plinth, string course, crenellated parapet, banners, arrow
-                         slits), hall columns, statue plinths and the tiered fountain (its water a mesh of its own)
+                         slits), hall columns, statue plinths, the tiered fountain (its water a mesh of its own),
+                         lamp posts, gate arches and the barracks' and kitchen's extras; SHADE_FILL, the faces'
+                         fill in shade
         terrainArt.ts    terrainArt: what every chunk shares, made once: the ledges' materials, the town's buildings
                          (buildings.ts), the water's by region
                          theme, the campfire's frames, and each prop's mesh that a chunk's thin instances copy
@@ -1826,7 +1830,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          coals, built in 3D over each run of stall tiles so they look whole from every side
         props.ts         The pixel-art props (trees, pines, bushes, rocks, ruins, grass, flowers, the stalls' goods
                          and the forge's flames, the yard's dummies, the quarry's rubble, chips, scrub, carts, cranes
-                         and plank hut walls, Highmere's bronze statue and lamp posts), drawn standing up;
+                         and plank hut walls, Highmere's bronze statue), drawn standing up;
                          Pen (a 2D canvas pen). No Babylon, so the art lab draws them too
       regions/         Each region theme's look, a folder per Theme. index.ts (REGION_LOOKS: its env (daylight
                        colours and fog, and its moon, which lights its fights too), tile looks and WaterLook; lookAt
@@ -2131,7 +2135,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
 | The time of day's light: colours by sun height (the sky overhead, the sun's glow, a low sun's brightness), fades | top of `client/src/visuals/sky/daylight.ts` |
 | Map-light shadows, sprite tint, sun and moon discs, the shadow side's fill light | top of `client/src/visuals/sky/sky.ts` (`FILL`) |
-| The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts`, `RAYS` in `client/src/visuals/sky/rays.ts`; `HAZE` and `postProcess` in `client/src/visuals/overworld/scene.ts` |
+| The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts` (the haze too), `RAYS` in `client/src/visuals/sky/rays.ts`; `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | Arena camera feel, locked and not | `CAMERA` (unlocked) and `LOCKED_VIEWS` (shoulder, close, first person) at the top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |

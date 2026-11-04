@@ -42,7 +42,7 @@ What's built so far:
   one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
-  warm haze glows toward a low sun). The
+  warm haze glows on the sky toward a low sun). The
   stream runs off the map; ponds and the marsh lie still, with a ring now and then at a random spot. Left and right turn
   the camera a quarter turn (walking follows it), up and down tilt it. Everyone shares the world: you see other players
   (their chibi and name, crossed swords while they fight), and an enemy someone touches is gone for everyone until it

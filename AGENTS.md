@@ -445,8 +445,8 @@ Decided by the user:
   1.7x at 4°) with a little less sky light, so evenings read golden. A sky dome, bluer overhead than at the horizon (the
   fog's colour, unchanged), with a halo round the sun strongest near the horizon and stars at night; the sun's disc a
   little bigger and blooming. The arena adds rays: each pixel lit by the sky it sees toward the sun (none with the sun
-  behind you or down). The overworld never sees the sky, so it gets a warm haze over the far ground, strongest toward
-  the sun, and a touch more bloom. No moon halo or moon rays.
+  behind you or down). The overworld's warm haze toward the sun is on the sky dome only, never on near walls, plus a
+  touch more bloom. No moon halo or moon rays. By day the sun and sky light are warm (never bluer than white).
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
   ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
   opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the
@@ -980,8 +980,13 @@ them; treat them as changeable, and still ask before deciding new ones):
   a hood and maybe a lantern or a hanging sign), framed windows (shutters on timber and plaster, flower boxes) and
   maybe a chimney; a run one tile thick (the tavern's walls) is a wall with no roof. New tiles: paving (`,`), and
   three solid ones, a fountain (`U`, one built fountain per run), a statue (`S`, a bronze king on a plinth) and a
-  lamp (`L`, a lamp post). Nobody's position is saved (only the pad), so nothing needed moving: a player bound to
-  Highmere wakes on the new platform.
+  lamp (`L`, a 3D iron lamp post, its tile painted as the street round it). Nobody's position is saved (only the
+  pad), so nothing needed moving: a player bound to Highmere wakes on the new platform. Fixes after (the agent's picks,
+  headless browser only): building faces in shade keep a fill of their own colour (`SHADE_FILL`, × the sky's
+  ambient); a ledge under half the walker's height (the fountain's rim) never turns see-through; each mouth of a way
+  through castle wall (at most 8 tiles wide, 2 or more deep) gets a gate arch (piers, banners, lanterns, a raised
+  portcullis); the barracks and the kitchen (`CASTLE_HALLS`) are one building each, the barracks stone and slate with
+  buttresses, banners and a weapon rack, the kitchen brick with two big chimneys, a bread oven, firewood and barrels.
 - Money and shops (kingdom PR 2; the user: "use your best discretion"; tried in a headless browser, not hand-played).
   Numbers in `server/src/core/content/shops.ts` and `shared/src/items/coins.ts`, the formulas in FORMULAS.md:
   - Coins are 1 x 1, stacks of 100, weight 0.01 each (gold 0.02).

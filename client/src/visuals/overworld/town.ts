@@ -16,7 +16,20 @@ export interface House {
   sign: number | null;
   flowers: boolean;
   lantern: boolean;
+  use: HallUse | null;
 }
+
+export type HallUse = "barracks" | "kitchen";
+
+// Corners from the Castle Ward's middle.
+export const CASTLE_HALLS: readonly { use: HallUse; x: number; z: number; w: number; h: number }[] = [
+  { use: "barracks", x: -38, z: 17, w: 13, h: 7 },
+  { use: "kitchen", x: 24, z: -6, w: 6, h: 5 },
+];
+const HALL_LOOK: Record<HallUse, { walls: WallKind; roof: RoofKind; wallY: number }> = {
+  barracks: { walls: "stone", roof: "slate", wallY: 3.5 },
+  kitchen: { walls: "brick", roof: "brown", wallY: 2.7 },
+};
 
 /** Frontage of one house along its block, and the most it runs back before the block is cut again. */
 export const LOT_TILES = { min: 3, max: 5, deep: 6 };
@@ -34,7 +47,50 @@ const key = (x: number, z: number) => `${x},${z}`;
 
 /** Each house whose middle lies in the chunk, whole even where it reaches into the next. */
 export function houseLedges(map: WorldMap, chunk: Rect): Ledge[] {
-  return blocksTouching(map, chunk, "house").flatMap(lotsOf).filter((lot) => middleIn(lot, chunk)).map((lot) => houseOn(map, lot));
+  const castle = map.regions.find((r) => r.id === "kingdom")?.area;
+  const hallOf = (r: Rect) => castle && CASTLE_HALLS.find((h) =>
+    h.x + castle.x + castle.w / 2 === r.x && h.z + castle.z + castle.h / 2 === r.z && h.w === r.w && h.h === r.h);
+  return blocksTouching(map, chunk, "house").flatMap((block): { rect: Rect; use: HallUse | null }[] => {
+    const hall = hallOf(boundsOf(block));
+    return hall ? [{ rect: boundsOf(block), use: hall.use }] : lotsOf(block).map((rect) => ({ rect, use: null }));
+  }).filter(({ rect }) => middleIn(rect, chunk)).map(({ rect, use }) => houseOn(map, rect, use));
+}
+
+const GATE = { maxTiles: 8, overWallY: 1.4 };
+
+export function gateMouths(map: WorldMap, chunk: Rect, wallY: (x: number, z: number) => number): Ledge[] {
+  const wall = (x: number, z: number) => tileAt(map, x + 0.5, z + 0.5) === "castleWall";
+  const open = (x: number, z: number) => tileAt(map, x + 0.5, z + 0.5) !== null && !isSolid(map, x + 0.5, z + 0.5);
+  const out = new Map<string, Ledge>();
+  const add = (rect: Rect, flankY: number) => {
+    if (middleIn(rect, chunk)) out.set(`${rect.x},${rect.z},${rect.w},${rect.h}`, { rect, topY: flankY + GATE.overWallY, look: "gate" });
+  };
+  const reach = GATE.maxTiles + 1;
+  for (const alongX of [true, false]) {
+    const [a0, a1, b0, b1] = alongX
+      ? [chunk.x - reach, chunk.x + chunk.w + reach, chunk.z - 1, chunk.z + chunk.h + 1]
+      : [chunk.z - reach, chunk.z + chunk.h + reach, chunk.x - 1, chunk.x + chunk.w + 1];
+    const at = (a: number, b: number): [number, number] => (alongX ? [a, b] : [b, a]);
+    const passage = (b: number, from: number, to: number) =>
+      wall(...at(from - 1, b)) && wall(...at(to, b)) && Array.from({ length: to - from }, (_, i) => from + i).every((a) => open(...at(a, b)));
+    for (let b = b0; b <= b1; b++) {
+      for (let a = a0; a < a1; a++) {
+        if (!wall(...at(a, b)) || !open(...at(a + 1, b))) continue;
+        let end = a + 1;
+        while (end < a1 && open(...at(end, b))) end++;
+        const from = a + 1, width = end - from;
+        if (width > GATE.maxTiles || !passage(b, from, end)) continue;
+        for (const side of [-1, 1]) {
+          if (passage(b + side, from, end)) continue;
+          if (!passage(b - side, from, end) || !open(...at(from - 1, b + side)) || !open(...at(end, b + side))) continue;
+          const [x, z] = at(from, b);
+          add(alongX ? { x, z, w: width, h: 1 } : { x, z, w: 1, h: width }, wallY(...at(from - 1, b)));
+        }
+        a = end - 1;
+      }
+    }
+  }
+  return [...out.values()];
 }
 
 export function wholeRuns(map: WorldMap, chunk: Rect, kind: TileKind): Rect[] {
@@ -116,9 +172,10 @@ function cut(rect: Rect): Rect[] {
   return lots;
 }
 
-function houseOn(map: WorldMap, rect: Rect): Ledge {
+function houseOn(map: WorldMap, rect: Rect, use: HallUse | null): Ledge {
   const rand = seededRandom(rect.x * 7919 + rect.z * 104729 + 23), pick = <T>(of: readonly T[]) => of[Math.floor(rand() * of.length)]!;
-  const walls = pick(WALLS), roof = pick(ROOFS), wallY = pick(WALL_Y);
+  const look = use ? HALL_LOOK[use] : { walls: pick(WALLS), roof: pick(ROOFS), wallY: pick(WALL_Y) };
+  const { walls, roof, wallY } = look;
   const open = (side: Side) => sideOut(rect, side).filter(([x, z]) => !isSolid(map, x + 0.5, z + 0.5)).length;
   const sides: Side[] = ["south", "north", "east", "west"];
   const best = sides.reduce((a, b) => (open(b) > open(a) ? b : a));
@@ -126,7 +183,10 @@ function houseOn(map: WorldMap, rect: Rect): Ledge {
   if (Math.min(rect.w, rect.h) === 1) {
     return {
       rect, topY: THIN_WALL_Y, look: "house",
-      house: { walls, roof: null, ridge: null, wallY: THIN_WALL_Y, door: null, chimney: false, sign: null, flowers: false, lantern: false },
+      house: {
+        walls, roof: null, ridge: null, wallY: THIN_WALL_Y, door: null, chimney: false, sign: null, flowers: false,
+        lantern: false, use: null,
+      },
     };
   }
   const ridge = rect.w === rect.h ? (rand() < 0.5 ? "x" : "z") : rect.w > rect.h ? "x" : "z";
@@ -134,8 +194,9 @@ function houseOn(map: WorldMap, rect: Rect): Ledge {
   return {
     rect, topY: wallY + rise, look: "house",
     house: {
-      walls, roof, ridge, wallY, door, chimney: rand() < 0.55,
-      sign: door && rand() < 0.3 ? Math.floor(rand() * SIGNS) : null, flowers: rand() < 0.6, lantern: rand() < 0.5,
+      walls, roof, ridge, wallY, door, chimney: use === "kitchen" || (!use && rand() < 0.55),
+      sign: door && !use && rand() < 0.3 ? Math.floor(rand() * SIGNS) : null, flowers: !use && rand() < 0.6,
+      lantern: use !== null || rand() < 0.5, use,
     },
   };
 }

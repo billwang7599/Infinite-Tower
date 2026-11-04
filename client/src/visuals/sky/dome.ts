@@ -17,7 +17,7 @@ void main(void) {
   gl_Position = (viewProjection * world * vec4(position, 1.0)).xyww;
 }`;
 
-// Below the horizon it's the fog's colour, so the far fogged ground meets it with no seam.
+// Below the horizon it's the fog's colour, so the far fogged ground meets it with no seam. The haze lives here alone.
 Effect.ShadersStore["skyDomeFragmentShader"] = `
 precision highp float;
 varying vec3 vDir;
@@ -36,7 +36,8 @@ void main(void) {
   float up = clamp(d.y, 0.0, 1.0);
   vec3 c = mix(horizon, zenith, sqrt(up));
   float s = max(dot(d, toSun), 0.0);
-  c += glow * (0.3 * s * s * s + 0.4 * pow(s, 64.0) + 0.8 * pow(s, 1500.0)) * smoothstep(0.0, 0.04, d.y);
+  float haze = (0.05 + 0.5 * s * s * s) * (1.0 - up) * (1.0 - up);
+  c += glow * (haze + 0.3 * s * s * s + 0.4 * pow(s, 64.0) + 0.8 * pow(s, 1500.0)) * smoothstep(0.0, 0.04, d.y);
   float star = step(0.9975, hash(floor(d * 220.0))) * hash(floor(d * 220.0) + 7.0);
   c += vec3(0.9, 0.95, 1.1) * star * night * smoothstep(0.05, 0.3, d.y);
   gl_FragColor = vec4(c, 1.0);

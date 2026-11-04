@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { isSolid, tileAt, type Rect, type TileKind } from "@infinite-tower/shared";
 import { chunkScenery, groundY, hidesWalker, type Ledge } from "../../../src/visuals/overworld/scenery.js";
-import { crenelsOf, LOT_TILES, type Side } from "../../../src/visuals/overworld/town.js";
+import { CASTLE_HALLS, crenelsOf, LOT_TILES, type Side } from "../../../src/visuals/overworld/town.js";
 import { testMap } from "../../fixtures/map.js";
 
 const TOWN = testMap([
@@ -164,7 +164,15 @@ describe("Highmere's buildings", () => {
     assert.equal(under(ledges, column!.x, column!.z)[0]?.look, "column");
   });
 
-  test("the fountain's tiles are one fountain, a statue stands on its plinth and a lamp on its tile", () => {
+  test("a lamp is a post built on its own tile, its foot on the ground, never a picture", () => {
+    const lamps = ledges.filter((l) => l.look === "lamp");
+    assert.deepEqual(lamps.map((l) => l.rect).sort(byCorner),
+      tilesOf(CITY, "lamp").map(({ x, z }) => ({ x: x - 0.5, z: z - 0.5, w: 1, h: 1 })).sort(byCorner));
+    for (const l of lamps) assert.equal(l.topY, 0);
+    assert.equal(props.filter((p) => tileAt(CITY, p.x, p.z) === "lamp").length, 0);
+  });
+
+  test("the fountain's tiles are one fountain, and a statue stands on its plinth", () => {
     const fountains = new Set(tilesOf(CITY, "fountain").flatMap(({ x, z }) => under(ledges, x, z)));
     assert.equal(fountains.size, 1);
     assert.equal([...fountains][0]!.look, "fountain");
@@ -172,7 +180,53 @@ describe("Highmere's buildings", () => {
     assert.equal(statues.length, 1);
     assert.ok(statues[0]!.y > 0);
     assert.equal(statues[0]!.y, groundY(ledges, statues[0]!.x, statues[0]!.z));
-    assert.equal(props.filter((p) => p.kind === "lamp").length, tilesOf(CITY, "lamp").length);
+  });
+});
+
+describe("Highmere's gates", () => {
+  const WALLED = testMap([
+    "WWWWWWWWWWWW",
+    "W;;;;;;;;;;W",
+    "W;;;;;;;;;;W",
+    "WWWWW;;WWWWW",
+    "WWWWW;;WWWWW",
+    "WWWWW;;WWWWW",
+    "W;;;;;;;;;;W",
+    "WWWWWWWWWWWW",
+  ], "kingdom");
+  const { ledges } = chunkScenery(WALLED, WALLED.bounds), gates = ledges.filter((l) => l.look === "gate");
+
+  test("a way through the wall gets a gate at each of its mouths, spanning it, taller than the wall", () => {
+    assert.deepEqual(gates.map((g) => g.rect).sort(byCorner), [{ x: -1, z: -2, w: 2, h: 1 }, { x: -1, z: 0, w: 2, h: 1 }]);
+    const wallY = groundY(ledges, -2.5, -0.5);
+    for (const g of gates) assert.ok(g.topY > wallY);
+  });
+
+  test("a gate cut by a chunk's edge is built once, by the chunk holding its middle", () => {
+    const { x, w } = WALLED.bounds, chunks = [[0, 6], [6, w]].map(([a, b]) => ({ ...WALLED.bounds, x: x + a!, w: b! - a! }));
+    const split = chunks.flatMap((c) => chunkScenery(WALLED, c).ledges.filter((l) => l.look === "gate"));
+    assert.deepEqual(split.map((g) => g.rect).sort(byCorner), gates.map((g) => g.rect).sort(byCorner));
+  });
+});
+
+describe("the castle's barracks and kitchen", () => {
+  const area = { x: -40, z: -26, w: 80, h: 52 }, rows = Array.from({ length: area.h }, () => [..."+".repeat(area.w)]);
+  for (const hall of CASTLE_HALLS) {
+    for (let x = hall.x; x < hall.x + hall.w; x++) for (let z = hall.z; z < hall.z + hall.h; z++) rows[area.h / 2 - 1 - z]![x + area.w / 2] = "H";
+  }
+  const CASTLE = testMap(rows.map((r) => r.join("")), "kingdom", {
+    regions: [{ id: "kingdom", name: "Castle", theme: "kingdom", area }],
+  });
+  const houses = chunkScenery(CASTLE, CASTLE.bounds).ledges.filter((l) => l.house);
+
+  test("each is one building with a look of its own, not a row of town houses", () => {
+    for (const hall of CASTLE_HALLS) {
+      const built = houses.filter((h) => inside(h.rect, hall.x + 0.5, hall.z + 0.5));
+      assert.equal(built.length, 1, hall.use);
+      assert.deepEqual(built[0]!.rect, { x: hall.x, z: hall.z, w: hall.w, h: hall.h });
+      assert.equal(built[0]!.house!.use, hall.use);
+    }
+    assert.equal(new Set(CASTLE_HALLS.map((h) => h.use)).size, CASTLE_HALLS.length);
   });
 });
 
@@ -250,6 +304,12 @@ describe("hidesWalker", () => {
     assert.equal(hidesWalker(wall, { x: 0, y: 16, z: -12 }, feet), false);
     assert.equal(hidesWalker({ ...wall, rect: { ...wall.rect, x: 5 } }, eye, feet), false);
     assert.equal(hidesWalker({ ...wall, topY: 1 }, eye, feet), false);
+  });
+
+  test("a ledge under half their height, like the fountain's rim, never hides them, however low the camera", () => {
+    const rim = { rect: { x: -2, z: 1.6, w: 4, h: 3 }, topY: 0.6, look: "fountain" as const };
+    assert.equal(hidesWalker(rim, { x: 0, y: 2, z: 12 }, feet), false);
+    assert.equal(hidesWalker(rim, eye, feet), false);
   });
 
   test("a stall's awning hides them, even over a counter low enough to see over", () => {
