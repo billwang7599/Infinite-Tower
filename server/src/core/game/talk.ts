@@ -1,5 +1,5 @@
 import {
-  bagCounts, type Bag, type DialogueOffer, type EnemyId, type NpcId, type WorldLayout,
+  stowedCounts, type DialogueOffer, type EnemyId, type NpcId, type Stowed, type WorldLayout,
 } from "@infinite-tower/shared";
 import { QUESTS, type Quests } from "../content/quests.js";
 import { SHOPS, type ShopId } from "../content/shops.js";
@@ -39,13 +39,13 @@ export function placeFor(session: GameSession): Pick<WorldLayout, "npcs" | "trac
 }
 
 export function dialogueOf(
-  talk: readonly Talk[], story: Story, bag: Bag, quests: Quests = QUESTS,
+  talk: readonly Talk[], story: Story, stowed: Stowed, quests: Quests = QUESTS,
 ): { lines: readonly string[]; offer: DialogueOffer | null } | null {
   const said = talk.find((t) => holds(t.when, story, quests));
-  return said ? { lines: said.lines, offer: offerOf(said.offer, story, bag, quests) } : null;
+  return said ? { lines: said.lines, offer: offerOf(said.offer, story, stowed, quests) } : null;
 }
 
-function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): DialogueOffer | null {
+function offerOf(offer: Talk["offer"], story: Story, stowed: Stowed, quests: Quests): DialogueOffer | null {
   if (!offer) return null;
   if ("shop" in offer) return { kind: "shop", name: SHOPS[offer.shop].name };
   if ("train" in offer) return { kind: "train", foe: ENEMIES[offer.train].def.name };
@@ -55,7 +55,7 @@ function offerOf(offer: Talk["offer"], story: Story, bag: Bag, quests: Quests): 
     return { kind: "quest", quest: offer.start, title: quest.title, step: first.text };
   }
   const task = stepOn(story, offer.deliver, quests)?.task;
-  if (task?.kind !== "deliver" || (bagCounts(bag)[task.item] ?? 0) < task.count) return null;
+  if (task?.kind !== "deliver" || (stowedCounts(stowed)[task.item] ?? 0) < task.count) return null;
   return { kind: "deliver", quest: offer.deliver, item: task.item, count: task.count };
 }
 
@@ -88,7 +88,7 @@ export function trainingInView(session: GameSession): EnemyId | null {
 
 function offerInView(session: GameSession): DialogueOffer | null {
   const faced = facing(session);
-  return faced && "stop" in faced ? dialogueOf(faced.stop.talk, session.story, session.bag)?.offer ?? null : null;
+  return faced && "stop" in faced ? dialogueOf(faced.stop.talk, session.story, session.gear)?.offer ?? null : null;
 }
 
 export function talkTo(session: GameSession): void {
@@ -97,7 +97,7 @@ export function talkTo(session: GameSession): void {
     session.link.send({ t: "dialogue", npc: faced.npc, trace: true, lines: faced.trace.lines, offer: null });
     return;
   }
-  const said = faced && dialogueOf(faced.stop.talk, session.story, session.bag);
+  const said = faced && dialogueOf(faced.stop.talk, session.story, session.gear);
   if (!faced || !said) return;
   session.link.send({ t: "dialogue", npc: faced.npc, trace: false, ...said });
   const talked = Object.keys(session.story.quests).filter((id) => {

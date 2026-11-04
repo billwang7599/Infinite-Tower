@@ -1,5 +1,5 @@
 import {
-  bagCounts, COIN_LETTER, COINS, exchangeRate, formatPrice, inscriptionSlots, itemDef, moneyIn, type CoinId,
+  carriedCounts, COIN_LETTER, COINS, exchangeRate, formatPrice, inscriptionSlots, itemDef, moneyIn, type CoinId,
   type CoreState, type Gear, type InscriptionId, type ItemId, type ShopView,
 } from "@infinite-tower/shared";
 import { NO_FOCUS } from "../../components/noFocus.js";
@@ -26,9 +26,9 @@ interface ShopColumnProps {
 
 export function ShopColumn({ shop, gear, core }: ShopColumnProps) {
   const { request } = useGame().actions;
-  const money = moneyIn(gear.bag, gear.cloth);
-  const bag = bagCounts(gear.bag), cloth = bagCounts(gear.cloth);
-  const coins = (coin: CoinId) => (bag[coin] ?? 0) + (cloth[coin] ?? 0);
+  const money = moneyIn(gear.bag, gear.pack, gear.cloth);
+  const counts = carriedCounts(gear);
+  const coins = (coin: CoinId) => counts[coin] ?? 0;
   const discounted = shop.stock.some((s) => s.price < s.fullPrice);
   const buys = Object.keys(shop.buys) as ItemId[];
   return (

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  BASE_STATS, Body, emptyBag, Enemy, IDLE_INPUT, ITEMS, newCore, Player, SkillObject, Wielder,
+  BASE_STATS, Body, emptyBag, packFor, Enemy, IDLE_INPUT, ITEMS, newCore, Player, SkillObject, Wielder,
   type EnemyDef, type SwingDir, type Entity, type PlayerInputData, type Skill, type Vec3, type World,
 } from "@infinite-tower/shared";
 import { ENEMY_START_YAW, Fight, initPhysics, type FightEvent, type FightSetup } from "@infinite-tower/shared/fight";
@@ -32,7 +32,7 @@ const setup = (look: FightSetup["arena"]["look"] = "stone-ruins", def = STANDER)
   arena: { id: "test", radius: 16, look },
   players: [{
     at: { x: 0, y: 0.05, z: -4 }, vitals: { hp: 100, stamina: 100 }, stats: STATS, core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), equipment: armed() }, book: [FIRE_BOLT],
+    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: [FIRE_BOLT],
   }],
   enemies: [{ def, at: { x: 0, y: 0.05, z: 8 }, yaw: ENEMY_START_YAW }],
 });

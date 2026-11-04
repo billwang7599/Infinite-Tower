@@ -8,6 +8,9 @@ export const SLOT_PX = 2 * CELL;
 export const SLOT_COLUMNS = 3;
 export const SLOT_GAP_PX = 8;
 export const EQUIPMENT_WIDTH_PX = SLOT_COLUMNS * SLOT_PX + (SLOT_COLUMNS - 1) * SLOT_GAP_PX;
+/** Seven in a row (the wrists and rings) fill the equipment's width. */
+export const SMALL_SLOT_PX = 40;
+export const SMALL_SLOT_GAP_PX = 4;
 export const INVENTORY_GAP_PX = 20;
 /** The frame around a bag or cloth grid, each side: its padding and border. */
 export const GRID_FRAME_PX = 5;

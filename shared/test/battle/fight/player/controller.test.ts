@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, Player, Stamina, strikeCost, wayStepsAfter, WEAPONS,
+  AVERAGE_STAT, CHAIN, dodgeCost, emptyBag, packFor, Player, Stamina, strikeCost, wayStepsAfter, WEAPONS,
   type Hand, type PlayerAction, type PlayerInputData, type Vitals,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightSnapshot } from "@infinite-tower/shared/fight";
@@ -127,7 +127,7 @@ describe("a dodge pressed during an attack (the user's call: it waits for the sw
 describe("what the player holds", () => {
   const unarmed = ({ sword, skillbook }: Record<"sword" | "skillbook", Hand | null>) => new Fight({
     arena: ARENA,
-    players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), equipment: {
+    players: [player({ x: 0, y: 0.05, z: 0 }, { gear: { bag: emptyBag(), pack: packFor(null), equipment: {
       ...armed(), rightHand: null, leftHand: null,
       ...(sword && { [sword]: "sword" }), ...(skillbook && { [skillbook]: "skillbook" }),
     } } })],

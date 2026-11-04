@@ -1,4 +1,4 @@
-import { addItem, coreAtStep, distXZ, Health, Player, Stamina, type Cheat } from "@infinite-tower/shared";
+import { coreAtStep, distXZ, Health, Player, Stamina, stow, type Cheat } from "@infinite-tower/shared";
 import { fullVitals } from "../content/player.js";
 import { QUESTS } from "../content/quests.js";
 import type { GameSession } from "./session.js";
@@ -24,8 +24,8 @@ export function runCheat(session: GameSession, cheat: Cheat): void {
       return;
     case "give": {
       if (!session.inOverworld) return;
-      const { bag, left } = addItem(session.bag, cheat.item, cheat.count);
-      session.bag = bag;
+      const { gear, left } = stow(session.gear, cheat.item, cheat.count);
+      session.gear = gear;
       session.save();
       session.link.send({ t: "given", item: cheat.item, count: cheat.count - left, left, gear: session.gear });
       return;

@@ -22,6 +22,8 @@ export interface PlayerSave {
   /** null until they've made one (their first visit). */
   character: Character | null;
   bag: Bag;
+  /** The worn backpack's own grid. */
+  pack: Bag;
   equipment: Equipment;
   knownWords: Word[];
   skillbook: Skillbook;

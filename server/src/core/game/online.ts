@@ -63,7 +63,8 @@ export class OnlinePlayers {
   private async start(link: PlayerLink, account: Account): Promise<GameSession | null> {
     const id = account.id;
     // Loads and saves for one player land in order, so this load comes after the replaced session's save.
-    const stored = await this.store.load(id), loaded = stored ? keptSave(stored) : newPlayer();
+    const stored = await this.store.load(id);
+    const { save: loaded, spilled } = stored ? keptSave(stored) : { save: newPlayer(), spilled: {} };
     await this.uniques.ready;
     if (!link.open || this.refusedAsFull(link, id)) return null;
     this.replace(id); // another tab may have joined while this one was loading
@@ -74,6 +75,10 @@ export class OnlinePlayers {
         .catch((err: unknown) => console.error(`[store] saving ${account.username} failed`, err));
     }, () => this.overworld, this.others);
     session.start();
+    if (session.inWorld && Object.keys(spilled).length > 0) {
+      session.overworld.dropPile(session.overworld.playerPos(session.me), spilled);
+      session.save(); // at once, so a crash can't spill the old bag twice
+    }
     // Only once it has started: a session that failed to start is never ticked or saved.
     this.byAccount.set(id, session);
     return session;

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { before, describe, test, type TestContext } from "node:test";
 import {
-  addItem, bagCounts, Body, distXZ, emptyBag, emptyEquipment, FIXED_DT, Health, IDLE_INPUT, NO_PILE, PlayerInput,
-  type Bag, type Equipment, type ItemCounts, type Vec2,
+  addItem, bagCounts, Body, distXZ, emptyBag, emptyEquipment, FIXED_DT, Health, IDLE_INPUT, NO_PILE, packFor,
+  PlayerInput, type Bag, type Equipment, type ItemCounts, type Vec2,
 } from "@infinite-tower/shared";
 import { initPhysics, MAX_FIGHT_TIME } from "@infinite-tower/shared/fight";
-import { newPlayer } from "../../../src/core/content/player.js";
+import { newPlayer, STARTER_BACKPACK } from "../../../src/core/content/player.js";
 import { rollDrops } from "../../../src/core/enemies/index.js";
 import { OnlinePlayers } from "../../../src/core/game/online.js";
 import type { GameSession } from "../../../src/core/game/session.js";
@@ -22,9 +22,9 @@ before(() => initPhysics());
 const CARRIED: Bag = {
   ...emptyBag(),
   items: [
-    { item: "boar-meat", count: 2, x: 0, y: 0, turned: false },
-    { item: "boar-tusk", count: 1, x: 1, y: 0, turned: false },
-    { item: "longsword", count: 1, x: 5, y: 0, turned: false },
+    { item: "longsword", count: 1, x: 0, y: 0, turned: true },
+    { item: "boar-meat", count: 2, x: 0, y: 1, turned: false },
+    { item: "boar-tusk", count: 1, x: 1, y: 1, turned: true },
   ],
 };
 const BLADE_IN_HAND: Equipment = { ...emptyEquipment(), rightHand: "kobold-blade" };
@@ -40,9 +40,12 @@ const countsAt = (overworld: Overworld, at: Vec2): ItemCounts | null => {
   return pile === null ? null : bagCounts(overworld.pileItems(pile)!);
 };
 
-function fighting(saved: { bag?: Bag; equipment?: Equipment } = {}) {
+function fighting(saved: { bag?: Bag; pack?: Bag; equipment?: Equipment } = {}) {
   const started = startSession({
-    dev: true, saved: { bag: saved.bag ?? CARRIED, equipment: saved.equipment ?? BLADE_IN_HAND },
+    dev: true,
+    saved: {
+      bag: saved.bag ?? CARRIED, pack: saved.pack ?? packFor(null), equipment: saved.equipment ?? BLADE_IN_HAND,
+    },
   });
   const { session } = started;
   session.overworld.place(session.me, FIGHT_SPOT);
@@ -73,6 +76,18 @@ describe("dying alone", () => {
     assert.equal(pilesOn(session.overworld).length, 1);
     assert.deepEqual(link.last("battleResult").lost, DROPPED);
     assert.deepEqual(bagCounts(session.bag), {});
+  });
+
+  test("the backpack drops with all that's in it, and they wake with neither", () => {
+    const pack = addItem(packFor("canvas-backpack"), "wolf-pelt", 1).bag;
+    const equipment = { ...BLADE_IN_HAND, back: "canvas-backpack" } as const;
+    const { session, link } = fighting({ bag: emptyBag(), pack, equipment });
+    die(session);
+    const dropped = { "wolf-pelt": 1, "canvas-backpack": 1, "kobold-blade": 1 };
+    assert.deepEqual(countsAt(session.overworld, FIGHT_SPOT), dropped);
+    assert.deepEqual(link.last("battleResult").lost, dropped);
+    assert.equal(session.gear.equipment.back, null);
+    assert.deepEqual(session.gear.pack, packFor(null));
   });
 
   test("the pile vanishes PILE_LIFETIME_MS after it lands", (t) => {
@@ -110,6 +125,8 @@ describe("dying alone", () => {
 
 const ACCOUNTS: Account[] = [ACCOUNT, { id: "player-2", username: "p2" }, { id: "player-3", username: "p3" }];
 const BAG = addItem(emptyBag(), "boar-meat", 3).bag;
+/** BAG, and the backpack a new player wears. */
+const EACH_DROPS: ItemCounts = { "boar-meat": 3, [STARTER_BACKPACK]: 1 };
 
 /** Everyone invulnerable, so only the test ends the fight: the host fighting the boar, the guest joined in. */
 async function together(t: TestContext) {
@@ -164,7 +181,7 @@ describe("dying while others fight on", () => {
     const [lying] = host.battle!.drops.piles;
     assert.ok(lying);
     assert.ok(distXZ(lying.at, posOf(1)) < 0.02, "where they fell");
-    assert.deepEqual(bagCounts(host.overworld.pileItems(lying.pile)!), { "boar-meat": 3 });
+    assert.deepEqual(bagCounts(host.overworld.pileItems(lying.pile)!), EACH_DROPS);
     assert.equal(bagCounts(guest.bag)["boar-meat"], undefined);
     assert.deepEqual(pilesOn(host.overworld), []);
   });
@@ -184,7 +201,7 @@ describe("dying while others fight on", () => {
     assert.equal(links[0]!.last("arenaDrops").piles.length, 2, "theirs and the boar's");
     faceIt();
     host.openPile();
-    assert.deepEqual(bagCounts(links[0]!.last("gear").gear.pile), { "boar-meat": 3 });
+    assert.deepEqual(bagCounts(links[0]!.last("gear").gear.pile), EACH_DROPS);
   });
 
   test("disconnecting mid-fight leaves them where they stood", async (t) => {
@@ -194,7 +211,7 @@ describe("dying while others fight on", () => {
     play(1);
     const [lying] = host.battle!.drops.piles;
     assert.ok(lying && distXZ(lying.at, { x: -2, z: 1 }) < 0.02);
-    assert.deepEqual(bagCounts(host.overworld.pileItems(lying.pile)!), { "boar-meat": 3 });
+    assert.deepEqual(bagCounts(host.overworld.pileItems(lying.pile)!), EACH_DROPS);
   });
 
   test("the leftovers, theirs and the enemy's, land as one pile where the fight began", async (t) => {
@@ -203,7 +220,8 @@ describe("dying while others fight on", () => {
     winFight();
     host.leaveBattle();
     const boar = rollDrops("wild-boar", () => 0, () => false);
-    assert.deepEqual(countsAt(host.overworld, home), { ...boar, "boar-meat": (boar["boar-meat"] ?? 0) + 3 });
+    const both = { ...boar, ...EACH_DROPS, "boar-meat": (boar["boar-meat"] ?? 0) + 3 };
+    assert.deepEqual(countsAt(host.overworld, home), both);
     assert.equal(pilesOn(host.overworld).length, 1);
   });
 
@@ -211,7 +229,7 @@ describe("dying while others fight on", () => {
     const { host, home, kill } = await together(t);
     kill(1);
     kill(0);
-    assert.deepEqual(countsAt(host.overworld, home), { "boar-meat": 6 });
+    assert.deepEqual(countsAt(host.overworld, home), { "boar-meat": 6, [STARTER_BACKPACK]: 2 });
     assert.equal(pilesOn(host.overworld).length, 1);
   });
 });

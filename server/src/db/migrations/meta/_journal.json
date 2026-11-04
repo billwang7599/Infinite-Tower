@@ -162,6 +162,13 @@
       "when": 1793646930570,
       "tag": "0022_faith",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793783896316,
+      "tag": "0023_backpack",
+      "breakpoints": true
     }
   ]
 }

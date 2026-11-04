@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage, Player, Stamina,
+  emptyBag, packFor, FIXED_DT, guardRaiseTime, Health, HYBRID, perfectBlockTime, physicalDamage, Player, Stamina,
   toSteps, WEAPONS, Wielder, type ItemId, type PlayerInputData, type Weapon,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
@@ -16,7 +16,7 @@ const pvp = (stamina = FULL_STAMINA, blade: ItemId = "sword") => new Fight({
     player({ x: 0, y: 0.05, z: 0 }),
     player({ x: 0, y: 0.05, z: 1.6 }, {
       vitals: { hp: FULL_HP, stamina },
-      gear: { bag: emptyBag(), equipment: { ...armed(), rightHand: blade } },
+      gear: { bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), rightHand: blade } },
     }),
   ],
 });

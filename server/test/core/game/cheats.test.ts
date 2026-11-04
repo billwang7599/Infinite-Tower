@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import { isDeepStrictEqual } from "node:util";
 import {
-  addItem, bagCounts, CLOSE_CODES, coreAtStep, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, Player, Stamina,
-  type ItemCounts, type ItemId,
+  addItem, bagCounts, CLOSE_CODES, coreAtStep, emptyBag, FIXED_DT, Health, IDLE_INPUT, newCore, packFor, Player,
+  Stamina, type ItemCounts, type ItemId,
 } from "@infinite-tower/shared";
 import { initPhysics, type Fight } from "@infinite-tower/shared/fight";
 import { fullVitals, newPlayer, PLAYER_STATS } from "../../../src/core/content/player.js";
@@ -14,6 +14,7 @@ import { holds, newStory, type Story } from "../../../src/core/game/story.js";
 import type { PlayerSave } from "../../../src/core/ports.js";
 import { getRegion, START_REGION } from "../../../src/core/world/index.js";
 import { FakeLink, MemoryPlayerStore } from "../../fixtures/fakes.js";
+import { armed } from "../../fixtures/fight.js";
 import { TEST_CHARACTER } from "../../fixtures/world.js";
 import { ACCOUNT, bagWith, startSession } from "./helpers.js";
 
@@ -137,6 +138,16 @@ describe("give", () => {
     assert.deepEqual(bagCounts(session.bag), { "boar-hide": fitCount });
     const given = link.last("given");
     assert.deepEqual([given.count, given.left], [fitCount, 3]);
+  });
+
+  test("what doesn't fit in the bag goes into the backpack", () => {
+    const { session } = startSession({
+      dev: true, saved: { pack: packFor("canvas-backpack"), equipment: { ...armed(), back: "canvas-backpack" } },
+    });
+    const inBag = bagCounts(addItem(emptyBag(), "boar-hide", 1000).bag)["boar-hide"] ?? 0;
+    session.cheat({ kind: "give", item: "boar-hide", count: inBag + 1 });
+    assert.deepEqual(bagCounts(session.bag), { "boar-hide": inBag });
+    assert.deepEqual(bagCounts(session.gear.pack), { "boar-hide": 1 });
   });
 
   test("does nothing in a battle: the fight has the bag", () => {

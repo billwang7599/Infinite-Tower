@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, type Heading,
+  emptyBag, HEADING_WAY, INTERACT_LOOK_RAD, INTERACT_RANGE_M, packFor, type Bag, type Heading,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
 import type { QuestDef, Quests, QuestStep, Task } from "../../../src/core/content/quests.js";
@@ -18,6 +18,7 @@ const NPC = stopFor(newStory(), NPCS.hollis)!;
 const start = (opts: Parameters<typeof startSession>[0] = {}) =>
   startSession({ ...opts, saved: { pad: NPC.region, ...opts.saved } });
 const REACH_TILES = INTERACT_RANGE_M + INTERACT_LAG_SLACK_M;
+const carrying = (bag: Bag) => ({ bag, pack: packFor(null) });
 const LOOK_RAD = INTERACT_LOOK_RAD + INTERACT_LOOK_SLACK_RAD;
 
 function standBy(session: GameSession, awayTiles: number, heading: Heading = "west", offRad = 0): void {
@@ -45,7 +46,7 @@ describe("talking to an NPC", () => {
     standBy(session, REACH_TILES - 0.1);
     session.talk();
     assert.deepEqual(link.last("dialogue").npc, "hollis");
-    assert.deepEqual(link.last("dialogue").lines, dialogueOf(NPC.talk, newStory(), emptyBag())!.lines);
+    assert.deepEqual(link.last("dialogue").lines, dialogueOf(NPC.talk, newStory(), carrying(emptyBag()))!.lines);
   });
 
   test("out of reach, nothing", () => {
@@ -118,7 +119,7 @@ describe("where an NPC stands, and what it says", () => {
   };
   const NPC: Npc = { stops: [woods, fire] };
   const moved: Story = { ...newStory(), flags: ["moved"] };
-  const enough = bagWith({ "boar-hide": 3 });
+  const enough = carrying(bagWith({ "boar-hide": 3 }));
 
   test("an NPC stands at its first stop whose condition holds, for this player; with none, nowhere", () => {
     assert.equal(stopFor(newStory(), NPC, QUESTS), fire);
@@ -142,7 +143,7 @@ describe("where an NPC stands, and what it says", () => {
   });
 
   test("a quest is offered with its title and first step, while it can start", () => {
-    assert.deepEqual(dialogueOf(fire.talk, newStory(), emptyBag(), QUESTS)?.offer, {
+    assert.deepEqual(dialogueOf(fire.talk, newStory(), carrying(emptyBag()), QUESTS)?.offer, {
       kind: "quest", quest: "q", title: "Q", step: "find text",
     });
   });
@@ -151,7 +152,7 @@ describe("where an NPC stands, and what it says", () => {
     assert.deepEqual(dialogueOf(fire.talk, on("q", "hides"), enough, QUESTS)?.offer, {
       kind: "deliver", quest: "q", item: "boar-hide", count: 2,
     });
-    assert.equal(dialogueOf(fire.talk, on("q", "hides"), bagWith({ "boar-hide": 1 }), QUESTS)?.offer, null);
+    assert.equal(dialogueOf(fire.talk, on("q", "hides"), carrying(bagWith({ "boar-hide": 1 })), QUESTS)?.offer, null);
     assert.equal(dialogueOf(fire.talk, on("q", "find"), enough, QUESTS)?.offer, null, "on another step");
     assert.equal(dialogueOf(fire.talk, on("q", null), enough, QUESTS)?.offer, null, "done");
   });

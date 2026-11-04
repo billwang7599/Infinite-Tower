@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage, Player,
-  Stamina, strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
+  FIXED_DT, AVERAGE_STAT, CHAIN, emptyBag, packFor, HYBRID, lastFeintStep, MOMENTUM, momentumDamage, physicalDamage,
+  Player, Stamina, strikeCost, WEAPONS, Wielder, type PlayerInputData, type Strike, type SwingDir,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import { ARENA, enemy, input, player, STATS, STATUE, armed } from "../fixtures.js";
@@ -113,7 +113,7 @@ describe("the sword's attacks", () => {
         arena: { ...ARENA, radius: 40 },
         players: [player({ x: 0, y: 0.05, z: 0 }, {
           vitals: { hp: 100, stamina: 1000 }, stats: { ...STATS, stamina: 1000, strength },
-          gear: { bag: emptyBag(), equipment: { ...armed(), rightHand: "greatsword" } },
+          gear: { bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), rightHand: "greatsword" } },
         })],
         enemies: [enemy({ ...STATUE, maxHp: 100_000 }, { x: 0, y: 0.05, z: 30 })],
       });

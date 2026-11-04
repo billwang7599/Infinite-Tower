@@ -4,7 +4,7 @@
  * back for a number of server ticks.
  */
 import {
-  blankSkillbook, emptyBag, emptyEquipment, IDLE_INPUT, newCore, sameInput, type EnemyDef, type Equipment,
+  blankSkillbook, emptyBag, emptyEquipment, IDLE_INPUT, newCore, packFor, sameInput, type EnemyDef, type Equipment,
   type PlayerInputData, type StepInput, type Vitals,
 } from "@infinite-tower/shared";
 import {
@@ -26,7 +26,7 @@ export function setupWith(def: EnemyDef = STATUE, enemyAt = ENEMY_START, playerA
   return {
     arena: { id: "test", radius: 16, look: "forest-clearing" },
     players: [{ at: playerAt, vitals: { ...FULL }, stats: PLAYER_STATS, core: newCore(),
-      burden: "light", gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook() }],
+      burden: "light", gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: blankSkillbook() }],
     enemies: [{ def, at: enemyAt, yaw: ENEMY_START_YAW }],
   };
 }

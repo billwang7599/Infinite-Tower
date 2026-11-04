@@ -20,9 +20,10 @@ export function useSystem(ctx: FightContext): System {
       const target = {
         hp: health.hp, max: health.max, stamina: stamina.value, staminaMax: stamina.max, core: player.core,
       };
-      const bag = using && finishUse(using, player.gear.bag, target);
-      if (!using || !bag) continue;
-      player.gear = { ...player.gear, bag };
+      const grid = using && using.at.in !== "cloth" ? using.at.in : null;
+      const left = using && grid && finishUse(using, player.gear[grid], target);
+      if (!using || !grid || !left) continue;
+      player.gear = { ...player.gear, [grid]: left };
       health.hp = target.hp;
       stamina.value = target.stamina;
       const brokeThrough = target.core.steps > player.core.steps;

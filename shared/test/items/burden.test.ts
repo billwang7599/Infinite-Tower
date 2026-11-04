@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  BASE_STATS, BURDEN, burdenOf, carryLimit, dodgeCost, emptyCloth, gearBurden, ITEMS, moveSpeed, NO_PILE,
-  overworldPace, PLAYER, walkPace, type Bag, type Gear,
+  BASE_STATS, BURDEN, burdenOf, carryLimit, dodgeCost, emptyCloth, emptyEquipment, gearBurden, ITEMS, moveSpeed,
+  NO_PILE, overworldPace, packFor, PLAYER, walkPace, type Bag, type Gear,
 } from "@infinite-tower/shared";
 
 const STATS = BASE_STATS;
@@ -32,10 +32,8 @@ describe("burdenOf", () => {
   });
 });
 
-const only = (bag: Bag): Gear => ({
-  bag, cloth: emptyCloth(), pile: NO_PILE,
-  equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
-});
+const only = (bag: Bag): Gear =>
+  ({ bag, pack: packFor(null), cloth: emptyCloth(), pile: NO_PILE, equipment: emptyEquipment() });
 
 describe("gearBurden", () => {
   test("weighs the bag against the carry limit from strength", () => {

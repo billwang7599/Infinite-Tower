@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, ITEMS, Player, type Carried, type EnemyDef, type UseSpot, type Vec3,
+  emptyBag, FIXED_DT, Health, ITEMS, packFor, Player, type Bag, type Carried, type EnemyDef, type UseSpot, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics, type FightEvent } from "@infinite-tower/shared/fight";
 import {
@@ -18,7 +18,7 @@ const BAG = input({ bag: true });
 const EAT = input({ bag: true, use: MEAT_AT });
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const withMeat = (count = 2): Carried => ({
-  bag: { ...emptyBag(), items: [{ item: "boar-meat", count, x: 0, y: 0, turned: false }] },
+  bag: { ...emptyBag(), items: [{ item: "boar-meat", count, x: 0, y: 0, turned: false }] }, pack: packFor(null),
   equipment: armed(),
 });
 
@@ -39,6 +39,24 @@ function startEating(fight: Fight): void {
 }
 
 describe("eating in a fight", () => {
+  test("meat in the backpack is eaten from there, as from the bag", () => {
+    const meat = { item: "boar-meat", count: 2, x: 3, y: 3, turned: false } as const;
+    const pack: Bag = { ...packFor("canvas-backpack"), items: [meat] };
+    const fight = new Fight({
+      arena: ARENA, enemies: [enemy(STATUE, at(0, 6))],
+      players: [player(at(0, 0), {
+        gear: { bag: emptyBag(), pack, equipment: { ...armed(), back: "canvas-backpack" } },
+        vitals: { hp: HURT_HP, stamina: FULL_STAMINA },
+      })],
+    });
+    run(fight, 0.1);
+    fight.step([BAG]);
+    fight.step([input({ bag: true, use: { in: "pack", x: 3, y: 3 } })]);
+    run(fight, USE_TIME, () => BAG);
+    assert.equal(hpOf(fight), HURT_HP + HEAL_HP);
+    assert.deepEqual(me(fight).gear.pack.items, [{ item: "boar-meat", count: 1, x: 3, y: 3, turned: false }]);
+  });
+
   test("meat eaten from the bag heals once its useTime is up, uses one up, and the bag stays open", () => {
     const fight = hungry();
     startEating(fight);

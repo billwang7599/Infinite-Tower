@@ -101,7 +101,7 @@ export class GameSession {
     this.wins = saved.wins;
     this.settings = saved.settings;
     this.character = saved.character;
-    this.held = { bag: saved.bag, cloth: emptyCloth(), pile: NO_PILE, equipment: saved.equipment };
+    this.held = { bag: saved.bag, pack: saved.pack, cloth: emptyCloth(), pile: NO_PILE, equipment: saved.equipment };
     this.gear = this.held;
     this.knownWords = saved.knownWords;
     this.skillbook = saved.skillbook;
@@ -395,8 +395,9 @@ export class GameSession {
     if (this.wasReset) return;
     this.persist({
       vitals: { ...this.vitals }, wins: this.wins, settings: this.settings, character: this.character,
-      bag: this.bag, equipment: this.gear.equipment, knownWords: this.knownWords, skillbook: this.skillbook,
-      story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought, faith: this.faith,
+      bag: this.bag, pack: this.gear.pack, equipment: this.gear.equipment, knownWords: this.knownWords,
+      skillbook: this.skillbook, story: this.story, pad: this.pad, core: this.core, shopsBought: this.shopsBought,
+      faith: this.faith,
     });
   }
 

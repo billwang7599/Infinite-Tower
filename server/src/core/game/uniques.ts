@@ -1,4 +1,4 @@
-import { carriedCounts, itemDef, SLOTS, UNIQUE_ITEMS, type ItemId } from "@infinite-tower/shared";
+import { carriedCounts, itemDef, SLOTS, UNIQUE_ITEMS, type Bag, type ItemId } from "@infinite-tower/shared";
 import type { PlayerId, PlayerSave, PlayerStore, UniqueHold } from "../ports.js";
 
 export const UNIQUE_HOLD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -34,10 +34,8 @@ export class Uniques {
       if (item && lost.includes(item)) equipment[slot] = null;
     }
     const inscriptions = save.core.inscriptions.filter((id) => !lost.some((item) => itemDef(item).inscription === id));
-    return {
-      ...save, bag: { ...save.bag, items: save.bag.items.filter((s) => !lost.includes(s.item)) }, equipment,
-      core: { ...save.core, inscriptions },
-    };
+    const kept = (grid: Bag) => ({ ...grid, items: grid.items.filter((s) => !lost.includes(s.item)) });
+    return { ...save, bag: kept(save.bag), pack: kept(save.pack), equipment, core: { ...save.core, inscriptions } };
   }
 
   saved(player: PlayerId, save: PlayerSave): void {

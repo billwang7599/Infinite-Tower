@@ -47,10 +47,10 @@ export const SkillSchema = z.object({
 const PageSchema = z.number().int().nonnegative().max(SKILLBOOK_PAGES - 1);
 
 const Cell = { x: z.number().int().nonnegative(), y: z.number().int().nonnegative() };
-const GridSpot = z.object({ in: z.enum(["bag", "cloth", "pile"]), ...Cell });
+const GridSpot = z.object({ in: z.enum(["bag", "pack", "cloth", "pile"]), ...Cell });
 const SpotSchema = z.union([GridSpot, z.object({ in: z.literal("slot"), slot: z.enum(SLOTS) })]) satisfies
   z.ZodType<Spot>;
-const UseSpotSchema = z.object({ in: z.enum(["bag", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>;
+const UseSpotSchema = z.object({ in: z.enum(["bag", "pack", "cloth"]), ...Cell }) satisfies z.ZodType<UseSpot>;
 
 const StepInputSchema = z.object({
   step: FightStep,

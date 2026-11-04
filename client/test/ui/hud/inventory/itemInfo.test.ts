@@ -54,6 +54,14 @@ describe("itemInfo (the tooltip)", () => {
     assert.equal(itemInfo(stack("bog-pearl")).rarity, "rare");
   });
 
+  test("a backpack says where it's worn and how big a grid it brings; a cosmetic that it's looks only", () => {
+    const { cols, rows } = ITEMS["canvas-backpack"].pack;
+    const grid = `a grid of ${cols} × ${rows} of its own`;
+    assert.equal(itemInfo(stack("canvas-backpack")).effect, `Worn on your back: ${grid}.`);
+    assert.equal(itemInfo(stack("feathered-hat")).effect, "Worn over your cap: it changes only how you look.");
+    assert.equal(itemInfo(stack("copper-ring")).effect, "Worn on a finger.");
+  });
+
   test("a sigil says it's to be carved into the core", () => {
     assert.match(itemInfo(stack("sigil-of-embers")).effect ?? "", /carve it into your core/);
     assert.doesNotMatch(itemInfo(stack("sigil-of-embers")).effect ?? "", /not yet/);

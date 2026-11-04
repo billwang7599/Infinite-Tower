@@ -4,9 +4,9 @@
  * other direction.
  */
 import {
-  blankSkillbook, NO_PILE, type Carried, type Character, type ChatLine, type ClientMsg, type CoreState,
-  type Credentials, type DayChange, type DialogueOffer, type Faith, type GameServer, type Gear, type Look,
-  type QuestView, type ShopView, type Skill, type Skillbook, type Spot, type Status, type UseSpot, type Word,
+  blankSkillbook, emptyEquipment, NO_PILE, packFor, type Carried, type Character, type ChatLine, type ClientMsg,
+  type CoreState, type Credentials, type DayChange, type DialogueOffer, type Faith, type GameServer, type Gear,
+  type Look, type QuestView, type ShopView, type Skill, type Skillbook, type Spot, type Status, type UseSpot, type Word,
 } from "@infinite-tower/shared";
 import type { FightState } from "@infinite-tower/shared/fight";
 import type { Layer } from "../core/actions.js";
@@ -196,8 +196,8 @@ export class UiState {
   readonly you = new Store<YouState>({
     character: null, core: null, faith: {}, using: null,
     gear: {
-      bag: { cols: 0, rows: 0, items: [] }, cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
-      equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
+      bag: { cols: 0, rows: 0, items: [] }, pack: packFor(null), cloth: { cols: 0, rows: 0, items: [] }, pile: NO_PILE,
+      equipment: emptyEquipment(),
     },
   });
   readonly overworld = new Store<OverworldHudState>({
@@ -208,10 +208,7 @@ export class UiState {
     enemyStatuses: [], enemyAlive: false, result: "fighting", duel: false, spar: false, showResult: false,
     afterFight: false, arenaSecondsLeft: 0, interaction: null,
     stunned: false, skillbookInHand: false, brokenOff: false, writingPage: null, using: null, core: null,
-    carried: {
-      bag: { cols: 0, rows: 0, items: [] },
-      equipment: { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null },
-    },
+    carried: { bag: { cols: 0, rows: 0, items: [] }, pack: packFor(null), equipment: emptyEquipment() },
   });
   readonly skills = new Store<SkillsState>({ known: [], book: blankSkillbook() });
   readonly chant = new Store<ChantState>(NO_CHANT);

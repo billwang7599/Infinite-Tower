@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, newCore, skillCost, staminaMaxOf,
+  blankSkillbook, CLOSE_CODES, emptyBag, IDLE_INPUT, MAX_INPUTS_PER_MESSAGE, newCore, packFor, skillCost, staminaMaxOf,
   type Modifier, type Skill, type StepInput,
 } from "@infinite-tower/shared";
 import { initPhysics } from "@infinite-tower/shared/fight";
@@ -23,7 +23,8 @@ const ACCOUNT: Account = { id: "account-1", username: "tester" };
 
 const SAVED: PlayerSave = {
   vitals: { hp: 42, stamina: 30 }, wins: 3, settings: {}, character: TEST_CHARACTER,
-  bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, knownWords: [],
+  bag: { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 0, y: 0, turned: false }] }, pack: packFor(null),
+  knownWords: [],
   equipment: armed(), skillbook: blankSkillbook(), story: newStory(), pad: START_REGION, shopsBought: [],
   core: newCore(), faith: {},
 };

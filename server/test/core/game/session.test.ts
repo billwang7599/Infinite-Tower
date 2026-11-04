@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyBag, emptyCloth, FIXED_DT, ITEMS, Player, REST_RANGE_TILES,
+  AVERAGE_STAT, blankSkillbook, BURDEN, carryLimit, emptyCloth, emptyEquipment, FIXED_DT, ITEMS, Player,
+  REST_RANGE_TILES,
   useSteps, WEAPONS, WORDS, type Bag, type BagItem, type Equipment, type GridName, type ItemId,
   type Skill,
 } from "@infinite-tower/shared";
@@ -108,13 +109,13 @@ describe("rest", () => {
   });
 });
 
-const NOTHING_WORN: Equipment = { rightHand: null, leftHand: null, head: null, body: null, legs: null, boots: null };
+const NOTHING_WORN: Equipment = emptyEquipment();
 const spot = <G extends GridName>(grid: G, x: number, y: number) => ({ in: grid, x, y });
 const bagSpot = (x: number, y: number) => spot("bag", x, y);
 
-/** A bag holding `items`, each `[item, count, x, y]`, lying flat. */
+/** A bag holding `items`, each `[item, count, x, y]`, lying flat; roomier than the base bag, for room to move. */
 const bagOf = (...items: [ItemId, number, number, number][]): Bag =>
-  ({ ...emptyBag(), items: items.map(([item, count, x, y]) => ({ item, count, x, y, turned: false })) });
+  ({ cols: 6, rows: 4, items: items.map(([item, count, x, y]) => ({ item, count, x, y, turned: false })) });
 
 describe("eating (useItem)", () => {
   const MEAT_CELL = bagSpot(2, 1);
@@ -146,7 +147,7 @@ describe("eating (useItem)", () => {
     session.useItem(MEAT_CELL);
     tick(session, EAT_TICKS);
     assert.equal(session.vitals.hp, FULL.hp);
-    assert.deepEqual(session.bag, emptyBag());
+    assert.deepEqual(session.bag, bagOf());
   });
 
   test("a stamina tonic refills stamina, at full HP too", () => {
@@ -155,7 +156,7 @@ describe("eating (useItem)", () => {
     session.useItem(MEAT_CELL);
     tick(session, useSteps("stamina-tonic"));
     assert.equal(session.vitals.stamina, FULL.stamina);
-    assert.deepEqual(session.bag, emptyBag());
+    assert.deepEqual(session.bag, bagOf());
   });
 
   test("doesn't start at full HP", () => {
@@ -273,7 +274,7 @@ describe("equipment", () => {
   test("taking the sword off puts it in the bag, and the save has it there", (t) => {
     t.mock.timers.enable({ apis: ["setTimeout"] });
     const { session, saves } = startSession();
-    session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(0, 0), false);
+    session.moveItem({ in: "slot", slot: "rightHand" }, bagSpot(0, 0), true);
     assert.equal(session.gear.equipment.rightHand, null);
     assert.equal(session.bag.items[0]?.item, "sword");
     t.mock.timers.tick(5000);
@@ -286,7 +287,7 @@ describe("equipment", () => {
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
       const core = { steps: 0, fill: 0, points: { strength: strength - AVERAGE_STAT }, inscriptions: [] };
       const equipment = { ...armed(), rightHand: null };
-      const bag = { ...emptyBag(), items: [{ item: "greatsword" as const, count: 1, x: 0, y: 0, turned: false }] };
+      const bag = bagOf(["greatsword", 1, 0, 0]);
       const { session, link } = startSession({ saved: { core, equipment, bag } });
       assert.equal(session.stats.strength, strength);
       session.moveItem(bagSpot(0, 0), { in: "slot", slot: "rightHand" }, false);

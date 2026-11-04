@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
 import {
-  bagCounts, blankSkillbook, Body, carryLimit, emptyBag, emptyEquipment, FIXED_DT, HASH_EVERY_STEPS, Health,
-  IDLE_INPUT, ITEMS, physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, useSteps, WEAPONS, type Bag, type Equipment,
-  type GearMove, type PlayerInputData, type Skill, type Word,
+  addItem, bagCounts, blankSkillbook, Body, carryLimit, emptyBag, emptyEquipment, FIXED_DT, HASH_EVERY_STEPS, Health,
+  IDLE_INPUT, ITEMS, packFor, physicalDamage, Player, SAVE_IN_FIGHT_TIME, Skilled, useSteps, WEAPONS, type Bag,
+  type Equipment, type GearMove, type PlayerInputData, type Skill, type Word,
 } from "@infinite-tower/shared";
 import { ENEMY_START, ENEMY_START_YAW, initPhysics, MAX_FIGHT_TIME, PLAYER_START } from "@infinite-tower/shared/fight";
 import { ENEMIES } from "../../../src/core/enemies/index.js";
@@ -21,8 +21,9 @@ const FULL = fullVitals(PLAYER_STATS);
 const REGION = getRegion(HOLLOW);
 const HURT = { hp: 50, stamina: 40 };
 /** Two meat and a tusk. */
+/** Roomier than the base bag, for room to move. */
 const CARRIED: Bag = {
-  ...emptyBag(),
+  cols: 6, rows: 4,
   items: [
     { item: "boar-meat", count: 2, x: 0, y: 0, turned: false },
     { item: "boar-tusk", count: 1, x: 1, y: 0, turned: false },
@@ -122,17 +123,18 @@ describe("starting a battle", () => {
     const playerSeed = msg.setup.players[0]?.seed;
     assert.deepEqual(msg.setup.players, [{
       at: PLAYER_START, vitals: HURT, stats: session.stats, core: session.core, burden: "light",
-      gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook(), seed: playerSeed,
+      gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: blankSkillbook(), seed: playerSeed,
       invulnerable: false, who: { name: session.name, character: session.character! }, blessings: [],
     }]);
     assert.ok(Number.isInteger(playerSeed) && playerSeed! >= 0 && playerSeed! < 2 ** 32, "the player's seed too");
   });
 
-  test("gives the fight the player's bag and what they have in hand (no sword there, no swinging)", () => {
-    const bookOnly: Equipment = { ...armed(), rightHand: null };
-    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED } });
+  test("gives the fight the player's bag, backpack and what they wear (no sword in hand, no swinging)", () => {
+    const bookOnly: Equipment = { ...armed(), rightHand: null, back: "canvas-backpack" };
+    const pack = addItem(packFor("canvas-backpack"), "wolf-fang", 3).bag;
+    const { session, link } = startSession({ dev: true, saved: { equipment: bookOnly, bag: CARRIED, pack } });
     session.cheat({ kind: "encounter", enemy: "wild-boar" });
-    assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, equipment: bookOnly });
+    assert.deepEqual(link.last("encounter").setup.players[0]!.gear, { bag: CARRIED, pack, equipment: bookOnly });
   });
 
   test("says how weighed down the player comes in (the fight applies it)", () => {

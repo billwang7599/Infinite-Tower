@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { addItem, bagCounts, emptyBag, type Bag } from "@infinite-tower/shared";
+import { addItem, bagCounts, emptyBag, packFor, type Bag } from "@infinite-tower/shared";
 import { LORE, type LoreId } from "../../../src/core/content/lore.js";
 import type { QuestDef, Quests, QuestStep, Task } from "../../../src/core/content/quests.js";
 import {
@@ -18,9 +18,11 @@ const LORE_ID = Object.keys(LORE)[0] as LoreId;
 const SEEN: Seen = { region: "grass-field", at: { x: 0, z: 0 } };
 const on = (id: string, stepId: string | null, kills = 0, story = newStory()): Story =>
   ({ ...story, quests: { ...story.quests, [id]: { step: stepId, kills } } });
-function run(quests: Quests, story: Story, effects: Effect[] = [], seen: Partial<Seen> & { bag?: Bag } = {}) {
-  const { bag = emptyBag(), ...rest } = seen;
-  return unfold({ story, bag }, effects, { ...SEEN, ...rest }, quests);
+function run(
+  quests: Quests, story: Story, effects: Effect[] = [], seen: Partial<Seen> & { bag?: Bag; pack?: Bag } = {},
+) {
+  const { bag = emptyBag(), pack = packFor(null), ...rest } = seen;
+  return unfold({ story, bag, pack }, effects, { ...SEEN, ...rest }, quests);
 }
 
 describe("conditions", () => {
@@ -100,6 +102,21 @@ describe("effects", () => {
     assert.deepEqual([news[0].gained, news[0].dropped], [{}, { "boar-meat": 1 }]);
   });
 
+  test("the backpack counts as the bag does: gathered, handed over from, and a reward put in it", () => {
+    const only = (task: Task): Quests => ({ q: quest([step("s0", task)]) });
+    const pack = addItem(packFor("canvas-backpack"), "boar-hide", 2).bag;
+    const gather = only({ kind: "gather", item: "boar-hide", count: 2 });
+    assert.equal(run(gather, on("q", "s0"), [], { pack }).story.quests.q?.step, null);
+    const QUESTS: Quests = { q: quest([
+      step("give", { kind: "deliver", item: "boar-hide", count: 2, to: "hollis" }, { reward: { items: { bread: 1 } } }),
+    ]) };
+    const full = bagWith({ "boar-tusk": 12 });
+    const after = run(QUESTS, on("q", "give"), [{ advance: "q" }], { bag: full, pack });
+    assert.deepEqual(after.bag, full);
+    assert.deepEqual(bagCounts(after.pack), { bread: 1 });
+    assert.deepEqual(after.dropped, {});
+  });
+
   test("advancing a deliver step hands its items over, across stacks, and nothing else; too few, nothing", () => {
     const QUESTS: Quests = { q: quest([step("give", { kind: "deliver", item: "boar-meat", count: 6, to: "hollis" })]) };
     const bag = bagWith({ "boar-meat": 7, "boar-hide": 1 });
@@ -166,7 +183,7 @@ describe("steps the world meets", () => {
 
   test("with nothing done or counted, the story and the bag are the same objects", () => {
     const QUESTS = only({ kind: "kill", enemy: "wild-boar", count: 1 }), story = on("q", "s0"), bag = emptyBag();
-    const after = unfold({ story, bag }, [], { ...SEEN, killed: ["kobold-swordsman"] }, QUESTS);
+    const after = unfold({ story, bag, pack: packFor(null) }, [], { ...SEEN, killed: ["kobold-swordsman"] }, QUESTS);
     assert.equal(after.story, story);
     assert.equal(after.bag, bag);
     assert.deepEqual(after.news, []);

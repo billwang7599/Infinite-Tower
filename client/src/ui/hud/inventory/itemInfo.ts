@@ -1,10 +1,15 @@
 /** What the bag screen tells you about a stack: the lines of its tooltip. */
 import {
-  footprint, isWeapon, itemDef, WEAPONS, type BagItem, type ItemEffect, type ItemId, type Rarity, type WeaponId,
+  footprint, isWeapon, itemDef, WEAPONS, type BagItem, type ItemDef, type ItemEffect, type ItemId, type Rarity,
+  type WeaponId, type WornOn,
 } from "@infinite-tower/shared";
 
 const WIELDED = "In a hand: light and heavy attacks, and a guard.";
 const HELD: Partial<Record<ItemId, string>> = { skillbook: "In a hand: quick-cast skills." };
+const WORN_ON: Record<WornOn, string> = {
+  hand: "in a hand", cap: "on your head", head: "on your head", body: "on your body", legs: "on your legs",
+  boots: "on your feet", belt: "round your waist", back: "on your back", finger: "on a finger", wrist: "on a wrist",
+};
 
 export const RARITY_NAME: Record<Rarity, string> = {
   common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary", unique: "Unique",
@@ -40,6 +45,13 @@ export const effectsText = (effects: readonly ItemEffect[]): string => effects
 /** One decimal place at most: "12", "12.5". */
 export const formatWeight = (weight: number): string => String(Math.round(weight * 10) / 10);
 
+function wornText({ wearable, pack }: ItemDef): string | null {
+  if (!wearable || wearable.on === "hand") return null;
+  if (wearable.cosmetic) return `Worn over your ${wearable.on}: it changes only how you look.`;
+  return pack ? `Worn ${WORN_ON[wearable.on]}: a grid of ${pack.cols} × ${pack.rows} of its own.`
+    : `Worn ${WORN_ON[wearable.on]}.`;
+}
+
 function wieldedText(item: WeaponId): string {
   const need = WEAPONS[item].minStrength;
   return need > 0 ? `${WIELDED} Needs ${need} strength.` : WIELDED;
@@ -56,6 +68,7 @@ export function itemInfo(stack: BagItem): ItemInfo {
     size: `${cols} × ${rows}`,
     weight: many ? `${each} each, ${formatWeight(def.weight * stack.count)} in all` : each,
     effect: use ? `${effectsText(use.effects)} Takes ${use.useTime} s; a hit stops it.`
-      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL : HELD[stack.item] ?? null,
+      : isWeapon(stack.item) ? wieldedText(stack.item) : def.inscription ? SIGIL
+      : HELD[stack.item] ?? wornText(def),
   };
 }

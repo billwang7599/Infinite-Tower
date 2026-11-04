@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  emptyBag, FIXED_DT, Health, Player, SAVE_IN_FIGHT_TIME, WEAPONS, Wielder, type Bag, type Carried,
+  addItem, emptyBag, FIXED_DT, Health, packFor, Player, SAVE_IN_FIGHT_TIME, WEAPONS, Wielder, type Bag, type Carried,
   type GearMove, type Skill, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -14,8 +14,9 @@ await initPhysics();
 const at = (x: number, z: number): Vec3 => ({ x, y: 0.05, z });
 const BAG = input({ bag: true });
 const RIGHT_HAND = { in: "slot", slot: "rightHand" } as const;
-const UNEQUIP_SWORD: GearMove = { from: RIGHT_HAND, to: { in: "bag", x: 0, y: 0 }, turned: false };
+const UNEQUIP_SWORD: GearMove = { from: RIGHT_HAND, to: { in: "bag", x: 0, y: 0 }, turned: true };
 const EQUIP_SWORD: GearMove = { from: { in: "bag", x: 0, y: 0 }, to: RIGHT_HAND, turned: false };
+const UNEQUIP_SWORD_TO_PACK: GearMove = { from: RIGHT_HAND, to: { in: "pack", x: 1, y: 0 }, turned: false };
 const NOVA: Skill = skill(segment("nova", ["fire"]));
 
 function alone(gear?: Carried): Fight {
@@ -70,13 +71,27 @@ describe("the bag in a fight", () => {
     moveInBag(fight, UNEQUIP_SWORD);
     const { gear } = playerOf(fight);
     assert.equal(gear.equipment.rightHand, null);
-    assert.deepEqual(gear.bag.items, [{ item: "sword", count: 1, x: 0, y: 0, turned: false }]);
+    assert.deepEqual(gear.bag.items, [{ item: "sword", count: 1, x: 0, y: 0, turned: true }]);
     assert.equal(handsOf(fight).rightHand, null);
     assert.equal(swings(fight), false);
     run(fight, 0.5);
     moveInBag(fight, EQUIP_SWORD);
     assert.equal(playerOf(fight).gear.equipment.rightHand, "sword");
     assert.equal(swings(fight), true);
+  });
+
+  test("things move between the bag and the backpack, and a full backpack stays on", () => {
+    const pack = addItem(packFor("canvas-backpack"), "boar-meat", 1).bag;
+    const fight = alone({ bag: emptyBag(), pack, equipment: { ...armed(), back: "canvas-backpack" } });
+    run(fight, 0.3);
+    moveInBag(fight, { from: { in: "slot", slot: "back" }, to: { in: "bag", x: 0, y: 0 }, turned: false });
+    assert.equal(playerOf(fight).gear.equipment.back, "canvas-backpack");
+    moveInBag(fight, { from: { in: "pack", x: 0, y: 0 }, to: { in: "bag", x: 2, y: 1 }, turned: false });
+    moveInBag(fight, UNEQUIP_SWORD_TO_PACK);
+    const { gear } = playerOf(fight);
+    assert.deepEqual(gear.bag.items, [{ item: "boar-meat", count: 1, x: 2, y: 1, turned: false }]);
+    assert.deepEqual(gear.pack.items, [{ item: "sword", count: 1, x: 1, y: 0, turned: false }]);
+    assert.equal(gear.equipment.rightHand, null);
   });
 
   test("a weapon too heavy for the player's strength stays in the bag", () => {
@@ -86,7 +101,7 @@ describe("the bag in a fight", () => {
       players: [player(at(0, -4), {
         stats: { ...STATS, strength },
         gear: { bag: { ...emptyBag(), items: [{ item: "greatsword", count: 1, x: 0, y: 0, turned: false }] },
-          equipment: { ...armed(), rightHand: null } },
+          pack: packFor(null), equipment: { ...armed(), rightHand: null } },
       })],
     });
     for (const [strength, held] of [[need - 1, null], [need, "greatsword"]] as const) {
@@ -136,7 +151,7 @@ describe("the bag in a fight", () => {
 
   test("the fight starts with the gear the player brings", () => {
     const bag: Bag = { ...emptyBag(), items: [{ item: "boar-meat", count: 2, x: 1, y: 1, turned: false }] };
-    const gear = { bag, equipment: { ...armed(), rightHand: null } };
+    const gear = { bag, pack: packFor(null), equipment: { ...armed(), rightHand: null } };
     const fight = alone(gear);
     assert.deepEqual(playerOf(fight).gear, gear);
     assert.equal(handsOf(fight).rightHand, null);
@@ -183,7 +198,7 @@ describe("the bag in a fight", () => {
   });
 
   test("without the book in hand, no page is written from the bag", () => {
-    const fight = alone({ bag: emptyBag(), equipment: { ...armed(), leftHand: null } });
+    const fight = alone({ bag: emptyBag(), pack: packFor(null), equipment: { ...armed(), leftHand: null } });
     run(fight, 0.3);
     fight.step([BAG]);
     fight.step([input({ bag: true, write: { page: 1, skill: NOVA } })]);

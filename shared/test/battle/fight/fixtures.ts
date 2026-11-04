@@ -1,6 +1,6 @@
 /** Fights for tests: enemies whose numbers the tests own (like TEST_LEVEL), inputs, and a dump of the state. */
 import {
-  FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, Health,
+  FIXED_DT, ActiveHit, BASE_STATS, blankSkillbook, Body, releaseTime, ChargeAttack, emptyBag, Enemy, packFor, Health,
   LungeAttack, maxHpOf, newCore, Player, PLAYER, PlayerInput, PounceAttack, Sidestep, SkillAttack, Skilled, SkillObject,
   SlamAttack, Stamina, staminaMaxOf, emptyEquipment, Statuses, STRIKES, SWING_DIRS, WeaponAttack, Wielder,
   type ArenaDef, type EnemyDef, type Entity, type LungeDef, type PounceDef, type PlayerInputData, type Segment,
@@ -106,7 +106,7 @@ export const armed = (): Equipment => ({ ...emptyEquipment(), rightHand: "sword"
 
 export const player = (at: Vec3, over: Partial<PlayerSetup> = {}): PlayerSetup =>
   ({ at, vitals: { hp: FULL_HP, stamina: FULL_STAMINA }, stats: STATS, core: newCore(), burden: "light",
-    gear: { bag: emptyBag(), equipment: armed() }, book: blankSkillbook(), ...over });
+    gear: { bag: emptyBag(), pack: packFor(null), equipment: armed() }, book: blankSkillbook(), ...over });
 export const enemy = (def: EnemyDef, at: Vec3, yaw = Math.PI): EnemySetup => ({ def, at, yaw });
 
 /** One player against one enemy, both standing on the ground. */

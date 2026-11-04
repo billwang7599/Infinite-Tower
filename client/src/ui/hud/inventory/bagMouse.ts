@@ -1,7 +1,7 @@
 /**
- * The bag screen's mouse as plain data, over the bag, the cloth, an open pile and the equipment slots: hovered,
- * selected and dragged, kept apart. Whether a move is allowed is the shared gear rules' call; a drop here only says
- * what to ask the server for.
+ * The bag screen's mouse as plain data, over the bag, the backpack, the cloth, an open pile and the equipment slots:
+ * hovered, selected and dragged, kept apart. Whether a move is allowed is the shared gear rules' call; a drop here only
+ * says what to ask the server for.
  */
 import {
   canWield, fitsSlot, footprint, isWeapon, itemDef, moveGear, moveItem, stackIn, type BagItem, type Cell, type Gear,
@@ -188,7 +188,7 @@ function canUse(stack: BagItem, fullHp: boolean): boolean {
 export function itemToUse(m: BagMouse, gear: Gear, fullHp: boolean): UseSpot | null {
   const spot = m.drag ? null : m.selected;
   const s = stackAt(gear, spot);
-  if (!s || !spot || (spot.in !== "bag" && spot.in !== "cloth") || !canUse(s, fullHp)) return null;
+  if (!s || !spot || spot.in === "slot" || spot.in === "pile" || !canUse(s, fullHp)) return null;
   return { in: spot.in, x: spot.x, y: spot.y };
 }
 

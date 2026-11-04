@@ -103,7 +103,7 @@ describe("Hollis moves on to the Mistwood", () => {
     assert.deepEqual(link.last("questbook").quests.find((q) => q.id === offer.quest)?.lore, lore);
     const after = talkTo(session, link, "hollis");
     assert.equal(after.offer, null);
-    assert.deepEqual(after.lines, dialogueOf(AWAY.talk, session.story, session.bag)!.lines);
+    assert.deepEqual(after.lines, dialogueOf(AWAY.talk, session.story, session.gear)!.lines);
     assert.deepEqual(after.lines, AWAY.talk.find((t) => isDeepStrictEqual(t.when, { done: offer.quest }))?.lines);
   });
 });
