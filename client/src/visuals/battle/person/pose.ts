@@ -4,6 +4,7 @@ import {
 import { playerBlade } from "../pose.js";
 import { pullOf, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
+import { restAt, type JointName } from "./skeleton.js";
 
 /** Pose to pose, as Dead Cells animates: each key is eased into this fast, then held until the next. */
 export const KEY_EASE_TIME = 0.07;
@@ -18,6 +19,39 @@ export function keyed(t: number, at: readonly number[], values: readonly number[
   const span = Math.min(easeTime, (at[i + 1] ?? Infinity) - at[i]!);
   return values[i]! + (values[i + 1]! - values[i]!) * smoothstep(0, span, t - at[i]!);
 }
+
+export const POSED_JOINTS = [
+  "root", "hips", "spine", "chest", "neck", "thigh.R", "thigh.L", "shin.R", "shin.L", "foot.R", "foot.L",
+] as const satisfies readonly JointName[];
+export type PosedJoint = (typeof POSED_JOINTS)[number];
+type Axis = "x" | "y" | "z";
+/** Per axis, a joint's rotation in its parent's frame (radians, Babylon's Euler): before the first key, then at each. */
+export type Track = Partial<Record<Axis, readonly number[]>>;
+export interface Clip { at: readonly number[]; joints: Partial<Record<PosedJoint, Track>> }
+
+/** A thigh forward by c (−x) and its knee bent by 2c keeps the foot under the hip: a crouch. */
+const crouch = (c: readonly number[]): Clip["joints"] => ({
+  "thigh.R": { x: c.map((v) => -v) }, "thigh.L": { x: c.map((v) => -v) },
+  "shin.R": { x: c.map((v) => 2 * v) }, "shin.L": { x: c.map((v) => 2 * v) },
+});
+
+/** Times in seconds unless a clip says otherwise. */
+export const CLIPS = {
+  /** For a dodge straight ahead: the root's lean is turned toward the way it goes. */
+  dodge: {
+    at: [0, 0.6 * PLAYER.dodge.duration],
+    joints: {
+      ...crouch([0, 0.75, 0.2]), root: { x: [0, 0.85, 0.15] }, spine: { x: [0, 0.3, 0.05] },
+      "thigh.R": { x: [0, -0.75, -0.2], z: [0, 0.3, 0.04] }, "thigh.L": { x: [0, -0.75, -0.2], z: [0, -0.3, -0.04] },
+    },
+  },
+  /** Times are shares of the stagger; the roll is toward the sword hand's side. */
+  stagger: { at: [0, 0.5], joints: { root: { x: [0, -0.35, -0.15], z: [0, 0.08, -0.12] }, neck: { x: [0, -0.3, 0] } } },
+  block: { at: [0], joints: { ...crouch([0, 0.25]), root: { x: [-0.05, -0.05] } } },
+  defeat: { at: [0, 0.3], joints: { ...crouch([0, 1.1, 1.1]), root: { x: [0, 0.35, 0.1], z: [0, 0, Math.PI / 2] } } },
+  swing: { at: [], joints: crouch([0.15]) },
+  airborne: { at: [], joints: crouch([0.6]) },
+} as const satisfies Record<string, Clip>;
 
 function keyedStroke({ step, driveAt, liveAt, liveUntil }: SwingData): { set: number; turn: number } {
   const ease = KEY_EASE_TIME / FIXED_DT;
@@ -38,27 +72,23 @@ const PIVOT_OUT = 0.55;
 const PIVOT_DROP = 0.3;
 const HAND_ARC = 0.35;
 const TWIST_RAD = 0.6;
-const HIP_SHARE = 0.4;
+/** How the body's turn toward the blade is shared out, hips to chest; the neck turns back by its own share. */
+const TWIST_SHARES = { hips: 0.4, spine: 0.3, chest: 0.3, neck: -0.6 } as const;
 const BEND_RAD = 0.15;
 const PULL_LEAN_RAD = 0.2;
 const STRIKE_LEAN_RAD = 0.15;
-const DODGE_RECOVER = 0.6;
+const KNEE_LIFT = 0.6;
+const THIGH_M = -restAt("shin.R", "medium").y, SHIN_M = -restAt("foot.R", "medium").y;
 
-/** In the model's frame, feet at 0 and +z ahead; angles in radians. */
+/** In the model's frame, feet at 0 and +z ahead. */
 export interface PersonPose {
   blade: Vec3;
   bladeExact: boolean;
   hand: Vec3;
   offHand: Vec3;
-  twist: number;
-  hipTwist: number;
-  bend: number;
-  lean: number;
-  roll: number;
-  /** How far the thighs come forward; the knees bend twice that. */
-  crouch: number;
-  legSwing: number;
-  yOff: number;
+  joints: Record<PosedJoint, Vec3>;
+  /** The root's height (m), down as the knees bend so the feet stay on the ground. */
+  rootY: number;
 }
 
 export interface PersonMoment {
@@ -75,6 +105,15 @@ export interface PersonMoment {
 
 type Doing = Pick<PlayerData, "action" | "actionTime" | "way" | "grounded">;
 
+function play(joints: PersonPose["joints"], clip: Clip, t: number, scale: Partial<Record<PosedJoint, Vec3>> = {}): void {
+  for (const [name, track] of Object.entries(clip.joints) as [PosedJoint, Track][]) {
+    for (const axis of ["x", "y", "z"] as const) {
+      const values = track[axis];
+      if (values) joints[name][axis] += keyed(t, clip.at, values) * (scale[name]?.[axis] ?? 1);
+    }
+  }
+}
+
 export function personPose(
   player: Doing, wielder: Pick<WielderData, "swing">, motion: WeaponMotion, o: PersonMoment,
 ): PersonPose {
@@ -84,14 +123,17 @@ export function personPose(
   const pivot = { x: side * b.shoulderM * PIVOT_OUT, y: b.shoulderY - reach * PIVOT_DROP, z: 0 };
   const arc = reach * HAND_ARC;
   const restOff: Vec3 = { x: -side * (b.shoulderM + 0.03), y: b.shoulderY - reach * 0.95, z: 0.05 };
+  const joints = Object.fromEntries(POSED_JOINTS.map((j) => [j, { x: 0, y: 0, z: 0 }])) as PersonPose["joints"];
   const p: PersonPose = {
     blade, bladeExact: exact,
     hand: { x: pivot.x + blade.x * arc, y: pivot.y + blade.y * arc, z: handZ * scale + blade.z * arc },
-    offHand: restOff,
-    twist: alive ? TWIST_RAD * blade.x : 0, hipTwist: 0, bend: alive ? -BEND_RAD * blade.y : 0,
-    lean: 0, roll: 0, crouch: 0, legSwing: 0, yOff: 0,
+    offHand: restOff, joints, rootY: 0,
   };
-  p.hipTwist = HIP_SHARE * p.twist;
+  if (alive) {
+    const twist = TWIST_RAD * blade.x, bend = -BEND_RAD * blade.y;
+    for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
+    joints.spine.x = joints.chest.x = bend / 2;
+  }
   const towardOff = (to: Vec3) => {
     const k = keyed(t, [0], [0, 1]);
     p.offHand = { x: restOff.x + (to.x - restOff.x) * k, y: restOff.y + (to.y - restOff.y) * k,
@@ -99,32 +141,26 @@ export function personPose(
   };
 
   if (!alive) {
-    const at = [0, 0.3];
-    p.crouch = keyed(o.deadTime, at, [0, 1.1, 1.1]);
-    p.lean = keyed(o.deadTime, at, [0, 0.35, 0.1]);
-    p.roll = keyed(o.deadTime, at, [0, 0, Math.PI / 2]);
+    play(joints, CLIPS.defeat, o.deadTime);
   } else if (swing && swing.step < swing.endAt) {
     const stroke = keyedStroke(swing), pull = pullOf(stroke, swing.attack === "heavy");
-    p.lean = stroke.turn < 1 / 3 ? -PULL_LEAN_RAD * pull : STRIKE_LEAN_RAD;
-    p.crouch = 0.15;
+    joints.root.x = stroke.turn < 1 / 3 ? -PULL_LEAN_RAD * pull : STRIKE_LEAN_RAD;
+    play(joints, CLIPS.swing, 0);
   } else {
     switch (player.action) {
       case "dodge": {
-        const at = [0, DODGE_RECOVER * PLAYER.dodge.duration], lean = keyed(t, at, [0, 0.5, 0.1]);
-        p.crouch = keyed(t, at, [0, 0.7, 0.2]);
-        p.lean = lean * o.dodge.z;
-        p.roll = -lean * o.dodge.x;
+        const clip = CLIPS.dodge;
+        play(joints, clip, t, { root: { x: o.dodge.z, y: 1, z: 1 } });
+        joints.root.z -= keyed(t, clip.at, clip.joints.root.x) * o.dodge.x;
         break;
       }
       case "stagger": {
-        const at = [0, o.stagger.of / 2], since = o.stagger.of - o.stagger.left;
-        p.lean = keyed(since, at, [0, -0.35, -0.15]);
-        p.roll = side * keyed(since, at, [0, 0.08, -0.12]);
+        const { at, joints: keys } = CLIPS.stagger, { left, of } = o.stagger;
+        play(joints, { at: at.map((share) => share * of), joints: keys }, of - left, { root: { x: 1, y: 1, z: side } });
         break;
       }
       case "block":
-        p.crouch = keyed(t, [0], [0, 0.25]);
-        p.lean = -0.05;
+        play(joints, CLIPS.block, t);
         break;
       case "chant":
         towardOff({ x: -side * 0.08, y: b.shoulderY - 0.05, z: reach * 0.85 });
@@ -132,7 +168,7 @@ export function personPose(
       case "cast":
       case "beam":
         towardOff({ x: -side * 0.04, y: b.shoulderY, z: reach });
-        p.lean = 0.08;
+        joints.root.x = 0.08;
         break;
       case "write":
         towardOff({ x: -side * 0.06, y: b.shoulderY - reach * 0.5, z: reach * 0.6 });
@@ -145,11 +181,18 @@ export function personPose(
         break;
     }
   }
-  if (alive && !player.grounded) p.crouch = 0.6;
+  if (alive && !player.grounded) play(joints, CLIPS.airborne, 0);
   if (alive && player.grounded && o.walk.amp > 0 && player.action === "none") {
-    p.legSwing = o.walk.amp * Math.sin(keyedPhase(o.walk.phase));
-    p.offHand = { ...p.offHand, z: p.offHand.z - p.legSwing * 0.3 };
+    const stride = o.walk.amp * Math.sin(keyedPhase(o.walk.phase));
+    joints["thigh.L"].x += stride;
+    joints["thigh.R"].x -= stride;
+    joints["shin.L"].x += Math.max(0, -stride) * KNEE_LIFT;
+    joints["shin.R"].x += Math.max(0, stride) * KNEE_LIFT;
+    p.offHand = { ...p.offHand, z: p.offHand.z - stride * 0.3 };
   }
-  p.yOff = -b.legY * (1 - Math.cos(p.crouch)) + Math.sin(p.roll) * b.shoulderM;
+  for (const s of ["R", "L"] as const) joints[`foot.${s}`].x = -(joints[`thigh.${s}`].x + joints[`shin.${s}`].x);
+  const thigh = joints["thigh.R"].x, knee = thigh + joints["shin.R"].x;
+  p.rootY = -(THIGH_M * (1 - Math.cos(thigh)) + SHIN_M * (1 - Math.cos(knee)))
+    + (alive ? 0 : Math.abs(Math.sin(joints.root.z)) * b.shoulderM);
   return p;
 }

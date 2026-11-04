@@ -246,6 +246,24 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
   pose to pose (`visuals/battle/person/`), no drawing needed. The arena is drawn small and blown up into outlined
   pixel art. In dev, `?pixel=1&outline=0&player3d=0` brings back the old look (sprite player, smooth render).
+  The people are built like this:
+  - **One rig for everyone**: `SKELETON` (`skeleton.ts`) is a plain table of joints with Blender's names (`hips`,
+    `spine`, `chest`, `neck`, `head`, `upper_arm.L`, `forearm.R`, `hand.L`, `thigh.R`, `shin.L`, `foot.R`...), each
+    joint's parent and its rest offset in metres (feet at 0, +y up, +z ahead, +x the body's right). Body types move
+    only the shoulders and hips out. Things worn or held hang from attach joints: `grip.R` / `grip.L` (a weapon, its
+    +y along the blade), `crown` (a hat) and `back` (something slung). Every mesh is rigid on exactly one joint.
+  - **One body, the sprite's proportions**: each part (`SHAPES` in `body.ts`) is a loft through cross-sections
+    measured in the battle sprite's pixels from its joint, so the 3D body matches the 64x64 sprite's stand.
+  - **The face is the creator's**: the chibi's front eyes and mouth (with a nose and blush) are painted on the head's
+    front as a 32x32 texture, sampled nearest, so every eye type, mouth and colour carries over (`faceTexels`).
+  - **Hair and clothes are swappable parts**: each hair style (`HAIR_STYLES` in `head.ts`) is a shell cut round the
+    head where it covers, fringe locks and maybe a tail, textured with strands in the hair's own ramp; each piece of
+    clothing (`STARTER_WEAR`) is a table entry naming the body parts it colours and the trims it adds (belt, collar,
+    hem, cuffs), in the look's ramps.
+  - **Lit like the sprite**: every part takes a fill light of its own colour, so dark skin, hair and clothes keep
+    their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
+  - **Poses are data**: `CLIPS` (`pose.ts`) hold each action's key times and joint rotations by joint name, for a
+    keyframe editor or an export to read; the swing's arm comes from the sword's motions, the arms bent to reach.
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.
