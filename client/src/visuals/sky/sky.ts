@@ -6,6 +6,7 @@ import { fogFragmentDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/f
 import { moonAt, sunAt, type Vec3 } from "@infinite-tower/shared";
 import { createBlobs, type Blobs, type Lighting } from "./blobs.js";
 import { dayFractionAt, daylightAt, directLightAt } from "./daylight.js";
+import { createDome } from "./dome.js";
 
 export interface SkyLook {
   sky: Color3;
@@ -24,8 +25,10 @@ export const MAX_MAP_LIGHTS = 4;
 export const SHADOW_MAP_LIGHTS = 2;
 /** A map light keeps its shadows until another is this much nearer the camera, so shaders don't swap back and forth. */
 export const SHADOW_SWAP_MARGIN_M = 2;
+/** Sky light onto the side away from the sun or moon: `share` of its intensity, from `elevationRad` up. */
+export const FILL = { share: 0.5, elevationRad: 0.35 };
 const SPRITE_LIGHT = { sky: 1.3, direct: 0.7, map: 0.6 };
-const SUN_DISC = { color: new Color3(3, 2.6, 2), radiusM: 5 };
+const SUN_DISC = { color: new Color3(3, 2.6, 2), radiusM: 7 };
 const MOON_DISC = { color: new Color3(1.2, 1.3, 1.5), radiusM: 3.5 };
 const DISC_DISTANCE_M = 400;
 const BODY_DISTANCE_M = 40;
@@ -55,6 +58,8 @@ export interface Sky {
   tintAt(at: Vec3, out: Color3): Color3;
   blobs(material: Material, lengthM: number, widthM: number): Blobs;
   cardYaw(): number;
+  /** The halo round the sun, in HDR; black once it's well down. */
+  readonly glow: { readonly toSun: Vec3; readonly color: Color3 };
 }
 
 const EXP2_FOG = "fogCoeff=1.0/pow(E,fogDistance*fogDistance*fogDensity*fogDensity);";
@@ -71,6 +76,8 @@ export function createSky(scene: Scene): Sky {
   // Glints come from the sun or moon only (water/), not a white sheen from the whole sky.
   skyLight.specular = Color3.Black();
   const body = new DirectionalLight("sky-body", new Vector3(0, -1, 0), scene);
+  const fillLight = new DirectionalLight("sky-fill", new Vector3(0, -1, 0), scene);
+  fillLight.specular = Color3.Black();
   body.shadowMinZ = 1;
   body.shadowMaxZ = 90;
   const bodyShadows = new ShadowGenerator(2048, body);
@@ -93,6 +100,8 @@ export function createSky(scene: Scene): Sky {
     return { mesh, m };
   };
   const sunDisc = disc("sun-disc", SUN_DISC), moonDisc = disc("moon-disc", MOON_DISC);
+  const paintDome = createDome(scene);
+  const glow = { toSun: sunAt(0), color: new Color3() };
 
   const casters = new Set<AbstractMesh>(), watched = new WeakSet<AbstractMesh>();
   let place: SkyLook | null = null;
@@ -103,7 +112,7 @@ export function createSky(scene: Scene): Sky {
   let direct = directLightAt(0);
   const lighting: Lighting = { skyBrightness: 0, direct: { toLight: direct.toLight, brightness: 0 }, lamps: [] };
   let materialCount = 0;
-  const maxLights = 2 + MAX_MAP_LIGHTS;
+  const maxLights = 3 + MAX_MAP_LIGHTS;
 
   return {
     look(look, lights) {
@@ -180,6 +189,8 @@ export function createSky(scene: Scene): Sky {
       const { toLight } = direct;
       body.direction.set(-toLight.x, -toLight.y, -toLight.z);
       body.position.set(toLight.x * BODY_DISTANCE_M, toLight.y * BODY_DISTANCE_M, toLight.z * BODY_DISTANCE_M);
+      const sun = sunAt(fraction), moon = moonAt(fraction);
+      glow.toSun = sun;
       if (place) {
         const sky = place.sky.multiply(day.sky);
         scene.clearColor = new Color4(sky.r, sky.g, sky.b, 1);
@@ -193,10 +204,17 @@ export function createSky(scene: Scene): Sky {
         const sunLit = direct.body === "sun";
         body.diffuse = sunLit ? place.sun.color.multiply(day.sunTint) : place.moon.color.clone();
         body.specular = body.diffuse;
-        body.intensity = direct.strength * (sunLit ? place.sun : place.moon).intensity;
+        body.intensity = direct.strength * (sunLit ? place.sun.intensity * day.sunScale : place.moon.intensity);
+        const flat = Math.max(Math.hypot(toLight.x, toLight.z), 1e-6);
+        const level = Math.cos(FILL.elevationRad) / flat;
+        fillLight.direction.set(toLight.x * level, -Math.sin(FILL.elevationRad), toLight.z * level);
+        fillLight.diffuse = skyLight.diffuse;
+        fillLight.intensity = FILL.share * body.intensity;
+        place.sun.color.multiplyToRef(day.sunTint, glow.color).scaleInPlace(day.glow);
+        paintDome({ horizon: sky, zenith: sky.multiply(day.zenith), toSun: glow.toSun, glow: glow.color,
+          night: day.night });
       }
 
-      const sun = sunAt(fraction), moon = moonAt(fraction);
       sunDisc.mesh.position.set(sun.x * DISC_DISTANCE_M, sun.y * DISC_DISTANCE_M, sun.z * DISC_DISTANCE_M);
       sunDisc.mesh.visibility = day.sunDiscAlpha;
       SUN_DISC.color.multiplyToRef(day.sunTint, sunDisc.m.emissiveColor);
@@ -232,5 +250,6 @@ export function createSky(scene: Scene): Sky {
 
     blobs: (material, lengthM, widthM) => createBlobs(scene, lighting, material, lengthM, widthM),
     cardYaw: () => cardYawRad(direct.toLight),
+    glow,
   };
 }

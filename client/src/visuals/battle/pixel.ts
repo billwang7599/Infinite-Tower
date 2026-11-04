@@ -2,6 +2,8 @@ import {
   Constants, Effect, GeometryBufferRenderer, PostProcess, type AbstractMesh, type Camera, type Scene,
 } from "@babylonjs/core";
 import { ACCENTS, DYES, EYES, FIXED, HAIR, SKIN, type Ramp } from "../../gfx/look/palette.js";
+import { sunRays } from "../sky/rays.js";
+import type { Sky } from "../sky/sky.js";
 
 export interface PixelFlags {
   scale: number | "auto" | null;
@@ -115,12 +117,13 @@ export function keepSharp(mesh: AbstractMesh): void {
   sharp.add(mesh);
 }
 
-export function pixelPost(scene: Scene, camera: Camera, flags: PixelFlags): void {
+export function pixelPost(scene: Scene, camera: Camera, flags: PixelFlags, sky: Sky): void {
   if (flags.outline) {
     const gbuffer = scene.enableGeometryBufferRenderer();
     if (gbuffer) {
       gbuffer.useSpecificClearForDepthTexture = true;
-      gbuffer.getGBuffer().renderListPredicate = (mesh) => !sharp.has(mesh);
+      // The sky (its dome, sun and moon) stays out, so it reads as nothing drawn: no outline, and the rays' way out.
+      gbuffer.getGBuffer().renderListPredicate = (mesh) => !sharp.has(mesh) && !mesh.infiniteDistance;
       const textures = gbuffer.getGBuffer().textures;
       const depth = textures[gbuffer.getTextureIndex(GeometryBufferRenderer.DEPTH_TEXTURE_TYPE)];
       const normal = textures[gbuffer.getTextureIndex(GeometryBufferRenderer.NORMAL_TEXTURE_TYPE)];
@@ -134,6 +137,7 @@ export function pixelPost(scene: Scene, camera: Camera, flags: PixelFlags): void
         effect.setTexture("depthSampler", depth!);
         effect.setTexture("normalSampler", normal!);
       };
+      sunRays(camera, depth!, sky);
     }
   }
   if (flags.palette) {

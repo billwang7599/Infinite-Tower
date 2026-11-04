@@ -1645,7 +1645,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands], &aa=0 for no
                          anti-aliasing): pixelFlags, pixelScale (the engine's hardware scaling in a fight), the outline
                          and palette passes (what keepSharp marks, the blades, glints and trails, stays out of the
-                         outline); also the 3D person's flags (&player3d=0 for the sprite, &steps=<fps>). scene.ts
+                         outline; the sky, with no depth, stays out too, and the sun's rays come after it); also the
+                         3D person's flags (&player3d=0 for the sprite, &steps=<fps>). scene.ts
                          anti-aliases it with 4x MSAA at its small size (FXAA would smear the textures' pixels)
         person/          The arena's people as 3D models (sprite only with &player3d=0), built in code from the look:
                          skeleton.ts (SKELETON: the one rig, a table of joints with Blender's names, parents and rest
@@ -1718,7 +1719,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       overworld/       The overworld, drawn HD-2D style: pixel-art billboards on 3D ground (the flat 2D one is
                        archived: plan/overworld-2d.md)
         scene.ts         OverworldScene: perspective camera (CAMERA: its field of view and distance), its sky,
-                         bloom, colour grade, vignette and the tilt-shift blur (GLSL); the sprite materials (a pile's
+                         bloom, colour grade, vignette and the tilt-shift blur with the sun's haze (GLSL: HAZE, warm
+                         toward the sun over the far ground, the distance guessed from the camera's height); the
+                         sprite materials (a pile's
                          sack among them, drawPile, a trace's bedroll, the arena's too); standingQuad
         walker.ts        WALKERS (chibi, other players', NPCs', enemy, pile and trace billboards: glide, hop,
                          facing, the sky's tint and blob shadows, "!", another player's or an NPC's own chibi and
@@ -1790,14 +1793,20 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          QUARRY_WORKINGS, the cut stone, carts and cranes, for the other looks to borrow)
       sky/             sky.ts: the one owner of the arena's and overworld's lights and shadows (nothing else makes a
                        light or a shadow generator): the time of day's sun or moon (one shadow-casting light,
-                       cross-faded at the horizon) and their discs, the sky light, sky colour and fog over a look's
+                       cross-faded at the horizon) and their discs, a fill light from the side away from it (FILL,
+                       so the shadow side isn't black), the sun's glow (Sky.glow, for the dome, haze and rays), the
+                       sky light, sky colour and fog over a look's
                        colours (SkyLook; Babylon's fog, made full by fogEnd too once a fogStart is set), the map's
                        flickering point lights (the nearest the camera cast shadows; kept and reused by the next
                        look, since a new light makes every material check its shaders),
                        tint (a region's colours, the lights kept), dropShadows (a chunk hidden), clearShadows, a
                        sprite's tint, the yaw that turns a shadow card to a light.
                        daylight.ts (the day clock, setDayClock (dev: `?time=`, `window.setTime`); by the sun's height:
-                       the direct light, the sky's colours and the discs' fade, how dark it is), blobs.ts (a sprite's
+                       the direct light and how bright a low sun is, the sky's colours overhead and at the horizon, the
+                       sun's glow and the discs' fade, how dark it is), dome.ts (the sky dome, GLSL: horizon to zenith,
+                       the sun's halo, stars at night; the fog's colour below the horizon, so only the arena sees it),
+                       rays.ts (the arena's sun rays, GLSL: each pixel looks toward the sun through the depth pass's
+                       empty sky; sunOnScreen, tested), blobs.ts (a sprite's
                        blob shadows, Blobs: a round one from the sky light, and one away from each light that reaches
                        it, as dark as that light's share there; blobShadowsAt, tested)
       water/           The one water look, overworld and arena alike: water.ts (waterMaterial, a shader with
@@ -2052,8 +2061,9 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | A region theme's daylight sky, fog and light; its night (moonlight and night sky, its fights' too); a campfire's light | `env` (`moon`) in `REGION_LOOKS` and `CAMPFIRE_LIGHT` in `client/src/visuals/regions/index.ts` |
 | An arena look's daylight sky, fog and light; its map lights | `env` and `lights` in each `client/src/visuals/arenas/<look>/` |
 | The day's length; the sun's and moon's arcs | top of `shared/src/world/day.ts` |
-| The time of day's light: colours by sun height, fades | top of `client/src/visuals/sky/daylight.ts` |
-| Map-light shadows, sprite tint, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
+| The time of day's light: colours by sun height (the sky overhead, the sun's glow, a low sun's brightness), fades | top of `client/src/visuals/sky/daylight.ts` |
+| Map-light shadows, sprite tint, sun and moon discs, the shadow side's fill light | top of `client/src/visuals/sky/sky.ts` (`FILL`) |
+| The sky dome's gradient, the sun's halo, the stars; the arena's sun rays; the overworld's sun haze and bloom | `client/src/visuals/sky/dome.ts`, `RAYS` in `client/src/visuals/sky/rays.ts`; `HAZE` and `postProcess` in `client/src/visuals/overworld/scene.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
 | Arena camera feel, locked and not | `CAMERA` (unlocked) and `LOCKED_VIEWS` (shoulder, close, first person) at the top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |

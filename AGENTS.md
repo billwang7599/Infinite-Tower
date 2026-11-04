@@ -428,6 +428,15 @@ Decided by the user:
   fight's music fades out as it's decided, so the victory or defeat sound rings out, and the arena stays quiet until you
   leave. A fourth volume, Music (100% to start), saved with the others. The volumes come with the save, so before Play
   the title's music is at the default volume.
+- The sky and light (the user: "add bloom to the sun or something to make shaders look more like minecraft and more
+  beautiful", "make any assumptions you want"; every pick is the agent's, seen in a headless browser only): warmer,
+  softer light, no new rules. A fill light from the side away from the sun or moon, half its strength, in the sky
+  light's cooler colour, so the shadow side isn't black; the noon sun a little less blue and a low sun brighter (up to
+  1.7x at 4°) with a little less sky light, so evenings read golden. A sky dome, bluer overhead than at the horizon (the
+  fog's colour, unchanged), with a halo round the sun strongest near the horizon and stars at night; the sun's disc a
+  little bigger and blooming. The arena adds rays: each pixel lit by the sky it sees toward the sun (none with the sun
+  behind you or down). The overworld never sees the sky, so it gets a warm haze over the far ground, strongest toward
+  the sun, and a touch more bloom. No moon halo or moon rays.
 - Dev servers have an admin panel of cheats (the user: "an admin panel in dev for cheats like fast forward time
   ..., fast forward day/night, spawn enemy, invulnerability, give items, etc"; the details are the agent's picks): F1
   opens it, and the server ignores cheats in production. Time controls move only the day clock (drawing), not the

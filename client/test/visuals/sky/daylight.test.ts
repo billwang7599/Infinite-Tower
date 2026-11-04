@@ -47,3 +47,26 @@ describe("the sky's direct light", () => {
     assert.ok(warmth(daylightAt(low).sunTint) > warmth(daylightAt(0.5).sunTint));
   });
 });
+
+describe("the sky's colours", () => {
+  const luminance = (c: Color3) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+  test("by day the sky overhead is bluer than at the horizon, and at night darker than by day", () => {
+    const noon = daylightAt(0.5).zenith, night = daylightAt(0).zenith;
+    assert.ok(noon.b > 1 && noon.b > noon.r);
+    assert.ok(luminance(night) < luminance(noon));
+  });
+
+  test("the sun's glow is strongest low in the sky, still there at noon, and gone at night", () => {
+    const low = fractions.find((f) => f < 0.5 && altitudeDeg(sunAt(f)) > 3)!;
+    assert.ok(daylightAt(low).glow > daylightAt(0.5).glow);
+    assert.ok(daylightAt(0.5).glow > 0);
+    assert.equal(daylightAt(0).glow, 0);
+  });
+
+  test("the glow fades in and out with no jump", () => {
+    for (let i = 1; i < fractions.length; i++) {
+      assert.ok(Math.abs(daylightAt(fractions[i - 1]!).glow - daylightAt(fractions[i]!).glow) < 0.01);
+    }
+  });
+});
