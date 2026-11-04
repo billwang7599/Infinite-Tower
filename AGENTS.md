@@ -525,16 +525,27 @@ Decided by the user:
 - The overworld is drawn in 3D, HD-2D style (the user: "i think 3d view is much cooler actually. can we make that
   default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
+- The game holds the mouse while you play (the user: "otherwise game should always take control of mouse"): in the
+  overworld and the arena, with nothing over them, the pointer is captured, hidden, every move the game's, as play
+  starts or a screen closes (Auto mouse lock, on by default) or on a press on the game, a press that does nothing
+  else. Settings, the admin panel, the bag (and a shop), the chant, a dialog, the questbook, the chat's field and the
+  character panel let it go, the game's own pointer showing. Esc lets it go (the browser's rule) and opens Settings,
+  as Esc does; lost another way (another window taking the focus), it waits for a click. In the arena a small dot
+  marks the screen's middle while it's captured (where the aim crosshair's middle is); the overworld has none, its
+  middle being your own figure. The result banner, the arena after a win and a duel challenge keep it (they're keys
+  only); the HUD's buttons (Rest, Talk, the portrait) are reached by their keys, or after Esc. The arena's mouse is
+  as before: a move aims, and the right (or middle) button held and moved past about 6 px pans, a right click under
+  that is a heavy. (The main chat's and the agent's picks.)
 - The overworld camera turns: held, Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it at a
   steady rate, any way, not in quarter turns (the user: "arrow keys should be continuous, not discrete, with no
-  limitations"), at the arena's rates and sensitivity; so does holding the right (or middle) button and moving the
-  mouse, past about 6 px as in the arena, turning and tilting it (the user: "so overworld also control camera with
-  right click hold"); a right click without a drag still turns an item, as it's let go. Past those 6 px the pointer
-  is captured, hidden and still, until the button is let go, and comes back where it was (the user: "when right click
-  drag to move mouse around, the mouse should dissapear/be focused onto the game. i dont want the actual mouse
-  pointer to be moving"); a browser that refuses drags with the pointer free, as before. Otherwise the mouse isn't
-  captured there. Walking is relative to the camera (W away from it, A / D to its left and right), and sprites and
-  the chibi's pictures follow it, by the nearest quarter turn. The way it looks is saved with the settings (north for
+  limitations"), at the arena's rates and sensitivity; so does the mouse, captured while you play (above): every move
+  turns and tilts it, and so does holding the right (or middle) button and moving it (the user: "so overworld also
+  control camera with right click hold"); a right click that moved under about 6 px still turns an item, as it's let
+  go. With the character panel open the pointer is free, and a right (or middle) drag past those 6 px captures it,
+  hidden and still, until the button is let go (the user: "when right click drag to move mouse around, the mouse
+  should dissapear/be focused onto the game. i dont want the actual mouse pointer to be moving"); a browser that
+  refuses drags with the pointer free. Walking is relative to the camera (W away from it, A / D to its left and
+  right), and sprites and the chibi's pictures follow it, by the nearest quarter turn. The way it looks is saved with the settings (north for
   a new player).
 - The overworld camera tilts (the user: it "stays where it is", not saved): held, Up / Down (`lookUp` / `lookDown`,
   rebindable) or a drag tilt it within the arena's caps (35° under the pivot to 80° over it; the user's "overworld
@@ -772,9 +783,10 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The HUD's and the menus' look is "Inscribed" (the user picked it from the HUD lab's mockups: "inscribed is pretty
   good… enemy health should be red though still"): carved bars with pointed ends and a notch every tenth, cut-corner
   frames, Gill Sans capitals, bone text and a cinnabar seal on names, the foe's bar red (ART.md's "HUD and menus").
-  It replaced the gilt look outright, with no setting to switch back. Over the game the pointer is its own (the user:
-  "custom mouse pointer for when the mouse is in game?"): a small carved arrowhead, bone and cinnabar halves in a dark
-  outline (`client/src/ui/cursor.svg`, the agent's design); menus, panels and buttons keep the usual ones.
+  It replaced the gilt look outright, with no setting to switch back. The pointer is always the game's own (the user:
+  "custom mouse pointer for when the mouse is in game?", then "we should have custom pointer"): a small carved
+  arrowhead, bone and cinnabar halves in a dark outline (`client/src/ui/cursor.svg`, the agent's design), over the
+  game, menus, panels and buttons alike; text fields keep the I-beam.
 - Chanting and the skillbook: R opens and closes the chant (E was kept free; it's now Interact in the arena too).
   Writing a page in a fight takes 2 s (`SAVE_IN_FIGHT_TIME` in `shared/src/skills/skill.ts`); a Write button per
   page, while Enter casts. Outside fights the book opens from the bag screen (Open, a double click or Enter on the

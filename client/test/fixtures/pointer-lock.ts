@@ -5,6 +5,8 @@ export function fakePointerLock(answer: LockAnswer = "grant") {
   const doc = Object.assign(new EventTarget(), {
     pointerLockElement: null as unknown,
     exits: 0,
+    focused: true,
+    hasFocus: () => doc.focused,
     exitPointerLock() {
       doc.exits++;
       lockChange(null);
@@ -29,6 +31,10 @@ export function fakePointerLock(answer: LockAnswer = "grant") {
   return {
     win: win as unknown as Window, doc, canvas, grant,
     escape: () => lockChange(null),
+    blur: () => {
+      doc.focused = false;
+      lockChange(null);
+    },
   };
 }
 

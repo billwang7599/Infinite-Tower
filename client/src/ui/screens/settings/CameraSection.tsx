@@ -80,7 +80,7 @@ function AutoLockRow({ mouse }: { mouse: MouseSettings }) {
     <div className={SETTING_ROW}>
       <label htmlFor="mouse-auto-lock" className="flex flex-col">
         <span className={SETTING_LABEL}>Auto mouse lock</span>
-        <span className="text-xs text-white/45">Capture the mouse as a battle starts, without a click</span>
+        <span className="text-xs text-white/45">Capture the mouse as play starts or a menu closes, without a click</span>
       </label>
       <input
         id="mouse-auto-lock"

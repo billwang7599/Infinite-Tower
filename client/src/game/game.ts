@@ -51,9 +51,9 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
 
   /**
    * The game only gets input during a session with no screen over it (not even the title, still clearing off the
-   * world, nor the open bag), and the mouse only in the arena (captured at once there if Auto mouse lock is on).
+   * world, nor the open bag), and holds the mouse captured only then and with the character panel (clicked) shut.
    */
-  const updateInput = () => actions.setLayers(whoHasTheKeys(ui, mode));
+  const updateInput = () => actions.setLayers(whoHasTheKeys(ui, mode), ui.panel.get().open === "character");
   for (const store of ui.keyStores) store.subscribe(updateInput);
   updateInput();
 

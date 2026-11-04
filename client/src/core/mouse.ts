@@ -1,7 +1,8 @@
 /**
- * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). In the arena it's captured (pointer
- * lock) by a click on the canvas, or by Auto mouse lock, and let go with Esc, and counts only while captured; where it
- * isn't wanted captured (the overworld), it counts on the canvas as it is, captured only while a camera drag lasts.
+ * Mouse / trackpad, its buttons named by MouseEvent.button ("Mouse0" the left). While the game wants it (the overworld
+ * and the arena with nothing over them) it's captured (pointer lock) by a press on the canvas, or by Auto mouse lock,
+ * and let go with Esc, and counts only while captured; where it isn't wanted, it counts on the canvas as it is,
+ * captured only while a camera drag lasts.
  */
 import { clamp } from "@infinite-tower/shared";
 import { Buttons } from "./buttons.js";
@@ -15,14 +16,15 @@ interface LockChange {
 }
 
 /**
- * Capture the mouse without a click only at the moment it becomes wanted (a battle starts, or a screen over the
- * arena closes). So a lock let go with Esc mid-fight stays let go until the player clicks.
+ * Capture the mouse without a click only at the moment it becomes wanted (play starts, or a screen over the world
+ * closes). So a lock lost some other way stays let go until the player clicks.
  */
 export function shouldAutoLock({ wasLockable, lockable, autoLock, locked }: LockChange): boolean {
   return autoLock && lockable && !wasLockable && !locked;
 }
 
 type MoveListener = (dx: number, dy: number, atMs: number) => void;
+type LockListener = (locked: boolean, byPlayer: boolean) => void;
 /** Notches of a mouse wheel: + toward you. */
 type WheelListener = (notches: number) => void;
 
@@ -34,10 +36,12 @@ export const WHEEL = { notchPx: 100, linesPerNotch: 3, restMs: 150 } as const;
 export class Mouse extends Buttons {
   private moved: MoveListener = () => {};
   private wheeled: WheelListener = () => {};
+  private lockChanged: LockListener = () => {};
   private lastWheelMs = -Infinity;
   locked = false;
-  /** Only capture the mouse when the current mode wants it (the arena). */
+  /** Only capture the mouse when the current mode wants it. */
   private lockable = false;
+  private rawMovement = false;
   private dragLockButtons: readonly string[] | null = null;
   private skipNextMove = false;
 
@@ -45,11 +49,10 @@ export class Mouse extends Buttons {
     private readonly canvas: HTMLCanvasElement, private readonly doc: Document = document, win: Window = window,
   ) {
     super();
-    canvas.addEventListener("click", () => {
-      if (!this.locked && this.lockable) void this.lock();
-    });
     doc.addEventListener("pointerlockchange", () => {
+      const was = this.locked;
       this.locked = doc.pointerLockElement === canvas;
+      if (this.locked !== was) this.lockChanged(this.locked, !this.locked && this.lockable && doc.hasFocus());
       if (!this.locked) {
         this.dragLockButtons = null;
         this.releaseAll();
@@ -62,7 +65,10 @@ export class Mouse extends Buttons {
       }
     });
     // Babylon's scene cancels every pointerdown, and then the browser sends no mousedown, mouseup or held mousemove.
-    canvas.addEventListener("pointerdown", (e) => this.button(e));
+    canvas.addEventListener("pointerdown", (e) => {
+      this.button(e);
+      if (!this.locked && this.lockable) void this.lock();
+    });
     win.addEventListener("pointerup", (e) => this.button(e));
     doc.addEventListener("pointermove", (e) => {
       // A button pressed or let go while another is down.
@@ -109,27 +115,36 @@ export class Mouse extends Buttons {
     this.wheeled = listener;
   }
 
+  onLock(listener: LockListener): void {
+    this.lockChanged = listener;
+  }
+
   /** Whether the current mode wants the mouse: let go of it if not; newly wanted, captured at once if `autoLock`. */
-  setLockable(lockable: boolean, autoLock: boolean): void {
-    const wasLockable = this.lockable;
+  setLockable(lockable: boolean, autoLock: boolean, rawMovement = false): void {
+    const wasLockable = this.lockable, rawChanged = rawMovement !== this.rawMovement;
     this.lockable = lockable;
-    if (lockable) this.dragLockButtons = null;
+    if (lockable) {
+      this.dragLockButtons = null;
+      this.rawMovement = rawMovement;
+    }
     if (shouldAutoLock({ wasLockable, lockable, autoLock, locked: this.locked })) void this.lock();
+    else if (lockable && this.locked && rawChanged) void this.lock();
     if (!lockable) this.unlock();
   }
 
   lockWhileHeld(buttons: readonly string[]): void {
     if (this.locked || this.lockable) return;
     this.dragLockButtons = buttons;
-    void this.lock(true);
+    this.rawMovement = true;
+    void this.lock();
   }
 
-  /** Never rejects: a browser may refuse without a recent click (then a click on the canvas asks again). */
-  async lock(unadjustedMovement = false): Promise<void> {
+  /** Never rejects: a browser may refuse without a recent click (then a press on the canvas asks again). */
+  async lock(unadjustedMovement = this.rawMovement): Promise<void> {
     try {
       await this.canvas.requestPointerLock?.({ unadjustedMovement });
     } catch (e) {
-      if (unadjustedMovement && e instanceof DOMException && e.name === "NotSupportedError") await this.lock();
+      if (unadjustedMovement && e instanceof DOMException && e.name === "NotSupportedError") await this.lock(false);
     }
   }
 

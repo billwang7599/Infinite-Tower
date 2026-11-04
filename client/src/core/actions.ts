@@ -6,6 +6,7 @@ import type { Buttons } from "./buttons.js";
 import type { Keyboard } from "./keyboard.js";
 import type { Mouse } from "./mouse.js";
 import type { MouseSettings } from "../settings/mouse.js";
+import { Store } from "../ui/store.js";
 
 type OverworldAction = Action<"general" | "overworld">;
 const BAG_ACTIONS = ["inventory", "character", "turnItem", "useItem"] as const satisfies readonly OverworldAction[];
@@ -50,6 +51,11 @@ const DRAG_BUTTONS: Partial<Record<Layer, readonly string[]>> = {
   overworld: dragButtons("overworld"), battle: dragButtons("battle"),
 };
 
+// A browser that also sends the Esc key that let go of the lock sends it about at once: it isn't a second Esc.
+export const ESC_ECHO_MS = 250;
+// The arena's flicks were tuned on the OS's accelerated movement; the overworld's camera turns by raw counts.
+const RAW_MOVEMENT: readonly Layer[] = ["overworld"];
+
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
 // By screen angle in equal steps from moving right, clockwise (y grows down).
@@ -87,13 +93,17 @@ const FIXED = new Map(Object.entries(MENUS).map(([layer, actions]) => [layer as 
 // Only these read held keys and taps: under a screen or the overworld's bag you stand still. The fight holds a
 // chanter, and anyone in the bag, still.
 const WORLD: readonly Layer[] = ["overworld", "battle", "chant", "battleBag"];
+const PLAYING: readonly Layer[] = ["overworld", "battle"];
 // Keys the browser would otherwise use in the world (scrolling, moving focus, Firefox's quick find).
 const SWALLOW = new Set([
   "Space", "Semicolon", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab", "Quote", "Slash",
 ]);
 
 export class Actions {
+  readonly pointer = new Store<{ locked: boolean }>({ locked: false });
   private layers: readonly Layer[] = ["title"];
+  private mouseFree = false;
+  private escapedAtMs = -Infinity;
   private readonly handlers = new Set<{ action: ActionName; handle: Handler }>();
   private readonly devices: readonly Buttons[];
   private mapped: KeyMap | null = null;
@@ -115,24 +125,40 @@ export class Actions {
     private readonly mouseSettings: MouseSettings,
   ) {
     this.devices = [keyboard, mouse];
-    keyboard.listen((key, repeat) => this.keydown(key, repeat));
+    keyboard.listen((key, repeat) => {
+      if (key === "Escape" && Date.now() - this.escapedAtMs < ESC_ECHO_MS) return true;
+      return this.keydown(key, repeat);
+    });
     mouse.onMove((dx, dy, atMs) => this.moved(dx, dy, atMs));
+    mouse.onLock((locked, byPlayer) => {
+      this.pointer.set({ locked });
+      if (!byPlayer) return;
+      this.escapedAtMs = Date.now();
+      this.keydown("Escape", false);
+    });
     mouse.onWheel((notches) => {
       if (this.dragButtons().length > 0) this.zoom += notches;
     });
   }
 
   // Bottom first; only the top one gets keys.
-  setLayers(layers: readonly Layer[]): void {
-    if (layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i])) return;
-    this.layers = layers;
-    for (const d of this.devices) d.clearPressed();
-    this.flicks = [];
-    this.look = { dx: 0, dy: 0 };
-    this.zoom = 0;
-    this.clicks.clear();
-    this.freeLook = false;
-    this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
+  setLayers(layers: readonly Layer[], mouseFree = false): void {
+    const same = layers.length === this.layers.length && layers.every((l, i) => l === this.layers[i]);
+    if (same && mouseFree === this.mouseFree) return;
+    this.mouseFree = mouseFree;
+    if (!same) {
+      this.layers = layers;
+      for (const d of this.devices) d.clearPressed();
+      this.flicks = [];
+      this.look = { dx: 0, dy: 0 };
+      this.zoom = 0;
+      this.clicks.clear();
+      this.freeLook = false;
+    }
+    const top = this.top;
+    this.mouse.setLockable(
+      PLAYING.includes(top) && !mouseFree, this.mouseSettings.get().autoLock, RAW_MOVEMENT.includes(top),
+    );
   }
 
   on(action: ActionName, handle: Handler): () => void {
@@ -202,10 +228,12 @@ export class Actions {
   }
 
   private moved(dx: number, dy: number, atMs: number): void {
-    if (this.top !== "battle" || this.dragHeld() || this.freeLook) {
+    const dragHeld = this.dragHeld(), locked = this.mouse.locked;
+    if (dragHeld) this.dragBy(dx, dy);
+    const turns = (dragHeld && this.drag.turning) || (locked && (this.top === "overworld" || this.freeLook));
+    if (turns) this.look = { dx: this.look.dx + dx, dy: this.look.dy + dy };
+    if (turns || dragHeld || !locked || this.top !== "battle") {
       this.sweep = [];
-      if (this.dragHeld()) this.dragBy(dx, dy);
-      else if (this.top === "battle") this.look = { dx: this.look.dx + dx, dy: this.look.dy + dy };
       return;
     }
     if (atMs - this.lastMoveMs > FLICK.restMs) this.flickedWay = null;
@@ -231,10 +259,7 @@ export class Actions {
       drag.turning = true;
       this.mouse.lockWhileHeld(this.dragButtons());
     }
-    if (!drag.turning) return;
-    this.look.dx += dx;
-    this.look.dy += dy;
-    this.dragged = true;
+    if (drag.turning) this.dragged = true;
   }
 
   private get top(): Layer {
