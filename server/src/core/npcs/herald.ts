@@ -30,7 +30,7 @@ export const HERALD: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: 2.5, z: 12.5 },
+      at: { x: 2.5, z: 16.5 },
       heading: "west",
       talk: [
         { when: { canStart: "bram-yard" }, lines: [...WELCOME, TO_BRAM], offer: { start: "bram-yard" } },

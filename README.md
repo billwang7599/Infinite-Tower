@@ -27,9 +27,10 @@ What's built so far:
   The world is one open map of regions you walk between with no loading: the name in the corner, the music and the
   sky change as you cross. Highmere is two wards joined by the castle gate: the Castle Ward (the hall, King Osric's
   throne room, the barracks with Bram's training yard (below), the courtyard and the garden) and below it the much
-  bigger Market Ward (a square with a food stall, a potion stall, a forge and a money changer, each with its keeper, the
-  Gilded Door tavern, streets of houses and the South Gate, whose road runs down through the woods to the Waking
-  Hollow). The test areas lie beyond: the Waking Hollow (a small camp by an old waystation, a brook with a footbridge
+  bigger Market Ward (a lamp-lined avenue to a great square with a fountain and statues, a food stall, a potion stall,
+  a forge and a money changer, each with its keeper, the Gilded Door tavern, streets of 3D houses and the South Gate,
+  whose road runs down through the woods to the Waking Hollow).
+  The test areas lie beyond: the Waking Hollow (a small camp by an old waystation, a brook with a footbridge
   and two boars in the tall grass across it) west of the Grass Field and,
   through a gap in the trees east of it, the Mistwood (dark pines, a marsh crossed by boardwalks, its own campfire), and
   through a gap in the trees on the Grass Field's north edge, the Old Quarry (pale cut-stone terraces round a dry pit

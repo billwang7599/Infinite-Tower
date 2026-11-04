@@ -27,7 +27,7 @@ export const CAPTAIN: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: -2.5, z: -21.5 },
+      at: { x: 11.5, z: -30.5 },
       heading: "east",
       talk: [
         {

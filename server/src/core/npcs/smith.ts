@@ -4,7 +4,7 @@ export const SMITH: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: 13.5, z: -0.5 },
+      at: { x: 31.5, z: -2.5 },
       heading: "west",
       talk: [
         {

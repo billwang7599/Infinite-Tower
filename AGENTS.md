@@ -740,7 +740,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     (at 0 stamina only if you have more HP than that); the Red Blade heals 25% of weapon damage dealt; the First Door
     once a fight turns a killing blow into 1 HP and 2 s of taking no damage.
   - Carving is done by Ysolde Thatcher of the Collegium of Thresholds, in the Market Ward at the east end by the
-    walled road to Temple Hill (31.5, -3.5), a shop ("collegium") opened from her talk. The bag screen's Trade column
+    walled road to Temple Hill (45.5, -4.5), a shop ("collegium") opened from her talk. The bag screen's Trade column
     lists your rings with Unmake; a sigil selected in the bag shows Carve with its price. Prices by the sigil's
     rarity in copper and essences of any kind (paid cheapest first, cloth before bag): common 50c + 1, uncommon 2s + 3,
     rare 10s + 6, epic 40s + 12, legendary 1g 50s + 25, unique 3g + 40, the same everywhere; removing is × 3 the
@@ -842,11 +842,11 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The open world's layout (One open world, above; every pick here is the agent's, walked across in a headless browser,
   not hand-played): one map in world tiles, the Grass Field in the middle (0, 0). The Waking Hollow lies west of it and
   the Mistwood east, each meeting its edge where its old road did; the Old Quarry north of it through the old gap.
-  Highmere lies north-west: the Market Ward (x -98 to -28, z 22 to 72) with the Castle Ward north of it, and a road
+  Highmere lies north-west: the Market Ward (x -128 to -28, z 22 to 94) with the Castle Ward north of it, and a road
   from the South Gate runs 17 tiles south through the woods into the Hollow's north-west corner, so the way from the
   platform runs city, Hollow, Grass Field. The Grass Field's old north-west way out (into the quarry's rock now) is
-  closed with trees. The land between and round the regions is filled with the nearest one's `fill` (trees, the
-  town's houses, castle wall, cut stone) out to 16 tiles (`WORLD_MARGIN_TILES`), nothing past that; a point there
+  closed with trees. The land between and round the regions is filled with the nearest one's `fill` (trees,
+  castle wall, cut stone) out to 16 tiles (`WORLD_MARGIN_TILES`), nothing past that; a point there
   belongs to the nearest region, so the name and music change halfway along a road between two. Region ids are the old
   level ids, so saved pads still hold (no migration). NPCs are placed again each time you walk into another region
   (sent only if someone moved). A spawn's "away" spot (where it comes back with a player near) is mirrored across its
@@ -894,21 +894,40 @@ them; treat them as changeable, and still ask before deciding new ones):
   lanterns and drifting dust; `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable
   signs: the game has no way to read one without an NPC (a trace is an NPC's), so there are none.
 - Highmere (the user's decisions above; the layout, the lines and who stands where are the agent's): two regions, joined
-  by the castle gate. The Castle Ward ("Highmere: Castle Ward", 50 x 40, its
-  id still `kingdom`): the Hall of Arrival (marble, pillars, the platform, a red carpet; Aldric the herald beside
-  the carpet below it, and Odo's archive through a door at its west end), King Osric's throne room east of it (a door
-  from the hall and one from the courtyard), the barracks and Bram's training yard west of it, the courtyard (lawns, two
-  pools, flower beds; Wenna at the kitchen in its east), the castle garden (two pools; Ottilie) and the castle gate
-  south. The Market Ward ("Highmere: Market Ward", 70 x 50, `market-ward`): a market square with two fountains (Bette's
-  food stall, Mirela's potion stall, Fennick Cooper's changing stall, Garrick's forge), the Gilded Door tavern (a walled
-  room with Hesper Wainwright, its keeper, who only talks), streets of houses (Tamsin in the south-west), and the South
-  Gate (Captain Edda), whose road runs down to the Waking Hollow. It has no pad. Two walled-up
-  gaps wait for later wards: an east road to Temple Hill and a south-west one to the Lower Town. King Osric and Hesper
-  only talk; both wards charge Highmere's prices. Neither has
-  an encounter table (a region's `grass` is optional). Dialogue lines name keys as `{group.action}`, written out as
-  the player's own key (`client/src/ui/dialogue/keys.ts`). The castle's keep is drawn only, and the land round the wards
-  is thick castle wall or the town's rooftops; anywhere a ledge (a wall, a house, a cliff) standing between the camera
-  and you turns see-through, so the hall reads with the camera turned. Music: the title's track for now.
+  by the castle gate, on one straight axis from the platform to the South Gate. The Castle Ward ("Highmere: Castle
+  Ward", 80 x 52, its id still `kingdom`): the Hall of Arrival (marble, two colonnades, the platform, a red carpet;
+  Aldric the herald beside the carpet below it, and Odo's archive through a door at its west end), King Osric's throne
+  room east of it (a door from the hall and one from the courtyard), the barracks and Bram's training yard west of
+  it, the great courtyard (lawns, four flower beds with long pools, lamps, a statue in a paved ring on the axis;
+  Wenna at the kitchen in its east), the castle garden behind an inner wall (pools, trees, Ottilie by a statue of
+  Aurel) and a gatehouse of thick masonry south. The Market Ward ("Highmere: Market Ward", 100 x 72,
+  `market-ward`): the Processional Way, a paved avenue lined with lamps and trees, from the castle gate to a great
+  square (a three-tiered fountain in its middle, two statues where the avenue enters, lamps, Bette's food stall,
+  Mirela's potion stall, Fennick Cooper's changing stall and Garrick's forge round the fountain), the Gilded Door
+  tavern (a walled room with Hesper Wainwright, its keeper, who only talks) off the avenue, a residential west of
+  streets of houses round a smaller square with a statue (Tamsin in the south-west), and the avenue on south to
+  the South Gate (Captain Edda), whose road runs down to the Waking Hollow. It has no pad. Two walled-up gaps wait
+  for later wards: the Temple Road east to Temple Hill and a west one to the Lower Town. King Osric and Hesper only
+  talk; both wards charge Highmere's prices. Neither has an encounter table (a region's `grass` is optional).
+  Dialogue lines name keys as `{group.action}`, written out as the player's own key
+  (`client/src/ui/dialogue/keys.ts`). The castle's keep is drawn only, and the land round both wards is thick castle
+  wall, the city's wall; anywhere a ledge (a wall, a house, a cliff) standing between the camera and you turns
+  see-through, so the hall reads with the camera turned. Music: the title's track for now.
+- Highmere made grander (the user: "make the kingdom bigger... i want the user to be there and be like 'this is an
+  important and beautiful place i will come back to continuously'", "the houses look like shit, and walls have no
+  depth"; "make any assumptions you want"; every pick here is the agent's, checked in a headless browser only, not
+  hand-played): both wards grew (the Castle Ward from 50 x 40, the Market Ward from 70 x 50) into the layout above,
+  the way from the platform to the South Gate about 120 tiles. Walls and houses are 3D volumes, not textured boxes:
+  castle masonry has a plinth, a string course and, toward the open air only (not into a hall), a crenellated
+  parapet, Highmere's red and gold banners now and then and arrow slits on the thick parts; a lone wall tile in a
+  hall is a round column. A block of house tiles is cut into houses of 3 to 5 tiles frontage (at most 6 deep), each
+  picked by its corner: four walls (timber-framed, stone, ochre plaster, brick), four roofs (red tile, slate, brown
+  shingle, green copper), a gable roof with eaves and a ridge, a door on its side facing the street (with a step,
+  a hood and maybe a lantern or a hanging sign), framed windows (shutters on timber and plaster, flower boxes) and
+  maybe a chimney; a run one tile thick (the tavern's walls) is a wall with no roof. New tiles: paving (`,`), and
+  three solid ones, a fountain (`U`, one built fountain per run), a statue (`S`, a bronze king on a plinth) and a
+  lamp (`L`, a lamp post). Nobody's position is saved (only the pad), so nothing needed moving: a player bound to
+  Highmere wakes on the new platform.
 - Money and shops (kingdom PR 2; the user: "use your best discretion"; tried in a headless browser, not hand-played).
   Numbers in `server/src/core/content/shops.ts` and `shared/src/items/coins.ts`, the formulas in FORMULAS.md:
   - Coins are 1 x 1, stacks of 100, weight 0.01 each (gold 0.02).
@@ -932,7 +951,7 @@ them; treat them as changeable, and still ask before deciding new ones):
     saved within a second, like a move in the bag.
 - The training yard (kingdom PR 3; the user decided only "start with nothing", the herald sending you to an old man
   and an old stick; the rest is the agent's, tried in a headless browser, not hand-played):
-  - Bram (a placeholder name) keeps an 11 x 6 dirt yard by the barracks, through a 2-tile gap in the courtyard's
+  - Bram (a placeholder name) keeps a 13 x 6 dirt yard by the barracks, through a 2-tile gap in the courtyard's
     north-west wall, two straw dummies drawn in it.
   - The quest "The Old Man's Yard" (main), offered by Aldric (a last line sends you there) and by Bram if not taken:
     find Bram (the old stick, into the bag, once, as the step's reward), knock down the training dummy, best Bram in

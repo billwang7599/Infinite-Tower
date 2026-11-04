@@ -32,7 +32,7 @@ export const CHRONICLER: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: -15.5, z: 17.5 },
+      at: { x: -20.5, z: 19.5 },
       heading: "east",
       talk: [
         {

@@ -242,6 +242,12 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 
 - **Title screen**: a low-poly, cartoony tower with shader-like lighting, drawn on a 2D canvas
   (`ui/screens/title/backdrop/`): dark-fantasy night around a glowing white and gold tower.
+- **Buildings**: Highmere's walls and houses are 3D volumes (`visuals/overworld/buildings.ts`), textured from one
+  code-drawn atlas at the ground's 16 pixels a tile, each picture covering 2 x 2 tiles and repeated by cutting faces
+  at its edges (so a gable roof rises at most 2 tiles). Depth comes from geometry, never painted shading: a plinth
+  and a string course stand proud of a wall, a roof overhangs its walls, windows and doors sit in frames standing
+  off the wall, merlons rise off the parapet. Windows and lanterns glow faintly (the atlas's glow map). Statues and
+  lamp posts are standing sprites like trees.
 - **World and arena**: code-drawn too (`gfx/`): pixel sprites for the overworld; in the arena, simple 3D models for
   enemies and people, the people built from the look's colours and the battle sprite's proportions and posed in code,
   pose to pose (`visuals/battle/person/`), no drawing needed. The arena is drawn small and blown up into outlined

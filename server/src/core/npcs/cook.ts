@@ -25,7 +25,7 @@ export const COOK: Npc = {
   stops: [
     {
       region: "kingdom",
-      at: { x: 18.5, z: -0.5 },
+      at: { x: 22.5, z: -3.5 },
       heading: "west",
       talk: [
         {

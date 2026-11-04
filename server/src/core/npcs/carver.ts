@@ -4,7 +4,7 @@ export const CARVER: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: 31.5, z: -3.5 },
+      at: { x: 45.5, z: -4.5 },
       heading: "west",
       talk: [
         {

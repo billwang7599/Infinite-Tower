@@ -4,7 +4,7 @@ export const INNKEEPER: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: 15.5, z: 19.5 },
+      at: { x: 27.5, z: 18.5 },
       heading: "south",
       talk: [
         {

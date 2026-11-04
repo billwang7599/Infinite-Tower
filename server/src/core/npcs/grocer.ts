@@ -4,7 +4,7 @@ export const GROCER: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: -11.5, z: 9.5 },
+      at: { x: 1.5, z: 4.5 },
       heading: "south",
       talk: [
         {

@@ -26,7 +26,7 @@ export const TAMSIN: Npc = {
   stops: [
     {
       region: "market-ward",
-      at: { x: -18.5, z: -15.5 },
+      at: { x: -35.5, z: -27.5 },
       heading: "south",
       talk: [
         {

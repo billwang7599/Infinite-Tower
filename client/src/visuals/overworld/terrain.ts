@@ -52,8 +52,9 @@ export function* buildChunk(
   const standing: { ledge: Ledge; parts: Mesh[] }[] = [];
   for (const [i, ledge] of scenery.ledges.entries()) {
     const ground = i === 0 ? carved.ground : null;
-    const [top, side] = art.looks[ledge.look ?? "castle"];
-    const parts = buildLedge(scene, ledge, `${name}-${i}`, ground ? field : top, side, ground);
+    const built = ground ? null : art.town.build(map, ledge, `${name}-${i}`);
+    const [top, side] = art.looks[ledge.look as keyof TerrainArt["looks"]] ?? art.looks.quarry;
+    const parts = built ?? buildLedge(scene, ledge, `${name}-${i}`, ground ? field : top, side, ground);
     const awning = ledge.awning ? art.stalls.awning({ ...ledge, awning: ledge.awning }, i) : [];
     parts.push(...awning);
     for (const m of awning) casters.push([m]);
