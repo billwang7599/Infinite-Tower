@@ -517,10 +517,11 @@ main.ts
   Nova's cloud; an Imbue waiting for the caster's sword hits, seen in the step's `hit` events; a Delay's wait); a
   Nova and Self go off at once; each segment fires when the one before it completes (`handOff`), once per Bolt. A
   Bolt or Beam with no way of its own (the first segment, or after a Nova) goes `aimOf`'s way from where it starts; a
-  Follow Bolt homes, at a limited turn rate, onto `aimOf`'s target or the nearest; split ones aim side by side beside
-  it (`fanM`) until close. Split Bolts start in an upright circle round the caster and fly in to meet a point ahead
-  (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs `strike` (`fight/skills/strike.ts`): every element's
-  status on the target's `Statuses`, then the reactions, then
+  Follow Bolt homes, at a limited turn rate, onto `aimOf`'s target, else the foe nearest its line (`foeAlong` in
+  `aim.ts`, by the shared `inView`; along its heading if its target falls mid-flight); split ones aim side by side
+  beside it (`fanM`) until close. Split Bolts start in an upright circle round the caster and fly in to meet a point
+  ahead (`splitBolts`; they climb or drop to it: `climbPerM`). A hit runs `strike` (`fight/skills/strike.ts`): every
+  element's status on the target's `Statuses`, then the reactions, then
   the damage. Statuses are one timed-buff system (`battle/statuses.ts`, `fight/statuses.ts`): a fighter's `Statuses`
   holds a list of what's on it (each with its time left, or null for a permanent one, its stacks and an amount: a
   shield's HP, a burn's or a heal's per second), part of the fight's state and hash. `STATUS_DEFS` says what each does
@@ -1157,7 +1158,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                    prediction + replay; nearCampfire / REST_RANGE_TILES, JOIN_RANGE_TILES; Heading, START_HEADING,
                    HEADING_WAY and faceToward: the way a walker faces, turned by its moves on both sides), interact.ts
                    (INTERACT_RANGE_M and INTERACT_LOOK_RAD, the reach to a pile or an NPC and how far round from the
-                   way you face, on the overworld and in an arena alike; inView, the one in view), tiles.ts
+                   way you face, on the overworld and in an arena alike; inView, the one in view, also Follow's
+                   pick), tiles.ts
                    (TILES: each tile kind's
                    character and rules, solid or tall grass; tileAt, isSolid, inTallGrass), water.ts
                    (waterFlow: each water and bridge tile's current over the whole map, worked out on the server and
@@ -1195,7 +1197,8 @@ shared/src/      Code client AND server run. No Babylon, no DOM (its tsconfig ha
                      components + a collider, one component per attack in the def, a Wielder for whoever holds
                      things; ATTACKS: each enemy attack's component, start and system), context.ts (FightContext,
                      FightOutcome, FightEvent), aim.ts (aimOf: where a fighter aims, at a living lock-on's middle
-                     or along its aim at its spot; the bow, skills and the sidestep ask it), combat.ts (addHit,
+                     or along its aim at its spot; the bow, skills and the sidestep ask it; foeAlong: the foe nearest
+                     a way, for an unlocked Follow Bolt), combat.ts (addHit,
                      hits in an arc, the weapon's defence asked first, stagger, knockback, the hit timers),
                      outcome.ts (won /
                      lost; MAX_FIGHT_TIME, LEAVING_LOSES, playerResult), state.ts (FightSnapshot: the whole state,

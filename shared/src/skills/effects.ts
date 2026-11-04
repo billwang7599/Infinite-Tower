@@ -25,6 +25,8 @@ export const SKILL_EFFECTS = {
     splitFocusM: 10, splitJitterM: 0.5,
     // Homing split Bolts aim side by side, this many radii apart, at their target, closing in over its last metres.
     followGapRadii: 4, followRowMaxM: 3, followMergeM: 2.5,
+    // Unlocked, Follow homes onto the foe nearest its line within this either side: none behind.
+    followLookRad: Math.PI / 2,
   },
   // Held, a Beam pays its own words' cost times heldCostFactor a second.
   beam: { rangeM: 10, radiusM: 0.35, time: 1, tickTime: 0.5, tickShare: 0.5, heldCostFactor: 2 },

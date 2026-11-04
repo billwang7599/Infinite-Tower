@@ -319,7 +319,7 @@ describe("Follow", () => {
   const FAR = at(0, 4);
   const bolts = (fight: Fight) => objects(fight, "bolt").map(([, o]) => o);
 
-  test("aimed a little away, a Bolt homes onto the nearest enemy when nothing is locked", () => {
+  test("aimed a little away, a Bolt homes onto the enemy when nothing is locked", () => {
     const plain = fightWith([FAR]), homing = fightWith([FAR]);
     castNow(plain, one("bolt", ["water"], []), AWAY);
     castNow(homing, one("bolt", ["water"], ["follow"]), AWAY);
@@ -329,15 +329,52 @@ describe("Follow", () => {
     close(lostHp(homing, 0), W * D);
   });
 
-  test("it homes onto the locked enemy, not the nearest", () => {
-    const enemies = [at(-1.5, 3), at(1.5, 4)];
-    const unlocked = fightWith(enemies), locked = fightWith(enemies);
-    castNow(unlocked, one("bolt", ["water"], ["follow"]));
-    castNow(locked, one("bolt", ["water"], ["follow"]), { locked: 1 });
-    untilDone(unlocked);
-    untilDone(locked);
-    assert.ok(lostHp(unlocked, 0) > 0 && lostHp(unlocked, 1) === 0, "the nearest");
-    assert.ok(lostHp(locked, 1) > 0 && lostHp(locked, 0) === 0, "the locked one");
+  const SIDE = at(2.5, -2), ON_LINE = FAR;
+  const targetOf = (enemies: Vec3[], over: Parameters<typeof input>[0] = {}) => {
+    const fight = fightWith(enemies);
+    castNow(fight, one("bolt", ["water"], ["follow"]), over);
+    const { target } = bolts(fight)[0]!;
+    return target === null ? null : fight.enemies.indexOf(target);
+  };
+
+  test("with nothing locked, it homes onto the enemy nearest the aim's line, not the nearest", () => {
+    const fight = fightWith([SIDE, ON_LINE]);
+    castNow(fight, one("bolt", ["water"], ["follow"]));
+    assert.equal(bolts(fight)[0]!.target, fight.enemies[1]);
+    untilDone(fight);
+    assert.ok(lostHp(fight, 1) > 0 && lostHp(fight, 0) === 0);
+    const toSide = Math.atan2(SIDE.x - ME.x, SIDE.z - ME.z);
+    assert.equal(targetOf([SIDE, ON_LINE], { aimX: Math.sin(toSide), aimZ: Math.cos(toSide) }), 0, "aimed aside");
+  });
+
+  test("of enemies as far off the aim's line, the nearer", () => {
+    assert.equal(targetOf([at(0, 0), at(0, 4)]), 0);
+    assert.equal(targetOf([at(0, 4), at(0, 0)]), 1);
+  });
+
+  test("not one further off the aim than followLookRad, as one behind: it flies on straight", () => {
+    const off = (rad: number) => at(ME.x + 3 * Math.sin(rad), ME.z + 3 * Math.cos(rad));
+    const lookRad = SKILL_EFFECTS.bolt.followLookRad;
+    assert.equal(targetOf([off(lookRad - 0.05)]), 0);
+    assert.equal(targetOf([off(lookRad + 0.05)]), null);
+    assert.equal(targetOf([off(-lookRad - 0.05)]), null);
+  });
+
+  test("it homes onto the locked enemy, not the one on the aim's line", () => {
+    const fight = fightWith([SIDE, ON_LINE]);
+    castNow(fight, one("bolt", ["water"], ["follow"]), { locked: 0 });
+    assert.equal(bolts(fight)[0]!.target, fight.enemies[0]);
+    untilDone(fight);
+    assert.ok(lostHp(fight, 0) > 0 && lostHp(fight, 1) === 0);
+  });
+
+  test("its target down mid-flight, it turns to the enemy nearest its heading, not the nearest", () => {
+    const fight = fightWith([at(0, 3), at(3, 1), at(0, 6)]);
+    castNow(fight, one("bolt", ["water"], ["follow"]), { locked: 0 });
+    for (let i = 0; i < 240 && bolts(fight)[0]!.pos.z < -1; i++) fight.step([IDLE]);
+    fight.world.require(fight.enemies[0]!, Health).hp = 0;
+    fight.step([IDLE]);
+    assert.equal(bolts(fight)[0]!.target, fight.enemies[2]);
   });
 
   test("it turns no faster than its turn rate", () => {

@@ -348,7 +348,9 @@ Reactions, on whoever a skill hits (players in duels too), each with a cooldown 
 Forms and modifiers:
 
 - **Bolt:** 20 m/s (× 1.5 per Swift), 16 m, 0.3 m radius (× 0.8 per Split); n Splits make 2^n Bolts; Pierce goes
-  through 2 more per word; Follow turns 3 rad/s per word.
+  through 2 more per word; Follow turns 3 rad/s per word, toward the locked enemy, else the foe at the smallest angle
+  off the aim (the nearer of two as far off), none more than 90° off (`followLookRad`); if it falls mid-flight, the
+  same off the Bolt's heading.
 - **Beam:** 10 m long, 0.35 m wide (× 1.5 per Widen); a tick of 0.5 on release and every 0.5 s (÷ 1.5 per Swift) for
   1 s (× 2 per Extend), so 3 ticks (1.5 hits) unheld; held, it lasts as long as it's held and paid, then its 1 s.
 - **Nova:** everyone within 3 m (× 1.5 per Widen). With Extend it leaves a cloud for 8 s (× 2 per further Extend),

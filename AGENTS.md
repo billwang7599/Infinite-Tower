@@ -320,7 +320,9 @@ Decided by the user:
   target and unlocked at the crosshair's spot, through the one `aimOf` (`shared/src/battle/fight/aim.ts`). An arrow
   lands on the aim's spot (the user: "its not pointing where im aiming (kinda too low)"; "Bows", below); Bolts and
   Beams still fly flat (their hits are on the ground plane at any height, so a pitch would need 3D hits), taking only
-  its way. Sword swings keep their flat aim.
+  its way. Sword swings keep their flat aim. Unlocked, a Follow Bolt homes onto the foe nearest the aim's line, not
+  the nearest foe (the user: "follow bolt yes"; the agent's picks: none more than 90° off, so none behind, the nearer
+  of two as far off, and if its target falls mid-flight the same along its heading; `foeAlong` in `aim.ts`).
 - The inventory is a bag with a grid, like an extraction shooter's: every item is a rectangle of cells that can be
   turned 90° (other shapes maybe later, per item), and small items stack in one cell (boar meat 5 to a cell). Everyone
   has a very small base bag, and a backpack adds a grid of its own (the user: "the player has some base inventory
