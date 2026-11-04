@@ -1701,8 +1701,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          a nose and blush, painted on the head's front; hairTexels; HAIR_STYLES, each a shell cut round
                          the head, fringe locks and a tail), loft.ts (a mesh through cross-sections), pose.ts (CLIPS:
                          each action's keys as joint rotations by joint name; personPose, pose to pose, each key eased
-                         into over KEY_EASE_TIME and held; a bow carried at the side and drawn side-on, held out and
-                         canted clear of the head (BOW_DRAWN), the string hand back by the draw; LANDING, the knees giving; no Babylon: tested), motion.ts (WALK,
+                         into over KEY_EASE_TIME and held; a bow carried at the side (BOW_CARRY) and drawn side-on,
+                         held out clear of the body and head (BOW_DRAWN), the string hand back by the draw; LANDING,
+                         the knees giving; no Babylon: tested), motion.ts (WALK,
                          the upper body's stride keys; STRIDE, strideOf, footOnStride and plantLegs, feet placed so
                          a planted one stays put, a walk easing into a run (STRIDE.run) past STRIDE.walkSpeed;
                          legAngles, a leg's reach; BREATH; swayHair, the hair's spring;
@@ -1745,7 +1746,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         bow.ts           The 3D bow and arrow, built in code: buildBow (a curved tube of a stave along the hand's +y,
                          a grip wrap, a string of two segments and an arrow nocked on it), pullString (the string's
                          middle drawn back by bowDrawOf: the shared drawnShare), arrowVisual (an arrow in flight,
-                         along its velocity; stuck, its head sunk in)
+                         along its velocity, leaving from its shooter's bow (the scene's `bows`, set by holdBlade) and
+                         eased onto the fight's path over LEAVE_BOW_TIME; stuck, its head sunk in)
         chantWords.ts    Another fighter's chant: its last words and the next, empty square, in front of it, on the
                          overlay
         pose.ts          The player's pose and frame, from the action, the swing, the aim and the block (staggered
@@ -2122,7 +2124,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
 | The aim ring (wedge size, radius, height, colours, the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
-| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours and how deep it sinks stuck; a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, the carry and how far out and canted it's drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
+| The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours, how deep it sinks stuck and how long it takes to ease from the bow onto its path (`LEAVE_BOW_TIME`); a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, how far out and how leant it's carried and drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |
 | How far to the side a swing's whoosh is heard from | `SWING_SIDE_M` in `client/src/audio/battle.ts` |
 | How far a player's sprite crouches winding up a heavy | `HEAVY_WINDUP_STRETCH` in `client/src/visuals/battle/player.ts` |

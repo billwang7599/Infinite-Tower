@@ -96,7 +96,8 @@ interface HairStyle {
   tie?: Vec3;
 }
 
-const HAIRLINE = 0.18, SHELL = 1.1, TAIL_STRANDS = 3;
+const HAIRLINE = 0.18, TAIL_STRANDS = 3;
+export const HAIR_SHELL = 1.1;
 const FRINGE: readonly Lock[] = [-0.6, -0.25, 0.1, 0.45].map((x, i) => ({
   from: { x, y: 0.62, z: 0.85 }, to: { x: x + (i - 1.5) * 0.08, y: -0.02 + (i % 2) * 0.12, z: 1.08 }, width: 0.5,
 }));
@@ -139,8 +140,8 @@ function hairShell(kit: Kit, style: HairStyle): Mesh {
   const vertex = (i: number): number => {
     const known = kept.get(i);
     if (known !== undefined) return known;
-    const u = unit(i), out = SHELL * (1 + style.flare * Math.max(0, -u.y));
-    const p = inHead({ x: u.x * out, y: u.y * SHELL, z: u.z * out });
+    const u = unit(i), out = HAIR_SHELL * (1 + style.flare * Math.max(0, -u.y));
+    const p = inHead({ x: u.x * out, y: u.y * HAIR_SHELL, z: u.z * out });
     positions.push(p.x, p.y, p.z);
     uvs.push((Math.atan2(u.x, u.z) / (2 * Math.PI) + 0.5) * 6, (1 - u.y) / 2);
     kept.set(i, kept.size);

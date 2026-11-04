@@ -94,12 +94,13 @@ const BEND_RAD = 0.15;
 const PULL_LEAN_RAD = 0.2;
 /** The sword hand's share of the walk's arm swing. */
 const SWORD_ARM_SWING = 0.35;
-/** Drawn, the bow hand is this far (m) out to its side, the top limb leaning out: clear of the big head from behind. */
-const BOW_DRAWN = { outM: 0.2, cantRad: 0.6 } as const;
+/** Drawn, the bow hand is this far (m) out to its side, near upright: the shoulder camera sees it all past the body. */
+const BOW_DRAWN = { outM: 0.32, cantRad: 0.12 } as const;
 /** How far the body turns side-on drawing, hips to chest; the neck turns back to look down the arrow. */
 const DRAW_TWIST = { hips: -0.25, spine: -0.25, chest: -0.3, neck: 0.7 } as const;
 const LOOSED_FLICK_M = 0.06;
-const BOW_CARRY = { outM: 0.05, drop: 0.9, aheadM: 0.08 } as const;
+/** At rest it hangs at the side, its top leaning out (`blade.x`) and ahead. */
+const BOW_CARRY = { outM: 0.12, drop: 0.75, aheadM: 0.08, blade: { x: 0.1, y: 0.9, z: 0.4 } } as const;
 const THIGH_M = -restAt("shin.R", "medium").y, SHIN_M = -restAt("foot.R", "medium").y;
 /** After touching down the knees give by up to `crouchRad` (a crouch's thigh angle) over `durationTime`. */
 export const LANDING = { durationTime: 0.22, crouchRad: 0.32 } as const;
@@ -231,6 +232,8 @@ export function personPose(
       case "none":
         if (!walking) play(joints, CLIPS.idle, 0, { side });
         if (o.bow) {
+          const { x, y, z } = BOW_CARRY.blade, l = Math.hypot(x, y, z);
+          p.blade = { x: (side * x) / l, y: y / l, z: z / l };
           p.hand = {
             x: side * (b.shoulderM + BOW_CARRY.outM), y: b.shoulderY - reach * BOW_CARRY.drop, z: BOW_CARRY.aheadM,
           };

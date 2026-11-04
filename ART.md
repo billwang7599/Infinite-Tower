@@ -148,6 +148,7 @@ uses its mirror image's), so it needs no drawings of its own. A bow (`visuals/ba
 no drawing: a curved tube of a stave in `WEAPON_LOOKS`' colour on the grip joint, a leather wrap, a pale string in
 two straight runs to its middle, and a nocked arrow there while it's drawn; an arrow in flight is boxes (a shaft
 thicker than life so it shows a pixel wide, a steel head, crossed white fletching), its head sunk in where it sticks.
+It's drawn leaving from the bow's string, then eased onto the fight's path (which starts at the shooter's middle).
 
 Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and
@@ -288,9 +289,10 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     clothing (`STARTER_WEAR`) is a table entry naming the body parts it colours and the trims it adds (belt, collar,
     hem, cuffs), in the look's ramps.
   - **What's worn is drawn on them** (`WORN` in `body.ts`), entries of the same kind in the ramps of the item's bag
-    picture (the look's own leather and steel win): a wool cap and its bobble, or a wide red hat with a plume, on the
-    `crown`; a canvas backpack with its flap and straps on the `back`, its straps over the chest; a broad leather belt
-    and a steel buckle; a tan bracelet on its own wrist. A cosmetic shows instead of what it's worn over, a worn body,
+    picture (the look's own leather and steel win): a wool cap hugging the head and its bobble, or a red hat with a
+    plume, its brim narrow on the bow's side, on the `crown`; a canvas backpack with its flap and straps on the
+    `back`, its straps over the chest; a broad leather belt and a steel buckle; a chunky tan bracelet on its own
+    wrist. A cosmetic shows instead of what it's worn over, a worn body,
     legs or boots piece would replace the starter one, and rings are too small to show.
   - **Lit like the sprite**: every part takes a fill light of its own colour, so dark skin, hair and clothes keep
     their colour facing away from the sun, and full light stays under the base tone, so light hair keeps its shape.
@@ -308,11 +310,11 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     against each other, the arms swinging), the body bobs and leans into a run (back, backing off). Elsewhere the
     hips drop so the lower foot stays on the ground. Touching down the knees give a moment (`LANDING`).
     Hair swings on a spring toward where gravity, less the head's acceleration, pulls it (`swayHair`).
-    A bow is always in the left hand (the locked camera looks over the left shoulder), held out to the side and canted
-    out as it's drawn so the big head doesn't hide it from behind (`BOW_DRAWN`). It's carried low at the side, top
-    limb forward, and drawn side-on (the body turned, the head looking down the arrow), feet planted apart, the bow
-    hand ahead at the shoulders and the string hand pulled back with the draw (`drawPose`), the body rocking back as
-    the string kicks (`CLIPS.loose`). These are placeholders, like the bow (AGENTS.md's "Bows, a prep").
+    A bow is always in the left hand (the locked camera looks over the left shoulder), held out to the side and near
+    upright as it's drawn so the body, backpack and big head don't hide any of it from behind (`BOW_DRAWN`). It's
+    carried low at the side, a little out, its top limb leaning out and forward (`BOW_CARRY`), and drawn side-on (the
+    body turned, the head looking down the arrow), feet planted apart, the bow hand ahead at the shoulders and the
+    string hand pulled back with the draw (`drawPose`), the body rocking back as the string kicks (`CLIPS.loose`). These are placeholders, like the bow (AGENTS.md's "Bows, a prep").
 - **Items** (`gfx/items/`): one picture per item for the bag, 16 x 16 pixels per cell it covers, lying flat (a
   turned item is the same picture turned on screen). Same pixel kit and rules as the characters: lit from the top
   left, outlines in the material's own dark, greyed colors, with raw meat the one rich red.

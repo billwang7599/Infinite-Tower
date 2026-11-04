@@ -5,7 +5,8 @@ import { DEFAULT_LOOK, FIXED_DT, PLAYER, type SwingData } from "@infinite-tower/
 import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
 import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
-import { HEAD } from "../../../../src/visuals/battle/person/head.js";
+import { HAIR_SHELL, HEAD } from "../../../../src/visuals/battle/person/head.js";
+import { LOCKED_VIEWS } from "../../../../src/modes/battle/camera.js";
 import {
   CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
@@ -32,6 +33,8 @@ const lean = (p: PersonPose) => p.joints.root.x;
 const roll = (p: PersonPose) => p.joints.root.z;
 const crouch = (p: PersonPose) => -p.joints["thigh.R"].x;
 const twist = (p: PersonPose) => p.joints.hips.y + p.joints.spine.y + p.joints.chest.y;
+/** About two of the arena's low-res pixels at the shoulder camera's distance. */
+const BOW_CLEAR_M = 0.04;
 
 describe("keyed poses", () => {
   test("ease into each key over a short time, then hold it until the next", () => {
@@ -234,9 +237,9 @@ describe("the 3D player's other actions", () => {
 
 describe("the 3D player's bow", () => {
   const BOW = WEAPON_LOOKS["training-bow"].bow!;
-  const bowPose = (player: ReturnType<typeof playerDoing>, drawn = 0): PersonPose =>
+  const bowPose = (player: ReturnType<typeof playerDoing>, drawn = 0, side: 1 | -1 = 1): PersonPose =>
     personPose(player, { swing: null }, MOTIONS.bow, {
-      build: BUILD, side: 1, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
+      build: BUILD, side, alive: true, dodge: { x: 0, z: 1 }, stagger: { left: 0, of: 0 }, deadTime: 0, time: 0,
       walk: { phase: 0, speed: 0, way: AHEAD }, bow: { ...BOW, drawn },
     });
 
@@ -257,12 +260,24 @@ describe("the 3D player's bow", () => {
       "feet planted apart, the bow side's ahead");
   });
 
-  test("drawn, it's held out to its side, the top limb leaning out clear of the big head, seen from behind", () => {
-    const headHalfM = HEAD.x * M_PER_PX, halfM = WEAPON_LOOKS["training-bow"].blade.lengthM / 2;
-    for (const drawn of [0, 1]) {
-      const p = bowPose(playerDoing("draw", drawn), drawn);
-      assert.ok(p.hand.x > BUILD.shoulderM * 0.6, "out to the side");
-      assert.ok(p.hand.x + p.blade.x * halfM > 1.5 * headHalfM, "the top limb past the head");
+  test("from the locked camera over the left shoulder, the whole bow shows past the body and head", () => {
+    const { sideM, distanceM, orbitHeightM } = LOCKED_VIEWS.shoulder;
+    const eye = { x: sideM, y: PLAYER.height / 2 + orbitHeightM, z: -distanceM };
+    const halfM = WEAPON_LOOKS["training-bow"].blade.lengthM / 2;
+    // The body (its backpack and arms too) and the hair, seen as a flat cut-out across its middle.
+    const edgeAt = (y: number) => y > BUILD.headY - HEAD.y * M_PER_PX ? HEAD.x * HAIR_SHELL * M_PER_PX
+      : BUILD.shoulderM + BUILD.armM / 2;
+    const shown = { carried: bowPose(playerDoing("none", 1), 0, -1), nocked: bowPose(playerDoing("draw", 0), 0, -1),
+      drawn: bowPose(playerDoing("draw", 1), 1, -1) };
+    for (const [what, p] of Object.entries(shown)) {
+      for (const t of [-1, -0.5, 0, 0.5, 1]) {
+        const x = p.hand.x + p.blade.x * halfM * t, y = p.hand.y + p.blade.y * halfM * t;
+        const z = p.hand.z + p.blade.z * halfM * t, k = -eye.z / (z - eye.z);
+        assert.ok(y > 0, `${what}: above the ground`);
+        if (z <= 0) continue;
+        const crossX = eye.x + (x - eye.x) * k, crossY = eye.y + (y - eye.y) * k;
+        assert.ok(crossX < -edgeAt(crossY) - BOW_CLEAR_M, `${what}: clear at ${t} of the way up`);
+      }
     }
   });
 
@@ -276,9 +291,10 @@ describe("the 3D player's bow", () => {
     assert.ok(p.offHand.z < p.hand.z - BOW.braceM - BOW.drawM / 2);
   });
 
-  test("carried low at the side at rest, not up like a sword; across the chest to guard", () => {
-    const carried = bowPose(playerDoing("none", 1));
-    assert.deepEqual(carried.blade, MOTIONS.bow.rest.blade);
+  test("carried low at the side at rest, its top leaning out and ahead; across the chest to guard", () => {
+    const carried = bowPose(playerDoing("none", 1)), left = bowPose(playerDoing("none", 1), 0, -1);
+    assert.ok(carried.blade.x > 0 && carried.blade.z > 0 && carried.blade.y > 0.7, "upright, leaning out and ahead");
+    assert.ok(left.blade.x < 0 && left.hand.x < 0, "in the left hand, leaning out to the left");
     assert.notDeepEqual(MOTIONS.bow.rest.blade, MOTIONS.sword.rest.blade);
     assert.ok(carried.hand.y < BUILD.waistY, "down by the hip");
     assert.ok(carried.hand.x > BUILD.shoulderM, "out at the side");
