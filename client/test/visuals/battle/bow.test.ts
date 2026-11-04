@@ -1,24 +1,29 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { NullEngine, Scene, TransformNode, Vector3 } from "@babylonjs/core";
+import {
+  NullEngine, Scene, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer,
+} from "@babylonjs/core";
 import { BOW, Projectile, WEAPONS, World, type Entity, type ProjectileData } from "@infinite-tower/shared";
-import { ARROW_M, arrowVisual, LEAVE_BOW_TIME, type HeldBow } from "../../../src/visuals/battle/bow.js";
+import { ARROW_M, arrowVisual, LEAVE_BOW_TIME, TRAIL, type HeldBow } from "../../../src/visuals/battle/bow.js";
 import type { ArenaScene } from "../../../src/visuals/battle/scene.js";
 
 const SHOOTER = 1 as Entity;
-const { lifeTime } = BOW.projectile, speedMps = WEAPONS["training-bow"].powerMps ?? 0;
-const near = (a: Vector3, b: Vector3, what: string) =>
-  assert.ok(Vector3.Distance(a, b) < 1e-6, `${what}: ${a.toString()} vs ${b.toString()}`);
+const { lifeTime, stuckTime, gravityMps2 } = BOW.projectile, speedMps = WEAPONS["training-bow"].powerMps ?? 0;
+const near = (a: Vector3, b: Vector3, what: string, within = 1e-6) =>
+  assert.ok(Vector3.Distance(a, b) < within, `${what}: ${a.toString()} vs ${b.toString()}`);
+
+const scene = new Scene(new NullEngine());
+const camera = new UniversalCamera("camera", new Vector3(1.5, 1.6, -1), scene);
+camera.setTarget(new Vector3(0, 1, 10));
+const nocked = new TransformNode("nocked", scene);
+nocked.position.set(-0.3, 1.2, 0.4);
+const ctx = {
+  scene, camera, sky: { castShadows() {} }, bows: new Map([[SHOOTER, { nocked } as HeldBow]]),
+  materials: { arrowTrail: new StandardMaterial("arrow-trail", scene) },
+} as unknown as ArenaScene;
+const world = new World();
 
 describe("an arrow in flight", () => {
-  const scene = new Scene(new NullEngine());
-  const nocked = new TransformNode("nocked", scene);
-  nocked.position.set(-0.3, 1.2, 0.4);
-  const ctx = {
-    scene, sky: { castShadows() {} }, bows: new Map([[SHOOTER, { nocked } as HeldBow]]),
-  } as unknown as ArenaScene;
-  const world = new World();
-
   const loosed = (t: number, shooter = SHOOTER): { e: Entity; o: ProjectileData } => {
     const e = world.spawn();
     const o = world.add<ProjectileData>(e, Projectile, {
@@ -65,5 +70,93 @@ describe("an arrow in flight", () => {
       near(drawn.root.position, fightsNock(o), `shooter ${o.shooter}`);
       arrowVisual.dispose(drawn);
     }
+  });
+});
+
+describe("an arrow's trail", () => {
+  const STEP_S = TRAIL.lengthS / 20;
+
+  const flown = (forS: number, stepS = STEP_S) => {
+    const e = world.spawn();
+    const o = world.add<ProjectileData>(e, Projectile, {
+      shooter: SHOOTER, weapon: "training-bow", pos: { x: 0, y: 0.85, z: 0.6 }, vel: { x: 1, y: 6, z: speedMps },
+      damage: 1, left: lifeTime, stuck: false,
+    });
+    const drawn = arrowVisual.spawn(ctx, world, e), nocks = [drawn.root.position.clone()];
+    for (let i = 0; i < Math.round(forS / stepS); i++) {
+      o.pos.x += o.vel.x * stepS;
+      o.pos.y += o.vel.y * stepS + (gravityMps2 * stepS * stepS) / 2;
+      o.pos.z += o.vel.z * stepS;
+      o.vel.y += gravityMps2 * stepS;
+      o.left -= stepS;
+      arrowVisual.frame(drawn, world, e, stepS);
+      nocks.push(drawn.root.position.clone());
+    }
+    return { o, e, drawn, nocks };
+  };
+  const offPath = (p: Vector3, path: Vector3[]) => Math.min(...path.slice(1).map((b, i) => {
+    const a = path[i]!, ab = b.subtract(a);
+    const t = Math.min(1, Math.max(0, Vector3.Dot(p.subtract(a), ab) / ab.lengthSquared()));
+    return Vector3.Distance(p, a.add(ab.scale(t)));
+  }));
+  type Drawn = ReturnType<typeof flown>["drawn"];
+  const edges = (drawn: Drawn) => {
+    const at = drawn.trail.mesh.getVerticesData(VertexBuffer.PositionKind)!;
+    return Array.from({ length: TRAIL.points }, (_, i) =>
+      [Vector3.FromArray(at, i * 6), Vector3.FromArray(at, i * 6 + 3)] as const);
+  };
+  const middles = (drawn: Drawn) => edges(drawn).map(([a, b]) => Vector3.Center(a, b));
+  const widths = (drawn: Drawn) => edges(drawn).map(([a, b]) => Vector3.Distance(a, b));
+  const alphas = (drawn: Drawn) => {
+    const colors = drawn.trail.mesh.getVerticesData(VertexBuffer.ColorKind)!;
+    return Array.from({ length: TRAIL.points }, (_, i) => colors[i * 8 + 3]!);
+  };
+
+  test("streaks back from the nock along where it was drawn over the last TRAIL.lengthS", () => {
+    const { drawn, nocks } = flown(0.5), path = middles(drawn);
+    assert.ok(drawn.trail.mesh.isEnabled());
+    near(path[0]!, drawn.root.position, "from the nock", 1e-4);
+    near(path.at(-1)!, nocks.at(-1 - Math.round(TRAIL.lengthS / STEP_S))!, "to where it was then", 1e-4);
+    for (const p of path) assert.ok(offPath(p, nocks) < 1e-3, `${p.toString()} on the path`);
+    arrowVisual.dispose(drawn);
+  });
+
+  test("fades from the nock to nothing at its end", () => {
+    const { drawn } = flown(0.5), faded = alphas(drawn);
+    assert.ok(Math.abs(faded[0]! - TRAIL.alpha) < 1e-6);
+    faded.slice(1).forEach((a, i) => assert.ok(a < faded[i]!, `fading at ${i + 1}`));
+    assert.ok(faded.at(-1)! < 1e-6);
+    arrowVisual.dispose(drawn);
+  });
+
+  test("fresh off the bow, it reaches back only to the bow and fades in from there", () => {
+    const { drawn, nocks } = flown(LEAVE_BOW_TIME / 2, STEP_S / 10), path = middles(drawn);
+    near(path.at(-1)!, nocked.position, "back to the string", 1e-4);
+    for (const p of path) assert.ok(offPath(p, nocks) < 1e-3, `${p.toString()} on the path`);
+    assert.ok(alphas(drawn).at(-1)! < 1e-6);
+    arrowVisual.dispose(drawn);
+  });
+
+  test("is gone once the arrow sticks", () => {
+    const { o, e, drawn } = flown(0.3);
+    assert.ok(drawn.trail.mesh.isEnabled());
+    Object.assign(o, { vel: { x: 0, y: 0, z: 0 }, stuck: true, left: stuckTime });
+    arrowVisual.frame(drawn, world, e, STEP_S);
+    assert.ok(!drawn.trail.mesh.isEnabled());
+    arrowVisual.dispose(drawn);
+  });
+
+  test("is TRAIL.widthM wide, or TRAIL.minWidthPx pixels where that's wider, so it shows far off", () => {
+    const from = camera.position.clone();
+    const metresPerPx = (2 * Math.tan(camera.fov / 2)) / scene.getEngine().getRenderHeight();
+    for (const [eye, far] of [[from, false], [new Vector3(0, 1.6, -80), true]] as const) {
+      camera.position.copyFrom(eye);
+      const { drawn } = flown(0.1), floors = middles(drawn).map((p) =>
+        TRAIL.minWidthPx * metresPerPx * Vector3.Distance(p, camera.position));
+      widths(drawn).forEach((w, i) => assert.ok(Math.abs(w - Math.max(TRAIL.widthM, floors[i]!)) < 1e-6, `${w} m`));
+      assert.ok(far ? floors.every((f) => f > TRAIL.widthM) : floors.some((f) => f < TRAIL.widthM));
+      arrowVisual.dispose(drawn);
+    }
+    camera.position.copyFrom(from);
   });
 });

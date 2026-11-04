@@ -14,6 +14,7 @@ export interface Materials {
   blobShadow: StandardMaterial;
   player: PlayerFrames;
   slashFx: StandardMaterial;
+  arrowTrail: StandardMaterial;
   telegraph: StandardMaterial;
   pile: StandardMaterial;
 }
@@ -32,6 +33,13 @@ export function createMaterials(scene: Scene): Materials {
   slashFx.alpha = 0.9;
   slashFx.backFaceCulling = false;
 
+  const arrowTrail = new StandardMaterial("arrow-trail", scene);
+  arrowTrail.disableLighting = true;
+  arrowTrail.emissiveColor = new Color3(1, 0.96, 0.88);
+  arrowTrail.backFaceCulling = false;
+  // The fog would grey it out across the arena, where it's most needed.
+  arrowTrail.fogEnabled = false;
+
   const telegraph = new StandardMaterial("telegraph", scene);
   telegraph.diffuseTexture = telegraphTexture(scene);
   telegraph.useAlphaFromDiffuseTexture = true;
@@ -40,7 +48,7 @@ export function createMaterials(scene: Scene): Materials {
   telegraph.zOffset = -3;
 
   return {
-    blobShadow, player: playerFrames(scene, "player"), slashFx, telegraph,
+    blobShadow, player: playerFrames(scene, "player"), slashFx, arrowTrail, telegraph,
     pile: spriteMaterial(scene, "arena-pile", drawPile),
   };
 }

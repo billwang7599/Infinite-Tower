@@ -150,6 +150,9 @@ no drawing: a curved tube of a stave in `WEAPON_LOOKS`' colour on the grip joint
 two straight runs to its middle, and a nocked arrow there while it's drawn; an arrow in flight is boxes (a shaft
 thicker than life so it shows a pixel wide, a steel head, crossed white fletching), its head sunk in where it sticks.
 It's drawn leaving from the bow's string, then eased onto the fight's path (which starts at the shooter's middle).
+In flight it leaves a light streak behind its nock (`TRAIL` in `bow.ts`): the last 0.2 s of its path, fading to
+nothing at the end and in from the bow, at least 3 render pixels wide however far, unfogged and see-through, so it's
+drawn after the outline and isn't outlined; it's gone once the arrow sticks.
 
 Adding a body type adds a full set to every wrap-around piece (50 for a chest piece); adding a view or chibi facing
 adds one per body type to each, and one to every hair style and helmet; adding a battle facing adds one per pose and
