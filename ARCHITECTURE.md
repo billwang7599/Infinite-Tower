@@ -180,8 +180,9 @@ main.ts
   crumbles over `DISSOLVE_TIME` (fading, sinking, giving off ash), and a player who left the arena
   (`Player.leftArena`) fades over `LEAVE_FADE_TIME` (the sprite in a blended copy of its frame, as the frames are
   alpha-tested, and its shadow with it). What reads as HUD is drawn over the pixel art at full resolution, on a 2D
-  canvas of its own, where the camera puts it each frame (`visuals/battle/overlay.ts`): your aim ring, the lock-on
-  diamond and, over anyone but you, a chanter's words as a row of squares in front of it (`chantWords.ts`). The
+  canvas of its own (`visuals/battle/overlay.ts`): your aim ring at the bottom centre and, while you aim, a crosshair
+  at the centre; where the camera puts them each frame, the lock-on diamond and, over anyone but you, a chanter's
+  words as a row of squares in front of it (`chantWords.ts`). The
   player's look is read from `ui.you`'s character and painted once
   (`visuals/characters.ts`), posed for whichever hand its `Wielder` holds the weapon in, the sword itself left out:
   every player's sword is a 3D blade (`visuals/battle/blade.ts`) held at that hand's place in the frame shown,
@@ -1630,7 +1631,8 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
-                         straight down; a block pressed or held)
+                         straight down; a block pressed or held); crosshairAim: unlocked, the aim through the first
+                         foe, floor or wall on the screen's centre line (tested)
         hud.ts           Fills the battle HUD's store, stunned, the skillbook in hand and an arena pile in view
                          included; statusIcons: your and the foe's statuses as the HUD shows them (buffs first, the
                          share of time left), the last list kept while nothing shown changes
@@ -1723,10 +1725,12 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          arenaStage (the scenery per arena, the camera on the mode's view plus shake, the drops'
                          sacks after a win)
         overlay.ts       arenaOverlay: what reads as HUD, drawn on a 2D canvas over the pixel art at full resolution
-                         after the scene renders, each frame where the camera puts it (onScreen: a world point's spot
-                         and pixels a metre; tested): your own aim ring, always shown while you fight (wedgeOf and
-                         ringLights, the aimed way's wedge and a stab's mark; tested), the lock-on's diamond (an
-                         octahedron's facets, turning) and other fighters' chant words
+                         after the scene renders: in the HUD's pixels (AIM_HUD), your own aim ring at the bottom
+                         centre while you fight with a sword and a crosshair at the centre while you aim (aimHud,
+                         aimLayout, wedgeOf and ringLights: what shows where, the aimed way's wedge and a stab's
+                         mark; tested); where the camera puts them (onScreen: a world point's spot and pixels a
+                         metre; tested), the lock-on's diamond (an octahedron's facets, turning) and other fighters'
+                         chant words
         materials.ts     The arena's materials (the player's frames among them); playerFrames (a set of a player's,
                          from behind and the front)
         player.ts        The player's visual: the sprite, its shadow, its 3D sword at the frame's sword hand, the sword's
@@ -2122,7 +2126,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | How far sounds carry and how far they pan; footsteps' stride; how many of one sound play at once; the default volumes | `ARENA_HEARING`, `STRIDE_M` (`client/src/audio/battle.ts`), `OVERWORLD_HEARING`, `STRIDE_TILES` (`audio/overworld.ts`), `MAX_PAN` (`audio/mix.ts`), `MAX_VOICES` (`audio/audio.ts`), `VOLUME` (`client/src/settings/audio.ts`) |
 | How each element's skills look (colours, how ragged and fast they move, their particles) | `client/src/visuals/battle/skillLooks.ts` |
 | How far back any wielder draws its blade before an attack, more before a heavy, drawn only; how far a Kobold leans, turns and bends with it; a player's share of it | `DRAWBACK` in `client/src/visuals/battle/weapons.ts`; `KOBOLD_DRAWBACK` in `client/src/visuals/enemies/kobold-swordsman/pose.ts`; `SPRITE_DRAWBACK` in `client/src/visuals/battle/pose.ts` |
-| The aim ring (wedge size, radius, height, colours, the stab's mark); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
+| The aim ring and crosshair (sizes and the ring's height in the HUD's pixels, `AIM_HUD`; colours; the stab's mark; when the crosshair shows, `AIMING`); the lock-on diamond (size, spin, colour) | top of `client/src/visuals/battle/overlay.ts` |
 | How fast a player's 3D blade turns and follows the sprite's hand, how much it glows, how thick it is; the tip's glint (size, colour, and when: `glintOf` in `weapons.ts`); a blade's length, width and colour (`WEAPON_LOOKS` in `weapons.ts`) | top of `client/src/visuals/battle/blade.ts` |
 | The 3D bow and arrow: the stave's and string's thickness, the arrow's size, colours, how deep it sinks stuck and how long it takes to ease from the bow onto its path (`LEAVE_BOW_TIME`); a bow's brace and draw (`bow` in `WEAPON_LOOKS`); the draw pose's twist, how far out and how leant it's carried and drawn (`DRAW_TWIST`, `BOW_CARRY`, `BOW_DRAWN` in `person/pose.ts`) | top of `client/src/visuals/battle/bow.ts` |
 | How long a swing's trail lasts and how faint its hilt end is | top of `client/src/visuals/battle/slash.ts` |

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { NullEngine, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
-import { onScreen, ringLights, wedgeOf } from "../../../src/visuals/battle/overlay.js";
+import type { PlayerAction } from "@infinite-tower/shared";
+import { AIM_HUD, aimHud, aimLayout, onScreen, ringLights, wedgeOf } from "../../../src/visuals/battle/overlay.js";
+import { playerDoing } from "../../fixtures/players.js";
 import { swingAt, waySwingAt } from "../../fixtures/swings.js";
 
 describe("your own aim ring", () => {
@@ -24,6 +26,53 @@ describe("your own aim ring", () => {
     assert.equal(ringLights("tb", waySwingAt("stab", 0)).stab, true);
     assert.equal(ringLights("tb", waySwingAt("stab", liveAt)).stab, false);
     assert.equal(ringLights("tb", waySwingAt("lr", 0)).stab, false);
+  });
+});
+
+describe("the aim HUD: the ring at the bottom centre, the crosshair at the centre", () => {
+  const AIMING: PlayerAction[] = ["draw", "loose", "chant", "cast", "beam"];
+  const NOT_AIMING: PlayerAction[] = ["none", "attack", "block", "dodge", "stagger", "bag", "use", "write"];
+
+  test("the ring shows the aim with a sword out, standing, while the fight goes on", () => {
+    assert.deepEqual(aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", true).ring, { lit: 4, stab: false });
+  });
+
+  test("no ring with no sword in hand, once down, or once the fight is decided", () => {
+    assert.equal(aimHud(playerDoing("none", 0, null), 10, null, "lr", true).ring, null);
+    assert.equal(aimHud(playerDoing("none", 0, "tb"), 0, null, "lr", true).ring, null);
+    assert.equal(aimHud(playerDoing("none", 0, "tb"), 10, null, "lr", false).ring, null);
+  });
+
+  test("the crosshair shows while a bow is drawn and a skill is chanted, cast or streamed, and not otherwise", () => {
+    for (const action of AIMING) assert.equal(aimHud(playerDoing(action, 0), 10, null, "tb", true).crosshair, true);
+    for (const action of NOT_AIMING) {
+      assert.equal(aimHud(playerDoing(action, 0), 10, null, "tb", true).crosshair, false, action);
+    }
+  });
+
+  test("no crosshair once down or once the fight is decided", () => {
+    assert.equal(aimHud(playerDoing("draw", 0), 0, null, "tb", true).crosshair, false);
+    assert.equal(aimHud(playerDoing("draw", 0), 10, null, "tb", false).crosshair, false);
+  });
+
+  test("casting with a sword in hand shows both", () => {
+    const hud = aimHud(playerDoing("cast", 0, "tb"), 10, null, "tb", true);
+    assert.ok(hud.ring && hud.crosshair);
+  });
+
+  test("the crosshair sits at the overlay's centre whatever its size", () => {
+    assert.deepEqual(aimLayout(1920, 1080, 1).crosshair, { x: 960, y: 540 });
+    assert.deepEqual(aimLayout(2732, 1536, 2).crosshair, { x: 1366, y: 768 });
+  });
+
+  test("the ring sits centred above the bottom edge, by the HUD's pixels", () => {
+    assert.deepEqual(aimLayout(1920, 1080, 1).ring, { x: 960, y: 1080 - AIM_HUD.ringAboveBottomPx });
+    assert.deepEqual(aimLayout(2732, 1536, 2).ring, { x: 1366, y: 1536 - 2 * AIM_HUD.ringAboveBottomPx });
+  });
+
+  test("the ring stays whole on screen, and the stab's mark fits inside its wedges", () => {
+    assert.ok(AIM_HUD.ringAboveBottomPx > AIM_HUD.ringRadiusPx + AIM_HUD.wedgeLengthPx / 2);
+    assert.ok(AIM_HUD.stabPx < AIM_HUD.ringRadiusPx - AIM_HUD.wedgeLengthPx / 2);
   });
 });
 
