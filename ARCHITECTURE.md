@@ -1693,8 +1693,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                          corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
                          yaw is the aim. Its distance (steerZoom): the wheel from close out to ZOOM.maxM, a notch in
-                         from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in; a dodge back to
-                         the shoulder's from nearer. Nearer than close it's the fp view, else the shoulder view at that
+                         from close first person; V the next of CAMERA_VIEWS (shoulder, close, fp) in. While you dodge
+                         it's out at the shoulder's from nearer, ctx.zoomM kept, so it eases back after. Nearer than
+                         close it's the fp view, else the shoulder view at that
                          distance; freed (ctx.freeCamera) only its direction is free, turned by the held arrows, a
                          drag or the mouse while you aim, its tilt
                          capped by the view (PITCH, orbit.ts), the wall and the floor (FLOOR_MARGIN_M) pulling it in;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { Body, World, type Entity, type Vec3 } from "@infinite-tower/shared";
+import { Body, Player, World, type Entity, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../../../src/modes/components.js";
 import type { BattleContext } from "../../../src/modes/battle/context.js";
@@ -9,6 +9,7 @@ import {
   type ArenaView, type CameraTuning, type CameraView,
 } from "../../../src/modes/battle/camera.js";
 import { orbitBack, PITCH, TURN, ZOOM_PER_NOTCH } from "../../../src/modes/orbit.js";
+import { playerDoing } from "../../fixtures/players.js";
 
 const DEG = Math.PI / 180;
 const FRAME_TIME = 1 / 60;
@@ -273,8 +274,8 @@ describe("turning it by hand, up and down capped", () => {
 
 describe("zooming: the wheel, V and a roll", () => {
   const { shoulder, close, fp } = CAMERA_VIEWS;
-  const wheel = (zoomM: number, zoom: number, pressed: string[] = [], dodging = false) =>
-    steerZoom(zoomM, { pressed: pressed as never[], zoom }, dodging, CAMERA_VIEWS);
+  const wheel = (zoomM: number, zoom: number, pressed: string[] = []) =>
+    steerZoom(zoomM, { pressed: pressed as never[], zoom }, CAMERA_VIEWS);
 
   test("a notch out zooms out by ZOOM_PER_NOTCH, up to ZOOM.maxM; a share of a notch by its share", () => {
     near(wheel(shoulder.distanceM, 1), shoulder.distanceM * ZOOM_PER_NOTCH, "a notch");
@@ -298,10 +299,37 @@ describe("zooming: the wheel, V and a roll", () => {
     assert.equal(wheel(fp.distanceM, 0, ["cycleView"]), shoulder.distanceM);
   });
 
-  test("a roll goes back to the shoulder's distance only from nearer; zoomed out further, it stays", () => {
-    assert.equal(wheel(fp.distanceM, 0, [], true), shoulder.distanceM);
-    assert.equal(wheel(close.distanceM, -1, ["cycleView"], true), shoulder.distanceM);
-    assert.equal(wheel(7, 0, [], true), 7);
+  test("a roll pulls out to the shoulder's from nearer, then back to the view, V's or the wheel's if used", () => {
+    const me = { x: 0, y: 0, z: 0 };
+    const eyeAt = (eye: Vec3, zoomM: number, what: string) => {
+      const { ctx, fight, view } = arena(me, null, 40);
+      ctx.zoomM = zoomM;
+      const camera = arenaCamera(ctx, CAMERA_VIEWS);
+      for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+      for (const axis of ["x", "y", "z"] as const) near(eye[axis], view.eye[axis], `${what}, ${axis}`, 1e-3);
+    };
+    const cases: [number, string[], number, number][] = [
+      [fp.distanceM, [], 0, fp.distanceM], [close.distanceM, [], 0, close.distanceM], [7, [], 0, 7],
+      [close.distanceM, ["cycleView"], 0, fp.distanceM], [fp.distanceM, [], 1, close.distanceM],
+    ];
+    for (const [startM, pressed, zoom, endM] of cases) {
+      const { ctx, fight, view } = arena(me, null, 40), camera = arenaCamera(ctx, CAMERA_VIEWS);
+      const player = playerDoing("none", 0);
+      fight.world.add(fight.world.first(LocalPlayer)![0], Player, player);
+      ctx.zoomM = startM;
+      const step = (dodging: boolean, pressed: string[] = [], zoom = 0) => {
+        player.action = dodging ? "dodge" : "none";
+        ctx.zoomM = wheel(ctx.zoomM, zoom, pressed);
+        camera(fight, FRAME_TIME);
+      };
+      for (let i = 0; i < 240; i++) step(false);
+      step(true, pressed, zoom);
+      for (let i = 0; i < 240; i++) step(true);
+      const what = `from ${startM}, ${pressed} ${zoom}`;
+      eyeAt(view.eye, Math.max(endM, shoulder.distanceM), `rolling ${what}`);
+      for (let i = 0; i < 240; i++) step(false);
+      eyeAt(view.eye, endM, `after ${what}`);
+    }
   });
 
   test("the camera eases to a new distance, locked or not", () => {

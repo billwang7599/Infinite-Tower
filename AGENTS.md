@@ -296,7 +296,10 @@ Decided by the user:
   person (one out of it, close again). V (`cycleView`, rebindable) steps in to the next of shoulder, close and first
   person, then round to the shoulder, and the zoom with it. Panned, only its direction is free. A dodge sends it
   back to the shoulder's distance if it was nearer (the user: "maybe on rolls it zooms back out so i dont have to stay
-  in first person"); zoomed out further, it stays. Every change eases; the zoom lasts the fight, not saved. In first person your arms are always in view (the user: "first person i should be able to see my arms at
+  in first person"); zoomed out further, it stays. When the dodge ends it goes back to the view it had (the user:
+  "it should go back to first person after"), or to the one V or the wheel picked during it. Every change eases; the
+  zoom lasts the fight, not saved. In first person your arms are always in view (the user: "first person i should be
+  able to see my arms at
   all times i think, so the sword is in view a bit more"): both hands sit low on the screen, the sword lower and
   nearer the middle than the pose's own, and the arms go with the camera wherever it looks (ART.md, "first
   person"). The camera's numbers (`CAMERA_VIEWS` and `ZOOM` at the top of `client/src/modes/battle/camera.ts`, the

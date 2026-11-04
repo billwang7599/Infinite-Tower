@@ -1,4 +1,4 @@
-import { Body, clamp, damp, dampFactor, wrapAngle, type Vec3 } from "@infinite-tower/shared";
+import { Body, clamp, damp, dampFactor, Player, wrapAngle, type Vec3 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import type { Polled } from "../../core/actions.js";
 import { LocalPlayer } from "../components.js";
@@ -67,10 +67,9 @@ export const CAMERA_VIEWS: Record<CameraView, CameraTuning> = {
 
 export const ZOOM = { maxM: 8 } as const;
 
-/** The camera's distance after V (the next view in), the wheel and a roll; first person is `fp.distanceM`. */
+/** The camera's distance after V (the next view in) and the wheel; first person is `fp.distanceM`. */
 export function steerZoom(
-  zoomM: number, { pressed, zoom }: Pick<Polled, "pressed" | "zoom">, dodging: boolean,
-  views: Record<CameraView, CameraTuning>,
+  zoomM: number, { pressed, zoom }: Pick<Polled, "pressed" | "zoom">, views: Record<CameraView, CameraTuning>,
 ): number {
   const { shoulder, close, fp } = views;
   let next = zoomM;
@@ -79,7 +78,7 @@ export function steerZoom(
   }
   if (zoom > 0) next = next < close.distanceM ? close.distanceM : zoomBy(next, zoom, close.distanceM, ZOOM.maxM);
   else if (zoom < 0) next = next > close.distanceM ? zoomBy(next, zoom, close.distanceM, ZOOM.maxM) : fp.distanceM;
-  return dodging ? Math.max(next, shoulder.distanceM) : next;
+  return next;
 }
 
 // Dev-only presets to try against each other (`?cam=<name>`), in place of the shoulder view.
@@ -151,7 +150,9 @@ export function arenaCamera(
       lookShift.x = lookShift.z = 0;
       followed = fight;
     }
-    const goal = ctx.zoomM < views.close.distanceM ? views.fp : { ...views.shoulder, distanceM: ctx.zoomM };
+    const dodging = world.get(row[0], Player)?.action === "dodge";
+    const zoomM = dodging ? Math.max(ctx.zoomM, views.shoulder.distanceM) : ctx.zoomM;
+    const goal = zoomM < views.close.distanceM ? views.fp : { ...views.shoulder, distanceM: zoomM };
     for (const key of EASED) {
       tuning[key] = fresh ? goal[key] : damp(tuning[key], goal[key], VIEW_EASE_RATE, dt);
     }
