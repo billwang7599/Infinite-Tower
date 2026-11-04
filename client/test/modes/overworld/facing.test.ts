@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { faceToward, type Heading } from "@infinite-tower/shared";
 import {
-  CAMERA_PITCH, facingOnScreen, headingFromSide, mapMove, mirrorFor, tiltCamera, unwrapTurns,
+  facingOnScreen, headingFromSide, mapMove, mirrorFor, unwrapTurns,
 } from "../../../src/modes/overworld/facing.js";
 
 describe("headingFromSide: the server's side (1 east, -1 west) for actors seen only from the side", () => {
@@ -35,6 +35,13 @@ describe("mapMove: the walk keys, relative to the camera, as a move on the map",
     }
   });
 
+  test("turned part of the way (the arrows turn it smoothly), forward is still away from the camera", () => {
+    const m = mapMove({ x: 0, z: 1 }, 0.5);
+    assert.ok(Math.abs(m.x - Math.SQRT1_2) < 1e-12 && Math.abs(m.z - Math.SQRT1_2) < 1e-12, JSON.stringify(m));
+    const r = mapMove({ x: 1, z: 0 }, 3.5);
+    assert.ok(Math.abs(r.x - Math.SQRT1_2) < 1e-12 && Math.abs(r.z - Math.SQRT1_2) < 1e-12, JSON.stringify(r));
+  });
+
   test("standing still is no move (no -0 on the wire)", () => {
     for (const turns of [0, 1, 2, 3]) assert.deepEqual(mapMove({ x: 0, z: 0 }, turns), { x: 0, z: 0 });
   });
@@ -60,28 +67,15 @@ describe("facingOnScreen: which picture a heading shows, with the camera turned"
     }
   });
 
+  test("part way round, the pictures go by the nearest quarter turn", () => {
+    assert.equal(facingOnScreen("east", 0.4), "right");
+    assert.equal(facingOnScreen("east", 0.6), "up");
+    assert.equal(facingOnScreen("north", 3.7), "up");
+  });
+
   test("turned around, a walker heading east is mirrored as it faces left", () => {
     assert.equal(mirrorFor(facingOnScreen("east", 2)), -1);
     assert.equal(mirrorFor(facingOnScreen("east", 0)), 1);
-  });
-});
-
-describe("tiltCamera: Up / Down tilt the overworld camera, held, and it stays where it's left", () => {
-  const { startRad, minRad, maxRad, radPerSec } = CAMERA_PITCH;
-
-  test("down (look 1) steepens toward straight down, up (-1) flattens toward the horizon, at its speed", () => {
-    assert.equal(tiltCamera(startRad, 1, 0.1), startRad + radPerSec * 0.1);
-    assert.equal(tiltCamera(startRad, -1, 0.1), startRad - radPerSec * 0.1);
-  });
-
-  test("let go, it stays", () => {
-    assert.equal(tiltCamera(startRad + 0.2, 0, 1), startRad + 0.2);
-  });
-
-  test("it stops short of straight down and short of the horizon", () => {
-    assert.equal(tiltCamera(startRad, 1, 100), maxRad);
-    assert.equal(tiltCamera(startRad, -1, 100), minRad);
-    assert.ok(maxRad < Math.PI / 2 && minRad > 0 && minRad < startRad && startRad < maxRad);
   });
 });
 
@@ -92,5 +86,6 @@ describe("unwrapTurns: the camera's turns for the compass", () => {
     assert.equal(unwrapTurns(-1, 2), -2);
     assert.equal(unwrapTurns(5, 1), 5);
     assert.equal(unwrapTurns(5, 2), 6);
+    assert.equal(unwrapTurns(3.9, 0.1), 4.1);
   });
 });

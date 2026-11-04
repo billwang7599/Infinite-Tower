@@ -124,11 +124,9 @@ function frame(sprite: PlayerSprite, world: World, e: Entity, dt: number, player
   if (sprite.person) framePerson(sprite.person, ctx, sprite.node, world, e, dt, player, stagger);
   else drawSprite(sprite, world, e, dt, player, stagger);
   if (sprite.person?.model) {
+    const { holder, joints } = sprite.person.model, arms = [joints["upper_arm.R"], joints["upper_arm.L"]];
     const hidden = world.has(e, LocalPlayer) && insideSelf(ctx.battle.view.eye, world.require(e, Body).pos);
-    const held = sprite.person.blade?.root;
-    for (const m of sprite.person.model.holder.getChildMeshes()) {
-      if (!held || !m.isDescendantOf(held)) m.isVisible = !hidden;
-    }
+    for (const m of holder.getChildMeshes()) m.isVisible = !hidden || arms.some((arm) => m.isDescendantOf(arm));
   }
 
   const blade = sprite.person?.blade ?? sprite.blade;

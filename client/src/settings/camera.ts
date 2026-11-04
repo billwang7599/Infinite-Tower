@@ -20,7 +20,7 @@ export class CameraSettings extends Store<CameraPrefs> {
   /** Anything unreadable or out of range falls back to the default. */
   restore(saved: SavedCamera): void {
     const turns = saved?.overworldTurns;
-    const turnsOk = Number.isInteger(turns) && turns! >= 0 && turns! < OVERWORLD_CAMERA_ANGLES;
+    const turnsOk = Number.isFinite(turns) && turns! >= 0 && turns! < OVERWORLD_CAMERA_ANGLES;
     this.set({
       sensitivity: savedOnSlider(SENSITIVITY, saved?.sensitivity, SENSITIVITY.default),
       overworldTurns: turnsOk ? turns! : 0,
@@ -38,8 +38,10 @@ export class CameraSettings extends Store<CameraPrefs> {
     this.set({ sensitivity: snapToSlider(SENSITIVITY, value) });
   }
 
-  turnOverworld(by: 1 | -1): void {
-    this.set({ overworldTurns: (this.get().overworldTurns + by + OVERWORLD_CAMERA_ANGLES) % OVERWORLD_CAMERA_ANGLES });
+  /** In quarter turns, any part of one. */
+  turnOverworld(by: number): void {
+    const turns = (this.get().overworldTurns + by) % OVERWORLD_CAMERA_ANGLES;
+    this.set({ overworldTurns: (turns + OVERWORLD_CAMERA_ANGLES) % OVERWORLD_CAMERA_ANGLES });
   }
 
   override reset(): void {

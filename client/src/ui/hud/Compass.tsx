@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { CAMERA_TURN_TIME } from "../../modes/overworld/facing.js";
 import { useGame } from "../context.js";
 import { useStore } from "../useStore.js";
 import { COMPASS, compassMarks, stripShiftPx, type CompassMark } from "./compassMarks.js";
@@ -15,10 +14,7 @@ export function Compass({ top }: { top: number }) {
       className="absolute left-1/2 -translate-x-1/2 overflow-hidden rounded-full bg-black/40"
       style={{ top, width: COMPASS.widthPx, height: COMPASS.heightPx, maskImage: EDGE_FADE }}
     >
-      <div
-        className="absolute inset-y-0 left-1/2 transition-transform ease-in-out"
-        style={{ transform: `translateX(${stripShiftPx(turns)}px)`, transitionDuration: `${CAMERA_TURN_TIME}s` }}
-      >
+      <div className="absolute inset-y-0 left-1/2" style={{ transform: `translateX(${stripShiftPx(turns)}px)` }}>
         {marks.map((mark) => <Mark key={mark.deg} mark={mark} />)}
       </div>
       <div className="absolute top-0 left-1/2 h-1 w-0.5 -translate-x-1/2 bg-victory" />

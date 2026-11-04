@@ -38,7 +38,12 @@ type WorldAction = LayerActions["overworld" | "battle"];
 
 const AXES = {
   x: ["left", "right"], z: ["back", "forward"], turn: ["turnLeft", "turnRight"], look: ["lookUp", "lookDown"],
+  turnCamera: ["turnCameraLeft", "turnCameraRight"],
 } as const satisfies Record<string, readonly [WorldAction, WorldAction]>;
+
+// Held this far (the arena camera's drag buttons), the mouse turns the camera instead: a click alone stays a click.
+export const DRAG = { startPx: 6 } as const;
+const DRAG_BUTTONS = (actionDef({ group: "battle", action: "dragCamera" }).mouse ?? []).map((b) => `Mouse${b}`);
 
 // After a flick, movement the same way is the same flick until the mouse rests restMs; turning away flicks at once.
 export const FLICK = { distancePx: 40, windowMs: 150, restMs: 100 } as const;
@@ -53,6 +58,7 @@ export interface Polled {
   move: { x: number; z: number };
   turn: number;
   look: number;
+  dragged: boolean;
 }
 
 // Returning false leaves the key to the page.
@@ -89,6 +95,9 @@ export class Actions {
   private sweep: { dx: number; dy: number; atMs: number }[] = [];
   private flickedWay: { x: number; y: number } | null = null;
   private lastMoveMs = -Infinity;
+  private drag = { travelPx: 0, turning: false };
+  private dragged = false;
+  private look = { dx: 0, dy: 0 };
 
   constructor(
     private readonly bindings: KeyBindings, private readonly keyboard: Keyboard, private readonly mouse: Mouse,
@@ -105,6 +114,7 @@ export class Actions {
     this.layers = layers;
     for (const d of this.devices) d.clearPressed();
     this.flicks = [];
+    this.look = { dx: 0, dy: 0 };
     this.mouse.setLockable(this.top === "battle", this.mouseSettings.get().autoLock);
   }
 
@@ -124,19 +134,29 @@ export class Actions {
       const action = this.worldAction(key);
       return action ? [[action, order] as [WorldAction, number]] : [];
     }));
-    const flicks = this.flicks;
+    const flicks = this.flicks, dragged = this.dragged;
     for (const d of this.devices) d.clearPressed();
     this.flicks = [];
+    this.dragged = false;
+    if (!this.dragHeld()) this.drag = { travelPx: 0, turning: false };
     const pressed = presses.sort((a, b) => a[1] - b[1]).map(([action]) => action);
     const held = this.heldActions();
     const axis = (name: keyof typeof AXES) => Number(held.has(AXES[name][1])) - Number(held.has(AXES[name][0]));
-    return { held, pressed, flicks, move: { x: axis("x"), z: axis("z") }, turn: axis("turn"), look: axis("look") };
+    return {
+      held, pressed, flicks, move: { x: axis("x"), z: axis("z") }, turn: axis("turn") + axis("turnCamera"),
+      look: axis("look"), dragged,
+    };
   }
 
   // Every frame, not per tick: movement is an amount, so a snapshot would count it again.
   lookDelta(): { dx: number; dy: number } {
-    const delta = this.mouse.consumeDelta();
+    const delta = this.look;
+    this.look = { dx: 0, dy: 0 };
     return this.top === "battle" ? delta : { dx: 0, dy: 0 };
+  }
+
+  private dragHeld(): boolean {
+    return DRAG_BUTTONS.some((b) => this.mouse.held.has(b));
   }
 
   private heldActions(): Set<WorldAction> {
@@ -144,11 +164,12 @@ export class Actions {
   }
 
   private moved(dx: number, dy: number, atMs: number): void {
-    const held = this.top === "battle" ? this.heldActions() : null;
-    if (!held || held.has("dragCamera")) {
+    if (this.top !== "battle" || this.dragHeld()) {
       this.sweep = [];
+      if (this.top === "battle") this.dragBy(dx, dy);
       return;
     }
+    this.drag = { travelPx: 0, turning: false };
     if (atMs - this.lastMoveMs > FLICK.restMs) this.flickedWay = null;
     this.lastMoveMs = atMs;
     const way = this.flickedWay;
@@ -163,6 +184,16 @@ export class Actions {
     if (flicked) this.flicks.push(flicked);
     this.flickedWay = { x: x / length, y: y / length };
     this.sweep = [];
+  }
+
+  private dragBy(dx: number, dy: number): void {
+    const drag = this.drag;
+    drag.travelPx += Math.hypot(dx, dy);
+    drag.turning ||= drag.travelPx >= DRAG.startPx;
+    if (!drag.turning) return;
+    this.look.dx += dx;
+    this.look.dy += dy;
+    this.dragged = true;
   }
 
   private get top(): Layer {
@@ -187,7 +218,11 @@ export class Actions {
         this.maps[g] = new Map();
         for (const ref of actionsOf(g)) {
           for (const k of keysOf(bindings, ref)) this.maps[g].set(k, ref.action);
-          for (const b of actionDef(ref).mouse ?? []) this.maps[g].set(`Mouse${b}`, ref.action);
+          // A button on two actions (the right one: heavy attack, and dragging the camera) clicks the first.
+          for (const b of actionDef(ref).mouse ?? []) {
+            const button = `Mouse${b}`;
+            if (!this.maps[g].has(button)) this.maps[g].set(button, ref.action);
+          }
           if (actionDef(ref).wheel) this.maps[g].set(WHEEL, ref.action);
         }
       }

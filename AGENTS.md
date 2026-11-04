@@ -256,18 +256,23 @@ Decided by the user:
   only does the `/ws` handshake.
 - Fights lock on: a fight starts locked onto the closest enemy, Q toggles the lock, Right Shift locks the closest,
   and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
-  off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
-  Unlocked, the arrows or a middle-button drag turn the camera, and attacks go where it faces; the mouse alone
-  doesn't turn it. Skills may home (the Follow modifier). Locked on, the camera eases in close over your left
-  shoulder, For Honor style, so the target's swings aren't hidden behind your own body, and eases back out to the wide
-  orbit when the lock ends (the user: "go with what you would do then"). Locked on, V (`cycleView`, rebindable) zooms in
-  through three views, shoulder, close (about 3 m back) and first person (your body hidden, your blade, trail and aim
-  ring still shown), and round again; a dodge sends it back to the shoulder, and it stays there (the user: "maybe on
-  rolls it zooms back out so i dont have to stay in first person. but yea lets test those views for now"). Unlocking
-  always goes to the wide orbit; locking on again takes the last view. Every change eases; the view is kept for the
-  session only, not saved. The camera's numbers (`CAMERA` and `LOCKED_VIEWS` at the top of
-  `client/src/modes/battle/camera.ts`) are the agent's pick, to tune; dev servers try others with `?cam=<preset>` and
-  `cam.*` flags (ARCHITECTURE.md).
+  off), and the camera keeps it in view on its own. Unlocked, Q locks the enemy nearest where the camera points (the
+  screen's middle), not the nearest to you. The arrows (held, at a steady rate) or a drag with the middle or right
+  button (past about 6 px; the right press is still the heavy attack) turn the camera, and turning it by hand lets go
+  of the lock (the user: "on right click drag it would unlock the camera. once i press q again, it locks onto the
+  closest enemy camera is pointing at"; "arrow keys should be continuous, not discrete, with no limitations"); the
+  arrows no longer retarget. Unlocked, attacks go where the camera faces; the mouse alone doesn't turn it. Up and
+  down have no limit: the camera goes all the way round, over the top and under (rolling smoothly, never flipping),
+  and the floor pulls it in rather than letting it through. Skills may home (the Follow modifier). The camera is in
+  one of three views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"):
+  over your left shoulder, For Honor style, so the target's swings aren't hidden behind your own body, close (about
+  3 m back) and first person (your head and body hidden, your arms, hands and what they hold shown with their
+  swings, block, bow draw and chant; the trail and aim ring too); V (`cycleView`, rebindable) steps through them and
+  round again. Unlocked, only its direction is free. A dodge sends it back to the shoulder, and it stays there (the
+  user: "maybe on rolls it zooms back out so i dont have to stay in first person"). Every change eases; the view is
+  kept for the session only, not saved. The camera's numbers (`CAMERA_VIEWS` at the top of
+  `client/src/modes/battle/camera.ts`, the turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to
+  tune; dev servers try others with `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
@@ -467,14 +472,17 @@ Decided by the user:
 - The overworld is drawn in 3D, HD-2D style (the user: "i think 3d view is much cooler actually. can we make that
   default? and archive 2d view for now"). The flat 2D view is archived at the git tag `archive/overworld-2d`
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
-- The overworld camera turns: Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it a quarter turn
-  with a short ease (`CAMERA_TURN_TIME`, 0.25 s). Walking is relative to the camera (W away from it, A / D to its left
-  and right), and sprites and the chibi's pictures follow it. The way it looks is saved with the settings (north for a
-  new player).
-- The overworld camera tilts (the user: it "stays where it is", not saved): held, Up / Down (`lookUp` / `lookDown`,
-  rebindable) tilt it toward the horizon or toward straight down, stopping short of both, and it stays where it's
-  left until the page reloads. The numbers are the agent's picks: 50° to start, 25° to 65°, 1 rad a second
-  (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`); past about 65° the upright sprites look squashed.
+- The overworld camera turns: held, Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it at a
+  steady rate, any way, not in quarter turns (the user: "arrow keys should be continuous, not discrete, with no
+  limitations"), at the arena's rates and sensitivity. Walking is relative to the camera (W away from it, A / D to its
+  left and right), and sprites and the chibi's pictures follow it, by the nearest quarter turn. The way it looks is
+  saved with the settings (north for a new player).
+- The overworld camera tilts (the user: it "stays where it is", not saved; "overworld camera up and down should be
+  allowed to go 360"): held, Up / Down (`lookUp` / `lookDown`, rebindable) tilt it with no limit, over straight down
+  and under, rolling smoothly, and it stays where it's left until the page reloads; tilted under, it stays just above
+  the ground. It starts at 50° (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`). The world is drawn as far
+  as the camera sees at 25°: tilted lower, the far ground is in the fog, and upright sprites look squashed seen from
+  high or low.
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
 - Chat is the whole server's: everyone online hears every line, anywhere in the world and in fights. A line shows in the

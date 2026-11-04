@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { copyInput, IDLE_INPUT, type Vec3 } from "@infinite-tower/shared";
 import type { Polled } from "../../../src/core/actions.js";
-import { closestFoe, lockYaw, retarget, steerLock, type Foe } from "../../../src/modes/battle/lock.js";
+import { closestFoe, lockYaw, pointedFoe, steerLock, type Foe } from "../../../src/modes/battle/lock.js";
 import { readPlayerInput } from "../../../src/modes/battle/input.js";
 
 const at = (x: number, z: number, y = 0.5): Vec3 => ({ x, y, z });
 const player = at(0, -4);
-const eye = { pos: at(0, -10, 3), yaw: 0 };
+const aim = { eye: at(0, -10, 3), at: at(0, 0) };
 
 const current: Foe = { e: 1, pos: at(0, 0) };
 const left: Foe = { e: 2, pos: at(-3, 0) };
@@ -17,7 +17,8 @@ const near: Foe = { e: 5, pos: at(0, -2) };
 const foes = [current, left, right, far, near];
 
 const polled = (pressed: Polled["pressed"], move = { x: 0, z: 0 }): Polled =>
-  ({ held: new Set(), pressed, flicks: [], move, turn: 0, look: 0 });
+  ({ held: new Set(), pressed, flicks: [], move, turn: 0, look: 0, dragged: false });
+const steer = (pressed: Polled["pressed"], dragged = false) => ({ pressed, dragged });
 
 describe("closestFoe", () => {
   test("the living enemy nearest the player, or none", () => {
@@ -27,55 +28,48 @@ describe("closestFoe", () => {
   });
 });
 
-describe("retarget", () => {
-  test("each arrow picks the enemy next to the locked one that way on screen; farther away is higher up", () => {
-    assert.equal(retarget(current.e, foes, eye, "left", player), left.e);
-    assert.equal(retarget(current.e, foes, eye, "right", player), right.e);
-    assert.equal(retarget(current.e, foes, eye, "up", player), far.e);
-    assert.equal(retarget(current.e, foes, eye, "down", player), near.e);
+describe("pointedFoe", () => {
+  test("the enemy nearest where the camera points (the screen's middle), not the one nearest the player", () => {
+    assert.equal(pointedFoe(foes, aim), current.e);
+    const turned = { eye: aim.eye, at: { x: -3, y: 0.5, z: 0 } };
+    assert.equal(pointedFoe(foes, turned), left.e);
+    const atRight = { eye: aim.eye, at: right.pos };
+    assert.equal(pointedFoe([near, right], atRight), right.e, "near is closer, but further off the middle");
   });
 
-  test("with nobody that way, the lock stays", () => {
-    assert.equal(retarget(left.e, foes, eye, "left", player), left.e);
-    assert.equal(retarget(current.e, [current, right], eye, "left", player), current.e);
-  });
-
-  test("an enemy behind the camera is still left or right of the target", () => {
-    const behindLeft: Foe = { e: 6, pos: at(-2, -14) };
-    assert.equal(retarget(current.e, [current, behindLeft], eye, "left", player), behindLeft.e);
-  });
-
-  test("a tie on screen goes to the enemy closest to the player", () => {
-    const along = (t: number, nudge: number): Vec3 => ({
-      x: eye.pos.x + (left.pos.x - eye.pos.x) * t + nudge, y: eye.pos.y + (left.pos.y - eye.pos.y) * t,
-      z: eye.pos.z + (left.pos.z - eye.pos.z) * t,
-    });
-    const hidden: Foe = { e: 7, pos: along(2, 0.01) };
-    assert.equal(retarget(current.e, [current, hidden, left], eye, "left", player), left.e);
+  test("one behind the camera still counts when nobody is in front; with nobody alive, none", () => {
+    const behind = { eye: aim.eye, at: { x: 0, y: 3, z: -20 } };
+    assert.equal(pointedFoe([right], behind), right.e);
+    assert.equal(pointedFoe([], aim), null);
   });
 });
 
 describe("steerLock", () => {
-  test("the lock key locks the closest enemy, and lets go when locked", () => {
-    assert.equal(steerLock(null, ["lockOn"], foes, eye, player), near.e);
-    assert.equal(steerLock(left.e, ["lockOn"], foes, eye, player), null);
-    assert.equal(steerLock(null, [], foes, eye, player), null);
+  test("unlocked, the lock key locks the enemy the camera points at; locked, it lets go", () => {
+    assert.equal(steerLock(null, steer(["lockOn"]), foes, aim, player), current.e);
+    assert.equal(steerLock(left.e, steer(["lockOn"]), foes, aim, player), null);
+    assert.equal(steerLock(null, steer([]), foes, aim, player), null);
   });
 
-  test("lock closest locks the closest enemy, locked or not", () => {
-    assert.equal(steerLock(null, ["lockClosest"], foes, eye, player), near.e);
-    assert.equal(steerLock(left.e, ["lockClosest"], foes, eye, player), near.e);
+  test("lock closest locks the enemy nearest the player, locked or not", () => {
+    assert.equal(steerLock(null, steer(["lockClosest"]), foes, aim, player), near.e);
+    assert.equal(steerLock(left.e, steer(["lockClosest"]), foes, aim, player), near.e);
   });
 
   test("the target dying ends the lock, without jumping to another", () => {
-    assert.equal(steerLock(left.e, [], [current, right], eye, player), null);
+    assert.equal(steerLock(left.e, steer([]), [current, right], aim, player), null);
   });
 
-  test("locked, the arrows retarget; unlocked they don't lock anything", () => {
-    assert.equal(steerLock(current.e, ["turnLeft"], foes, eye, player), left.e);
-    assert.equal(steerLock(current.e, ["lookUp"], foes, eye, player), far.e);
-    assert.equal(steerLock(current.e, ["lookUp", "lookDown"], foes, eye, player), current.e);
-    assert.equal(steerLock(null, ["turnLeft"], foes, eye, player), null);
+  test("an arrow pressed while locked lets go (it turns the camera instead); unlocked they lock nothing", () => {
+    for (const arrow of ["turnLeft", "turnRight", "lookUp", "lookDown"] as const) {
+      assert.equal(steerLock(current.e, steer([arrow]), foes, aim, player), null, arrow);
+      assert.equal(steerLock(null, steer([arrow]), foes, aim, player), null, arrow);
+    }
+  });
+
+  test("dragging the camera lets go of the lock; the lock key in the same step locks again", () => {
+    assert.equal(steerLock(current.e, steer([], true), foes, aim, player), null);
+    assert.equal(steerLock(current.e, steer(["lockOn"], true), foes, aim, player), current.e);
   });
 });
 

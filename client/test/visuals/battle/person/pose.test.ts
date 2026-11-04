@@ -6,7 +6,7 @@ import { personBuild } from "../../../../src/visuals/battle/person/model.js";
 import { BREATH, strideOf, WALK } from "../../../../src/visuals/battle/person/motion.js";
 import { M_PER_PX, restAt, restInModel } from "../../../../src/visuals/battle/person/skeleton.js";
 import { HAIR_SHELL, HEAD } from "../../../../src/visuals/battle/person/head.js";
-import { LOCKED_VIEWS } from "../../../../src/modes/battle/camera.js";
+import { CAMERA_VIEWS } from "../../../../src/modes/battle/camera.js";
 import {
   CLIPS, KEY_EASE_TIME, keyed, legDrop, personPose, POSED_JOINTS, type PersonPose, type PosedJoint,
 } from "../../../../src/visuals/battle/person/pose.js";
@@ -261,7 +261,7 @@ describe("the 3D player's bow", () => {
   });
 
   test("from the locked camera over the left shoulder, the whole bow shows past the body and head", () => {
-    const { sideM, distanceM, orbitHeightM } = LOCKED_VIEWS.shoulder;
+    const { sideM, distanceM, orbitHeightM } = CAMERA_VIEWS.shoulder;
     const eye = { x: sideM, y: PLAYER.height / 2 + orbitHeightM, z: -distanceM };
     const halfM = WEAPON_LOOKS["training-bow"].blade.lengthM / 2;
     // The body (its backpack and arms too) and the hair, seen as a flat cut-out across its middle.

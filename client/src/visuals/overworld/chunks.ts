@@ -15,7 +15,7 @@ import type { TerrainArt } from "./terrainArt.js";
 /** Past the ground the camera sees: water's beds lie a little lower, so they're seen a little further. */
 const SEEN_MARGIN_TILES = 2;
 /** As far as the camera ever sees: what's built, and what the server sends, is reckoned from it. */
-export const SHOWN_TILES = Math.ceil(seenGround(CAMERA_PITCH.minRad).fromFocusTiles) + SEEN_MARGIN_TILES;
+export const SHOWN_TILES = Math.ceil(seenGround(CAMERA_PITCH.drawnForRad).fromFocusTiles) + SEEN_MARGIN_TILES;
 
 /** Nearer than this a chunk casts shadows and is updated every frame; further, one far chunk a frame. */
 export const NEAR_TILES = 32;
@@ -41,7 +41,7 @@ const SKIRT = { depthTiles: WATER_DEPTH_TILES.deep + 0.1, sizeTiles: 4 * SHOWN_T
 export function seenGround(pitchRad: number): { fromFocusTiles: number; fromCameraM: number } {
   const up = Math.tan(CAMERA.fovRad / 2), side = up * VIEW.maxAspect;
   const sin = Math.sin(pitchRad), cos = Math.cos(pitchRad);
-  const along = (sin * CAMERA.distanceTiles) / (sin - cos * up);
+  const along = (CAMERA.pivotTiles + sin * CAMERA.distanceTiles) / (sin - cos * up);
   const ahead = (cos + sin * up) * along - cos * CAMERA.distanceTiles;
   return { fromFocusTiles: Math.hypot(ahead, side * along), fromCameraM: along * Math.hypot(1, up, side) };
 }
@@ -68,7 +68,7 @@ export function buildRank(rect: Rect, focus: Vec2, ahead: Vec2): number {
 }
 
 /** Linear, on top of the region's own: full at the farthest ground the camera ever sees. */
-const fogEndM = seenGround(CAMERA_PITCH.minRad).fromCameraM;
+const fogEndM = seenGround(CAMERA_PITCH.drawnForRad).fromCameraM;
 export const FOG = { startM: fogEndM - FOG_FADE_M, endM: fogEndM };
 
 export interface WorldDrawing {

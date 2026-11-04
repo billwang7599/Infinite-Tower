@@ -105,7 +105,7 @@ const SavedSettingsSchema = z.object({
   bindings: z.record(KEY, z.record(KEY, z.array(KEY).max(MAX_KEYS_PER_ACTION))).optional(),
   camera: z.object({
     sensitivity: z.number().optional(),
-    overworldTurns: z.number().int().min(0).max(OVERWORLD_CAMERA_ANGLES - 1).optional(),
+    overworldTurns: z.number().min(0).lt(OVERWORLD_CAMERA_ANGLES).optional(),
   }).optional(),
   /** Left out means on: saves from before it existed have no such field. */
   mouse: z.object({ autoLock: z.boolean().optional(), flickSensitivity: z.number().optional() }).optional(),

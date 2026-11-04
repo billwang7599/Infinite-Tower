@@ -10,7 +10,7 @@ import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { arenaCamera, CAMERA, cameraTuning, nextLockedView } from "./camera.js";
+import { arenaCamera, CAMERA_VIEWS, cameraTuning, nextView } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { crosshairAim, pickedWay, readPlayerInput } from "./input.js";
@@ -47,9 +47,12 @@ export function createBattle(opts: BattleOptions): Battle {
   const { actions, settings } = opts;
   const ctx: BattleContext = {
     polled: actions.poll(), actions, settings,
-    view: { ...START_VIEW, fovRad: CAMERA.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
+    view: {
+      ...START_VIEW, fovRad: CAMERA_VIEWS.shoulder.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 },
+      up: { x: 0, y: 1, z: 0 },
+    },
     lock: null,
-    lockedView: "shoulder",
+    cameraView: "shoulder",
     way: START_WAY,
     who: [],
     fight: null,
@@ -87,8 +90,8 @@ export function createBattle(opts: BattleOptions): Battle {
       if (written) ctx.casts.push(written);
     }
     const foes = livingFoes(fight);
-    ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.view.eye, yaw: ctx.view.yaw }, me);
-    ctx.lockedView = nextLockedView(ctx.lockedView, ctx.polled.pressed, ctx.lock !== null, action === "dodge");
+    ctx.lock = steerLock(ctx.lock, ctx.polled, foes, ctx.view, me);
+    ctx.cameraView = nextView(ctx.cameraView, ctx.polled.pressed, action === "dodge");
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
     const yaw = (target && lockYaw(me, target)) ?? ctx.view.yaw;

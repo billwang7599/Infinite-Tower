@@ -11,16 +11,18 @@ import { CAMERA } from "../../../src/visuals/overworld/scene.js";
 
 const WIDTH_PX = 1600, HEIGHT_PX = Math.round(WIDTH_PX / VIEW.maxAspect);
 const EDGE_SAMPLES = 16;
+const STEEP_RAD = (65 * Math.PI) / 180;
 
-/** Where the screen's edges meet the ground, the camera tilted to `pitchRad` and looking at (0, 0). */
+/** Where the screen's edges meet the ground, the camera tilted to `pitchRad` and looking at its pivot over (0, 0). */
 function screenEdgeOnGround(pitchRad: number): { fromFocus: number; fromCamera: number }[] {
   const engine = new NullEngine({
     renderWidth: WIDTH_PX, renderHeight: HEIGHT_PX, textureSize: 512, deterministicLockstep: false, lockstepMaxSteps: 1,
   });
   const scene = new Scene(engine), back = Math.cos(pitchRad) * CAMERA.distanceTiles;
-  const camera = new UniversalCamera("camera", new Vector3(0, Math.sin(pitchRad) * CAMERA.distanceTiles, -back), scene);
+  const up = CAMERA.pivotTiles + Math.sin(pitchRad) * CAMERA.distanceTiles;
+  const camera = new UniversalCamera("camera", new Vector3(0, up, -back), scene);
   camera.fov = CAMERA.fovRad;
-  camera.setTarget(Vector3.Zero());
+  camera.setTarget(new Vector3(0, CAMERA.pivotTiles, 0));
   const hits = [];
   for (let i = 0; i <= EDGE_SAMPLES; i++) {
     const x = (i / EDGE_SAMPLES) * WIDTH_PX, y = (i / EDGE_SAMPLES) * HEIGHT_PX;
@@ -39,9 +41,9 @@ function screenEdgeOnGround(pitchRad: number): { fromFocus: number; fromCamera: 
 }
 
 describe("how far the world is drawn", () => {
-  test("seenGround is how far the camera sees at any tilt, at the widest screen; SHOWN_TILES the most", () => {
+  test("seenGround is how far the camera sees at any tilt it's drawn for, at the widest screen; SHOWN_TILES the most", () => {
     for (let k = 0; k <= 8; k++) {
-      const pitchRad = CAMERA_PITCH.minRad + ((CAMERA_PITCH.maxRad - CAMERA_PITCH.minRad) * k) / 8;
+      const pitchRad = CAMERA_PITCH.drawnForRad + ((STEEP_RAD - CAMERA_PITCH.drawnForRad) * k) / 8;
       const hits = screenEdgeOnGround(pitchRad), seen = seenGround(pitchRad);
       const farthest = Math.max(...hits.map((h) => h.fromFocus));
       assert.ok(Math.abs(farthest - seen.fromFocusTiles) < 0.01, `${farthest} tiles seen at ${pitchRad} rad`);
@@ -51,7 +53,7 @@ describe("how far the world is drawn", () => {
   });
 
   test("the farthest ground seen is lost in the fog, and you stand clear of it", () => {
-    const farthest = Math.max(...screenEdgeOnGround(CAMERA_PITCH.minRad).map((h) => h.fromCamera));
+    const farthest = Math.max(...screenEdgeOnGround(CAMERA_PITCH.drawnForRad).map((h) => h.fromCamera));
     assert.ok(farthest >= FOG.endM - 0.01, `${farthest} m against ${FOG.endM}`);
     assert.ok(FOG.startM > CAMERA.distanceTiles);
   });

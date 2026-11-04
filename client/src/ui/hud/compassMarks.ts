@@ -16,7 +16,8 @@ export interface CompassMark {
 // Bearings aren't wrapped, so a mark keeps its place on the strip while it slides.
 export function compassMarks(turns: number): CompassMark[] {
   const facingDeg = turns * QUARTER_DEG, marks: CompassMark[] = [];
-  for (let deg = facingDeg - REACH_DEG; deg <= facingDeg + REACH_DEG; deg += STEP_DEG) {
+  const firstDeg = Math.ceil((facingDeg - REACH_DEG) / STEP_DEG) * STEP_DEG;
+  for (let deg = firstDeg; deg <= facingDeg + REACH_DEG; deg += STEP_DEG) {
     marks.push({ label: WAYS[(((deg / STEP_DEG) % WAYS.length) + WAYS.length) % WAYS.length]!, deg });
   }
   return marks;
