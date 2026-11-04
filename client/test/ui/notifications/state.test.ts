@@ -6,7 +6,6 @@ const { MAX_NOTICES } = Notifications;
 const listed = (to: Notifications) => to.notices.get().items.map((n) => n.text);
 /** Without the ones fading out. */
 const showing = (to: Notifications) => to.notices.get().items.filter((n) => !n.leaving).map((n) => n.text);
-const banner = (to: Notifications) => to.announcement.get().current?.text ?? null;
 
 describe("Notifications notices (the corner)", () => {
   test("notices stack up in the order given, newest last", () => {
@@ -79,57 +78,13 @@ describe("Notifications notices (the corner)", () => {
     to.dismissNotice(9999);
     assert.deepEqual(listed(to), ["a"]);
   });
-
-  test("a notice isn't a banner", () => {
-    const to = new Notifications();
-    to.notify("a");
-    assert.equal(banner(to), null);
-  });
-});
-
-describe("Notifications announcement (the centre banner)", () => {
-  test("announcing puts up the banner, and adds no notice", () => {
-    const to = new Notifications();
-    to.announce("A fight!");
-    assert.equal(banner(to), "A fight!");
-    assert.deepEqual(listed(to), []);
-  });
-
-  test("one at a time: a new one replaces the old, with its own id", () => {
-    const to = new Notifications();
-    to.announce("same");
-    const first = to.announcement.get().current!;
-    to.announce("same");
-    const second = to.announcement.get().current!;
-    assert.equal(second.text, "same");
-    assert.notEqual(second.id, first.id);
-  });
-
-  test("dismissing takes the banner down, and works unbound", () => {
-    const to = new Notifications();
-    to.announce("a");
-    const { dismissAnnouncement } = to;
-    dismissAnnouncement(to.announcement.get().current!.id);
-    assert.equal(banner(to), null);
-  });
-
-  test("dismissing one that was replaced leaves the new one up", () => {
-    const to = new Notifications();
-    to.announce("old");
-    const old = to.announcement.get().current!.id;
-    to.announce("new");
-    to.dismissAnnouncement(old);
-    assert.equal(banner(to), "new");
-  });
 });
 
 describe("Notifications clear", () => {
-  test("takes down the banner and every notice", () => {
+  test("takes down every notice", () => {
     const to = new Notifications();
     for (let i = 0; i <= MAX_NOTICES; i++) to.notify(`n${i}`);
-    to.announce("a");
     to.clear();
     assert.deepEqual(listed(to), []);
-    assert.equal(banner(to), null);
   });
 });

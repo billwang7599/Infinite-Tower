@@ -129,9 +129,7 @@ export const RUNNING_WATER_SOUND: SoundName = "river";
 export const STILL_WATER_SOUNDS: Partial<Record<Theme, SoundName>> = { mistwood: "mire" };
 
 export const EVENT_SOUNDS: { readonly [K in GameEvent["kind"]]?: SoundName } = {
-  encounter: "encounter",
-  duel: "encounter",
-  joinedFight: "encounter",
+  fightStarted: "encounter",
   joinedYou: "notice",
   challenge: "notice",
   rested: "rest",

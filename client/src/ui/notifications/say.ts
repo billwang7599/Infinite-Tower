@@ -1,10 +1,6 @@
-/**
- * Everything the game tells the player goes through `say`: game code says what happened, and EVENT_MESSAGES where it
- * shows and in what words. Small things are corner notices; the centre banner is only for big events.
- */
 import {
   coreName, exchangeRate, formatPrice, itemDef, MAX_CHAT_CHARS, sigilOf, WEAPONS, type BlessingGod,
-  type ChallengeNews, type CoinId, type CoreState, type EnemyDef, type Faith, type God, type ItemCounts, type ItemId,
+  type ChallengeNews, type CoinId, type CoreState, type Faith, type God, type ItemCounts, type ItemId,
   type QuestNews, type ServerMsgOf, type TradeNews, type WeaponId,
 } from "@infinite-tower/shared";
 import { BLESSING_TEXT, GOD_NAMES } from "../hud/blessings.js";
@@ -12,10 +8,7 @@ import { battleResultLines, describeItems, type BattleOutcome } from "./battleRe
 import type { Notifications } from "./state.js";
 
 export type GameEvent =
-  /** A fight starting. `source` is the actor that touched you, or null for tall grass. */
-  | { kind: "encounter"; source: ServerMsgOf<"encounter">["source"]; enemy: Pick<EnemyDef, "name"> }
-  | { kind: "duel"; with: string }
-  | { kind: "joinedFight"; host: string }
+  | { kind: "fightStarted" }
   | { kind: "joinedYou"; who: string }
   | { kind: "joinRefused"; reason: ServerMsgOf<"joinRefused">["reason"] }
   | { kind: "challenge"; news: ChallengeNews }
@@ -37,46 +30,36 @@ export type GameEvent =
 type EventKind = GameEvent["kind"];
 type EventOf<K extends EventKind> = Extract<GameEvent, { kind: K }>;
 
-interface EventMessage<E extends GameEvent> {
-  /** The centre banner (one at a time, no ×, fades on its own), or a notice in the bottom-right corner. */
-  where: "centre" | "corner";
-  /** A line each; an event can say nothing. */
-  lines: (event: E) => string[];
-}
+// A corner notice per line; an event can say nothing (and is still heard, for its sound).
+type EventMessage<E extends GameEvent> = (event: E) => string[];
 
 /** One entry per event: a new kind of event without one doesn't compile. */
 export const EVENT_MESSAGES: { readonly [K in EventKind]: EventMessage<EventOf<K>> } = {
-  encounter:    { where: "centre", lines: (event) => [encounterLine(event)] },
-  duel:         { where: "centre", lines: (event) => [`A duel with ${event.with}!`] },
-  joinedFight:  { where: "centre", lines: ({ host }) => [`You join ${host}'s fight!`] },
-  joinedYou:    { where: "corner", lines: ({ who }) => [`${who} joins the fight.`] },
-  joinRefused:  { where: "corner", lines: ({ reason }) => [JOIN_REFUSED[reason]] },
-  challenge:    { where: "corner", lines: ({ news }) => challengeLines(news) },
-  rested:       { where: "corner", lines: () => ["You rest by the fire. HP and stamina are restored."] },
-  padBound:     { where: "corner", lines: ({ already }) => [already ? PAD_ALREADY : PAD_BOUND] },
-  itemUsed:     { where: "corner", lines: ({ item }) => [itemUsedLine(item)] },
-  tooWeak:      { where: "corner", lines: ({ item }) => [tooWeakLine(item)] },
-  leftOnCloth:  { where: "corner", lines: ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`] },
-  given:        { where: "corner", lines: givenLines },
-  healed:       { where: "corner", lines: () => ["HP and stamina are restored."] },
-  noQuest:      { where: "corner", lines: () => ["There's no quest left to complete."] },
-  chatRefused:  { where: "corner", lines: ({ reason }) => [CHAT_REFUSED[reason]] },
-  battleResult: { where: "corner", lines: ({ outcome }) => battleResultLines(outcome) },
-  quest:        { where: "corner", lines: ({ news }) => questLines(news) },
-  breakthrough: { where: "corner", lines: ({ core }) => [`Your core breaks through: ${coreName(core)}.`] },
-  faith: { where: "corner", lines: faithLines },
-  trade:        { where: "corner", lines: ({ news }) => tradeLines(news) },
+  fightStarted: () => [],
+  joinedYou:    ({ who }) => [`${who} joins the fight.`],
+  joinRefused:  ({ reason }) => [JOIN_REFUSED[reason]],
+  challenge:    ({ news }) => challengeLines(news),
+  rested:       () => ["You rest by the fire. HP and stamina are restored."],
+  padBound:     ({ already }) => [already ? PAD_ALREADY : PAD_BOUND],
+  itemUsed:     ({ item }) => [itemUsedLine(item)],
+  tooWeak:      ({ item }) => [tooWeakLine(item)],
+  leftOnCloth:  ({ items }) => [`You leave ${describeItems(items)} behind on the cloth.`],
+  given:        givenLines,
+  healed:       () => ["HP and stamina are restored."],
+  noQuest:      () => ["There's no quest left to complete."],
+  chatRefused:  ({ reason }) => [CHAT_REFUSED[reason]],
+  battleResult: ({ outcome }) => battleResultLines(outcome),
+  quest:        ({ news }) => questLines(news),
+  breakthrough: ({ core }) => [`Your core breaks through: ${coreName(core)}.`],
+  faith:        faithLines,
+  trade:        ({ news }) => tradeLines(news),
 };
 
-/** Tells the player about `event` in its place: each line is a notice, or the banner (a new one replaces it). */
 export function say(to: Notifications, event: GameEvent): void {
   // TypeScript can't tie `event` to its own kind's entry, so the entry is read as taking any event.
-  const { where, lines } = EVENT_MESSAGES[event.kind] as EventMessage<GameEvent>;
+  const lines = EVENT_MESSAGES[event.kind] as EventMessage<GameEvent>;
   to.said.set({ event });
-  for (const line of lines(event)) {
-    if (where === "centre") to.announce(line);
-    else to.notify(line);
-  }
+  for (const line of lines(event)) to.notify(line);
 }
 
 const PAD_BOUND = "You're bound to this summoning pad: you'll wake here when you die or come back.";
@@ -93,10 +76,6 @@ const CHAT_REFUSED: Record<ServerMsgOf<"chatRefused">["reason"], string> = {
   tooFast: "You're sending messages too fast. Wait a moment.",
   tooLong: `A message is ${MAX_CHAT_CHARS} characters at most.`,
 };
-
-function encounterLine({ source, enemy }: EventOf<"encounter">): string {
-  return source === null ? `A ${enemy.name} leaps out of the grass!` : `The ${enemy.name} attacks!`;
-}
 
 function challengeLines(news: ChallengeNews): string[] {
   switch (news.kind) {

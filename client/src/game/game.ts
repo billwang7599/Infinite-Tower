@@ -73,11 +73,7 @@ export function createGame({ drawing, audio, actions, ui, settings, battle, over
     result = null;
     lastUsedStep = -Infinity;
     battle.start(msg, net);
-    const enemy = msg.setup.enemies[0]?.def ?? { name: "something" };
-    const rival = msg.setup.duel ? msg.setup.players[1 - msg.seat]?.who : undefined;
-    if (rival) say(ui.notifications, { kind: "duel", with: rival.name });
-    else if (msg.joined) say(ui.notifications, { kind: "joinedFight", host: msg.joined.host });
-    else say(ui.notifications, { kind: "encounter", source: msg.source, enemy });
+    say(ui.notifications, { kind: "fightStarted" });
     setMode("battle");
   };
 

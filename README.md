@@ -166,7 +166,7 @@ What's built so far:
 - **HUD:** HP and stamina bars, your portrait (turned over, your core), the region's name, the ping, and
   buttons for the character panel, the inventory, the questbook and Settings. On the overworld, a compass strip at the
   top shows which way the camera faces. Small notices (loot, a full bag, dying, resting, eating, a breakthrough, quests)
-  stack in the bottom-right corner and fade; only a fight starting gets the big banner in the middle.
+  stack in the bottom-right corner and fade; a fight starting shows no message.
 - **Sound:** sound effects for swings (lower and heavier with a heavier blade or a heavy attack), hits, blocks,
   footsteps, dodges and jumps, the enemies' grunts, deaths and wind-ups, skills (cast, flight, impact), eating, items, resting
   and clicks; flowing rivers and crackling campfires nearby. Sounds come from where they happen: quieter further

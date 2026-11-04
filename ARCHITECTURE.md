@@ -554,9 +554,9 @@ main.ts
   goes).
   What the game says to the player goes through one call, `say(ui.notifications, event)` (`ui/notifications/`),
   e.g. `say(ui.notifications, { kind: "rested" })`. Its table, `EVENT_MESSAGES`, has an entry for every kind of
-  `GameEvent` (a kind without one doesn't compile) with where it goes and its words: `"corner"` is a small notice
-  in the bottom-right corner (loot, a full bag, dying, resting, eating), `"centre"` the big centre banner, kept for
-  bigger events (only a fight starting so far; the arena's result banner is the fight's end).
+  `GameEvent` (a kind without one doesn't compile) with its words, each line a small notice in the bottom-right
+  corner (loot, a full bag, dying, resting, eating); an event may say nothing (a fight starting) and still be heard
+  for its sound. There's no centre banner; the arena's result line is the fight's end.
   Writing every frame is fine: `Store.set` skips unchanged values, so a component re-renders only when the value it
   selected changes (select one primitive per `useStore` call). What the UI asks of the game goes through
   `UiActions`: the title's own (sign in, play, return to title) from `main.ts`, the rest the `Game`'s
@@ -1410,7 +1410,7 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
     ui/              React: everything drawn over the canvas
       context.ts       GameContext and useGame(): { ui, settings, input, actions } for any component
       mount.tsx        createRoot + <App> inside GameContext; App.tsx picks the HUD for the mode, then the chat, the dialogue, notices,
-                       banner, the fade between modes (game/transition.ts sets it), the questbook, Settings, character
+                       the fade between modes (game/transition.ts sets it), the questbook, Settings, character
                        creation, title
                        screen (the HUD, the chat and Settings only once `inWorld` and not creating; creation as soon as
                        a game runs without a character, under the title)
@@ -1502,14 +1502,13 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
                        SkillbookScreen.tsx (the book in hand, over the bag: its 4 pages, written at once), Hotbar.tsx
                        (the pages on the battle HUD with their keys)
       notifications/   What the player is told, and where. say.ts (`say(to, event)`; `GameEvent`, what happened;
-                       `EVENT_MESSAGES`, one entry per kind of event: where it goes, "centre" or "corner", and its
-                       lines), battleResult.ts (what a `battleResult` says: what dropped, died / lost,
-                       refused), state.ts (Notifications, UiState's `notifications`: the notices' and the banner's
-                       stores, `said` (the last event told, for the sound), notify / announce / dismiss / clear,
+                       `EVENT_MESSAGES`, one entry per kind of event: its lines, each a corner notice),
+                       battleResult.ts (what a `battleResult` says: what dropped, died / lost,
+                       refused), state.ts (Notifications, UiState's `notifications`: the notices'
+                       store, `said` (the last event told, for the sound), notify / dismiss / clear,
                        MAX_NOTICES), Notices.tsx (the corner: newest
                        at the bottom, at most 5 showing, wrapping at 20rem, about 8 s each, beside an open side panel
-                       and above the Rest button), Announcement.tsx (the centre banner: one at a time, wraps in the
-                       middle 80%, no ×: it fades on its own), useFadeOut.ts (hold, fade, dismiss)
+                       and above the Rest button), useFadeOut.ts (hold, fade, dismiss)
       screens/         One folder per full-screen page, holding the parts only that page uses
         title/           TitleScreen.tsx (login form, or the server list, Play / Retry and Log out; status line, the
                          sequence's layers), LoginForm.tsx, ServerList.tsx (name and players / cap, or Full),
@@ -1932,11 +1931,10 @@ art-lab/         The art lab (`npm run art`, Vite on :5175): a dev tool, never b
   (`server/src/core/game/cheats.ts`; a fight's state changes through `room.edit`), a test that production ignores it,
   and a button in `client/src/ui/screens/admin/AdminPanel.tsx`.
 - **Something the game says to the player.** A case in `GameEvent` (`client/src/ui/notifications/say.ts`) and its
-  entry in `EVENT_MESSAGES` (TypeScript errors until you add it): `where: "corner"` (a notice) for anything small,
-  `"centre"` (the banner) only for bigger events like a fight starting; long wording gets its own file there, like
-  battleResult.ts. Game code calls `say(ui.notifications, { kind: ... })`. Test the words in
-  `client/test/ui/notifications/say.test.ts`; its placement test lists the events allowed in the centre. If it should
-  make a sound, its kind's entry in `EVENT_SOUNDS` (`client/src/audio/sounds.ts`).
+  entry in `EVENT_MESSAGES` (TypeScript errors until you add it), its lines, each a corner notice; long wording gets
+  its own file there, like battleResult.ts. Game code calls `say(ui.notifications, { kind: ... })`. Test the words in
+  `client/test/ui/notifications/say.test.ts`. If it should make a sound, its kind's entry in `EVENT_SOUNDS`
+  (`client/src/audio/sounds.ts`).
 - **A sound.** A CC0 file only (SOUNDS.md says where every file is from: add its row), mono Ogg Vorbis named
   `<sound>-<n>.ogg` in `client/src/audio/sounds/`, and its row in `SOUNDS` (`client/src/audio/sounds.ts`; the table's
   test fails on a file that's missing or unused). Something in a fight is heard from the fight's state in

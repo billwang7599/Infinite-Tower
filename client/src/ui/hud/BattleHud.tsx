@@ -11,9 +11,6 @@ import { useStore } from "../useStore.js";
 import { Hud, type HudMode } from "./Hud.js";
 import { StatusRow } from "./StatusRow.js";
 
-/** The dark band behind the result, fading out above and below. */
-const RESULT_BAND = "bg-[linear-gradient(transparent,#000b_25%,#000b_75%,transparent)]";
-
 const NO_CLOTH: Gear["cloth"] = { cols: 0, rows: 0, items: [] };
 
 const BATTLE: HudMode = {
@@ -120,18 +117,18 @@ function ResultBanner() {
   const result = useStore(hud, (s) => s.result);
   const show = useStore(hud, (s) => s.showResult);
   const leaveKey = useStore(bindings, (s) => s.battle.leave[0]);
-  const evenMatch = useStore(hud, (s) => s.duel || s.spar);
-  const died = result === "lost";
+  const match = useStore(hud, (s) => (s.duel ? "duel" : s.spar ? "spar" : null));
+  const won = result !== "lost";
   return (
     <div
-      className={`absolute inset-x-0 top-[10%] flex flex-col items-center py-5 ${RESULT_BAND} transition-opacity ${
+      className={`absolute inset-x-0 top-[10%] flex flex-col items-center text-white text-shadow-hud transition-opacity ${
         show ? "opacity-100" : "opacity-0"
       } duration-1200`}
     >
-      <div className={`font-title text-4xl font-normal tracking-[4px] ${died ? "text-died" : "text-victory"}`}>
-        {evenMatch ? (died ? "DEFEATED" : "VICTORY") : died ? "YOU DIED" : "PREY SLAUGHTERED"}
+      <div className="font-title text-xl">
+        {match ? `You ${won ? "win" : "lose"} the ${match}.` : won ? "The fight is won." : "Your shell breaks."}
       </div>
-      {leaveKey && <div className="mt-2 font-normal opacity-80">Press {keyName(leaveKey)} to continue</div>}
+      {leaveKey && <div className="mt-1 text-sm opacity-80">Press {keyName(leaveKey)} to continue</div>}
     </div>
   );
 }

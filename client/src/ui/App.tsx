@@ -3,7 +3,6 @@ import { Dialogue } from "./dialogue/Dialogue.js";
 import { BattleHud } from "./hud/BattleHud.js";
 import { CoreCard } from "./hud/CoreCard.js";
 import { OverworldHud } from "./hud/OverworldHud.js";
-import { Announcement } from "./notifications/Announcement.js";
 import { Notices } from "./notifications/Notices.js";
 import { AdminPanel } from "./screens/admin/AdminPanel.js";
 import { CreationScreen } from "./screens/creation/CreationScreen.js";
@@ -46,7 +45,6 @@ export function App() {
         besidePanelPx={overworldHud && panel ? panelWidthPx : null}
         aboveRestButton={overworldHud && interaction !== null}
       />
-      <Announcement announcement={ui.notifications.announcement} dismiss={ui.notifications.dismissAnnouncement} />
       <Fade screen={ui.screen} />
       {playing && <QuestbookScreen />}
       {playing && import.meta.env.DEV && <AdminPanel />}

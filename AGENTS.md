@@ -331,12 +331,14 @@ Decided by the user:
   pointer, in place, only if it fits turned. Enter, a double click or the Use button use the selected item. The
   bag's bindings are only turn (R) and use (Enter); mouse buttons aren't bindable. B and Esc close it, and you
   stand still while it's open (the world doesn't pause).
-- Messages: small notices (drops and loot, a full bag, what's lost on death, resting, eating, quest news) go in
-  the bottom-right corner; the big centre banner is kept for bigger events, which so far is only a fight starting
-  (the arena's "YOU DIED" / "PREY SLAUGHTERED" banner is the fight's end, smaller and near the top). Messages
-  wrap rather than run off screen, and item lists are never cut short. Each notice has a × to dismiss it early; the centre banner has none
-  and fades away on its own. All of it lives in `client/src/ui/notifications/`, and game code only calls
-  `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its place and words.
+- Messages (the user, on the banners: "just change them. or dont have the banner at all"): small notices (drops and
+  loot, a full bag, what's lost on death, resting, eating, quest news) go in the bottom-right corner. There's no
+  centre banner: a fight starting shows no message (the arena appearing says it). The fight's end is a quiet line
+  near the top of the arena, over "Press <key> to continue": "The fight is won." or "Your shell breaks." against
+  monsters, "You win the duel." / "You lose the duel." and "You win the spar." / "You lose the spar." (the words are
+  OptChat's picks). Messages wrap rather than run off screen, and item lists are never cut short. Each notice has a
+  × to dismiss it early. All of it lives in `client/src/ui/notifications/`, and game code only calls
+  `say(ui.notifications, event)`: one table there (`EVENT_MESSAGES`) gives every kind of event its words.
 - The arena's physics is Rapier (its deterministic build), and the fight is shared code: one `Fight` per battle,
   with its own physics world and fixed steps, for any number of players and enemies, so the server and the browser
   run the same fight on the same inputs. Fighters are moved by code, not pushed by forces, so the
@@ -933,8 +935,8 @@ them; treat them as changeable, and still ask before deciding new ones):
     `server/src/core/game/training.ts`): no fighter's HP goes under 10% of its most, and one at it has yielded, so
     the fight is decided. Nothing is lost or gained but the quest: HP and stamina come back as they went in, no drops,
     no death, no win counted, the core as it was; gear moved and pages written are kept. Nobody can join one (a
-    notice: "A spar can't be joined."). The banner says VICTORY / DEFEATED, a loss's notice "You yield to Bram.", and
-    leaving mid-fight costs nothing.
+    notice: "A spar can't be joined."). The arena says "You win the spar." / "You lose the spar.", a loss's notice "You
+    yield to Bram.", and leaving mid-fight costs nothing.
   - The dummy takes no damage from anything and never attacks; it falls once a light, a heavy and a stab have each
     landed (a mark on it lights for each).
   - Bram spars by the Kobold's rules, kinder (`server/src/core/enemies/bram.ts`): 60 HP, the old stick, wind-ups of
@@ -1050,7 +1052,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   only hurt, as the Kobold's do. Duelists pass through each other's bodies. It's a spar: over when one is down (a draw, lost by
   both, at the time limit), no death, nothing lost or gained, no wins, and both come back where they stood with the
   HP and stamina they went in with; pages written and gear moved in it are kept. Leaving or disconnecting forfeits:
-  the other wins, the leaver loses nothing. The arena banner says VICTORY / DEFEATED.
+  the other wins, the leaver loses nothing. The arena says "You win the duel." / "You lose the duel."
 - Joining a battle (the user: "another user can join a users' arena if theyre mid battle"; the rest are the agent's
   picks from plan/multiplayer.md): within 1.6 tiles (`JOIN_RANGE_TILES`) of a player's crossed swords, the Interact
   key (E; it joins when no campfire or pile is closer) or the HUD's "Join the fight"
@@ -1066,7 +1068,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   disconnects, the host too, has lost as `LEAVING_LOSES` says, and the rest fight on. With the host gone
   (disconnected, or down and back on the overworld), the enemy stays off the overworld until the fight is decided for
   everyone in it, and the fight can still be joined: every player in it has the crossed swords, not just the host.
-  The joiner hears "You join <host>'s fight!" in the centre banner, the others "<name> joins the fight." in a corner.
+  The joiner is told nothing (the arena appearing says it), the others "<name> joins the fight." in a corner.
 - The first NPC (the user: "make an npc ... use all your own judgement"): Hollis, a native of the tower who keeps the
   Grass Field's campfire, standing about 3 tiles east of it, facing the fire. Interact (E) or the HUD's
   "Talk", next to Hollis and looking at Hollis, by the same reach and look as a pile (`INTERACT_RANGE_M`,
@@ -1237,7 +1239,7 @@ The global rules apply; here is how to set one up in this repo.
   code. Only `game/` imports it, and only through `visuals/visuals.ts`; `npm run typecheck` checks the imports.
 - **UI is React over the canvas** (`client/src/ui/`). Game code writes plain values into the stores in
   `ui/state.ts` and never touches the DOM. No `innerHTML` or `dangerouslySetInnerHTML`. What the player is told
-  goes through `say` (`ui/notifications/say.ts`), never straight to the notices or the banner.
+  goes through `say` (`ui/notifications/say.ts`), never straight to the notices.
 
 ## Code style
 
