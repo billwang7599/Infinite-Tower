@@ -1576,10 +1576,15 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
         pace.ts          Pace: the fight's clock, steps due each frame, in step with the server's (PACE_SLACK_STEPS,
                          MAX_STEPS_PER_FRAME, MAX_BACKLOG_STEPS)
         context.ts       BattleContext (the fight, its sync, its outcome as the server says, after a win the arena's
-                         time and drops, the lock, the camera's view, this frame's events and corrections, the
-                         skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
+                         time and drops, the lock and the locked view (V), the camera's view, this frame's events and
+                         corrections, the skills waiting to be cast), resultShown, AFTER_FIGHT_BANNER_TIME
         camera.ts        The camera's orbit, locked or not, in plain numbers (ArenaView: yaw, pitch, eye, at): its
-                         yaw is the aim
+                         yaw is the aim. Unlocked it's CAMERA, a wide orbit; locked on, one of LOCKED_VIEWS (shoulder,
+                         close, fp), stepped by V and reset to shoulder by a dodge (nextLockedView); every change
+                         eases, the field of view too. insideSelf hides your body in first person. Dev-only flags try
+                         others (cameraTuning: ?cam=shoulder, close, high, both or fp, &cam.dist, .height,
+                         .lookheight, .pitch, .look, .lookmax, .side, .fov, .fade), and blocksView says when your
+                         fighter hides the target (cam.fade)
         lock.ts          The lock-on: steerLock (lock / unlock / lock closest / retarget by screen side, off when the
                          target dies), lockYaw (the way to face it), no Babylon: tested
         input.ts         A poll -> PlayerInputData (the attack is the last pressed; the way from the last flick, none
@@ -1628,9 +1633,9 @@ client/          Browser game: the two modes, their drawing (Babylon), input, Re
       sprites.ts       spriteMaterial, redrawSprite, pixelCanvas; textures.ts (procedural textures; glowTexture and
                        puffTexture for particles); materials.ts (colorMaterial)
       battle/
-        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera, its sky, post, materials, the
-                         skill kit, each fighter's node, each player's look in their frames, the shake, each fighter's
-                         impact
+        scene.ts         ArenaScene (what the arena's visuals share): the scene, camera (and its tuning), its sky, post,
+                         materials, the skill kit, each fighter's node, each player's look in their frames, the shake,
+                         each fighter's impact
         pixel.ts         The arena's pixel-art render, on by default (DEFAULT_PIXEL_SCALE, outlined); in dev the URL
                          changes it (?pixel=<n>|auto, 1 for off, &outline=0, &palette[=bands]): pixelFlags,
                          pixelScale (the engine's hardware scaling in a fight), the outline and palette passes (what
@@ -2019,7 +2024,7 @@ What these numbers go into, as formulas with worked examples: [FORMULAS.md](FORM
 | The time of day's light: colours by sun height, fades | top of `client/src/visuals/sky/daylight.ts` |
 | Map-light shadows, sprite tint, sun and moon discs | top of `client/src/visuals/sky/sky.ts` |
 | Blob shadows | `BLOB` in `client/src/visuals/sky/blobs.ts` |
-| Arena camera feel, locked and not | top of `client/src/modes/battle/camera.ts` |
+| Arena camera feel, locked and not | `CAMERA` (unlocked) and `LOCKED_VIEWS` (shoulder, close, first person) at the top of `client/src/modes/battle/camera.ts` |
 | How quick a mouse flick aims (distance, time, rest between flicks) | `FLICK` in `client/src/core/actions.ts` |
 | Retarget ties | `client/src/modes/battle/lock.ts` (`RETARGET_TIE_RAD`) |
 | Where a fight starts (and a duel) | `shared/src/battle/fight/setup.ts` |

@@ -250,8 +250,16 @@ Decided by the user:
   and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
   off), the camera keeps it in view on its own, and the arrows retarget by screen side (a tie: the closest).
   Unlocked, the arrows or a middle-button drag turn the camera, and attacks go where it faces; the mouse alone
-  doesn't turn it. Skills may home (the Follow modifier). The locked camera's numbers (top of
-  `client/src/modes/battle/camera.ts`) are the agent's pick, to tune.
+  doesn't turn it. Skills may home (the Follow modifier). Locked on, the camera eases in close over your left
+  shoulder, For Honor style, so the target's swings aren't hidden behind your own body, and eases back out to the wide
+  orbit when the lock ends (the user: "go with what you would do then"). Locked on, V (`cycleView`, rebindable) zooms in
+  through three views, shoulder, close (about 3 m back) and first person (your body hidden, your blade, trail and aim
+  ring still shown), and round again; a dodge sends it back to the shoulder, and it stays there (the user: "maybe on
+  rolls it zooms back out so i dont have to stay in first person. but yea lets test those views for now"). Unlocking
+  always goes to the wide orbit; locking on again takes the last view. Every change eases; the view is kept for the
+  session only, not saved. The camera's numbers (`CAMERA` and `LOCKED_VIEWS` at the top of
+  `client/src/modes/battle/camera.ts`) are the agent's pick, to tune; dev servers try others with `?cam=<preset>` and
+  `cam.*` flags (ARCHITECTURE.md).
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a

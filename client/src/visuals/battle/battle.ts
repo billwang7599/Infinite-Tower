@@ -193,6 +193,7 @@ export function arenaStage(ctx: ArenaScene): {
         eye.x + (Math.random() - 0.5) * s, eye.y + (Math.random() - 0.5) * s, eye.z + (Math.random() - 0.5) * s,
       );
       ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
+      ctx.camera.fov = ctx.battle.view.fovRad;
       ctx.sky.frame(Date.now(), ctx.camera.position);
       drawPiles();
       ring.frame(world);

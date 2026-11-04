@@ -335,9 +335,9 @@ describe("KeyBindings saved before lock-on", () => {
   test("a turn saved on Q (the lock now) or a jump on right Shift (lock closest now) keeps it: the lock's unbound",
     () => {
     const b = new KeyBindings();
-    b.restore({ battle: { turnLeft: ["KeyQ", "KeyH"] }, general: { inventory: ["KeyV"] } });
+    b.restore({ battle: { turnLeft: ["KeyQ", "KeyH"] }, general: { inventory: ["KeyU"] } });
     assert.deepEqual(b.get().battle, { ...defaults().battle, turnLeft: ["KeyQ", "KeyH"], lockOn: [] });
-    assert.deepEqual(keysOf(b.get(), inventory), ["KeyV"]);
+    assert.deepEqual(keysOf(b.get(), inventory), ["KeyU"]);
     b.restore({ battle: { jump: ["ShiftRight", "KeyH"] } });
     assert.deepEqual(b.get().battle, { ...defaults().battle, jump: ["ShiftRight", "KeyH"], lockClosest: [] });
   });

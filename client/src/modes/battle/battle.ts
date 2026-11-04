@@ -10,7 +10,7 @@ import type { Settings } from "../../settings/settings.js";
 import type { ChantState } from "../../ui/skills/chant.js";
 import type { BattleHudState, PanelState, SkillsState } from "../../ui/state.js";
 import type { Store } from "../../ui/store.js";
-import { arenaCamera } from "./camera.js";
+import { arenaCamera, CAMERA, cameraTuning, nextLockedView } from "./camera.js";
 import { resultShown, type BattleContext, type Correction } from "./context.js";
 import { hudSystem } from "./hud.js";
 import { pickedWay, readPlayerInput } from "./input.js";
@@ -47,8 +47,9 @@ export function createBattle(opts: BattleOptions): Battle {
   const { actions, settings } = opts;
   const ctx: BattleContext = {
     polled: actions.poll(), actions, settings,
-    view: { ...START_VIEW, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
+    view: { ...START_VIEW, fovRad: CAMERA.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 } },
     lock: null,
+    lockedView: "shoulder",
     way: START_WAY,
     who: [],
     fight: null,
@@ -63,7 +64,7 @@ export function createBattle(opts: BattleOptions): Battle {
     gearMoves: [],
     uses: [],
   };
-  const camera = arenaCamera(ctx);
+  const camera = arenaCamera(ctx, cameraTuning(import.meta.env.DEV ? location.search : ""));
   const hud = hudSystem(ctx, opts.hud);
   /** Syncs land between frames; the next frame's `corrections` are theirs. */
   let corrected: Correction[] = [];
@@ -80,13 +81,14 @@ export function createBattle(opts: BattleOptions): Battle {
     if (steps === 0) return;
     ctx.polled = actions.poll();
     if (ctx.polled.pressed.includes("leave") && resultShown(ctx.outcome)) opts.onLeave();
-    const [, , { pos: me }, { book }] = fight.world.first(LocalPlayer, Body, Player)!;
+    const [, , { pos: me }, { book, action }] = fight.world.first(LocalPlayer, Body, Player)!;
     for (const action of ctx.polled.pressed) {
       const written = book[HOTBAR.indexOf(action as (typeof HOTBAR)[number])];
       if (written) ctx.casts.push(written);
     }
     const foes = livingFoes(fight);
     ctx.lock = steerLock(ctx.lock, ctx.polled.pressed, foes, { pos: ctx.view.eye, yaw: ctx.view.yaw }, me);
+    ctx.lockedView = nextLockedView(ctx.lockedView, ctx.polled.pressed, ctx.lock !== null, action === "dodge");
     const target = foes.find((f) => f.e === ctx.lock)?.pos;
     ctx.way = pickedWay(ctx.polled, ctx.way);
     readPlayerInput(ctx.polled, (target && lockYaw(me, target)) ?? ctx.view.yaw, ctx.way, input);

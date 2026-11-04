@@ -3,6 +3,7 @@ import {
   type AbstractEngine, type Camera, type StandardMaterial, type TransformNode,
 } from "@babylonjs/core";
 import type { Entity, Vec3 } from "@infinite-tower/shared";
+import { cameraTuning, type CameraTuning } from "../../modes/battle/camera.js";
 import type { BattleContext } from "../../modes/battle/context.js";
 import type { PlayerLook } from "../characters.js";
 import { createSky, type Sky } from "../sky/sky.js";
@@ -24,6 +25,7 @@ export interface ArenaScene {
   impacts: Map<Entity, Impact>;
   battle: BattleContext;
   pixel: PixelFlags;
+  tuning: CameraTuning;
 }
 
 const FLOOR_REACH_M = 30;
@@ -32,19 +34,19 @@ export function createBattleScene(engine: AbstractEngine, battle: BattleContext)
   const scene = new Scene(engine);
 
   const camera = new UniversalCamera("camera", new Vector3(0, 4, -16), scene);
-  camera.fov = 0.9;
+  const search = import.meta.env.DEV ? location.search : "", tuning = cameraTuning(search).free;
   camera.minZ = 0.1;
   camera.inputs.clear(); // it follows the battle mode's view
 
   const sky = createSky(scene);
-  const pixel = pixelFlags(import.meta.env.DEV ? location.search : "");
+  const pixel = pixelFlags(search);
   postProcess(scene, camera, pixel);
   const materials = createMaterials(scene);
   const floorY = (at: Vec3) =>
     at.y - (battle.fight?.physics.floorBelow(at.x, at.y, at.z, FLOOR_REACH_M) ?? 0);
   return {
     scene, camera, sky, materials, skills: createSkillKit(scene, floorY, materials.slashFx),
-    nodes: new Map(), looks: new Map(), shake: 0, impacts: new Map(), battle, pixel,
+    nodes: new Map(), looks: new Map(), shake: 0, impacts: new Map(), battle, pixel, tuning,
   };
 }
 
