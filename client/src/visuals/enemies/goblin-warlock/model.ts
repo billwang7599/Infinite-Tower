@@ -1,11 +1,19 @@
 import { Color3, MeshBuilder, TransformNode, type Mesh, type StandardMaterial } from "@babylonjs/core";
 import type { EnemyDef, Entity } from "@infinite-tower/shared";
 import { buildArm, type Arm } from "../../battle/arm.js";
-import { loft } from "../../battle/person/loft.js";
+import { loft, type Section } from "../../battle/person/loft.js";
 import type { ArenaScene } from "../../battle/scene.js";
 import { enemyMaterial, lengthwise, limb } from "../shape.js";
 
 const ARM_REACH_M = 0.5;
+export const GOWN: Section[] = [
+  { y: 0.17, x: 0.29, z: 0.27, dz: -0.02 }, { y: 0.3, x: 0.24, z: 0.22, dz: -0.01 },
+  { y: 0.55, x: 0.17, z: 0.15, dz: 0 }, { y: 0.74, x: 0.19, z: 0.16, dz: -0.02 },
+  { y: 0.84, x: 0.11, z: 0.11, dz: 0 },
+];
+export const GOWN_ROUNDNESS = 2.1;
+/** Of the upper arm from the shoulder: still in the gown, where the sleeve comes out. */
+const SLEEVE_SHARE = 0.4;
 
 export interface GoblinModel {
   root: TransformNode;
@@ -76,11 +84,7 @@ export function buildGoblin(
   };
   const legs: GoblinModel["legs"] = [hip(-0.09), hip(0.09)];
 
-  const gown = part(loft(scene, "g-robe", [
-    { y: 0.17, x: 0.29, z: 0.27, dz: -0.02 }, { y: 0.3, x: 0.24, z: 0.22, dz: -0.01 },
-    { y: 0.55, x: 0.17, z: 0.15, dz: 0 }, { y: 0.74, x: 0.19, z: 0.16, dz: -0.02 },
-    { y: 0.84, x: 0.11, z: 0.11, dz: 0 },
-  ], 2.1), model, robe);
+  const gown = part(loft(scene, "g-robe", GOWN, GOWN_ROUNDNESS), model, robe);
   part(loft(scene, "g-sash", [{ y: 0.47, x: 0.2, z: 0.18 }, { y: 0.53, x: 0.19, z: 0.17 }]), model, trim);
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * Math.PI * 2;
@@ -119,6 +123,7 @@ export function buildGoblin(
   const arm = (side: 1 | -1): Arm => buildArm(scene, part, model, null, {
     side, shoulder: { x: side * 0.15, y: 0.74, z: 0 }, reachM: ARM_REACH_M, thicknessM: 0.085,
     upper: robe, fore: robe, fist: skin,
+    body: { parts: [{ node: model, sections: GOWN, roundness: GOWN_ROUNDNESS }], jointShare: SLEEVE_SHARE },
   });
   const staffArm = arm(1), offArm = arm(-1), hand = staffArm.hand;
   const staff = part(MeshBuilder.CreateCylinder("g-staff", { height: 1.3, diameter: 0.045, tessellation: 6 }, scene),

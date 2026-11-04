@@ -165,22 +165,27 @@ export function personPose(
   player: Doing, wielder: Pick<WielderData, "swing">, motion: WeaponMotion, o: PersonMoment,
 ): PersonPose {
   const { build: b, side, alive } = o, { swing } = wielder, t = player.actionTime;
-  const { blade, exact, handZ } = playerBlade(player, wielder, alive, motion, 1, keyedStroke);
+  const { blade, handBlade, exact, handZ } = playerBlade(player, wielder, alive, motion, 1, keyedStroke);
   const reach = b.reachM, scale = reach / MOTION_ARM_M;
   const pivot = { x: side * b.shoulderM * PIVOT_OUT, y: b.shoulderY - reach * PIVOT_DROP, z: 0 };
   const arc = reach * HAND_ARC;
-  const restOff: Vec3 = { x: -side * (b.shoulderM + 0.03), y: b.shoulderY - reach * 0.95, z: 0.05 };
   const joints = Object.fromEntries(POSED_JOINTS.map((j) => [j, { x: 0, y: 0, z: 0 }])) as PersonPose["joints"];
+  const twist = alive ? TWIST_RAD * blade.x : 0;
+  if (alive) {
+    for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
+    joints.spine.x = joints.chest.x = -BEND_RAD * blade.y / 2;
+  }
+  // Hanging under its shoulder, which the body's twist carries round.
+  const hangX = -side * (b.shoulderM + 0.03), hangZ = 0.05;
+  const restOff: Vec3 = {
+    x: hangX * Math.cos(twist) + hangZ * Math.sin(twist), y: b.shoulderY - reach * 0.95,
+    z: hangZ * Math.cos(twist) - hangX * Math.sin(twist),
+  };
   const p: PersonPose = {
     blade, bladeExact: exact,
-    hand: { x: pivot.x + blade.x * arc, y: pivot.y + blade.y * arc, z: handZ * scale + blade.z * arc },
+    hand: { x: pivot.x + handBlade.x * arc, y: pivot.y + handBlade.y * arc, z: handZ * scale + handBlade.z * arc },
     offHand: restOff, joints, rootY: 0, legsExact: false,
   };
-  if (alive) {
-    const twist = TWIST_RAD * blade.x, bend = -BEND_RAD * blade.y;
-    for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
-    joints.spine.x = joints.chest.x = bend / 2;
-  }
   const towardOff = (to: Vec3) => {
     const k = keyed(t, [0], [0, 1]);
     p.offHand = { x: restOff.x + (to.x - restOff.x) * k, y: restOff.y + (to.y - restOff.y) * k,

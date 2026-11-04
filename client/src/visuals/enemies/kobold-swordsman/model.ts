@@ -2,9 +2,9 @@ import {
   Color3, Mesh, MeshBuilder, TransformNode, type StandardMaterial,
 } from "@babylonjs/core";
 import type { EnemyDef, Entity, Vec3 } from "@infinite-tower/shared";
-import { buildArm, type Arm } from "../../battle/arm.js";
+import { buildArm, type Arm, type BodyPart } from "../../battle/arm.js";
 import { buildBlade } from "../../battle/blade.js";
-import { loft } from "../../battle/person/loft.js";
+import { loft, ROUNDNESS, type Section } from "../../battle/person/loft.js";
 import type { ArenaScene } from "../../battle/scene.js";
 import { enemyMaterial, lengthwise, limb as limbMesh } from "../shape.js";
 import type { WeaponLook } from "../../battle/weapons.js";
@@ -47,6 +47,19 @@ export function disposeKobold(v: KoboldModel): void {
 }
 
 const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
+
+// Leaning into the fight: each section sits further ahead the higher it is.
+export const torsoSections = (b: number): Section[] => [
+  { y: -0.06, x: 0.16 * b, z: 0.13 * b, dz: 0 }, { y: 0.1, x: 0.18 * b, z: 0.15 * b, dz: 0.02 },
+  { y: 0.3, x: 0.23 * b, z: 0.19 * b, dz: 0.06 }, { y: 0.46, x: 0.24 * b, z: 0.17 * b, dz: 0.09 },
+  { y: 0.56, x: 0.15 * b, z: 0.11 * b, dz: 0.11 },
+];
+export const bellySections = (b: number): Section[] => [
+  { y: -0.02, x: 0.11 * b, z: 0.08 * b, dz: 0.06 }, { y: 0.2, x: 0.15 * b, z: 0.1 * b, dz: 0.1 * b },
+  { y: 0.4, x: 0.14 * b, z: 0.08 * b, dz: 0.15 * b },
+];
+/** The share of the upper arm, from the shoulder, sunk in the torso as its joint. */
+const SHOULDER_JOINT_SHARE = 0.3;
 
 export function buildKobold(
   ctx: ArenaScene, e: Entity, parent: TransformNode, def: EnemyDef, yaw: number, weapon: WeaponLook | null,
@@ -102,16 +115,8 @@ export function buildKobold(
   const hips = node("k-hips", model, 0, 0.62, 0);
   const chest = node("k-chest", model, 0, 0.66, 0);
 
-  // Leaning into the fight: each section sits further ahead the higher it is.
-  const torso = part(loft(scene, "k-torso", [
-    { y: -0.06, x: 0.16 * b, z: 0.13 * b, dz: 0 }, { y: 0.1, x: 0.18 * b, z: 0.15 * b, dz: 0.02 },
-    { y: 0.3, x: 0.23 * b, z: 0.19 * b, dz: 0.06 }, { y: 0.46, x: 0.24 * b, z: 0.17 * b, dz: 0.09 },
-    { y: 0.56, x: 0.15 * b, z: 0.11 * b, dz: 0.11 },
-  ]), chest, scales);
-  part(loft(scene, "k-belly", [
-    { y: -0.02, x: 0.11 * b, z: 0.08 * b, dz: 0.06 }, { y: 0.2, x: 0.15 * b, z: 0.1 * b, dz: 0.1 * b },
-    { y: 0.4, x: 0.14 * b, z: 0.08 * b, dz: 0.15 * b },
-  ]), chest, belly);
+  const torso = part(loft(scene, "k-torso", torsoSections(b)), chest, scales);
+  part(loft(scene, "k-belly", bellySections(b)), chest, belly);
   limb("k-strap", chest, leather, v(-0.2 * b, 0.06, 0.18 * b), v(0.2 * b, 0.48, 0.2), 0.05, 0.05);
   if (build.plated) {
     const plate = ball("k-plate", chest, iron, v(0, 0.3, 0.14), v(0.4 * b, 0.36, 0.22 * b));
@@ -179,9 +184,12 @@ export function buildKobold(
   };
   const legs: KoboldModel["legs"] = [hip(-0.13 * b), hip(0.13 * b)];
 
+  const body: BodyPart[] = [torsoSections(b), bellySections(b)].map((sections) => ({
+    node: chest, sections, roundness: ROUNDNESS,
+  }));
   const arm = (side: 1 | -1): Arm => buildArm(scene, part, model, chest, {
     side, shoulder: { x: side * 0.26 * b, y: 0.48, z: 0.1 }, reachM: armReachM, thicknessM: 0.1 * b,
-    upper: scales, fore: scales, fist: ridge,
+    upper: scales, fore: scales, fist: ridge, body: { parts: body, jointShare: SHOULDER_JOINT_SHARE },
   });
   const swordArm = arm(1), offArm = arm(-1);
   const twoHanded = weapon?.twoHanded ?? false;

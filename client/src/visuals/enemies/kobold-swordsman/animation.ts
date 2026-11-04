@@ -1,9 +1,9 @@
 import { Color3, Quaternion, Vector3 } from "@babylonjs/core";
 import {
-  Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle,
+  Body, damp, dampFactor, Enemy, Health, weaponItemIn, WEAPONS, Wielder, wrapAngle, type Vec3,
 } from "@infinite-tower/shared";
 import { poseArm } from "../../battle/arm.js";
-import { bladeEdge, cueBlade, dropCue, showCue, type BladeCue } from "../../battle/blade.js";
+import { BLADE_FROM_M, bladeEdge, cueBlade, dropCue, showCue, type BladeCue } from "../../battle/blade.js";
 import { fighter } from "../../battle/battle.js";
 import { buildSlash, placeSlash, type Slash } from "../../battle/slash.js";
 import {
@@ -19,7 +19,7 @@ const HIT_FLASH_COLOR = new Color3(0.9, 0.9, 0.9);
 const HEAD_COUNTER = 0.6;
 const TAIL_TRAIL = 0.8;
 const IDLE = { breathTime: 2.4, breathScale: 0.03, tailTime: 3.1, tailRad: 0.12 };
-const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3();
+const bladeDir = new Vector3(), handTarget = new Vector3(), offTarget = new Vector3(), gripAt = new Vector3();
 
 type KoboldNodes = KoboldModel & {
   clock: number; blade: Quaternion; handAt: Vector3 | null; motion: WeaponMotion; look: WeaponLook | null;
@@ -78,20 +78,10 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     handTarget.set(pose.hand.x, pose.hand.y, pose.hand.z);
     nodes.handAt ??= handTarget.clone();
     Vector3.LerpToRef(nodes.handAt, handTarget, pose.bladeExact ? 1 : dampFactor(20, dt), nodes.handAt);
-    poseArm(nodes.swordArm, nodes.handAt);
+    offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.25);
+    reachKobold(nodes, nodes.handAt, offTarget, nodes.look);
     const live = health.hp > 0 ? swing : null;
     if (nodes.cue) showCue(nodes.cue, live);
-
-    const off = nodes.offArm;
-    if (nodes.twoHanded) {
-      Vector3.Up().applyRotationQuaternionToRef(hand.rotationQuaternion, bladeDir);
-      hand.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), offTarget);
-      off.hand.rotationQuaternion ??= new Quaternion();
-      off.hand.rotationQuaternion.copyFrom(hand.rotationQuaternion);
-    } else {
-      offTarget.set(pose.offHand.x, pose.offHand.y, pose.offHand.z - Math.sin(nodes.gait) * amp * 0.25);
-    }
-    poseArm(off, offTarget);
     nodes.model.rotation.x = damp(nodes.model.rotation.x, pose.lean, 10, dt);
     nodes.model.rotation.z = damp(nodes.model.rotation.z, pose.roll, pose.rollRate, dt);
     nodes.model.position.y = damp(nodes.model.position.y, pose.yOff, 8, dt);
@@ -106,5 +96,21 @@ export const koboldVisual = (build: KoboldBuild) => fighter<KoboldNodes>("enemy"
     }
   },
 });
+
+export function reachKobold(m: KoboldModel, hand: Vec3, offHand: Vec3, look: WeaponLook | null): void {
+  const held = m.swordArm.hand, off = m.offArm;
+  poseArm(m.swordArm, hand, look && {
+    fromM: BLADE_FROM_M, toM: BLADE_FROM_M + look.blade.lengthM, halfM: look.blade.widthM / 2,
+  });
+  if (!m.twoHanded || !held.rotationQuaternion) {
+    poseArm(off, offHand);
+    return;
+  }
+  Vector3.Up().applyRotationQuaternionToRef(held.rotationQuaternion, bladeDir);
+  held.position.subtractToRef(bladeDir.scaleInPlace(OFF_GRIP_M), gripAt);
+  off.hand.rotationQuaternion ??= new Quaternion();
+  off.hand.rotationQuaternion.copyFrom(held.rotationQuaternion);
+  poseArm(off, gripAt);
+}
 
 export const koboldSwordsmanVisual = koboldVisual(SWORDSMAN_BUILD);

@@ -65,7 +65,7 @@ const axes = [new Vector3(), new Vector3(), new Vector3()] as const, eye = new V
 /** After `framePerson`: the arms posed as in first person, then carried along with the camera as it turns and tilts. */
 export function holdInView(p: PersonDrawing, view: ArenaView, gripped: boolean): void {
   const { model } = p;
-  if (!model || !p.handAt || !p.bladeTurn) return;
+  if (!model || !p.look || !p.handAt || !p.bladeTurn) return;
   const { joints } = model, side = p.bladeSide, swordSide = side === 1 ? "R" : "L", offSide = side === 1 ? "L" : "R";
   joints.root.computeWorldMatrix(true).invertToRef(rootInverse);
   Quaternion.InverseToRef(joints.root.absoluteRotationQuaternion, rootTurn);
@@ -79,8 +79,8 @@ export function holdInView(p: PersonDrawing, view: ArenaView, gripped: boolean):
   turn.multiplyToRef(p.bladeTurn, holding);
   if (gripped) turn.multiplyToRef(offHolding, offHolding);
   const pole = { ...FP_ARMS.pole, x: side * FP_ARMS.pole.x };
-  reachWith(joints, swordSide, arms.hand, holding, pole);
-  reachWith(joints, offSide, arms.offHand, offHolding, { ...pole, x: -pole.x });
+  reachWith(joints, p.look.body, swordSide, arms.hand, holding, pole);
+  reachWith(joints, p.look.body, offSide, arms.offHand, offHolding, { ...pole, x: -pole.x });
 
   const { right, up, forward } = POSED_FOR;
   Matrix.FromXYZAxesToRef(axes[0].set(right.x, right.y, right.z), axes[1].set(up.x, up.y, up.z),

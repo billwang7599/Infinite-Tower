@@ -5,7 +5,7 @@ export interface Section { y: number; x: number; z: number; dz?: number; dx?: nu
 
 export const RING_POINTS = 16;
 /** Above 2 the ring squares off: a torso, not a pipe. */
-const ROUNDNESS = 2.3;
+export const ROUNDNESS = 2.3;
 
 const signedPow = (v: number, p: number) => Math.sign(v) * Math.abs(v) ** p;
 
