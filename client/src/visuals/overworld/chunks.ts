@@ -4,7 +4,7 @@ import {
   type WorldMap,
 } from "@infinite-tower/shared";
 import type { OverworldState } from "../../modes/overworld/components.js";
-import { CAMERA_PITCH } from "../../modes/overworld/facing.js";
+import { CAMERA_DISTANCE, CAMERA_PITCH } from "../../modes/overworld/facing.js";
 import { waterMap, WATER_DEPTH_TILES, type WaterMap } from "../../modes/overworld/water.js";
 import { campfireLights, REGION_LOOKS } from "../regions/index.js";
 import type { SkyLook } from "../sky/sky.js";
@@ -41,8 +41,8 @@ const SKIRT = { depthTiles: WATER_DEPTH_TILES.deep + 0.1, sizeTiles: 4 * SHOWN_T
 export function seenGround(pitchRad: number): { fromFocusTiles: number; fromCameraM: number } {
   const up = Math.tan(CAMERA.fovRad / 2), side = up * VIEW.maxAspect;
   const sin = Math.sin(pitchRad), cos = Math.cos(pitchRad);
-  const along = (CAMERA.pivotTiles + sin * CAMERA.distanceTiles) / (sin - cos * up);
-  const ahead = (cos + sin * up) * along - cos * CAMERA.distanceTiles;
+  const along = (CAMERA.pivotTiles + sin * CAMERA_DISTANCE.maxTiles) / (sin - cos * up);
+  const ahead = (cos + sin * up) * along - cos * CAMERA_DISTANCE.maxTiles;
   return { fromFocusTiles: Math.hypot(ahead, side * along), fromCameraM: along * Math.hypot(1, up, side) };
 }
 

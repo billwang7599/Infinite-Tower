@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { MAX_KEYS_PER_ACTION } from "@infinite-tower/shared";
 import {
-  ACTIONS, GROUPS, KeyBindings, actionsOf, isBindable, isFixed, keysOf, type ActionRef,
+  ACTIONS, GROUPS, KeyBindings, actionDef, actionsOf, isBindable, isFixed, keysOf, type ActionRef,
 } from "../../src/settings/bindings.js";
 
 const menu: ActionRef = { group: "general", action: "menu" };
@@ -78,10 +78,10 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(battle.interact, ["KeyE"]);
   });
 
-  test("the sword: K or the scroll wheel stabs, left Shift blocks; no key aims, kicks or feints", () => {
+  test("the sword: K or the mouse's back side button stabs, left Shift blocks; no key aims, kicks or feints", () => {
     const battle = new KeyBindings().get().battle;
     assert.deepEqual(battle.stab, ["KeyK"]);
-    assert.equal(ACTIONS.battle.stab.wheel, true);
+    assert.deepEqual(ACTIONS.battle.stab.mouse, [3]);
     assert.deepEqual(battle.block, ["ShiftLeft"]);
     const names = Object.keys(ACTIONS.battle);
     assert.ok(!names.some((name) => name.startsWith("aim") || name === "kick" || name === "feint"), names.join());
@@ -106,8 +106,8 @@ describe("ACTIONS and helpers", () => {
 
   test("the overworld's own: interact (E), the bag's turn (R) and use (Enter), camera turns and tilts, duels", () => {
     assert.deepEqual(Object.keys(ACTIONS.overworld), [
-      "interact", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "lookUp", "lookDown", "challenge",
-      "acceptChallenge", "declineChallenge",
+      "interact", "turnItem", "useItem", "turnCameraLeft", "turnCameraRight", "lookUp", "lookDown", "dragCamera",
+      "challenge", "acceptChallenge", "declineChallenge",
     ]);
     assert.deepEqual(ACTIONS.overworld.challenge.keys, ["KeyT"]);
     assert.deepEqual(ACTIONS.overworld.acceptChallenge.keys, ["KeyY"]);
@@ -124,6 +124,15 @@ describe("ACTIONS and helpers", () => {
     assert.deepEqual(ACTIONS.overworld.turnItem.mouse, [2]);
   });
 
+  test("the scroll wheel is on no action: it zooms the camera", () => {
+    for (const group of GROUPS) for (const ref of actionsOf(group)) assert.equal("wheel" in actionDef(ref), false);
+  });
+
+  test("in the overworld the middle or right button drags the camera, as in the arena", () => {
+    assert.deepEqual(ACTIONS.overworld.dragCamera.mouse, ACTIONS.battle.dragCamera.mouse);
+    assert.deepEqual(ACTIONS.overworld.dragCamera.keys, []);
+  });
+
   test("actionsOf lists a group's actions in order, tagged with the group", () => {
     const expected = Object.keys(ACTIONS.general).map((action) => ({ group: "general", action }));
     assert.deepEqual(actionsOf("general"), expected);
@@ -135,8 +144,10 @@ describe("ACTIONS and helpers", () => {
   });
 
   test("only the settings (on Esc) and the mouse's attacks and camera drag are fixed", () => {
-    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed),
-      [menu, { group: "battle", action: "lightAttack" }, { group: "battle", action: "heavyAttack" }, dragCamera]);
+    assert.deepEqual(GROUPS.flatMap(actionsOf).filter(isFixed), [
+      menu, { group: "overworld", action: "dragCamera" }, { group: "battle", action: "lightAttack" },
+      { group: "battle", action: "heavyAttack" }, dragCamera,
+    ]);
   });
 });
 

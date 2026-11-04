@@ -1,14 +1,14 @@
 import { Vector3 } from "@babylonjs/core";
-import { dampFactor, wrapAngle } from "@infinite-tower/shared";
+import { damp, dampFactor, wrapAngle } from "@infinite-tower/shared";
 import { OverworldPos } from "../../modes/overworld/components.js";
-import { floorReach, orbitBack, orbitUp } from "../../modes/orbit.js";
-import { aimCamera } from "../aim.js";
+import { floorReach, orbitBack } from "../../modes/orbit.js";
 import { CAMERA, type OverworldScene } from "./scene.js";
 import { worldDrawing, type WorldDrawing } from "./chunks.js";
 import { terrainArt, type TerrainArt } from "./terrainArt.js";
 import { QUARTER_TURN_RAD } from "./walker.js";
 
 const CAMERA_FOLLOW_RATE = 10;
+const ZOOM_RATE = 6;
 /** Tilted under, the camera stays this far above the ground. */
 const FLOOR_MARGIN_TILES = 0.15;
 
@@ -20,8 +20,8 @@ export interface OverworldStage {
 
 export function overworldStage(view: OverworldScene): OverworldStage {
   let art: TerrainArt | null = null, world: WorldDrawing | null = null;
-  const target = new Vector3(0, CAMERA.pivotTiles, 0), eye = { x: 0, y: 0, z: 0 }, feet = { x: 0, y: 0, z: 0 };
-  let facedYaw = NaN;
+  const target = new Vector3(0, CAMERA.pivotTiles, 0), feet = { x: 0, y: 0, z: 0 };
+  let facedYaw = NaN, distanceTiles = view.state.cameraDistanceTiles;
   const follow = () => {
     if (view.state.map === world?.map) return false;
     world?.dispose();
@@ -45,10 +45,11 @@ export function overworldStage(view: OverworldScene): OverworldStage {
     const k = fresh ? 1 : dampFactor(CAMERA_FOLLOW_RATE, dt);
     target.x += (player.x - target.x) * k;
     target.z += (player.z - target.z) * k;
+    distanceTiles = fresh ? state.cameraDistanceTiles : damp(distanceTiles, state.cameraDistanceTiles, ZOOM_RATE, dt);
     const back = orbitBack(view.yawRad, state.cameraPitchRad);
-    const dist = floorReach(CAMERA.pivotTiles, back.y, 0, CAMERA.distanceTiles, FLOOR_MARGIN_TILES);
-    Object.assign(eye, { x: target.x + back.x * dist, y: target.y + back.y * dist, z: target.z + back.z * dist });
-    aimCamera(camera, eye, target, orbitUp(view.yawRad, state.cameraPitchRad));
+    const dist = floorReach(CAMERA.pivotTiles, back.y, 0, distanceTiles, FLOOR_MARGIN_TILES);
+    camera.position.set(target.x + back.x * dist, target.y + back.y * dist, target.z + back.z * dist);
+    camera.setTarget(target);
     view.sky.frame(Date.now(), camera.position);
     feet.x = target.x;
     feet.z = target.z;

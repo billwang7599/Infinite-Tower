@@ -1,8 +1,8 @@
 /**
  * Every action, its default keys, and the player's changes. Game code asks about actions (core/actions.ts), so a
- * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons and the wheel
- * are fixed; they're listed so the settings screen can show them. General works in the overworld and in the arena,
- * the overworld's and the arena's only there; so a general key is on nothing else, but the overworld and the arena
+ * change applies at once. Keys are KeyboardEvent.code (physical position, any layout). Mouse buttons are fixed;
+ * they're listed so the settings screen can show them (the scroll wheel zooms the camera). General works in the
+ * overworld and in the arena, the overworld's and the arena's only there; so a general key is on nothing else, but the overworld and the arena
  * may share keys. In the arena the left hand is on WASD and the right on the mouse: its buttons attack, and a flick
  * aims (core/actions.ts).
  */
@@ -12,9 +12,8 @@ import { Store } from "../ui/store.js";
 interface ActionDef {
   label: string;
   keys: readonly string[];
-  /** MouseEvent.button: 0 left (trackpad tap), 1 middle (wheel click), 2 right (two-finger tap). */
+  /** MouseEvent.button: 0 left (trackpad tap), 1 middle (wheel click), 2 right (two-finger tap), 3 back (side). */
   mouse?: readonly number[];
-  wheel?: true;
 }
 
 export const ACTIONS = {
@@ -37,8 +36,9 @@ export const ACTIONS = {
     useItem: { label: "Use the selected item (eat)", keys: ["Enter"] },
     turnCameraLeft: { label: "Turn camera left (hold)", keys: ["ArrowLeft"] },
     turnCameraRight: { label: "Turn camera right (hold)", keys: ["ArrowRight"] },
-    lookUp: { label: "Tilt camera up (hold; all the way round)", keys: ["ArrowUp"] },
-    lookDown: { label: "Tilt camera down (hold; all the way round)", keys: ["ArrowDown"] },
+    lookUp: { label: "Tilt camera up (hold)", keys: ["ArrowUp"] },
+    lookDown: { label: "Tilt camera down (hold)", keys: ["ArrowDown"] },
+    dragCamera: { label: "Turn camera (hold and drag)", keys: [], mouse: [1, 2] },
     challenge: { label: "Challenge the nearest player to a duel", keys: ["KeyT"] },
     acceptChallenge: { label: "Accept a duel challenge", keys: ["KeyY"] },
     declineChallenge: { label: "Decline a duel challenge", keys: ["KeyN"] },
@@ -46,7 +46,7 @@ export const ACTIONS = {
   battle: {
     lightAttack: { label: "Light attack", keys: [], mouse: [0] },
     heavyAttack: { label: "Heavy attack", keys: [], mouse: [2] },
-    stab: { label: "Stab", keys: ["KeyK"], wheel: true },
+    stab: { label: "Stab", keys: ["KeyK"], mouse: [3] },
     block: {
       label: "Block (hold; just before a hit: a perfect block; in a heavy's wind-up: a feint)", keys: ["ShiftLeft"],
     },
@@ -54,7 +54,7 @@ export const ACTIONS = {
     jump: { label: "Jump", keys: ["Space"] },
     lockOn: { label: "Lock on (the enemy the camera points at) / off", keys: ["KeyQ"] },
     lockClosest: { label: "Lock onto the closest enemy", keys: ["ShiftRight"] },
-    cycleView: { label: "Zoom the camera in (shoulder, close, first person)", keys: ["KeyV"] },
+    cycleView: { label: "Zoom the camera in (shoulder, close, first person; or scroll)", keys: ["KeyV"] },
     turnLeft: { label: "Turn camera left (hold; unlocks)", keys: ["ArrowLeft"] },
     turnRight: { label: "Turn camera right (hold; unlocks)", keys: ["ArrowRight"] },
     lookUp: { label: "Tilt camera up (hold; unlocks)", keys: ["ArrowUp"] },

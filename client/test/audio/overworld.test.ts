@@ -5,7 +5,7 @@ import { LocalPlayer } from "../../src/modes/components.js";
 import { overworldEars, STRIDE_TILES } from "../../src/audio/overworld.js";
 import { testMap } from "../fixtures/map.js";
 import { RUNNING_WATER_SOUND, STILL_WATER_SOUNDS } from "../../src/audio/sounds.js";
-import { CAMERA_PITCH } from "../../src/modes/overworld/facing.js";
+import { CAMERA_DISTANCE, CAMERA_PITCH } from "../../src/modes/overworld/facing.js";
 import {
   OverworldActor, OverworldPos, type OverworldActorData, type OverworldState,
 } from "../../src/modes/overworld/components.js";
@@ -28,7 +28,7 @@ function overworld(map: WorldLayout | null = LEVEL) {
   world.add(player, LocalPlayer, true);
   const state: OverworldState = {
     world, player, map, held: { keys: new Set(), flow: map ? waterFlow(map) : new Map(), revision: 0 },
-    cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad,
+    cameraTurns: 0, cameraPitchRad: CAMERA_PITCH.startRad, cameraDistanceTiles: CAMERA_DISTANCE.maxTiles,
   };
   return { state, world, walker, player, hear: overworldEars() };
 }

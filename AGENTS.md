@@ -148,7 +148,8 @@ Decided by the user:
   heavy, a block with a perfect block, a dodge). For Honor's guard stances, the Combat style setting, and the Posture,
   One Strike and Master Cuts styles are gone (their branches stay on GitHub). Its rules are the user's (the numbers
   are first guesses, to tune):
-  - Left click a light attack, right click a heavy, the scroll wheel a stab (K too). The swing's way comes only from
+  - Left click a light attack, a right click a heavy (as it's let go; a right drag turns the camera instead), the
+    mouse's back side button a stab (K too); the scroll wheel zooms the camera. The swing's way comes only from
     the mouse, as flavour: a quick flick aims one of 7 ways (across, down from the top, and the four diagonals), a
     horizontal swing wide and a vertical one narrow. There's no straight upward swing (a downward flick does
     nothing) and no key aims. Locked on, attacks go where you face.
@@ -258,21 +259,33 @@ Decided by the user:
   and the lock ends when its target dies. Locked, you face the target (A / D circle it, W / S close in and back
   off), and the camera keeps it in view on its own. Unlocked, Q locks the enemy nearest where the camera points (the
   screen's middle), not the nearest to you. The arrows (held, at a steady rate) or a drag with the middle or right
-  button (past about 6 px; the right press is still the heavy attack) turn the camera, and turning it by hand lets go
-  of the lock (the user: "on right click drag it would unlock the camera. once i press q again, it locks onto the
-  closest enemy camera is pointing at"; "arrow keys should be continuous, not discrete, with no limitations"); the
-  arrows no longer retarget. Unlocked, attacks go where the camera faces; the mouse alone doesn't turn it. Up and
-  down have no limit: the camera goes all the way round, over the top and under (rolling smoothly, never flipping),
-  and the floor pulls it in rather than letting it through. Skills may home (the Follow modifier). The camera is in
-  one of three views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"):
-  over your left shoulder, For Honor style, so the target's swings aren't hidden behind your own body, close (about
-  3 m back) and first person (your head and body hidden, your arms, hands and what they hold shown with their
-  swings, block, bow draw and chant; the trail and aim ring too); V (`cycleView`, rebindable) steps through them and
-  round again. Unlocked, only its direction is free. A dodge sends it back to the shoulder, and it stays there (the
-  user: "maybe on rolls it zooms back out so i dont have to stay in first person"). Every change eases; the view is
-  kept for the session only, not saved. The camera's numbers (`CAMERA_VIEWS` at the top of
-  `client/src/modes/battle/camera.ts`, the turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to
-  tune; dev servers try others with `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
+  button (past about 6 px) turn the camera, and turning it by hand lets go of the lock (the user: "on right click
+  drag it would unlock the camera. once i press q again, it locks onto the closest enemy camera is pointing at";
+  "arrow keys should be continuous, not discrete, with no limitations"); the arrows no longer retarget. A right click
+  is the heavy attack, fired as the button is let go, and only if it never dragged that far: a drag is no attack (the
+  user: "heavy attacks should fire if its a click. a drag should unlock the camera + pan"). Unlocked, attacks go
+  where the camera faces; the mouse alone doesn't turn it. Up and down are capped (the user: "make the up and down
+  arrow capped at some point so i cant spin forever, but still give a decent amount of freedom"; the numbers are the
+  main chat's): the eye goes from 35° under the pivot to 80° over it, arrows and drag alike, and the floor pulls it
+  in rather than letting it through; in first person you look 80° up or down at most (`PITCH` in
+  `client/src/modes/orbit.ts`, the overworld's too). Skills may home (the Follow modifier). The camera has three
+  views, locked or not (the user: "just have the 3 views be always like that, even if camera is off"): over your left
+  shoulder (5.5 m back), For Honor style, so the target's swings aren't hidden behind your own body, close (3 m) and
+  first person (your head and body hidden, your arms, hands and what they hold shown with their swings, block, bow
+  draw and chant; the trail and aim ring too). The scroll wheel zooms between them, locked or not (the user: "mouse
+  scroll should also be able to zoom in and out (capped at some point). main mode of playing now will be keyboard +
+  mouse"): a notch takes the camera 1.2 times as far out or in (`ZOOM_PER_NOTCH`), from close out to 8 m
+  (`ZOOM.maxM`), the shoulder view's framing at any distance; zooming in stops at close, and a notch more is first
+  person (one out of it, close again). V (`cycleView`, rebindable) steps in to the next of shoulder, close and first
+  person, then round to the shoulder, and the zoom with it. Unlocked, only its direction is free. A dodge sends it
+  back to the shoulder's distance if it was nearer (the user: "maybe on rolls it zooms back out so i dont have to stay
+  in first person"); zoomed out further, it stays. Every change eases; the zoom is kept for the session only, not
+  saved. In first person your arms are always in view (the user: "first person i should be able to see my arms at
+  all times i think, so the sword is in view a bit more"): both hands sit low on the screen, the sword lower and
+  nearer the middle than the pose's own, and the arms go with the camera wherever it looks (ART.md, "first
+  person"). The camera's numbers (`CAMERA_VIEWS` and `ZOOM` at the top of `client/src/modes/battle/camera.ts`, the
+  turn rates `TURN` in `client/src/modes/orbit.ts`) are the agent's pick, to tune; dev servers try others with
+  `?cam=<preset>` and `cam.*` flags (ARCHITECTURE.md).
 - Lock-on stays, and skills are balanced on the defender's side. A Bolt flies where it's aimed, at where the target is,
   never where it's going, so stepping aside makes it miss. Follow turns slowly enough that a dodge late in its flight
   shakes it. The Kobold reads a Bolt winding up at it and sometimes steps out of its line just before it leaves (a
@@ -480,15 +493,20 @@ Decided by the user:
   ([plan/overworld-2d.md](plan/overworld-2d.md)).
 - The overworld camera turns: held, Left / Right (`turnCameraLeft` / `turnCameraRight`, rebindable) turn it at a
   steady rate, any way, not in quarter turns (the user: "arrow keys should be continuous, not discrete, with no
-  limitations"), at the arena's rates and sensitivity. Walking is relative to the camera (W away from it, A / D to its
-  left and right), and sprites and the chibi's pictures follow it, by the nearest quarter turn. The way it looks is
-  saved with the settings (north for a new player).
-- The overworld camera tilts (the user: it "stays where it is", not saved; "overworld camera up and down should be
-  allowed to go 360"): held, Up / Down (`lookUp` / `lookDown`, rebindable) tilt it with no limit, over straight down
-  and under, rolling smoothly, and it stays where it's left until the page reloads; tilted under, it stays just above
-  the ground. It starts at 50° (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`). The world is drawn as far
-  as the camera sees at 25°: tilted lower, the far ground is in the fog, and upright sprites look squashed seen from
-  high or low.
+  limitations"), at the arena's rates and sensitivity; so does holding the right (or middle) button and moving the
+  mouse, past about 6 px as in the arena, turning and tilting it (the user: "so overworld also control camera with
+  right click hold"); a right click without a drag still turns an item, as it's let go. The mouse isn't captured
+  there. Walking is relative to the camera (W away from it, A / D to its left and right), and sprites and the chibi's
+  pictures follow it, by the nearest quarter turn. The way it looks is saved with the settings (north for a new
+  player).
+- The overworld camera tilts (the user: it "stays where it is", not saved): held, Up / Down (`lookUp` / `lookDown`,
+  rebindable) or a drag tilt it within the arena's caps (35° under the pivot to 80° over it; the user's "overworld
+  camera up and down should be allowed to go 360" was undone by "make the up and down arrow capped"), and it stays
+  where it's left until the page reloads; tilted under, it stays just above the ground. It starts at 50°
+  (`CAMERA_PITCH` in `client/src/modes/overworld/facing.ts`). The world is drawn as far as the camera sees at 25°:
+  tilted lower, the far ground is in the fog, and upright sprites look squashed seen from high or low. The scroll
+  wheel zooms it, as in the arena, from 21 tiles out (where it starts; what's drawn and sent is reckoned from there)
+  in to 7 (`CAMERA_DISTANCE`, the agent's pick), easing; kept for the session only.
 - A duel challenge's reach gets the same lag slack as resting and joining a fight: the server accepts a player up to
   `CHALLENGE_RANGE_TILES` + `LAG_SLACK_TILES` (2 + 0.6 tiles) away.
 - Chat is the whole server's: everyone online hears every line, anywhere in the world and in fights. A line shows in the
@@ -627,11 +645,12 @@ them; treat them as changeable, and still ask before deciding new ones):
 - The Hybrid sword (the user's design, above; every detail below the agent's, tried only in a headless browser, none
   hand-played; numbers in `shared/src/weapons/hybrid.ts`, the Kobold's in its `weapon` attack in
   `server/src/core/enemies/kobold-swordsman.ts`):
-  - Keys, in the arena's group: K and the scroll wheel stab (one stab per turn of the wheel: a scroll that rests
-    150 ms), left Shift blocks (a tap shorter than a step counts). A flick of the mouse aims (`FLICK`, below): right
-    swings from the right, up from the top, down-left from below on the left, and so on; straight down aims nothing.
-    The aim stays between attacks; a fight starts aimed from the top; unlocked, attacks still go the aimed way. The
-    old aim keys and the kick are dropped from saved keys; the questbook stays on H.
+  - Keys, in the arena's group: K and the mouse's back side button stab (the scroll wheel did until it became the
+    zoom; a saved stab key still loads), left Shift blocks (a tap shorter than a step counts). A flick of the
+    mouse aims (`FLICK`, below): right swings from the right, up from the top, down-left from below on the left, and
+    so on; straight down aims nothing. The aim stays between attacks; a fight starts aimed from the top; unlocked,
+    attacks still go the aimed way. The old aim keys and the kick are dropped from saved keys; the questbook stays
+    on H.
   - Attacks: a light winds up as the user set (above), is live 0.1 s and recovers 0.08 s, poise 12. A heavy: 0.35 s
     more wind-up, live 0.12 s, recovering 0.2 s, twice the damage, poise 24. The stab: 0.3 s (the agent's pick, so it
     isn't the quickest attack while reaching furthest), 1.25 times the damage, poise 18, a 16° arc. A heavier weapon's

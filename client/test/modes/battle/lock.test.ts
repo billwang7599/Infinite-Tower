@@ -17,7 +17,7 @@ const near: Foe = { e: 5, pos: at(0, -2) };
 const foes = [current, left, right, far, near];
 
 const polled = (pressed: Polled["pressed"], move = { x: 0, z: 0 }): Polled =>
-  ({ held: new Set(), pressed, flicks: [], move, turn: 0, look: 0, dragged: false });
+  ({ held: new Set(), pressed, flicks: [], move, turn: 0, look: 0, dragged: false, zoom: 0 });
 const steer = (pressed: Polled["pressed"], dragged = false) => ({ pressed, dragged });
 
 describe("closestFoe", () => {

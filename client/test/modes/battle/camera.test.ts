@@ -5,10 +5,10 @@ import type { Fight } from "@infinite-tower/shared/fight";
 import { LocalPlayer } from "../../../src/modes/components.js";
 import type { BattleContext } from "../../../src/modes/battle/context.js";
 import {
-  arenaCamera, blocksView, CAMERA_PRESETS, CAMERA_VIEWS, cameraTuning, FLOOR_MARGIN_M, insideSelf, nextView,
+  arenaCamera, blocksView, CAMERA_PRESETS, CAMERA_VIEWS, cameraTuning, FLOOR_MARGIN_M, insideSelf, steerZoom, ZOOM,
   type ArenaView, type CameraTuning, type CameraView,
 } from "../../../src/modes/battle/camera.js";
-import { orbitBack, TURN } from "../../../src/modes/orbit.js";
+import { orbitBack, PITCH, TURN, ZOOM_PER_NOTCH } from "../../../src/modes/orbit.js";
 
 const DEG = Math.PI / 180;
 const FRAME_TIME = 1 / 60;
@@ -26,13 +26,14 @@ function arena(me: Vec3, foe: Vec3 | null, radiusM = 20) {
   const lock = foe ? add(foe) : null;
   const view: ArenaView = {
     yaw: 0, pitch: SHOULDER.lockPitchRad, fovRad: SHOULDER.fovRad, eye: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 },
-    up: { x: 0, y: 1, z: 0 },
   };
   const drag = { dx: 0, dy: 0 };
   const ctx = {
-    view, lock, cameraView: "shoulder" as CameraView,
+    view, lock, zoomM: SHOULDER.distanceM,
     actions: { lookDelta: () => ({ ...drag }) },
-    polled: { held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false },
+    polled: {
+      held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, zoom: 0,
+    },
     settings: { camera: { get: () => ({ sensitivity: 1 }) } },
   } as unknown as BattleContext;
   const fight = { world, arena: { radius: radiusM } } as unknown as Fight;
@@ -91,7 +92,7 @@ describe("the views apply locked or not", () => {
   test("unlocked, the camera keeps the view's distance and side offset; only its direction is free", () => {
     for (const name of ["shoulder", "close"] as const) {
       const { ctx, fight, view } = arena({ x: 0, y: 0, z: 0 }, null);
-      ctx.cameraView = name;
+      ctx.zoomM = CAMERA_VIEWS[name].distanceM;
       const camera = arenaCamera(ctx, CAMERA_VIEWS);
       for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
       const { distanceM, sideM, orbitHeightM, lookHeightM } = CAMERA_VIEWS[name], pitch = view.pitch;
@@ -102,19 +103,6 @@ describe("the views apply locked or not", () => {
       near(view.at.y, lookHeightM, `${name} at y`);
       near(view.at.z, 0, `${name} at z`);
     }
-  });
-
-  test("V steps shoulder, close, first person and round again, locked or not", () => {
-    assert.equal(nextView("shoulder", ["cycleView"], false), "close");
-    assert.equal(nextView("close", ["cycleView"], false), "fp");
-    assert.equal(nextView("fp", ["cycleView"], false), "shoulder");
-    assert.equal(nextView("close", [], false), "close");
-  });
-
-  test("a roll sends the view back to the shoulder, and it stays there", () => {
-    assert.equal(nextView("fp", [], true), "shoulder");
-    assert.equal(nextView("close", ["cycleView"], true), "shoulder");
-    assert.equal(nextView("shoulder", [], false), "shoulder");
   });
 
   test("locked, the shoulder view comes in over the shoulder and looks toward the target", () => {
@@ -141,13 +129,13 @@ describe("the views apply locked or not", () => {
       return biggestStepM;
     };
     run(240);
-    ctx.cameraView = "close";
+    ctx.zoomM = CAMERA_VIEWS.close.distanceM;
     assert.ok(run(240) < 0.5, "zooming in jumped");
     ctx.lock = null;
     assert.ok(run(240) < 0.5, "unlocking jumped");
     const { sideM, distanceM } = CAMERA_VIEWS.close;
     near(distanceOf(view, me), Math.hypot(sideM, Math.cos(view.pitch) * distanceM), "unlocked, still close");
-    ctx.cameraView = "fp";
+    ctx.zoomM = CAMERA_VIEWS.fp.distanceM;
     run(240);
     near(view.fovRad, CAMERA_VIEWS.fp.fovRad, "fp fov");
     assert.equal(insideSelf(view.eye, me), true, "unlocked in first person");
@@ -168,7 +156,9 @@ describe("the views apply locked or not", () => {
   });
 });
 
-describe("turning it by hand, with no pitch limit", () => {
+const turnFor = (ctx: BattleContext, look: number) => { (ctx.polled as { look: number }).look = look; };
+
+describe("turning it by hand, up and down capped", () => {
   test("held arrows turn it at a steady rate; a drag by its pixels", () => {
     const { ctx, fight, view, drag } = arena({ x: 0, y: 0, z: 0 }, null);
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
@@ -183,46 +173,125 @@ describe("turning it by hand, with no pitch limit", () => {
     near(view.pitch - start.pitch, -20 * TURN.mouseRadPerPx, "pitch", 1e-9);
   });
 
-  test("held, the tilt goes all the way round: over the top, under and back, the view never flipping", () => {
+  test("held down, the eye rises to PITCH.aboveRad over you and stops; held up, it sinks to belowRad under", () => {
     const me = { x: 0, y: 0.9, z: 0 }, { ctx, fight, view } = arena(me, null);
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
-    camera(fight, FRAME_TIME);
-    (ctx.polled as { look: number }).look = 1;
-    const fullTurnFrames = Math.ceil((2 * Math.PI) / (TURN.pitchRadPerSec * FRAME_TIME));
-    let turned = 0, lastUp = { ...view.up }, lastPitch = view.pitch;
-    for (let i = 0; i < fullTurnFrames; i++) {
+    const turnFrames = Math.ceil(Math.PI / (TURN.pitchRadPerSec * FRAME_TIME));
+    turnFor(ctx, 1);
+    for (let i = 0; i < turnFrames; i++) camera(fight, FRAME_TIME);
+    near(view.pitch, PITCH.aboveRad, "top");
+    turnFor(ctx, -1);
+    for (let i = 0; i < turnFrames; i++) {
       camera(fight, FRAME_TIME);
-      const step = view.pitch - lastPitch;
-      turned += step < -Math.PI ? step + 2 * Math.PI : step;
-      lastPitch = view.pitch;
-      const up = view.up;
-      assert.ok(up.x * lastUp.x + up.y * lastUp.y + up.z * lastUp.z > 0.99, `the view flipped at ${view.pitch}`);
-      lastUp = { ...up };
       assert.ok(view.eye.y >= me.y - CENTER_HEIGHT_M + FLOOR_MARGIN_M - 1e-9, `under the floor at ${view.pitch}`);
     }
-    assert.ok(turned >= 2 * Math.PI - 1e-6, `turned only ${turned}`);
+    near(view.pitch, -PITCH.belowRad, "bottom");
+  });
+
+  test("a drag stops at the same caps, however far it goes", () => {
+    const { ctx, fight, view, drag } = arena({ x: 0, y: 0.9, z: 0 }, null);
+    const camera = arenaCamera(ctx, CAMERA_VIEWS);
+    drag.dy = 5000;
+    camera(fight, FRAME_TIME);
+    near(view.pitch, PITCH.aboveRad, "top");
+    drag.dy = -5000;
+    camera(fight, FRAME_TIME);
+    near(view.pitch, -PITCH.belowRad, "bottom");
   });
 
   test("tilted under, the floor pulls the camera in instead of letting it through", () => {
     const me = { x: 0, y: 0.9, z: 0 }, { ctx, fight, view } = arena(me, null);
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
-    view.pitch = -60 * DEG;
+    view.pitch = -PITCH.belowRad;
     camera(fight, FRAME_TIME);
-    near(view.eye.y, me.y - CENTER_HEIGHT_M + FLOOR_MARGIN_M, "on the floor's margin");
+    assert.ok(view.eye.y >= me.y - CENTER_HEIGHT_M + FLOOR_MARGIN_M - 1e-9, "above the floor");
     assert.ok(Math.hypot(view.eye.x - SHOULDER.sideM, view.eye.z) < SHOULDER.distanceM, "pulled in");
   });
 
-  test("in first person the look follows the pitch too", () => {
-    const me = { x: 0, y: 0.7, z: 0 }, { ctx, fight, view } = arena(me, null);
-    ctx.cameraView = "fp";
+  test("in first person you look PITCH.firstPersonRad up or down at most, and the look follows the pitch", () => {
+    const me = { x: 0, y: 0.7, z: 0 }, { ctx, fight, view, drag } = arena(me, null);
+    ctx.zoomM = CAMERA_VIEWS.fp.distanceM;
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
-    view.pitch = -30 * DEG;
     for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
-    const ahead = orbitBack(view.yaw, view.pitch);
-    const look = { x: view.at.x - view.eye.x, y: view.at.y - view.eye.y, z: view.at.z - view.eye.z };
-    const length = Math.hypot(look.x, look.y, look.z);
-    near(-(look.x * ahead.x + look.y * ahead.y + look.z * ahead.z) / length, 1, "along the pitch", 1e-6);
-    assert.ok(look.y > 0, "looks up");
+    const lookUp = () => {
+      const ahead = orbitBack(view.yaw, view.pitch);
+      const look = { x: view.at.x - view.eye.x, y: view.at.y - view.eye.y, z: view.at.z - view.eye.z };
+      const length = Math.hypot(look.x, look.y, look.z);
+      near(-(look.x * ahead.x + look.y * ahead.y + look.z * ahead.z) / length, 1, "along the pitch", 1e-6);
+      return Math.asin(look.y / length);
+    };
+    drag.dy = -5000;
+    camera(fight, FRAME_TIME);
+    near(lookUp(), PITCH.firstPersonRad, "up");
+    drag.dy = 5000;
+    camera(fight, FRAME_TIME);
+    near(lookUp(), -PITCH.firstPersonRad, "down");
+  });
+
+  test("leaving first person looking far up, the tilt eases back inside the third person's cap", () => {
+    const { ctx, fight, view } = arena({ x: 0, y: 0.7, z: 0 }, null);
+    ctx.zoomM = CAMERA_VIEWS.fp.distanceM;
+    const camera = arenaCamera(ctx, CAMERA_VIEWS);
+    for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+    view.pitch = -PITCH.firstPersonRad;
+    ctx.zoomM = SHOULDER.distanceM;
+    let biggestStep = 0;
+    for (let i = 0; i < 240; i++) {
+      const before = view.pitch;
+      camera(fight, FRAME_TIME);
+      biggestStep = Math.max(biggestStep, Math.abs(view.pitch - before));
+    }
+    near(view.pitch, -PITCH.belowRad, "inside the cap");
+    assert.ok(biggestStep < 0.1, `jumped ${biggestStep}`);
+  });
+});
+
+describe("zooming: the wheel, V and a roll", () => {
+  const { shoulder, close, fp } = CAMERA_VIEWS;
+  const wheel = (zoomM: number, zoom: number, pressed: string[] = [], dodging = false) =>
+    steerZoom(zoomM, { pressed: pressed as never[], zoom }, dodging, CAMERA_VIEWS);
+
+  test("a notch out zooms out by ZOOM_PER_NOTCH, up to ZOOM.maxM; a share of a notch by its share", () => {
+    near(wheel(shoulder.distanceM, 1), shoulder.distanceM * ZOOM_PER_NOTCH, "a notch");
+    near(wheel(shoulder.distanceM, 0.5), shoulder.distanceM * ZOOM_PER_NOTCH ** 0.5, "half a notch");
+    assert.equal(wheel(ZOOM.maxM - 0.1, 3), ZOOM.maxM);
+    assert.equal(wheel(shoulder.distanceM, 0), shoulder.distanceM);
+  });
+
+  test("zooming in stops at the close view; one more notch goes into first person, and out of it back to close", () => {
+    assert.equal(wheel(close.distanceM + 0.2, -2), close.distanceM);
+    assert.equal(wheel(close.distanceM, -0.3), fp.distanceM);
+    assert.equal(wheel(fp.distanceM, -1), fp.distanceM);
+    assert.equal(wheel(fp.distanceM, 0.3), close.distanceM);
+  });
+
+  test("V zooms in to the next of shoulder, close and first person, then round to the shoulder again", () => {
+    assert.equal(wheel(ZOOM.maxM, 0, ["cycleView"]), shoulder.distanceM);
+    assert.equal(wheel(shoulder.distanceM, 0, ["cycleView"]), close.distanceM);
+    assert.equal(wheel((shoulder.distanceM + close.distanceM) / 2, 0, ["cycleView"]), close.distanceM);
+    assert.equal(wheel(close.distanceM, 0, ["cycleView"]), fp.distanceM);
+    assert.equal(wheel(fp.distanceM, 0, ["cycleView"]), shoulder.distanceM);
+  });
+
+  test("a roll goes back to the shoulder's distance only from nearer; zoomed out further, it stays", () => {
+    assert.equal(wheel(fp.distanceM, 0, [], true), shoulder.distanceM);
+    assert.equal(wheel(close.distanceM, -1, ["cycleView"], true), shoulder.distanceM);
+    assert.equal(wheel(7, 0, [], true), 7);
+  });
+
+  test("the camera eases to a new distance, locked or not", () => {
+    for (const foe of [null, { x: 0, y: 0, z: 10 }]) {
+      const me = { x: 0, y: 0, z: 0 }, { ctx, fight, view } = arena(me, foe, 40);
+      const camera = arenaCamera(ctx, CAMERA_VIEWS);
+      for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+      const flat = (distanceM: number) => Math.hypot(SHOULDER.sideM, Math.cos(view.pitch) * distanceM);
+      ctx.zoomM = ZOOM.maxM;
+      camera(fight, FRAME_TIME);
+      const moved = distanceOf(view, me) - flat(SHOULDER.distanceM);
+      assert.ok(moved > 0 && moved < (ZOOM.maxM - SHOULDER.distanceM) / 4, `eased, moved ${moved} (${!!foe})`);
+      for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
+      near(distanceOf(view, me), flat(ZOOM.maxM), `there (${!!foe})`, 1e-3);
+    }
   });
 });
 
@@ -231,7 +300,7 @@ describe("first person", () => {
 
   test("the eye is just behind the player's own eyes, inside the body (so it's hidden)", () => {
     const { ctx, fight, view } = arena(me, null);
-    ctx.cameraView = "fp";
+    ctx.zoomM = fp.distanceM;
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
     for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
     near(view.eye.y, me.y + fp.orbitHeightM + orbitBack(view.yaw, view.pitch).y * fp.distanceM, "eye height");
@@ -243,7 +312,7 @@ describe("first person", () => {
 
   test("locked, it looks at the target", () => {
     const { ctx, fight, view } = arena(me, { x: 3, y: 0.7, z: 4 });
-    ctx.cameraView = "fp";
+    ctx.zoomM = fp.distanceM;
     const camera = arenaCamera(ctx, CAMERA_VIEWS);
     for (let i = 0; i < 240; i++) camera(fight, FRAME_TIME);
     near(Math.atan2(view.at.x - view.eye.x, view.at.z - view.eye.z), Math.atan2(3, 4), "toward the target");

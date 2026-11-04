@@ -1,8 +1,9 @@
 /**
  * Ways in the overworld: on the map (a Heading: +z is north, +x east) and on the screen (a Facing), which the
- * camera's turns right from north (in quarter turns, any part of one) tie together; and how the camera tilts.
+ * camera's turns right from north (in quarter turns, any part of one) tie together; and how the camera tilts and zooms.
  */
-import { OVERWORLD_CAMERA_ANGLES, type Heading } from "@infinite-tower/shared";
+import { clamp, OVERWORLD_CAMERA_ANGLES, type Heading } from "@infinite-tower/shared";
+import { PITCH } from "../orbit.js";
 
 export type Facing = "up" | "right" | "down" | "left";
 
@@ -36,6 +37,12 @@ export const facingOnScreen = (heading: Heading, turns: number): Facing =>
 /** -1 to mirror a picture drawn facing right (the side views), 1 for every other way. */
 export const mirrorFor = (facing: Facing): 1 | -1 => (facing === "left" ? -1 : 1);
 
-// The camera's angle above the ground, looking at you (straight down is π/2), with no limit. The world is drawn as far
-// as it sees at `drawnForRad`; tilted lower, the far ground is in the fog.
+// The camera's angle above the ground, looking at you (straight down is π/2). The world is drawn as far as it sees at
+// `drawnForRad`; tilted lower, the far ground is in the fog.
 export const CAMERA_PITCH = { startRad: (50 * Math.PI) / 180, drawnForRad: (25 * Math.PI) / 180 } as const;
+
+/** From the point it turns round over the walker; it starts as far out as it goes. */
+export const CAMERA_DISTANCE = { minTiles: 7, maxTiles: 21 } as const;
+
+export const tiltOverworld = (pitchRad: number, byRad: number): number =>
+  clamp(pitchRad + byRad, -PITCH.belowRad, PITCH.aboveRad);

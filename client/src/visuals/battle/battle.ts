@@ -5,7 +5,6 @@ import {
 } from "@infinite-tower/shared";
 import type { Fight } from "@infinite-tower/shared/fight";
 import { showArena } from "../arenas/index.js";
-import { aimCamera } from "../aim.js";
 import type { Visual } from "../visuals.js";
 import { impactPose } from "./impact.js";
 import type { ArenaScene } from "./scene.js";
@@ -132,7 +131,7 @@ export function arenaStage(ctx: ArenaScene): {
   newFight(fight: Fight, theme: Theme): void;
   frame(dt: number): void;
 } {
-  const shaken = { x: 0, y: 0, z: 0 };
+  const lookAt = new Vector3();
   let arena: { id: string; theme: Theme; root: TransformNode } | null = null;
   const piles = new Map<number, Mesh>();
 
@@ -169,11 +168,11 @@ export function arenaStage(ctx: ArenaScene): {
     frame(dt) {
       ctx.shake *= Math.exp(-SHAKE_DECAY_PER_SEC * dt);
       const s = ctx.shake > SHAKE_CUTOFF ? ctx.shake : 0;
-      const { eye, at, up } = ctx.battle.view;
-      shaken.x = eye.x + (Math.random() - 0.5) * s;
-      shaken.y = eye.y + (Math.random() - 0.5) * s;
-      shaken.z = eye.z + (Math.random() - 0.5) * s;
-      aimCamera(ctx.camera, shaken, at, up);
+      const { eye, at } = ctx.battle.view;
+      ctx.camera.position.set(
+        eye.x + (Math.random() - 0.5) * s, eye.y + (Math.random() - 0.5) * s, eye.z + (Math.random() - 0.5) * s,
+      );
+      ctx.camera.setTarget(lookAt.set(at.x, at.y, at.z));
       ctx.camera.fov = ctx.battle.view.fovRad;
       ctx.sky.frame(Date.now(), ctx.camera.position);
       drawPiles();

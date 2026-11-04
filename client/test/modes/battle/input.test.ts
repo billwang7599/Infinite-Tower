@@ -5,7 +5,9 @@ import type { Polled } from "../../../src/core/actions.js";
 import { CROSSHAIR_MIN_M, crosshairAim, readPlayerInput, type Aimed } from "../../../src/modes/battle/input.js";
 
 const polled = (over: Partial<Polled>): Polled =>
-  ({ held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, ...over });
+  ({
+    held: new Set(), pressed: [], flicks: [], move: { x: 0, z: 0 }, turn: 0, look: 0, dragged: false, zoom: 0, ...over,
+  });
 
 describe("the arena's keys into the fight's input", () => {
   test("the light attack is pressed on the step it goes down and held while it stays down", () => {
