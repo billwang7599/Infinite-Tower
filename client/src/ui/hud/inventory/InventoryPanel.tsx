@@ -10,7 +10,8 @@ import {
 } from "@infinite-tower/shared";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { NO_FOCUS } from "../../components/noFocus.js";
-import { BUTTON } from "../../components/styles.js";
+import { Bar } from "../../components/Bar.js";
+import { BUTTON, LABEL, WELL } from "../../components/styles.js";
 import { useAction } from "../../components/useAction.js";
 import { useGame } from "../../context.js";
 import { say } from "../../notifications/say.js";
@@ -166,13 +167,13 @@ export function InventoryPanel(props: PanelProps) {
   const pile = gear.pile.cols > 0 && (
     <Column title="Pile">
       <BagGrid name="pile" gear={gear} mouse={mouse} fits={fits} area={area("pile")} />
-      <p className="max-w-48 text-[11px] text-white/40 italic">Anyone nearby can take from it too.</p>
+      <p className="max-w-48 text-[11px] text-bone/40 italic">Anyone nearby can take from it too.</p>
     </Column>
   );
   const cloth = gear.cloth.cols > 0 && (
     <Column title="Cloth">
       <BagGrid name="cloth" gear={gear} mouse={mouse} fits={fits} area={area("cloth")} />
-      <p className="max-w-48 text-[11px] text-white/40 italic">Left behind when you close the bag. Weighs nothing.</p>
+      <p className="max-w-48 text-[11px] text-bone/40 italic">Left behind when you close the bag. Weighs nothing.</p>
     </Column>
   );
   const bag = (
@@ -183,7 +184,7 @@ export function InventoryPanel(props: PanelProps) {
         </Column>
         <Column title="Backpack">
           {gear.pack.cols > 0 ? <BagGrid name="pack" gear={gear} mouse={mouse} fits={fits} area={area("pack")} /> : (
-            <p id="no-backpack" className="max-w-32 text-[11px] text-white/40 italic">
+            <p id="no-backpack" className="max-w-32 text-[11px] text-bone/40 italic">
               None on. Wear one on your back for more room.
             </p>
           )}
@@ -243,7 +244,9 @@ export function InventoryPanel(props: PanelProps) {
           <Placed
             id="bag-ghost" data-fits={fits} stack={dragged} turned={drag.turned}
             left={pointer.x - drag.grip.x * CELL - view.grab.x} top={pointer.y - drag.grip.y * CELL - view.grab.y}
-            className={`z-20 rounded-[2px] border-2 opacity-90 ${fits ? "border-stamina bg-stamina/20" : "border-hp bg-hp/25"}`}
+            className={`z-20 border-2 opacity-90 ${
+              fits ? "border-verdigris bg-verdigris/20" : "border-error bg-error/25"
+            }`}
           />
         )}
         {hovered && hover?.tooltip && pointer && (
@@ -261,9 +264,9 @@ function Row({ children }: { children: ReactNode }) {
 function Column({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="flex items-center gap-2 font-title text-[13px] tracking-[0.14em] text-victory/80 uppercase">
+      <h3 className={`flex items-center gap-2 ${LABEL}`}>
         {title}
-        <span className="h-px flex-1 bg-linear-to-r from-victory/30 to-transparent" />
+        <span className="h-px flex-1 bg-linear-to-r from-bone/25 to-transparent" />
       </h3>
       {children}
     </section>
@@ -271,28 +274,25 @@ function Column({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const BURDEN_LOOK: Record<Burden, { fill: string; text: string }> = {
-  light: { fill: "bg-white/40", text: "text-white" },
-  heavy: { fill: "bg-ping-fair", text: "text-ping-fair" },
-  overloaded: { fill: "bg-hp", text: "text-error" },
+  light: { fill: "from-bone/50 to-bone/35", text: "text-bone" },
+  heavy: { fill: "from-ping-fair to-ping-fair", text: "text-ping-fair" },
+  overloaded: { fill: "from-hp to-hp-dark", text: "text-error" },
 };
 
 function Weight({ gear, stats }: { gear: Gear; stats: Stats }) {
   const weight = gearWeight(gear), limit = carryLimit(stats);
   const burden = gearBurden(gear, stats);
   const look = BURDEN_LOOK[burden];
-  const filledPercent = Math.min(100, (weight / limit) * 100);
   return (
     <div id="bag-weight" data-burden={burden} className="mt-0.5 w-0 min-w-full text-xs">
       <div className="flex items-baseline justify-between">
-        <span className="tracking-[0.12em] text-white/50 uppercase">Weight</span>
+        <span className={LABEL}>Weight</span>
         <span className="tabular-nums">
           <span className={`font-semibold ${look.text}`}>{formatWeight(weight)}</span>
-          <span className="text-white/45"> / {formatWeight(limit)}</span>
+          <span className="text-bone/45"> / {formatWeight(limit)}</span>
         </span>
       </div>
-      <div className="relative mt-1 h-1.5 overflow-hidden rounded-full border border-white/15 bg-black/60">
-        <div className={`absolute inset-y-0 left-0 ${look.fill}`} style={{ width: `${filledPercent}%` }} />
-      </div>
+      <Bar fraction={Math.min(1, weight / limit)} fill={look.fill} className="mt-1.5 h-1.5" />
       {burden !== "light" && (
         <span id="bag-burden" data-burden={burden} className={`mt-1 block ${look.text}`}>
           {burden === "heavy"
@@ -340,7 +340,7 @@ interface DetailsProps {
 function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   if (!stack) {
     return (
-      <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-white/45 italic`}>
+      <p id="bag-details" className={`${DETAILS_STRIP} text-sm text-bone/45 italic`}>
         {gear.bag.items.length + gear.pack.items.length === 0
           ? "Nothing in the bag yet. Boars sometimes drop things." : ""}
       </p>
@@ -352,20 +352,20 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
   return (
     <div id="bag-details" data-item={stack.item} className={`${DETAILS_STRIP} flex items-start gap-4`}>
       <div
-        className="relative shrink-0 rounded-sm border border-white/15 bg-black/60 shadow-[inset_0_2px_10px_#000]"
+        className={`relative shrink-0 cut-7 clip-cut ${WELL}`}
         style={{ width: DETAILS_PICTURE_PX, height: DETAILS_PICTURE_PX }}
       >
         <ItemPicture item={stack.item} turned={false} maxPx={DETAILS_PICTURE_PX - 8} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className={`font-title text-base tracking-[0.04em] ${RARITY_TEXT[def.rarity]}`}>
-          {def.name} {stack.count > 1 && <span className="text-white tabular-nums">×{stack.count}</span>}
+        <div className={`text-sm font-semibold tracking-[0.16em] uppercase ${RARITY_TEXT[def.rarity]}`}>
+          {def.name} {stack.count > 1 && <span className="text-bone tabular-nums">×{stack.count}</span>}
         </div>
-        <p className="mt-0.5 text-xs text-white/60">
+        <p className="mt-0.5 text-xs text-bone/60">
           {def.description}{def.consumable ? ` ${effectsText(def.consumable.effects)}` : ""}
           {def.inscription ? ` ${INSCRIPTION_TEXT[def.inscription]}` : ""}
         </p>
-        <p className="mt-1 text-[11px] text-white/40 tabular-nums">Weight {itemInfo(stack).weight}</p>
+        <p className="mt-1 text-[11px] text-bone/40 tabular-nums">Weight {itemInfo(stack).weight}</p>
       </div>
       {selling && (
         <div className="flex flex-col gap-1.5 self-center">
@@ -406,5 +406,5 @@ function BagDetails({ gear, stack, usable, using, use, sale }: DetailsProps) {
 }
 
 // w-0 min-w-full: as wide as the grids above, without a long description widening the panel.
-const DETAILS_STRIP = "mt-4 min-h-[88px] w-0 min-w-full border-t border-white/10 pt-3";
+const DETAILS_STRIP = "mt-4 min-h-[88px] w-0 min-w-full border-t border-bone/13 pt-3";
 const DETAILS_PICTURE_PX = 72;

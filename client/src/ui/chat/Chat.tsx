@@ -41,20 +41,20 @@ export function Chat() {
     <div
       id="chat"
       className={
-        "pointer-events-none absolute bottom-45 left-4 flex w-[min(26rem,40%)] flex-col gap-1 font-ui text-sm "
-        + "text-white text-shadow-hud"
+        "pointer-events-none absolute bottom-45 left-4 flex w-[min(26rem,40%)] flex-col gap-1 text-sm font-normal "
+        + "text-bone text-shadow-hud"
       }
     >
       {lines.length > first && (
         <ol
           ref={log}
-          className={`rounded-sm px-2 py-1 ${
-            open ? "pointer-events-auto max-h-60 overflow-y-auto bg-black/70" : "bg-black/35"
+          className={`px-2 py-1 ${
+            open ? "pointer-events-auto max-h-60 overflow-y-auto bg-stone/88" : ""
           }`}
         >
           {lines.slice(first).map((line, i) => (
             <li key={first + i} data-chat-line className={open ? "wrap-break-word" : "truncate"}>
-              <span className="font-semibold text-victory">{line.from}:</span> {line.text}
+              <span className="font-semibold text-verdigris">{line.from}:</span> {line.text}
             </li>
           ))}
         </ol>
@@ -72,7 +72,7 @@ export function Chat() {
           {!focused && openKey && (
             <span
               id="chat-cue"
-              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-white/80"
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-bone/80"
             >
               Press {keyName(openKey)} to chat
             </span>

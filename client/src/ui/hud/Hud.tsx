@@ -135,9 +135,8 @@ function InteractButton({ interaction, interact }: { interaction: Interaction | 
       type="button" id={id} {...NO_FOCUS} onClick={interact}
       style={{ bottom: REST_BUTTON_BOTTOM_PX, height: REST_BUTTON_HEIGHT_PX }}
       className={
-        "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer rounded-sm border "
-        + "border-victory/60 bg-black/60 px-5 py-2 font-title text-lg tracking-[0.08em] text-victory "
-        + "transition-colors hover:bg-black/80"
+        "pointer-events-auto absolute left-1/2 -translate-x-1/2 cursor-pointer clip-pointed bg-stone/85 px-9 "
+        + "text-sm tracking-[0.3em] uppercase transition-colors [--point:12px] hover:bg-stone hover:text-cinnabar"
       }
     >
       {label}

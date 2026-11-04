@@ -61,15 +61,20 @@ function NoticeRow({ notice, dismiss }: { notice: Notice; dismiss: Dismiss }) {
     >
       {/* overflow-hidden for the collapse; the gap above is inside it, so that collapses too */}
       <div className="min-h-0 overflow-hidden">
-        <div className="mt-2 flex items-start gap-2 rounded-sm bg-black/55 py-1.5 pr-1.5 pl-3 text-white">
-          <span className="min-w-0 font-title text-[17px]/snug tracking-wide wrap-break-word text-shadow-hud">
+        <div
+          className={
+            "mt-2 flex items-start gap-2 border-r-3 border-cinnabar bg-linear-to-r from-transparent via-stone/88 "
+            + "via-24% to-stone/88 py-1.5 pr-1.5 pl-10 text-bone"
+          }
+        >
+          <span className="min-w-0 text-[15px]/snug font-normal tracking-[0.04em] wrap-break-word text-shadow-hud">
             {notice.text}
           </span>
           <button
             type="button" aria-label="Dismiss" {...NO_FOCUS} onClick={leave}
             className={
-              "pointer-events-auto flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full "
-              + "bg-black/40 font-ui text-sm/none text-white/70 transition-colors hover:bg-black/70 hover:text-white"
+              "pointer-events-auto flex size-5 shrink-0 cursor-pointer items-center justify-center text-sm/none "
+              + "text-bone/60 transition-colors hover:text-cinnabar"
             }
           >
             ×

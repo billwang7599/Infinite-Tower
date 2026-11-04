@@ -248,6 +248,14 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
 
 - **Title screen**: a low-poly, cartoony tower with shader-like lighting, drawn on a 2D canvas
   (`ui/screens/title/backdrop/`): dark-fantasy night around a glowing white and gold tower.
+- **HUD and menus** ("Inscribed", picked by the user from the HUD lab's styles: "inscribed is pretty good… enemy
+  health should be red though still"): inscriptions cut into stone, sharp over the pixel art. Bars are carved channels
+  (dark, an inset shadow) with pointed ends and a notch every tenth: HP coral, stamina bone, the foe's red. Panels,
+  tooltips, buttons, status tiles and slots have cut corners; panels a double engraved line inside their edge.
+  Letterpress Gill Sans capitals, widely spaced, for titles, names and labels; bone text (`bone`), cinnabar
+  (`cinnabar`) for the one accent and the seal (the realm's glyph) before names, verdigris for labels and keys, on
+  dark stone (`stone`, `pit`). The aim ring and crosshair take the same bone and cinnabar. Tokens and utilities:
+  `client/src/ui/styles.css`.
 - **Buildings**: Highmere's walls and houses are 3D volumes (`visuals/overworld/buildings.ts`), textured from one
   code-drawn atlas at the ground's 16 pixels a tile, each picture covering 2 x 2 tiles and repeated by cutting faces
   at its edges (so a gable roof rises at most 2 tiles). Depth comes from geometry, never painted shading: a plinth

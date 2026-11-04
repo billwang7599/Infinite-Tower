@@ -9,6 +9,7 @@ import { Compass } from "./Compass.js";
 import { Hud, type HudMode } from "./Hud.js";
 import { BagIcon, BookIcon, GearIcon, PersonIcon } from "./icons.js";
 import { fitCompass, MARGIN_PX, useStageSize } from "./layout.js";
+import { RealmSeal } from "./RealmSeal.js";
 
 const OVERWORLD: HudMode = {
   hud: (ui) => ui.overworld,
@@ -56,8 +57,16 @@ export function OverworldHud() {
 }
 
 function Name() {
-  const name = useStore(useGame().ui.you, (s) => s.character?.name);
-  return name ? <div id="overworld-name" className="mb-1 font-title text-[15px] tracking-wide">{name}</div> : null;
+  const { you } = useGame().ui;
+  const name = useStore(you, (s) => s.character?.name);
+  const core = useStore(you, (s) => s.core);
+  if (!name) return null;
+  return (
+    <div className="mb-1.5 flex items-center gap-2 text-[13px] tracking-[0.24em] uppercase">
+      <RealmSeal core={core} />
+      <span id="overworld-name">{name}</span>
+    </div>
+  );
 }
 
 const CHALLENGE_TOP_PX = 96;
@@ -73,14 +82,14 @@ function ChallengeNotice({ top }: { top: number }) {
   return (
     <Confirm
       id="challenge-notice" title={`${from} challenges you to a duel`} yes="Accept" no="Decline" answer={answer}
-      top={top} className="bg-black/75 px-5 py-3"
+      top={top} className="px-6 py-4"
     />
   );
 }
 
 function RegionName() {
   const name = useStore(useGame().ui.overworld, (s) => s.regionName);
-  return <div id="overworld-region" className="font-title text-[17px] font-medium tracking-wide">{name}</div>;
+  return <div id="overworld-region" className="text-sm tracking-[0.24em] uppercase">{name}</div>;
 }
 
 interface HudButtonProps {
@@ -95,8 +104,8 @@ function HudButton({ id, label, onClick, children }: HudButtonProps) {
     <button
       type="button" id={id} aria-label={label} {...NO_FOCUS} onClick={onClick}
       className={
-        "pointer-events-auto flex size-9 cursor-pointer items-center justify-center rounded-full bg-black/40 "
-        + "text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+        "pointer-events-auto flex size-9 cut-6 clip-cut cursor-pointer items-center justify-center bg-stone/80 "
+        + "text-bone inset-ring inset-ring-bone/20 transition-colors hover:text-cinnabar"
       }
     >
       {children}

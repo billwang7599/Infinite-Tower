@@ -19,11 +19,10 @@ export function Confirm({ id, title, yes, no, answer, className, top, children }
     <div
       id={id} style={top === undefined ? undefined : { top }}
       className={
-        "pointer-events-auto absolute left-1/2 -translate-x-1/2 rounded-sm border border-victory/50 text-center "
-        + className
+        "pointer-events-auto absolute left-1/2 -translate-x-1/2 cut-14 engraved text-center " + className
       }
     >
-      <div className={`${children ? "mb-1" : "mb-2"} font-title text-lg tracking-wide`}>{title}</div>
+      <div className={`${children ? "mb-1" : "mb-3"} text-[15px] tracking-[0.16em] uppercase`}>{title}</div>
       {children}
       <div className="flex justify-center gap-3">
         <button

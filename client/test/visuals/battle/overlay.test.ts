@@ -74,6 +74,11 @@ describe("the aim HUD: the ring at the bottom centre, the crosshair at the centr
     assert.ok(AIM_HUD.ringAboveBottomPx > AIM_HUD.ringRadiusPx + AIM_HUD.wedgeLengthPx / 2);
     assert.ok(AIM_HUD.stabPx < AIM_HUD.ringRadiusPx - AIM_HUD.wedgeLengthPx / 2);
   });
+
+  test("neighbouring wedges keep a gap between them", () => {
+    const spacingPx = 2 * AIM_HUD.ringRadiusPx * Math.sin(Math.PI / 8);
+    assert.ok(spacingPx > AIM_HUD.wedgeLengthPx + AIM_HUD.ringEdgePx);
+  });
 });
 
 describe("where the overlay puts a point in the world", () => {

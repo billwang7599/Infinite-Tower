@@ -15,9 +15,9 @@ const STEP_PX = SQUARE_PX + 12;
 const PICKS = ["pick1", "pick2", "pick3", "pick4", "pick5", "pick6", "pick7", "pick8", "pick9"] as const;
 
 const KIND_LOOK: Record<WordKind, { border: string; fill: string; text: string }> = {
-  form: { border: "border-victory/80", fill: "bg-victory/15", text: "text-victory" },
-  element: { border: "border-sky-300/70", fill: "bg-sky-300/15", text: "text-sky-300" },
-  modifier: { border: "border-fuchsia-300/70", fill: "bg-fuchsia-300/15", text: "text-fuchsia-300" },
+  form: { border: "border-cinnabar/80", fill: "bg-cinnabar/15", text: "text-cinnabar" },
+  element: { border: "border-verdigris/70", fill: "bg-verdigris/15", text: "text-verdigris" },
+  modifier: { border: "border-bone/60", fill: "bg-bone/12", text: "text-bone" },
 };
 const KIND_NAME: Record<WordKind, string> = { form: "Form", element: "Element", modifier: "Modifier" };
 const WHY: Record<Rejection, string> = {
@@ -42,7 +42,7 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
   const keyed = numbered(chant, known, query);
   const next = chant.kind ? [chant.kind] : KINDS.filter((kind) => kindOpen(words, known, kind));
   const nextLook = chant.kind
-    ? `${KIND_LOOK[chant.kind].border} ${KIND_LOOK[chant.kind].text}` : "border-white/50 text-white/60";
+    ? `${KIND_LOOK[chant.kind].border} ${KIND_LOOK[chant.kind].text}` : "border-bone/50 text-bone/60";
 
   const apply = (to: ChantState) => {
     if (busy || to === chant) return;
@@ -72,12 +72,12 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
             return (
               <li
                 key={i} data-word={word}
-                className={`relative flex shrink-0 flex-col items-center justify-center rounded-sm border-2 ${
+                className={`relative flex shrink-0 flex-col items-center justify-center border-2 bg-pit/50 ${
                   look.border} ${look.fill} ${i < words.length - 3 ? "opacity-40" : ""}`}
                 style={{ width: SQUARE_PX, height: SQUARE_PX }}
               >
                 {i > 0 && wordKind(word) === "form" && (
-                  <span aria-label="next segment" className="absolute top-1/2 -left-3 -translate-y-1/2 text-victory">
+                  <span aria-label="next segment" className="absolute top-1/2 -left-3 -translate-y-1/2 text-cinnabar">
                     ⛓
                   </span>
                 )}
@@ -88,7 +88,7 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
           })}
           <li
             className={
-              "flex shrink-0 items-center justify-center rounded-sm border-2 border-dashed p-1 text-center text-[11px] "
+              "flex shrink-0 items-center justify-center border-2 border-dashed p-1 text-center text-[11px] "
               + `font-normal ${nextLook}`
             }
             style={{ width: SQUARE_PX, height: SQUARE_PX }}
@@ -126,15 +126,15 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
                     apply(openKind(chant, kind, known));
                   }}
                   className={
-                    "flex cursor-pointer items-baseline gap-2 rounded-sm border-b-2 px-2 py-1 text-left "
-                    + `disabled:cursor-default disabled:border-white/15 disabled:opacity-35 ${look.border} ${
-                      chosen ? look.fill : "enabled:hover:bg-white/10"}`
+                    "flex cursor-pointer items-baseline gap-2 border-b-2 px-2 py-1 text-left "
+                    + `disabled:cursor-default disabled:border-bone/15 disabled:opacity-35 ${look.border} ${
+                      chosen ? look.fill : "enabled:hover:bg-bone/10"}`
                   }
                 >
                   <span className={`w-3 text-xs tabular-nums ${look.text}`}>
                     {chant.kind === null && !searching ? k + 1 : ""}
                   </span>
-                  <span className={`text-sm tracking-wide ${look.text}`}>{KIND_NAME[kind]}</span>
+                  <span className={`text-xs tracking-[0.22em] uppercase ${look.text}`}>{KIND_NAME[kind]}</span>
                 </button>
                 <ul className="flex flex-col gap-1">
                   {choices(words, known, query, kind).map(({ word, why }) => {
@@ -145,8 +145,8 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
                           type="button" {...NO_FOCUS} data-word={word} disabled={why !== null || busy}
                           onClick={() => apply(addWord(chant, word, known))}
                           className={
-                            "flex w-full cursor-pointer flex-wrap items-baseline gap-x-2 rounded-sm border "
-                            + "border-white/15 px-2 py-1 text-left text-sm enabled:hover:bg-white/10 "
+                            "flex w-full cursor-pointer flex-wrap items-baseline gap-x-2 bg-pit/40 px-2 py-1 text-left "
+                            + "text-sm inset-ring inset-ring-bone/16 enabled:hover:bg-bone/10 "
                             + "disabled:cursor-default disabled:opacity-40"
                           }
                         >
@@ -164,7 +164,7 @@ export function SkillBuilder({ chant, known, input, change, busy = false }: Buil
         </div>
       </form>
 
-      <p id="skill-cost" className="text-xs font-normal text-white/60 tabular-nums">
+      <p id="skill-cost" className="text-xs font-normal text-bone/60 tabular-nums">
         {skill ? `${skillCost(skill)} stamina · ${releaseTime(skill).toFixed(1)} s to release` : "Pick a Form"}
       </p>
     </div>

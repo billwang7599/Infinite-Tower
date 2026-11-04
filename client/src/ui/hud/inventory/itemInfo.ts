@@ -24,7 +24,7 @@ export const RARITY_TEXT: Record<Rarity, string> = {
   legendary: "text-rarity-legendary", unique: "text-rarity-unique",
 };
 export const RARITY_EDGE: Record<Rarity, string> = {
-  common: "border-white/10", uncommon: "border-rarity-uncommon/60", rare: "border-rarity-rare/70",
+  common: "border-bone/10", uncommon: "border-rarity-uncommon/60", rare: "border-rarity-rare/70",
   epic: "border-rarity-epic/70", legendary: "border-rarity-legendary/80", unique: "border-rarity-unique/80",
 };
 

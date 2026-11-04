@@ -10,9 +10,9 @@ import { useStore } from "../../useStore.js";
 import { DAY_SPEEDS, DAY_TIMES, GIVE_COUNTS } from "./admin.js";
 
 const CHIP =
-  "cursor-pointer rounded-sm border border-white/20 px-2 py-0.5 enabled:hover:border-white/50 "
-  + "enabled:hover:bg-white/10 disabled:cursor-default disabled:opacity-35";
-const CHIP_ON = "cursor-pointer rounded-sm border border-victory/70 bg-victory/15 px-2 py-0.5 text-victory";
+  "cursor-pointer rounded-sm border border-bone/20 px-2 py-0.5 enabled:hover:border-bone/50 "
+  + "enabled:hover:bg-bone/10 disabled:cursor-default disabled:opacity-35";
+const CHIP_ON = "cursor-pointer rounded-sm border border-cinnabar/70 bg-cinnabar/15 px-2 py-0.5 text-cinnabar";
 
 export function AdminPanel() {
   const { ui: { admin, screen, battle }, input, actions: { request, setDayClock } } = useGame();
@@ -39,12 +39,12 @@ export function AdminPanel() {
     <aside
       id="admin-panel"
       className={
-        "absolute top-24 left-4 flex max-h-[calc(100%-17rem)] w-72 flex-col gap-3 overflow-y-auto rounded-sm border border-white/15 "
-        + "bg-night/90 p-3 font-ui text-xs text-white shadow-[0_10px_30px_#000a] select-none"
+        "absolute top-24 left-4 flex max-h-[calc(100%-17rem)] w-72 flex-col gap-3 overflow-y-auto rounded-sm border "
+        + "border-bone/15 bg-stone/90 p-3 text-xs text-bone shadow-[0_10px_30px_#000a] select-none"
       }
     >
       <header className="flex items-center justify-between">
-        <h2 className="font-title text-base tracking-[0.08em] text-victory">Admin</h2>
+        <h2 className="text-sm tracking-[0.3em] text-cinnabar uppercase">Admin</h2>
         <CloseButton close={() => admin.set({ open: false })} />
       </header>
       <Section title="Time of day">
@@ -134,7 +134,7 @@ export function AdminPanel() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-1 text-[11px] tracking-wider text-white/50 uppercase">{title}</h3>
+      <h3 className="mb-1 text-[11px] tracking-wider text-bone/50 uppercase">{title}</h3>
       <div className="flex flex-wrap gap-1">{children}</div>
     </section>
   );

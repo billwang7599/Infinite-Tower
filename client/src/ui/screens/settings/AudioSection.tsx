@@ -28,7 +28,7 @@ function VolumeRow({ audio, name }: { audio: AudioSettings; name: VolumeName }) 
     <div className={SETTING_ROW}>
       <label htmlFor={id} className="flex flex-col">
         <span className={SETTING_LABEL}>{LABELS[name].label}</span>
-        <span className="text-xs text-white/45">{LABELS[name].hint}</span>
+        <span className="text-xs text-bone/45">{LABELS[name].hint}</span>
       </label>
       <span className="flex items-center gap-3">
         <input
@@ -39,7 +39,7 @@ function VolumeRow({ audio, name }: { audio: AudioSettings; name: VolumeName }) 
           step={VOLUME.step}
           value={volume}
           onChange={(e) => audio.setVolume(name, e.currentTarget.valueAsNumber)}
-          className={`w-44 cursor-pointer accent-victory ${FOCUS_RING}`}
+          className={`w-44 cursor-pointer ${FOCUS_RING}`}
         />
         <output htmlFor={id} className="w-11 text-right text-[13px] font-semibold tabular-nums">
           {Math.round(volume * 100)}%

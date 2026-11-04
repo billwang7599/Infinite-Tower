@@ -30,11 +30,11 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
   const dragged = from && from.in === name ? grid.items.find((s) => s.x === from.x && s.y === from.y) : undefined;
   const spot = landing(mouse, gear);
   const lands = drag && spot && spot.in === name ? spot : null;
-  const edge = fits ? "border-stamina" : "border-hp";
+  const edge = fits ? "border-verdigris" : "border-error";
 
   return (
     <div
-      className="rounded-sm border border-white/15 bg-black/60 shadow-[inset_0_2px_10px_#000,0_1px_0_#ffffff0d]"
+      className="border border-bone/11 bg-pit/65 inset-shadow-[0_1px_4px_#000]"
       style={{ padding: GRID_FRAME_PX - 1 }}
     >
       <div
@@ -45,11 +45,11 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
           {Array.from({ length: grid.cols * grid.rows }, (_, i) => (
             <div
               key={i}
-              className="rounded-[2px] border border-black/70 bg-white/[0.035] shadow-[inset_0_1px_0_#ffffff0f]"
+              className="border border-black/60 bg-bone/[0.03] shadow-[inset_0_1px_0_#e8dfc80a]"
             />
           ))}
         </div>
-        {hovered && <Box id={`${name}-hover`} stack={hovered} className="border border-white/30 bg-white/15" />}
+        {hovered && <Box id={`${name}-hover`} stack={hovered} className="border border-bone/30 bg-bone/12" />}
         {grid.items.map((stack) => (
           <Placed
             key={`${stack.x},${stack.y}`} stack={stack} left={stack.x * CELL} top={stack.y * CELL}
@@ -60,13 +60,13 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
         ))}
         {selected && (
           <Box
-            id={`${name}-selected`} stack={selected} className="border-2 border-victory shadow-[0_0_10px_#e8c45a99]"
+            id={`${name}-selected`} stack={selected} className="border-2 border-cinnabar shadow-[0_0_10px_#d9583c66]"
           />
         )}
         {drag && lands && (
           <div
             id={`${name}-landing`} data-fits={fits} data-x={lands.x} data-y={lands.y}
-            className={`pointer-events-none absolute rounded-[2px] border-2 border-dashed ${edge}`}
+            className={`pointer-events-none absolute border-2 border-dashed ${edge}`}
             style={cellBox(lands, footprint(drag.item, drag.turned))}
           />
         )}
@@ -75,9 +75,7 @@ export function BagGrid({ name, gear, mouse, fits, area }: GridProps) {
   );
 }
 
-const ITEM_FRAME =
-  "rounded-[2px] border bg-linear-to-b from-white/[0.09] to-white/[0.02] "
-  + "shadow-[inset_0_0_0_1px_#0008]";
+const ITEM_FRAME = "border bg-linear-to-b from-bone/[0.07] to-bone/[0.02] shadow-[inset_0_0_0_1px_#0008]";
 
 const cellBox = (at: Cell, size: { cols: number; rows: number }) =>
   ({ left: at.x * CELL, top: at.y * CELL, width: size.cols * CELL, height: size.rows * CELL });
@@ -105,8 +103,7 @@ export function Placed({ stack, left, top, turned, className, ...attrs }: Placed
       {stack.count > 1 && (
         <span
           className={
-            "absolute right-0.5 bottom-0.5 rounded-[2px] bg-black/75 px-1 text-[11px] leading-4 font-semibold "
-            + "tabular-nums"
+            "absolute right-0.5 bottom-0.5 bg-pit/80 px-1 text-[11px] leading-4 font-semibold tabular-nums"
           }
         >
           {stack.count}
@@ -121,7 +118,7 @@ function Box({ id, stack, className }: { id: string; stack: BagItem; className: 
   return (
     <div
       id={id} data-x={stack.x} data-y={stack.y}
-      className={`pointer-events-none absolute rounded-[2px] ${className}`}
+      className={`pointer-events-none absolute ${className}`}
       style={cellBox(stack, footprint(stack.item, stack.turned))}
     />
   );
@@ -155,20 +152,21 @@ export function ItemTooltip({ stack, at, panelWidth }: { stack: BagItem; at: Cel
     <div
       id="bag-tooltip" role="tooltip" data-item={stack.item}
       className={
-        "pointer-events-none absolute z-30 w-max max-w-60 rounded-sm border border-white/20 bg-night/95 px-3 py-2 "
-        + "text-xs font-normal shadow-[0_8px_24px_#000a]"
+        "pointer-events-none absolute z-30 w-max max-w-60 cut-8 engraved px-3.5 py-2.5 text-xs font-normal"
       }
       style={{ top: at.y + 20, ...side }}
     >
-      <div className="mb-1 border-b border-white/10 pb-1">
-        <div className={`font-title text-sm ${RARITY_TEXT[info.rarity]}`}>{info.name}</div>
+      <div className="mb-1 border-b border-bone/13 pb-1">
+        <div className={`text-sm font-semibold tracking-[0.16em] uppercase ${RARITY_TEXT[info.rarity]}`}>
+          {info.name}
+        </div>
         <div id="bag-tooltip-rarity" className={`text-[11px] opacity-80 ${RARITY_TEXT[info.rarity]}`}>
           {RARITY_NAME[info.rarity]}
         </div>
       </div>
-      <div className="text-white/65 tabular-nums">Size {info.size}</div>
-      <div className="text-white/65 tabular-nums">Weight {info.weight}</div>
-      {info.effect && <div className="text-stamina">{info.effect}</div>}
+      <div className="text-bone/65 tabular-nums">Size {info.size}</div>
+      <div className="text-bone/65 tabular-nums">Weight {info.weight}</div>
+      {info.effect && <div className="text-verdigris">{info.effect}</div>}
     </div>
   );
 }

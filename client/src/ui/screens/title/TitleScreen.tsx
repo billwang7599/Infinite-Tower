@@ -35,7 +35,7 @@ const WHITE: Partial<Record<Stage, string>> = {
 
 /** What the rush is waiting on, under it. */
 const PROGRESS_LINE =
-  "absolute inset-x-0 bottom-[14%] animate-white-in text-center text-xs tracking-[0.5em] text-white/60 uppercase";
+  "absolute inset-x-0 bottom-[14%] animate-white-in text-center text-xs tracking-[0.5em] text-bone/60 uppercase";
 
 export function TitleScreen() {
   const { ui: { title }, input, actions } = useGame();
@@ -65,7 +65,7 @@ export function TitleScreen() {
   return (
     <div
       id="title-screen" data-stage={stage}
-      className={`fixed inset-0 overflow-hidden font-ui text-white select-none ${
+      className={`fixed inset-0 overflow-hidden text-bone select-none ${
         stage === "menu" ? "" : "pointer-events-none"
       }`}
     >
@@ -86,11 +86,11 @@ export function TitleScreen() {
           <div className="absolute inset-0 bg-linear-to-r from-black/75 via-black/20 to-transparent" />
           <main className="absolute inset-y-0 left-[8vw] flex flex-col justify-center">
             <header className={RISE}>
-              <p className="mb-4 text-[13px] tracking-[0.5em] text-white/55 uppercase">A climb without end</p>
+              <p className="mb-4 text-[13px] tracking-[0.5em] text-bone/55 uppercase">A climb without end</p>
               <h1
                 className={
-                  "font-title text-[clamp(48px,7.5vw,104px)] leading-[0.92] font-normal tracking-[0.06em] "
-                  + "text-victory text-shadow-title"
+                  "text-[clamp(48px,7.5vw,104px)] leading-[0.92] font-normal tracking-[0.06em] text-cinnabar "
+                  + "text-shadow-title"
                 }
               >
                 Infinite
@@ -110,9 +110,9 @@ export function TitleScreen() {
                   <MenuButton type="button" disabled={!ready} onMouseDown={keepFocus} onClick={actions.play}>
                     {error ? "Retry" : "Play"}
                   </MenuButton>
-                  <p id="title-account" className="text-sm text-white/60">
-                    Logged in as <span className="text-white">{username}</span>
-                    <span className="mx-2 text-white/30">·</span>
+                  <p id="title-account" className="text-sm text-bone/60">
+                    Logged in as <span className="text-bone">{username}</span>
+                    <span className="mx-2 text-bone/30">·</span>
                     <button
                       type="button" disabled={!ready} onMouseDown={keepFocus} onClick={actions.logOut}
                       className={LINK}
@@ -123,7 +123,7 @@ export function TitleScreen() {
                 </nav>
               )}
             </div>
-            <p id="title-status" className={`mt-6 min-h-5 max-w-md text-sm ${error ? "text-error" : "text-white/70"}`}>
+            <p id="title-status" className={`mt-6 min-h-5 max-w-md text-sm ${error ? "text-error" : "text-bone/70"}`}>
               {error ?? PROGRESS[phase]}
             </p>
           </main>
