@@ -99,7 +99,8 @@ describe("the Old Quarry", () => {
 
   test("is held by Kobolds and Goblin Warlocks only, in its spawns and its scrub alike", () => {
     const enemies = new Set([...QUARRY.spawns.map((s) => s.enemy), ...QUARRY.grass!.enemies.map((e) => e.enemy)]);
-    assert.deepEqual([...enemies].sort(), ["goblin-warlock", "kobold-greatsword", "kobold-swordsman"]);
+    assert.deepEqual([...enemies].sort(),
+      ["goblin-warlock", "kobold-greatsword", "kobold-shieldbearer", "kobold-swordsman"]);
   });
 
   test("is harder than the Grass Field: more enemies standing about, and its scrub starts fights as often", () => {
@@ -135,5 +136,30 @@ describe("the Old Quarry", () => {
         .map((id) => getArena(id).look);
       assert.ok(!looks.includes("quarry"), region.id);
     }
+  });
+});
+
+describe("the Kobold Shieldbearer", () => {
+  test("stands wherever Kobold Swordsmen do, near one, fought in the arena theirs are", () => {
+    const kobolds = WORLD.regions.filter((r) => r.spawns.some((s) => s.enemy === "kobold-swordsman"));
+    assert.ok(kobolds.length >= 3);
+    for (const region of kobolds) {
+      const arenaOf = (s: (typeof region.spawns)[number]) => s.arenaId ?? region.arenaId;
+      const swordsmen = region.spawns.filter((s) => s.enemy === "kobold-swordsman");
+      const shieldbearers = region.spawns.filter((s) => s.enemy === "kobold-shieldbearer");
+      assert.ok(shieldbearers.length > 0, region.name);
+      for (const s of shieldbearers) {
+        const near = swordsmen.find((k) => distXZ(k.at, s.at) < 10);
+        assert.ok(near, `${region.name}: one at ${JSON.stringify(s.at)} with no Swordsman near`);
+        assert.equal(arenaOf(s), arenaOf(near), region.name);
+      }
+    }
+  });
+
+  test("turns up in the Old Quarry's scrub too, rarer than the Swordsman", () => {
+    const quarry = getRegion("old-quarry").grass!.enemies, weightOf = (id: string) =>
+      quarry.find((e) => e.enemy === id)?.weight ?? 0;
+    assert.ok(weightOf("kobold-shieldbearer") > 0);
+    assert.ok(weightOf("kobold-shieldbearer") < weightOf("kobold-swordsman"));
   });
 });

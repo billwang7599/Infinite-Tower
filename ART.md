@@ -136,7 +136,7 @@ Color only, no drawings: skin (5), hair color (8), eye color (6), outfit dye (6)
 | wrap-around legs (trousers) | 141: none in the portrait (it stops at the chest), 3 chibi facings for every body (the chibi's legs are the same on all), 3 body types x 46 battle frames |
 
 Each item also has one bag picture (`gfx/items/`): boar meat, hide and tusk, a wolf pelt and fang, a lurker scale, the
-old stick, the swords, the skillbook, each monster's essence (one bead, in six colours), a bog pearl, the sigils
+old stick, the swords, the skillbook, each monster's essence (one bead, in seven colours), a bog pearl, the sigils
 (one stone disc with a rune ring, glowing in its tier's colour), a canvas backpack, a wool cap, a leather belt, a
 copper ring, a braided bracelet, a feathered hat, a training bow (a stave on end, its string down the left), a
 sheaf of three arrows and a training quiver (a leather tube on end with a brass band and a strap, three fletchings over
@@ -341,7 +341,8 @@ each keeping what later parts cover. The art lab opens looks in parts with it.
     or the shield's), a near half turn going over the top rather than under; a swing still takes over by its own
     timing (`easeArms` in `animation.ts`). An enemy blocks in the same stance (Bram as a person; the Kobolds' own rig
     through `guardPose`, its spots measured lower and further out, `KOBOLD_GUARD_FIT`, to clear the snout and the
-    leaning chest), raised while the fight has its block up and eased in and out over the same `GUARD_SHIFT`.
+    leaning chest; the Kobold Shieldbearer carries its shield by `carryPose` and raises it), raised while the fight
+    has its block up and eased in and out over the same `GUARD_SHIFT`.
     Switching hands with a blade in each eases both hands to their new places over the same time, mid-swing too,
     each blade staying in its hand.
     Each clip is written for the right hand and mirrored for the left. Standing, the feet are apart, the weight on

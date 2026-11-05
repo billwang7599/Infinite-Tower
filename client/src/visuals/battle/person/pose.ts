@@ -2,9 +2,9 @@ import {
   clamp, FIXED_DT, PLAYER, smoothstep, type GuardKind, type PlayerData, type SwingData, type SwingDir, type Vec2,
   type Vec3, type WielderData,
 } from "@infinite-tower/shared";
-import { guardPose, shieldFacing } from "../guard.js";
+import { carryPose, guardPose } from "../guard.js";
 import { playerBlade, STAGGERED } from "../pose.js";
-import { DRAWBACK, edgeToward, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
+import { DRAWBACK, wayCut, type BladePose, type BowLook, type WeaponMotion } from "../weapons.js";
 import type { PersonBuild } from "./model.js";
 import { BREATH, breathOf, plantLegs, strideOf, WALK, walkKey } from "./motion.js";
 import { restAt, type JointName } from "./skeleton.js";
@@ -128,14 +128,6 @@ function swingBlade(
   return { blade: along.blade, edge: along.edge ?? null, handBlade, handZ: along.handZ, arcRad, set };
 }
 
-const unit = ({ x, y, z }: Vec3): Vec3 => {
-  const l = Math.hypot(x, y, z);
-  return { x: x / l, y: y / l, z: z / l };
-};
-const OFF_CARRY = {
-  hand: { x: -0.2, y: -0.18, z: 0.15 }, blade: { x: -0.3, y: 0.5, z: 0.81 }, shieldFace: { x: -0.5, y: 0, z: 0.87 },
-} as const;
-
 /** The motions are sized for this arm (the kobold's). */
 const MOTION_ARM_M = PLAYER.armReachM;
 const PIVOT_OUT = 0.55;
@@ -241,21 +233,19 @@ export function personPose(
     for (const [j, share] of Object.entries(TWIST_SHARES)) joints[j as PosedJoint].y = share * twist;
     joints.spine.x = joints.chest.x = -BEND_RAD * blade.y / 2;
   }
+  const carry = offHeld && carryPose(offHeld, side, { y: b.shoulderY, z: 0 });
   // Hanging under its shoulder, which the body's twist carries round.
-  const hangX = offHeld ? side * OFF_CARRY.hand.x : -side * (b.shoulderM + 0.03);
-  const hangZ = offHeld ? OFF_CARRY.hand.z : 0.05;
+  const hangX = carry ? carry.offHand.x : -side * (b.shoulderM + 0.03), hangZ = carry ? carry.offHand.z : 0.05;
   const restOff: Vec3 = {
     x: hangX * Math.cos(twist) + hangZ * Math.sin(twist),
-    y: offHeld ? b.shoulderY + OFF_CARRY.hand.y : b.shoulderY - reach * 0.95,
+    y: carry ? carry.offHand.y : b.shoulderY - reach * 0.95,
     z: hangZ * Math.cos(twist) - hangX * Math.sin(twist),
   };
-  const carried = (v: Vec3) => unit({ ...v, x: side * v.x }), offBlade = carried(OFF_CARRY.blade);
   const p: PersonPose = {
     blade, edge: swung ? swung.edge : guard.edge,
     hand: { x: pivot.x + handBlade.x * arc, y: pivot.y + handBlade.y * arc, z: handZ * scale + handBlade.z * arc },
     offHand: restOff,
-    off: offHeld === "dual" ? { blade: offBlade, edge: edgeToward(offBlade) }
-      : offHeld === "shield" ? shieldFacing(carried(OFF_CARRY.shieldFace)) : null,
+    off: carry ? carry.off : null,
     held: alive && !o.bow && !STAGGERED.includes(player.action) ? { way: player.way, block: blocking } : null,
     gripped: alive && !!o.twoHanded && !o.bow && !offHeld && !blocking,
     joints, rootY: 0, legsExact: false, swing: swing && swung && { at: swing, alpha, set: swung.set },

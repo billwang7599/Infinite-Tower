@@ -57,6 +57,7 @@ export const MISTWOOD: RegionDef = {
     { enemy: "wild-boar", at: { x: -8, z: 12.5 }, respawnTime: 8 },
     { enemy: "wild-boar", at: { x: -4, z: -14.5 }, respawnTime: 8 },
     { enemy: "kobold-swordsman", at: { x: 17, z: 14.5 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
+    { enemy: "kobold-shieldbearer", at: { x: 13, z: 14.5 }, respawnTime: 12, arenaId: KOBOLD_RUINS_ARENA.id },
     { enemy: "goblin-warlock", at: { x: 16, z: -11.5 }, respawnTime: 12 },
     { enemy: "grey-wolf", at: { x: -14, z: -7 }, respawnTime: 10 },
     { enemy: "bog-lurker", at: { x: 0.5, z: 10.5 }, respawnTime: 15 },

@@ -68,7 +68,7 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
   points. After all 15: 103 each before points, the hidden 25, and 186 points.
 - **Free points** go into the shown stats, one at a time, outside fights; taken back one at a time only by a campfire.
 - **Essence** (an item's `essence` effect in `ITEMS`): boar 20, grey wolf 25, Kobold Swordsman 40, Kobold Greatsword
-  50, Goblin Warlock 30, bog lurker 45. Absorbing takes 2 s (`useTime`). The first step is 5 boars.
+  50, Kobold Shieldbearer 45, Goblin Warlock 30, bog lurker 45. Absorbing takes 2 s (`useTime`). The first step is 5 boars.
 - **Death:** the step's fill is lost; with none, the step (and its gains); points over what's left are taken back off
   the stats with the most first (`coreAfterDeath`).
 
@@ -497,13 +497,13 @@ it quick-casts (0.5 s). Writing a page in a fight takes `SAVE_IN_FIGHT_TIME` 2 s
 
 Each in `server/src/core/enemies/<id>.ts`.
 
-| | Wild Boar | Grey Wolf | Bog Lurker | Kobold Swordsman | Kobold Greatsword | Goblin Warlock | Bram (spars only) |
-|---|---|---|---|---|---|---|---|
-| HP | 160 | 70 | 200 | 160 | 160 | 40 | 60 |
-| Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
-| Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
-| Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 |
-| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
+| | Wild Boar | Grey Wolf | Bog Lurker | Kobold Swordsman | Kobold Greatsword | Kobold Shieldbearer | Goblin Warlock | Bram (spars only) |
+|---|---|---|---|---|---|---|---|---|
+| HP | 160 | 70 | 200 | 160 | 160 | 150 | 40 | 60 |
+| Poise, regen a second, stagger | 36, 8, 1 s | 30, 12, 0.7 s | 100, 10, 1.2 s | 80, 10, 0.8 s | 80, 10, 0.8 s | 60, 8, 0.8 s | 20, 8, 1 s | 60, 10, 0.8 s |
+| Walk | 3.2 m/s | 4.6 m/s | 1.5 m/s | 2.6 m/s | 2.6 m/s | 2.6 m/s | 2.4 m/s | 2.2 m/s |
+| Pushback and Air taken (`knockbackFactor`) | 0.7 | 1 | 0.3 | 1 | 1 | 1 | 1 | 1 |
+| Hits | bite 16, charge 30 | bite 15 | slam 38, tail 20 | light 14, heavy 28 | light 14, heavy 28 (about 1.6 × as slow) | light 14, heavy 28 | staff 5; Bolt Fire 8 + 10 burning | light 5, heavy 10 |
 
 - **Boar:** bites within 2.8 m (0.65 s wind-up), then can't again for 0.75 + 0.6 s; charges from 5-22 m (1.1 s wind-up,
   locking its aim 0.3 s before; 17 m/s for up to 1.6 s; no stagger while charging), first after 2 s, then 4.5 s after
@@ -525,6 +525,14 @@ Each in `server/src/core/enemies/<id>.ts`.
   first after 1.5 s. Walking up it blocks from 0.3 s in. Rolled from the fight's seed: walking up, it
   perfect-blocks 30% of a player's swings (rolled as each starts) and counters (Swing parries, Counters). A Bolt
   aimed within about 26° of it is side-stepped 60% of the time (8 m/s for 0.3 s: 2.4 m), at max(0.25 s, release time − 0.1 s) into its wind-up.
+- **Kobold Shieldbearer:** the Swordsman with a Wooden shield in its left hand, so it blocks by the shield's rule (180°
+  in front, 8% chip, its push × 0.6), and it swings as the Swordsman does, timed as a player's swing with its Kobold
+  blade (it has no times of its own). A chain of 1 or 2, 1.5 s before the next; walking up it blocks from 0.2 s in,
+  perfect-blocks 20% of a player's swings and never parries (its blade still meets a crossing blade as anyone's does).
+  Its guard is its poise: 60, back 8 a second, so 5 blocked lights or 3 heavies in a row stagger it for 0.8 s. In the
+  bot fights (10 seeds) a reader wins every one at full HP; one who blocks its swings and presses heavies into its
+  shield loses 9 pressing whenever it can and 4 pressing only in its openings; one who presses lights, only swings or
+  only blocks loses every one.
 - **Bram:** the Kobolds' rules, kinder: a chain of 1 or 2, heavy 20% of the time, the old stick swung as a player's
   (the table: 0.43 s an opening, 0.4-0.47 chained, recovering 0.08 s), then 1.8 s before the next chain; first after
   2 s; blocks from 0.35 s in walking up, perfect-blocks 10% of swings, never parries, never feints.

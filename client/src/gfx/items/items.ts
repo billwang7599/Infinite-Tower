@@ -483,6 +483,7 @@ const DRAW: Record<ItemId, (px: Pixels) => void> = {
   "boar-meat": meat, "boar-hide": hide, "boar-tusk": tusk, "old-stick": oldStick, sword, "kobold-blade": sword,
   longsword, greatsword, "kobold-greatsword": greatsword, skillbook, "boar-essence": essence("ember"),
   "kobold-swordsman-essence": essence("spark"), "kobold-greatsword-essence": essence("smoulder"),
+  "kobold-shieldbearer-essence": essence("brass"),
   "goblin-warlock-essence": essence("wisp"), "grey-wolf-essence": essence("frost"),
   "bog-lurker-essence": essence("murk"), "lurker-scale": scale, "wolf-pelt": pelt,
   "wolf-fang": fang, bread, "health-potion": bottle("blood"),

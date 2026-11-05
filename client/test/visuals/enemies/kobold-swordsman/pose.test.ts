@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { SCREEN_DIR, SWING_DIRS, WAYS, type EnemyState, type Vec3 } from "@infinite-tower/shared";
-import { guardPose } from "../../../../src/visuals/battle/guard.js";
+import { carryPose, guardPose } from "../../../../src/visuals/battle/guard.js";
 import {
   KOBOLD_DRAWBACK, KOBOLD_GUARD_FIT, koboldPose,
 } from "../../../../src/visuals/enemies/kobold-swordsman/pose.js";
@@ -179,5 +179,34 @@ describe("the kobold's guard", () => {
       const nearly = guarding(0.99, state), up = guarding(1);
       assert.ok(gap(nearly.hand, up.hand) < 0.02 && dot(nearly.blade, up.blade) > 0.99, state);
     }
+  });
+});
+
+describe("a kobold with a shield", () => {
+  const AHEAD: Vec3 = { x: 0, y: 0, z: 1 };
+  const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const faceOf = ({ blade: b, edge: e }: { blade: Vec3; edge: Vec3 }): Vec3 =>
+    ({ x: e.y * b.z - e.z * b.y, y: e.z * b.x - e.x * b.z, z: e.x * b.y - e.y * b.x });
+  const shielded = (raised: number) =>
+    koboldPose("approach", 0.5, 0.5, TB, MOTIONS.sword, null, TOP_GUARD, false, { kind: "shield", raised });
+
+  test("carries it as a person does, fitted to it: a little up and ahead, turned out", () => {
+    const p = shielded(0), carried = carryPose("shield", 1, KOBOLD_GUARD_FIT);
+    assert.deepEqual(p.offHand, carried.offHand);
+    assert.ok(p.off && dot(faceOf(p.off), AHEAD) > 0.5 && faceOf(p.off).x < -0.2, "facing ahead, turned out");
+    assert.equal(poseOf("approach", 0.5, 0.5, TB, null).off, null, "no shield, nothing held");
+  });
+
+  test("blocking, raises it before its chest facing its foe, its blade kept in its guard", () => {
+    const p = shielded(1), plain = poseOf("approach", 0.5, 0.5, TB, null);
+    assert.deepEqual(p.offHand, guardPose("shield", 1, KOBOLD_GUARD_FIT).offHand);
+    assert.ok(p.off && dot(faceOf(p.off), AHEAD) > 0.99 && p.off.blade.y > 0.99, "upright, facing ahead");
+    assert.ok(p.offHand.y > shielded(0).offHand.y + 0.1 && p.offHand.z > shielded(0).offHand.z, "raised");
+    assert.deepEqual([p.blade, p.hand], [plain.blade, plain.hand], "the blade's guard kept");
+  });
+
+  test("raised part way, it's turning from out to ahead", () => {
+    const half = faceOf(shielded(0.5).off!), carried = faceOf(shielded(0).off!);
+    assert.ok(dot(half, AHEAD) > dot(carried, AHEAD) && dot(half, AHEAD) < 0.99);
   });
 });

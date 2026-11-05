@@ -4,6 +4,9 @@ import { drawItem } from "@infinite-tower/client/src/gfx/items/items.js";
 import { STARTER_CLOTHES } from "@infinite-tower/client/src/gfx/look/outfit.js";
 import { goblinSprite } from "@infinite-tower/client/src/visuals/enemies/goblin-warlock/sprite.js";
 import { koboldGreatswordSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-greatsword/sprite.js";
+import {
+  koboldShieldbearerSprite,
+} from "@infinite-tower/client/src/visuals/enemies/kobold-shieldbearer/sprite.js";
 import { koboldSprite } from "@infinite-tower/client/src/visuals/enemies/kobold-swordsman/sprite.js";
 import { boarSprite } from "@infinite-tower/client/src/visuals/enemies/wild-boar/sprite.js";
 import { GRASS_FIELD_TILES } from "@infinite-tower/client/src/visuals/regions/grass-field/tiles.js";
@@ -64,7 +67,7 @@ export const TEMPLATES: readonly Template[] = [
   ...Object.entries(NPC_LOOKS).map(([id, npc]) => inParts("NPCs, in parts", `${id} portrait`, "portrait", npc.look)),
   ...Object.entries({
     "wild boar": boarSprite, "kobold swordsman": koboldSprite, "kobold greatsword": koboldGreatswordSprite,
-    "goblin warlock": goblinSprite,
+    "kobold shieldbearer": koboldShieldbearerSprite, "goblin warlock": goblinSprite,
   }).map(([name, s]) => one("Enemies (overworld)", name, () => sprite(s.draw))),
   pages("Tiles", "grass field tiles", "tiles", () => tileset(GRASS_FIELD_TILES)),
   pages("Tiles", "mistwood tiles", "tiles", () => tileset(MISTWOOD_TILES)),

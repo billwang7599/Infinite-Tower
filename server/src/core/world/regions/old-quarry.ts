@@ -56,6 +56,7 @@ export const OLD_QUARRY: RegionDef = {
     { enemy: "goblin-warlock", at: { x: -13.5, z: 12.5 }, respawnTime: 15 },
     { enemy: "goblin-warlock", at: { x: 9.5, z: 14.5 }, respawnTime: 15 },
     { enemy: "kobold-swordsman", at: { x: -17.5, z: -0.5 }, respawnTime: 15 },
+    { enemy: "kobold-shieldbearer", at: { x: 13.5, z: -2.5 }, respawnTime: 15 },
   ],
   grass: {
     stepDist: 1,
@@ -64,6 +65,7 @@ export const OLD_QUARRY: RegionDef = {
       { enemy: "kobold-swordsman", weight: 3 },
       { enemy: "goblin-warlock", weight: 2 },
       { enemy: "kobold-greatsword", weight: 1 },
+      { enemy: "kobold-shieldbearer", weight: 1 },
     ],
   },
 };

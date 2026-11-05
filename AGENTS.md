@@ -572,6 +572,20 @@ Decided by the user:
   too"; not hand-played yet): a Longsword and a Greatsword, sold at Garrick's forge. The Kobold
   Greatsword is the Kobold Swordsman with its own never-dropped greatsword, near the Kobold (16, 0 on the Grass
   Field), dropping only its essence.
+- The Kobold Shieldbearer (the user approved a new enemy, "Kobold Shieldbearer", keeping the Swordsman unchanged, and
+  left the rest to the agent; tried by bot fights and a headless browser, not hand-played): a Kobold with a Kobold blade
+  in its right hand and a Wooden shield in its left, so it blocks by the shield's rule like a player with one (180°,
+  8% chip, push × 0.6). Its swings are the Swordsman's: no enemy gets swing timing of its own (the user: wind-up, swing
+  and recovery come only from the shared math, weapon weight × stats; balance goes through the weapon and the enemy's
+  stats), so it's timed as a player's swing with its Kobold blade at the Swordsman's stats. The agent's picks, balanced
+  through HP, poise and pacing: 150 HP; chains of 1 or 2 and 1.5 s between them (the Swordsman 2 or 3 and 1.2 s); its
+  block up 0.2 s after walking up (0.3); 20% perfect blocks (30%); it never parries (a shield can't; its blade still
+  meets a crossing blade by the shared rule). Its weakness is its guard: poise 60, back 8 a second (80 and 10), so blows
+  into its shield break it into the 0.8 s stagger, heavies twice as fast. It drops only its essence (45, a brass bead),
+  never its blade or shield. One stands by each Swordsman: the Grass Field's corner (20, -4.5), the Mistwood's (13,
+  14.5) and the Old Quarry (13.5, -2.5), in the same arenas, and the Quarry's scrub rolls it too. In the arena it's the
+  Kobold model, a little bulkier and blue-clothed, holding the arena's 3D shield, carried a little up and ahead and
+  raised by the same stance as yours (below); on the overworld the Kobold's sprite with a round shield.
 - Shields and two blades (the user: "add a shield item, which takes priority over the other hand if thats like a
   sword or something. block power: shield > single sword > dual wield"; "q would switch controls between left and
   right hand"): a shield in either hand is what blocks, over a blade in the other, and is never swung (with a blade in
@@ -606,8 +620,8 @@ Decided by the user:
   next or back to the guard it turns the way round that stays in front.
   Enemies guard like you (the user: "when theyre guarding give them a guard stance like the character"): while an
   enemy's block is up (the fight's `blocking`) it holds the same stance by what blocks, eased in and out over the
-  same time by heft, its edge toward its foe: the Kobold Swordsman and the Kobold Greatsword on their own rig (the
-  spots measured lower and further out, under the snout: `KOBOLD_GUARD_FIT`, the agent's pick), Bram as a person.
+  same time by heft, its edge toward its foe: the Kobolds on their own rig (the spots measured lower and further out,
+  under the snout: `KOBOLD_GUARD_FIT`, the agent's pick; the Shieldbearer's shield raised), Bram as a person.
   Looks only, tried in a headless browser, not hand-played.
 - The Goblin Warlock (not hand-played yet) has its own corner of the Grass Field and drops only its essence; about
   40 HP. It keeps its distance (walks in to about 7 m, backs away inside about 4 m) and pokes with its staff only when you're
@@ -792,7 +806,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   physical and skill damage × √(stat / 10), damage taken × 50 / (40 + defense or special defense), stuns × 10 /
   toughness, stamina refill × stamina recovery / 10, HP regen vitality × health regen / 200 a second, walking and
   dodging × (agility / 10)^¼, carry limit 60 × (strength / 10)^¼. Fill to finish step n: 100 × 2^((n − 1) / 3).
-  Essence: boar 20, Kobold Swordsman 40, Kobold Greatsword 50, Goblin Warlock 30. Boar meat heals 35% of the most HP.
+  Essence: boar 20, Kobold Swordsman 40, Kobold Greatsword 50, Kobold Shieldbearer 45, Goblin Warlock 30. Boar meat heals 35% of the most HP.
   Enemies: every stat 10 but skillpower (0, the warlock's 10) and health regen (0); their HP stays their own.
 - The core, built (PR 1 of it; the user: "go make more content… make any assumptions you want"; none hand-played
   beyond a headless check):
@@ -1267,7 +1281,7 @@ them; treat them as changeable, and still ask before deciding new ones):
   Respawn timers still run while asleep. Checked 4 times a second.
 - Regions: Highmere's wards, then the test areas, the Waking Hollow, the Grass Field, the Mistwood and the Old Quarry,
   on one map (One open world, above; the layout under it, below). Dying wakes you on your pad, at once. Mistwood reuses
-  the Grass Field's enemies (boars, the Kobold, the Warlock) and the mire arena.
+  the Grass Field's enemies (boars, the Kobold and its Shieldbearer, the Warlock) and the mire arena.
 - The Old Quarry (the user: "continue to add content for the game… just do it based off of your best judgement";
   everything here is the agent's, tried only in a headless browser): a 48 x 36 region north of the Grass Field,
   through a 3-tile gap in its north tree line (`old-quarry` in `server/src/core/world/regions/old-quarry.ts`). Pale
@@ -1276,8 +1290,9 @@ them; treat them as changeable, and still ask before deciding new ones):
   at its bottom (silent, as still water is), two cranes on the pit's north rim and three ore carts on the rails (both
   new solid tiles, `Y` and `K`; the rails are its paths), rubble, a ruined plank hut for the overseer, patches of dry
   scrub (its tall grass), a 2 x 2 pad and one campfire by the way in. No boars: three Kobold Swordsmen, a Kobold
-  Greatsword and two Goblin Warlocks stand about (respawning 15 s after their fight), and its scrub rolls 0.12 a tile
-  (the Grass Field's rate) for a Kobold Swordsman, a Goblin Warlock or a Kobold Greatsword, 3 : 2 : 1. Every fight there
+  Greatsword, a Kobold Shieldbearer and two Goblin Warlocks stand about (respawning 15 s after their fight), and its
+  scrub rolls 0.12 a tile (the Grass Field's rate) for a Kobold Swordsman, a Goblin Warlock, a Kobold Greatsword or a
+  Kobold Shieldbearer, 3 : 2 : 1 : 1. Every fight there
   is in its own quarry arena, duels too (looks only: pale cut slabs, stacked blocks, terraced faces, a crane, a cart,
   lanterns and drifting dust; `client/src/visuals/arenas/quarry/`), and it has its own music (Music, above). No readable
   signs: the game has no way to read one without an NPC (a trace is an NPC's), so there are none.
@@ -1607,6 +1622,7 @@ tests say what was agreed. Where tests go and how they're written:
   (`#title-screen nav button`), or fill `#login-form`. Then the debug handles are available: `window.mode()`,
   `window.battle`, `window.overworld`, `window.ui`, `window.settings`, `window.encounter()` (dev server only;
   `window.encounter("kobold-swordsman")` for the Kobold, `"kobold-greatsword"` for its greatsword twin,
+  `"kobold-shieldbearer"` for the one with a shield,
   `"goblin-warlock"` for the warlock; the admin panel's fight buttons do the same) and, in a fight,
   `window.cast({ segments: [{ form: "bolt", elements: ["fire"], modifiers: [] }] })` (a skill on none of the pages
   goes off only with the chant open: R); `window.audio()` says whether sound runs, what's loaded and looping, the

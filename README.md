@@ -37,8 +37,9 @@ What's built so far:
   with a still pool, cranes, carts on rails, a ruined overseer's hut and a campfire by the way in), held by Kobolds and
   Goblin Warlocks. Each place you wake is a summoning pad. The Grass Field is a dusky tile map of paths, tree lines,
   rocks, a stream and pond, ruins and a patch of tall grass; trees, rocks, water and ruin walls block walking. A boar
-  and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword beside it), a Goblin Warlock and a grey wolf
-  (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low in the Mistwood's reeds. Touching
+  and, each in a corner of its own, a Kobold Swordsman (a Kobold Greatsword and a Kobold Shieldbearer beside it), a
+  Goblin Warlock and a grey wolf (another prowls the Mistwood) wander and chase you on sight; two bog lurkers lie low
+  in the Mistwood's reeds. Touching
   one, or walking through tall grass (boars only), starts a fight. Wider screens than 16:9 get side bars. It's drawn
   HD-2D: pixel-art billboards on 3D ground, drawn a chunk at a time near you, with a tilt-shift blur, lit by the same
   24-minute day as the fights (the sun and moon cast the shadows, the campfire flickers and lights what's near it; a
@@ -98,7 +99,8 @@ What's built so far:
   anyone beside or behind it; dodge them, for a blocked slam costs a lot of stamina and pushes you out of reach of
   the long opening after it. The Kobold Swordsman swings the same ways, timed as your own swings with its blade, in
   chains; it blocks as it walks up, and now and then perfect-blocks you. The Kobold Greatsword fights the same with a
-  much heavier blade. The
+  much heavier blade. The Kobold Shieldbearer hides behind a shield that covers its whole front, swings less and never
+  parries, but heavy blows into the shield break its guard and stagger it. The
   Goblin Warlock keeps its distance and casts Bolt Fire at you (sometimes homing, sometimes split), quick up close and
   chanted from afar, its words shown in front of it; run it down and stagger its chant, but mind its staff. Your
   sprite holds its blade on the side you aim from, winds up, strikes and follows through on every attack, and reels
