@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   AVERAGE_STAT, BASE_STATS, CARRY_LIMIT_AT_AVERAGE, carryLimit, DEFENSE_OFFSET, grownVitals, HIDDEN_STATS,
-  HP_PER_VITALITY, HP_REGEN_DIVISOR, hpRegenPerSec, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, PLAYER,
+  HP_PER_VITALITY, HP_REGEN_DIVISOR, hpRegenPerSec, KNOCKBACK_TAKEN, knockbackTakenFactor, maxHpOf, moveSpeed, physicalDamage, physicalTakenFactor, PLAYER,
   SHOWN_STATS, skillDamage, skillTakenFactor, STAMINA_PER_POINT, staminaMaxOf, staminaRegenPerSec, STAT_KEYS, stunTime,
 } from "@infinite-tower/shared";
 
 const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual}`);
 const times = (k: number) => k * AVERAGE_STAT;
 
-test("every stat starts at the average; the hidden three aren't among the shown ones", () => {
+test("every stat starts at the average; the hidden ones aren't among the shown ones", () => {
+  assert.ok((HIDDEN_STATS as readonly string[]).includes("steadiness"));
   for (const stat of STAT_KEYS) assert.equal(BASE_STATS[stat], AVERAGE_STAT, stat);
   assert.deepEqual([...STAT_KEYS].sort(), [...SHOWN_STATS, ...HIDDEN_STATS].sort());
   for (const stat of HIDDEN_STATS) assert.ok(!(SHOWN_STATS as readonly string[]).includes(stat));
@@ -23,6 +24,16 @@ test("at the base stats every formula gives the base numbers", () => {
   assert.equal(skillTakenFactor(BASE_STATS), 1);
   assert.equal(stunTime(0.5, BASE_STATS), 0.5);
   assert.equal(staminaRegenPerSec(BASE_STATS, 1), PLAYER.staminaRegenPerSec);
+  assert.equal(knockbackTakenFactor(BASE_STATS), 1);
+});
+
+test("strength and steadiness shrink the knockback a player takes, never past the floor", () => {
+  close(knockbackTakenFactor({ ...BASE_STATS, strength: times(16) }), 1 / 16 ** KNOCKBACK_TAKEN.strengthPower);
+  close(knockbackTakenFactor({ ...BASE_STATS, steadiness: times(4) }), 1 / 4 ** KNOCKBACK_TAKEN.steadinessPower);
+  const both = { ...BASE_STATS, strength: times(16), steadiness: times(4) };
+  close(knockbackTakenFactor(both), 1 / (16 ** KNOCKBACK_TAKEN.strengthPower * 4 ** KNOCKBACK_TAKEN.steadinessPower));
+  const huge = { ...BASE_STATS, strength: times(1e6), steadiness: times(1e6) };
+  assert.equal(knockbackTakenFactor(huge), KNOCKBACK_TAKEN.min);
 });
 
 test("HP comes from vitality, and the stamina bar from stamina", () => {

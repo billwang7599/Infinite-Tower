@@ -48,6 +48,7 @@ an enemy's are in its file in `server/src/core/enemies/`. Every one is ×1 at 10
 | toughness (hidden) | 10 | a stun or stagger × 10 / toughness | `stunTime` |
 | stamina recovery (hidden) | 10 | stamina refill × stamina recovery / 10 | `staminaRegenPerSec` |
 | health regen (hidden) | 10 | HP a second = vitality × health regen / 200 | `hpRegenPerSec` |
+| steadiness (hidden) | 10 | a player's knockback × (10 / strength)^¼ × (10 / steadiness)^½, kept in 0.25-2 (`KNOCKBACK_TAKEN`) | `knockbackTakenFactor` |
 
 Enemies have every stat at 10 but skillpower 0 (the Goblin Warlock's 10) and health regen 0. An enemy's HP is its own
 `maxHp`, not its vitality (enemy realms come later). Only an enemy that casts (the warlock) has a stamina bar.
@@ -63,7 +64,7 @@ Middle, Peak): 15 steps, each finished by filling it with essence.
 - **Fill to finish step n** (1-15) = round(100 × 2^((n − 1) / 3)) (`fillToFinish`): 100, 126, 159, 200, ... 2540;
   11,927 in all. Essence past a step's fill carries into the next; finishing step 15 leaves the core whole, taking no
   more.
-- **What a step gives:** every shown stat + 1 × 2^realm (1, 2, 4, 8, 16), the hidden three + 1, and 2 × 2^realm free
+- **What a step gives:** every shown stat + 1 × 2^realm (1, 2, 4, 8, 16), the hidden four + 1, and 2 × 2^realm free
   points. After all 15: 103 each before points, the hidden 25, and 186 points.
 - **Free points** go into the shown stats, one at a time, outside fights; taken back one at a time only by a campfire.
 - **Essence** (an item's `essence` effect in `ITEMS`): boar 20, grey wolf 25, Kobold Swordsman 40, Kobold Greatsword
@@ -191,9 +192,9 @@ Example: the Training bow (12 damage, 60 m/s) let go at once (a share of 0.25) d
 ## Body blows
 
 An enemy's lunge, charge, pounce, slam or sweep (`addHitAhead`): damage = its `damage` × √(strength / 10). Landing on a
-player who isn't blocking, it knocks them back at its `knockback` m/s (plus `lift` up; not while Warded) and takes
-control away (hitstun) for (`HITSTUN_TIME` 0.25 + `HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness
-(`combat.ts`). A weapon's hit on a player only hurts: no knockback, no hitstun.
+player who isn't blocking, it knocks them back at its `knockback` m/s × their knockback taken (Knockback, below;
+plus `lift` up; not while Warded) and takes control away (hitstun) for (`HITSTUN_TIME` 0.25 +
+`HITSTUN_PER_KNOCKBACK` 0.02 × knockback) × 10 / toughness (`combat.ts`). A weapon's hit on a player only hurts: no knockback, no hitstun.
 
 | Blow | Damage | Knockback (m/s) | Hitstun (s) |
 |---|---|---|---|
@@ -216,11 +217,14 @@ doing, so no chain of hits can lock it, and none lifts it.
 - **A player's hits on an enemy:** `knockbackSpeed` in `HYBRID`, a light 4 m/s, a stab 6, a heavy 8, whatever the
   blade and the strength (heft doesn't count: a greatsword's longer reach with a bigger push kept a Kobold out of
   reach of its own swings); an arrow `knockbackShare` 0.07 × its speed as it strikes; Air 12 × its factor (Skills).
-  Blocked (held) × `HYBRID.block.pushbackFactor` 0.6, as a player blocking a body blow; perfectly, none.
+  Blocked (held) × `HYBRID.block.pushbackFactor` 0.6 × the guard's push (Blocks, below); perfectly, none.
 - **× the enemy's `knockbackFactor`** (1 if not given; Enemies, below) and its statuses' knockback factor (Warded
   and Bulwark 0, Brannoc's Anvil 0.5); none while it's armored, committed to a blow (the boar's charge, the wolf's
   crouch and leap, the lurker's rise, slam, coil and sweep).
-- A weapon or an arrow pushes no player, in a duel or from an enemy; only body blows and Air do.
+- **A player** takes × `knockbackTakenFactor` (strength and steadiness, Stats above: 1 at the start, 0.84 at
+  strength 20, 0.63 at steadiness 25, never under 0.25) × its statuses', from every push: body blows, Air and blocks.
+- A weapon or an arrow pushes no player it lands on, in a duel or from an enemy; only body blows and Air do, and any
+  hit into a held block (Blocks, below).
 
 How far it slides, walking (in 1/60 s steps):
 
@@ -251,6 +255,13 @@ moves.
   one blade the numbers above; two blades 32% chip, stamina × 1.35, push × 1.2. The perfect window and raise time
   take the shield's own length and heft (the Wooden shield: 1.1, so 0.2 s, and heft 1.3, up in 0.1 s), or the
   swinging blade's.
+- **Pushed back:** any hit into a held block pushes the blocker at `knockbackOf` (the hit's knockback × a player's
+  `knockbackTakenFactor`, or an enemy's `knockbackFactor`, × statuses) × 0.6 × the guard's push: a sword light 2.4
+  m/s with one blade, a heavy 4.8, a stab 3.6. A blocking player slows at `PLAYER.accel` 60 m/s², so slides v² / 120
+  (light 5 cm, heavy 19 cm); an enemy at its state's acceleration.
+- **Backed against the wall:** the wall stopping all of that slide, the chip goes × `pinnedChipFactor` 2; part of it,
+  × 1 + (2 − 1) × the share stopped (`pinnedShare` in `defend.ts`, swept by the physics). Players and enemies alike.
+  Body blows chip nothing, so nothing more.
 - **Raising the guard:** a block (held or perfect) stops nothing until the guard is up, `raiseTime` 0.05 s +
   `raiseTimePerHeft` 0.17 s × (felt heft − 1) after the press (`guardRaiseTime`): sword 0.05, longsword 0.08,
   greatsword 0.15 s at strength 10, 0.1 s at 20. An enemy's rises after its `blockReactTime`.
@@ -265,7 +276,8 @@ moves.
 
 Example: blocked held, a sword light costs the blocker 9 stamina and 1.8 HP, a sword heavy 36 stamina and 3.6 HP; a
 boar's charge into it costs 30 stamina and pushes the blocker back at 9 m/s, no HP. Behind a shield the light costs
-5.4 stamina and 0.72 HP; with two blades 12.15 stamina and 2.88 HP.
+5.4 stamina and 0.72 HP; with two blades 12.15 stamina and 2.88 HP. Backed flat against the wall, the light chips
+3.6 HP (shield 1.44); with 10 cm behind, a heavy's 19 cm slide loses about half, so about 1.5 × its 3.6.
 
 ## Swing parries
 

@@ -91,6 +91,13 @@ export class ArenaPhysics {
     return { x: across.x, y: upDown.y, z: across.z };
   }
 
+  /** As `move` across the floor, without moving the collider. */
+  reach(handle: number, delta: Vec3): Vec3 {
+    this.mover.computeColliderMovement(this.collider(handle), { x: delta.x, y: 0, z: delta.z }, undefined, WALLS);
+    const found = this.mover.computedMovement();
+    return { x: found.x, y: 0, z: found.z };
+  }
+
   /**
    * Where collider `handle`, if it were centered at `at`, would touch collider `other`: the way out of `other` and
    * how far apart they'd be (negative: overlapping by that much). Null if more than `margin` apart.

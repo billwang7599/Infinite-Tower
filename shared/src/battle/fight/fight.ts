@@ -102,7 +102,7 @@ export class Fight {
       weaponSystem(),
       windUpSystem(), sidestepSystem(ctx), enemyMotorSystem(),
       moveSystem(this.physics),
-      playerGroundSystem(this.physics), combatSystem(this.events), projectileSystem(ctx),
+      playerGroundSystem(this.physics), combatSystem(ctx), projectileSystem(ctx),
       statusSystem(),
       regenSystem(),
       skillSystem(ctx), useSystem(ctx),

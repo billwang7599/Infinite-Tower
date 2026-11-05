@@ -1,6 +1,7 @@
 import {
   blessingsOf, coreStats, dodgeCost, drawCost, drawTime, feltHeft, FIXED_DT, gearBurden, guardOf, guardRaiseTime,
-  GUARDS, isWeapon, ITEMS, meleeOf, modsFrom, parryWindowTime, passivesOf, perfectBlockTime, rangedOf,
+  GUARDS, isWeapon, ITEMS, knockbackTakenFactor, meleeOf, modsFrom, parryWindowTime, passivesOf, perfectBlockTime,
+  rangedOf,
   staminaRegenPerSec, STRIKES, strikeCost, WEAPONS, windupTime, type Carried, type CoreState, type Faith,
   type GuardKind, type Hand, type MeleeMoves, type Strike, type Weapon, type WeaponId,
 } from "@infinite-tower/shared";
@@ -72,6 +73,6 @@ export function combatNumbers(gear: Carried, core: CoreState, faith: Faith): Com
     },
     dodgeStamina: dodgeCost(gearBurden(gear, stats)),
     staminaRegenPerSec: staminaRegenPerSec(stats, mods.staminaRegenFactor),
-    knockbackTakenFactor: mods.knockbackFactor,
+    knockbackTakenFactor: knockbackTakenFactor(stats) * mods.knockbackFactor,
   };
 }

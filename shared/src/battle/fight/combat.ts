@@ -12,10 +12,10 @@ import {
   type ActiveHitData, type EnemyData, type HealthData, type PlayerData, type SkilledData, type StaminaData,
 } from "../components.js";
 import { PLAYER } from "../player.js";
-import { FighterStats, HP_REGEN_PAUSE_TIME, stunTime } from "../stats.js";
+import { FighterStats, HP_REGEN_PAUSE_TIME, knockbackTakenFactor, stunTime } from "../stats.js";
 import { applyStatus, modsOf } from "../statuses.js";
 import { EMBERS } from "../../soul/inscriptions.js";
-import type { FightEvent } from "./context.js";
+import type { FightContext, FightEvent } from "./context.js";
 import { enter } from "./behaviors/common.js";
 import { interrupt } from "./skills/skilled.js";
 import { hurt, lifesteal } from "./health.js";
@@ -71,11 +71,13 @@ export function knock(body: Vec3, from: Vec3, vel: Vec3, speed: number, lift = 0
 export function knockbackOf(world: World, e: Entity, speed: number): number {
   const enemy = world.get(e, Enemy);
   if (enemy?.armored) return 0;
-  return speed * (enemy?.def.knockbackFactor ?? 1) * modsOf(world, e).knockbackFactor;
+  const taken = enemy ? enemy.def.knockbackFactor ?? 1 : knockbackTakenFactor(world.require(e, FighterStats));
+  return speed * taken * modsOf(world, e).knockbackFactor;
 }
 
 /** Ticks the hit timers, then resolves every live hitbox. What each hit did is reported in `events`. */
-export function combatSystem(events: FightEvent[]): System {
+export function combatSystem(ctx: FightContext): System {
+  const { events } = ctx;
   return (world, dt) => {
     for (const [, h] of world.query(Health)) {
       h.invuln = Math.max(0, h.invuln - dt);
@@ -94,7 +96,7 @@ export function combatSystem(events: FightEvent[]): System {
         if (targetHealth.invuln > 0) continue;
 
         hit.alreadyHit.add(target);
-        if (defend(world, events, attacker, hit, target)) {
+        if (defend(ctx, attacker, hit, target)) {
           if (!world.has(attacker, ActiveHit)) break;
           continue;
         }

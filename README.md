@@ -81,7 +81,8 @@ What's built so far:
   Sword fights are simple to learn (Souls-like): left and right click swing light and heavy, the back side button or
   K stabs, and a flick of the mouse picks which way the next swing goes; chained swings hit harder (the reverse swing
   quickest) until a gap, block, dodge or hit taken, and a stab spends it. A held block (left Shift) stops anything in
-  front for stamina and a chip, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
+  front for stamina and a chip, pushing you back (less the stronger you are), twice the chip getting through with your
+  back to the wall, and breaks when the stamina runs out; pressed just before a hit it's a perfect block,
   free, costing the attacker stamina and opening them; pressed in your own heavy's wind-up it feints it. Stamina is
   the one bar for attacks, dodges and blocks. A landed hit holds the picture for a beat (longer the heavier the
   blade; the fight itself never pauses), jolts its target the way the blade went and knocks it back, a heavy

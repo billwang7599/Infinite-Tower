@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  applyStatus, Body, Enemy, Health, HP_REGEN_PAUSE_TIME, hpRegenPerSec, maxHpOf, moveSpeed, physicalTakenFactor, PLAYER,
+  applyStatus, Body, Enemy, Health, HP_REGEN_PAUSE_TIME, hpRegenPerSec, knockbackTakenFactor, maxHpOf, moveSpeed,
+  physicalTakenFactor, PLAYER,
   skillTakenFactor, Stamina, staminaRegenPerSec, Statuses, stunTime, type EnemyDef, type Stats, type Vec3,
 } from "@infinite-tower/shared";
 import { Fight, initPhysics } from "@infinite-tower/shared/fight";
@@ -24,10 +25,11 @@ function fightWith(stats: Partial<Stats>, foe: EnemyDef = STATUE, foeAt = at(0, 
 }
 const health = (fight: Fight) => fight.world.require(fight.players[0]!, Health);
 
-function bitten(stats: Partial<Stats>): { lost: number; hitstun: number } {
+function bitten(stats: Partial<Stats>): { lost: number; hitstun: number; knockedMps: number } {
   const fight = fightWith(stats, BITER, at(0, 1.5));
   for (let i = 0; i < 300 && health(fight).hp === HURT_HP; i++) fight.step([input({})]);
-  return { lost: HURT_HP - health(fight).hp, hitstun: health(fight).hitstun };
+  const { vel } = fight.world.require(fight.players[0]!, Body);
+  return { lost: HURT_HP - health(fight).hp, hitstun: health(fight).hitstun, knockedMps: Math.hypot(vel.x, vel.z) };
 }
 
 describe("the core's stats in a fight", () => {
@@ -53,6 +55,13 @@ describe("the core's stats in a fight", () => {
     const plain = bitten({}), tough = bitten({ toughness: 2 * STATS.toughness });
     assert.ok(plain.hitstun > 0);
     close(tough.hitstun, stunTime(plain.hitstun, { ...STATS, toughness: 2 * STATS.toughness }));
+  });
+
+  test("strength and steadiness shrink a body blow's knockback", () => {
+    close(bitten({}).knockedMps, BITER.attacks.lunge!.knockback);
+    for (const stats of [{ strength: 4 * STATS.strength }, { steadiness: 4 * STATS.steadiness }]) {
+      close(bitten(stats).knockedMps, bitten({}).knockedMps * knockbackTakenFactor({ ...STATS, ...stats }));
+    }
   });
 
   test("an enemy's toughness shortens its stagger", () => {
